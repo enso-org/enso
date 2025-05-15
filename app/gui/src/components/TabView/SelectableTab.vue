@@ -1,39 +1,49 @@
 <script setup lang="ts">
+import SvgIcon from '@/components/SvgIcon.vue'
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { motion } from 'motion-v'
+import { computed } from 'vue'
 import CloseButton from '../CloseButton.vue'
 
 const selected = defineModel<boolean>('selected')
-defineProps<{
+const props = defineProps<{
   icon?: Icon | undefined
   label?: string | undefined
+  title?: string | undefined
   onClose?: (() => void) | undefined
 }>()
+
+const whenTooltip = computed(() => (props.label && !props.title ? 'whenOverflow' : 'always'))
 </script>
 
 <template>
-  <div class="SelectableTab" @click="selected = true">
-    <motion.div v-if="selected" class="underlying" layoutId="tab-highlight">
-      <!-- TODO[ao]: Style copied from dashboard. Anyone is welcome to port it <style scoped> 
+  <TooltipTrigger :when="whenTooltip">
+    <template #default="triggerProps">
+      <div class="SelectableTab" @click="selected = true" v-bind="triggerProps">
+        <motion.div v-if="selected" class="underlying" layoutId="tab-highlight">
+          <!-- TODO[ao]: Style copied from dashboard. Anyone is welcome to port it <style scoped> 
         in their free time -->
-      <div class="h-full w-full rounded-t-4xl bg-dashboard" />
-      <div
-        class="absolute -left-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_0%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
-      />
-      <div
-        class="absolute -right-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_100%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
-      />
-    </motion.div>
-    <button role="tab" class="content">
-      <SvgIcon v-if="icon" :name="icon" />
-      <slot />
-      <TooltipTrigger when="when-overflow">
-        <span v-if="label" class="label">{{ label }}</span>
-      </TooltipTrigger>
-      <CloseButton v-if="onClose" @click="onClose" />
-    </button>
-  </div>
+          <div class="h-full w-full rounded-t-4xl bg-dashboard" />
+          <div
+            class="absolute -left-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_0%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
+          />
+          <div
+            class="absolute -right-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_100%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
+          />
+        </motion.div>
+        <button role="tab" class="content">
+          <SvgIcon v-if="icon" :name="icon" />
+          <slot />
+          <span v-if="label" class="label">{{ label }}</span>
+          <CloseButton v-if="onClose" @click="onClose" />
+        </button>
+      </div>
+    </template>
+    <template v-if="$slots.tooltip || title || label" #tooltip>
+      <slot name="tooltip">{{ title ?? label }}</slot>
+    </template>
+  </TooltipTrigger>
 </template>
 
 <style scoped>

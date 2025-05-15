@@ -11,7 +11,7 @@ import {
 } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
 
-export type TooltipDisplayStrategy = 'always' | 'when-overflow'
+export type TooltipDisplayStrategy = 'always' | 'whenOverflow'
 
 interface TooltipEntry {
   contents: Ref<Slot | undefined>
