@@ -1,5 +1,0 @@
-import project.Prototype.My_Base_Column.My_Base_Column
-
-# TODO
-My_Base_Column.select_into_database connection =
-    connection.to_text+"..."
