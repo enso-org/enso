@@ -12,11 +12,9 @@ public abstract class NumericBuilder implements Builder {
     this.currentSize = 0;
   }
 
-  @Override
-  public NumericBuilder appendNulls(int count) {
+  protected void doAppendNulls(int count) {
     isNothing.set(currentSize, currentSize + count);
     currentSize += count;
-    return this;
   }
 
   @Override

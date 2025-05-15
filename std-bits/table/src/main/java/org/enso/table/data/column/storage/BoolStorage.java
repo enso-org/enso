@@ -3,8 +3,6 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.function.IntFunction;
-import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -200,38 +198,6 @@ public final class BoolStorage extends Storage<Boolean>
       context.safepoint();
     }
     return builder.seal();
-  }
-
-  public Storage<?> iif(
-      Value when_true,
-      Value when_false,
-      StorageType<?> resultStorageType,
-      ProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    var on_true = makeRowProvider(when_true);
-    var on_false = makeRowProvider(when_false);
-    Builder builder = Builder.getForType(resultStorageType, size, problemAggregator);
-    for (int i = 0; i < size; i++) {
-      if (isNothing.get(i)) {
-        builder.appendNulls(1);
-      } else if (getItemAsBoolean(i)) {
-        builder.append(on_true.apply(i));
-      } else {
-        builder.append(on_false.apply(i));
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  private static IntFunction<Object> makeRowProvider(Value value) {
-    if (value.isHostObject() && value.asHostObject() instanceof Storage<?> s) {
-      return i -> (Object) s.getItemBoxed(i);
-    }
-    var converted = Polyglot_Utils.convertPolyglotValue(value);
-    return i -> converted;
   }
 
   private static MapOperationStorage<Boolean, BoolStorage> buildOps() {

@@ -24,15 +24,9 @@ public final class LogicalOperations {
   public static final BinaryOperation<Boolean> OR = new BooleanOrOperation();
 
   /**
-   * Logical AND with support for Nulls:
-   * - True && True = True
-   * - True && False = False
-   * - False && True = False
-   * - False && False = False
-   * - True && Null = Null
-   * - Null && True = Null
-   * - False && Null = False
-   * - Null && False = False
+   * Logical AND with support for Nulls: - True && True = True - True && False = False - False &&
+   * True = False - False && False = False - True && Null = Null - Null && True = Null - False &&
+   * Null = False - Null && False = False
    */
   private static class BooleanAndOperation extends BinaryOperationBoolean {
     private BooleanAndOperation() {
@@ -142,15 +136,9 @@ public final class LogicalOperations {
   }
 
   /**
-   * Logical OR with support for Nulls:
-   * - True || True = True
-   * - True || False = True
-   * - False || True = True
-   * - False || False = False
-   * - True || Null = True
-   * - Null || True = True
-   * - False || Null = Null
-   * - Null || False = Null
+   * Logical OR with support for Nulls: - True || True = True - True || False = True - False || True
+   * = True - False || False = False - True || Null = True - Null || True = True - False || Null =
+   * Null - Null || False = Null
    */
   private static class BooleanOrOperation extends BinaryOperationBoolean {
     private BooleanOrOperation() {
