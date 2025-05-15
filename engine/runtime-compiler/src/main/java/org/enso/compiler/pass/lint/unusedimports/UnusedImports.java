@@ -92,11 +92,13 @@ public final class UnusedImports implements IRPass {
         if (imp instanceof Import.Module impMod && impMod.onlyNames().isDefined()) {
           var importedSymbols = importedSymbols(imp, bm);
           var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(imp);
-          var diff = new HashSet<>(importedSymbols);
-          diff.removeAll(usedSymbolsForImp);
-          if (!diff.isEmpty()) {
-            var warn = createWarning(imp, diff);
-            imp.getDiagnostics().add(warn);
+          if (importedSymbols.size() != usedSymbolsForImp.size()) {
+            var diff = new HashSet<>(importedSymbols);
+            diff.removeAll(usedSymbolsForImp);
+            if (!diff.isEmpty()) {
+              var warn = createWarning(imp, diff);
+              imp.getDiagnostics().add(warn);
+            }
           }
         } else {
           var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(imp);
