@@ -168,6 +168,18 @@ function useSortFilterNodesButton({
     ])
   }
 
+  function buildPattern(
+    ast: Ast.Owned<Ast.MutableExpression>,
+    parentPattern: any,
+    columnName: string,
+    filterType: FilterType,
+    filterAction: FilterAction,
+    value?: string[] | string | FilterValueRange,
+  ) {
+    const filterExpr = buildFilterExpression(ast, columnName, filterType, filterAction, value)
+    return createFilterCall(ast, filterExpr, parentPattern)
+  }
+
   const sortDirection = computed(() => ({
     asc: '..Ascending',
     desc: '..Descending',
@@ -184,18 +196,6 @@ function useSortFilterNodesButton({
         ]),
       )
     return Ast.Vector.new(ast.module, sorts)
-  }
-
-  function buildPattern(
-    ast: Ast.Owned<Ast.MutableExpression>,
-    parentPattern: any,
-    columnName: string,
-    filterType: FilterType,
-    filterAction: FilterAction,
-    value?: string[] | string | FilterValueRange,
-  ) {
-    const filterExpr = buildFilterExpression(ast, columnName, filterType, filterAction, value)
-    return createFilterCall(ast, filterExpr, parentPattern)
   }
 
   function getAstPatternSort(): Pattern {
