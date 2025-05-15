@@ -7,26 +7,16 @@ declare const brandTargetType: unique symbol
 
 <script setup lang="ts">
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
-import type { SubmenuComponent } from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
-import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
 import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowserWidget/paths'
 import { useBackend } from '@/composables/backend'
 import { Action } from '@/providers/action'
 import { injectProjectBackend } from '@/providers/backend'
-import { injectInteractionHandler, Interaction } from '@/providers/interactionHandler'
-import {
-  FileType,
-  isExtensions,
-  isFileTypes,
-  isGlobAll,
-} from '@/providers/widgetRegistry/configuration'
+import { FileType } from '@/providers/widgetRegistry/configuration'
 import { assert } from '@/util/assert'
-import { endOnClick, targetIsOutside } from '@/util/autoBlur'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import type { AnyAsset, DirectoryAsset, DirectoryId } from 'enso-common/src/services/Backend'
@@ -38,7 +28,7 @@ import Backend, {
   AssetType,
 } from 'enso-common/src/services/Backend'
 import { computed, onMounted, reactive, ref, toRef, toValue, useTemplateRef, watch } from 'vue'
-import { SubmenuEntry } from '../GraphEditor/widgets/WidgetSelection/submenuEntry'
+import FileNameBar from './FileBrowserWidget/FileNameBar.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -322,135 +312,11 @@ onMounted(() => {
   )
 })
 
-// === File Extension Filter ===
-
-const interaction = injectInteractionHandler()
-const fileExtensionDropdownOpened = ref(false)
 const root = useTemplateRef<HTMLDivElement>('root')
-const fileExtensionInputRoot = useTemplateRef<HTMLDivElement>('fileExtensionInputRoot')
-const submenuRef = useTemplateRef<SubmenuComponent>('submenuRef')
-const fileExtensionInput = useTemplateRef<InstanceType<typeof AutoSizedInput>>('fileExtensionInput')
-
-const fileExtensionEntries = computed(() => props.fileTypes.map(fileTypeToFileExtensionEntry))
-
-function isSelected(value: string): boolean {
-  if (fileExtensionFilter.filter.value.type === 'glob') return false
-  if (fileExtensionFilter.filter.value.type === 'userInput')
-    return fileExtensionFilter.filter.value.input === value
-  return fileExtensionFilter.filter.value.label === value
-}
-
-function fileTypeToFileExtensionEntry(fileType: FileType): FileExtensionEntry {
-  const nestedValues =
-    isFileTypes(fileType.extensions) ? fileType.extensions.map(fileTypeToFileExtensionEntry) : []
-  const extensions =
-    isGlobAll(fileType.extensions) ? 'all'
-    : isExtensions(fileType.extensions) ? fileType.extensions
-    : []
-  return {
-    value: fileType.label,
-    extensions,
-    selected: isSelected(fileType.label),
-    isNested: nestedValues.length > 0,
-    nestedValues: nestedValues,
-  }
-}
-
-function isOutsideDropdown(event: Event) {
-  return submenuRef.value?.isTargetOutside(event) ?? false
-}
-
-function isOutsideWidget(event: Event) {
-  return targetIsOutside(event, root.value)
-}
-
-// Close the dropdown when clicking outside of it, but also end parent interaction (file browser widget) when clicking outside of both.
-const fileExtensionDropdownInteraction: Interaction = endOnClick(
-  (event) => isOutsideDropdown(event) && !isOutsideWidget(event),
-  {
-    cancel: () => {
-      fileExtensionDropdownOpened.value = false
-    },
-    end: () => {
-      fileExtensionDropdownOpened.value = false
-    },
-    pointerdown: (event) => {
-      if (
-        isOutsideDropdown(event) &&
-        isOutsideWidget(event) &&
-        fileExtensionDropdownInteraction.parentInteraction
-      ) {
-        interaction.end(fileExtensionDropdownInteraction.parentInteraction)
-      }
-    },
-  },
-)
-
-interaction.setWhenWithParent(
-  () => fileExtensionDropdownOpened.value,
-  (parentInteraction) => {
-    fileExtensionDropdownInteraction.parentInteraction = parentInteraction
-    return fileExtensionDropdownInteraction
-  },
-)
-
-function openDropdown() {
-  if (!fileExtensionDropdownOpened.value) {
-    fileExtensionDropdownOpened.value = true
-  }
-  fileExtensionInput.value?.select()
-}
-
-function extensionSelected(entry: FileExtensionEntry) {
-  interaction.end(fileExtensionDropdownInteraction)
-  if (fileExtensionInputContents.value !== entry.value) {
-    filenameInputContents.value = ''
-  }
-  if (entry.extensions === 'all' || entry.extensions.length === 0) {
-    fileExtensionFilter.filter.value = {
-      type: 'glob',
-    }
-  } else {
-    fileExtensionFilter.filter.value = {
-      type: 'predefined',
-      label: entry.value,
-      extensions: entry.extensions,
-    }
-  }
-}
-
-const fileExtensionInputModel = computed({
-  get: () => {
-    if (fileExtensionFilter.filter.value.type === 'userInput') {
-      return fileExtensionFilter.filter.value.input
-    }
-    return fileExtensionFilter.displayedExtension.value
-  },
-  set: (value) => {
-    fileExtensionInputContents.value = value
-  },
-})
-
-interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
-  extensions: 'all' | string[]
-}
 </script>
 
 <template>
   <div ref="root" class="FileBrowserWidgetWrapper">
-    <SelectionSubmenu
-      ref="submenuRef"
-      :rootElement="undefined"
-      :floatReference="fileExtensionInputRoot"
-      :show="fileExtensionDropdownOpened"
-      :entries="fileExtensionEntries"
-      :isSelected="() => false"
-      :topLevel="true"
-      :color="'white'"
-      :backgroundColor="'var(--background-color)'"
-      :style="{ zIndex: -5 }"
-      @clickedEntry="extensionSelected"
-    />
     <div class="FileBrowserWidget">
       <div v-if="askForOverwrite" class="confirmationModal">
         <div class="confirmationText">
@@ -525,43 +391,16 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
           </TransitionGroup>
         </ContextMenuTrigger>
       </div>
-      <div v-if="writeMode" class="fileNameBar">
-        <input
-          v-model="filenameInputContents"
-          class="inputField fileNameInput"
-          @pointerdown.stop
-          @click.stop
-          @contextmenu.stop
-          @keydown.backspace.stop
-          @keydown.delete.stop
-          @keydown.arrow-left.stop
-          @keydown.arrow-right.stop
-          @keydown.enter.stop="tryAcceptCurrentFile"
-        />
-        <div
-          v-if="fileExtensionFilter.filter.value.type !== 'predefined'"
-          class="fileExtensionSeparator"
-        ></div>
-        <div ref="fileExtensionInputRoot" class="fileExtensionInputContainer">
-          <SvgIcon
-            name="arrow_right_head_only"
-            class="arrow widgetOutOfLayout"
-            :class="{ hovered: false }"
-          />
-          <AutoSizedInput
-            ref="fileExtensionInput"
-            v-model="fileExtensionInputModel"
-            class="inputField"
-            @click="openDropdown()"
-          />
-        </div>
-        <SvgButton
-          class="fileNameAcceptButton"
-          label="Ok"
-          :disabled="!filenameInputContents"
-          @click.stop="tryAcceptCurrentFile"
-        />
-      </div>
+      <FileNameBar
+        v-if="writeMode"
+        v-model:filenameInputContents="filenameInputContents"
+        v-model:fileExtensionInputContents="fileExtensionInputContents"
+        :fileExtensionFilter="fileExtensionFilter"
+        :fileTypes="props.fileTypes ?? []"
+        :root="root"
+        @acceptCurrentFile="tryAcceptCurrentFile"
+        @setFilter="fileExtensionFilter.filter.value = $event"
+      />
     </div>
   </div>
 </template>
@@ -678,59 +517,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
   position: absolute;
 }
 
-.fileNameBar {
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  padding: var(--border-width) 0 0 0;
-  gap: var(--border-width);
-}
-
-.inputField {
-  border-radius: var(--border-radius-inner);
-  height: calc(var(--border-radius-inner) * 2);
-  padding: 0 8px;
-  background-color: var(--color-frame-selected-bg);
-  appearance: textfield;
-  -moz-appearance: textfield;
-  user-select: all;
-}
-
-.fileNameInput {
-  flex-grow: 1;
-}
-
-.fileExtensionSeparator {
-  width: 0;
-  &::before {
-    content: '.';
-    font-size: 26px;
-    color: var(--color-frame-selected-bg);
-    position: relative;
-    left: -4px;
-    bottom: -4px;
-  }
-}
-
-.fileExtensionInputContainer {
-  position: relative;
-}
-
-svg.arrow {
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%) rotate(90deg) scale(0.7);
-  transform-origin: center;
-  opacity: 0.5;
-  /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
-  pointer-events: none;
-  &.hovered {
-    opacity: 0.9;
-  }
-}
-
-.fileNameAcceptButton,
+:deep(.fileNameAcceptButton),
 .confirmationButton {
   --color-menu-entry-hover-bg: color-mix(in oklab, var(--color-frame-selected-bg), black 10%);
   border-radius: var(--border-radius-inner);

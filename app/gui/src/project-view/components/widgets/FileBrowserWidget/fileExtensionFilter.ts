@@ -74,3 +74,5 @@ export function useFileExtensionFilter(
 
   return { matches, filter, filenameSuffix, displayedExtension }
 }
+
+export type FileExtensionFilter = ReturnType<typeof useFileExtensionFilter>
