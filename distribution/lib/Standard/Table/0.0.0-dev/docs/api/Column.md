@@ -16,14 +16,14 @@
     - ^ self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
     - at self index:Standard.Base.Data.Numbers.Integer= -> (Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)!Standard.Base.Errors.Common.Index_Out_Of_Bounds
     - auto_cast self shrink_types:Standard.Base.Data.Boolean.Boolean= -> Standard.Table.Column.Column
-    - auto_value_type self shrink_types:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - auto_value_type self shrink_types:Standard.Base.Data.Boolean.Boolean= -> Standard.Table.Column.Column
     - between self lower:(Standard.Table.Column.Column|Standard.Base.Any.Any) upper:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
     - cast self value_type:Standard.Table.Value_Type.Value_Type on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Column.Column!(Standard.Base.Errors.Illegal_Argument.Illegal_Argument|Standard.Table.Errors.Inexact_Type_Coercion|Standard.Table.Errors.Conversion_Failure)
     - ceil self -> Standard.Table.Column.Column!Standard.Table.Errors.Invalid_Value_Type
     - coalesce self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> Standard.Table.Column.Column
     - compute self statistic:Standard.Base.Data.Statistics.Statistic= -> Standard.Base.Any.Any
     - compute_bulk self statistics:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Statistics.Statistic)= -> Standard.Table.Table.Table
-    - const self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - const self value:Standard.Base.Any.Any -> Standard.Table.Column.Column
     - contains self other:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Table.Column.Column
     - count self -> Standard.Base.Data.Numbers.Integer
     - count_nothing self -> Standard.Base.Data.Numbers.Integer
@@ -48,7 +48,7 @@
     - get self index:Standard.Base.Data.Numbers.Integer= ~default:Standard.Base.Any.Any= -> (Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)
     - hour self -> Standard.Table.Column.Column!Standard.Table.Errors.Invalid_Value_Type
     - iif self when_true:(Standard.Table.Column.Column|Standard.Base.Any.Any) when_false:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-    - inferred_precise_value_type self -> Standard.Base.Any.Any
+    - inferred_precise_value_type self -> Standard.Table.Value_Type.Value_Type
     - info self -> Standard.Table.Table.Table
     - is_blank self treat_nans_as_blank:Standard.Base.Data.Boolean.Boolean= -> Standard.Table.Column.Column
     - is_empty self -> Standard.Table.Column.Column
@@ -89,7 +89,7 @@
     - text_length self -> Standard.Table.Column.Column
     - text_replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex|Standard.Table.Column.Column)= new_text:(Standard.Base.Data.Text.Text|Standard.Table.Column.Column)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Table.Column.Column
     - text_right self n:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer) -> Standard.Table.Column.Column
-    - to_js_object self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Data.Json.JS_Object
     - to_table self -> Standard.Table.Table.Table
     - to_text self -> Standard.Base.Data.Text.Text
     - to_vector self -> Standard.Base.Data.Vector.Vector
