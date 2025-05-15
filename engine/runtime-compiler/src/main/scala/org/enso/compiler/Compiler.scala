@@ -32,6 +32,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
 import org.enso.compiler.docs.{DocsGenerate, DocsVisit}
 import org.enso.compiler.dump.service.{IRDumpFactoryService, IRDumper}
+import org.enso.compiler.pass.lint.unusedimports.UnusedImportsRemover
 import org.enso.compiler.phase.exports.{
   ExportCycleException,
   ExportSymbolAnalysis,
@@ -41,6 +42,7 @@ import org.enso.syntax2.Tree
 import org.enso.syntax2.Parser
 
 import java.io.PrintStream
+import java.nio.file.Path
 import java.util.concurrent.{
   CompletableFuture,
   ExecutorService,
@@ -106,6 +108,10 @@ class Compiler(
   /** @return the package repository instance. */
   def getPackageRepository: PackageRepository =
     context.getPackageRepository
+
+  private def shouldRemoveUnusedImports(): Boolean = {
+    config.removeUnusedImports()
+  }
 
   /** Processes the provided language sources, registering any bindings in the
     * given scope.
@@ -180,6 +186,15 @@ class Compiler(
               generateCode = false,
               shouldCompileDependencies
             )
+
+            if (shouldRemoveUnusedImports()) {
+              packageModules.foreach { mod =>
+                if (!mod.isSynthetic) {
+                  val modPath = Path.of(mod.getUri)
+                  UnusedImportsRemover.removeUnusedImports(modPath, mod)
+                }
+              }
+            }
 
             if (generateDocs.isDefined) {
               val v = if (generateDocs.get == "api") {

@@ -1,5 +1,4 @@
 /** @file Functions related to displaying text. */
-
 import ENGLISH from './text/english.json' with { type: 'json' }
 import { unsafeKeys } from './utilities/data/object'
 
@@ -56,10 +55,6 @@ interface PlaceholderOverrides {
   readonly youAreAlreadyAddingUser: [userEmail: string]
   readonly lastModifiedOn: [dateString: string]
   readonly versionX: [version: number | string]
-  readonly buildX: [build: string]
-  readonly electronVersionX: [electronVersion: string]
-  readonly chromeVersionX: [chromeVersion: string]
-  readonly userAgentX: [userAgent: string]
   readonly compareVersionXWithY: [versionNumber: number | string, versionNumber: string | number]
   readonly compareWithVersionY: [versionNumber: number | string]
   readonly projectSessionX: [count: number]
@@ -84,7 +79,6 @@ interface PlaceholderOverrides {
   readonly updateAssetBackendError: [assetTitle: string]
   readonly deleteAssetBackendError: [assetTitle: string]
   readonly createProjectBackendError: [projectTitle: string]
-  readonly restoreProjectBackendError: [projectTitle: string]
   readonly duplicateProjectBackendError: [projectTitle: string]
   readonly closeProjectBackendError: [projectTitle: string]
   readonly listProjectSessionsBackendError: [projectTitle: string]
@@ -138,7 +132,6 @@ interface PlaceholderOverrides {
 
   readonly upgradeCTA: [plan: string]
   readonly priceTemplate: [price: string, interval: string]
-  readonly months: [months: number]
   readonly teamPlanSeatsDescription: [seats: number]
   readonly tryFree: [days: number]
   readonly organizationNameSettingsInputDescription: [howLong: number]
@@ -147,14 +140,18 @@ interface PlaceholderOverrides {
   readonly xMinutes: [minutes: number]
   readonly xAm: [hour: string]
   readonly xPm: [hour: string]
-  readonly everyHourXMinute: [minute: string]
   readonly groupNameSettingsInputDescription: [howLong: number]
   readonly xIsUsingTheProject: [userName: string]
   readonly xItemsCopied: [count: number]
   readonly xItemsCut: [count: number]
-  readonly ordinalFallback: [number: number]
+  readonly uploadedXFilesNotification: [count: number]
+  readonly uploadingXFilesWithProgressNotification: [
+    sentFiles: number,
+    totalFiles: number,
+    progressMb: string,
+    totalMb: string,
+  ]
   readonly dateXTimeX: [date: string, time: string]
-  readonly hourlyBetweenX: [startTime: string, endTime: string]
   readonly projectSessionsOnX: [date: string]
   readonly monthlyXthDay: [dateOrdinal: string]
   readonly monthlyXthXDay: [weekOrdinal: string, dayOfWeek: string]
@@ -167,7 +164,7 @@ interface PlaceholderOverrides {
 
   readonly arbitraryFieldTooLarge: [maxSize: string]
   readonly arbitraryFieldTooSmall: [minSize: string]
-  readonly uploadLargeFileStatus: [uploadedParts: number, totalParts: number]
+  readonly uploadLargeFileStatus: [uploadedMb: string, totalMb: string]
 
   readonly latestVersion: [version: string, date: string]
   readonly copyInsteadOfMoving: [categoryName: string]
@@ -178,14 +175,15 @@ interface PlaceholderOverrides {
   ]
 }
 
+// This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes
+// out of sync with `TextId`.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type SanityCheck<T extends TextId = keyof PlaceholderOverrides> = T
+
 /** An tuple of `string` for placeholders for each {@link TextId}. */
 export interface Replacements
   extends PlaceholderOverrides,
     Record<Exclude<TextId, keyof PlaceholderOverrides>, []> {}
-
-// =================
-// === Constants ===
-// =================
 
 export const TEXTS: Readonly<Record<Language, Texts>> = {
   [Language.english]: ENGLISH,
@@ -203,9 +201,7 @@ export type GetText = <K extends TextId>(
   ...replacements: Replacements[K]
 ) => string
 
-/**
- * Resolves the language texts based on the user's preferred language.
- */
+/** Resolves the language texts based on the user's preferred language. */
 export function resolveUserLanguage() {
   const locale = navigator.language
   const language =

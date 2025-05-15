@@ -157,7 +157,6 @@
     "@tanstack/react-query-devtools": "5.59.20",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.0.1",
-    "@testing-library/react-hooks": "8.0.1",
     "@testing-library/user-event": "14.5.2",
     "@tsconfig/node20": "^20.1.4",
     "@types/css.escape": "^1.5.2",
