@@ -1,12 +1,22 @@
 <script setup lang="ts">
 import CreateNodeFromPortButton from '@/components/GraphEditor/CreateNodeFromPortButton.vue'
 import { useApproach } from '@/composables/animation'
+import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphEditorState } from '@/providers/graphEditorState'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
-import { computed, effectScope, onScopeDispose, ref, watchEffect, type EffectScope } from 'vue'
+import {
+  computed,
+  effectScope,
+  onScopeDispose,
+  ref,
+  toRef,
+  watchEffect,
+  type EffectScope,
+} from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
 
 const props = defineProps<{ nodeId: NodeId; forceVisible: boolean }>()
@@ -22,7 +32,13 @@ const emit = defineEmits<{
 const graph = useGraphStore()
 
 const nodeRect = computed(() => graph.nodeRects.get(props.nodeId))
-const nodeColor = computed(() => graph.db.getNodeColorStyle(props.nodeId))
+
+const selection = injectGraphSelection(true)
+const { baseColor, selected, pending } = useComponentColors(
+  graph.db,
+  selection,
+  toRef(props, 'nodeId'),
+)
 
 // === Ports ===
 
@@ -121,7 +137,7 @@ const nodeStyle = computed(() => ({
   '--hover-animation': portsHoverAnimation.value,
   '--node-size-x': `${nodeRect.value?.size.x ?? 0}px`,
   '--node-size-y': `${nodeRect.value?.size.y ?? 0}px`,
-  '--node-group-color': nodeColor.value,
+  '--node-group-color': baseColor.value,
   transform: `translate(${nodeRect.value?.pos.x ?? 0}px, ${nodeRect.value?.pos.y ?? 0}px)`,
 }))
 
@@ -142,6 +158,7 @@ graph.suggestEdgeFromOutput(outputHovered)
   <g
     class="GraphNodeOutputPorts define-node-colors"
     :style="nodeStyle"
+    :class="{ selected, pending }"
     :data-output-ports-node-id="props.nodeId"
   >
     <template v-for="port of outputPorts" :key="port.portId">
@@ -181,7 +198,7 @@ graph.suggestEdgeFromOutput(outputHovered)
   rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
 
   fill: none;
-  stroke: var(--color-node-output-port);
+  stroke: var(--color-edge-from-node);
   stroke-width: calc(var(--output-port-width) + var(--output-port-overlap-anim));
   transition: stroke 0.2s ease;
   --horizontal-line: calc(var(--node-size-x) - var(--node-border-radius) * 2);

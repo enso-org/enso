@@ -17,7 +17,7 @@ pnpmfileChecksum: sha256-KvDH4tAvadbedV6wwVJB2Lt0GMnrnPhlX6OZuP/T8XI=
 
 patchedDependencies:
   '@chromatic-com/playwright':
-    hash: ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca
+    hash: f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8
     path: patches/@chromatic-com__playwright.patch
 
 importers:
@@ -112,9 +112,6 @@ importers:
       lib0:
         specifier: ^0.2.99
         version: 0.2.99
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
       vitest:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
@@ -403,7 +400,7 @@ importers:
         version: 7.26.0(@babel/core@7.26.8)
       '@chromatic-com/storybook':
         specifier: ^3.2.3
-        version: 3.2.3(@chromatic-com/playwright@0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2)))(react@18.3.1)(storybook@8.5.0)
+        version: 3.2.3(@chromatic-com/playwright@0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2)))(react@18.3.1)(storybook@8.5.0)
       '@codemirror/theme-one-dark':
         specifier: ^6.1.2
         version: 6.1.2
@@ -523,7 +520,7 @@ importers:
         version: 5.4.1
       chromatic:
         specifier: 11.25.1
-        version: 11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2)))
+        version: 11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2)))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -647,7 +644,7 @@ importers:
         version: 7.26.0(@babel/core@7.26.8)
       '@chromatic-com/playwright':
         specifier: '=0.10.2'
-        version: 0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
+        version: 0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
       '@electron/notarize':
         specifier: 2.1.0
         version: 2.1.0
@@ -677,7 +674,7 @@ importers:
         version: 19.0.0-beta-6fc168f-20241025
       chromatic:
         specifier: 11.25.1
-        version: 11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)))
+        version: 11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)))
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -9193,7 +9190,7 @@ snapshots:
 
   '@bazel/runfiles@6.3.1': {}
 
-  '@chromatic-com/playwright@0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2))':
+  '@chromatic-com/playwright@0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2))':
     dependencies:
       '@chromaui/rrweb-snapshot': 2.0.0-alpha.17-noAbsolute
       '@playwright/test': 1.50.1
@@ -9225,7 +9222,7 @@ snapshots:
       - webpack-cli
     optional: true
 
-  '@chromatic-com/playwright@0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))':
+  '@chromatic-com/playwright@0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))':
     dependencies:
       '@chromaui/rrweb-snapshot': 2.0.0-alpha.17-noAbsolute
       '@playwright/test': 1.50.1
@@ -9256,9 +9253,9 @@ snapshots:
       - vue
       - webpack-cli
 
-  '@chromatic-com/storybook@3.2.3(@chromatic-com/playwright@0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2)))(react@18.3.1)(storybook@8.5.0)':
+  '@chromatic-com/storybook@3.2.3(@chromatic-com/playwright@0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2)))(react@18.3.1)(storybook@8.5.0)':
     dependencies:
-      chromatic: 11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2)))
+      chromatic: 11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2)))
       filesize: 10.1.6
       jsonfile: 6.1.0
       react-confetti: 6.2.2(react@18.3.1)
@@ -11920,7 +11917,7 @@ snapshots:
       storybook: 8.5.0(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
       ts-dedent: 2.2.0
       type-fest: 2.19.0
-      vue-component-type-helpers: 2.2.8
+      vue-component-type-helpers: 2.2.10
 
   '@storybook/vue3@8.5.0(storybook@8.5.0)(vue@3.5.13(typescript@5.7.2))':
     dependencies:
@@ -13385,13 +13382,13 @@ snapshots:
 
   chownr@2.0.0: {}
 
-  chromatic@11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2))):
+  chromatic@11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2))):
     optionalDependencies:
-      '@chromatic-com/playwright': 0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2))
+      '@chromatic-com/playwright': 0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(@storybook/test@8.5.0)(@types/react@18.3.18)(esbuild@0.25.0)(prettier@3.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.37.0)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.7.2))
 
-  chromatic@11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))):
+  chromatic@11.25.1(@chromatic-com/playwright@0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))):
     optionalDependencies:
-      '@chromatic-com/playwright': 0.10.2(patch_hash=ec0f09c639551860c0bf7bd3329d32514d5ac0d148ce444999daf060a5d235ca)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
+      '@chromatic-com/playwright': 0.10.2(patch_hash=f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8)(@playwright/test@1.50.1)(esbuild@0.25.0)(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
 
   chrome-trace-event@1.0.4: {}
 

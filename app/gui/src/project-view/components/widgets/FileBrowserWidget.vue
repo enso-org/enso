@@ -315,13 +315,13 @@ onMounted(() => {
         {{ `File '${filenameInputContents ?? ''}' already exists. Overwrite?` }}
       </div>
       <div class="confirmationButtons">
-        <SvgButton class="confirmationButton" label="No" @click.stop="overwriteCancelled" />
-        <SvgButton class="confirmationButton" label="Yes" @click.stop="overwriteConfirmed" />
+        <SvgButton class="confirmationButton" label="No" @activate="overwriteCancelled" />
+        <SvgButton class="confirmationButton" label="Yes" @activate="overwriteConfirmed" />
       </div>
     </div>
     <div v-if="warningText" class="confirmationModal">
       <div class="confirmationText">{{ 'Warning: ' + warningText }}</div>
-      <SvgButton class="confirmationButton" label="Dismiss" @click.stop="warningDismissed" />
+      <SvgButton class="confirmationButton" label="Dismiss" @activate="warningDismissed" />
     </div>
     <div class="topBar" :class="{ nonInteractive: !enableTopBarButtons }">
       <div class="directoryStack">
@@ -329,7 +329,7 @@ onMounted(() => {
           name="navigate_up"
           title="Up"
           :disabled="!enableTopBarButtons || !canPop"
-          @click.stop="popDirectory"
+          @activate="popDirectory"
         />
         <div class="breadcrumbs">
           <TransitionGroup>
@@ -347,9 +347,9 @@ onMounted(() => {
       </div>
       <SvgButton
         name="folder_add"
-        title="New Folder"
+        title="Add New Folder"
         :disabled="!enableTopBarButtons || editedAsset != null"
-        @click.stop="addNewDirectory"
+        @activate="addNewDirectory"
       />
     </div>
 
@@ -405,7 +405,7 @@ onMounted(() => {
         class="fileNameAcceptButton"
         label="Ok"
         :disabled="!filenameInputContents"
-        @click.stop="tryAcceptCurrentFile"
+        @activate="tryAcceptCurrentFile"
       />
     </div>
   </div>
