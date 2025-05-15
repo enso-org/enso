@@ -57,6 +57,14 @@ public interface Import extends Scope {
           diagnostics);
     }
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static Builder builder(Module module) {
+      return new Builder(module);
+    }
+
     public Module(
         Qualified name,
         Option<Literal> rename,

@@ -3,40 +3,50 @@ import * as commands from '@codemirror/commands'
 import { EditorView, type Command, type KeyBinding } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
 
+export interface CmKeyboardEvent extends KeyboardEvent {
+  codemirrorView: EditorView
+}
+
+function extendCmKeyboardEvent(view: EditorView, event: KeyboardEvent): CmKeyboardEvent {
+  const ext = event as CmKeyboardEvent
+  ext.codemirrorView = view
+  return ext
+}
+
 /**
  * Create a {@link KeyBinding} from an event handler compatible with those defined with our
  * `defineKeybinds` function.
  */
 export function handlerToKeyBinding(
-  handler: (event: KeyboardEvent, stopAndPrevent: boolean) => boolean,
+  handler: (event: CmKeyboardEvent, stopAndPrevent: boolean) => boolean,
   stopAndPrevent: boolean = false,
-) {
+): KeyBinding {
   return {
-    any: (_view: EditorView, event: KeyboardEvent) => handler(event, stopAndPrevent),
+    any: (view: EditorView, event: KeyboardEvent) =>
+      handler(extendCmKeyboardEvent(view, event), stopAndPrevent),
   }
 }
 
 function bindCommands<T extends string>(
   bindings: Record<T, Command>,
-  view: EditorView,
-): Record<T, () => boolean> {
-  return objects.mapEntries(bindings, (_binding, command) => () => command(view))
+): Record<T, (event: CmKeyboardEvent) => boolean> {
+  return objects.mapEntries(
+    bindings,
+    (_binding, command) => (event: CmKeyboardEvent) => command(event.codemirrorView),
+  )
 }
 
 /** @returns Key bindings applicable to all CodeMirror instances. */
-export function baseKeymap(view: EditorView): KeyBinding[] {
+export function baseKeymap(): KeyBinding[] {
   return [
     handlerToKeyBinding(
       textEditorsCommonBindings.handler(
-        bindCommands(
-          {
-            moveLeft: commands.cursorCharLeft,
-            moveRight: commands.cursorCharRight,
-            deleteBack: commands.deleteCharBackward,
-            deleteForward: commands.deleteCharForward,
-          },
-          view,
-        ),
+        bindCommands({
+          moveLeft: commands.cursorCharLeft,
+          moveRight: commands.cursorCharRight,
+          deleteBack: commands.deleteCharBackward,
+          deleteForward: commands.deleteCharForward,
+        }),
       ),
       true,
     ),
@@ -194,7 +204,7 @@ export function baseKeymap(view: EditorView): KeyBinding[] {
  * including both actual multi-line text and single-line text with the `lineWrapping` extension
  * enabled.
  */
-export function verticalMovementKeymap(_view: EditorView): KeyBinding[] {
+export function verticalMovementKeymap(): KeyBinding[] {
   return [
     {
       key: 'ArrowUp',

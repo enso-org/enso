@@ -46,6 +46,7 @@ defineExpose({
     <LazyMarkdownEditor
       ref="inner"
       v-bind="$attrs"
+      class="flex-1"
       :content="props.content"
       :toolbar="props.toolbar"
       :contentTestId="props.contentTestId"

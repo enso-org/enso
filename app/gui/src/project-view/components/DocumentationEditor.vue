@@ -87,7 +87,7 @@ const handler = documentationEditorBindings.handler({
           <FullscreenButton v-model="fullscreen" />
         </template>
         <template #toolbarRight>
-          <SvgButton name="image" title="Insert image" @click.stop="tryUploadImageFile()" />
+          <SvgButton name="image" title="Insert image" @activate="tryUploadImageFile()" />
         </template>
         <template #belowToolbar>
           <slot name="belowToolbar" />

@@ -9,6 +9,7 @@ import { type NodeType, type PrimaryApplication } from '@/stores/graph/graphData
 import { Ast } from '@/util/ast'
 import { iconOfNode, useDisplayedIcon } from '@/util/getIconName'
 import { computed, toRef } from 'vue'
+import { Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps<{
   ast: Ast.Expression
@@ -54,8 +55,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
     selectNode()
   }
   applyWidgetUpdates(update, graph)
-  // This handler is guaranteed to be the last handler in the chain.
-  return true
+  return Ok()
 }
 
 function onCurrentEditChange(currentEdit: WidgetEditHandlerParent | undefined) {

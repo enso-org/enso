@@ -221,6 +221,8 @@ test.each<TestCase>([
       methodCall: { ...expectedMethodCall, notAppliedArguments },
       payload: { type: 'Pending' },
       profilingInfo: [],
+      hiddenTypes: [],
+      evaluationId: 0,
     })
 
     const info = getMethodCallInfoRecursively(ast, db)
@@ -361,6 +363,8 @@ test.each<ArgsTestCase>([
       methodCall: { ...expectedMethodCall, notAppliedArguments },
       payload: { type: 'Pending' } as ExpressionUpdatePayload,
       profilingInfo: [],
+      hiddenTypes: [],
+      evaluationId: 0,
     })
 
     const info = getMethodCallInfoRecursively(ast, db)

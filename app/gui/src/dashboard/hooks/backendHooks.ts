@@ -88,7 +88,7 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
   })
 }
 
-/** An identity function to help in constructing options for a mutation. */
+/** An identity function to construct options for a mutation. */
 export function mutationOptions<
   TData = unknown,
   TError = DefaultError,

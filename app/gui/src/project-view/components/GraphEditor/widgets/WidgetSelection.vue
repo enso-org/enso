@@ -49,7 +49,7 @@ const activityElement = ref<HTMLElement>()
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
 const isHovered = ref(false)
-/** See @{link Actions.setActivity} */
+/** See {@link Actions.setActivity} */
 const activity = shallowRef<ToValue<VNode>>()
 const keepActivityAlive = ref(false)
 
@@ -70,8 +70,9 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
   const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedAst instanceof Ast.TextLiteral) {
     return (tag: ExpressionTag) =>
-      tag.expressionAst instanceof Ast.TextLiteral &&
-      tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)
+      (tag.expressionAst instanceof Ast.TextLiteral &&
+        tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)) ||
+      (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedAst.rawTextContent))
   }
   if (editedCode) {
     return (tag: ExpressionTag) => tag.expression.startsWith(editedCode)
@@ -157,7 +158,7 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     : props.input.dynamicConfig
   return {
     ...props.input,
-    editHandler: dropDownInteraction,
+    editHandler: dropDownInteraction.value,
     dynamicConfig,
   }
 })
@@ -211,7 +212,7 @@ function onClose() {
 }
 
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
-const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
+const dropDownInteraction = WidgetEditHandler.New(props, {
   cancel: onClose,
   end: onClose,
   pointerdown: (e) => {
@@ -221,7 +222,7 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
       targetIsOutside(e, unrefElement(widgetRoot)) &&
       targetIsOutside(e, document.getElementById('floatingLayer'))
     ) {
-      dropDownInteraction.end()
+      dropDownInteraction.value.end()
       if (editedWidget.value)
         props.onUpdate({
           portUpdate: { origin: props.input.portId, value: editedValue.value },
@@ -244,17 +245,17 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     editedValue.value = value
   },
   addItem: () => {
-    dropDownInteraction.start()
+    dropDownInteraction.value.start()
     return true
   },
   childEnded: () => {
-    if (!isMulti.value) dropDownInteraction.end()
+    if (!isMulti.value) dropDownInteraction.value.end()
   },
 })
 
 function toggleDropdownWidget() {
-  if (!dropDownInteraction.isActive()) dropDownInteraction.start()
-  else dropDownInteraction.cancel()
+  if (!dropDownInteraction.value.isActive()) dropDownInteraction.value.start()
+  else dropDownInteraction.value.cancel()
 }
 
 const dropdownActions: Actions = {
@@ -262,7 +263,7 @@ const dropdownActions: Actions = {
     activity.value = newActivity
     keepActivityAlive.value = keepAlive
   },
-  close: dropDownInteraction.end.bind(dropDownInteraction),
+  close: () => dropDownInteraction.value.end(),
 }
 
 function onClick(clickedEntry: Entry, keepOpen: boolean) {
@@ -273,7 +274,7 @@ function onClick(clickedEntry: Entry, keepOpen: boolean) {
     // We cancel interaction instead of ending it to restore the old value in the inner widget;
     // if we clicked already selected entry, there would be no AST change, thus the inner
     // widget's content would not be updated.
-    dropDownInteraction.cancel()
+    dropDownInteraction.value.cancel()
   }
 }
 
