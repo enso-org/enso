@@ -104,13 +104,19 @@ type In_Memory_Column
                 Java_Column.fromRepeatedItem name item repeats java_problem_aggregator
             In_Memory_Column.from_java_column java_column
 
-
+## PRIVATE
+   Creates the Column type class instance for the In_Memory_Column.
 Column.from (that : In_Memory_Column) =
     column_from_implementation that In_Memory_Column_Implementation
 
+## PRIVATE
+   Conversion that extracts the underlying in-memory column from the column,
+   or fails if its of a different backend.
 In_Memory_Column.from (that : Column) =
     if that.underlying.is_a In_Memory_Column then that.underlying else
         Error.throw (Illegal_Argument.Error "Expected an in-memory column but got " + that.to_text)
 
+## PRIVATE
+   Gets the Visualization helpers for the column.
 Visualization_Helpers.from (that : In_Memory_Column) =
     Visualization_Helpers.Value that In_Memory_Visualization_Helpers

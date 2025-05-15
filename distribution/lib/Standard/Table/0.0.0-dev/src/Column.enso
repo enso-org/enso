@@ -2245,6 +2245,8 @@ Many_Files_List.from (that : Column) =
     Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
         Many_Files_List.Value that that.to_vector
 
+## PRIVATE
+   Gets the Visualization helpers for a Column.
 Visualization_Helpers.from (that : Column) =
     Visualization_Helpers.from that.underlying
 
