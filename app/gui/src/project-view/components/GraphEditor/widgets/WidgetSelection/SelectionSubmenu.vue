@@ -24,7 +24,7 @@ const emit = defineEmits<{
 }>()
 
 interface Submenu {
-  entries: ComputedRef<SubmenuEntry<T>[]>
+  entries: ComputedRef<T[]>
   relativeTo: HTMLElement
 }
 
@@ -126,7 +126,7 @@ export interface SubmenuComponent {
     :rootElement="props.rootElement"
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
-    :entries="submenuEntries as T[]"
+    :entries="submenuEntries"
     :color="props.color ?? 'var(--color-node-text)'"
     :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
     :isSelected="props.isSelected"

@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { CustomDropdownItemsKey } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { FileType } from '@/providers/widgetRegistry/configuration'
+import { FileType, isExtensions, isFileTypes } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { Ast } from '@/util/ast'
@@ -102,12 +102,10 @@ function fileTypesToFileFilters(fileTypes: FileType[]): FileFilter[] {
   return fileTypes.flatMap((fileType) => {
     const name = fileType.label
     if (fileType.extensions.length > 0) {
-      if (typeof fileType.extensions[0] === 'string') {
-        const extensions = fileType.extensions as string[]
-        return [{ name, extensions }]
-      } else {
-        const nestedFileTypes = fileType.extensions as FileType[]
-        return fileTypesToFileFilters(nestedFileTypes)
+      if (isFileTypes(fileType.extensions)) {
+        return fileTypesToFileFilters(fileType.extensions)
+      } else if (isExtensions(fileType.extensions)) {
+        return [{ name, extensions: fileType.extensions }]
       }
     }
     return []

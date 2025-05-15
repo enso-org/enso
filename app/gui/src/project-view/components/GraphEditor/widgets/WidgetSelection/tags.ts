@@ -210,7 +210,7 @@ export interface Actions {
 }
 
 /** A helper type for all possible dropdown entries. */
-export interface Entry extends DropdownEntry, SubmenuEntry<Entry> {
+export interface Entry extends SubmenuEntry<Entry> {
   tag: ExpressionTag | NestedChoiceTag | ActionTag
 }
 

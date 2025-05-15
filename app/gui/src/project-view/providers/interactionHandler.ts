@@ -71,16 +71,16 @@ export class InteractionHandler {
   }
 
   /**
-   * End the interaction, if it is currently active.
-   * Any children interactions of the given interaction will be ended as well.
+   * End the interaction, if it is the current interaction or its ancestor.
+   * Any children interactions of the given interaction will be ended as well, in the order from child to parent.
    */
   end(interaction: Interaction) {
     search(this.currentInteraction.value, interaction, (found, children) => {
       this.currentInteraction.value = found.parentInteraction
-      found.end?.()
       for (const interaction of children) {
         interaction.end?.()
       }
+      found.end?.()
     })
   }
 
@@ -96,15 +96,15 @@ export class InteractionHandler {
 
   /**
    * Cancel the interaction, if it is currently active.
-   * Any children interactions of the given interaction will be cancelled as well.
+   * Any children interactions of the given interaction will be cancelled as well, in the order from child to parent.
    */
   cancel(interaction: Interaction) {
     search(this.currentInteraction.value, interaction, (found, children) => {
       this.currentInteraction.value = found.parentInteraction
-      found.cancel?.()
       for (const interaction of children) {
         interaction.cancel?.()
       }
+      found.cancel?.()
     })
   }
 
@@ -131,13 +131,7 @@ export class InteractionHandler {
    *
    * Only the current interaction is considered, its ancestors are not notified.
    */
-  handlePointerEvent<
-    HandlerName extends keyof Omit<Interaction, 'cancel' | 'end' | 'parentInteraction'>,
-  >(
-    event: PointerEvent,
-    handlerName: Interaction[HandlerName] extends InteractionEventHandler | undefined ? HandlerName
-    : never,
-  ): boolean {
+  handlePointerEvent(event: PointerEvent, handlerName: 'pointerdown' | 'pointerup'): boolean {
     if (!this.currentInteraction.value) return false
     const handler = this.currentInteraction.value[handlerName]
     if (!handler) return false
