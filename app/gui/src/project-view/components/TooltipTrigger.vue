@@ -16,9 +16,7 @@ const slots = defineSlots<{
 const tooltipSlot = toRef(slots, 'tooltip')
 const registered = registry.registerTooltip(tooltipSlot)
 function onEnter(e: PointerEvent) {
-  console.log('ONENTER')
   if (e.target instanceof HTMLElement && tooltipSlot.value != null) {
-    console.log('REGISTER')
     registered.onTargetEnter(e.target, () => when)
   }
 }

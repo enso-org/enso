@@ -52,7 +52,6 @@ watch(activeTooltip, (newValue, oldValue) => {
 })
 
 const isDisplayed = (tooltip: Opt<HoveredElement>) => {
-  console.log('CHECK DISP', tooltip)
   if (tooltip == null) return false
   if (tooltip.entry.isHidden) return false
   if (!tooltip.element.isConnected) return false
@@ -60,7 +59,6 @@ const isDisplayed = (tooltip: Opt<HoveredElement>) => {
     case 'always':
       return true
     case 'whenOverflow':
-      console.log(tooltip.element)
       return (
         tooltip.element.scrollWidth > tooltip.element.clientWidth ||
         tooltip.element.scrollHeight > tooltip.element.clientHeight
