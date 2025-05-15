@@ -945,9 +945,9 @@ public class Main {
         for (var arg : additionalArgs) {
           Object e;
           try {
-              e = Integer.valueOf(arg);
+            e = Integer.valueOf(arg);
           } catch (NumberFormatException ex) {
-              e = arg;
+            e = arg;
           }
           listOfArgs = join(e, listOfArgs);
         }
