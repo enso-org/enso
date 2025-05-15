@@ -39,7 +39,7 @@ export const Dismissible: Story = {
   },
 }
 
-export const NonDidmissible: Story = {
+export const NonDismissible: Story = {
   args: {
     isDismissable: false,
   },

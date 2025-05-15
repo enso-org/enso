@@ -11,6 +11,7 @@ import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import UserMenu from '#/layouts/UserMenu'
 import InviteUsersModal from '#/modals/InviteUsersModal'
+import { NotificationTray } from '#/pages/dashboard/components/NotificationTray'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { Plan } from '#/services/Backend'
@@ -59,11 +60,6 @@ export const TOPBAR_LINKS_SCHEMA = z.object({
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  /**
-   * When `true`, the element occupies space in the layout but is not visible.
-   * Defaults to `false`.
-   */
-  readonly invisible?: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
@@ -147,6 +143,8 @@ export default function UserBar(props: UserBarProps) {
           </Button>
         )}
 
+        <NotificationTray />
+
         <Popover.Trigger>
           <Button
             size="custom"
@@ -167,16 +165,12 @@ export default function UserBar(props: UserBarProps) {
   )
 }
 
-/**
- * Props for a {@link UserBarHelpSection}.
- */
+/** Props for a {@link UserBarHelpSection}. */
 export interface UserBarHelpSectionProps {
   readonly items: z.infer<typeof TOPBAR_LINKS_SCHEMA>['items']
 }
 
-/**
- * A section containing help buttons.
- */
+/** A section containing help buttons. */
 export function UserBarHelpSection(props: UserBarHelpSectionProps) {
   const { items } = props
   const { getText } = useText()

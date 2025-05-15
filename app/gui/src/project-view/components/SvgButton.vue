@@ -9,12 +9,19 @@ defineProps<{
   label?: string | undefined
   disabled?: boolean | undefined
   title?: string | undefined
-  extendedHover?: number | undefined
+  extraClickZone?: number | undefined
 }>()
+const emit = defineEmits<{ activate: [] }>()
 </script>
 
 <template>
-  <MenuButton :disabled="disabled" class="SvgButton" :title="title" :extendedHover="extendedHover">
+  <MenuButton
+    :disabled="disabled"
+    class="SvgButton"
+    :title="title"
+    :extraClickZone="extraClickZone"
+    @activate="emit('activate')"
+  >
     <SvgIcon v-if="name" :name="name" />
     <div v-if="label">{{ label }}</div>
   </MenuButton>
@@ -24,6 +31,7 @@ defineProps<{
 .SvgButton {
   margin: -4px;
   gap: 4px;
+  transition: opacity 0.2s;
 
   &.disabled {
     opacity: 0.3;

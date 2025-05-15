@@ -274,3 +274,14 @@ export function useAssetPanelDefaultItem() {
     unsafeEnableTransition: true,
   })
 }
+
+/**
+ * The current item of the Asset Panel.
+ */
+export function useAssetPanelCurrentItem() {
+  return zustand.useStore(
+    assetPanelStore,
+    (state) => state.assetPanelProps.item ?? state.assetPanelProps.defaultItem,
+    { unsafeEnableTransition: true, areEqual: 'shallow' },
+  )
+}

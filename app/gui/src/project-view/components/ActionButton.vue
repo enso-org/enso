@@ -23,6 +23,6 @@ const descriptionWithShortcut = computed(() =>
     :disabled="toValue(action.disabled)"
     :title="descriptionWithShortcut"
     :label="label"
-    @click.stop="action.action"
+    @activate="action.action"
   />
 </template>

@@ -20,10 +20,8 @@
   --color-dim: rgb(0 0 0 / 0.25);
   --color-frame-bg: rgb(255 255 255 / 0.3);
   --color-frame-selected-bg: rgb(255 255 255 / 0.7);
-  --color-widget-slight: rgb(255 255 255 / 0.06);
   --color-widget: rgb(255 255 255 / 0.12);
   --color-widget-focus: rgb(255 255 255 / 1);
-  --color-widget-unfocus: rgb(255 255 255 / 0.6);
   --color-widget-selected: rgb(255 255 255 / 0.58);
   --color-widget-selection: rgba(0 0 0 / 0.2);
   --color-port-connected: rgb(255 255 255 / 0.15);
@@ -81,23 +79,9 @@
 .define-node-colors {
   --color-node-primary: var(--node-group-color);
   --color-node-text: white;
-  --color-node-text-selected: color-mix(
-    in oklab,
-    var(--color-node-primary) 70%,
-    black 30%
-  );
+  --color-node-background: var(--node-group-color);
+  --color-node-primary: var(--node-group-color);
   --color-node-text-placeholder: rgba(255, 255, 255, 0.6);
-  --color-node-text-placeholder-selected: color-mix(
-    in oklab,
-    var(--color-node-primary) 30%,
-    oklab(0.75 0 0) 70%
-  );
-  --color-node-output-port: color-mix(
-    in oklab,
-    var(--color-node-primary) 85%,
-    white 15%
-  );
-  --color-node-port: rgb(255 255 255 / 0.15);
   --color-node-error: color-mix(
     in oklab,
     var(--color-node-primary) 30%,
@@ -126,6 +110,7 @@
   }
 
   &.selected {
+    --color-widget: var(--color-widget-selected);
     --color-node-background: color-mix(
       in oklab,
       var(--color-node-primary),
@@ -136,9 +121,16 @@
       var(--color-node-primary),
       white 90%
     );
-    --color-node-port: rgb(255 255 255 / 0.6);
-    --color-node-text: var(--color-node-text-selected);
-    --color-node-text-placeholder: var(--color-node-text-placeholder-selected);
+    --color-node-text: color-mix(
+      in oklab,
+      var(--color-node-primary) 70%,
+      black 30%
+    );
+    --color-node-text-placeholder: color-mix(
+      in oklab,
+      var(--color-node-primary) 30%,
+      oklab(0.75 0 0) 70%
+    );
     --color-edge-from-node: color-mix(
       in oklab,
       var(--color-node-primary),

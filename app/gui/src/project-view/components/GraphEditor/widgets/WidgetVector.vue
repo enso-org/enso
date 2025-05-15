@@ -102,7 +102,7 @@ function useChildEditForwarding(input: WatchSource<Ast.Expression | unknown>) {
         )
       }
     }
-    editHandler.edit(editedAst)
+    editHandler.value.edit(editedAst)
     editStarted = true
   })
 
@@ -118,7 +118,7 @@ function useChildEditForwarding(input: WatchSource<Ast.Expression | unknown>) {
 }
 const { childEnded, edit } = useChildEditForwarding(toRef(props.input, 'value'))
 
-const editHandler = WidgetEditHandler.New('WidgetVector', props.input, {
+const editHandler = WidgetEditHandler.New(props, {
   cancel: () => {},
   end: () => {},
   childEnded,
@@ -130,7 +130,7 @@ function itemInput(ast: Ast.Expression): WidgetInput {
     ...WidgetInput.FromAst(ast),
     dynamicConfig: itemConfig.value,
     forcePort: true,
-    editHandler,
+    editHandler: editHandler.value,
   }
 }
 </script>

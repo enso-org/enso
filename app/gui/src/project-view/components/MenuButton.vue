@@ -20,16 +20,19 @@ const props = defineProps<{
   extendedHover?: number | undefined
 }>()
 const tooltipTrigger = ref<ComponentExposed<typeof TooltipTrigger>>()
+const emit = defineEmits<{ activate: [] }>()
 
 const style = computed(() =>
   props.extendedHover != null ? { '--extendedHover': `${props.extendedHover}px` } : {},
 )
 
-function onClick() {
-  if (!props.disabled && toggledOn.value != null) toggledOn.value = !toggledOn.value
+function onActivate() {
   if (tooltipTrigger.value) {
     tooltipTrigger.value.hideTooltip()
   }
+  if (props.disabled) return
+  if (toggledOn.value != null) toggledOn.value = !toggledOn.value
+  emit('activate')
 }
 </script>
 
@@ -43,7 +46,8 @@ function onClick() {
         :style="style"
         :disabled="disabled ?? false"
         v-bind="triggerProps"
-        @click.stop="onClick"
+        @click.stop="onActivate"
+        @keydown.enter.stop
       >
         <slot />
         <div v-if="extendedHover" class="hoverArea" />

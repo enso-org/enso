@@ -9,11 +9,12 @@ const props = defineProps<{
   disabled?: boolean
   title?: string | undefined
 }>()
+const emit = defineEmits<{ activate: [] }>()
 </script>
 
 <template>
-  <div class="StandaloneButton">
-    <SvgButton v-bind="{ ...$attrs, ...props }" :name="icon" />
+  <div class="StandaloneButton" @click.stop="emit('activate')">
+    <SvgButton v-bind="{ ...$attrs, ...props }" :name="icon" @activate="emit('activate')" />
   </div>
 </template>
 
