@@ -17,13 +17,13 @@ const toggledOn = defineModel<boolean>({ default: undefined })
 const props = defineProps<{
   disabled?: boolean | undefined
   title?: string | undefined
-  extendedHover?: number | undefined
+  extraClickZone?: number | undefined
 }>()
 const tooltipTrigger = ref<ComponentExposed<typeof TooltipTrigger>>()
 const emit = defineEmits<{ activate: [] }>()
 
 const style = computed(() =>
-  props.extendedHover != null ? { '--extendedHover': `${props.extendedHover}px` } : {},
+  props.extraClickZone != null ? { '--extraClickZone': `${props.extraClickZone}px` } : {},
 )
 
 function onActivate() {
@@ -50,7 +50,7 @@ function onActivate() {
         @keydown.enter.stop
       >
         <slot />
-        <div v-if="extendedHover" class="hoverArea" />
+        <div v-if="extraClickZone" class="hoverArea" />
       </button>
     </template>
     <template v-if="$slots.tooltip || props.title" #tooltip>
@@ -91,7 +91,7 @@ function onActivate() {
 
 .hoverArea {
   position: absolute;
-  inset: calc(var(--extendedHover) * -1);
+  inset: calc(var(--extraClickZone) * -1);
   cursor: pointer;
 }
 </style>

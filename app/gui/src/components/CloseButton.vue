@@ -3,7 +3,7 @@ import SvgButton from '@/components/SvgButton.vue'
 </script>
 
 <template>
-  <SvgButton class="CloseButton" name="tab_close" :extendedHover="8" />
+  <SvgButton class="CloseButton" name="tab_close" :extraClickZone="8" />
 </template>
 
 <style scoped>
