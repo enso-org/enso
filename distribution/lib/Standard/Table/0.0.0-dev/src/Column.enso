@@ -1911,10 +1911,13 @@ type Column
     get self index:Integer=0 ~default=Nothing -> Any | Nothing =
         self.implementation.get self index default
 
-    ## FIXME keep in DB_Column and make public
-    ## PRIVATE
+    ## ALIAS import, load
+       GROUP Standard.Base.Input
        ICON data_input
-       Returns a column containing rows of this column.
+       Returns a materialized column containing rows of this column.
+
+       For in-memory columns this just returns the column as-is, or truncated
+       depending on `max_rows`.
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
