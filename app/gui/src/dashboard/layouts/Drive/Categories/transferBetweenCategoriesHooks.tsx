@@ -127,18 +127,17 @@ export function useTransferBetweenCategories(currentCategory: Category) {
               return
             }
 
-            const toastId = toast.loading(getText('downloadingProjectToLocal'))
-            await downloadAssetsMutation({
-              ids: assetsArray,
-              targetDirectoryId,
-            })
-            toast.update(toastId, {
-              type: 'success',
-              isLoading: null,
-              closeButton: null,
-              autoClose: null,
-              render: getText('downloadProjectToLocalSuccess'),
-            })
+            await toast.promise(
+              downloadAssetsMutation({
+                ids: assetsArray,
+                targetDirectoryId,
+              }),
+              {
+                pending: getText('downloadingProjectToLocal'),
+                success: getText('downloadProjectToLocalSuccess'),
+                error: getText('downloadProjectToLocalError'),
+              },
+            )
             return
           }
 

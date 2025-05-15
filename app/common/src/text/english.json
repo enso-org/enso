@@ -50,6 +50,7 @@
   "uploadProjectToCloudSuccess": "Successfully exported local project to the cloud!",
   "downloadingProjectToLocal": "Exporting cloud project to your computer...",
   "downloadProjectToLocalSuccess": "Successfully exported cloud project to your computer!",
+  "downloadProjectToLocalError": "Could not export cloud project to your computer",
   "changeUserGroupsError": "Could not set user groups",
   "deleteUserGroupError": "Could not delete user group '$0'",
   "removeUserFromUserGroupError": "Could not remove user '$0' from user group '$1'",
