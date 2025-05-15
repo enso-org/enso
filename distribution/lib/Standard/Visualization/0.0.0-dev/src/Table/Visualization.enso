@@ -44,7 +44,7 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
             JS_Object.from_pairs [["json", _make_json_for_value v]]
         v : XML_Document -> make_json_for_xml_element v.root_element max_rows "XML_Document"
         v : XML_Element -> make_json_for_xml_element v max_rows
-        _ -> (Table_Viz_Data.from x).json
+        _ -> (Table_Viz_Data.from x).get_json
 
     result.to_text
 
@@ -56,8 +56,7 @@ max_columns = 250
    Render Error to JSON
 make_json_for_error : Any -> JS_Object
 make_json_for_error error =
-    pairs = [["error", error.to_display_text]]
-    JS_Object.from_pairs pairs
+    (Table_Viz_Data.Error error.to_display_text).get_json
 
 ## PRIVATE
    Render Vector to JSON
@@ -299,7 +298,7 @@ get_rows_for_table table_or_column start_number sort_col_index_list=Nothing sort
     result.to_text
 
 ## PRIVATE
-Table_Viz_Data.from (that:Any) = Table_Viz_Data.new (_make_json_for_other that)
+Table_Viz_Data.from (that:Any) = Table_Viz_Data.Value (_make_json_for_other that)
 
 ## PRIVATE
    Create JSON serialization of values.

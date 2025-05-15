@@ -3,8 +3,10 @@ import Plus from '#/assets/plus.svg'
 
 import type * as aria from '#/components/aria'
 import { Popover, Separator, Text } from '#/components/AriaComponents'
+import { StoryVariants } from '#/utilities/StoryVariants'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, userEvent, within } from '@storybook/test'
+import { omit } from 'enso-common/src/utilities/data/object'
 import { Button, type BaseButtonProps } from '.'
 import { Badge } from '../../Badge'
 
@@ -26,71 +28,87 @@ const sizes = ['hero', 'large', 'medium', 'small', 'xsmall', 'xxsmall'] as const
 export default {
   title: 'Components/Button',
   component: Button,
-  render: (props) => <Button {...props} />,
   argTypes: {
     variant: {
-      control: 'radio',
       options: variants,
+      control: { type: 'radio' },
     },
     size: {
-      control: 'radio',
       options: sizes,
+      control: { type: 'radio' },
     },
     addonStart: { control: false },
     addonEnd: { control: false },
+  },
+  parameters: {
+    layout: 'centered',
   },
 } satisfies Meta<BaseButtonProps<string, aria.ButtonRenderProps>>
 
 export const Variants: Story = {
   render: () => (
-    <div className="flex flex-col gap-4">
-      <Text.Heading>Variants</Text.Heading>
-      {variants.map((variant) => (
-        <div className="grid grid-cols-4 place-items-center gap-3">
-          {sizes.map((size) => (
-            <Button key={variant} variant={variant} size={size}>
-              {variant}
-            </Button>
-          ))}
-        </div>
-      ))}
+    <StoryVariants
+      columns="6"
+      render={Button}
+      toLabel={(props) => omit(props, 'children')}
+      variants={variants.flatMap((variant) =>
+        sizes.map((size) => ({ variant, size, children: variant })),
+      )}
+    />
+  ),
+}
 
-      <Text.Heading>Icons</Text.Heading>
-      <div className="grid grid-cols-4 place-content-center place-items-start gap-3">
-        <Button icon="enso_logo">Icon start</Button>
-        <Button icon="enso_logo" iconPosition="end">
-          Icon end
-        </Button>
-        <Button icon="enso_logo" aria-label="Only icon" />
-      </div>
+export const Icons: Story = {
+  render: () => (
+    <StoryVariants
+      render={Button}
+      toProps={(props) => ({ ...props, icon: 'enso_logo' })}
+      toLabel={(props) => omit(props, 'children')}
+      variants={[
+        { children: 'Icon start' },
+        { iconPosition: 'end', children: 'Icon end' },
+        { 'aria-label': 'Only Icon' },
+      ]}
+    />
+  ),
+}
 
-      <Text.Heading>States</Text.Heading>
-      <div className="grid grid-cols-4 place-content-center place-items-start gap-3">
-        <Button isDisabled>Disabled</Button>
-        <Button loading>Loading</Button>
-        <Button loaderPosition="icon" loading>
-          Loading
-        </Button>
-        <Button isActive>Active</Button>
-      </div>
-    </div>
+export const States: Story = {
+  render: () => (
+    <StoryVariants
+      render={Button}
+      toLabel={(props) => omit(props, 'children')}
+      variants={[
+        { isDisabled: true, children: 'Disabled' },
+        { loading: true, children: 'Loading' },
+        { loaderPosition: 'icon', loading: true, children: 'Loading' },
+        { isActive: true, children: 'Active' },
+      ]}
+    />
   ),
 }
 
 export const Tooltips: Story = {
   render: () => (
-    <div className="flex flex-col gap-4">
-      <Text.Heading>Tooltip</Text.Heading>
-      <div className="grid grid-cols-4 place-content-center place-items-start gap-3">
-        <Button tooltip="This is a tooltip">Tooltip</Button>
-        <Button
-          aria-label="Tooltip uses aria-label for icon buttons"
-          icon="enso_logo"
-          testId="icon-button"
-        />
-        <Button icon="enso_logo" tooltip={false} testId="icon-button-no-tooltip" />
-      </div>
-    </div>
+    <StoryVariants
+      render={Button}
+      toLabel={(props) =>
+        omit(
+          'icon' in props ? { ...props, icon: { toString: () => 'Enso' } } : props,
+          'testId',
+          'children',
+        )
+      }
+      variants={[
+        { tooltip: 'This is a tooltip', children: 'Tooltip' },
+        {
+          icon: 'enso_logo',
+          'aria-label': 'Tooltip uses aria-label for icon buttons',
+          testId: 'icon-button',
+        },
+        { icon: 'enso_logo', tooltip: false, testId: 'icon-button-no-tooltip' },
+      ]}
+    />
   ),
 }
 

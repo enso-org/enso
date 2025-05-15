@@ -42,7 +42,7 @@ public interface UnaryOperation {
       return null;
     }
 
-    var result = operation.apply(column.getStorage(), problemAggregator);
+    var result = operation.apply(storage, problemAggregator);
     return new Column(newColumnName, (Storage<?>) result);
   }
 
@@ -78,6 +78,15 @@ public interface UnaryOperation {
             });
 
     return new Column(newColumnName, (Storage<?>) storage);
+  }
+
+  /*
+   * Gets the storage of the column resolving through inferred storages.
+   * Replace with a simple call to `getStorage` if an operation should not
+   * resolve inferred storages.
+   * */
+  default ColumnStorage<?> getStorage(Column input) {
+    return BinaryOperation.getInferredStorage(input);
   }
 
   /** Gets the name of the Operation. */

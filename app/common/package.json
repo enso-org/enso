@@ -32,7 +32,6 @@
     "@tanstack/vue-query": "5.59.20",
     "@types/node": "^20.11.21",
     "lib0": "^0.2.99",
-    "react": "^18.3.1",
     "vitest": "3.0.5"
   }
 }

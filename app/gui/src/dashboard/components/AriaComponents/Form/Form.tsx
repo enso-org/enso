@@ -1,8 +1,6 @@
 /** @file Form component. */
-import * as React from 'react'
-
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
+import * as React from 'react'
 import * as dialog from '../Dialog'
 import * as components from './components'
 import * as styles from './styles'
@@ -28,6 +26,7 @@ export const Form = forwardRef(function Form<
     formOptions,
     className,
     style,
+    onSubmit,
     onSubmitted = () => {},
     onSubmitSuccess = () => {},
     onSubmitFailed = () => {},
@@ -43,29 +42,21 @@ export const Form = forwardRef(function Form<
 
   const dialogContext = dialog.useDialogContext()
 
-  const onSubmit = useEventCallback(
-    async (fieldValues: types.FieldValues<Schema>, formInstance: types.UseFormReturn<Schema>) => {
-      // This is SAFE because we're passing the result transparently, and it's typed outside
-      // eslint-disable-next-line no-restricted-syntax
-      const result = (await props.onSubmit?.(fieldValues, formInstance)) as SubmitResult
-
-      if (method === 'dialog') {
-        dialogContext?.close()
-      }
-
-      return result
-    },
-  )
-
   const innerForm = components.useForm<Schema, SubmitResult>(
     form ?? {
       ...formOptions,
       ...(defaultValues ? { defaultValues } : {}),
+      method,
       schema,
       canSubmitOffline,
       onSubmit,
       onSubmitFailed,
-      onSubmitSuccess,
+      onSubmitSuccess: async (...args) => {
+        if (method === 'dialog') {
+          dialogContext?.close()
+        }
+        await onSubmitSuccess(...args)
+      },
       onSubmitted,
       shouldFocusError: true,
       debugName: `Form ${testId} id: ${id}`,

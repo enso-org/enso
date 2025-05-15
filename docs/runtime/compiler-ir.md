@@ -9,6 +9,24 @@ multiple passes. Every pass is a class implementing the
 See [Runtime roadmap - static analysis](../runtime-roadmap.md#static-analysis)
 for future goals.
 
+## Linting
+
+If `org.enso.compiler.data.CompilerConfig#isLintingDisabled` is false, various
+additional _linting_ compiler passes are enabled in `org.enso.compiler.Passes`.
+Such passes usually generate warnings, for example, about an unused local
+binding. In production (when running the engine from the `language-server`),
+linting is disabled.
+
+### Removing unused imports
+
+Automatic removal of unused imports can be enabled with
+`enso.compiler.RemoveUnusedImports` system property. To remove unused imports
+from the whole `Standard.Base`, run:
+
+```
+enso --no-compile-dependencies --no-global-cache --no-ir-caches --vm.D enso.compiler.RemoveUnusedImports --compile distribution/lib/Standard/Base/0.0.0-dev/
+```
+
 ## Dumping IR
 
 The IR can be visualized using the `enso.compiler.dumpIr` system property. The

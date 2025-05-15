@@ -84,6 +84,7 @@ function useCloudCategoryList() {
     label: getText('cloudCategory'),
     icon: 'cloud',
     homeDirectoryId: user.rootDirectoryId,
+    canUploadHere: true,
     backend: BackendType.remote,
   }
 
@@ -93,6 +94,7 @@ function useCloudCategoryList() {
     label: getText('recentCategory'),
     icon: RecentIcon,
     homeDirectoryId: null,
+    canUploadHere: false,
     backend: BackendType.remote,
   }
 
@@ -102,6 +104,7 @@ function useCloudCategoryList() {
     label: getText('trashCategory'),
     icon: 'trash_small',
     homeDirectoryId: organizationIdToDirectoryId(user.organizationId),
+    canUploadHere: false,
     backend: BackendType.remote,
   }
 
@@ -119,6 +122,7 @@ function useCloudCategoryList() {
     homeDirectoryId: group.homeDirectoryId,
     label: getText('teamCategory', group.name),
     icon: 'people',
+    canUploadHere: true,
     backend: BackendType.remote,
   }))
 
@@ -169,6 +173,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
     homeDirectoryId: newDirectoryId(Path(directory)),
     label: getFileName(directory),
     icon: 'folder_small',
+    canUploadHere: true,
     backend: BackendType.local,
   }
 }
@@ -240,6 +245,7 @@ function useLocalCategoryList() {
     icon: ComputerIcon,
     homeDirectoryId: newDirectoryId(rootPath),
     rootPath,
+    canUploadHere: true,
     backend: BackendType.local,
   }
 

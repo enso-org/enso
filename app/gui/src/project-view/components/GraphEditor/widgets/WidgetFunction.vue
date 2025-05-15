@@ -3,6 +3,7 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import {
+  HandledUpdate,
   Score,
   WidgetInput,
   defineWidget,
@@ -27,6 +28,7 @@ import { partitionPoint } from '@/util/data/array'
 import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { isIdentifier } from '@/util/qualifiedName'
 import { computed, proxyRefs } from 'vue'
+import { Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -74,13 +76,13 @@ const innerInput = computed(() => {
  * Process an argument value update. Takes care of inserting assigned placeholder values, as well as
  * handling deletions of arguments and rewriting the applications to named as appropriate.
  */
-function handleArgUpdate(update: WidgetUpdate): boolean {
+function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
   const app = application.value
   if (update.portUpdate && app instanceof ArgumentApplication) {
     if (!('value' in update.portUpdate)) {
       if (!Ast.isAstId(update.portUpdate.origin))
         console.error('Tried to set metadata on arg placeholder. This is not implemented yet!')
-      return false
+      return props.onUpdate(update)
     }
     const {
       portUpdate: { value, origin },
@@ -113,8 +115,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       edit
         .getVersion(argApp.appTree)
         .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
-      props.onUpdate({ edit, directInteraction })
-      return true
+      return props.onUpdate({ edit, directInteraction })
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
 
@@ -148,7 +149,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         // Named argument can always be removed immediately. Replace the whole application with its
         // target, effectively removing the argument from the call.
         const func = edit.getVersion(argApp.appTree.function).take()
-        props.onUpdate({
+        return props.onUpdate({
           edit,
           portUpdate: {
             value: func,
@@ -156,14 +157,13 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
           },
           directInteraction,
         })
-        return true
       } else if (argApp.appTree instanceof Ast.OprApp) {
         /* Case: Removing infix application. */
 
         // Infix application is removed as a whole. Only the target is kept.
         if (argApp.appTree.lhs) {
           const lhs = edit.getVersion(argApp.appTree.lhs).take()
-          props.onUpdate({
+          return props.onUpdate({
             edit,
             portUpdate: {
               value: lhs,
@@ -172,7 +172,6 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
             directInteraction,
           })
         }
-        return true
       } else if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName == null) {
         /* Case: Removing positional prefix argument. */
 
@@ -192,8 +191,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
             } else {
               appTree.update((appTree) => appTree.function.take())
             }
-            props.onUpdate({ edit, directInteraction })
-            return true
+            return props.onUpdate({ edit, directInteraction })
           } else {
             // Process an argument to the right of the removed argument.
             assert(innerApp.appTree instanceof Ast.App)
@@ -208,14 +206,12 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       } else if (value == null && argApp.argument instanceof ArgumentPlaceholder) {
         /* Case: Removing placeholder value. */
         // Do nothing. The argument already doesn't exist, so there is nothing to update.
-        return true
-      } else {
-        // Any other case is handled by the default handler.
-        return false
+        return Ok()
       }
     }
   }
-  return false
+  // Any other case is handled by the default handler.
+  return props.onUpdate(update)
 }
 </script>
 <script lang="ts">
@@ -265,5 +261,5 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <NodeWidget :input="innerInput" @update="handleArgUpdate" />
+  <NodeWidget :input="innerInput" :onUpdate="handleArgUpdate" />
 </template>
