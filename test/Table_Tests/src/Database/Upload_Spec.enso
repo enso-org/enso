@@ -1503,7 +1503,7 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
    If `exploding_index` is accessed, an exception will be thrown.
 make_mock_column name values exploding_index =
     storage = ExplodingStorage.new values exploding_index
-    Java_Exports.from_storage name storage
+    Java_Exports.make_column_from_storage name storage
 
 
 ## PRIVATE
