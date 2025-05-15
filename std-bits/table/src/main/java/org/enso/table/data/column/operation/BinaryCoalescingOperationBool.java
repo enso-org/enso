@@ -40,7 +40,7 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
       };
 
   private BinaryCoalescingOperationBool() {
-    super(BooleanType.INSTANCE);
+    super(BooleanType.INSTANCE, false);
   }
 
   @Override

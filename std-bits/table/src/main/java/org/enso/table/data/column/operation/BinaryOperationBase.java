@@ -8,14 +8,17 @@ import org.enso.table.problems.ProblemAggregator;
 
 public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
   protected final StorageType<T> validType;
+  private final boolean allowNullType;
 
-  protected BinaryOperationBase(StorageType<T> validType) {
+  protected BinaryOperationBase(StorageType<T> validType, boolean allowNullType) {
     this.validType = validType;
+    this.allowNullType = allowNullType;
   }
 
   @Override
   public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
-    return validType.isOfType(left.getType());
+    var leftType = left.getType();
+    return validType.isOfType(leftType) || (allowNullType && NullType.INSTANCE.isOfType(leftType));
   }
 
   @Override

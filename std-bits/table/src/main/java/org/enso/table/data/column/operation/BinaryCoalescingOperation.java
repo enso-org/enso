@@ -160,7 +160,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
   private final BiFunction<T, T, T> zipOperation;
 
   protected BinaryCoalescingOperation(StorageType<T> validType, BiFunction<T, T, T> zipOperation) {
-    super(validType);
+    super(validType, false);
     this.zipOperation = zipOperation;
   }
 

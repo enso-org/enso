@@ -27,17 +27,7 @@ public final class LogicalOperations {
    */
   private static class BooleanAndOperation extends BinaryOperationBoolean {
     private BooleanAndOperation() {
-      super(false);
-    }
-
-    @Override
-    public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
-      return left.getType() instanceof NullType || super.canApplyMap(left, rightValue);
-    }
-
-    @Override
-    public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-      return canApplyMap(left, null) || canApplyMap(right, null);
+      super(false, true);
     }
 
     @Override

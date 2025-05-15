@@ -19,11 +19,11 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
   private final boolean preserveNulls;
 
   public BinaryOperationBoolean() {
-    this(true);
+    this(true, false);
   }
 
-  public BinaryOperationBoolean(boolean preserveNulls) {
-    super(BooleanType.INSTANCE);
+  protected BinaryOperationBoolean(boolean preserveNulls, boolean allowNullType) {
+    super(BooleanType.INSTANCE, allowNullType);
     this.preserveNulls = preserveNulls;
   }
 
