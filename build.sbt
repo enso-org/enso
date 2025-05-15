@@ -4008,7 +4008,6 @@ lazy val `engine-runner` = project
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
               "-H:ServiceLoaderFeatureExcludeServiceProviders=net.snowflake.client.core.FileTypeDetector",
-              "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin"),
               "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin"),
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
               "--add-opens=java.base/java.nio=ALL-UNNAMED"
