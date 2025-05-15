@@ -26,7 +26,7 @@ import { twJoin } from 'tailwind-merge'
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
-import { unsetModal } from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 
 /** Metadata for a category. */
 interface CategoryMetadata {
@@ -114,16 +114,13 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
       startTransition(() => {
-        setCurrentDirectoryId({
-          current: null,
-          parent: null,
-        })
+        setCurrentDirectoryId(null)
         setCategoryId(category.id)
       })
     }
   })
 
-  const onDrop = useEventCallback((event: aria.DropEvent) => {
+  const onDrop = useEventCallback(async (event: aria.DropEvent) => {
     unsetModal()
 
     if (event.dropOperation === 'cancel') {
@@ -132,7 +129,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
     const payloadSchema = ASSETS_DATA_TRANSFER_PAYLOAD
 
-    void Promise.all(
+    const payloads = await Promise.all(
       event.items
         .filter((item) => item.kind === 'text')
         .map(async (item) => {
@@ -141,8 +138,11 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
           return parsedPayload.success ? parsedPayload.data : null
         }),
-    ).then((payloads) =>
-      Promise.all(
+    )
+    const firstItem = payloads[0]?.items[0]
+
+    const transfer = async () => {
+      await Promise.all(
         payloads
           .filter((payload) => payload != null)
           .map((payload) =>
@@ -154,8 +154,27 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
               event.dropOperation,
             ),
           ),
-      ),
-    )
+      )
+    }
+
+    if (category.type === 'trash') {
+      setModal(
+        <ConfirmDeleteModal
+          defaultOpen
+          actionText={
+            payloads[0]?.items.length === 1 && firstItem != null ?
+              getText('deleteSelectedAssetActionText', firstItem.title)
+            : getText(
+                'deleteSelectedAssetsActionText',
+                payloads.flatMap((payload) => payload?.items ?? []).length,
+              )
+          }
+          onConfirm={transfer}
+        />,
+      )
+    } else {
+      await transfer()
+    }
   })
 
   const dragDelayProps = useAriaDragDelayAction(onPress)

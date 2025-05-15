@@ -19,6 +19,7 @@ import * as gtag from '#/hooks/gtagHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { unsetModal } from '#/providers/ModalProvider'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useHttpClient, useText } from '$/providers/react'
 import { toast } from 'react-toastify'
@@ -39,6 +40,8 @@ export function SessionProvider(props: SessionProviderProps) {
 
   const { getText } = useText()
 
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
+
   // stabilize the callback so that it doesn't change on every render
   const saveAccessTokenEventCallback = useEventCallback((accessToken: cognito.UserSession) => {
     authService.saveAccessToken(accessToken)
@@ -52,7 +55,7 @@ export function SessionProvider(props: SessionProviderProps) {
 
   const session = reactQuery.useSuspenseQuery(sessionQueryOptions)
 
-  const refreshUserSessionMutation = reactQuery.useMutation({
+  const refreshUserSessionMutation = useMutationCallback({
     mutationKey: ['refreshUserSession', { expireAt: session.data?.expireAt }],
     mutationFn: async () => authService.refreshUserSession(),
     onSuccess: (data) => {
@@ -65,13 +68,14 @@ export function SessionProvider(props: SessionProviderProps) {
       // Something went wrong with the refresh token, so we need to sign the user out.
       toastAndLog('sessionExpiredError', error)
       queryClient.setQueryData(sessionQueryOptions.queryKey, null)
-      return logoutMutation.mutateAsync()
+      return logoutMutation()
     },
   })
 
-  const logoutMutation = reactQuery.useMutation({
+  const logoutMutation = useMutationCallback({
     mutationKey: ['session', 'logout', session.data?.clientId] as const,
     mutationFn: async () => {
+      setIsLoggingOut(true)
       await authService.signOut()
 
       gtag.event('cloud_sign_out')
@@ -79,6 +83,7 @@ export function SessionProvider(props: SessionProviderProps) {
       unsafeWriteValue(document, 'cookie', `logged_in=no;max-age=0;domain=${parentDomain}`)
 
       authService.saveAccessToken(null)
+      setIsLoggingOut(false)
     },
     // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
     onMutate: unsetModal,
@@ -293,7 +298,7 @@ export function SessionProvider(props: SessionProviderProps) {
     forgotPassword,
     resetPassword,
     changePassword,
-    signOut: logoutMutation.mutateAsync,
+    signOut: logoutMutation,
     organizationId,
     getMFAPreference,
     updateMFAPreference,
@@ -306,10 +311,7 @@ export function SessionProvider(props: SessionProviderProps) {
       {typeof children === 'function' ? children(sessionContextValue) : children}
 
       {session.data && (
-        <SessionRefresher
-          session={session.data}
-          refreshUserSession={refreshUserSessionMutation.mutateAsync}
-        />
+        <SessionRefresher session={session.data} refreshUserSession={refreshUserSessionMutation} />
       )}
 
       <Dialog
@@ -317,7 +319,7 @@ export function SessionProvider(props: SessionProviderProps) {
         isDismissable={false}
         isKeyboardDismissDisabled
         hideCloseButton
-        modalProps={{ isOpen: logoutMutation.isPending }}
+        modalProps={{ isOpen: isLoggingOut }}
       >
         <Result status="loading" title={getText('loggingOut')} />
       </Dialog>

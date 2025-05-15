@@ -9,7 +9,6 @@ import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as backendModule from '#/services/Backend'
-import * as twMerge from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
 import { useBackends, useConfig, useText } from '$/providers/react'
 import * as reactQuery from '@tanstack/react-query'
@@ -33,7 +32,7 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { project, hidden = false, onReadyUpdate, onNameUpdate } = props
+  const { project, onReadyUpdate, onNameUpdate } = props
   const { preventAutoReopen = false } = project
   const { getText } = useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
@@ -163,11 +162,7 @@ export default function Editor(props: EditorProps) {
   }
 
   return (
-    <div
-      className={twMerge.twJoin('contents', hidden && 'hidden')}
-      data-testvalue={project.id}
-      data-testid="editor"
-    >
+    <div className="contents" data-testvalue={project.id} data-testid="editor">
       {(() => {
         // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
         switch (true) {

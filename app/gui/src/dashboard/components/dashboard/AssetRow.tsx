@@ -327,7 +327,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
     item.type === backendModule.AssetType.directory ?
       () => {
         startNavigation(() => {
-          setDirectoryId({ current: item.id, parent: item.parentId })
+          setDirectoryId(item.id)
         })
       }
     : undefined,
@@ -392,10 +392,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             onDoubleClick={() => {
               if (item.type === backendModule.AssetType.directory) {
                 startNavigation(() => {
-                  setCurrentDirectoryId({
-                    current: item.id,
-                    parent: parentId,
-                  })
+                  setCurrentDirectoryId(item.id)
                 })
               }
             }}

@@ -73,14 +73,14 @@ const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandl
   () => grid.value?.gridApi,
   columnDefs,
   (hooks) => {
-    const handler = WidgetEditHandler.New('WidgetTableEditor', props.input, {
+    const handler = WidgetEditHandler.New(props, {
       ...hooks,
       pointerdown: (event) => {
         if (
           !(event.target instanceof HTMLInputElement) ||
           targetIsOutside(event, grid.value?.$el)
         ) {
-          handler.end()
+          handler.value.end()
         } else {
           return false
         }
@@ -178,7 +178,7 @@ export const widgetDefinition = defineWidget(
       :input="input"
       metadataKey="WidgetTableEditor"
       :config="config"
-      @update="onUpdate"
+      :onUpdate="onUpdate"
     >
       <Suspense>
         <AgGridTableView

@@ -49,9 +49,9 @@ export const TEXT_STYLE = twv.tv({
       default: '',
       naming: 'font-naming',
     },
-    // we use custom padding for the text variants to make sure the text is aligned with the grid
-    // leading is also adjusted to make sure the text is aligned with the grid
-    // leading should always be after the text size to make sure it is not stripped by twMerge
+    // We use custom padding for the text variants to make sure the text is aligned with the grid.
+    // `leading` is also adjusted to make sure the text is aligned with the grid.
+    // `leading` should always be after the text size to make sure it is not stripped by `twMerge`.
     variant: {
       custom: '',
       body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px]',

@@ -14,7 +14,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
 import org.enso.runtime.utils.ThreadUtils
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{DebugSpec, FlakySpec}
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -30,6 +30,7 @@ class RuntimeAsyncCommandsTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach
+    with DebugSpec
     with FlakySpec {
 
   // === Test Utilities =======================================================

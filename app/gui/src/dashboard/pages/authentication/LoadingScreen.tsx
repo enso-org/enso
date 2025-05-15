@@ -16,7 +16,7 @@ export default function LoadingScreen() {
       data-testid="loading-screen"
     >
       <div className="flex flex-col items-center gap-8 text-center">
-        <StatelessSpinner state="loading-fast" size={SPINNER_SIZE_PX} />
+        <StatelessSpinner phase="loading-fast" size={SPINNER_SIZE_PX} />
 
         <Text.Heading variant="h1" color="inherit">
           {getText('loadingAppMessage')}

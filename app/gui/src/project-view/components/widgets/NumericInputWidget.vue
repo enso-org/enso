@@ -136,7 +136,7 @@ defineExpose({
   <AutoSizedInput
     ref="inputComponent"
     v-model="editedValue"
-    class="NumericInputWidget"
+    class="NumericInputWidget widgetRounded widgetPill"
     :class="{ slider: sliderWidth != null }"
     :style="{ ...inputStyle, '--slider-width': sliderWidth }"
     :placeholder="placeholder ?? DEFAULT_PLACEHOLDER"
@@ -152,24 +152,8 @@ defineExpose({
 .NumericInputWidget {
   position: relative;
   overflow: clip;
-  border-radius: var(--radius-full);
   user-select: none;
   padding: 0 4px;
-  background: var(--color-widget);
-  transition: background-color 0.2s ease;
-  &:focus {
-    background: var(--color-widget-focus);
-  }
-  &::selection {
-    background: var(--color-widget-selection);
-  }
-}
-
-.selected .NumericInputWidget {
-  background: var(--color-widget-unfocus);
-  &:focus {
-    background: var(--color-widget-focus);
-  }
 }
 
 .NumericInputWidget.slider {

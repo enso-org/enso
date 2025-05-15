@@ -349,31 +349,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="delete"
             label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
             doAction={() => {
-              if (isCloud) {
-                if (asset.type === backendModule.AssetType.directory) {
-                  setModal(
-                    <ConfirmDeleteModal
-                      defaultOpen
-                      actionText={getText('trashTheAssetTypeTitle', asset.type, asset.title)}
-                      onConfirm={async () => {
-                        await deleteAssetsMutation([[asset.id], false])
-                      }}
-                    />,
-                  )
-                } else {
-                  void deleteAssetsMutation([[asset.id], false])
-                }
-              } else {
-                setModal(
-                  <ConfirmDeleteModal
-                    defaultOpen
-                    actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
-                    onConfirm={async () => {
-                      await deleteAssetsMutation([[asset.id], false])
-                    }}
-                  />,
-                )
-              }
+              const textId = isCloud ? 'trashTheAssetTypeTitle' : 'deleteTheAssetTypeTitle'
+              setModal(
+                <ConfirmDeleteModal
+                  defaultOpen
+                  actionText={getText(
+                    textId,
+                    getText(backendModule.ASSET_TYPE_TO_TEXT_ID[asset.type]),
+                    asset.title,
+                  )}
+                  onConfirm={async () => {
+                    await deleteAssetsMutation([[asset.id], false])
+                  }}
+                />,
+              )
             }}
           />
         )}

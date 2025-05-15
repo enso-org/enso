@@ -8,7 +8,7 @@ import { frame, useMotionValue } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { unsafeMutable } from '../utilities/object'
 import { findScrollContainers, type HTMLOrSVGElement } from '../utilities/scrollContainers'
-import { useDebouncedCallback } from './debounceCallbackHooks'
+import { useDebouncedCallback, type DebouncedFunction } from './debounceCallbackHooks'
 import { useEventCallback } from './eventCallbackHooks'
 import { useEventListener } from './eventListenerHooks'
 import { useUnmount } from './unmountHooks'
@@ -131,7 +131,12 @@ const DEFAULT_MAX_WAIT = 500
  * Instead, it calls the `onResize` callback with the new bounds. This is useful when you want to
  * measure the size of an element without causing a rerender.
  */
-export function useMeasureCallback(options: Options & Required<Pick<Options, 'onResize'>>) {
+export function useMeasureCallback(
+  options: Options & Required<Pick<Options, 'onResize'>>,
+): readonly [
+  ref: (node: HTMLOrSVGElement | null) => void,
+  forceRefresh: DebouncedFunction<() => void>,
+] {
   const {
     debounce = false,
     scroll = false,

@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Iterator;
 import java.util.function.ToDoubleFunction;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -59,7 +60,25 @@ public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   }
 
   @Override
-  public ColumnDoubleStorageIterator iterator() {
+  public Iterator<Double> iterator() {
+    return new Iterator<>() {
+      private final Iterator<T> parentIterator = parent.iterator();
+
+      @Override
+      public boolean hasNext() {
+        return parentIterator.hasNext();
+      }
+
+      @Override
+      public Double next() {
+        T item = parentIterator.next();
+        return item == null ? null : converter.applyAsDouble(item);
+      }
+    };
+  }
+
+  @Override
+  public ColumnDoubleStorageIterator iteratorWithIndex() {
     return new BaseDoubleStorageIterator(this);
   }
 

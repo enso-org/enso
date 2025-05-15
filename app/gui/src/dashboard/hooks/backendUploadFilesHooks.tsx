@@ -1,12 +1,11 @@
 /** @file Hooks for uploading files. */
-
 import {
   backendMutationOptions,
   listDirectoryQueryOptions,
   useEnsureListDirectory,
 } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import {
   useCategories,
@@ -15,12 +14,20 @@ import {
 } from '#/layouts/Drive/Categories'
 import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal } from '#/providers/ModalProvider'
 import type LocalBackend from '#/services/LocalBackend'
 import { extractTypeAndId } from '#/services/LocalBackend'
+import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
-import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+  type QueryKey,
+  type UseMutationResult,
+} from '@tanstack/react-query'
 import {
   assetIsFile,
   assetIsProject,
@@ -44,22 +51,25 @@ import {
   type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
-import { useId, useState } from 'react'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
+import { useState } from 'react'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 
 /** The number of bytes in 1 megabyte. */
-const MB_BYTES = 1_000_000
+export const MB_BYTES = 1_000_000
 const S3_CHUNK_SIZE_MB = Math.round(S3_CHUNK_SIZE_BYTES / MB_BYTES)
 /** The maximum number of file chunks to upload at the same time. */
 const FILE_UPLOAD_CONCURRENCY = 5
+/** The delay, in milliseconds, before query data for a file being uploaded is cleared. */
+const CLEAR_PROGRESS_DELAY_MS = 5_000
+const UPLOADING_FILES_QUERY_KEY = ['uploadingFiles'] satisfies QueryKey
 
 /** A function to upload files. */
 export function useUploadFiles(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const toastAndLog = useToastAndLog()
-  const { setModal } = useSetModal()
-  const uploadFileMutation = useUploadFileWithToastMutation(backend)
+  const uploadFileMutation = useUploadFileMutation(backend)
   const setSelectedAssets = useSetSelectedAssets()
 
   return useEventCallback(async (filesToUpload: readonly File[], parentId: DirectoryId) => {
@@ -236,34 +246,38 @@ export interface UploadFileMutationProgress {
    * Useful to determine whether to create a new toast or to update an existing toast.
    */
   readonly event: 'begin' | 'chunk' | 'end'
-  readonly sentMb: number
-  readonly totalMb: number
+  readonly sentBytes: number
+  readonly totalBytes: number
 }
 
 /** Options for {@link useUploadFileMutation}. */
 export interface UploadFileMutationOptions {
+  /** Defaults to `true`. */
+  readonly updateProgress?: boolean | undefined
   /**
-   * Defaults to 3.
+   * Defaults to `3`.
    * Controls the default value of {@link UploadFileMutationOptions['chunkRetries']}
    * and {@link UploadFileMutationOptions['endRetries']}.
    */
-  readonly retries?: number
+  readonly retries?: number | undefined
   /** Defaults to {@link UploadFileMutationOptions['retries']}. */
-  readonly chunkRetries?: number
+  readonly chunkRetries?: number | undefined
   /** Defaults to {@link UploadFileMutationOptions['retries']}. */
-  readonly endRetries?: number
+  readonly endRetries?: number | undefined
   /** Called for all progress updates (`onBegin`, `onChunkSuccess` and `onSuccess`). */
-  readonly onProgress?: (progress: UploadFileMutationProgress) => void
+  readonly onProgress?: ((progress: UploadFileMutationProgress) => void) | undefined
   /** Called before any mutations are sent. */
-  readonly onBegin?: (progress: UploadFileMutationProgress) => void
+  readonly onBegin?: ((progress: UploadFileMutationProgress) => void) | undefined
   /** Called after each successful chunk upload mutation. */
-  readonly onChunkSuccess?: (progress: UploadFileMutationProgress) => void
+  readonly onChunkSuccess?: ((progress: UploadFileMutationProgress) => void) | undefined
   /** Called after the entire mutation succeeds. */
-  readonly onSuccess?: (progress: UploadFileMutationProgress) => void
+  readonly onSuccess?: ((progress: UploadFileMutationProgress) => void) | undefined
   /** Called after any mutations fail. */
-  readonly onError?: (error: unknown) => void
+  readonly onError?: ((error: unknown) => void) | undefined
   /** Called after `onSuccess` or `onError`, depending on whether the mutation succeeded. */
-  readonly onSettled?: (progress: UploadFileMutationProgress | null, error: unknown) => void
+  readonly onSettled?:
+    | ((progress: UploadFileMutationProgress | null, error: unknown) => void)
+    | undefined
 }
 
 /** The result of a {@link useUploadFileMutation}. */
@@ -272,56 +286,49 @@ export type UploadFileMutationResult = UseMutationResult<
   Error,
   [body: UploadFileRequestParams, file: File],
   unknown
-> & { readonly sentMb: number; readonly totalMb: number }
+> & { readonly sentBytes: number; readonly totalBytes: number }
 
-/**
- * Call "upload file" mutations for a file.
- * Always uses multipart upload for Cloud backend.
- * Shows toasts to update progress.
- */
-export function useUploadFileWithToastMutation(
-  backend: Backend,
-  options: UploadFileMutationOptions = {},
-): UploadFileMutationResult {
-  const toastId = useId()
-  const { getText } = useText()
-  const toastAndLog = useToastAndLogWithId()
-  const { onBegin, onChunkSuccess, onSuccess, onError } = options
+/** A key for an "uploading file" computed query. */
+export function uploadingFilesQueryKey() {
+  return UPLOADING_FILES_QUERY_KEY
+}
 
-  const mutation = useUploadFileMutation(backend, {
-    ...options,
-    onBegin: (progress) => {
-      onBegin?.(progress)
-      const { sentMb, totalMb } = progress
-      toast.loading(getText('uploadLargeFileStatus', sentMb, totalMb), {
-        toastId,
-        position: 'bottom-right',
-      })
-    },
-    onChunkSuccess: (progress) => {
-      onChunkSuccess?.(progress)
-      const { sentMb, totalMb } = progress
-      const text = getText('uploadLargeFileStatus', sentMb, totalMb)
-      toast.update(toastId, { render: text })
-    },
-    onSuccess: (progress) => {
-      onSuccess?.(progress)
-      toast.update(toastId, {
-        type: 'success',
-        render: getText('uploadLargeFileSuccess'),
-        isLoading: false,
-        autoClose: null,
-      })
-    },
-    onError: (error) => {
-      onError?.(error)
-      toastAndLog(toastId, 'uploadLargeFileError', error)
-    },
+/** Options for an "uploading file" computed query. */
+export function uploadingFileQueryOptions() {
+  return queryOptions<Record<string, UploadFileMutationProgress>>({
+    queryKey: uploadingFilesQueryKey(),
+    initialData: {},
   })
+}
 
-  usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: mutation.isPending })
+/** Set the progress of a file upload. */
+function setUploadingFileProgress(
+  queryClient: QueryClient,
+  id: string,
+  progress: UploadFileMutationProgress,
+) {
+  queryClient.setQueryData<Record<string, UploadFileMutationProgress>>(
+    UPLOADING_FILES_QUERY_KEY,
+    (data) => ({ ...data, [id]: progress }),
+  )
+}
 
-  return mutation
+/** Clear the progress of file uploads if all current file uploads are done. */
+function clearUploadingFileProgressIfDone(queryClient: QueryClient) {
+  queryClient.setQueryData<Record<string, UploadFileMutationProgress>>(
+    UPLOADING_FILES_QUERY_KEY,
+    (data) => {
+      if (!data) {
+        return
+      }
+      for (const [, progress] of Object.entries(data)) {
+        if (progress.event !== 'end') {
+          return
+        }
+      }
+      return {}
+    },
+  )
 }
 
 /**
@@ -412,7 +419,7 @@ export function useUploadFileToCloudMutation() {
   const httpClient = useHttpClient()
   const toastAndLog = useToastAndLog()
   const { remoteBackend } = useBackends()
-  const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
+  const uploadFileMutation = useUploadFileMutation(remoteBackend)
   const getSiblings = useGetSiblings()
   const { cloudCategories } = useCategoriesAPI()
   const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
@@ -577,15 +584,20 @@ export function useUploadFileMutation(
   backend: Backend,
   options: UploadFileMutationOptions = {},
 ): UploadFileMutationResult {
+  const queryClient = useQueryClient()
   const toastAndLog = useToastAndLog()
+  const { getText } = useText()
   const {
     retries = 3,
     chunkRetries = retries,
     endRetries = retries,
+    updateProgress = true,
     onError = (error) => {
       toastAndLog('uploadLargeFileError', error)
     },
   } = options
+  const setProgress: typeof setUploadingFileProgress =
+    updateProgress ? setUploadingFileProgress : noop
   const uploadFileStartMutation = useMutation(backendMutationOptions(backend, 'uploadFileStart'))
   const uploadFileChunkMutation = useMutation(
     backendMutationOptions(backend, 'uploadFileChunk', { retry: chunkRetries }),
@@ -594,15 +606,22 @@ export function useUploadFileMutation(
     backendMutationOptions(backend, 'uploadFileEnd', { retry: endRetries }),
   )
   const [variables, setVariables] = useState<[params: UploadFileRequestParams, file: File]>()
-  const [sentMb, setSentMb] = useState(0)
-  const [totalMb, setTotalMb] = useState(0)
+  const [sentBytes, setSentBytes] = useState(0)
+  const [totalBytes, setTotalBytes] = useState(0)
   const mutateAsync = useEventCallback(
     async ([body, file]: [body: UploadFileRequestParams, file: File]) => {
+      const progressId = uniqueString()
       setVariables([body, file])
-      const fileSizeMb = Math.ceil(file.size / MB_BYTES)
-      options.onBegin?.({ event: 'begin', sentMb: 0, totalMb: fileSizeMb })
-      setSentMb(0)
-      setTotalMb(fileSizeMb)
+      const fileSizeBytes = file.size
+      const beginProgress: UploadFileMutationProgress = {
+        event: 'begin',
+        sentBytes: 0,
+        totalBytes: fileSizeBytes,
+      }
+      options.onBegin?.(beginProgress)
+      setProgress(queryClient, progressId, beginProgress)
+      setSentBytes(0)
+      setTotalBytes(fileSizeBytes)
       try {
         const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
           body,
@@ -623,13 +642,18 @@ export function useUploadFileMutation(
           const fullPromise = promise.then(uploadNextChunk)
           parts[currentI] = await promise
           completedChunkCount += 1
-          const newSentMb = Math.min(completedChunkCount * S3_CHUNK_SIZE_MB, fileSizeMb)
-          setSentMb(newSentMb)
-          options.onChunkSuccess?.({
+          const newSentBytes = Math.min(
+            completedChunkCount * S3_CHUNK_SIZE_MB * MB_BYTES,
+            fileSizeBytes,
+          )
+          setSentBytes(newSentBytes)
+          const chunkProgress: UploadFileMutationProgress = {
             event: 'chunk',
-            sentMb: newSentMb,
-            totalMb: fileSizeMb,
-          })
+            sentBytes: newSentBytes,
+            totalBytes: fileSizeBytes,
+          }
+          options.onChunkSuccess?.(chunkProgress)
+          setProgress(queryClient, progressId, chunkProgress)
           return fullPromise
         }
         await Promise.all(Array.from({ length: FILE_UPLOAD_CONCURRENCY }).map(uploadNextChunk))
@@ -643,14 +667,20 @@ export function useUploadFileMutation(
             fileName: body.fileName,
           },
         ])
-        setSentMb(fileSizeMb)
-        const progress: UploadFileMutationProgress = {
+        setSentBytes(fileSizeBytes)
+        const endProgress: UploadFileMutationProgress = {
           event: 'end',
-          sentMb: fileSizeMb,
-          totalMb: fileSizeMb,
+          sentBytes: fileSizeBytes,
+          totalBytes: fileSizeBytes,
         }
-        options.onSuccess?.(progress)
-        options.onSettled?.(progress, null)
+        options.onSuccess?.(endProgress)
+        options.onSettled?.(endProgress, null)
+        setProgress(queryClient, progressId, endProgress)
+        if (updateProgress) {
+          setTimeout(() => {
+            clearUploadingFileProgressIfDone(queryClient)
+          }, CLEAR_PROGRESS_DELAY_MS)
+        }
         return result
       } catch (error) {
         onError(error)
@@ -686,9 +716,11 @@ export function useUploadFileMutation(
   const isIdle =
     uploadFileStartMutation.isIdle && uploadFileChunkMutation.isIdle && uploadFileEndMutation.isIdle
 
+  usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: isPending })
+
   const result: MergeValuesOfObjectUnion<UploadFileMutationResult> = {
-    sentMb,
-    totalMb,
+    sentBytes,
+    totalBytes,
     variables,
     mutate,
     mutateAsync,
@@ -731,7 +763,6 @@ export function useUploadFileMutation(
  * Does not work in environments that do not have a local backend.
  */
 export function useUploadFileToLocal(category: Category) {
-  const { getText } = useText()
   const transferBetweenCategories = useTransferBetweenCategories(category)
 
   const { localCategories } = useCategories()
@@ -741,6 +772,5 @@ export function useUploadFileToLocal(category: Category) {
   return useEventCallback(async (assets: readonly AnyAsset[]) => {
     invariant(localHomeCategory, 'Local home category must exist to download to local')
     await transferBetweenCategories(category, localHomeCategory, assets)
-    toast.success(getText('downloadProjectToLocalSuccess'))
   })
 }

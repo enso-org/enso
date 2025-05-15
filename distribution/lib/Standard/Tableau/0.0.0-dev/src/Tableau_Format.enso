@@ -1,16 +1,17 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Context
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
+
 from Standard.Table import Table
-from Standard.Table.Table import to_java_table
 from Standard.Table.Match_Columns import Match_Columns
+from Standard.Table.Table import to_java_table
 
 import project.Hyper_Errors
 import project.Hyper_File.Hyper_File
@@ -27,6 +28,11 @@ type Tableau_Format
        - schema: The schema to read or `*` for all schemas.
     Hyper_File (schema:Text='*')
 
+    ## Read a specific table from the file.
+
+       Arguments:
+       - schema: The schema to read.
+       - table: The name of the table to read.
     Hyper_Table schema:Text='Extract' table:Text='Extract'
 
     ## PRIVATE

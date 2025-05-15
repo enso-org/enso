@@ -2,9 +2,9 @@ import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Internal.Meta_Helpers
 import project.Meta
 import project.Nothing.Nothing
-import project.Internal.Meta_Helpers
 
 polyglot java import org.slf4j.LoggerFactory
 
