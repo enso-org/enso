@@ -371,6 +371,7 @@ inset 0 -36px 51px -51px #00000014`,
         'caret-blink': 'caret-blink 1.5s ease-out infinite',
         'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
         'appear-delayed': 'appear-delayed 0.5s ease-in-out',
+        'horizontal-loader-1/6': 'horizontal-loader-1/6 1.5s ease-in-out infinite',
       },
       transitionProperty: {
         width: 'width',
@@ -413,6 +414,10 @@ inset 0 -36px 51px -51px #00000014`,
         'caret-blink': {
           '0%,70%,100%': { opacity: '1' },
           '20%,50%': { opacity: '0' },
+        },
+        'horizontal-loader-1/6': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(600%)' },
         },
       },
     },

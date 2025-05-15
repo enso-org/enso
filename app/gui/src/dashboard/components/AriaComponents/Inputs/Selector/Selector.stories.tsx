@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { z } from 'zod'
 
-import { Form } from '#/components/AriaComponents'
+import { Form, type FieldPath, type TSchema } from '#/components/AriaComponents'
+import { StoryVariants } from '#/utilities/StoryVariants'
 import { userEvent, within } from '@storybook/test'
 import type { SelectorProps } from './Selector'
 import { Selector } from './Selector'
@@ -13,17 +14,24 @@ const schema = z.object({
 
 type Props = SelectorProps<typeof schema, 'plan', 'basic' | 'enterprise' | 'pro'>
 
+const args = {
+  name: 'plan',
+  items: ['basic', 'pro', 'enterprise'],
+}
+
+function SelectorWrapper<Schema extends TSchema, FieldName extends FieldPath<Schema, T>, T>(
+  props: SelectorProps<Schema, FieldName, T>,
+) {
+  return <Selector {...props} />
+}
+
 export default {
   title: 'Components/Inputs/Selector',
   component: Selector,
   parameters: {
     layout: 'centered',
   },
-  render: (args) => <Selector {...args} />,
-  args: {
-    name: 'plan',
-    items: ['basic', 'pro', 'enterprise'],
-  },
+  args,
   decorators: [
     (Story, context) => (
       <Form schema={schema} className="w-96" defaultValues={{ plan: 'basic' }}>
@@ -38,41 +46,50 @@ type Story = StoryObj<Props>
 // Basic usage
 export const Default: Story = {}
 
-// Different rounded variants
-export const VisualVariants: Story = {
-  render: (args) => {
-    return (
-      <div className="w-full space-y-12">
-        <div className="w-full space-y-2">
-          {(['outline'] as const).map((variant) => (
-            <Selector {...args} key={variant} label={variant} variant={variant} />
-          ))}
-        </div>
+export const Variants: Story = {
+  render: () => (
+    <StoryVariants
+      render={SelectorWrapper}
+      toProps={(variant) => ({ ...args, variant })}
+      variants={['outline']}
+    />
+  ),
+}
 
-        <div className="w-full space-y-2">
-          {(['medium', 'small'] as const).map((size) => (
-            <Selector {...args} key={size} label={size} size={size} />
-          ))}
-        </div>
+export const Size: Story = {
+  render: () => (
+    <StoryVariants
+      render={SelectorWrapper}
+      toProps={(size) => ({ ...args, size })}
+      variants={['medium', 'small']}
+    />
+  ),
+}
 
-        <div className="w-full space-y-2">
-          {(
-            ['medium', 'xxxlarge', 'none', 'small', 'large', 'xlarge', 'xxlarge', 'full'] as const
-          ).map((rounded) => (
-            <Selector {...args} key={rounded} label={rounded} rounded={rounded} />
-          ))}
-        </div>
+export const Rounded: Story = {
+  render: () => (
+    <StoryVariants
+      render={SelectorWrapper}
+      toProps={(rounded) => ({ ...args, rounded })}
+      variants={['medium', 'xxxlarge', 'none', 'small', 'large', 'xlarge', 'xxlarge', 'full']}
+    />
+  ),
+}
 
-        <div className="w-full space-y-2">
-          <Selector {...args} label="Invalid" isInvalid />
-          <Selector {...args} label="Required" isRequired />
-          <Selector {...args} label="Disabled" isDisabled />
-          <Selector {...args} label="Readonly" isReadOnly />
-          <Selector {...args} label="Invalid & Disabled" isInvalid isDisabled />
-        </div>
-      </div>
-    )
-  },
+export const State: Story = {
+  render: () => (
+    <StoryVariants
+      render={SelectorWrapper}
+      toProps={(props) => ({ ...args, ...props })}
+      variants={[
+        { isInvalid: true },
+        { isRequired: true },
+        { isDisabled: true },
+        { isReadOnly: true },
+        { isInvalid: true, isDisabled: true },
+      ]}
+    />
+  ),
 }
 
 export const Interactions: Story = {

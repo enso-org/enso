@@ -1237,6 +1237,11 @@ export function isErrorAssetId(id: string): id is ErrorAssetId {
   return id.startsWith(`${AssetType.specialError}-`)
 }
 
+/** Whether a given {@link string} is a special frontend-only asset id. */
+export function isSpecialAssetId(id: string) {
+  return isLoadingAssetId(id) || isEmptyAssetId(id) || isErrorAssetId(id)
+}
+
 /** Any object with a `type` field matching the given `AssetType`. */
 interface HasType<Type extends AssetType> {
   readonly type: Type

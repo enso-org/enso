@@ -150,9 +150,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const doDeleteAll = useEventCallback(() => {
     const selectedIds = selectedAssets.map((asset) => asset.id)
     const deleteAll = async () => {
-      unsetModal()
       setSelectedAssets([])
-
       await deleteAssetsMutation.mutateAsync([selectedIds, false])
     }
     const firstKey = selectedIds[0]

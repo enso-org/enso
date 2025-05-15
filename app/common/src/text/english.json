@@ -194,6 +194,10 @@
   "specialLoadingAssetType": "special loading asset",
   "specialEmptyAssetType": "special empty asset",
   "specialErrorAssetType": "special error asset",
+
+  "uploadingXFilesWithProgressNotification": "Uploading $0/$1 file(s)... ($2/$3MB)",
+  "uploadedXFilesNotification": "Uploaded $0 file(s).",
+
   "couldNotConnectToPM": "Could not connect to the Project Manager. Please try restarting Enso, or manually launching the Project Manager.",
   "upgradeToUseCloud": "Upgrade your plan to use Enso Cloud.",
   "me": "Me",
@@ -308,6 +312,7 @@
   "forward": "Forward",
   "more": "More",
   "close": "Close",
+  "notifications": "Notifications",
   "zeroUsers": "0 users",
   "plusXUsers": "+ $0 user(s)",
   "manageUsers": "Manage Users",
@@ -576,6 +581,9 @@
   "uploadLargeFileError": "Could not upload file",
   "closeWindowDialogTitle": "Close window?",
   "anUploadIsInProgress": "An upload is in progress.",
+  "youAreAllCaughtUp": "You're all caught up!",
+  "clearCacheAndReload": "Clear cache and reload",
+
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
   "deleteSelectedAssetsActionText": "delete $0 selected items",

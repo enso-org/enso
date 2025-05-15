@@ -1,7 +1,8 @@
+import { StatusBadge } from '#/components/AriaComponents'
+import { StoryVariants } from '#/utilities/StoryVariants'
 import { iconNames } from '@/util/iconMetadata/iconName'
 import type { Meta, StoryObj } from '@storybook/react'
-import { Text } from '../AriaComponents/Text'
-import { Icon, type IconProps } from './Icon'
+import { ICON_COLORS, Icon, type IconProps } from './Icon'
 
 const meta = {
   title: 'Components/Icon',
@@ -19,17 +20,6 @@ const sizes = [
   'xlarge',
   'xxlarge',
 ] satisfies IconProps['size'][]
-const colors = [
-  'primary',
-  'danger',
-  'success',
-  'accent',
-  'muted',
-  'disabled',
-  'invert',
-  'inherit',
-  'current',
-] satisfies IconProps['color'][]
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -58,64 +48,73 @@ const RenderPropIcon = ({ color = '#000' }: RenderProps) => (
   </svg>
 )
 
-export const Icons: Story = {
+export const Default = {
+  args: {},
+  argTypes: {
+    icon: { options: iconNames, control: { type: 'select' } },
+    size: { options: sizes, control: { type: 'select' } },
+    color: { options: ICON_COLORS, control: { type: 'select' } },
+  },
+}
+
+export const Custom: Story = {
   render: () => (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2">
-        <div className="text-sm font-medium">Custom Icons</div>
-        <div className="flex items-center gap-4">
-          {sizes.map((size) => (
-            <Icon key={size} size={size} icon={CustomSvgIcon} />
-          ))}
-          {colors.map((color) => (
-            <Icon key={color} color={color} icon={CustomSvgIcon} />
-          ))}
-          <Icon
-            renderProps={{ color: 'blue' }}
-            icon={(props) => <RenderPropIcon color={props.color} />}
-          />
-          <Icon
-            color="accent"
-            renderProps={{ color: 'red' }}
-            icon={(props) => <RenderPropIcon color={props.color} />}
-          />
-        </div>
-      </div>
+    <StoryVariants
+      render={Icon}
+      variants={[
+        ...sizes.map((size) => ({ size, icon: CustomSvgIcon })),
+        ...ICON_COLORS.map((color) => ({ color, icon: CustomSvgIcon })),
+        {
+          renderProps: { color: 'blue' },
+          icon: (props: { color: string }) => <RenderPropIcon color={props.color} />,
+        },
+        {
+          color: 'accent',
+          renderProps: { color: 'red' },
+          icon: (props: { color: string }) => <RenderPropIcon color={props.color} />,
+        },
+      ]}
+    />
+  ),
+}
 
-      <div className="flex flex-col gap-2">
-        <div className="text-sm font-medium">Sizes</div>
-        <div className="flex items-center gap-4">
-          {sizes.map((size) => (
-            <Icon key={size} size={size} icon="close" />
-          ))}
-        </div>
-      </div>
+export const Sizes: Story = {
+  render: () => (
+    <StoryVariants
+      render={Icon}
+      toProps={(size) => ({ icon: 'close' as const, size })}
+      variants={sizes}
+    />
+  ),
+}
 
-      <div className="flex flex-col gap-2">
-        <div className="text-sm font-medium">Colors</div>
-        <div className="flex items-center gap-4">
-          {colors.map((color) => (
-            <Icon key={color} color={color} icon="close" />
-          ))}
-        </div>
-      </div>
-    </div>
+export const Colors: Story = {
+  render: () => (
+    <StoryVariants
+      render={Icon}
+      toProps={(color) => ({ icon: 'close' as const, color })}
+      variants={ICON_COLORS}
+    />
   ),
 }
 
 export const AvailableIcons: Story = {
   render: () => (
-    <div className="flex flex-col gap-2 pb-24">
-      <Text.Heading className="mb-3">Available Icons</Text.Heading>
+    <StoryVariants columns="9" render={Icon} toProps={(icon) => ({ icon })} variants={iconNames} />
+  ),
+}
 
-      <div className="grid grid-cols-9 items-center gap-4">
-        {iconNames.map((icon) => (
-          <div key={icon} className="flex flex-col items-center gap-2 text-primary">
-            <Icon key={icon} icon={icon} />
-            <Text variant="caption">{icon}</Text>
-          </div>
-        ))}
-      </div>
-    </div>
+export const AvailableIconsWithStatusBadge: Story = {
+  render: () => (
+    <StoryVariants
+      columns="9"
+      render={(props: IconProps) => (
+        <StatusBadge color="danger">
+          <Icon {...props} />
+        </StatusBadge>
+      )}
+      toProps={(icon) => ({ icon })}
+      variants={iconNames}
+    />
   ),
 }
