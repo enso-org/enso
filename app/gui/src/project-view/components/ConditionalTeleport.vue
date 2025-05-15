@@ -5,8 +5,8 @@ const props = defineProps<{ target: Opt<HTMLElement> }>()
 </script>
 
 <template>
-  <Teleport v-if="props.target" :to="props.target" v-bind="$attrs">
+  <Teleport v-if="props.target" :to="props.target">
     <slot />
   </Teleport>
-  <slot v-else v-bind="$attrs" />
+  <slot v-else />
 </template>

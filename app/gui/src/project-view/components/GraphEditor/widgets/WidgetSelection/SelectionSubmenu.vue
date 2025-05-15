@@ -90,6 +90,10 @@ function isTargetOutside(event: Event) {
 defineExpose({
   isTargetOutside,
 })
+
+defineOptions({
+  inheritAttrs: false,
+})
 </script>
 
 <script lang="ts">
@@ -100,7 +104,7 @@ export interface SubmenuComponent {
 </script>
 
 <template>
-  <ConditionalTeleport :target="props.rootElement" v-bind="$attrs">
+  <ConditionalTeleport :target="props.rootElement">
     <div
       ref="dropdownElement"
       :style="floatingStyles"
