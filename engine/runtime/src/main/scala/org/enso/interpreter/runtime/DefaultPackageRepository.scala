@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime
 
 import scala.jdk.OptionConverters.RichOption
-
 import org.enso.common.HostEnsoUtils
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.context.CompilerContext
@@ -19,7 +18,10 @@ import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{
   Component,
   ComponentGroup,
+  ComponentGroups,
   ExtendedComponentGroup,
+  NativeLibraryFinder,
+  Package,
   PackageManager,
   QualifiedName,
   SourceFile
@@ -29,7 +31,11 @@ import org.enso.common.CompilationStage
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
-import scala.jdk.CollectionConverters.{IterableHasAsJava, SeqHasAsJava}
+import scala.jdk.CollectionConverters.{
+  CollectionHasAsScala,
+  IterableHasAsJava,
+  SeqHasAsJava
+}
 import scala.util.{Failure, Success, Try, Using}
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
@@ -38,8 +44,10 @@ import org.enso.editions.{DefaultEdition, Editions, LibraryName}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.instrument.NotificationHandler
 import org.enso.librarymanager.DefaultLibraryProvider
-import org.enso.pkg.{ComponentGroups, Package}
+import org.graalvm.nativeimage.ImageInfo
 import org.slf4j.LoggerFactory
+
+import java.io.File
 
 /** The default [[PackageRepository]] implementation.
   *
@@ -232,9 +240,38 @@ private class DefaultPackageRepository(
     if (isLibrary) {
       val root = Path.of(pkg.root.toString)
       notificationHandler.addedLibrary(libraryName, libraryVersion, root)
+      addNativeLibPath(pkg)
     }
 
     loadedPackages.put(libraryName, Some(pkg))
+  }
+
+  /** If the package contains any native libraries, their parent directories are added to the
+    * `java.library.path` system prop. This only works in native image - in JVM, changes
+    * to `java.library.path` system prop are ignored.
+    * @param pkg the package to check for native libraries
+    */
+  private def addNativeLibPath(
+    pkg: Package[TruffleFile]
+  ): Unit = {
+    if (ImageInfo.inImageRuntimeCode()) {
+      val nativeLibs = NativeLibraryFinder.listAllNativeLibraries(
+        pkg,
+        TruffleFileSystem.INSTANCE
+      )
+      val propName = "java.library.path"
+      val distinctParentDirs = nativeLibs.asScala
+        .map(_.getParent)
+        .toSet
+      distinctParentDirs.foreach { dir =>
+        logger.debug("Adding '{}' to {} system prop", dir.getPath, propName)
+        val oldPropValue = System.getProperty(propName)
+        System.setProperty(
+          propName,
+          oldPropValue + File.pathSeparator + dir.getPath
+        )
+      }
+    }
   }
 
   /** For any given source file, infer data necessary to generate synthetic modules as well as their contents.
