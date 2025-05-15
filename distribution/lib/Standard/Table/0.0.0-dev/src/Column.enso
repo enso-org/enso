@@ -664,9 +664,7 @@ type Column
          Create a column of the value 42
 
          column.const 42
-    const : Any -> Column
-    const self value =
-        # TODO?
+    const self value:Any -> Column =
         self.to_table.make_constant_column value
 
     ## GROUP Standard.Base.Math
@@ -1955,7 +1953,6 @@ type Column
        values.
     inferred_precise_value_type : Value_Type
     inferred_precise_value_type self =
-        # TODO move to some internal API
         self.implementation.inferred_precise_value_type self
 
     ## PRIVATE

@@ -276,9 +276,6 @@ type In_Memory_Column_Implementation
     is_nan this_column -> Column = Value_Type.expect_numeric this_column <|
         In_Memory_Column_Implementation.internal_is_nan this_column
 
-    ## TODO
-    ## PRIVATE
-    internal_is_nan : Column
     internal_is_nan this_column =
         new_name = naming_helper.function_name "is_nan" [this_column]
         fallback x = case x of
@@ -303,9 +300,6 @@ type In_Memory_Column_Implementation
     is_empty this_column -> Column = Value_Type.expect_text this_column <|
         In_Memory_Column_Implementation.internal_is_empty this_column
 
-    ## TODO
-    ## PRIVATE
-    internal_is_empty : Column
     internal_is_empty this_column =
         new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "is empty"]
         fallback x = case x of
