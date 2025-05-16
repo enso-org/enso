@@ -503,7 +503,7 @@ type DB_Column_Implementation
 
     to_text_implementation (this_column : Column & DB_Column) = "(Database Column "+this_column.name.to_text+")"
 
-naming_helper this_column = this_column.connection.base_connection.column_naming_helper
+naming_helper this_column = (this_column:DB_Column).connection.base_connection.column_naming_helper
 
 ## PRIVATE
    Helper for case case_sensitivity based text operations
