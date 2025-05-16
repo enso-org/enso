@@ -38,7 +38,9 @@ export function StravaCredentialsForm(props: CredentialFormProps) {
           <Input form={form} name="name" label={getText('name')} />
           <Checkbox.Group form={form} name="scopes" label={getText('stravaCredentialScopes')}>
             <Checkbox value="read">{getText('stravaCredentialReadScope')}</Checkbox>
+            <Checkbox value="read_all">{getText('stravaCredentialReadAllScope')}</Checkbox>
             <Checkbox value="activity:read">{getText('stravaCredentialActivityReadScope')}</Checkbox>
+            <Checkbox value="activity:read_all">{getText('stravaCredentialActivityReadAllScope')}</Checkbox>
           </Checkbox.Group>
           <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
         </>
