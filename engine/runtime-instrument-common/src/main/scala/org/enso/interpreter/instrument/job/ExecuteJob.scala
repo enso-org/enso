@@ -13,6 +13,7 @@ import java.util.logging.Level
   * @param contextId an identifier of a context to execute
   * @param stack a call stack to execute
   * @param executionEnvironment the execution environment to use
+  * @param visualizationTriggered a flag indicating if execution was triggered by execute expression request
   */
 class ExecuteJob(
   contextId: UUID,
@@ -21,10 +22,14 @@ class ExecuteJob(
   val visualizationTriggered: Boolean = false
 ) extends Job[Unit](
       List(contextId),
-      isCancellable = true,
+      isCancellable = executionEnvironment.forall(ee =>
+        ee.name != Api.ExecutionEnvironment.Live().name
+      ),
       // Interruptions may turn out to be problematic in enterprise edition of GraalVM
       // until https://github.com/oracle/graal/issues/3590 is resolved
-      mayInterruptIfRunning = true
+      mayInterruptIfRunning = executionEnvironment.forall(ee =>
+        ee.name != Api.ExecutionEnvironment.Live().name
+      )
     ) {
 
   private var _threadName: String            = "<unknown>"

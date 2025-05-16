@@ -245,6 +245,7 @@ final class JobExecutionEngine(
       s"Submitting job: {0} with {1} id...",
       Array[AnyRef](job, jobId)
     )
+    job.setJobId(jobId)
     val future = executorService.submit(() => {
       logger.log(Level.FINE, s"Executing job: {0}...", job)
       val before = System.currentTimeMillis()
@@ -275,7 +276,6 @@ final class JobExecutionEngine(
         )
       }
     })
-    job.setJobId(jobId)
     val runningJob = RunningJob(jobId, job, future)
 
     val queue = runningJobsRef.updateAndGet(_ :+ runningJob)
@@ -309,8 +309,6 @@ final class JobExecutionEngine(
       maybeForceCancelRunningJob(_, softAbortFirst = true)
     )
     updatePendingCancellations(pending)
-    runtimeContext.executionService.getContext.getThreadManager
-      .interruptThreads()
   }
 
   /** @inheritdoc */
@@ -338,8 +336,6 @@ final class JobExecutionEngine(
       }
       .flatMap(maybeForceCancelRunningJob(_, softAbortFirst))
     updatePendingCancellations(pending)
-    runtimeContext.executionService.getContext.getThreadManager
-      .interruptThreads()
   }
 
   /** @inheritdoc */
@@ -363,8 +359,6 @@ final class JobExecutionEngine(
       }
       .flatMap(maybeForceCancelRunningJob(_, softAbortFirst = true))
     updatePendingCancellations(pending)
-    runtimeContext.executionService.getContext.getThreadManager
-      .interruptThreads()
   }
 
   override def abortBackgroundJobs(
