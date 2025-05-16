@@ -66,7 +66,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const lambdaKindsByName = new Map(
     SELECTABLE_LAMBDA_KINDS.map((kind) => [getText(EVENT_TYPE_NAME_ID[kind]), kind]),
   )
-  const endpointNames = [...lambdaKindsByName.keys()]
+  const endpointNames = [...lambdaKindsByName.keys()].sort((a, b) => a.localeCompare(b))
 
   const form = Form.useForm({
     schema: createActivityLogSchema(),
