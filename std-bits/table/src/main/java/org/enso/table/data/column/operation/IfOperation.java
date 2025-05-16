@@ -44,7 +44,9 @@ public final class IfOperation {
     var conditionStorage = BinaryOperation.getInferredStorage(condition);
     if (!canApply(conditionStorage)) {
       throw new IllegalStateException(
-          "Unsupported condition type: " + conditionStorage.getType() + ". This is a bug in the Table library.");
+          "Unsupported condition type: "
+              + conditionStorage.getType()
+              + ". This is a bug in the Table library.");
     }
 
     var result =
