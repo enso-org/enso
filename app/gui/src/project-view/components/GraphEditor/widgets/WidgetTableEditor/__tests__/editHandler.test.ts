@@ -1,6 +1,6 @@
 import { InteractionHandler } from '@/providers/interactionHandler'
 import { PortId } from '@/providers/portInfo'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { newWidgetInstanceId, WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useCurrentEdit } from '@/providers/widgetTree'
 import { CellPosition } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
@@ -45,17 +45,15 @@ function fixture() {
     ),
   }
 
-  const composable = useTableEditHandler(
-    gridApi,
-    colDefs,
-    (hooks) =>
-      new WidgetEditHandler(
-        'port' as PortId,
-        hooks,
-        undefined,
-        proxyRefs(useCurrentEdit()),
-        interactionHandler,
-      ),
+  const composable = useTableEditHandler(gridApi, colDefs, (hooks) =>
+    WidgetEditHandler.NewRaw(
+      newWidgetInstanceId,
+      () => 'port' as PortId,
+      () => undefined,
+      hooks,
+      proxyRefs(useCurrentEdit()),
+      interactionHandler,
+    ),
   )
 
   /** Simulate user action of starting/stopping cell/header editing */
@@ -130,7 +128,7 @@ test.each([
   for (const selection of selections) {
     await editedInGrid(selection)
 
-    expect(handler.isActive()).toBeTruthy()
+    expect(handler.value.isActive()).toBeTruthy()
     expect(editedCell.value).toEqual(selection)
     if (selection.rowIndex !== 'header') {
       expect(gridState.editedCell).toEqual(selection)
@@ -140,7 +138,7 @@ test.each([
     expect(gridState.editCanceled).toBeFalsy()
   }
   await editedInGrid(undefined)
-  expect(handler.isActive()).toBeFalsy()
+  expect(handler.value.isActive()).toBeFalsy()
   expect(editedCell.value).toBeUndefined()
 })
 
@@ -161,7 +159,7 @@ test.each`
   gridEventHandlers.keydown(new KeyboardEvent('keydown', { code: 'Enter' }))
   await nextTick()
   expect(editedCell.value).toEqual(expected)
-  expect(handler.isActive()).toBeTruthy()
+  expect(handler.value.isActive()).toBeTruthy()
 })
 
 test.each`
@@ -179,5 +177,5 @@ test.each`
   gridEventHandlers.keydown(new KeyboardEvent('keydown', { code: 'Tab' }))
   await nextTick()
   expect(editedCell.value).toEqual(expectedCell)
-  expect(handler.isActive()).toBeTruthy()
+  expect(handler.value.isActive()).toBeTruthy()
 })

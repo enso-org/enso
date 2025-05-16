@@ -6,9 +6,9 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Column.apply_unary_operation
 import project.Column.Column
-import project.Column.naming_helper
+import project.Internal.In_Memory_Column_Implementation.apply_unary_operation
+import project.Internal.In_Memory_Column_Implementation.naming_helper
 import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Value_Type.Value_Type

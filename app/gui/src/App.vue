@@ -16,6 +16,7 @@ import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoB
 import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
 import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
+import { Platform, platform } from 'enso-common/src/detect'
 import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
@@ -66,6 +67,25 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
   capture: true,
 })
 
+const platformClass = (() => {
+  switch (platform()) {
+    case Platform.windows:
+      return 'onWindows'
+    case Platform.macOS:
+      return 'onMacOs'
+    case Platform.linux:
+      return 'onLinux'
+    case Platform.windowsPhone:
+      return 'onWindowsPhone'
+    case Platform.iPhoneOS:
+      return 'onIPhoneOs'
+    case Platform.android:
+      return 'onAndroid'
+    default:
+      return undefined
+  }
+})()
+
 onMounted(() => {
   if (appConfigValue.value.window.vibrancy) {
     document.body.classList.add('vibrancy')
@@ -74,7 +94,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div :class="['App', ...classSet.keys()]">
+  <div :class="['App', platformClass, ...classSet.keys()]">
     <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
     <ContextsForReactProvider v-else>
       <ReactRootWrapper
@@ -102,6 +122,7 @@ onMounted(() => {
   position: absolute;
   color: var(--color-text);
   font-family: var(--font-sans);
+  dominant-baseline: central;
   font-weight: 500;
   font-size: 11.5px;
   line-height: 20px;

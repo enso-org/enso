@@ -461,7 +461,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           {datalinkQuery.isLoading ?
             <div className="grid place-items-center self-stretch">
-              <StatelessSpinner size={48} state="loading-medium" />
+              <StatelessSpinner size={48} phase="loading-medium" />
             </div>
           : <Form
               schema={(z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) })}

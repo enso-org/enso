@@ -178,7 +178,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
       class="fileNameAcceptButton"
       label="Ok"
       :disabled="!filenameInputContents"
-      @click.stop="emit('acceptCurrentFile')"
+      @activate="emit('acceptCurrentFile')"
     />
   </div>
   <SelectionSubmenu

@@ -1,0 +1,122 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Internal.Polyglot_Helpers
+
+import project.Column.Column
+import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
+import project.Internal.In_Memory_Visualization_Helpers.In_Memory_Visualization_Helpers
+import project.Internal.Java_Problems
+import project.Internal.Storage
+import project.Internal.Type_Refinements.Column_Refinements
+import project.Internal.Value_Type_Helpers
+import project.Internal.Visualization_Helpers.Visualization_Helpers
+import project.Value_Type.Auto
+import project.Value_Type.Value_Type
+from project.Column import column_from_implementation
+from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Value_Type
+from project.Internal.Storage import enso_to_java, java_to_enso
+
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.error.ValueTypeMismatchException
+
+## A column whose data is stored in memory.
+type In_Memory_Column
+    ## PRIVATE
+       Internal constructor that should not be used directly.
+       Please use `from_java_column` instead.
+
+       Arguments:
+       - internal_java_column: The internal representation of the column.
+    private Value internal_java_column
+
+    ## PRIVATE
+       A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
+    private java_column self = self.internal_java_column
+
+    ## PRIVATE
+    pretty : Text
+    pretty self =
+        as_column = self:Column
+        name = as_column.name.pretty
+        data = as_column.to_vector.pretty
+        "Column.from_vector " + name + " " + data
+
+    ## PRIVATE
+       Creates a new column given a name and an internal Java storage.
+    private from_storage name:Text storage =
+        Invalid_Column_Names.handle_java_exception <|
+            java_column = Java_Column.new name storage
+            In_Memory_Column.from_java_column java_column
+
+    ## PRIVATE
+       Creates a new column given a Java Column object.
+    private from_java_column java_column:Java_Column -> Column =
+        column = In_Memory_Column.Value java_column
+        Column_Refinements.refine_column column
+
+    ## PRIVATE
+       Implementation fro `Column.from_vector`.
+    private from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column ! Invalid_Value_Type =
+        ## If the type does not accept date-time-like values, we can skip the
+           additional logic for polyglot conversions that would normally be used,
+           which is quite costly - so if we can guarantee it is unnecessary,
+           it is good to skip it.
+        needs_polyglot_conversion = case value_type of
+            Value_Type.Char _ _  -> False
+            Value_Type.Float _   -> False
+            Value_Type.Integer _ -> False
+            Value_Type.Boolean   -> False
+            Value_Type.Byte      -> False
+            _                    -> True
+        needs_enso_to_java_conversion = case value_type of
+            Value_Type.Decimal _ _ -> True
+            Auto                   -> True
+            _                      -> False
+        enso_to_java_maybe items = if needs_enso_to_java_conversion.not then items else
+            items.map enso_to_java
+        expected_storage_type = case value_type of
+            Auto -> Nothing
+            _ -> Storage.from_value_type value_type on_problems=Problem_Behavior.Report_Warning
+        raise_invalid_value_type_error problematic_value =
+            expected_type = value_type
+            actual_type = Value_Type_Helpers.most_specific_value_type problematic_value use_smallest=True
+            Error.throw (Invalid_Value_Type.Value expected_type actual_type problematic_value)
+        handle_invalid_value_type ~action = Panic.catch ValueTypeMismatchException action caught_panic->
+            java_exception = caught_panic.payload
+            raise_invalid_value_type_error java_exception.getValue
+        Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <| handle_invalid_value_type <|
+            java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                case needs_polyglot_conversion of
+                    True -> Java_Column.fromItems name (enso_to_java_maybe items) expected_storage_type java_problem_aggregator
+                    False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
+            multi_result = In_Memory_Column.from_java_column java_column
+            result = Warning.throw_on_warning multi_result Conversion_Failure
+            if Meta.is_error result . not then result else
+                result.catch Conversion_Failure error->
+                    if error.example_values.is_empty then result else
+                        raise_invalid_value_type_error error.example_values.first
+
+    ## PRIVATE
+    private from_repeated_item name:Text item:Any repeats:Integer =
+        Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
+            java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                Java_Column.fromRepeatedItem name item repeats java_problem_aggregator
+            In_Memory_Column.from_java_column java_column
+
+## PRIVATE
+   Creates the Column type class instance for the In_Memory_Column.
+Column.from (that : In_Memory_Column) =
+    column_from_implementation that In_Memory_Column_Implementation
+
+## PRIVATE
+   Conversion that extracts the underlying in-memory column from the column,
+   or fails if its of a different backend.
+In_Memory_Column.from (that : Column) =
+    if that.underlying.is_a In_Memory_Column then that.underlying else
+        Error.throw (Illegal_Argument.Error "Expected an in-memory column but got " + that.to_text)
+
+## PRIVATE
+   Gets the Visualization helpers for the column.
+Visualization_Helpers.from (that : In_Memory_Column) =
+    Visualization_Helpers.Value that In_Memory_Visualization_Helpers
