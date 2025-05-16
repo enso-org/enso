@@ -178,12 +178,13 @@ function PopoverContent(props: PopoverContentProps) {
     ref: dialogRef,
     id: dialogId,
     onInteractOutside: (e) => {
+      // Do not close dialog if another dialog was clicked.
+      // This can happen in e.g. a `ComboBox` nested in a `Popover`.
       if (
         e.target instanceof HTMLElement &&
         e.target.dataset.testid !== 'underlay' &&
         document.getElementById('enso-portal-root')?.contains(e.target) === true
       ) {
-        console.log(e.target)
         return
       }
       if (isDismissable) {
