@@ -43,7 +43,7 @@ function createActivityLogSchema() {
 /** Sortable columns in an activity log table. */
 enum ActivityLogSortableColumn {
   type = 'type',
-  email = 'email',
+  user = 'user',
   timestamp = 'timestamp',
 }
 
@@ -136,12 +136,12 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           }
           break
         }
-        case ActivityLogSortableColumn.email: {
-          compare = (a, b) =>
-            multiplier *
-            (a.userEmail < b.userEmail ? -1
-            : a.userEmail > b.userEmail ? 1
-            : 0)
+        case ActivityLogSortableColumn.user: {
+          compare = (a, b) => {
+            const aName = usersByEmail.get(a.userEmail)?.name ?? a.userEmail
+            const bName = usersByEmail.get(b.userEmail)?.name ?? b.userEmail
+            return multiplier * aName.localeCompare(bName)
+          }
           break
         }
         case ActivityLogSortableColumn.timestamp: {
@@ -300,7 +300,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   size="custom"
                   variant="custom"
                   aria-label={
-                    sortInfo?.field !== ActivityLogSortableColumn.email ? getText('sortByEmail')
+                    sortInfo?.field !== ActivityLogSortableColumn.user ? getText('sortByEmail')
                     : isDescending ?
                       getText('stopSortingByEmail')
                     : getText('sortByEmailDescending')
@@ -309,11 +309,11 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     <Icon
                       icon={iconIdFor(
                         sortInfo?.direction,
-                        sortInfo?.field === ActivityLogSortableColumn.email,
+                        sortInfo?.field === ActivityLogSortableColumn.user,
                       )}
                       className={twMerge(
                         'ml-1 transition-all duration-arrow',
-                        sortInfo?.field !== ActivityLogSortableColumn.email &&
+                        sortInfo?.field !== ActivityLogSortableColumn.user &&
                           'opacity-0 group-hover:opacity-50',
                       )}
                     />
@@ -321,14 +321,14 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   className="group flex h-9 w-full items-center justify-start gap-2 border-0 px-name-column-x"
                   onPress={() => {
                     const nextDirection =
-                      sortInfo?.field === ActivityLogSortableColumn.email ?
+                      sortInfo?.field === ActivityLogSortableColumn.user ?
                         nextSortDirection(sortInfo.direction)
                       : SortDirection.ascending
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {
                       setSortInfo({
-                        field: ActivityLogSortableColumn.email,
+                        field: ActivityLogSortableColumn.user,
                         direction: nextDirection,
                       })
                     }
