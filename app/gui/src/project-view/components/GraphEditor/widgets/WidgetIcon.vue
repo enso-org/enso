@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { type URLString } from '@/util/data/urlString'
@@ -39,10 +39,11 @@ export const widgetDefinition = defineWidget(
   <div :class="{ WidgetIcon: true, noGap: props.input[DisplayIcon].noGap === true }">
     <div class="iconContainer">
       <Transition>
-        <LoadingSpinner
+        <GrowingSpinner
           v-if="icon === '$evaluating'"
           class="nodeCategoryIcon grab-handle"
           :size="16"
+          phase="loading-medium"
         />
         <SvgIcon v-else class="nodeCategoryIcon grab-handle" :name="icon" />
       </Transition>

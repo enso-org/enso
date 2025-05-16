@@ -354,7 +354,9 @@ onMounted(() => {
     </div>
 
     <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
-    <div v-else-if="isBusy" class="centerContent browserContents"><LoadingSpinner /></div>
+    <div v-else-if="isBusy" class="centerContent browserContents">
+      <LoadingSpinner phase="loading-medium" />
+    </div>
     <div v-else-if="isEmpty" class="centerContent browserContents">Directory is empty</div>
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing browserContents">
       <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
