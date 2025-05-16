@@ -730,11 +730,11 @@ type DB_Table
         Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
             case column of
                 _ : Column ->
-                    mask filter_column = case Helpers.check_integrity self (filter_column:DB_Column) of
+                    mask (filter_column : Column & DB_Column) = case Helpers.check_integrity self filter_column of
                         False ->
                             Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
                         True ->
-                            new_filters = self.context.where_filters + [(filter_column:DB_Column).expression]
+                            new_filters = self.context.where_filters + [filter_column.expression]
                             new_ctx = self.context.set_where_filters new_filters
                             self.updated_context new_ctx
 
