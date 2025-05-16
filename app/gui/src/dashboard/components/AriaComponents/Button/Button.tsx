@@ -248,7 +248,7 @@ export const Button = memo(
 
                 {shouldShowOverlayLoader() && (
                   <span ref={loaderRef} className={styles.loader()}>
-                    <StatelessSpinner state="loading-medium" size={16} />
+                    <StatelessSpinner phase="loading-medium" size={16} />
                   </span>
                 )}
 
@@ -406,7 +406,7 @@ const Icon = memo(function Icon(props: IconProps) {
   if (shouldShowLoader) {
     return (
       <div className={styles.icon()}>
-        <StatelessSpinner state="loading-medium" size={16} />
+        <StatelessSpinner phase="loading-medium" size={16} />
       </div>
     )
   }

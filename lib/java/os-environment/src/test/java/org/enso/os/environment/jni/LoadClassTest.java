@@ -4,10 +4,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import org.enso.os.environment.jni.JNI.JValue;
+import org.graalvm.nativeimage.CurrentIsolate;
+import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.StackValue;
+import org.graalvm.nativeimage.c.function.CEntryPoint;
+import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
+import org.graalvm.nativeimage.c.function.CFunctionPointer;
+import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.junit.Test;
 
@@ -27,6 +34,7 @@ public class LoadClassTest {
           JVM.create(
               path,
               "--module-path=" + MODULE_PATH,
+              "--enable-native-access=org.enso.os.environment",
               "-Djdk.module.main=org.enso.os.environment",
               "-Dsay=Ahoj");
     }
@@ -108,14 +116,35 @@ public class LoadClassTest {
 
   @Test
   public void executeMainClass() throws Exception {
-    var out = File.createTempFile("check-main", ".log");
+    var jvmIsolate = CurrentIsolate.getCurrentThread().rawValue();
+    var callbackFn = CALLBACK_FN.getFunctionPointer().rawValue();
     var gen = new Random();
+    var n = 0L;
     for (var i = 0; i < 5; i++) {
-      var n = gen.nextInt(10000, 20000);
-      jvm().executeMain("org/enso/os/environment/jni/TestMain", out.getPath(), "" + n);
-      var content = Files.readString(out.toPath());
-      assertEquals("Factorial of " + n + " is the same", TestMain.factorial(n).toString(), content);
-      out.delete();
+      n += gen.nextLong(1000, 5000);
+      var mainClass = "org/enso/os/environment/jni/TestMain";
+      jvm().executeMain(mainClass, "" + jvmIsolate, "" + callbackFn, "" + n);
     }
+    assertEquals("Five results found: " + CORRECT_RESULTS, 5, CORRECT_RESULTS.size());
   }
+
+  private static final Map<Long, String> CORRECT_RESULTS = new HashMap<>();
+
+  @CEntryPoint
+  private static boolean acceptResultFromHotSpotJvm(
+      IsolateThread threadId, long n, CCharPointer resultStr) {
+    var result = CTypeConversion.toJavaString(resultStr);
+    var ownResult = TestMain.factorial(n).toString();
+    assertEquals("fac(" + n + ") is correct in both JVMs", ownResult, result);
+    CORRECT_RESULTS.put(n, result);
+    return ownResult.equals(result);
+  }
+
+  private static final CEntryPointLiteral<CFunctionPointer> CALLBACK_FN =
+      CEntryPointLiteral.create(
+          LoadClassTest.class,
+          "acceptResultFromHotSpotJvm",
+          IsolateThread.class,
+          long.class,
+          CCharPointer.class);
 }

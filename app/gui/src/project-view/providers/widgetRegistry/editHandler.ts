@@ -1,24 +1,26 @@
 import type { Interaction, InteractionHandler } from '@/providers/interactionHandler'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
-import type { WidgetInput } from '@/providers/widgetRegistry'
+import { WidgetInput, WidgetTypeId } from '@/providers/widgetRegistry'
 import { injectWidgetTree, type CurrentEdit } from '@/providers/widgetTree'
 import type { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { computed, markRaw, onBeforeUnmount, shallowRef, type ShallowRef } from 'vue'
+import { computed, markRaw, shallowRef, useId, watch, WatchSource, type ShallowRef } from 'vue'
 import { assertDefined } from 'ydoc-shared/util/assert'
 
-declare const brandWidgetId: unique symbol
-/** Uniquely identifies a widget type. */
-export type WidgetId = string & { [brandWidgetId]: true }
+declare const widgetInstanceIdBrand: unique symbol
+type WidgetInstanceId = string & { [widgetInstanceIdBrand]: never }
+
+/** Create a new unique `WidgetInstanceId` value.  */
+export function newWidgetInstanceId(): WidgetInstanceId {
+  return useId() as WidgetInstanceId
+}
 
 /** TODO: Add docs */
 export abstract class WidgetEditHandlerParent {
   private readonly activeChild: ShallowRef<WidgetEditHandlerParent | undefined> =
     shallowRef(undefined)
-  private readonly active = computed(
-    () => this.parent != null && this.parent?.activeChild.value === this,
-  )
+  private readonly active = computed(() => this.parent?.activeChild.value === this)
   private resumableDescendants: ResumableWidgetEdits | undefined = undefined
 
   protected constructor(
@@ -99,17 +101,14 @@ export abstract class WidgetEditHandlerParent {
     return this.isActive() ? this : this.parent?.activeAncestor()
   }
 
-  protected suspend(argumentId: string, widgetId: WidgetId) {
-    if (!this.isActive()) return
-    const widgetInstance: WidgetInstanceId = `${argumentId}||${widgetId}`
-    if (!this.parent) return
-    this.parent?.unsetActiveChild(this)
+  protected suspend(widgetInstance: WidgetInstanceId) {
+    if (!this.isActive() || !this.parent) return
+    this.parent.unsetActiveChild(this)
     this.parent.resumableDescendants ??= new Map()
     this.parent.resumableDescendants.set(widgetInstance, this.hooks.suspend?.()?.resume)
   }
 
-  protected tryResume(argumentId: string, widgetId: WidgetId, portId: PortId) {
-    const widgetInstance: WidgetInstanceId = `${argumentId}||${widgetId}`
+  protected tryResume(widgetInstance: WidgetInstanceId, portId: PortId) {
     const ancestor = this.activeAncestor() ?? this.root().tryResumeRoot(widgetInstance)
     if (!ancestor?.resumableDescendants?.has(widgetInstance)) return
     const resumeHook = ancestor.resumableDescendants.get(widgetInstance)
@@ -135,7 +134,6 @@ export abstract class WidgetEditHandlerParent {
 }
 
 type ResumeCallback = () => void
-type WidgetInstanceId = `${string}||${WidgetId}`
 type ResumableWidgetEdits = Map<WidgetInstanceId, ResumeCallback | undefined>
 
 /** TODO: Add docs */
@@ -224,31 +222,76 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
  * the top-most widget, and a widget may choose to delegate to its child (if any) by returning false.
  */
 export class WidgetEditHandler extends WidgetEditHandlerParent {
-  /** TODO: Add docs */
-  constructor(
+  protected constructor(
     readonly portId: PortId,
-    hooks: WidgetEditHooks,
     parent: WidgetEditHandlerParent | undefined,
-    widgetTree: CurrentEdit = injectWidgetTree(),
-    interactionHandler = injectInteractionHandler(),
+    hooks: WidgetEditHooks,
+    widgetTree: CurrentEdit,
+    interactionHandler: InteractionHandler,
   ) {
     super(parent ?? new WidgetEditHandlerRoot(widgetTree, interactionHandler), hooks)
   }
 
-  /** TODO: Add docs */
+  /** Create {@link WidgetEditHandler} from widget props. Convenience version of {@link NewFromPort}. */
   static New(
-    widgetId: string,
-    input: WidgetInput,
+    props: { widgetTypeId: WidgetTypeId; input: WidgetInput },
     myInteraction: WidgetEditHooks,
-  ): WidgetEditHandler {
-    const wid = widgetId as WidgetId
-    const editHandler = new WidgetEditHandler(input.portId, myInteraction, input.editHandler)
-    const argumentId = input[ArgumentInfoKey]?.argId
-    if (argumentId) {
-      editHandler.tryResume(argumentId, wid, editHandler.portId)
-      onBeforeUnmount(() => editHandler.suspend(argumentId, wid))
-    }
-    return editHandler
+  ): ShallowRef<WidgetEditHandler> {
+    const widgetTree = injectWidgetTree()
+    const interactionHandler = injectInteractionHandler()
+    const portId = computed(() => props.input.portId)
+    const parent = computed(() => props.input.editHandler)
+    const stableInstanceId = newWidgetInstanceId()
+    const instanceId = computed(() => {
+      const argInfo = props.input[ArgumentInfoKey]
+      return argInfo?.argId ?
+          (`${argInfo.argId}||${props.widgetTypeId}` as WidgetInstanceId)
+        : stableInstanceId
+    })
+    return WidgetEditHandler.NewRaw(
+      instanceId,
+      portId,
+      parent,
+      myInteraction,
+      widgetTree,
+      interactionHandler,
+    )
+  }
+
+  /** Create {@link WidgetEditHandler} by manually providing all needed inputs. Useful for testing. */
+  static NewRaw(
+    widgetInstanceId: WatchSource<WidgetInstanceId>,
+    portId: WatchSource<PortId>,
+    parent: WatchSource<WidgetEditHandlerParent | undefined>,
+    myInteraction: WidgetEditHooks,
+    widgetTree: CurrentEdit,
+    interactionHandler: InteractionHandler,
+  ): ShallowRef<WidgetEditHandler> {
+    const currentHandler = shallowRef<WidgetEditHandler>(null!) // Ref is immediately assigned in watch below.
+    watch(
+      [portId, parent],
+      ([newPortId, newParent]) => {
+        const editHandler = new WidgetEditHandler(
+          newPortId,
+          newParent,
+          myInteraction,
+          widgetTree,
+          interactionHandler,
+        )
+        currentHandler.value = editHandler
+      },
+      { immediate: true },
+    )
+    assertDefined(currentHandler.value)
+    watch(
+      [currentHandler, widgetInstanceId],
+      ([handler, id], _, onCleanup) => {
+        handler.tryResume(id, handler.portId)
+        onCleanup(() => handler.suspend(id))
+      },
+      { immediate: true },
+    )
+    return currentHandler
   }
 
   /** TODO: Add docs */

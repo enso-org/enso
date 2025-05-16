@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
 import { useLayoutAnimationsState } from '@/providers/animationCounter'
-import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
+import { UpdateHandler, WidgetInput } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { type PrimaryApplication } from '@/stores/graph/graphDatabase'
@@ -18,7 +18,7 @@ const props = defineProps<{
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
   extended: boolean
-  onUpdate: (update: WidgetUpdate) => boolean
+  onUpdate: UpdateHandler
 }>()
 const emit = defineEmits<{
   currentEditChanged: [WidgetEditHandlerParent | undefined]
@@ -141,6 +141,27 @@ export const ICON_WIDTH = 16
     margin-left: var(--widget-token-pad-left, 0);
     margin-right: var(--widget-token-pad-right, 0);
     transition: margin 0.2s ease-out;
+  }
+
+  :deep(.widgetPill) {
+    background-color: var(--color-widget);
+    min-width: var(--node-port-height);
+    min-height: var(--node-port-height);
+    border-radius: var(--node-port-border-radius);
+    transition:
+      background-color,
+      color,
+      opacity 0.2s ease;
+
+    &:focus,
+    &:has(:focus):not(:has(.widgetPill :focus)) {
+      outline: none;
+      background-color: var(--color-widget-focus);
+    }
+
+    ::selection {
+      background: var(--color-widget-selection);
+    }
   }
 }
 </style>

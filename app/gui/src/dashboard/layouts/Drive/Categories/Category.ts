@@ -24,6 +24,7 @@ const EACH_CATEGORY_SCHEMA = z.object({
   icon: z.custom<SvgUseIcon | (string & {})>(
     (icon) => typeof icon === 'string' && (isIconName(icon) || isUrlString(icon)),
   ),
+  canUploadHere: z.boolean(),
   /**
    * Internal type discriminator.
    * Used to determine the type of the category without having to check for any other properties.

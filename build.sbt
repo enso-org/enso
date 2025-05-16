@@ -2674,9 +2674,13 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = {
     // Ensure that our tooling uses the right Java version for checking the code.
     Compile / javacOptions ++= Seq(
       "-source",
-      frgaalSourceLevel,
-      "--enable-preview"
-    )
+      frgaalSourceLevel
+    ) ++
+    (if (Integer.parseInt(targetJdk) <= 21) {
+       Seq("--enable-preview")
+     } else {
+       Seq("-target", "21")
+     })
   )
 }
 
@@ -3487,7 +3491,13 @@ lazy val `runtime-compiler` =
         testPkgsExports ++ irDumperExports
       },
       Test / addReads := {
-        Map(javaModuleName.value -> Seq("ALL-UNNAMED"))
+        Map(
+          javaModuleName.value -> Seq(
+            "ALL-UNNAMED",
+            "ch.qos.logback.classic",
+            (`logging-service-logback` / Compile / javaModuleName).value
+          )
+        )
       }
     )
     .dependsOn(`runtime-parser`)
@@ -4282,7 +4292,7 @@ lazy val `os-environment` =
     .in(file("lib/java/os-environment"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      frgaalJavaCompilerSetting,
+      customFrgaalJavaCompilerSettings("24"),
       scalaModuleDependencySetting,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",

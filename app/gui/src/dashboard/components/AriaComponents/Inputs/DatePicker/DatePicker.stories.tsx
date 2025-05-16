@@ -1,9 +1,9 @@
-import { Text } from '#/components/AriaComponents/Text'
 import { roundedVariants } from '#/components/AriaComponents/utilities'
-import { CalendarDate, ZonedDateTime, now } from '@internationalized/date'
+import { StoryVariants } from '#/utilities/StoryVariants'
+import { CalendarDate, ZonedDateTime, now, type DateValue } from '@internationalized/date'
 import type { Meta, StoryObj } from '@storybook/react'
 import { z } from 'zod'
-import { Form } from '../../Form/index'
+import { Form, type FieldPath, type TSchema } from '../../Form'
 import type { DatePickerProps } from './DatePicker'
 import { DatePicker } from './DatePicker'
 
@@ -15,10 +15,17 @@ const schema = z.object({ value: z.instanceof(ZonedDateTime).or(z.instanceof(Cal
 const sizes = ['medium', 'small'] as const
 const roundeds = roundedVariants()
 
+const args = { name: 'value' }
+
+function DatePickerWrapper<Schema extends TSchema, FieldName extends FieldPath<Schema, DateValue>>(
+  props: DatePickerProps<Schema, FieldName>,
+) {
+  return <DatePicker {...props} />
+}
+
 export default {
   title: 'Components/Inputs/DatePicker',
   component: DatePicker,
-  render: (args) => <DatePicker {...args} />,
   tags: ['autodocs'],
   decorators: [
     (Story, context) => (
@@ -27,7 +34,7 @@ export default {
       </Form>
     ),
   ],
-  args: { name: 'value' },
+  args,
   parameters: {
     layout: 'centered',
   },
@@ -44,27 +51,22 @@ export const WithoutTimeZone: Story = {
 }
 
 export const Rounded: Story = {
-  render: (_Story, context) => (
-    <div className="grid grid-cols-3 gap-4">
-      {roundeds.map((rounded) => (
-        <div key={rounded} className="flex flex-col items-center gap-1">
-          <DatePicker {...context.args} rounded={rounded} />
-          <Text variant="caption">{rounded}</Text>
-        </div>
-      ))}
-    </div>
+  render: () => (
+    <StoryVariants
+      columns="3"
+      render={DatePickerWrapper}
+      toProps={(rounded) => ({ ...args, rounded })}
+      variants={roundeds}
+    />
   ),
 }
 
 export const Size: Story = {
-  render: (_Story, context) => (
-    <div className="around grid grid-cols-1 gap-4">
-      {sizes.map((size) => (
-        <div key={size} className="flex flex-col items-center gap-1">
-          <DatePicker {...context.args} size={size} />
-          <Text variant="caption">{size}</Text>
-        </div>
-      ))}
-    </div>
+  render: () => (
+    <StoryVariants
+      render={DatePickerWrapper}
+      toProps={(size) => ({ ...args, size })}
+      variants={sizes}
+    />
   ),
 }
