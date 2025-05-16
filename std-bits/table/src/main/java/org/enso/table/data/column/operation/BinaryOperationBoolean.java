@@ -14,6 +14,8 @@ import org.enso.table.problems.ProblemAggregator;
  * Binary operation for (Boolean, Boolean) => Boolean. Override the `applySingle` method to perform
  * a single computation. For a specialized approach on top of BoolStorage, override either the
  * `applySpecializedMapOverBoolStorage` or the `applySpecializedZipOverBoolStorage`.
+ * Likewise for NullStorage, override the `applySpecializedMapOverNullStorage` or the
+ * `applySpecializedZipOverNullStorage`.
  */
 public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean> {
   private final boolean preserveNulls;
