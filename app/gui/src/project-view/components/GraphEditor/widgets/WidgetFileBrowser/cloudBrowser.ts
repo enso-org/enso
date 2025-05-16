@@ -36,8 +36,8 @@ export function useCloudBrowser({
           choosenPath: toValue(currentPath) ?? '',
           onPathAccepted: (path: string) => {
             setPath(type === 'secret' ? 'secret' : 'file', path)
-            close()
           },
+          onClose: close,
         })
       }),
     )
