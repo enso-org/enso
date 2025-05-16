@@ -1,5 +1,5 @@
 import { applyPureReactInVue } from 'veaury'
-import { type DefineComponent } from 'vue'
+import type { DefineComponent } from 'vue'
 
 /**
  * Creates a Vue component wrapping a React component.
