@@ -183,12 +183,12 @@ public final class LogicalOperations {
       if (left.isNegated()) {
         var newMissing = left.getIsNothingMap().get(0, size);
         newMissing.or(values);
-        return new BoolStorage(new BitSet(), newMissing, size, false);
+        return new BoolStorage(new BitSet(), newMissing, size, true);
       } else {
         var newMissing = new BitSet(size);
         newMissing.flip(0, size);
         newMissing.xor(values);
-        return new BoolStorage(values, newMissing, size, true);
+        return new BoolStorage(values, newMissing, size, false);
       }
     }
 
