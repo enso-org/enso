@@ -309,9 +309,11 @@ type DB_Column_Implementation
     rename (this_column : Column & DB_Column) name:Text = (naming_helper this_column).ensure_name_is_valid name <|
         DB_Column.new name this_column.connection this_column.sql_type_reference this_column.expression this_column.context
 
-    sort (this_column : Column & DB_Column) order:Sort_Direction by=Nothing =
+    sort (this_column : Column & DB_Column) order:Sort_Direction missing_last:Boolean=True by=Nothing =
         if Nothing != by then
             Error.throw (Unsupported_Database_Operation.Error "Using `by` argument in `sort`")
+        if missing_last != True then
+            Error.throw (Unsupported_Database_Operation.Error "Using `missing_last` argument in `sort`")
         this_column.to_table.sort [..Index 0 order] . at 0
 
     take (this_column : Column & DB_Column) (range : Index_Sub_Range | Range | Integer = ..First) = this_column.to_table.take range . at 0
