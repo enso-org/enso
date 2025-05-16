@@ -680,6 +680,8 @@ type In_Memory_Column_Implementation
     offset (this_column : Column & In_Memory_Column) n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
         Offset_Helper.column_offset_impl this_column n fill_with
 
+    default_row_limit_for_read = ..All_Rows
+
 
 ## PRIVATE
    Folds the vectorized operation over the provided column and values. When more
