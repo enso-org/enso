@@ -3207,7 +3207,7 @@ type DB_Table
                 
                 offset_expr c:DB_Column -> SQL_IR_Expression =
                     Offset_Helpers.make_offset n (Internal_Column.from c) order_descriptors grouping_expressions fill_with
-                new_column_name c:DB_Column -> Text = 
+                new_column_name c:Column -> Text =
                     if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
                 
                 new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) c.sql_type_reference (offset_expr c))

@@ -514,12 +514,12 @@ make_text_case_op left op other case_sensitivity new_name =
             make_sensitive column =
                 make_unary_op column "MAKE_CASE_SENSITIVE" "MAKE_CASE_SENSITIVE"
             cs_other = if other.is_a Column then make_sensitive other else other
-            (make_sensitive left) . make_binary_op op cs_other
+            make_binary_op (make_sensitive left) op cs_other
         Case_Sensitivity.Insensitive locale -> Helpers.assume_default_locale locale <|
             fold_case column =
                 make_unary_op column "FOLD_CASE" "FOLD_CASE"
             ci_other = if other.is_a Column then fold_case other else other.to_case Case.Lower
-            (fold_case left) . make_binary_op op ci_other
+            make_binary_op (fold_case left) op ci_other
     result.rename new_name
 
 ## PRIVATE
