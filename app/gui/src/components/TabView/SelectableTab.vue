@@ -20,7 +20,7 @@ const whenTooltip = computed(() => (props.label && !props.title ? 'whenOverflow'
 <template>
   <TooltipTrigger :when="whenTooltip">
     <template #default="triggerProps">
-      <div class="SelectableTab" @click="selected = true" v-bind="triggerProps">
+      <div class="SelectableTab" v-bind="triggerProps" @click="selected = true">
         <motion.div v-if="selected" class="underlying" layoutId="tab-highlight">
           <!-- TODO[ao]: Style copied from dashboard. Anyone is welcome to port it <style scoped> 
         in their free time -->
