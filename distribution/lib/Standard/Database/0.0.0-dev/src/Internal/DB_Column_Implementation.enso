@@ -503,8 +503,6 @@ type DB_Column_Implementation
 
     to_text_implementation (this_column : Column & DB_Column) = "(Database Column "+this_column.name.to_text+")"
 
-    var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-
 naming_helper this_column = this_column.connection.base_connection.column_naming_helper
 
 ## PRIVATE

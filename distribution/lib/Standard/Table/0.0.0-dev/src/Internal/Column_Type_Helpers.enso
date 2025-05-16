@@ -15,3 +15,7 @@ underlying_from_column value:Column expected_type =
     if value.underlying.is_a expected_type then value.underlying else
         got_type = Meta.type_of value.underlying
         Error.throw (Illegal_Argument.Error ("Expected a column of type " + expected_type.to_text + " but got " + got_type.to_text + "."))
+
+## PRIVATE
+   Helper for the expression to tell it which functions needs a Vector.
+var_args_functions = ['is_in', 'coalesce', 'min', 'max']

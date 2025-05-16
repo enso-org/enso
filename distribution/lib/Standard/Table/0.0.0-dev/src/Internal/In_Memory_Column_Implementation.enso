@@ -662,10 +662,6 @@ type In_Memory_Column_Implementation
         (this_column:In_Memory_Column).pretty
 
     ## PRIVATE
-       Helper for the expression to tell it which functions needs a Vector.
-    var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-
-    ## PRIVATE
        This is a shortcut for API compatibility.
     naming_helper _ = naming_helper
 
