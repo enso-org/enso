@@ -1512,6 +1512,7 @@ export default class RemoteBackend extends Backend {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention, camelcase */
       ...(params.userEmail != null ? { user_email: params.userEmail } : {}),
+      ...(params.lambdaKind != null ? { lambda_kind: params.lambdaKind } : {}),
       ...(params.startDate != null ? { start_date: params.startDate } : {}),
       ...(params.endDate != null ? { end_date: params.endDate } : {}),
       ...(params.from != null ? { from: String(params.from) } : {}),

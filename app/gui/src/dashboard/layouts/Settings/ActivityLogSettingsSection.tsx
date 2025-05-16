@@ -57,7 +57,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const { backend } = props
   const { getText } = useText()
   const [sortInfo, setSortInfo] = React.useState<SortInfo<ActivityLogSortableColumn> | null>(null)
-  const { data: users = [] } = useQuery(backendQueryOptions(backend, 'listUsers', []))
+  const { data: usersRaw = [] } = useQuery(backendQueryOptions(backend, 'listUsers', []))
+  const users = [...usersRaw].sort((a, b) => a.name.localeCompare(b.name))
   const allEmails = users.map((user) => user.email)
   const usersByEmail = new Map(users.map((user) => [user.email, user]))
   const isDescending = sortInfo?.direction === SortDirection.descending
@@ -72,7 +73,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     defaultValues: { pageSize: GET_LOG_EVENTS_DEFAULT_PAGE_SIZE },
   })
   const typeRaw = form.watch('type')
-  const type = typeRaw != null ? lambdaKindsByName.get(typeRaw) : null
+  const lambdaKind = typeRaw != null ? lambdaKindsByName.get(typeRaw) : null
   const userEmail = form.watch('userEmail')
   const startDate = form.watch('startDate')
   const endDate = form.watch('endDate')
@@ -82,6 +83,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const getLogEventsArgs = [
     {
       userEmail,
+      lambdaKind,
       startDate: startDate && toRfc3339(startDate.toDate()),
       endDate: endDate && toRfc3339(endDate.toDate()),
       pageSize,
@@ -106,7 +108,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         return false
       }
       const kind = normalizeLambdaKind(log.lambdaKind)
-      return type == null || !kind.valid || kind.kind === type
+      return lambdaKind == null || !kind.valid || kind.kind === lambdaKind
     })
 
     if (sortInfo == null || filteredLogs == null) {
@@ -167,11 +169,11 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           <DatePicker form={form} name="endDate" maxValue={maxDate} className="w-36" />
         </div>
         <div className="flex items-center gap-2">
-          <Text className="whitespace-nowrap">{getText('types')}</Text>
+          <Text className="whitespace-nowrap">{getText('type')}</Text>
           <ComboBox
             form={form}
             name="type"
-            aria-label={getText('types')}
+            aria-label={getText('type')}
             items={endpointNames}
             toTextValue={(otherType) => otherType ?? ''}
             className="w-60"
@@ -195,11 +197,11 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           </ComboBox>
         </div>
         <div className="flex items-center gap-2">
-          <Text className="whitespace-nowrap">{getText('users')}</Text>
+          <Text className="whitespace-nowrap">{getText('user')}</Text>
           <ComboBox
             form={form}
             name="userEmail"
-            aria-label={getText('users')}
+            aria-label={getText('user')}
             items={allEmails}
             toTextValue={(email) => {
               if (email == null) {
