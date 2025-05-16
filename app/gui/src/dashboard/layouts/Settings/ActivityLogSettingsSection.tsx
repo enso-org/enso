@@ -182,13 +182,13 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
               if (otherType == null) {
                 return null
               }
-              const lambdaKind = lambdaKindsByName.get(otherType)
-              if (lambdaKind == null) {
+              const otherLambdaKind = lambdaKindsByName.get(otherType)
+              if (otherLambdaKind == null) {
                 return otherType
               }
               return (
                 <div className="flex w-full">
-                  <IconDisplay align="left" icon={EVENT_TYPE_ICON[lambdaKind]}>
+                  <IconDisplay align="left" icon={EVENT_TYPE_ICON[otherLambdaKind]}>
                     {otherType}
                   </IconDisplay>
                 </div>
