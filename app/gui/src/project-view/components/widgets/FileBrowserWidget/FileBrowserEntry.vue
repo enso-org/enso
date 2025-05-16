@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { ref, watch } from 'vue'
@@ -32,7 +32,7 @@ watch(input, (newInput) => {
 
 <template>
   <div :class="{ FileBrowserEntry: true, highlighted }" @click="emit('click')">
-    <LoadingSpinner v-if="editingState === 'pending'" :size="16" />
+    <GrowingSpinner v-if="editingState === 'pending'" :size="16" phase="loading-medium" />
     <SvgIcon v-else :name="icon" />
     <input
       v-if="editingState === 'editing'"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 /**
@@ -14,9 +14,17 @@ import type { ComponentExposed } from 'vue-component-type-helpers'
  */
 
 const toggledOn = defineModel<boolean>({ default: undefined })
-const props = defineProps<{ disabled?: boolean | undefined; title?: string | undefined }>()
+const props = defineProps<{
+  disabled?: boolean | undefined
+  title?: string | undefined
+  extraClickZone?: number | undefined
+}>()
 const tooltipTrigger = ref<ComponentExposed<typeof TooltipTrigger>>()
 const emit = defineEmits<{ activate: [] }>()
+
+const style = computed(() =>
+  props.extraClickZone != null ? { '--extraClickZone': `${props.extraClickZone}px` } : {},
+)
 
 function onActivate() {
   if (tooltipTrigger.value) {
@@ -35,12 +43,14 @@ function onActivate() {
         class="MenuButton clickable"
         :aria-label="props.title ?? ''"
         :class="{ toggledOn, toggledOff: toggledOn === false, disabled }"
+        :style="style"
         :disabled="disabled ?? false"
         v-bind="triggerProps"
         @click.stop="onActivate"
         @keydown.enter.stop
       >
         <slot />
+        <div v-if="extraClickZone" class="hoverArea" />
       </button>
     </template>
     <template v-if="$slots.tooltip || props.title" #tooltip>
@@ -51,14 +61,15 @@ function onActivate() {
 
 <style scoped>
 .MenuButton {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-width: max-content;
-  padding: 4px;
+  padding: var(--button-padding, 4px);
   border-radius: var(--radius-full);
   border: none;
   transition: background-color 0.3s;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
   &.toggledOn {
     background-color: var(--color-menu-entry-selected-bg);
@@ -76,5 +87,11 @@ function onActivate() {
       background-color: unset;
     }
   }
+}
+
+.hoverArea {
+  position: absolute;
+  inset: calc(var(--extraClickZone) * -1);
+  cursor: pointer;
 }
 </style>

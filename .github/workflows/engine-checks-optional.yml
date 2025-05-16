@@ -120,9 +120,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
-      - run: |-
-          ls -l built-distribution.tar
-          sha256sum built-distribution.tar
+      - run: ls -l built-distribution.tar
         shell: bash
       - name: Unpack Engine Distribution
         run: |-
@@ -196,9 +194,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
-      - run: |-
-          ls -l built-distribution.tar
-          sha256sum built-distribution.tar
+      - run: ls -l built-distribution.tar
         shell: bash
       - name: Unpack Engine Distribution
         run: |-
@@ -275,9 +271,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
-      - run: |-
-          ls -l built-distribution.tar
-          sha256sum built-distribution.tar
+      - run: ls -l built-distribution.tar
         shell: bash
       - name: Unpack Engine Distribution
         run: |-
