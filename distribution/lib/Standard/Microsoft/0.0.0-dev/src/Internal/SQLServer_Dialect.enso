@@ -64,10 +64,10 @@ sqlserver =
 type SQLServer_Dialect
     ## PRIVATE
        The dialect of SQL Server databases.
-    Value _dialect_operations
+    private Value internal_dialect_operations
 
     ## PRIVATE
-    dialect_operations self = self._dialect_operations
+    dialect_operations self = self.internal_dialect_operations
 
     ## PRIVATE
        Name of the dialect.

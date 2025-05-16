@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Arithmetic_Error
@@ -7,12 +6,9 @@ import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Missing_Argument
-import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-import Standard.Base.Internal.Polyglot_Helpers
-import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 from Standard.Base.Metadata import Display, make_single_choice
 from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
@@ -21,59 +17,21 @@ from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
 import project.Fill_With.Fill_With
-import project.Internal.Cast_Helpers
-import project.Internal.Column_Naming_Helper.Column_Naming_Helper
-import project.Internal.Column_Ops
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Date_Time_Helpers
-import project.Internal.Java_Problems
-import project.Internal.Offset_Helper
-import project.Internal.Parse_Values_Helper
 import project.Internal.Read_Many_Helpers
-import project.Internal.Storage
 import project.Internal.Type_Refinements.Column_Refinements
-import project.Internal.Value_Type_Helpers
+import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Internal.Widget_Helpers
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Column_Names, Invalid_Value_Type, No_Index_Set_Error
-from project.Internal.Column_Format import all
-from project.Internal.Java_Exports import make_string_builder
-from project.Internal.Storage import enso_to_java, java_to_enso
-from project.Table import from_java_table
-
-polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
-polyglot java import org.enso.table.data.column.operation.cast.CastOperation
-polyglot java import org.enso.table.data.column.operation.comparators.Comparators
-polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
-polyglot java import org.enso.table.data.column.operation.CountNothing
-polyglot java import org.enso.table.data.column.operation.CountUntrimmed
-polyglot java import org.enso.table.data.column.operation.RequiresNumberFormatting
-polyglot java import org.enso.table.data.column.operation.SampleOperation
-polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
-polyglot java import org.enso.table.data.column.operation.text.TextPredicates
-polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
-polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
-polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
-polyglot java import org.enso.table.data.column.operation.unary.NotOperation
-polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
-polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePartOperation
-polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
-polyglot java import org.enso.table.data.column.operation.UnaryOperation
-polyglot java import org.enso.table.data.column.storage.PreciseTypeOptions
-polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
-polyglot java import org.enso.table.data.column.storage.StorageListView
-polyglot java import org.enso.table.data.mask.OrderMask
-polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.error.ValueTypeMismatchException
-polyglot java import org.enso.table.operations.OrderBuilder
-polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type Column
+    private Value underlying implementation
+
     ## ICON convert
        Creates a new column given a name and a vector of elements.
 
@@ -97,58 +55,7 @@ type Column
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column ! Invalid_Value_Type =
-        ## If the type does not accept date-time-like values, we can skip the
-           additional logic for polyglot conversions that would normally be used,
-           which is quite costly - so if we can guarantee it is unnecessary,
-           it is good to skip it.
-        needs_polyglot_conversion = case value_type of
-            Value_Type.Char _ _  -> False
-            Value_Type.Float _   -> False
-            Value_Type.Integer _ -> False
-            Value_Type.Boolean   -> False
-            Value_Type.Byte      -> False
-            _                    -> True
-        needs_enso_to_java_conversion = case value_type of
-            Value_Type.Decimal _ _ -> True
-            Auto                   -> True
-            _                      -> False
-        enso_to_java_maybe items = if needs_enso_to_java_conversion.not then items else
-            items.map enso_to_java
-        expected_storage_type = case value_type of
-            Auto -> Nothing
-            _ -> Storage.from_value_type value_type on_problems=Problem_Behavior.Report_Warning
-        raise_invalid_value_type_error problematic_value =
-            expected_type = value_type
-            actual_type = Value_Type_Helpers.most_specific_value_type problematic_value use_smallest=True
-            Error.throw (Invalid_Value_Type.Value expected_type actual_type problematic_value)
-        handle_invalid_value_type ~action = Panic.catch ValueTypeMismatchException action caught_panic->
-            java_exception = caught_panic.payload
-            raise_invalid_value_type_error java_exception.getValue
-        Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <| handle_invalid_value_type <|
-            java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                case needs_polyglot_conversion of
-                    True -> Java_Column.fromItems name (enso_to_java_maybe items) expected_storage_type java_problem_aggregator
-                    False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
-            multi_result = Column.from_java_column java_column
-            result = Warning.throw_on_warning multi_result Conversion_Failure
-            if Meta.is_error result . not then result else
-                result.catch Conversion_Failure error->
-                    if error.example_values.is_empty then result else
-                        raise_invalid_value_type_error error.example_values.first
-
-    ## PRIVATE
-       Creates a new column given a name and an internal Java storage.
-    from_storage : Text -> Java_Storage -> Column
-    from_storage name storage =
-        Invalid_Column_Names.handle_java_exception <|
-            java_column = Java_Column.new name storage
-            Column.from_java_column java_column
-
-    ## PRIVATE
-       Creates a new column given a Java Column object.
-    from_java_column java_column:Java_Column -> Column =
-        column = Column.Value java_column
-        Column_Refinements.refine_column column
+        In_Memory_Column.from_vector name items value_type
 
     ## PRIVATE
        ADVANCED
@@ -158,24 +65,8 @@ type Column
        - name: The name of the column to create.
        - item: The element to repeat in the column.
        - repeats: The number of times to repeat the element.
-    from_repeated_item : Text -> Any -> Integer -> Column
-    from_repeated_item name item repeats =
-        Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
-            java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                Java_Column.fromRepeatedItem name item repeats java_problem_aggregator
-            Column.from_java_column java_column
-
-    ## PRIVATE
-       Internal constructor that should not be used directly.
-       Please use `from_java_column` instead.
-
-       Arguments:
-       - internal_java_column: The internal representation of the column.
-    private Value internal_java_column
-
-    ## PRIVATE
-       A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
-    private java_column self = self.internal_java_column
+    from_repeated_item name:Text item:Any repeats:Integer -> Column =
+        In_Memory_Column.from_repeated_item name item repeats
 
     ## PRIVATE
        ADVANCED
@@ -192,7 +83,7 @@ type Column
 
              example_display = Examples.integer_column.display
     display self show_rows:Integer=10 format_terminal:Boolean=False -> Text =
-        self.to_table.display show_rows format_terminal
+        self.implementation.display self show_rows format_terminal
 
     ## PRIVATE
        ADVANCED
@@ -246,13 +137,7 @@ type Column
 
              example_eq = Examples.integer_column == 1
     == self (other : Column | Any) -> Column =
-        new_name = naming_helper.binary_operation_name "==" self other
-        fallback problem_builder a b =
-            if (a.is_a Float) || (b.is_a Float) then
-                problem_builder.reportFloatingPointEquality -1
-            a == b
-        _call_comparator self other new_name (Comparators.eq self.java_column) <|
-            run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
+        self.implementation.equals self other
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -268,17 +153,7 @@ type Column
        `other`.
     @locale Locale.default_widget
     equals_ignore_case self (other : Column | Any) locale:Locale=Locale.default -> Column =
-        ## TODO currently this always runs the fallback which is slow due to the
-           cost of Java-to-Enso calls. We want to have a vectorized
-           implementation, but we need to extend the architecture to allow
-           passing the locale to it.
-           See: https://github.com/enso-org/enso/issues/5250
-        fallback x y =
-            x.equals_ignore_case y locale=locale
-        Value_Type.expect_text self <|
-            Value_Type.expect_text other <|
-                new_name = naming_helper.function_name "equals_ignore_case" [self, other]
-                run_binary_op self fallback other new_name expected_result_type=Value_Type.Boolean
+        self.implementation.equals_ignore_case self other locale
 
     ## ALIAS not equals
        GROUP Standard.Base.Operators
@@ -313,9 +188,7 @@ type Column
 
              example_neq = Examples.integer_column != 1
     != self (other : Column | Any) -> Column =
-        new_name = naming_helper.binary_operation_name "!=" self other
-        _call_comparator self other new_name (Comparators.notEq self.java_column) <|
-            (self == other).not . rename new_name
+        self.implementation.not_equals self other
 
     ## ALIAS greater than or equal
        GROUP Standard.Base.Operators
@@ -343,10 +216,8 @@ type Column
              import Standard.Examples
 
              example_geq = Examples.integer_column >= 1
-    >= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
-        new_name = naming_helper.binary_operation_name ">=" self other
-        _call_comparator self other new_name (Comparators.greaterThanEq self.java_column) <|
-            run_vectorized_binary_op self Java_Storage.Maps.GTE new_name=new_name fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
+    >= self (other : Column | Any) -> Column =
+        self.implementation.greater_than_eq self other
 
     ## ALIAS less than or equal
        GROUP Standard.Base.Operators
@@ -374,10 +245,8 @@ type Column
              import Standard.Examples
 
              example_leq = Examples.integer_column <= 1
-    <= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
-        new_name = naming_helper.binary_operation_name "<=" self other
-        _call_comparator self other new_name (Comparators.lessThanEq self.java_column) <|
-            run_vectorized_binary_op self Java_Storage.Maps.LTE new_name=new_name fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
+    <= self (other : Column | Any) -> Column =
+        self.implementation.less_than_eq self other
 
     ## ALIAS greater than
        GROUP Standard.Base.Operators
@@ -405,10 +274,8 @@ type Column
              import Standard.Examples
 
              example_gt = Examples.integer_column > 1
-    > self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
-        new_name = naming_helper.binary_operation_name ">" self other
-        _call_comparator self other new_name (Comparators.greaterThan self.java_column) <|
-            run_vectorized_binary_op self Java_Storage.Maps.GT new_name=new_name fallback_fn=(>) other expected_result_type=Value_Type.Boolean
+    > self (other : Column | Any) -> Column =
+        self.implementation.greater_than self other
 
     ## ALIAS less than
        GROUP Standard.Base.Operators
@@ -436,10 +303,8 @@ type Column
              import Standard.Examples
 
              example_lt = Examples.integer_column < 1
-    < self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
-        new_name = naming_helper.binary_operation_name "<" self other
-        _call_comparator self other new_name (Comparators.lessThan self.java_column) <|
-            run_vectorized_binary_op self Java_Storage.Maps.LT new_name=new_name fallback_fn=(<) other expected_result_type=Value_Type.Boolean
+    < self (other : Column | Any) -> Column =
+        self.implementation.less_than self other
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -455,13 +320,8 @@ type Column
 
        Returns a column with boolean values indicating whether values of this
        column fit between the lower and upper bounds (both ends inclusive).
-    between self (lower : Column | Any) (upper : Column | Any) -> Column = Value_Type.expect_comparable self lower <| Value_Type.expect_comparable self upper <|
-        new_name = naming_helper.concat <|
-            [naming_helper.to_expression_text self, "between", naming_helper.to_expression_text lower, "and", naming_helper.to_expression_text upper]
-        lower_check = (self >= lower)
-        upper_check = (self <= upper)
-        result = lower_check && upper_check
-        result.rename new_name
+    between self (lower : Column | Any) (upper : Column | Any) -> Column =
+        self.implementation.between self lower upper
 
     ## ALIAS add, concatenate, plus
        GROUP Standard.Base.Operators
@@ -499,10 +359,9 @@ type Column
 
              example_plus = Examples.integer_column + 10
     + self (other : Column | Any) -> Column =
-        Value_Type_Helpers.resolve_addition_kind self other . if_not_error <|
-            run_vectorized_binary_op self Java_Storage.Maps.ADD other
+        self.implementation.add self other
 
-    ## ALIAS minus, subtract
+    ## ALIAS minus, subtract, time difference
        GROUP Standard.Base.Operators
        ICON operators
        Element-wise subtraction. Allows to subtract numeric types or compute a
@@ -539,23 +398,7 @@ type Column
 
              example_minus = Examples.integer_column - 10
     - self (other : Column | Any) -> Column =
-        case Value_Type_Helpers.resolve_subtraction_kind self other of
-            Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
-                run_vectorized_binary_op self Java_Storage.Maps.SUB other
-            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
-                case self.inferred_precise_value_type of
-                    Value_Type.Date ->
-                        ## Special handling for `Period` since it is hard to
-                           vectorize as there is no polyglot handling of it - we
-                           _wrap_ a Java object and the Java wrapper will always
-                           be an Enso callback, at which point its better to do
-                           the whole operation in pure Enso.
-                        fn = x-> y-> Period.between y x
-                        new_name = naming_helper.binary_operation_name "-" self other
-                        run_binary_op self fn other new_name
-                    _ ->
-                        run_vectorized_binary_op self Java_Storage.Maps.SUB other
-            Nothing -> self.const Nothing
+        self.implementation.minus self other
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators
@@ -593,8 +436,7 @@ type Column
 
              example_mul = Examples.integer_column * 10
     * self (other : Column | Any) -> Column =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            run_vectorized_binary_op self Java_Storage.Maps.MUL other
+        self.implementation.multiply self other
 
     ## ALIAS divide
        GROUP Standard.Base.Operators
@@ -637,9 +479,7 @@ type Column
 
              example_div = Examples.integer_column / 10
     / self (other : Column | Any) -> Column =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            new_name = naming_helper.binary_operation_name "/" self other
-            run_vectorized_binary_op self Java_Storage.Maps.DIV other new_name
+        self.implementation.divide self other
 
     ## ALIAS modulo, modulus
        GROUP Standard.Base.Operators
@@ -673,9 +513,7 @@ type Column
 
              example_mod = Examples.integer_column % 3
     % self (other : Column | Any) -> Column =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            new_name = naming_helper.binary_operation_name "%" self other
-            run_vectorized_binary_op self Java_Storage.Maps.MOD other new_name
+        self.implementation.modulus self other
 
     ## ALIAS power
        GROUP Standard.Base.Operators
@@ -713,9 +551,7 @@ type Column
 
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ self (other : Column | Any) -> Column =
-        Illegal_Argument.handle_java_exception <|
-            Value_Type_Helpers.check_binary_numeric_op self other <|
-                run_vectorized_binary_op self Java_Storage.Maps.POWER other
+        self.implementation.power self other
 
     ## ALIAS and
        GROUP Standard.Base.Operators
@@ -745,8 +581,7 @@ type Column
 
              example_and = Examples.bool_column_1 && True
     && self (other : Column | Any) -> Column =
-        Value_Type_Helpers.check_binary_boolean_op self other <|
-            run_vectorized_binary_op self Java_Storage.Maps.AND other
+        self.implementation.and self other
 
     ## ALIAS or
        GROUP Standard.Base.Operators
@@ -777,8 +612,7 @@ type Column
 
              example_or = Examples.bool_column_1 || True
     || self (other : Column | Any) -> Column =
-        Value_Type_Helpers.check_binary_boolean_op self other <|
-           run_vectorized_binary_op self Java_Storage.Maps.OR other
+        self.implementation.or self other
 
     ## ALIAS not
        GROUP Standard.Base.Logical
@@ -793,9 +627,7 @@ type Column
 
              example_not = Examples.bool_column_1.not
     not self -> Column =
-        Value_Type.expect_boolean self <|
-            new_name = naming_helper.concat ["not", naming_helper.to_expression_text self]
-            apply_unary_operation self NotOperation.INSTANCE new_name
+        self.implementation.not self
 
     ## ALIAS if
        GROUP Standard.Base.Logical
@@ -815,31 +647,7 @@ type Column
 
              example_if = Examples.bool_column_1.iif 1 0
     iif self (when_true : Column | Any) (when_false : Column | Any) -> Column =
-        Value_Type.expect_boolean self <|
-            common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
-            storage_type = Storage.from_value_type_strict common_type
-            storage_type.if_not_error <|
-                new_name = naming_helper.concat <|
-                    ["if", naming_helper.to_expression_text self, "then", naming_helper.to_expression_text when_true, "else", naming_helper.to_expression_text when_false]
-                # Even if we have a MixedStorage with inferred type Bool, we ensure that the effective storage is BoolStorage, only one that supports iif.
-                s = self.java_column.getStorage.tryGettingMoreSpecializedStorage
-
-                true_val = case when_true of
-                    _ : Column -> when_true.java_column.getStorage
-                    _ -> when_true
-
-                false_val = case when_false of
-                    _ : Column -> when_false.java_column.getStorage
-                    _ -> when_false
-
-                handle_no_iif caught_panic =
-                    if Meta.meta caught_panic.payload.symbol . name != "iif" then Panic.throw caught_panic else
-                        error = Illegal_State.Error "`iif` got a storage "+s.to_display_text+" that does not support the `iif` operation. This is a bug in the Table library."
-                        Panic.throw error
-                rs = Panic.catch No_Such_Method handler=handle_no_iif <|
-                    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                        s.iif true_val false_val storage_type java_problem_aggregator
-                Column.from_storage new_name rs
+        self.implementation.iif self when_true when_false
 
     ## PRIVATE
 
@@ -856,8 +664,8 @@ type Column
          Create a column of the value 42
 
          column.const 42
-    const : Any -> Column
-    const self value = self.to_table.make_constant_column value
+    const self value:Any -> Column =
+        self.to_table.make_constant_column value
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -908,14 +716,20 @@ type Column
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
 
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `round`, it immediately returns
+         the same value.
+
+       ? Return type in Database
+         In databases, the return type of this operation depends on the
+         particular database backend.
+
        > Example
          Round a column of `Float` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
-    round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column ! Illegal_Argument | Invalid_Value_Type = Value_Type.expect_numeric self <|
-        Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
-            new_name = naming_helper.function_name "round" [self]
-            run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places (rounding_mode == Rounding_Mode.Bankers) new_name=new_name
+    round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column ! Illegal_Argument | Invalid_Value_Type =
+        self.implementation.round self decimal_places rounding_mode
 
     ## ALIAS int
        GROUP Standard.Base.Rounding
@@ -925,6 +739,10 @@ type Column
        integer by dropping the fractional part. This is equivalent to
        "round-toward-zero". If the column is of type `Date_Time`, truncates the
        values to `Date`.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `truncate`, it immediately returns
+         the same value.
 
        > Example
          Truncate a column of `Float` values.
@@ -937,19 +755,7 @@ type Column
             dates = Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
             col.truncate == dates
     truncate self -> Column ! Invalid_Value_Type =
-        new_name = naming_helper.function_name "truncate" [self]
-        precise_value_type = self.inferred_precise_value_type
-        case precise_value_type.is_numeric of
-            True ->
-                case precise_value_type.is_integer of
-                    True ->
-                        self.rename new_name
-                    False ->
-                        apply_unary_operation self UnaryRoundOperation.TRUNCATE_INSTANCE
-            False -> case precise_value_type == Value_Type.Date_Time of
-                True ->
-                    apply_unary_operation self DateTruncateOperation.TRUNCATE_INSTANCE
-                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
+        self.implementation.truncate self
 
     ## GROUP Standard.Base.Rounding
        ICON math
@@ -958,17 +764,16 @@ type Column
 
        Returns a column of `Integer`.
 
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `ceil`, it immediately returns
+         the same value.
+
        > Example
          Take the ceiling of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
-    ceil self -> Column ! Invalid_Value_Type = Value_Type.expect_numeric self <|
-        case self.inferred_precise_value_type.is_integer of
-            True ->
-                new_name = naming_helper.function_name "ceil" [self]
-                self.rename new_name
-            False ->
-                apply_unary_operation self UnaryRoundOperation.CEIL_INSTANCE
+    ceil self -> Column ! Invalid_Value_Type =
+        self.implementation.ceil self
 
     ## GROUP Standard.Base.Rounding
        ICON math
@@ -977,17 +782,16 @@ type Column
 
        Returns a column of `Integer`.
 
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `floor`, it immediately returns
+         the same value.
+
        > Example
          Take the floor of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
-    floor self -> Column ! Invalid_Value_Type = Value_Type.expect_numeric self <|
-        case self.inferred_precise_value_type.is_integer of
-            True ->
-                new_name = naming_helper.function_name "floor" [self]
-                self.rename new_name
-            False ->
-                apply_unary_operation self UnaryRoundOperation.FLOOR_INSTANCE
+    floor self -> Column ! Invalid_Value_Type =
+        self.implementation.floor self
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -1004,11 +808,7 @@ type Column
 
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
     coalesce self (values : Any | Vector Any) -> Column =
-        vec = Vector.unify_vector_or_element values
-        new_name = self.naming_helper.function_name "coalesce" [self]+vec
-        result = if vec.is_empty then self else
-            vec.fold self acc-> v-> acc.fill_nothing v
-        result.rename new_name
+        self.implementation.coalesce self values
 
     ## GROUP Standard.Base.Math
        ICON transform4
@@ -1018,17 +818,18 @@ type Column
        - values: list of columns or values to minimum with `self`, or a single
          column or value.
 
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
+
        > Example
          Get the minimum value in two columns.
 
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
-    min self (values : Any | Vector Any) -> Column = Value_Type_Helpers.check_multi_argument_comparable_op self values <|
-        fallback a b = if a.is_nothing then b else
-            if b.is_nothing then a else
-                if b < a then b else a
-        _run_vectorized_many_op self "min" fallback values
+    min self (values : Any | Vector Any) -> Column =
+        self.implementation.min self values
 
     ## GROUP Standard.Base.Math
        ICON transform4
@@ -1038,17 +839,18 @@ type Column
        - values: list of columns or values to maximum with `self`, or a single
          column or value.
 
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
+
        > Example
          Get the maximum value in two columns.
 
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
-    max self (values : Any | Vector Any) -> Column = Value_Type_Helpers.check_multi_argument_comparable_op self values <|
-        fallback a b = if a.is_nothing then b else
-            if b.is_nothing then a else
-                if b > a then b else a
-        _run_vectorized_many_op self "max" fallback values
+    max self (values : Any | Vector Any) -> Column =
+        self.implementation.max self values
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1062,64 +864,36 @@ type Column
 
              example_is_nothing = Examples.decimal_column.is_nothing
     is_nothing self -> Column =
-        new_name = naming_helper.concat [naming_helper.to_expression_text self, "is Nothing"]
-        apply_unary_operation self IsNothingOperation.INSTANCE new_name
+        self.implementation.is_nothing_implementation self
 
     ## GROUP Standard.Base.Math
        ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
-    is_nan self -> Column = Value_Type.expect_numeric self <|
-        self.internal_is_nan
-
-    ## PRIVATE
-    internal_is_nan : Column
-    internal_is_nan self =
-        new_name = naming_helper.function_name "is_nan" [self]
-        fallback x = case x of
-            _ : Float   -> x.is_nan
-            _           -> False
-        apply_unary_operation self DoubleIsOperation.IS_NAN new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
+    is_nan self -> Column =
+        self.implementation.is_nan self
 
     ## GROUP Standard.Base.Math
        ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
-    is_infinite self -> Column = Value_Type.expect_numeric self <|
-        new_name = naming_helper.function_name "is_infinite" [self]
-        fallback x = case x of
-            _ : Float   -> x.is_infinite
-            _           -> False
-        apply_unary_operation self DoubleIsOperation.IS_INFINITE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
+    is_infinite self -> Column =
+        self.implementation.is_infinite self
 
     ## GROUP Standard.Base.Math
        ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a non-infinite, non-NaN floating point value. This
        is only applicable to double columns.
-    is_finite self -> Column = Value_Type.expect_numeric self <|
-        new_name = naming_helper.function_name "is_finite" [self]
-        fallback x = case x of
-            _ : Float   -> x.is_finite
-            _           -> True
-        apply_unary_operation self DoubleIsOperation.IS_FINITE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
+    is_finite self -> Column =
+        self.implementation.is_finite self
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
-    is_empty self -> Column = Value_Type.expect_text self <|
-        self.internal_is_empty
-
-    ## PRIVATE
-    internal_is_empty : Column
-    internal_is_empty self =
-        new_name = naming_helper.concat [naming_helper.to_expression_text self, "is empty"]
-        fallback x = case x of
-            _ : Text -> x == ""
-            Nothing  -> True
-            _        -> False
-        apply_unary_operation self IsEmptyOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean nothing_unchanged=False)
+    is_empty self -> Column =
+        self.implementation.is_empty self
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1133,8 +907,7 @@ type Column
 
              example_is_present = Examples.decimal_column.is_present
     is_present self -> Column =
-        new_name = naming_helper.function_name "is_present" [self]
-        self.is_nothing.not.rename new_name
+        self.implementation.is_present self
 
     ## PRIVATE
        Returns a column of booleans with `True` at the positions where this
@@ -1147,15 +920,7 @@ type Column
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     is_blank self treat_nans_as_blank:Boolean=False -> Column =
-        new_name = naming_helper.function_name "is_blank" [self]
-        result = case self.value_type of
-            Value_Type.Char _ _ -> self.is_empty
-            Value_Type.Float _ ->
-                if treat_nans_as_blank then self.is_nothing.iif True self.internal_is_nan else self.is_nothing
-            Value_Type.Mixed ->
-                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing.iif True self.internal_is_nan else self.is_nothing)
-            _ -> self.is_nothing
-        result.rename new_name
+        self.implementation.is_blank self treat_nans_as_blank
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
@@ -1180,19 +945,7 @@ type Column
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
     fill_nothing self (default : Column | Previous_Value | Any) -> Column =
-        if Previous_Value == default then fill_previous self Nothing else
-            common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
-            common_type.if_not_error <|
-                storage = self.java_column.getStorage
-                storage_type = Storage.from_value_type_strict common_type
-                new_storage = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                    case default of
-                        col : Column ->
-                            other_storage = col.java_column.getStorage
-                            storage.fillMissingFrom other_storage storage_type java_problem_aggregator
-                        _ ->
-                            storage.fillMissing default storage_type java_problem_aggregator
-                Column.from_storage self.name new_storage
+        self.implementation.fill_nothing self default
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
@@ -1216,11 +969,7 @@ type Column
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
     fill_empty self (default : Column | Previous_Value | Any) -> Column =
-        Value_Type.expect_text self <|
-            if Previous_Value == default then fill_previous self self.is_empty else
-                Value_Type.expect_text default <|
-                    result = self.is_empty.iif default self
-                    result.rename self.name
+        self.implementation.fill_empty self default
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1255,9 +1004,8 @@ type Column
              import Standard.Examples
 
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
-    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column = Value_Type.expect_text self <| Value_Type.expect_text other <|
-        new_name = naming_helper.function_name "starts_with" [self, other]
-        _apply_case_sensitive_text_operation self other case_sensitivity TextPredicates.STARTS_WITH (a -> b -> a.starts_with b case_sensitivity) new_name
+    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
+        self.implementation.starts_with self other case_sensitivity
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1285,9 +1033,8 @@ type Column
              import Standard.Examples
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
-    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column = Value_Type.expect_text self <| Value_Type.expect_text other <|
-        new_name = naming_helper.function_name "ends_with" [self, other]
-        _apply_case_sensitive_text_operation self other case_sensitivity TextPredicates.ENDS_WITH (a -> b -> a.ends_with b case_sensitivity) new_name
+    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
+        self.implementation.ends_with self other case_sensitivity
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1304,8 +1051,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_length
     text_length self -> Column =
-        Value_Type.expect_text self <|
-            apply_unary_operation self TextLengthOperation.INSTANCE
+        self.implementation.text_length self
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1322,9 +1068,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_left 5
     text_left self (n : Column | Integer) -> Column =
-        Value_Type.expect_text self <| Value_Type.expect_integer n <|
-            new_name = naming_helper.function_name "text_left" [self, n]
-            _apply_case_sensitive_text_operation self n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
+        self.implementation.text_left self n
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1341,9 +1085,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_right 5
     text_right self (n : Column | Integer) -> Column =
-        Value_Type.expect_text self <| Value_Type.expect_integer n <|
-            new_name = naming_helper.function_name "text_right" [self, n]
-            _apply_case_sensitive_text_operation self n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
+        self.implementation.text_right self n
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1371,9 +1113,8 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.contains "hell"
-    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column = Value_Type.expect_text self <| Value_Type.expect_text other <|
-        new_name = naming_helper.function_name "contains" [self, other]
-        _apply_case_sensitive_text_operation self other case_sensitivity TextPredicates.CONTAINS (a -> b -> a.contains b case_sensitivity) new_name
+    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
+        self.implementation.contains self other case_sensitivity
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1392,12 +1133,8 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.like "F%."
-    like self (pattern : Column | Text | Any) -> Column = Value_Type.expect_text self <| Value_Type.expect_text pattern <|
-        new_name = naming_helper.binary_operation_name "like" self pattern
-        fallback x y =
-            _ = [x, y]
-            Error.throw (Illegal_Argument.Error "LIKE operation is not supported for the given types.")
-        _apply_case_sensitive_text_operation self pattern ..Default TextPredicates.LIKE fallback new_name
+    like self (pattern : Column | Text | Any) -> Column =
+        self.implementation.like self pattern
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1415,15 +1152,7 @@ type Column
 
              example_contains = Examples.text_column_1.regex_match (regex "A.*M")
     regex_match self (pattern : Column | Text | Regex) -> Column =
-        string_pattern = case pattern of 
-            Regex.Value _ _ -> pattern.pattern 
-            _ -> pattern
-        Value_Type.expect_text self <| Value_Type.expect_text string_pattern <|
-            new_name = naming_helper.binary_operation_name "regex_match" self pattern
-            fallback x y =
-                _ = [x, y]
-                Error.throw (Illegal_Argument.Error "regex_match is not supported for the given types.")
-            _apply_case_sensitive_text_operation self string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
+        self.implementation.regex_match self pattern
 
     ## GROUP Standard.Base.Text
        ICON text
@@ -1435,18 +1164,8 @@ type Column
          function trims both ends of the input.
        - what: A `Text` (or text `Column`) containing characters that should be
          removed. By default, all whitespace is removed.
-    trim self where:Location=..Both (what : Text | Column = '') -> Column = Value_Type.expect_text self <|
-        new_name = naming_helper.function_name "trim" [self]
-
-        trim_get = wrap_text_argument_as_value_provider what
-
-        trim_get.if_not_error <|
-            trim_fn t w = if w.is_empty then t.trim where else
-                t.trim where w
-
-            self_vec = self.to_vector
-            mapped = self_vec.map_with_index i->t-> trim_fn t (trim_get i)
-            Column.from_vector new_name mapped
+    trim self where:Location=..Both (what : Text | Column = '') -> Column =
+        self.implementation.trim self where what
 
     ## ALIAS regex, substitute
        GROUP Standard.Base.Text
@@ -1474,6 +1193,39 @@ type Column
          sensitively.
        - only_first: If True, only replace the first match.
 
+       ! Backend Support
+         Each database backend supports different combinations of options:
+
+         Text:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✓   |
+         |       t        |      t     |     ✓    |    ✓   |
+         |       f        |      f     |     ✓    |    ✗   |
+         |       f        |      t     |     ✓    |    ✓   |
+         +----------------+------------+----------+--------+
+
+         Regex:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✗   |
+         |       t        |      t     |     ✓    |    ✗   |
+         |       f        |      f     |     ✓    |    ✗   |
+         |       f        |      t     |     ✓    |    ✗   |
+         +----------------+------------+----------+--------+
+
+         Text Column:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✓   |
+         |       t        |      t     |     ✗    |    ✓   |
+         |       f        |      f     |     ✗    |    ✗   |
+         |       f        |      t     |     ✗    |    ✓   |
+         +----------------+------------+----------+--------+
+
        > Example
          Replace dashes with underscores.
 
@@ -1491,28 +1243,7 @@ type Column
     @term make_regex_text_widget
     @new_text (Text_Input display=..Always)
     text_replace self (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
-        Value_Type.expect_text self <|
-            term_fn = wrap_text_or_regex_argument_as_value_provider term
-            new_text_fn = wrap_text_argument_as_value_provider new_text
-
-            term_fn.if_not_error <| new_text_fn.if_not_error <|
-                new_name = naming_helper.function_name "replace" [self, term, new_text]
-
-                do_replace index input =
-                    term = term_fn index
-                    if term.is_nothing || (term.is_a Text && term.is_empty) || input.is_nothing then input else
-                        replace = new_text_fn index
-                        input.replace term replace case_sensitivity only_first
-
-                length = self.length
-                storage = self.java_column.getStorage
-
-                builder = make_string_builder length
-                0.up_to length . each i->
-                    replaced = do_replace i (storage.getItemBoxed i)
-                    builder.append replaced
-
-                Column.from_storage new_name builder.seal
+        self.implementation.text_replace self term new_text case_sensitivity only_first
 
     ## GROUP Standard.Base.Text
        ICON column_add
@@ -1542,7 +1273,7 @@ type Column
              column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
     text_cleanse self (remove : Vector Named_Pattern) -> Column =
-      remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
+        self.implementation.text_cleanse self remove
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1550,8 +1281,8 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    year self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
-        apply_unary_operation self DatePartOperation.YEAR_INSTANCE
+    year self -> Column ! Invalid_Value_Type =
+        self.implementation.year self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1559,8 +1290,8 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    month self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
-        apply_unary_operation self DatePartOperation.MONTH_INSTANCE
+    month self -> Column ! Invalid_Value_Type =
+        self.implementation.month self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1569,8 +1300,8 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
-        apply_unary_operation self DatePartOperation.DAY_INSTANCE
+    day self -> Column ! Invalid_Value_Type =
+        self.implementation.day self
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1579,8 +1310,8 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day_of_year self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
-        apply_unary_operation self DatePartOperation.DAY_OF_YEAR_INSTANCE
+    day_of_year self -> Column ! Invalid_Value_Type =
+        self.implementation.day_of_year self
 
     ## ALIAS weekday
        GROUP Standard.Base.DateTime
@@ -1590,8 +1321,8 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day_of_week self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
-        apply_unary_operation self DatePartOperation.DAY_OF_WEEK_INSTANCE
+    day_of_week self -> Column ! Invalid_Value_Type =
+        self.implementation.day_of_week self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1599,8 +1330,8 @@ type Column
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    hour self -> Column ! Invalid_Value_Type = Value_Type.expect_has_time self <|
-        apply_unary_operation self DatePartOperation.HOUR_INSTANCE
+    hour self -> Column ! Invalid_Value_Type =
+        self.implementation.hour self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1608,8 +1339,8 @@ type Column
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    minute self -> Column ! Invalid_Value_Type = Value_Type.expect_has_time self <|
-        apply_unary_operation self DatePartOperation.MINUTE_INSTANCE
+    minute self -> Column ! Invalid_Value_Type =
+        self.implementation.minute self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1617,8 +1348,8 @@ type Column
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    second self -> Column ! Invalid_Value_Type = Value_Type.expect_has_time self <|
-        apply_unary_operation self DatePartOperation.SECOND_INSTANCE
+    second self -> Column ! Invalid_Value_Type =
+        self.implementation.second self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1627,21 +1358,7 @@ type Column
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_part self (period : Date_Period | Time_Period = ..Day) -> Column ! Invalid_Value_Type | Illegal_Argument =
-        date_part_operation col name =
-            operation = case name of
-                DatePartOperation.YEAR -> DatePartOperation.YEAR_INSTANCE
-                DatePartOperation.QUARTER -> DatePartOperation.QUARTER_INSTANCE
-                DatePartOperation.MONTH -> DatePartOperation.MONTH_INSTANCE
-                DatePartOperation.WEEK -> DatePartOperation.WEEK_INSTANCE
-                DatePartOperation.DAY -> DatePartOperation.DAY_INSTANCE
-                DatePartOperation.HOUR -> DatePartOperation.HOUR_INSTANCE
-                DatePartOperation.MINUTE -> DatePartOperation.MINUTE_INSTANCE
-                DatePartOperation.SECOND -> DatePartOperation.SECOND_INSTANCE
-                DatePartOperation.MILLISECOND -> DatePartOperation.MILLISECOND_INSTANCE
-                TruncatedTimePartOperation.MICROSECOND -> TruncatedTimePartOperation.MICROSECOND_INSTANCE
-                TruncatedTimePartOperation.NANOSECOND -> TruncatedTimePartOperation.NANOSECOND_INSTANCE
-            apply_unary_operation col operation
-        Date_Time_Helpers.make_date_part_function self period date_part_operation naming_helper
+        self.implementation.date_part self period
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1669,22 +1386,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_diff self (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = ..Day) -> Column ! Invalid_Value_Type | Illegal_Argument =
-        Value_Type.expect_type self .is_date_or_time "date/time" <|
-            my_type = self.inferred_precise_value_type
-            Value_Type.expect_type end (== my_type) my_type.to_display_text <|
-                aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
-                aligned_period.if_not_error <|
-                    new_name = naming_helper.function_name "date_diff" [self, end, period]
-                    java_unit = aligned_period.to_java_unit
-                    fn = case my_type of
-                        Value_Type.Date_Time _ ->
-                            start-> end-> Time_Utils.unit_datetime_difference java_unit start end
-                        Value_Type.Date ->
-                            start-> end-> Time_Utils.unit_date_difference java_unit start end
-                        Value_Type.Time ->
-                            start-> end-> Time_Utils.unit_time_difference java_unit start end
-                    run_binary_op self fn end new_name
-
+        self.implementation.date_diff self end period
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1707,20 +1409,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_add self (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> Column ! Invalid_Value_Type | Illegal_Argument =
-        Value_Type.expect_type self .is_date_or_time "date/time" <|
-            my_type = self.inferred_precise_value_type
-            Value_Type.expect_integer amount <|
-                aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
-                aligned_period.if_not_error <|
-                    new_name = naming_helper.function_name "date_add" [self, amount, period]
-                    java_unit = aligned_period.to_java_unit
-                    ## Here we do not need a Time_Utils helper like in scalar
-                       implementations of `date_add`, because the date coming
-                       from the column will always be already converted into a
-                       Java instance.
-                    fn date amount =
-                        java_unit.addTo date amount
-                    run_binary_op self fn amount new_name
+        self.implementation.date_add self amount period
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1739,18 +1428,7 @@ type Column
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in self (vector : Vector | Column | Array) -> Column =
-        result_name = naming_helper.concat [naming_helper.to_expression_text self, "in", naming_helper.to_expression_text vector]
-        as_vector = case vector of
-            _ : Vector -> vector
-            _ : Array -> Vector.from_polyglot_array vector
-            column : Column -> column.to_vector
-        op_name = Java_Storage.Maps.IS_IN
-        case self.java_column.getStorage.isBinaryOpVectorized op_name of
-            True ->
-                run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
-            False ->
-                set = Hashset.from_vector as_vector error_on_duplicates=False
-                apply_unary_map self result_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
+        self.implementation.is_in self vector
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1786,6 +1464,9 @@ type Column
          - If some values in the column did not match the expected datatype
            format, an `Invalid_Format` problem is reported. The problematic
            cells are replaced with `Nothing`.
+         - If custom formatting settings were provided, but the database backend
+           does not support customization, an `Unsupported_Database_Operation`
+           error is reported.
 
        ? Number Formats
 
@@ -1833,18 +1514,7 @@ type Column
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse self (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column =
-        if type != Auto && self.value_type.is_same_type type then self else
-            Value_Type.expect_text self <|
-                formatter = case format of
-                    _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
-                    _ : Data_Formatter -> format
-                parser = formatter.make_value_type_parser type
-                storage = self.java_column.getStorage
-
-                new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                    parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator self.name type
-                    parser.parseColumn storage parse_problem_aggregator
-                Column.from_storage self.name new_storage
+        self.implementation.parse self type format on_problems
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1926,15 +1596,8 @@ type Column
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
-    format self (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column ! Illegal_Argument = case format of
-        format_column : Column -> Value_Type.expect_text format_column <|
-            formatter = make_value_formatter_for_value_type self.value_type locale
-            formatter.if_not_error <|
-                formatter_flipped value format = formatter format value
-                Column_Ops.map_2_over_storage self format_column formatter_flipped make_string_builder
-        _ ->
-            formatter = make_value_formatter_for_value_type self.value_type locale format
-            Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
+    format self (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column ! Illegal_Argument =
+        self.implementation.format self format locale
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1985,11 +1648,7 @@ type Column
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
     cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
-        Cast_Helpers.check_cast_compatibility self.value_type value_type <|
-            target_storage_type = Storage.from_value_type value_type on_problems
-            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                new_column = CastOperation.apply self.java_column target_storage_type java_problem_aggregator
-                Column.from_java_column new_column
+        self.implementation.cast self value_type on_problems
 
     ## ALIAS auto_value_type
        GROUP Standard.Base.Conversions
@@ -2023,11 +1682,7 @@ type Column
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
     auto_cast self shrink_types:Boolean=False -> Column =
-        new_value_type = Storage.to_value_type <|
-             self.java_column.getStorage.inferPreciseType (PreciseTypeOptions.forAutoCast shrink_types)
-
-        # We run with Report_Error because we do not expect any problems.
-        self.cast new_value_type on_problems=Problem_Behavior.Report_Error
+        self.implementation.auto_cast self shrink_types
 
     ## PRIVATE
        GROUP Standard.Base.Conversions
@@ -2063,8 +1718,7 @@ type Column
              elements are no longer than 255 characters, the column will get a
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
-    auto_value_type : Boolean -> Column
-    auto_value_type self shrink_types=False =
+    auto_value_type self shrink_types:Boolean=False -> Column =
         Warning.attach (Deprecated.Warning "Standard.Table.Column.Column" "auto_value_type" "Deprecated: `auto_value_type` has been replaced by `auto_cast`.") <|
             self.auto_cast shrink_types
 
@@ -2098,9 +1752,7 @@ type Column
 
              example_map = Examples.integer_column.map (x -> x * x)
     map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
-        new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
-        new_st = self.to_vector.map on_problems=No_Wrap.Value new_fn
-        Column.from_vector self.name new_st value_type=expected_value_type
+        self.implementation.map self function skip_nothing expected_value_type
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -2149,10 +1801,7 @@ type Column
          `Undefined_Column_Order` problem and returning an empty table.
     @keep_unmatched Widget_Helpers.make_keep_unmatched_selector
     zip self (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
-        right_table = case right of
-            _ : Table -> right
-            _ : Column -> right.to_table
-        self.to_table.zip right_table keep_unmatched right_prefix on_problems
+        self.implementation.zip self right keep_unmatched right_prefix on_problems
 
     ## GROUP Standard.Base.Metadata
        ICON text_input
@@ -2168,9 +1817,8 @@ type Column
              import Standard.Examples
 
              example_rename = Examples.integer_column.rename "My Numbers"
-    rename self name:Text -> Column ! Illegal_Argument = naming_helper.ensure_name_is_valid name <|
-        Illegal_Argument.handle_java_exception <|
-            Column.from_java_column (self.java_column.rename name)
+    rename self name:Text -> Column ! Illegal_Argument =
+        self.implementation.rename self name
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2182,7 +1830,8 @@ type Column
              import Standard.Examples
 
              example_name = Examples.text_column_2.name
-    name self -> Text = self.java_column.getName
+    name self -> Text =
+        self.implementation.name self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2194,7 +1843,8 @@ type Column
              import Standard.Examples
 
              example_length = Examples.text_column_2.length
-    length self -> Integer = self.java_column . getSize
+    length self -> Integer =
+        self.implementation.length self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2206,40 +1856,8 @@ type Column
              import Standard.Examples
 
              example_count_nothing = Examples.text_column_2.count_nothing
-    count_nothing self -> Integer = CountNothing.apply self.java_column
-
-    ## PRIVATE
-       Counts the number of text values with leading or trailing whitespace.
-       Used for data quality indicator in Table Viz.
-    count_untrimmed : Integer -> Integer | Nothing
-    count_untrimmed self sample_size:Integer=Column.default_sample_size =
-        if (Column.can_contain_text self.value_type).not then Nothing else
-            CountUntrimmed.apply self.java_column sample_size
-
-    ## PRIVATE
-       Indicates if a numeric column requires formatting in table viz
-    requires_numeric_formatter_check : Boolean
-    requires_numeric_formatter_check self =
-        if (self.value_type.is_numeric).not then False else
-            RequiresNumberFormatting.apply self.java_column
-
-    ## PRIVATE
-       Counts the number of text values with non trivial whitespace.
-       Used for data quality indicator in Table Viz.
-    count_non_trivial_whitespace : Integer -> Integer | Nothing
-    count_non_trivial_whitespace self sample_size:Integer=Column.default_sample_size =
-        if (Column.can_contain_text self.value_type).not then Nothing else
-            CountNonTrivialWhitespace.apply self.java_column sample_size
-
-    ## PRIVATE
-       Determines if a value type is eligable for a text data quality count
-    private can_contain_text value_type:Value_Type -> Boolean =
-        value_type == Value_Type.Mixed || value_type.is_text
-
-    ## PRIVATE
-       Default size for sampling data quality indicators.
-    default_sample_size -> Integer =
-        SampleOperation.DEFAULT_SAMPLE_SIZE
+    count_nothing self -> Integer =
+        self.implementation.count_nothing self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2251,7 +1869,8 @@ type Column
              import Standard.Examples
 
              example_count = Examples.text_column_2.count
-    count self -> Integer = self.length - self.count_nothing
+    count self -> Integer =
+        self.implementation.count self
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -2271,7 +1890,7 @@ type Column
              example_at = Examples.integer_column.at 0
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     at self index:Integer=0 -> Any | Nothing ! Index_Out_Of_Bounds =
-        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+        self.implementation.at self index
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -2289,22 +1908,21 @@ type Column
              example_at = Examples.integer_column.get 0 -1
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     get self index:Integer=0 ~default=Nothing -> Any | Nothing =
-        if index < 0 && index >= -self.length then self.get (self.length + index) default else
-            valid_index = (index >= 0) && (index < self.length)
-            if valid_index.not then default else
-                storage = self.java_column.getStorage
-                java_to_enso <| storage.getItemBoxed index
+        self.implementation.get self index default
 
-    ## PRIVATE
+    ## ALIAS import, load
+       GROUP Standard.Base.Input
        ICON data_input
-       Returns a column containing rows of this column.
+       Returns a materialized column containing rows of this column.
+
+       For in-memory columns this just returns the column as-is, or truncated
+       depending on `max_rows`.
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
     read self (max_rows : Rows_To_Read = ..All_Rows) -> Column =
-        if max_rows.is_nothing then self else
-            self.to_table.read max_rows . at 0
+        self.implementation.read self max_rows
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2317,8 +1935,7 @@ type Column
 
              example_to_vector = Examples.integer_column.to_vector
     to_vector self -> Vector =
-        storage_list = StorageListView.new self.java_column.getStorage
-        Vector.from_polyglot_array storage_list . map java_to_enso
+        self.implementation.to_vector self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2327,8 +1944,7 @@ type Column
        The value type determines what type of values the column is storing and
        what operations are permitted.
     value_type self -> Value_Type =
-        storage_type = self.java_column.getStorage.getType
-        Storage.to_value_type storage_type
+        self.implementation.value_type self
 
     ## PRIVATE
        Returns a possibly more precise `Value_Type` based on the data in the
@@ -2337,16 +1953,14 @@ type Column
        Most columns will return their type without changes. A mixed column may
        return a more precise type if a common type can be found for all of its
        values.
-    inferred_precise_value_type : Value_Type
-    inferred_precise_value_type self =
-        storage_type = self.java_column.getStorage.inferPreciseType PreciseTypeOptions.DEFAULT
-        Storage.to_value_type storage_type
+    inferred_precise_value_type self -> Value_Type =
+        self.implementation.inferred_precise_value_type self
 
     ## PRIVATE
        Internal hook that says if a given column should be selected by a
        specific type in a `By_Type` selection.
     should_be_selected_by_type self (value_type : Value_Type) -> Boolean =
-        self.value_type.is_same_type value_type
+        self.implementation.should_be_selected_by_type self value_type
 
     ## PRIVATE
        Converts this column to JS_Object representation.
@@ -2357,13 +1971,8 @@ type Column
              import Standard.Examples
 
              example_to_json = Examples.integer_column.to_js_object
-    to_js_object : JS_Object
-    to_js_object self =
-        name = self.java_column.getName
-        storage = self.java_column.getStorage
-        storage_proxy = Array_Proxy.new storage.getSize i-> storage.getItemBoxed i
-        storage_json = Vector.from_polyglot_array storage_proxy
-        JS_Object.from_pairs [["name", name], ["data", storage_json]]
+    to_js_object self -> JS_Object =
+        self.implementation.to_js_object self
 
     ## ICON data_input
        Converts this column into a single-column table.
@@ -2374,7 +1983,8 @@ type Column
              import Standard.Examples
 
              example_to_table = Examples.integer_column.to_table
-    to_table self -> Table = from_java_table self.java_column.toTable
+    to_table self -> Table =
+        self.implementation.to_table self
 
     ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata
@@ -2382,7 +1992,8 @@ type Column
        Returns a Table describing this column's contents and type.
 
        The table behaves like `Table.column_info.
-    info self -> Table = self.to_table.column_info
+    info self -> Table =
+        self.implementation.info self
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
@@ -2424,23 +2035,8 @@ type Column
              example_sort =
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
-    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column = case by of
-        Nothing ->
-            order_bool = case order of
-                Sort_Direction.Ascending -> True
-                Sort_Direction.Descending -> False
-            rule = OrderBuilder.OrderRule.new self.java_column order_bool missing_last
-            mask = OrderBuilder.buildOrderMask [rule]
-            new_col = self.java_column.applyMask mask
-            Column.from_java_column new_col
-        _ ->
-            wrapped a b = case a of
-                Nothing -> if b.is_nothing then Ordering.Equal else if missing_last then Ordering.Greater else Ordering.Less
-                _ -> case b of
-                    Nothing -> if missing_last then Ordering.Less else Ordering.Greater
-                    _ -> by a b
-            sorted = self.to_vector.sort order by=wrapped
-            Column.from_vector self.name sorted
+    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column =
+        self.implementation.sort self order missing_last by
 
     ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
@@ -2474,7 +2070,7 @@ type Column
              last_row = column.take (..Last 1)
     @range (self-> Index_Sub_Range.default_widget self.length)
     take self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
-        take_helper self.length (self.at _) self.slice (slice_ranges self) range
+        self.implementation.take self range
 
     ## ALIAS remove, skip
        GROUP Standard.Base.Selections
@@ -2486,16 +2082,13 @@ type Column
        - range: The selection of rows from the table to remove.
     @range (self-> Index_Sub_Range.default_widget self.length)
     drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
-        drop_helper self.length (self.at _) self.slice (slice_ranges self) range
+        self.implementation.drop self range
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
     slice : Integer -> Integer -> Column
     slice self start end =
-        length = self.length
-        offset = (start.min length).max 0
-        limit = ((end - offset).min (length - offset)).max 0
-        Column.from_java_column (self.java_column.slice offset limit)
+        self.implementation.slice self start end
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -2510,7 +2103,8 @@ type Column
              import Standard.Examples
 
              example_first = Examples.integer_column.first
-    first self -> Any ! Index_Out_Of_Bounds = self.at 0
+    first self -> Any ! Index_Out_Of_Bounds =
+        self.implementation.first self
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -2525,7 +2119,8 @@ type Column
              import Standard.Examples
 
              example_last = Examples.integer_column.last
-    last self -> Any ! Index_Out_Of_Bounds = self.at (self.length - 1)
+    last self -> Any ! Index_Out_Of_Bounds =
+        self.implementation.last self
 
     ## GROUP Standard.Base.Selections
        ICON order
@@ -2539,8 +2134,7 @@ type Column
 
              example_reverse = Examples.integer_column.reverse
     reverse self -> Column =
-        mask = OrderMask.reverse self.length
-        Column.from_java_column (self.java_column.applyMask mask)
+        self.implementation.reverse self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2554,21 +2148,16 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count self -> Column =
-        Column.from_java_column self.java_column.duplicateCount
+        self.implementation.duplicate_count self
 
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.
-    to_text self -> Text = "(In-Memory Column "+self.name.to_text+")"
+    to_text self -> Text =
+        self.implementation.to_text_implementation self
 
     ## PRIVATE
-       Helper for the expression to tell it which functions needs a Vector.
-    var_args_functions : Vector
-    var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-
-    ## PRIVATE
-       This is a shortcut for API compatibility.
-    naming_helper : Column_Naming_Helper
-    naming_helper self = naming_helper
+    pretty self -> Text =
+        self.implementation.pretty_implementation self
 
     ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
        GROUP Standard.Base.Statistics
@@ -2578,7 +2167,7 @@ type Column
        Arguments:
        - statistic: Statistic to calculate.
     compute self statistic:Statistic=..Count -> Any =
-        Statistic.compute_bulk self.to_vector [statistic] . first
+        self.implementation.compute self statistic
 
     ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
        ICON transform4
@@ -2587,9 +2176,7 @@ type Column
        Arguments:
        - statistics: Set of statistics to calculate.
     compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table =
-        values = Statistic.compute_bulk self.to_vector statistics
-        names = statistics.map _.to_text
-        Table.from_rows names [values]
+        self.implementation.compute_bulk self statistics
 
     ## ALIAS count, cumulative, maximum, mean, minimum, product, standard deviation, sum, sum, total, variance
        GROUP Standard.Base.Statistics
@@ -2600,8 +2187,7 @@ type Column
        - statistic: Statistic to calculate.
        - name: Name of the new column.
     running self statistic:Statistic=..Count (name : Text = statistic.to_text+" "+self.name) -> Column =
-        data = Statistic.running self.to_vector statistic
-        Column.from_vector name data
+        self.implementation.running self statistic name
 
     ## ALIAS displace, lag, lead, shift, slide
        GROUP Standard.Base.Values
@@ -2610,7 +2196,7 @@ type Column
        Returns a new column offset by n rows, where missing values have been replaced with the provided fill_with strategy.
 
        Arguments:
-       - n: The number of rows to offset the new column by. Negative n slides the values down in the column, adding records at the start. 
+       - n: The number of rows to offset the new column by. Negative n slides the values down in the column, adding records at the start.
             Positive n slides the values up in the column, adding records at the end. Defaults to -1.
        - fill_with: The value to replace missing values with. Defaults to adding Nothing Values.
        - - ..Nothing - Add Nothing values in the spaces created by sliding the existing values.
@@ -2618,262 +2204,19 @@ type Column
        - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
     @n (self-> Numeric_Input minimum=0-self.length maximum=self.length)
     offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
-        Offset_Helper.column_offset_impl self n fill_with
-
-    ## PRIVATE
-    pretty : Text
-    pretty self =
-        name = self.name.pretty
-        data = self.to_vector.pretty
-        "Column.from_vector " + name + " " + data
+        self.implementation.offset self n fill_with
 
 ## PRIVATE
-   Folds the vectorized operation over the provided column and values. When more
-   than one value to is provided, the result is folded with subsequent values.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - name: The name of the vectorized operation.
-   - fallback_fn: A function used if the vectorized operation isn't available.
-     It should never raise dataflow errors.
-   - operands: The vector of operands to apply to the function after `column`.
-   - new_name: The name of the column created as the result of this operation.
-private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any -> Any) operands new_name:(Text | Nothing)=Nothing -> Column =
-    effective_operands = Vector.unify_vector_or_element operands
-    all_operands = [column]+effective_operands
-    effective_new_name = new_name.if_nothing (naming_helper.function_name name all_operands)
-    common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
-    common_type.if_not_error <|
-        Java_Problems.with_map_operation_problem_aggregator effective_new_name Problem_Behavior.Report_Warning problem_builder->
-            storage_type = resolve_storage_type common_type
-            folded = effective_operands.fold column.java_column current-> operand-> if Nothing == operand then current else
-                java_object = if operand.is_a Column then operand.java_column else operand
-                Polyglot_Helpers.handle_polyglot_dataflow_errors <| case name of
-                    "min" -> BinaryCoalescingOperation.min current java_object fallback_fn storage_type effective_new_name problem_builder
-                    "max" -> BinaryCoalescingOperation.max current java_object fallback_fn storage_type effective_new_name problem_builder
-            Column.from_java_column folded
-
-## PRIVATE
-
-   Executes a vectorized binary operation over the provided column.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - name: The name of the vectorized operation.
-   - operand: The operand to apply to the function after `column`.
-   - new_name: The name of the column created as the result of this operation.
-   - fallback_fn: A function used if the vectorized operation isn't available.
-     It should never raise dataflow errors.
-   - expected_result_type: The expected result type of the operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-run_vectorized_binary_op : Column -> Text -> Any -> Text|Nothing -> (Any -> Any -> Any) -> Value_Type -> Boolean -> Column
-run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
-    effective_new_name = new_name.if_nothing <|
-        naming_helper.binary_operation_name name column operand
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        storage_type = resolve_storage_type expected_result_type
-        case operand of
-            operand_column : Column ->
-                s1 = column.java_column.getStorage
-                s2 = operand_column.java_column.getStorage
-                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
-                Column.from_storage effective_new_name rs
-            _ ->
-                s1 = column.java_column.getStorage
-                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn (enso_to_java operand) skip_nulls storage_type
-                Column.from_storage effective_new_name rs
-
-## PRIVATE
-
-   Executes a vectorized ternary operation over the provided column.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - name: The name of the vectorized operation.
-   - operand0: The first operand to apply to the function after `column`.
-   - operand1: The second operand to apply to the function after `column`.
-   - new_name: The name of the column created as the result of this operation.
-   - expected_result_type: The expected result type of the operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-run_vectorized_ternary_op : Column -> Text -> Any -> Any -> Text|Nothing -> Value_Type -> Boolean -> Column
-run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expected_result_type=Nothing skip_nulls=True =
-    effective_new_name = new_name.if_nothing <|
-        naming_helper.function_name name [column, operand0, operand1]
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        storage_type = resolve_storage_type expected_result_type
-        s1 = column.java_column.getStorage
-        rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-            s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
-        Column.from_storage effective_new_name rs
-
-## PRIVATE
-   Runs a binary operation over the provided column and operand which may be
-   another column or a scalar value.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - function: The function to apply to each element of `column`.
-   - operand: The operand to apply to the function after `column`.
-   - new_name: The name of the column created as the result of this operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-   - expected_result_type: The expected result type of the operation. If set to
-     `Nothing`, the result type is inferred from the values.
-run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
-    s = column.java_column.getStorage
-    storage_type = resolve_storage_type expected_result_type
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        new_storage = case operand of
-            other_column : Column ->
-                Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s.zip function other_column.java_column.getStorage skip_nulls storage_type problem_builder
-            _ ->
-                Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s.binaryMap function operand skip_nulls storage_type problem_builder
-        Column.from_storage new_name new_storage
-
-## PRIVATE
-
-   Executes a vectorized binary operation over the provided column.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - name: The name of the vectorized operation.
-   - operand: The operand to apply to the function after `column`.
-   - fallback_fn: A function used if the vectorized operation isn't available.
-     It takes a `MapOperationProblemAggregator` as its first argument.
-     It should never raise dataflow errors and use the aggregator builder to
-     report problems. If fatal problems are expected, the fallback should be
-     raising a panic and the user-facing code should ensure such panic is caught
-     and converted to a dataflow error.
-   - expected_result_type: The expected result type of the operation.
-   - new_name: The name of the column created as the result of this operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-run_vectorized_binary_op_with_fallback_problem_handling column name operand fallback_fn new_name expected_result_type=Nothing skip_nulls=True =
-    Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning problem_builder->
-        applied_fn = case fallback_fn of
-            Nothing -> Nothing
-            _ -> fallback_fn problem_builder
-        storage_type = resolve_storage_type expected_result_type
-        case operand of
-            operand_column : Column ->
-                s1 = column.java_column.getStorage
-                s2 = operand_column.java_column.getStorage
-                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
-                Column.from_storage new_name rs
-            _ ->
-                s1 = column.java_column.getStorage
-                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn (enso_to_java operand) skip_nulls storage_type
-                Column.from_storage new_name rs
-
-## PRIVATE
-   A helper to create a new table consisting of slices of the original table.
-slice_ranges column ranges =
-    normalized = normalize_ranges ranges
-    Column.from_java_column (column.java_column.slice normalized)
-
-## PRIVATE
-   Creates a storage builder suitable for building a column for the provided
-   column type.
-
-   If a value type is not supported, its closest match is selected and
-   an `Inexact_Type_Coercion` problem is reported.
-make_storage_builder_for_type value_type on_problems initial_size java_problem_aggregator =
-    closest_storage_type = Storage.from_value_type value_type on_problems
-    Storage.make_builder closest_storage_type initial_size java_problem_aggregator
-
-## PRIVATE
-   Helper for case case_sensitivity based text operations.
-   The fallback is needed to handle custom case sensitivity options,
-   until the vectorized operation can take that parameter.
-run_vectorized_binary_case_text_op : Column -> Text -> (Text | Column) -> Case_Sensitivity -> (Text -> Text -> Any) -> Text -> Column
-run_vectorized_binary_case_text_op left op other case_sensitivity fallback new_name =
-    with_checks ~action =
-        Value_Type.expect_text left <|
-            Value_Type.expect_text other <|
-                action
-    result_type = Value_Type.Boolean
-    with_checks <| case case_sensitivity of
-        Case_Sensitivity.Default ->
-            run_vectorized_binary_op left op other new_name result_type
-        Case_Sensitivity.Sensitive ->
-            run_vectorized_binary_op left op other new_name result_type
-        Case_Sensitivity.Insensitive _ ->
-            ## TODO currently this always runs the fallback which is slow due to the
-               cost of Java-to-Enso calls. We want to have a vectorized
-               implementation, but we need to extend the architecture to allow
-               passing the locale to it.
-               See: https://www.pivotaltracker.com/n/projects/2539304/stories/184093260
-            run_binary_op left fallback other new_name=new_name skip_nulls=True expected_result_type=result_type
-
-## PRIVATE
-   Converts the value type to a storage type, passing `Nothing` through.
-
-   Sometimes we do not specify the storage type as it should be inferred by the
-   vectorized operation, in which case it can be `Nothing`.
-resolve_storage_type value_type = case value_type of
-    Nothing -> Nothing
-    _ -> Storage.from_value_type_strict value_type
-
-## PRIVATE
-wrap_text_argument_as_value_provider val =
-    Value_Type.expect_text val <| case val of
-        text : Text -> (_-> text)
-        col : Column ->
-            storage = col.java_column.getStorage
-            i-> storage.getItemBoxed i
-
-## PRIVATE
-wrap_text_or_regex_argument_as_value_provider val =
-    if val.is_a Regex then (_-> val) else wrap_text_argument_as_value_provider val
-
-## PRIVATE
-   Cast a column to a `Value_Type`, unless it already has that type.
-cast_if_needed : Column -> Value_Type -> Column
-cast_if_needed column value_type = if column.value_type == value_type then column else column.cast value_type
-
-## PRIVATE
-naming_helper : Column_Naming_Helper
-naming_helper = Column_Naming_Helper.in_memory
-
-## PRIVATE
-   Resolves the default date period for `date_add` depending on the source column value type.
-default_date_period column = if column.value_type.has_date then Date_Period.Day else Time_Period.Hour
-
-## PRIVATE
-   Fills the missing values in a provided column with the previous non-missing value.
-
-   Arguments:
-   - column: The column to fill.
-   - is_missing: A boolean column specifying which elements are deemed missing.
-     If set to `Nothing`, this will rely on the default missing value semantics
-     (`is_nothing`).
-fill_previous column is_missing =
-    missing_storage = if Nothing == is_missing then Nothing else is_missing.java_column.getStorage
-    new_storage = column.java_column.getStorage.fillMissingFromPrevious missing_storage
-    Column.from_storage column.name new_storage
+   Constructor to be used by implementations of the Column type to be able to provide a conversion.
+column_from_implementation value implementation =
+    Column.Value value implementation
 
 ## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 
 ## PRIVATE
-   Conversion method to a Column to a Vector.
+   Conversion method from a Column to a Vector.
 Vector.from (that:Column) = that.to_vector
 
 ## PRIVATE
@@ -2893,55 +2236,17 @@ Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from
 Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_with-> (that.text_replace (regex pattern) replace_with).rename that.name)
 
 ## PRIVATE
-   Applies a UnaryOperation to a column.
-
-   Arguments:
-   - column: The column to apply the operation to.
-   - operation: The UnaryOperation to apply.
-   - new_name: The name of the column created as the result of this operation.
-   - if_unsupported: The result if the operation is not supported for the column.
-apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called "+column.name+". This is a bug in the Table library.")) =
-    used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
-        java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator
-        if java_column.is_nothing then if_unsupported else Column.from_java_column java_column
-
-## PRIVATE
-   Applies a function to every row in the column.
-
-   Arguments:
-   - column: The column to apply the operation to.
-   - new_name: The name of the column created as the result of this operation.
-   - function: A function applied to every element. It should not raise errors.
-   - expected_result_type: The expected result type of the operation.
-   - nothing_unchanged: If set to `True`, `Nothing` values will be passed through
-     the operation without being changed. If set to `False`, `Nothing` values will
-     be passed to the function.
-apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
-    storage_type = resolve_storage_type expected_result_type
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
-        map_column = UnaryOperation.mapFunction column.java_column function nothing_unchanged storage_type new_name java_problem_aggregator
-        Column.from_java_column map_column
-
-## PRIVATE
 Many_Files_List.from (that : Column) =
+    # Ensure that only in-memory columns can be used as Many_Files_List
+    _ = that:In_Memory_Column
     Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
         Many_Files_List.Value that that.to_vector
 
 ## PRIVATE
-   Temporary function to determine if to use the Comparators statics or embedded operations.
-private _call_comparator left other new_name ~comparator ~enso_action =
-    if Comparators.isSupported left.java_column then Column.from_java_column (comparator.apply left.java_column (if other.is_a Column then other.java_column else other) new_name) else
-        enso_action
+   Gets the Visualization helpers for a Column.
+Visualization_Helpers.from (that : Column) =
+    Visualization_Helpers.from that.underlying
 
 ## PRIVATE
-private _apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text -> Column =
-    java_other = (if other.is_a Column then other.java_column else other)
-    use_fallback = case case_sensitivity of
-        Case_Sensitivity.Insensitive _ -> True
-        _ -> operation.canApply left.java_column java_other . not
-    case use_fallback of
-        True -> run_binary_op left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
-        _ ->
-            java_column = operation.apply left.java_column java_other new_name
-            Column.from_java_column java_column
+   Resolves the default date period for `date_add` depending on the source column value type.
+default_date_period column = if column.value_type.has_date then Date_Period.Day else Time_Period.Hour

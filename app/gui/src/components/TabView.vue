@@ -1,13 +1,14 @@
 <script lang="ts">
 import UserBarReact from '#/layouts/UserBar'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
-import { ProjectId } from '#/services/Backend'
+import { BackendType, ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
 import SelectableTab from '$/components/TabView/SelectableTab.vue'
-import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, watch } from 'vue'
+import CloseButton from './CloseButton.vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
@@ -43,6 +44,12 @@ function setProjectReady(project: ProjectId, ready: boolean) {
   } else {
     readyProjects.delete(project)
   }
+}
+
+function loadingProjectSpinnerPhase(project: LaunchedProject) {
+  return project.hybrid != null || project.type === BackendType.local ?
+      'loading-fast'
+    : 'loading-slow'
 }
 
 watch(
@@ -83,11 +90,13 @@ const onSignOut = () => {
           @update:selected="$event && setPage(project.id)"
         >
           <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
-          <LoadingSpinner v-else :size="16" />
-          <span>{{ projectNames.get(project.id) }}</span>
-          <SvgIcon name="close" @click="closeProject(project)" />
+          <GrowingSpinner v-else :phase="loadingProjectSpinnerPhase(project)" :size="16" />
+          <span class="projectName">{{ projectNames.get(project.id) }}</span>
+          <CloseButton @click="closeProject(project)" />
         </SelectableTab>
-        <SelectableTab v-if="page === 'settings'" :selected="true">Settings</SelectableTab>
+        <SelectableTab v-if="page === 'settings'" :selected="true">
+          <SvgIcon name="settings" /><span>Settings</span>
+        </SelectableTab>
       </div>
       <div class="filler" />
       <UserBar
@@ -100,14 +109,21 @@ const onSignOut = () => {
       <KeepAlive>
         <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" />
       </KeepAlive>
-      <Editor
+      <!-- instead of v-if we set element hidden, because Editor.tsx is responsible for loading 
+       process -->
+      <div
         v-for="project in launchedProjects"
         :key="project.id"
-        :hidden="page !== project.id"
-        :project="project"
-        @readyUpdate="setProjectReady(project.id, $event)"
-        @nameUpdate="projectNames.set(project.id, $event)"
-      />
+        class="editor"
+        :class="{ hidden: page !== project.id }"
+      >
+        <Editor
+          :hidden="page !== project.id"
+          :project="project"
+          @readyUpdate="setProjectReady(project.id, $event)"
+          @nameUpdate="projectNames.set(project.id, $event)"
+        />
+      </div>
       <KeepAlive>
         <Settings v-if="page === 'settings'" />
       </KeepAlive>
@@ -136,6 +152,9 @@ const onSignOut = () => {
 .tablist {
   display: flex;
   flex-direction: row;
+  /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
+  isolation: isolate;
+  font-family: var(--font-sans);
 }
 
 .filler {
@@ -146,5 +165,19 @@ const onSignOut = () => {
   flex-grow: 1;
   min-height: 0;
   display: flex;
+}
+
+.projectName {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor {
+  display: contents;
+
+  &.hidden {
+    display: none;
+  }
 }
 </style>

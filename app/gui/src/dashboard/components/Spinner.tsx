@@ -6,10 +6,10 @@ import * as React from 'react'
 import { twJoin } from 'tailwind-merge'
 
 /** The state of the spinner. It should go from `initial`, to `loading`, to `done`. */
-export type SpinnerState = 'done' | 'initial' | 'loading-fast' | 'loading-medium' | 'loading-slow'
+export type SpinnerPhase = 'done' | 'initial' | 'loading-fast' | 'loading-medium' | 'loading-slow'
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerState, string>> = {
+export const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerPhase, string>> = {
   initial: 'dasharray-5 ease-linear',
   /* eslint-disable-next-line @typescript-eslint/naming-convention */
   'loading-slow': 'dasharray-75 duration-spinner-slow ease-linear',
@@ -25,7 +25,7 @@ export interface SpinnerProps {
   readonly size?: number
   readonly padding?: number
   readonly className?: string
-  readonly state: SpinnerState
+  readonly phase: SpinnerPhase
   readonly thickness?: number
 }
 
@@ -37,7 +37,7 @@ export const ROTATING_ELEMENT_SIZE = 24
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
 
 export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
-  const { size, padding, className, state, thickness = 3 } = props
+  const { size, padding, className, phase, thickness = 3 } = props
 
   const cssClasses = twJoin('pointer-events-none', className)
 
@@ -63,8 +63,8 @@ export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
         strokeLinecap="round"
         strokeWidth={thickness}
         className={twJoin(
-          'pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray [transition-duration:var(--spinner-slow-transition-duration)]',
-          SPINNER_CSS_CLASSES[state],
+          'pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray',
+          SPINNER_CSS_CLASSES[phase],
         )}
       />
     </svg>
@@ -74,7 +74,7 @@ export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
 /**
  * Props for a {@link IndefiniteSpinner}.
  */
-export interface IndefiniteSpinnerProps extends Omit<SpinnerProps, 'state'> {}
+export interface IndefiniteSpinnerProps extends Omit<SpinnerProps, 'phase'> {}
 
 /**
  * A spinning arc that animates indefinitely.

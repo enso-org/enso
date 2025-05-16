@@ -372,7 +372,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
               <tr className="h-9">
                 <td colSpan={4} className="rounded-full bg-transparent">
                   <div className="flex justify-center">
-                    <StatelessSpinner size={32} state="loading-medium" />
+                    <StatelessSpinner size={32} phase="loading-medium" />
                   </div>
                 </td>
               </tr>
