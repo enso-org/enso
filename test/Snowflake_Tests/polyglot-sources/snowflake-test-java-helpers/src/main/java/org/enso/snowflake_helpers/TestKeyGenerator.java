@@ -19,6 +19,13 @@ import net.snowflake.client.jdbc.internal.org.bouncycastle.operator.OperatorCrea
 import net.snowflake.client.jdbc.internal.org.bouncycastle.operator.OutputEncryptor;
 
 public class TestKeyGenerator {
+
+  static {
+    if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+      Security.addProvider(new BouncyCastleProvider());
+    }
+  }
+
   public static void generateKeyPairForTest(
       String privateKeyPath, String publicKeyPath, String passphrase)
       throws NoSuchAlgorithmException, IOException, OperatorCreationException {
@@ -41,8 +48,8 @@ public class TestKeyGenerator {
 
   private static void savePublicKey(PublicKey key, File destination) throws IOException {
     try (FileOutputStream fileOutputStream = new FileOutputStream(destination);
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-        JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter)) {
+         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
+         JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter)) {
       pemWriter.writeObject(key);
       pemWriter.flush();
     }
@@ -50,8 +57,8 @@ public class TestKeyGenerator {
 
   private static void savePrivateKey(PrivateKey key, File destination) throws IOException {
     try (FileOutputStream fileOutputStream = new FileOutputStream(destination);
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-        JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter)) {
+         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
+         JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter)) {
       pemWriter.writeObject(key);
       pemWriter.flush();
     }
@@ -59,15 +66,14 @@ public class TestKeyGenerator {
 
   private static void savePrivateKeyEncrypted(PrivateKey key, File destination, String passphrase)
       throws IOException, OperatorCreationException {
-    Security.addProvider(new BouncyCastleProvider());
     var encryptorBuilder = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC);
     encryptorBuilder.setPassword(passphrase.toCharArray().clone());
     OutputEncryptor encryptor = encryptorBuilder.build();
     JcaPKCS8Generator pkcs8Generator = new JcaPKCS8Generator(key, encryptor);
 
     try (FileOutputStream fileOutputStream = new FileOutputStream(destination);
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-        JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter)) {
+         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
+         JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter)) {
       pemWriter.writeObject(pkcs8Generator.generate());
       pemWriter.flush();
     }
