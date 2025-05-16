@@ -18,7 +18,9 @@ Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
 Column.should_equal : Any -> Any
 Column.should_equal self expected = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (column_should_equal_impl self expected) error->
+    self_materialized = self.read ..All_Rows
+    expected_materialized = expected.read ..All_Rows
+    Panic.catch Test_Failure_Error (column_should_equal_impl self_materialized expected_materialized) error->
         Test.fail error.payload.message
 
 DB_Table.should_equal : DB_Table|Table -> Boolean -> Any
@@ -27,13 +29,6 @@ DB_Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 ignore_order
-
-DB_Column.should_equal : DB_Column -> Any
-DB_Column.should_equal self expected = Frame_Hider.hide <|
-    rhs_error_check expected
-    t0 = self.read
-    t1 = expected.read
-    t0 . should_equal t1
 
 type Test_Failure_Error
     ## PRIVATE
