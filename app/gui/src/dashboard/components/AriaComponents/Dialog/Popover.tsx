@@ -82,7 +82,7 @@ const SUSPENSE_LOADER_PROPS = { minHeight: 'h32' } as const
 
 /**
  * A popover is an overlay element positioned relative to a trigger.
- * It can be used to display additional content or actions.*
+ * It can be used to display additional content or actions.
  */
 export function Popover(props: PopoverProps) {
   const {
@@ -102,7 +102,6 @@ export function Popover(props: PopoverProps) {
   const popoverStyle = { zIndex: '' }
 
   return (
-    // @ts-expect-error placement is optional, but destructure it to make it either value or undefined, and ts complains
     <aria.Popover
       ref={popoverRef}
       className={(values) =>
@@ -119,7 +118,7 @@ export function Popover(props: PopoverProps) {
       UNSTABLE_portalContainer={root}
       style={popoverStyle}
       shouldCloseOnInteractOutside={() => false}
-      placement={placement}
+      {...(placement != null ? { placement } : {})}
       {...ariaPopoverProps}
     >
       {(opts) => (
@@ -178,7 +177,15 @@ function PopoverContent(props: PopoverContentProps) {
   utlities.useInteractOutside({
     ref: dialogRef,
     id: dialogId,
-    onInteractOutside: useEventCallback(() => {
+    onInteractOutside: (e) => {
+      if (
+        e.target instanceof HTMLElement &&
+        e.target.dataset.testid !== 'underlay' &&
+        document.getElementById('enso-portal-root')?.contains(e.target) === true
+      ) {
+        console.log(e.target)
+        return
+      }
       if (isDismissable) {
         close()
       } else {
@@ -187,7 +194,7 @@ function PopoverContent(props: PopoverContentProps) {
           utlities.animateScale(popoverRef.current, 1.025)
         }
       }
-    }),
+    },
   })
 
   return (

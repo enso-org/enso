@@ -36,7 +36,7 @@ import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
 import ProfilePictureInput from './ProfilePictureInput'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
 import SettingsTabType from './TabType'
-import UserGroupsSettingsSection from './UserGroupsSettingsSection'
+import { UserGroupsSettingsSection } from './UserGroupsSettingsSection'
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   nameId: 'noResultsSettingsSection',

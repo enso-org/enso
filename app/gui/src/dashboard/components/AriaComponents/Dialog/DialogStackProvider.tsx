@@ -76,7 +76,8 @@ export const DialogStackRegistrar = React.memo(function DialogStackRegistrar(
   const store = React.useContext(DialogStackContext)
   invariant(store, 'DialogStackRegistrar must be used within a DialogStackProvider')
 
-  const { add, slice } = useStore(store, (state) => ({ add: state.add, slice: state.slice }))
+  const add = useStore(store, ({ add }) => add)
+  const slice = useStore(store, ({ slice }) => slice)
 
   React.useEffect(() => {
     React.startTransition(() => {

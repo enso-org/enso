@@ -147,6 +147,9 @@ export const BUTTON_STYLES = tv({
       accent: 'bg-accent text-white hover:bg-accent-dark',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'delete-outline':
+        'border-danger/40 hover:border-danger hover:bg-danger/10 text-danger focus-visible:outline-danger focus-visible:border-danger',
       icon: {
         base: 'text-primary opacity-80 hover:opacity-100 focus-visible:opacity-100',
         wrapper: 'w-full h-full',
