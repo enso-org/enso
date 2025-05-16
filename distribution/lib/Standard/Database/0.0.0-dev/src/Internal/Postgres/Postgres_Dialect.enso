@@ -221,8 +221,8 @@ type Postgres_Dialect
        is used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
-        is_int8 ic = ic.sql_type_reference.get.typeid == Types.BIGINT
-        is_int ic =
+        is_int8 ic:Internal_Column = ic.sql_type_reference.get.typeid == Types.BIGINT
+        is_int ic:Internal_Column =
             typeid = ic.sql_type_reference.get.typeid
             typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
 
