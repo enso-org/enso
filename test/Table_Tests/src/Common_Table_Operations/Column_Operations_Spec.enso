@@ -7,7 +7,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
 
-from Standard.Table import Bits, Value_Type, Column_Ref, Column
+from Standard.Table import Column, Bits, Value_Type, Column_Ref, Column
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
@@ -1617,7 +1617,7 @@ add_column_operation_specs suite_builder setup =
                 col.text_replace 'a[bcd]'.to_regex 'hey' . name . should_equal "replace([x], r/a[bcd]/, 'hey')"
                 col.text_replace (regex 'a[bcd]') 'hey' . name . should_equal "replace([x], r/a[bcd]/, 'hey')"
                 col.text_replace (regex 'a[/bcd]') 'hey' . name . should_equal "replace([x], r/a[\/bcd]/, 'hey')"
-            if supported_replace_params.contains (Replace_Params.Value DB_Column Case_Sensitivity.Default False) then
+            if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
                 col.text_replace patterns replacements . name . should_equal "replace([x], [patterns], [replacements])"
 
     suite_builder.group prefix+"(Column_Operations_Spec) Column Operations - Text Replace (in-memory only)" group_builder->
