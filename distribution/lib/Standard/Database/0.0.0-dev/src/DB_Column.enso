@@ -2,8 +2,10 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Column, Table
+from Standard.Table import Column, Table, Value_Type
 from Standard.Table.Internal.Column_Type_Helpers import column_from_implementation, underlying_from_column
+import Standard.Table.Internal.Type_Refinements.Typed_Column_Helpers
+import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 
 import project.Connection.Connection.Connection
 import project.Internal.DB_Column_Implementation.DB_Column_Implementation
@@ -11,6 +13,7 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Type_Refinements.DB_Column_Refinements
+import project.Internal.Type_Refinements.Typed_DB_Column_Implementations.DB_Numeric_Column_Implementation
 import project.SQL_Statement.SQL_Statement
 
 type DB_Column
@@ -92,3 +95,8 @@ Column.from (that : DB_Column) =
 
 DB_Column.from (that : Column) =
     underlying_from_column that DB_Column
+
+## PRIVATE
+Numeric_Column.from (that : DB_Column) =
+    Value_Type.expect_numeric that <|
+        Typed_Column_Helpers.make_numeric_column that DB_Numeric_Column_Implementation

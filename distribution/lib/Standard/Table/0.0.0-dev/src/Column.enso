@@ -23,6 +23,7 @@ import project.Internal.Read_Many_Helpers
 import project.Internal.Type_Refinements.Column_Refinements
 import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Internal.Widget_Helpers
+import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
@@ -2246,6 +2247,10 @@ Many_Files_List.from (that : Column) =
    Gets the Visualization helpers for a Column.
 Visualization_Helpers.from (that : Column) =
     Visualization_Helpers.from that.underlying
+
+## PRIVATE
+Numeric_Column.from (that : Column) =
+    Numeric_Column.from that.underlying
 
 ## PRIVATE
    Resolves the default date period for `date_add` depending on the source column value type.

@@ -35,7 +35,7 @@ add_numeric_columns_specs suite_builder setup =
             column = table_builder [["X", ["txt"]]] . at "X"
             column.value_type.is_numeric . should_be_false
             check_column column x->
-                Test.expect_panic Type_Error (x:Numeric_Column)
+                (x:Numeric_Column).should_fail_with Invalid_Value_Type
 
         group_builder.specify "a numeric column supports abs operation" <|
             column = numeric_column.get
