@@ -37,6 +37,7 @@ export function NewUserGroupForm() {
         <Form.Submit />
         <Dialog.Close variant="outline">{getText('cancel')}</Dialog.Close>
       </ButtonGroup>
+      <Form.FormError />
     </Form>
   )
 }
