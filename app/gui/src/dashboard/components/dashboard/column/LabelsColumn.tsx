@@ -1,5 +1,4 @@
 /** @file A column listing the labels on this asset. */
-import * as authProvider from '#/providers/AuthProvider'
 import { useText } from '$/providers/react'
 
 import DotsIcon from '#/assets/dots.svg'
@@ -10,28 +9,23 @@ import Label from '#/components/dashboard/Label'
 import { Button, DialogTrigger, Popover } from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FALLBACK_COLOR } from '#/services/Backend'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRef, useState } from 'react'
-import { useEventCallback } from '../../../hooks/eventCallbackHooks'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, state, labels } = props
-  const { backend, category } = state
-  const { user } = authProvider.useFullUserSession()
+
+  const { backend } = state
+
   const { getText } = useText()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))
-  const self = permissions.tryFindSelfPermission(user, item.permissions)
-  const managesThisAsset =
-    category.type !== 'trash' &&
-    (self?.permission === permissions.PermissionAction.own ||
-      self?.permission === permissions.PermissionAction.admin)
 
   const rootRef = useRef<HTMLDivElement>(null)
   const labelsListRef = useRef<HTMLDivElement>(null)
@@ -105,18 +99,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           event.stopPropagation()
         }}
       >
-        {managesThisAsset && (
-          <DialogTrigger>
-            <Button
-              variant="icon"
-              showIconOnHover
-              tooltip={getText('manageLabels')}
-              tooltipPlacement="left"
-              icon="edit"
-            />
-            <ManageLabelsModal backend={backend} item={item} />
-          </DialogTrigger>
-        )}
         {isOverflowing && (
           <Popover.Trigger>
             <Button
@@ -132,21 +114,31 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             >
               <div className="flex flex-wrap items-center gap-1">
                 {labelsList}
-                {managesThisAsset && (
-                  <DialogTrigger>
-                    <Button
-                      variant="icon"
-                      tooltip={getText('manageLabels')}
-                      tooltipPlacement="left"
-                      icon="edit"
-                    />
-                    <ManageLabelsModal backend={backend} item={item} />
-                  </DialogTrigger>
-                )}
+
+                <DialogTrigger>
+                  <Button
+                    variant="icon"
+                    tooltip={getText('manageLabels')}
+                    tooltipPlacement="top"
+                    icon="edit"
+                  />
+                  <ManageLabelsModal backend={backend} item={item} />
+                </DialogTrigger>
               </div>
             </Popover>
           </Popover.Trigger>
         )}
+
+        <DialogTrigger>
+          <Button
+            variant="icon"
+            showIconOnHover
+            tooltip={getText('manageLabels')}
+            tooltipPlacement="top"
+            icon="edit"
+          />
+          <ManageLabelsModal backend={backend} item={item} />
+        </DialogTrigger>
       </div>
     </div>
   )
