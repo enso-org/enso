@@ -9,7 +9,11 @@ import DocsSynopsis from '@/components/DocumentationPanel/DocsSynopsis.vue'
 import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
 import { HistoryStack } from '@/components/DocumentationPanel/history'
 import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
-import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
+import {
+  lookupDocumentation,
+  lookupRawDocumentation,
+  placeholder,
+} from '@/components/DocumentationPanel/ir'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useGraphStore } from '@/stores/graph'
@@ -25,6 +29,7 @@ import { ProjectPath } from '@/util/projectPath'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
 import FunctionSignatureEditor from './FunctionSignatureEditor.vue'
+import MarkdownEditor from './MarkdownEditor.vue'
 
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
@@ -36,6 +41,22 @@ const documentation = computed<Docs>(() => {
     return placeholder('AI assistant mode: write query in natural language and press Enter.')
   const entry = props.selectedEntry
   return entry ? lookupDocumentation(db.entries, entry) : placeholder('No suggestion selected.')
+})
+
+const mockFrontMatter = `---
+aliases: [csv,delimited,excel,hyper,load,open,tableau]
+group: File
+icon: data_input
+suggested: 1
+---
+`
+
+const rawDocumentation = computed(() => {
+  if (props.aiMode) return 'AI assistant mode: write query in natural language and press Enter.'
+  const entry = props.selectedEntry
+  return entry ?
+      mockFrontMatter + lookupRawDocumentation(db.entries, entry)
+    : 'No suggestion selected.'
 })
 
 const sections = computed<Sections>(() => {
@@ -162,6 +183,9 @@ function openDocs(url: string) {
       :methodPointer="methodPointer"
       :markdownDocs="markdownDocs"
     ></FunctionSignatureEditor>
+    <div v-if="rawDocumentation">
+      <MarkdownEditor :content="rawDocumentation" :toolbar="false" />
+    </div>
     <DocsTags
       v-if="sections.tags.length > 0"
       class="tags"

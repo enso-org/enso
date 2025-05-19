@@ -7,6 +7,7 @@ import { type QualifiedName } from '@/util/qualifiedName'
 import { type DeepReadonly } from 'vue'
 
 export interface DocumentationData {
+  rawDocumentation: string
   documentation: Doc.Section[]
   docSummaryHtml: string | undefined
   aliasesAndMacros: string[]
@@ -104,6 +105,7 @@ export function documentationData(
       .split(/\s*,\s*/g) ?? []
 
   return {
+    rawDocumentation: documentation ?? '',
     documentation: parsed,
     docSummaryHtml: getDocumentationSummary(parsed),
     iconName: iconName != null ? (iconName as Icon) : undefined,
