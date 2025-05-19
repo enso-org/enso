@@ -39,7 +39,6 @@ function warningDismissed() {
 </template>
 
 <style scoped>
-
 .FileBrowserModal {
   position: absolute;
   top: 0;
