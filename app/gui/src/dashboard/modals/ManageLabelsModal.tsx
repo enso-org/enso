@@ -451,9 +451,9 @@ function NotFoundLabel(props: NotFoundLabelProps) {
   const { getText } = useText()
 
   const form = Form.useForm({
-    schema: (z) => z.object({ name: z.string(), color: z.custom<LChColor>() }),
-    defaultValues: { name: query, color: leastUsedColor },
-    onSubmit: ({ name, color }) => onCreateLabel(name, color),
+    schema: (z) => z.object({ color: z.custom<LChColor>() }),
+    defaultValues: { color: leastUsedColor },
+    onSubmit: ({ color }) => onCreateLabel(query, color),
   })
 
   return (
