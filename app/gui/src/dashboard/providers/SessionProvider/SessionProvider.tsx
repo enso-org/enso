@@ -291,11 +291,11 @@ export function SessionProvider(props: SessionProviderProps) {
 
   React.useEffect(() => {
     queryClient.getQueryCache().config.onError = (error) => {
-      if (session.data && error instanceof NotAuthorizedError) {
-        refreshUserSessionMutation()
+      if (error instanceof NotAuthorizedError) {
+        void refreshUserSessionMutation()
       }
     }
-  }, [])
+  }, [queryClient, refreshUserSessionMutation])
 
   const sessionContextValue = {
     signUp,
