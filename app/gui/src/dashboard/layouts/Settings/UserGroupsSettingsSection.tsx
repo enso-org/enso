@@ -1,5 +1,4 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
-import DefaultUserImage from '#/assets/default_user.svg'
 import { Cell, Column, Row, Table, TableBody, TableHeader } from '#/components/aria'
 import {
   Button,
@@ -12,6 +11,7 @@ import {
   VisualTooltip,
 } from '#/components/AriaComponents'
 import { PaywallDialogButton } from '#/components/Paywall'
+import { ProfilePicture } from '#/components/ProfilePicture'
 import { Scroller } from '#/components/Scroller'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
@@ -214,7 +214,7 @@ function UserGroupRow(props: UserGroupRowProps) {
       <Cell className={styles.cell()}>
         {users.slice(0, MAXIMUM_USER_ICONS).map((otherUser) => (
           <VisualTooltip key={otherUser.userId} tooltip={`${otherUser.name} (${otherUser.email})`}>
-            <img src={otherUser.profilePicture ?? DefaultUserImage} />
+            <ProfilePicture picture={user.profilePicture} name={user.name} />
           </VisualTooltip>
         ))}
         {users.length === 0 && (
