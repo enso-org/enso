@@ -10,6 +10,8 @@ export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly uploadToCloud: () => T
   readonly rename: () => T
   readonly snapshot: () => T
+  readonly delete: () => T
+  readonly deleteAll: () => T
   readonly moveToTrash: () => T
   readonly moveAllToTrash: () => T
   readonly restoreFromTrash: () => T
@@ -59,8 +61,28 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
           .getByText(TEXT.snapshotShortcut)
           .click(),
       ),
+    delete: () =>
+      step('Delete (context menu)', async (page) => {
+        await page
+          .getByRole('button', { name: TEXT.deleteShortcut })
+          .getByText(TEXT.deleteShortcut)
+          .click()
+
+        // Confirm the deletion in the dialog
+        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+      }),
+    deleteAll: () =>
+      step('Delete all (context menu)', async (page) => {
+        await page
+          .getByRole('button', { name: TEXT.deleteAllShortcut })
+          .getByText(TEXT.deleteAllShortcut)
+          .click()
+
+        // Confirm the deletion in the dialog
+        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+      }),
     moveToTrash: () =>
-      step('Move folder to trash (context menu)', async (page) => {
+      step('Move to trash (context menu)', async (page) => {
         await page
           .getByRole('button', { name: TEXT.moveToTrashShortcut })
           .getByText(TEXT.moveToTrashShortcut)

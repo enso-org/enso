@@ -60,7 +60,7 @@ import { RouterProvider } from 'react-aria-components'
 import AboutModal from '#/modals/AboutModal'
 
 import LocalBackend from '#/services/LocalBackend'
-import ProjectManager, * as projectManager from '#/services/ProjectManager'
+import * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as eventModule from '#/utilities/event'
@@ -116,7 +116,7 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
   const {
     data: { projectManagerRootDirectory, projectManagerInstance },
   } = reactQuery.useSuspenseQuery<{
-    projectManagerInstance: ProjectManager | null
+    projectManagerInstance: projectManager.ProjectManager | null
     projectManagerRootDirectory: projectManager.Path | null
   }>({
     queryKey: [
@@ -144,7 +144,10 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
         const rootDirectory = projectManager.Path(text)
 
         return {
-          projectManagerInstance: new ProjectManager(config.projectManagerUrl, rootDirectory),
+          projectManagerInstance: new projectManager.ProjectManager(
+            config.projectManagerUrl,
+            rootDirectory,
+          ),
           projectManagerRootDirectory: rootDirectory,
         }
       } else {
@@ -208,7 +211,7 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
 /** Props for an {@link AppRouter}. */
 export interface AppRouterProps extends AppProps {
   readonly projectManagerRootDirectory: projectManager.Path | null
-  readonly projectManagerInstance: ProjectManager | null
+  readonly projectManagerInstance: projectManager.ProjectManager | null
 }
 
 /**

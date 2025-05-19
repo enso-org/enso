@@ -6,7 +6,6 @@
  * the API.
  */
 import Backend, * as backend from '#/services/Backend'
-import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
@@ -114,10 +113,10 @@ export default class LocalBackend extends Backend {
   readonly type = LocalBackend.type
   /** All files that have been uploaded to the Project Manager. */
   uploadedFiles: Map<string, backend.UploadedLargeAsset> = new Map()
-  private readonly projectManager: ProjectManager
+  private readonly projectManager: projectManager.ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(projectManagerInstance: ProjectManager) {
+  constructor(projectManagerInstance: projectManager.ProjectManager) {
     super()
 
     this.projectManager = projectManagerInstance
@@ -138,7 +137,7 @@ export default class LocalBackend extends Backend {
     this.projectManager.resetRootDirectory()
   }
 
-  /** Tell the {@link ProjectManager} to reconnect. */
+  /** Tell the {@link projectManager.ProjectManager} to reconnect. */
   async reconnectProjectManager() {
     await this.projectManager.reconnect()
   }

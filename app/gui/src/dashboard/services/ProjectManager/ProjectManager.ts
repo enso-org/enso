@@ -310,17 +310,17 @@ export class ProjectManager {
   }
 
   /** List directories, projects and files in the given folder. */
-  async listDirectory(parentId: Path | null): Promise<readonly FileSystemEntry[]> {
+  async listDirectory(parentPath: Path | null): Promise<readonly FileSystemEntry[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
       readonly entries: FileSystemEntry[]
     }
-    parentId ??= this.rootDirectory
+    parentPath ??= this.rootDirectory
     const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-list',
       'json',
-      parentId,
+      parentPath,
     )
     const result = response.entries
       .filter((entry) => {
@@ -337,7 +337,7 @@ export class ProjectManager {
         path: normalizeSlashes(entry.path),
       }))
 
-    this.internalDirectories.set(parentId, result)
+    this.internalDirectories.set(parentPath, result)
 
     for (const entry of result) {
       if (entry.type === 'ProjectEntry') {

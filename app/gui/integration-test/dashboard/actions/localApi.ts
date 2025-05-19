@@ -45,6 +45,19 @@ interface JSONRPCRequest<Method extends string, Params> {
 
 type ProjectManagerJsonRpcRequest = JSONRPCRequest<'project/open', OpenProjectParams>
 
+type FileSystemEntryWithData =
+  | { type: 'DirectoryEntry'; entry: DirectoryEntry; children: FileSystemEntryWithData[] }
+  | {
+      type: 'ProjectEntry'
+      entry: ProjectEntry
+      id: UUID
+      metadata: {
+        projectName: ProjectName
+        projectNormalizedName: string
+      }
+    }
+  | { type: 'FileEntry'; entry: FileEntry; content: string }
+
 /**
  * Setup function for the mock API.
  * use it to setup the mock API with custom handlers.
@@ -65,7 +78,7 @@ export const localMockApi: (params: MockParams) => Promise<MockApi> = localMockA
 
 /** Add route handlers for the mock API to a page. */
 async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
-  const fileSystem = new Map<string, FileSystemEntry>()
+  const fileSystem = new Map<string, FileSystemEntryWithData>()
   const openProjects = new Map<UUID, ProjectState>()
   const projectParentPaths = new Map<UUID, string>()
 
@@ -165,7 +178,13 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
           const parentDirectory = fileSystem.get(
             projectParentPaths.get(params.projectId) ?? ROOT_PATH,
           )
-          if (!parentDirectory) {
+          const project =
+            parentDirectory?.type === 'DirectoryEntry' ?
+              parentDirectory.children.find(
+                (entry) => entry.type === 'ProjectEntry' && entry.id === params.projectId,
+              )
+            : null
+          if (project?.type !== 'ProjectEntry') {
             response = toJSONRPCError(`No project with UUID '${params.projectId}'`)
             break
           }
@@ -174,8 +193,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
             languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
             languageServerJsonAddress: { host: 'ws://localhost', port: 1235 },
             projectNamespace: 'local',
-            projectName: ProjectName(''),
-            projectNormalizedName: '',
+            ...project.metadata,
           }
           openProjects.set(params.projectId, {
             state: backend.ProjectState.opened,
@@ -207,26 +225,37 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       )
       const cliArgumentsObject =
         cliArgumentsRaw[0] != null ?
-          { name: cliArgumentsRaw.slice(2), arguments: cliArgumentsRaw.slice(1) }
+          { name: cliArgumentsRaw[0].slice(2), arguments: cliArgumentsRaw.slice(1) }
         : null
       if (!cliArgumentsObject) {
         return route.fulfill({ status: 400 })
       }
       const cliArguments = cliArgumentsObject.arguments
       switch (cliArgumentsObject.name) {
-        case 'filesystem-read-path': {
-          if (cliArguments[1] === 'text') {
-            const filePath = cliArguments[2]
-            if (filePath == null) {
-              return route.fulfill({ status: 400 })
-            }
-            called('getFileContent', { path: filePath })
-            const file = fileSystem.get(filePath)
-            if (!file) {
-              return route.fulfill({ status: 400 })
-            }
+        case 'filesystem-list': {
+          const folderPath = cliArguments[0]
+          const folder = folderPath != null ? fileSystem.get(folderPath) : null
+          if (folder?.type !== 'DirectoryEntry') {
+            return route.fulfill({ status: 400 })
           }
+          const entries: readonly FileSystemEntry[] = folder.children.map(({ entry }) => entry)
+          return route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ entries }),
+          })
           break
+        }
+        case 'filesystem-read-path': {
+          const filePath = cliArguments[0]
+          if (filePath == null) {
+            return route.fulfill({ status: 400 })
+          }
+          called('getFileContent', { path: filePath })
+          const file = fileSystem.get(filePath)
+          if (file?.type !== 'FileEntry') {
+            return route.fulfill({ status: 400 })
+          }
+          return route.fulfill({ contentType: 'text/plain', body: file.content })
         }
       }
     },

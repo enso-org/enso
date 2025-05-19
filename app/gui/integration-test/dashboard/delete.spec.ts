@@ -4,6 +4,17 @@ import { expect, test } from '@playwright/test'
 import { modModifier } from 'integration-test/dashboard/actions/BaseActions'
 import { mockAllAndLogin, TEXT } from './actions'
 
+test('delete (local)', ({ page }) =>
+  mockAllAndLogin({ page })
+    .goToCategory.local()
+    .createFolder()
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveCount(1)
+    })
+    .driveTable.rightClickRow(0)
+    .contextMenu.delete()
+    .driveTable.expectPlaceholderRow())
+
 test('delete and restore', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
