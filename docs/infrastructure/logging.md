@@ -26,7 +26,6 @@ architecture, see [Logging server](#logging-server).
     - [Format](#format)
     - [File](#file-appender)
     - [Network](#socket-appender)
-    - [Sentry.io](#sentry-appender)
 - [Logging server](#logging-server)
 - [Telemetry](#telemetry)
   - [Logger namespace](#logger-namespace)
@@ -150,8 +149,6 @@ Currently supported are
   with optional rolling file policy
 - [socket appender](#socket-appender) - appender that forwards log events to
   some logging server
-- [sentry.io appender](#sentry-appender) - appender that forwards log events to
-  a sentry.io service
 
 The appenders are defined by the `logging-service.appenders`. Currently only a
 single appender can be selected at a time, although additional
@@ -251,25 +248,6 @@ The two fields can be overridden via environment variables:
 
 - `hostname` has an equivalent `$ENSO_LOGSERVER_HOSTNAME` variable
 - `port` has an equivalent `$ENSO_LOGSERVER_PORT` variable
-
-#### Sentry Appender
-
-Enabled with `ENSO_APPENDER_DEFAULT=sentry` environment variable.
-
-```
-  {
-    name = "sentry"
-    dsn = <string, required>
-    flush-timeout = <int, optional>
-    debug = <boolean, optional>
-  }
-```
-
-Sentry's Appender has a single required field, `dsn`. The `dsn` value can be
-provided via an environment variable `ENSO_APPENDER_SENTRY_DSN`. `flush-timeout`
-determines how often logger should send its collected events to sentry.io
-service. If `debug` value is `true`, logging will print to stdout additional
-trace information of the logging process itself.
 
 ## Logging server
 
