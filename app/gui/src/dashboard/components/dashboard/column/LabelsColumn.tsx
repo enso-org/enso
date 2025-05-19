@@ -9,18 +9,21 @@ import Label from '#/components/dashboard/Label'
 
 import { Button, DialogTrigger, Popover } from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FALLBACK_COLOR } from '#/services/Backend'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import * as permissions from '#/utilities/permissions'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRef, useState } from 'react'
+import { useEventCallback } from '../../../hooks/eventCallbackHooks'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, state, labels } = props
-  const { backend, category, setQuery } = state
+  const { backend, category } = state
   const { user } = authProvider.useFullUserSession()
   const { getText } = useText()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))
@@ -43,6 +46,14 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     },
   })
 
+  const associateTag = useMutationCallback(backendMutationOptions(backend, 'associateTag'))
+
+  const doDelete = useEventCallback(async (label: string) => {
+    unsetModal()
+    const newLabels = item.labels?.filter((oldLabel) => oldLabel !== label) ?? []
+    return associateTag([item.id, newLabels, item.title])
+  })
+
   const labelsList = (item.labels ?? [])
     .filter((label) => labelsByName.has(label))
     .map((label) => (
@@ -52,27 +63,21 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         title={getText('rightClickToRemoveLabel')}
         color={labelsByName.get(label)?.color ?? FALLBACK_COLOR}
         active
+        onDelete={() => doDelete(label)}
         onContextMenu={(event) => {
           event.preventDefault()
           event.stopPropagation()
-          const doDelete = () => {
-            unsetModal()
-            const newLabels = item.labels?.filter((oldLabel) => oldLabel !== label) ?? []
-            void backend.associateTag(item.id, newLabels, item.title)
-          }
           setModal(
             <ContextMenu aria-label={getText('labelContextMenuLabel')} event={event}>
               <ContextMenuEntry
                 action="delete"
-                label={getText('deleteLabelShortcut')}
-                doAction={doDelete}
+                label={getText('removeLabelShortcut')}
+                doAction={() => {
+                  unsetModal()
+                  void doDelete(label)
+                }}
               />
             </ContextMenu>,
-          )
-        }}
-        onPress={(event) => {
-          setQuery((oldQuery) =>
-            oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey),
           )
         }}
       >

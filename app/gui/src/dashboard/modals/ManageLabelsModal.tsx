@@ -122,11 +122,16 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
       if (name === 'labels') {
         const value = form.getValues('labels')
 
+        form.clearErrors()
+
         const labelNames = value
           .map((label) => allLabels.find((l) => l.id === label)?.value)
           .filter((label) => label !== undefined)
 
-        void associateTag([item.id, labelNames, item.title])
+        void associateTag([item.id, labelNames, item.title]).catch(() => {
+          form.setFormError(getText('arbitraryMutationError'))
+          form.resetField('labels')
+        })
       }
     },
     defaultValues: { labels: itemLabels.map((label) => label.id), query: '' },
@@ -164,7 +169,7 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
                     style={{ backgroundColor: lChColorToCssColor(label.color) }}
                     className={styles.label()}
                   >
-                    <Text truncate color="invert">
+                    <Text truncate color="invert" textSelection="none">
                       {label.value}
                     </Text>
                   </Tag>
