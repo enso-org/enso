@@ -267,7 +267,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   icon="key_add"
                   aria-label={isCloud ? getText('newSecret') : getText('newSecretOnlyCloud')}
                 />
-                <UpsertSecretModal id={null} name={null} doCreate={newSecretCallback} />
+                <UpsertSecretModal doCreate={newSecretCallback} />
               </DialogTrigger>
               <DialogTrigger>
                 <Button

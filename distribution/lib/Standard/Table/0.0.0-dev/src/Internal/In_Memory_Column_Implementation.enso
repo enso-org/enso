@@ -47,9 +47,11 @@ from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
+polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.CountNothing
+polyglot java import org.enso.table.data.column.operation.IfOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
@@ -173,43 +175,38 @@ type In_Memory_Column_Implementation
 
     and this_column (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_boolean_op this_column other <|
-            run_vectorized_binary_op this_column Java_Storage.Maps.AND other
+            new_name = naming_helper.binary_operation_name "&&" this_column other
+            _call_binary_operator this_column other new_name LogicalOperations.AND
 
     or this_column (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_boolean_op this_column other <|
-           run_vectorized_binary_op this_column Java_Storage.Maps.OR other
+            new_name = naming_helper.binary_operation_name "||" this_column other
+            _call_binary_operator this_column other new_name LogicalOperations.OR
 
     not this_column -> Column =
         Value_Type.expect_boolean this_column <|
             new_name = naming_helper.concat ["not", naming_helper.to_expression_text this_column]
             apply_unary_operation this_column NotOperation.INSTANCE new_name
 
-    iif this_column (when_true : Column | Any) (when_false : Column | Any) -> Column =
-        Value_Type.expect_boolean this_column <|
-            common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
-            storage_type = Storage.from_value_type_strict common_type
-            storage_type.if_not_error <|
-                new_name = naming_helper.concat <|
-                    ["if", naming_helper.to_expression_text this_column, "then", naming_helper.to_expression_text when_true, "else", naming_helper.to_expression_text when_false]
-                # Even if we have a MixedStorage with inferred type Bool, we ensure that the effective storage is BoolStorage, only one that supports iif.
-                s = (this_column:In_Memory_Column).java_column.getStorage.tryGettingMoreSpecializedStorage
+    iif this_column (when_true : Column | Any) (when_false : Column | Any) -> Column = Value_Type.expect_boolean this_column <|
+        common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
+        storage_type = Storage.from_value_type_strict common_type
+        storage_type.if_not_error <|
+            new_name = naming_helper.concat <|
+                ["if", naming_helper.to_expression_text this_column, "then", naming_helper.to_expression_text when_true, "else", naming_helper.to_expression_text when_false]
 
-                true_val = case when_true of
-                    _ : Column -> (when_true:In_Memory_Column).java_column.getStorage
-                    _ -> when_true
+            true_val = case when_true of
+                _ : Column -> (when_true:In_Memory_Column).java_column
+                _ -> when_true
+            false_val = case when_false of
+                _ : Column -> (when_false:In_Memory_Column).java_column
+                _ -> when_false
 
-                false_val = case when_false of
-                    _ : Column -> (when_false:In_Memory_Column).java_column.getStorage
-                    _ -> when_false
+            java_column = Illegal_State.handle_java_exception <|
+                Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                    IfOperation.apply (this_column:In_Memory_Column).java_column new_name true_val false_val storage_type java_problem_aggregator
 
-                handle_no_iif caught_panic =
-                    if Meta.meta caught_panic.payload.symbol . name != "iif" then Panic.throw caught_panic else
-                        error = Illegal_State.Error "`iif` got a storage "+s.to_display_text+" that does not support the `iif` operation. This is a bug in the Table library."
-                        Panic.throw error
-                rs = Panic.catch No_Such_Method handler=handle_no_iif <|
-                    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                        s.iif true_val false_val storage_type java_problem_aggregator
-                In_Memory_Column.from_storage new_name rs
+            In_Memory_Column.from_java_column java_column
 
     const this_column value = this_column.to_table.make_constant_column value
 
@@ -952,9 +949,14 @@ apply_unary_map column:Column new_name:Text function expected_result_type:Value_
 
 ## PRIVATE
    Temporary function to determine if to use the Comparators statics or embedded operations.
-private _call_comparator left other new_name ~comparator ~enso_action =
-    if Comparators.isSupported (left:In_Memory_Column).java_column then In_Memory_Column.from_java_column (comparator.apply (left:In_Memory_Column).java_column (if other.is_a Column then (other:In_Memory_Column).java_column else other) new_name) else
-        enso_action
+private _call_comparator left:In_Memory_Column other new_name ~comparator ~enso_action =
+    if (Comparators.isSupported left.java_column) == False then enso_action else
+        _call_binary_operator left other new_name comparator
+
+private _call_binary_operator left:In_Memory_Column other new_name ~operation =
+    Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
+        java_column = operation.apply left.java_column (if other.is_a Column then (other:In_Memory_Column).java_column else other) new_name java_problem_aggregator
+        In_Memory_Column.from_java_column java_column
 
 ## PRIVATE
 private _apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text -> Column =
@@ -965,5 +967,6 @@ private _apply_case_sensitive_text_operation left:Column (other : Column | Text 
     case use_fallback of
         True -> run_binary_op left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
         _ ->
-            java_column = operation.apply (left:In_Memory_Column).java_column java_other new_name
-            In_Memory_Column.from_java_column java_column
+            Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
+                java_column = operation.apply (left:In_Memory_Column).java_column java_other new_name java_problem_aggregator
+                In_Memory_Column.from_java_column java_column
