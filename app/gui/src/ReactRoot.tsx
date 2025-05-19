@@ -18,7 +18,6 @@ import invariant from 'tiny-invariant'
 
 interface ReactRootProps {
   queryClient: QueryClient
-  classSet: Map<string, number>
   onAuthenticated: (accessToken: string | null) => void
 }
 

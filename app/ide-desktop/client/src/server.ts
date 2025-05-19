@@ -157,7 +157,7 @@ export class Server {
               }
             }
             logger.log(`Server started on port ${this.config.port}.`)
-            logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
+            logger.log(`Serving files from '${path.resolve(process.cwd(), this.config.dir)}'.`)
             if (IS_ELECTRON_DEV_MODE) {
               const vite = (await import(
                 pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href

@@ -31,21 +31,11 @@ public class NotOperation implements UnaryOperation {
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage instanceof BoolStorage boolStorage) {
-      return boolStorage.makeNegated();
-    }
-
-    if (storage.getType() instanceof NullType) {
-      return new NullStorage(Math.toIntExact(storage.getSize()));
-    }
-
-    if (storage instanceof ColumnBooleanStorage booleanStorage) {
-      return StorageIterators.buildOverBooleanStorage(
-          booleanStorage,
-          Builder.getForBoolean(storage.getSize()),
-          (builder, index, value, isNothing) -> builder.appendBoolean(!value));
-    } else {
-      return StorageIterators.buildOverStorage(
+    return switch (storage) {
+      case BoolStorage boolStorage -> applySpecializedBoolStorage(boolStorage);
+      case ColumnBooleanStorage columnBooleanStorage -> applyOverBooleans(columnBooleanStorage);
+      case NullStorage nullStorage -> applySpecializedNullStorage(nullStorage);
+      default -> StorageIterators.buildOverStorage(
           storage,
           Builder.getForBoolean(storage.getSize()),
           (builder, index, value) -> {
@@ -56,6 +46,25 @@ public class NotOperation implements UnaryOperation {
                   "Unsupported type: " + value.getClass() + " (expected boolean type).");
             }
           });
-    }
+    };
+  }
+
+  public static ColumnStorage<Boolean> applyOverBooleans(ColumnBooleanStorage booleanStorage) {
+    return StorageIterators.buildOverBooleanStorage(
+        booleanStorage,
+        Builder.getForBoolean(booleanStorage.getSize()),
+        (builder, index, value, isNothing) -> builder.appendBoolean(!value));
+  }
+
+  public static ColumnBooleanStorage applySpecializedBoolStorage(BoolStorage boolStorage) {
+    return new BoolStorage(
+        boolStorage.getValues(),
+        boolStorage.getIsNothingMap(),
+        (int) boolStorage.getSize(),
+        !boolStorage.isNegated());
+  }
+
+  public static ColumnBooleanStorage applySpecializedNullStorage(ColumnStorage<?> storage) {
+    return BoolStorage.makeEmpty(storage.getSize());
   }
 }

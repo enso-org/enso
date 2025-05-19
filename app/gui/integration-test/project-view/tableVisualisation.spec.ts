@@ -200,3 +200,24 @@ test('Single_Column_Of_Actions Table Visualisation Test', async ({ page }) => {
   await expect(newNode).toContainText('read')
   await expect(newNode).toContainText('Sheet2')
 })
+
+test('Error Visualisation Test', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    {
+      type: 'Error',
+      error: 'This is an error message.',
+    },
+  )
+  await expect(tableVisualization).toContainText('This is an error message.')
+})

@@ -67,7 +67,10 @@ snowflake =
 type Snowflake_Dialect
     ## PRIVATE
        The dialect of Snowflake databases.
-    Value dialect_operations
+    private Value internal_dialect_operations
+
+    ## PRIVATE
+    dialect_operations self = self.internal_dialect_operations
 
     ## PRIVATE
        Name of the dialect.

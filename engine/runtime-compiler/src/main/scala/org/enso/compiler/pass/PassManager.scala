@@ -78,7 +78,7 @@ class PassManager(
       throw new CompilerError("Cannot run an unvalidated pass group.")
     }
 
-    logger.debug(
+    logger.trace(
       "runPassesOnModule[{}@{}]",
       moduleContext.getName(),
       moduleContext.module.getCompilationStage()

@@ -16,7 +16,7 @@ refine_table (table : Table) =
         if is_single_value (table.at 0) then _refine_single_value_single_column_table table else
             _refine_single_column_table table
 
-# This should be consistent with `Column_Refinements._refine_single_value_column` - the code needs to be copied because we need to spell out all the types.
+## This should be consistent with `Column_Refinements._refine_single_value_column` - the code needs to be copied because we need to spell out all the types.
 private _refine_single_value_single_column_table table =
     column = table.at 0
     inferred_value_type = column.inferred_precise_value_type
@@ -42,7 +42,7 @@ private _refine_single_value_single_column_table table =
         # Other types (e.g. Mixed) are not supported.
         _ -> (table : Table & Column)
 
-# This should be consistent with `Column_Refinements._refine_column` - the code needs to be copied because we need to spell out all the types.
+## This should be consistent with `Column_Refinements._refine_column` - the code needs to be copied because we need to spell out all the types.
 private _refine_single_column_table table =
     column = table.at 0
     inferred_value_type = column.inferred_precise_value_type

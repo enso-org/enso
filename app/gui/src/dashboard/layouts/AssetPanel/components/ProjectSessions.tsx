@@ -2,35 +2,34 @@
 import { Result } from '#/components/Result'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
-import { useStore } from '#/utilities/zustand'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { assetPanelStore } from '../AssetPanelState'
+import { useAssetPanelCurrentItem } from '../AssetPanelState'
 import { ProjectSession } from './ProjectSession'
+import type { AssetPanelProps } from './types'
 
 /** Props for a {@link ProjectSessions}. */
-export interface ProjectSessionsProps {
-  readonly backend: Backend
-}
+export interface ProjectSessionsProps extends AssetPanelProps {}
 
 /** A list of previous versions of an asset. */
 export function ProjectSessions(props: ProjectSessionsProps) {
   const { backend } = props
   const { getText } = useText()
-  const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
-    unsafeEnableTransition: true,
-  })
+
+  const item = useAssetPanelCurrentItem()
 
   if (backend.type === BackendType.local) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.localBackend')} />
   }
+
   if (item == null) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notSelected')} />
   }
+
   if (item.type !== AssetType.project) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notProjectAsset')} />
   }
+
   return <AssetProjectSessionsInternal {...props} item={item} />
 }
 

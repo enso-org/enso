@@ -61,7 +61,7 @@ class DropDownLocator {
   }
 }
 
-const CHOOSE_CLOUD_FILE = 'Choose file from cloud...'
+const CHOOSE_CLOUD_FILE = 'Choose file in cloud…'
 const CHOOSE_LOCAL_FILE = 'Choose file…'
 const CHOOSE_FILE_OPTIONS = [CHOOSE_CLOUD_FILE, CHOOSE_LOCAL_FILE]
 

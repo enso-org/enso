@@ -269,7 +269,7 @@ function AssetsTable(props: AssetsTableProps) {
       refetchInterval: listDirectoryRefetchInterval,
     }),
     retry: () => {
-      setCurrentDirectoryId({ current: null, parent: null })
+      setCurrentDirectoryId(null)
       return false
     },
   })
@@ -658,7 +658,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                setCurrentDirectoryId({ current: item.id, parent: item.parentId })
+                setCurrentDirectoryId(item.id)
                 break
               }
               case AssetType.project: {
@@ -682,7 +682,7 @@ function AssetsTable(props: AssetsTableProps) {
                   const id = item.id
                   setModal(
                     <UpsertSecretModal
-                      id={item.id}
+                      secretId={item.id}
                       name={item.title}
                       doCreate={async (title, value) => {
                         try {
@@ -1458,7 +1458,7 @@ function AssetsTable(props: AssetsTableProps) {
         </div>
       </IsolateLayout>
 
-      {isDraggingFiles && !isMainDropzoneVisible && (
+      {isDraggingFiles && !isMainDropzoneVisible && category.canUploadHere && (
         <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
           <div
             className="pointer-events-auto flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"

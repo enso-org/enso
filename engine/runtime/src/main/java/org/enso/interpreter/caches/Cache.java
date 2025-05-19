@@ -259,7 +259,7 @@ public final class Cache<T, M> {
       ByteBuffer blobBytes;
       var threeMbs = 3 * 1024 * 1024;
       if (file.exists() && file.length() > threeMbs) {
-        logger.log(Level.FINE, "Cache file " + file + " mmapped with " + file.length() + " size");
+        logger.log(Level.FINEST, "Cache file " + file + " mmapped with " + file.length() + " size");
         var raf = new RandomAccessFile(file, "r");
         blobBytes = raf.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length());
       } else {

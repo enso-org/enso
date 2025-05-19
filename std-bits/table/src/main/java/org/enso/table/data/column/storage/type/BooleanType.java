@@ -1,7 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.BuilderForType;
+import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
@@ -35,8 +35,7 @@ public record BooleanType() implements StorageType<Boolean> {
   }
 
   @Override
-  public BuilderForType<Boolean> makeBuilder(
-      long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForBoolean makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForBoolean(initialCapacity);
   }
 
