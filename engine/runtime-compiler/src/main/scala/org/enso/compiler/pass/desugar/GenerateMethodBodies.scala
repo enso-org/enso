@@ -151,7 +151,7 @@ case object GenerateMethodBodies extends IRPass {
       case (_, parameterPosition) :: Nil =>
         fun match {
           case lam: Function.Lambda
-              if lam.arguments().size > 1 && parameterPosition == 0 =>
+              if lam.arguments().nonEmpty && parameterPosition == 0 =>
             lam
           case lam: Function.Lambda =>
             fun.addDiagnostic(
