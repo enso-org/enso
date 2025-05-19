@@ -1,4 +1,4 @@
-/** @file A modal to create a user group. */
+/** @file A form to create a user group. */
 import { ButtonGroup, Dialog, Form, Input, Text } from '#/components/AriaComponents'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useRemoteBackend } from '#/providers/BackendProvider'
@@ -7,7 +7,7 @@ import { normalizeName } from '#/utilities/string'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-/** A modal to create a user group. */
+/** A form to create a user group. */
 export function NewUserGroupForm() {
   const backend = useRemoteBackend()
   const { getText } = useText()
