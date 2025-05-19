@@ -1,13 +1,7 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import type { IServerSideGetRowsRequest } from 'ag-grid-enterprise'
-import {
-  actionMap,
-  FilterAction,
-  getFilterValue,
-  GridFilterModel,
-  makeFilterModelList,
-} from './tableVizFilterUtils'
+import { actionMap, FilterAction, getFilterValue, GridFilterModel } from './tableVizFilterUtils'
 import { getCellValueType } from './tableVizUtils'
 
 type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char'
@@ -105,13 +99,10 @@ export const convertSortModel = (request: IServerSideGetRowsRequest, columnHeade
 }
 
 export const convertFilterModel = (
-  request: IServerSideGetRowsRequest,
+  gridFilterModelList: Array<GridFilterModel>,
   columnHeaders: string[],
   colTypeMap: Map<string, string>,
 ) => {
-  const gridFilterModelList: Array<GridFilterModel> =
-    request.filterModel ? makeFilterModelList(request.filterModel) : []
-
   const filterColumnNames = gridFilterModelList.map((filter) => filter.columnName)
 
   const filterColumnIndexList =
@@ -168,6 +159,9 @@ export const createDistinctExpressionTemplate = (
   visulizationModule: string,
   expressionString: string,
   columnIndex: string,
+  filterColumnIndexList: string[] | 'Nothing',
+  filterActions: string[] | 'Nothing',
+  valueList: string[] | 'Nothing',
 ) => {
   const tempModule = Ast.MutableModule.Transient()
   const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
@@ -177,15 +171,35 @@ export const createDistinctExpressionTemplate = (
     Ast.identifier(expressionString)!,
   )
 
+  const parseFilterArgs = (actions: string[] | 'Nothing') => {
+    if (actions === 'Nothing') {
+      return parseArgument('Nothing', tempModule)
+    }
+    const filters = actions.map((action: string, index: number) => {
+      const value = valueList[index]
+      return parseFilterCondition(action, value, tempModule)
+    })
+    return Ast.Vector.new(tempModule, filters)
+  }
+
+  const positionalArgumentsExpressions = [
+    Ast.parseExpression(columnIndex, tempModule)!,
+    parseArgument(filterColumnIndexList, tempModule),
+    parseFilterArgs(filterActions),
+  ]
+
   const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
     Ast.Wildcard.new(tempModule),
-    Ast.parseExpression(columnIndex, tempModule)!,
+    ...positionalArgumentsExpressions.map((arg) => {
+      return Ast.Group.new(tempModule, arg)
+    }),
   ])
   return (nodeId: string) => {
     const rhs = Ast.parseExpression(nodeId, tempModule)!
     return Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
   }
 }
+
 
 export const createExpressionRowTemplate = (
   visulizationModule: string,
