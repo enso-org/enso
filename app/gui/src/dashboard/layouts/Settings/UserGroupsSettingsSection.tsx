@@ -207,7 +207,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
                   }}
                 >
                   <div className="flex justify-center">
-                    <StatelessSpinner size={32} state="loading-medium" />
+                    <StatelessSpinner size={32} phase="loading-medium" />
                   </div>
                 </Cell>
               </Row>

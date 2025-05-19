@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 
 @BuiltinType
-public class PrivateAccess extends UniquelyConstructibleBuiltin {
+public final class PrivateAccess extends UniquelyConstructibleBuiltin {
 
   @Override
   protected String getConstructorName() {
@@ -14,6 +14,6 @@ public class PrivateAccess extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("this_project_name", "target_project_name", "target_method_name");
+    return List.of("this_project_name", "target_project_name", "target_method_name", "msg");
   }
 }

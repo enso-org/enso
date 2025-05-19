@@ -1,7 +1,8 @@
 package org.enso.table.data.column.storage.type;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.BuilderForType;
+import org.enso.table.data.column.builder.BuilderForBoolean;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
@@ -34,16 +35,15 @@ public record BooleanType() implements StorageType<Boolean> {
   }
 
   @Override
-  public BuilderForType<Boolean> makeBuilder(
-      long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForBoolean makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForBoolean(initialCapacity);
   }
 
   @Override
-  public ColumnStorage<Boolean> asTypedStorage(ColumnStorage<?> storage) {
+  public ColumnBooleanStorage asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof BooleanType) {
       @SuppressWarnings("unchecked")
-      var output = (ColumnStorage<Boolean>) storage;
+      var output = (ColumnBooleanStorage) storage;
       return output;
     }
     throw new IllegalArgumentException("Storage is not of BooleanType");

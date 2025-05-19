@@ -50,7 +50,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           true
         )
       } else {
-        val hasAllConstructorsPrivate =
+        val hasAllConstructorsPrivate = tp.isPrivate ||
           tp.members.nonEmpty && tp.members.forall(_.isProjectPrivate)
         val createdType =
           if (tp.members.nonEmpty || tp.builtinType) {

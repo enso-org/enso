@@ -7,12 +7,7 @@ import * as z from 'zod'
 import type { TextId } from 'enso-common/src/text'
 
 import ComputerIcon from '#/assets/computer.svg'
-import CreditCardIcon from '#/assets/credit_card.svg'
-import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
-import LogIcon from '#/assets/log.svg'
-import PeopleIcon from '#/assets/people.svg'
-import PeopleSettingsIcon from '#/assets/people_settings.svg'
-import SettingsIcon from '#/assets/settings.svg'
+import type { SvgUseIcon } from '#/components/AriaComponents'
 import { Button, ButtonGroup } from '#/components/AriaComponents'
 import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
 import { BINDINGS } from '#/configurations/inputBindings'
@@ -61,7 +56,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.account]: {
     nameId: 'accountSettingsTab',
     settingsTab: SettingsTabType.account,
-    icon: SettingsIcon,
+    icon: 'settings',
     sections: [
       {
         nameId: 'userAccountSettingsSection',
@@ -207,7 +202,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.organization]: {
     nameId: 'organizationSettingsTab',
     settingsTab: SettingsTabType.organization,
-    icon: PeopleSettingsIcon,
+    icon: 'people_settings',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithOrganization(user),
     sections: [
@@ -337,7 +332,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.billingAndPlans]: {
     nameId: 'billingAndPlansSettingsTab',
     settingsTab: SettingsTabType.billingAndPlans,
-    icon: CreditCardIcon,
+    icon: 'credit_card',
     organizationOnly: true,
     visible: ({ user, organization }) =>
       user.isOrganizationAdmin && organization?.subscription != null,
@@ -365,7 +360,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.members]: {
     nameId: 'membersSettingsTab',
     settingsTab: SettingsTabType.members,
-    icon: PeopleIcon,
+    icon: 'people',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithOrganization(user),
     feature: 'inviteUser',
@@ -379,7 +374,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.userGroups]: {
     nameId: 'userGroupsSettingsTab',
     settingsTab: SettingsTabType.userGroups,
-    icon: PeopleSettingsIcon,
+    icon: 'people_settings',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithOrganization(user),
     feature: 'userGroups',
@@ -416,7 +411,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.keyboardShortcuts]: {
     nameId: 'keyboardShortcutsSettingsTab',
     settingsTab: SettingsTabType.keyboardShortcuts,
-    icon: KeyboardShortcutsIcon,
+    icon: 'keyboard_shortcuts',
     sections: [
       {
         nameId: 'keyboardShortcutsSettingsSection',
@@ -445,7 +440,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
   [SettingsTabType.activityLog]: {
     nameId: 'activityLogSettingsTab',
     settingsTab: SettingsTabType.activityLog,
-    icon: LogIcon,
+    icon: 'log',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithOrganization(user),
     sections: [
@@ -580,7 +575,7 @@ export interface SettingsSectionData {
 export interface SettingsTabData {
   readonly nameId: TextId & `${string}SettingsTab`
   readonly settingsTab: SettingsTabType
-  readonly icon: string
+  readonly icon: SvgUseIcon | (string & {})
   readonly visible?: (context: SettingsContext) => boolean
   readonly organizationOnly?: true
   /**

@@ -15,7 +15,6 @@ import {
 } from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
-import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -49,15 +48,15 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
       {...(triggerRef ? { triggerRef } : {})}
       shouldCloseOnInteractOutside={() => true}
     >
-      <ManageLabelsModalInternal {...props} />
+      <ManageLabelsForm {...props} />
     </Popover>
   )
 }
 
 /**
- * Internal implementation of a {@link ManageLabelsModal}.
+ * Form for {@link ManageLabelsModal}.
  */
-function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
+function ManageLabelsForm(props: ManageLabelsModalProps) {
   const { backend, item: itemRaw } = props
 
   const item = useAsset(itemRaw.id) ?? itemRaw
@@ -103,75 +102,67 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
   const canCreateNewLabel = canSelectColor
 
   return (
-    <Form key={id} form={form} className="relative flex flex-col gap-modal rounded-default p-modal">
+    <Form key={id} form={form}>
       <Text.Heading slot="title" level={2} variant="subtitle">
         {getText('labels')}
       </Text.Heading>
-      <FocusArea direction="horizontal">
-        {(innerProps) => (
-          <ButtonGroup className="relative" {...innerProps}>
-            <Input
-              form={form}
-              name="name"
-              autoFocus
-              type="text"
-              size="small"
-              placeholder={getText('labelSearchPlaceholder')}
-            />
-            <Form.Submit isDisabled={!canCreateNewLabel}>{getText('create')}</Form.Submit>
-          </ButtonGroup>
-        )}
-      </FocusArea>
+      <ButtonGroup className="relative">
+        <Input
+          form={form}
+          name="name"
+          autoFocus
+          type="text"
+          size="small"
+          placeholder={getText('labelSearchPlaceholder')}
+        />
+        <Form.Submit isDisabled={!canCreateNewLabel}>{getText('create')}</Form.Submit>
+      </ButtonGroup>
       {canSelectColor && <ColorPicker setColor={setColor} className="w-full" />}
-      <FocusArea direction="vertical">
-        {(innerProps) => (
-          <Checkbox.Group
-            form={form}
-            name="labels"
-            fullWidth
-            className="max-h-80 overflow-auto"
-            onChange={async (values) => {
-              await associateTag([item.id, values.map(LabelName), item.title])
-            }}
-            {...innerProps}
-          >
-            {allLabels
-              .filter((label) => regex.test(label.value))
-              .map((label) => {
-                const isActive = labels.includes(label.value)
-                return (
-                  <div className="group flex w-full items-center justify-between">
-                    <Checkbox key={label.id} value={String(label.value)}>
-                      <Label active={isActive} color={label.color} onPress={() => {}}>
-                        {label.value}
-                      </Label>
-                    </Checkbox>
+      <Checkbox.Group
+        form={form}
+        name="labels"
+        fullWidth
+        className="max-h-80 overflow-auto"
+        onChange={async (values) => {
+          await associateTag([item.id, values.map(LabelName), item.title])
+        }}
+      >
+        {allLabels
+          .filter((label) => regex.test(label.value))
+          .map((label) => {
+            const isActive = labels.includes(label.value)
+            return (
+              <div className="group flex w-full items-center justify-between">
+                <Checkbox key={label.id} value={String(label.value)}>
+                  <Label active={isActive} color={label.color} onPress={() => {}}>
+                    {label.value}
+                  </Label>
+                </Checkbox>
 
-                    <FocusRing placement="after">
-                      <DialogTrigger>
-                        <Button
-                          variant="icon"
-                          icon="trash2"
-                          extraClickZone={false}
-                          aria-label={getText('delete')}
-                          tooltipPlacement="right"
-                          className="relative mr-1 flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
-                        />
-                        <ConfirmDeleteModal
-                          cannotUndo
-                          actionText={getText('deleteLabelActionText', label.value)}
-                          onConfirm={async () => {
-                            await deleteTag([label.id, label.value])
-                          }}
-                        />
-                      </DialogTrigger>
-                    </FocusRing>
-                  </div>
-                )
-              })}
-          </Checkbox.Group>
-        )}
-      </FocusArea>
+                <FocusRing placement="after">
+                  <DialogTrigger>
+                    <Button
+                      variant="icon"
+                      icon="trash"
+                      extraClickZone={false}
+                      aria-label={getText('delete')}
+                      tooltipPlacement="right"
+                      showIconOnHover
+                      className="relative mr-1 flex size-4 text-delete transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                    />
+                    <ConfirmDeleteModal
+                      cannotUndo
+                      actionText={getText('deleteLabelActionText', label.value)}
+                      onConfirm={async () => {
+                        await deleteTag([label.id, label.value])
+                      }}
+                    />
+                  </DialogTrigger>
+                </FocusRing>
+              </div>
+            )
+          })}
+      </Checkbox.Group>
     </Form>
   )
 }

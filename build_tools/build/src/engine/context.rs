@@ -16,8 +16,6 @@ use crate::enso::IrCaches;
 use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
-use crate::paths::ENSO_DATA_DIRECTORY;
-use crate::paths::ENSO_JAVA;
 use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
@@ -26,7 +24,6 @@ use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
-use ide_ci::programs::java::JAVA_HOME;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Sbt;
 use std::env::consts::DLL_EXTENSION;
@@ -244,7 +241,9 @@ impl RunContext {
         ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.target)?;
         // cleanup distribution from previous build
         // it is fast to assemble it again
-        ide_ci::fs::remove_if_exists(&self.paths.repo_root.built_distribution)?;
+        if self.config.build_engine_package {
+            ide_ci::fs::remove_if_exists(&self.paths.repo_root.built_distribution)?;
+        }
 
         // We want to start this earlier, and await only before Engine build starts.
         let perhaps_generate_java_from_rust_job =
@@ -283,7 +282,9 @@ impl RunContext {
 
         // === Build project-manager distribution and native image ===
         let mut tasks = vec![];
-        if self.config.build_engine_package() {
+        let mut run_sbt_clean = false;
+        if self.config.build_engine_package {
+            run_sbt_clean = true;
             tasks.push("buildEngineDistribution");
         }
         if self.config.build_native_ydoc {
@@ -295,14 +296,23 @@ impl RunContext {
         if self.config.build_launcher_package() {
             tasks.push("buildLauncherDistribution");
         }
+        if self.config.run_enso_lint {
+            tasks.push("lintEnso");
+        }
 
         if !tasks.is_empty() {
             debug!("Building distributions and native images.");
-            if crate::ci::big_memory_machine() {
-                sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+            let mut command = if crate::ci::big_memory_machine() {
+                Sbt::concurrent_tasks(tasks)
             } else {
-                sbt.call_arg(Sbt::sequential_tasks(tasks)).await?;
-            }
+                Sbt::sequential_tasks(tasks)
+            };
+            command = if run_sbt_clean {
+                Sbt::sequential_tasks(vec!["clean", &command])
+            } else {
+                command
+            };
+            sbt.call_arg(command).await?;
         }
 
         // === End of Build project-manager distribution and native image ===
@@ -340,11 +350,6 @@ impl RunContext {
         // We store Scala test result but not immediately fail on it, as we want to run all the
         // tests (including standard library ones) even if Scala tests fail.
         let scala_test_result = if self.config.test_jvm {
-            // Make sure that `sbt buildEngineDistributionNoIndex` is run before
-            // `project-manager/test`. Note that we do not have to run
-            // `buildEngineDistribution` (with indexing), because it is unnecessary.
-            sbt.call_arg("buildEngineDistributionNoIndex").await?;
-
             // Run unit tests
             sbt.call_arg("set Global / parallelExecution := false; test").await.inspect_err(|e| {
                 ide_ci::actions::workflow::error(format!("Scala Tests failed: {e:?}"))
@@ -354,9 +359,6 @@ impl RunContext {
             Ok(())
         };
 
-        let enso_lint_result =
-            if self.config.run_enso_lint { sbt.call_arg("lintEnso").await } else { Ok(()) };
-
         match &self.config.test_standard_library {
             Some(selection) => {
                 enso.run_tests(
@@ -364,7 +366,8 @@ impl RunContext {
                     &sbt,
                     PARALLEL_ENSO_TESTS,
                     selection.clone(),
-                    self.config.build_native_runner,
+                    self.config.extra_engine_runner_args.clone(),
+                    self.config.has_native_runner(),
                 )
                 .await?;
             }
@@ -434,31 +437,6 @@ impl RunContext {
             }
         }
 
-        // === Build Distribution ===
-        debug!("Building distribution");
-        if self.config.build_native_runner {
-            debug!("Building and testing native engine runners");
-            runner_sanity_test(&self.repo_root, None).await?;
-            let enso = self
-                .repo_root
-                .built_distribution
-                .enso_engine_triple
-                .engine_package
-                .bin
-                .join("enso")
-                .with_executable_extension();
-            ide_ci::fs::remove_file_if_exists(&enso)?;
-            if self.config.build_espresso_runner {
-                let enso_java = "espresso";
-                sbt.command()?
-                    .env(ENSO_JAVA, enso_java)
-                    .arg("engine-runner/buildNativeImage")
-                    .run_ok()
-                    .await?;
-                runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
-            }
-        }
-
         // Verify Integrity of Generated License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
@@ -486,7 +464,6 @@ impl RunContext {
         }
 
         scala_test_result?;
-        enso_lint_result?;
 
         Ok(ret)
     }
@@ -692,121 +669,4 @@ pub async fn upload_test_results(test_results_dir: PathBuf) -> Result {
         );
     }
     upload_result
-}
-
-/// Run the native runner and check if it produces the expected output on a simple test.
-pub async fn runner_sanity_test(
-    repo_root: &crate::paths::generated::RepoRoot,
-    enso_java: Option<&str>,
-) -> Result {
-    let engine_package = repo_root.built_distribution.enso_engine_triple.engine_package.as_path();
-    // The engine package is necessary for running the native runner.
-    ide_ci::fs::tokio::require_exist(engine_package).await?;
-    if enso_java.is_none() {
-        let enso = repo_root
-            .built_distribution
-            .enso_engine_triple
-            .engine_package
-            .bin
-            .join("enso")
-            .with_executable_extension();
-
-        let test_base = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Base_Tests").as_str()])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_ok()
-            .await;
-
-        let test_internal_base = Command::new(&enso)
-            .args([
-                "--disable-private-check",
-                "--run",
-                repo_root.test.join("Base_Internal_Tests").as_str(),
-            ])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_ok()
-            .await;
-
-        let test_table = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Table_Tests").as_str()])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_ok()
-            .await;
-
-        let test_aws = Command::new(&enso)
-            .args(["--run", repo_root.test.join("AWS_Tests").as_str()])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_ok()
-            .await;
-
-        let test_microsoft = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Microsoft_Tests").as_str()])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_ok()
-            .await;
-
-        let test_snowflake = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Snowflake_Tests").as_str()])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_ok()
-            .await;
-
-        let test_tableau = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Tableau_Tests").as_str()])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_ok()
-            .await;
-
-        let test_geo = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Geo_Tests").as_str()])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_ok()
-            .await;
-
-        let test_image = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Image_Tests").as_str()])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .run_ok()
-            .await;
-
-        let graal_path = cache::goodie::graalvm::locate_graal()?;
-
-        let test_generic_jdbc = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Generic_JDBC_Tests").as_str()])
-            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-            .set_env(JAVA_HOME, &graal_path)?
-            .run_ok()
-            .await;
-
-        let all_cmds = test_base
-            .and(test_internal_base)
-            .and(test_table)
-            .and(test_aws)
-            .and(test_microsoft)
-            .and(test_snowflake)
-            .and(test_tableau)
-            .and(test_geo)
-            .and(test_image)
-            .and(test_generic_jdbc);
-
-        // The following test does not actually run anything, it just checks if the engine
-        // can accept `--jvm` argument and evaluates something.
-        if TARGET_OS != OS::Windows {
-            let test_jvm_arg = Command::new(&enso)
-                .args([
-                    "--jvm",
-                    "--run",
-                    repo_root.test.join("Base_Tests").as_str(),
-                    "__NON_EXISTING_TEST__",
-                ])
-                .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-                .run_ok()
-                .await;
-            all_cmds.and(test_jvm_arg)
-        } else {
-            all_cmds
-        }
-    } else {
-        Ok(())
-    }
 }

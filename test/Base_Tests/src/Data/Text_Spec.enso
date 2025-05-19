@@ -1607,6 +1607,7 @@ add_specs suite_builder =
         group_builder.specify "in Regex mode should allow referring to capture groups in substitutions" <|
             '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1' . should_equal 'content is at url'
             '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>'.to_regex '$<text> is at $<address>' . should_equal 'content is at url'
+            'Hello World'.replace '(?:Hello(o)? )(.*)'.to_regex '$1$2$2' . should_equal 'WorldWorld'
 
         group_builder.specify "should not allow non-default locale in regex replace" <|
             locale = Locale.new "en" "GB" "UTF-8"

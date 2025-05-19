@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import '#/tailwind.css'
+
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 </script>
 
 <template>
   <div class="LoadingVisualization">
-    <LoadingSpinner />
+    <LoadingSpinner phase="loading-medium" />
   </div>
 </template>
 

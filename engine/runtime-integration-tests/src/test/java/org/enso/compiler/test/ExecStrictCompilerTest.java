@@ -122,15 +122,20 @@ public class ExecStrictCompilerTest {
     assertEquals("Returns correct result", 11, res.asInt());
   }
 
-  // https://github.com/enso-org/enso/issues/12376
+  /*
+   * https://github.com/enso-org/enso/issues/12376
+   * naming_helper was removed in a refactor. Replaced with a similar situation
+   * where `parse_simple_date_pattern` is both a method on a type and standalone
+   * method with same name in the same module.
+   */
   @Test
   public void noDuplicateImportWarning() {
     var code =
         """
-        from Standard.Table.Column import naming_helper
+        from Standard.Base.Internal.Time.Format.Parser import parse_simple_date_pattern
 
         main =
-            naming_helper
+            parse_simple_date_pattern
         """;
     var res = ctxRule.evalModule(code);
     assertThat(res, is(notNullValue()));

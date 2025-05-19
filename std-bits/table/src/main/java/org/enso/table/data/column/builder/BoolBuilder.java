@@ -56,9 +56,10 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public void appendNulls(int count) {
+  public BoolBuilder appendNulls(int count) {
     isNothing.set(size, size + count);
     size += count;
+    return this;
   }
 
   @Override

@@ -1,5 +1,4 @@
 /** @file A heading for the "Path" column. */
-import DirectoryIcon from '#/assets/folder.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
@@ -23,7 +22,7 @@ export default function PathColumnHeading(props: AssetColumnHeadingProps) {
     >
       <Button
         variant="icon"
-        icon={DirectoryIcon}
+        icon="folder"
         aria-label={getText('pathColumnHide')}
         tooltip={false}
         onPress={hideThisColumn}

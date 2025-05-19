@@ -4,7 +4,6 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.ir.Diagnostic
 
 import java.nio.file.Path
-import scala.annotation.tailrec
 
 /** An extension of [[DiagnosticFormatter]] that additionally prints commands for a GitHub workflow that will add annotations for each warning/error. */
 private[util] class GitHubDiagnosticFormatter(
@@ -46,7 +45,7 @@ private[util] class GitHubDiagnosticFormatter(
 
       val path = file match {
         case FileLocation.SourcePath(path) =>
-          rewritePath(Path.of(path)).toString
+          RepositoryFinder.rewritePath(Path.of(path)).toString
         case _ => file.toString
       }
       val parameters = Map(
@@ -72,49 +71,6 @@ private[util] class GitHubDiagnosticFormatter(
     private def sanitizeParameter(message: String): String = {
       sanitizeMessage(message).replace(",", "%2C")
     }
-
-    /** Handles relativizing the path to the repository root and replacing the
-      * built-distribution path with the libraries base source code path.
-      *
-      * This is needed to ensure that the annotations are linked to files in the repository when rendered on GitHub.
-      */
-    private def rewritePath(path: Path): Path = {
-      val relative = RepositoryFinder.root
-        .map(_.relativize(path))
-        .getOrElse(path)
-      if (relative.startsWith("built-distribution")) {
-        Path.of(
-          relative.toString
-            .replace("\\", "/")
-            .replaceFirst(
-              """built-distribution/enso-engine-[^/]+/enso-[^/]+/lib/([^/]+)/([^/]+)/[^/]+/""",
-              "distribution/lib/$1/$2/0.0.0-dev/"
-            )
-        )
-      } else relative
-    }
-  }
-
-  private object RepositoryFinder {
-    @tailrec
-    private def findRepositoryRoot(path: Path): Option[Path] = {
-      val gitDir = path.resolve(".git")
-      if (gitDir.toFile.exists()) {
-        Some(path)
-      } else {
-        val parent = path.getParent
-        if (parent != null) {
-          findRepositoryRoot(parent)
-        } else {
-          None
-        }
-      }
-    }
-
-    lazy val root: Option[Path] = {
-      val currentDir = Path.of(".").toAbsolutePath.normalize()
-      findRepositoryRoot(currentDir)
-    }
   }
 
   private def createAnnotationCommandFor(
@@ -122,7 +78,7 @@ private[util] class GitHubDiagnosticFormatter(
   ): GithubAnnotation =
     location match {
       case SingleLineSection(
-            sourceSection,
+            _,
             fileLocation,
             lineNumber,
             startColumn,
@@ -139,7 +95,7 @@ private[util] class GitHubDiagnosticFormatter(
         )
 
       case MultiLineSection(
-            sourceSection,
+            _,
             fileLocation,
             startLine,
             endLine,

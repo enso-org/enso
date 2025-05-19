@@ -9,8 +9,11 @@
 - [Type annotations are now visible in the graph editor][12751]
 - [Component Browser shows methods with respect to possible type casts][12751]
 - [Add option to browse cloud for secret values][12953]
+- [Add option to create a new secret in the graph editor's cloud browser][12985]
+- [Allow editing grouped component argument names.][13014]
 - [Add ability to inspect column, row and value from right click on table
   viz][12986]
+- [Add option to browse cloud for folders][13117]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -18,7 +21,10 @@
 [12913]: https://github.com/enso-org/enso/pull/12913
 [12751]: https://github.com/enso-org/enso/pull/12751
 [12953]: https://github.com/enso-org/enso/pull/12953
+[12985]: https://github.com/enso-org/enso/pull/12985
+[13014]: https://github.com/enso-org/enso/pull/13014
 [12986]: https://github.com/enso-org/enso/pull/12986
+[13117]: https://github.com/enso-org/enso/pull/13117
 
 #### Enso Standard Library
 
@@ -33,12 +39,14 @@
 #### Enso Language & Runtime
 
 - [Prevent `Meta` access to private constructors and private fields][12905]
+- [Encapsulating Private_Access constructor][#12976]
 - [Upgrading Truffle][12500] (including its
   [JavaScript](https://www.graalvm.org/javascript/) and
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
 - [Upgrade GraalVM from JDK 21 to JDK 24][12855]
 
 [12500]: https://github.com/enso-org/enso/pull/12500
+[12976]: https://github.com/enso-org/enso/pull/12976
 [12855]: https://github.com/enso-org/enso/pull/12855
 [12905]: https://github.com/enso-org/enso/pull/12905
 

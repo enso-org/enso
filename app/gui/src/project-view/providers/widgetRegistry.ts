@@ -5,11 +5,17 @@ import { GraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import { Result } from '@/util/data/result'
+import { uuidv4 } from 'lib0/random.js'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
+
+declare const brandWidgetId: unique symbol
+/** Uniquely identifies a widget type. */
+export type WidgetTypeId = string & { [brandWidgetId]: true }
 
 export namespace WidgetInput {
   /** Returns widget-input data for the given AST tree or token. */
@@ -176,10 +182,10 @@ export interface WidgetProps<T> {
  */
 export interface WidgetUpdate {
   edit?: Ast.MutableModule | undefined
-  portUpdate?: { origin: PortId } & (
-    | { value: Ast.Owned<Ast.MutableExpression> | string | undefined }
-    | { metadataKey: string; metadata: unknown }
-  )
+  portUpdate?:
+    | { origin: PortId; value: Ast.Owned<Ast.MutableExpression> | string | undefined }
+    | { origin: PortId; metadataKey: string; metadata: unknown }
+
   /**
    * Set to true if the updated is caused by direct interaction with the origin widget - a usual case.
    * An example if _nondirect_ interaction is an update of a port connected to a removed node).
@@ -233,23 +239,25 @@ export function applyWidgetUpdates(update: WidgetUpdate, graph: GraphStore) {
   }
 }
 
+export type UpdateResult = Result<void, string>
+export type HandledUpdate = UpdateResult | Promise<UpdateResult>
+export type UpdateHandler = (update: WidgetUpdate) => UpdateResult | Promise<UpdateResult>
+
 /**
  * Create Vue props definition for a widget component. This cannot be done automatically by using
  * typed `defineProps`, because vue compiler is not able to resolve conditional types. As a
  * workaround, the runtime prop information is specified manually, and the inferred `T: WidgetInput`
  * type is provided through `PropType`.
  */
-export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
+export function widgetProps<T extends WidgetInput>(def: WidgetDefinition<T>) {
   return {
-    input: {
-      type: Object as PropType<T>,
-      required: true,
-    },
+    input: { type: Object as PropType<T>, required: true },
     nesting: { type: Number, required: true },
-    onUpdate: {
-      type: Function as PropType<(update: WidgetUpdate) => void>,
-      required: true,
+    widgetTypeId: {
+      type: String as unknown as PropType<WidgetTypeId>,
+      default: def.widgetTypeId,
     },
+    onUpdate: { type: Function as PropType<UpdateHandler>, required: true },
   } as const
 }
 
@@ -309,6 +317,7 @@ export interface WidgetDefinition<T extends WidgetInput> {
   prevent: WidgetComponent<any>[] | undefined
   /** See {@link WidgetOptions.allowAsLeaf}. */
   allowAsLeaf: boolean
+  widgetTypeId: WidgetTypeId
 }
 
 export interface WidgetModule<T extends WidgetInput> {
@@ -363,11 +372,13 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
     score,
     prevent: definition.prevent,
     allowAsLeaf: definition.allowAsLeaf ?? true,
+    widgetTypeId: uuidv4() as WidgetTypeId,
   }
 
   if (import.meta.hot && hmr) {
     if (hmr.data.widgetDefinition) {
-      Object.assign(hmr.data.widgetDefinition, resolved)
+      const widgetTypeId = hmr.data.widgetDefinition.widgetTypeId
+      Object.assign(hmr.data.widgetDefinition, resolved, { widgetTypeId })
     } else {
       hmr.data.widgetDefinition = shallowReactive(resolved)
     }

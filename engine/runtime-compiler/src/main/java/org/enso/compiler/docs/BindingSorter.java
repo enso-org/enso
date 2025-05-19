@@ -3,11 +3,13 @@ package org.enso.compiler.docs;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Definition.Data;
 import org.enso.compiler.core.ir.module.scope.Definition.Type;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
@@ -27,7 +29,8 @@ public final class BindingSorter {
    * Returns sorted list of bindings defined on the given {@code moduleIr}.
    */
   public static List<Definition> sortedBindings(Module moduleIr) {
-    var bindings = CollectionConverters.asJava(moduleIr.bindings());
+    var visibleBindings =     moduleIr.bindings().filter(b -> b instanceof Method m ? !m.isPrivate() : true);
+    var bindings = CollectionConverters.asJava(visibleBindings);
     var comparator = new BindingComparator(moduleIr);
     return bindings.stream().sorted(comparator).toList();
   }
