@@ -93,48 +93,56 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <div className="pointer-events-none absolute bottom-0 right-10 top-0 w-10 bg-gradient-to-l from-dashboard-row opacity-100" />
         )}
       </div>
-      {managesThisAsset && (
-        <DialogTrigger>
-          <Button
-            variant="icon"
-            showIconOnHover
-            tooltip={getText('manageLabels')}
-            tooltipPlacement="left"
-            icon="edit"
-          />
-          <ManageLabelsModal backend={backend} item={item} />
-        </DialogTrigger>
-      )}
-      {isOverflowing && (
-        <Popover.Trigger>
-          <Button
-            variant="icon"
-            showIconOnHover
-            icon={DotsIcon}
-            tooltip={getText('showAllLabels')}
-          />
-          <Popover
-            triggerRef={rootRef}
-            size="auto"
-            style={() => ({ width: rootRef.current?.clientWidth })}
-          >
-            <div className="flex flex-wrap items-center gap-1">
-              {labelsList}
-              {managesThisAsset && (
-                <DialogTrigger>
-                  <Button
-                    variant="icon"
-                    tooltip={getText('manageLabels')}
-                    tooltipPlacement="left"
-                    icon="edit"
-                  />
-                  <ManageLabelsModal backend={backend} item={item} />
-                </DialogTrigger>
-              )}
-            </div>
-          </Popover>
-        </Popover.Trigger>
-      )}
+      <div
+        className="contents"
+        onClick={(event) => {
+          // Prevent the click from being propagated to the parent and trigger the row selection.
+          event.stopPropagation()
+        }}
+      >
+        {managesThisAsset && (
+          <DialogTrigger>
+            <Button
+              variant="icon"
+              showIconOnHover
+              tooltip={getText('manageLabels')}
+              tooltipPlacement="left"
+              icon="edit"
+            />
+            <ManageLabelsModal backend={backend} item={item} />
+          </DialogTrigger>
+        )}
+        {isOverflowing && (
+          <Popover.Trigger>
+            <Button
+              variant="icon"
+              showIconOnHover
+              icon={DotsIcon}
+              tooltip={getText('showAllLabels')}
+            />
+            <Popover
+              triggerRef={rootRef}
+              size="auto"
+              style={() => ({ width: rootRef.current?.clientWidth })}
+            >
+              <div className="flex flex-wrap items-center gap-1">
+                {labelsList}
+                {managesThisAsset && (
+                  <DialogTrigger>
+                    <Button
+                      variant="icon"
+                      tooltip={getText('manageLabels')}
+                      tooltipPlacement="left"
+                      icon="edit"
+                    />
+                    <ManageLabelsModal backend={backend} item={item} />
+                  </DialogTrigger>
+                )}
+              </div>
+            </Popover>
+          </Popover.Trigger>
+        )}
+      </div>
     </div>
   )
 }

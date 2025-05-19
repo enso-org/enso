@@ -24,19 +24,20 @@ export const Form = Object.assign(
       formOptions,
       className,
       style,
-      onSubmit,
-      onSubmitted = () => {},
-      onSubmitSuccess = () => {},
-      onSubmitFailed = () => {},
-      id = formId,
-      schema,
-      defaultValues,
-      gap,
-      method,
-      canSubmitOffline = false,
-      testId = props['data-testid'],
-      ...formProps
-    } = props
+      onChange,
+    onSubmit,
+    onSubmitted = () => {},
+    onSubmitSuccess = () => {},
+    onSubmitFailed = () => {},
+    id = formId,
+    schema,
+    defaultValues,
+    gap,
+    method,
+    canSubmitOffline = false,
+    testId = props['data-testid'],
+    ...formProps
+  } = props
 
     const dialogContext = dialog.useDialogContext()
 
@@ -44,22 +45,23 @@ export const Form = Object.assign(
       form ?? {
         ...formOptions,
         ...(defaultValues ? { defaultValues } : {}),
-        method,
-        schema,
-        canSubmitOffline,
-        onSubmit,
-        onSubmitFailed,
-        onSubmitSuccess: async (...args) => {
-          if (method === 'dialog') {
-            dialogContext?.close()
-          }
-          await onSubmitSuccess(...args)
-        },
-        onSubmitted,
-        shouldFocusError: true,
-        debugName: `Form ${testId} id: ${id}`,
+        ...(onChange ? { onChange } : {}),
+      method,
+      schema,
+      canSubmitOffline,
+      onSubmit,
+      onSubmitFailed,
+      onSubmitSuccess: async (...args) => {
+        if (method === 'dialog') {
+          dialogContext?.close()
+        }
+        await onSubmitSuccess(...args)
       },
-    )
+      onSubmitted,
+      shouldFocusError: true,
+      debugName: `Form ${testId} id: ${id}`,
+    },
+  )
 
     React.useImperativeHandle(formRef, () => innerForm, [innerForm])
     React.useImperativeHandle(form?.closeRef, () => dialogContext?.close ?? (() => {}), [
