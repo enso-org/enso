@@ -103,36 +103,18 @@ public interface Function extends Expression {
     }
 
     public Lambda copyWithBody(Expression newBody) {
-      return copy(
-          diagnosticsCopy(),
-          passData,
-          location,
-          id,
-          arguments(),
-          Persistance.Reference.of(newBody),
-          canBeTCO());
+      return new Builder(this).bodyReference(Persistance.Reference.of(newBody)).build();
     }
 
     public Lambda copyWithArgumentsAndBody(List<DefinitionArgument> arguments, Expression body) {
-      return copy(
-          diagnosticsCopy(),
-          passData.duplicate(),
-          location,
-          id,
-          arguments,
-          Persistance.Reference.of(body),
-          canBeTCO());
+      return new Builder(this)
+          .arguments(arguments)
+          .bodyReference(Persistance.Reference.of(body))
+          .build();
     }
 
     public Lambda copyWithArguments(List<DefinitionArgument> newArgs) {
-      return copy(
-          diagnosticsCopy(),
-          passData.duplicate(),
-          location,
-          id,
-          newArgs,
-          bodyReference(),
-          canBeTCO());
+      return new Builder(this).arguments(newArgs).build();
     }
 
     @Override
@@ -181,16 +163,7 @@ public interface Function extends Expression {
     }
 
     public Function.Binding copyWithBody(Expression body) {
-      return copy(
-          diagnosticsCopy(),
-          passData.duplicate(),
-          location,
-          id,
-          name(),
-          arguments(),
-          body,
-          isPrivate(),
-          canBeTCO());
+      return new Builder(this).body(body).build();
     }
   }
 }
