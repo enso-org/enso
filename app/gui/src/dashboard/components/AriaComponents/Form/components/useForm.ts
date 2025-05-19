@@ -252,13 +252,13 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
         if (isOffline && !canSubmitOffline) {
           formInstance.setError('root.offline', { message: getText('unavailableOffline') })
           return Promise.resolve()
-        } else {
-          if (event) {
-            return formOnSubmit(event)
-          } else {
-            return formOnSubmit()
-          }
         }
+
+        if (event != null) {
+          return formOnSubmit(event)
+        }
+
+        return formOnSubmit()
       },
     )
 

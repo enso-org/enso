@@ -330,32 +330,14 @@ function AllLabels(props: AllLabelsProps) {
         selectedKeys={selectedLabels}
         defaultSelectedKeys={defaultSelectedKeys}
         onSelectionChange={onSelectionChange}
+        dependencies={[query]}
         renderEmptyState={() => (
-          <Form
-            className="my-4"
-            schema={(z) => z.object({ name: z.string(), color: z.custom<LChColor>() })}
-            defaultValues={{ name: query, color: leastUsedColor }}
-            onSubmit={({ name, color }) => onCreateLabel(name, color)}
-          >
-            <Button.Group verticalAlign="center" gap="xxsmall" align="center">
-              <Form.FieldValue name="color">
-                {(color) => (
-                  <ColorSwitcher
-                    name="color"
-                    // This is safe because the form schema ensures that the color is a valid LChColor.
-                    // eslint-disable-next-line no-restricted-syntax
-                    color={color as LChColor}
-                    colors={colors}
-                    leastUsedColor={leastUsedColor}
-                  />
-                )}
-              </Form.FieldValue>
-
-              <Form.Submit variant="icon" size="small">
-                {getText('manageLabelsModal.createLabelWithTitle', query)}
-              </Form.Submit>
-            </Button.Group>
-          </Form>
+          <NotFoundLabel
+            query={query}
+            onCreateLabel={onCreateLabel}
+            leastUsedColor={leastUsedColor}
+            colors={colors}
+          />
         )}
       >
         {(label) => (
@@ -446,5 +428,50 @@ function ColorSwitcher(props: ColorSwitcherProps) {
       onPress={rotateColor}
       style={{ backgroundColor: lChColorToCssColor(color) }}
     />
+  )
+}
+
+/**
+ * Props for a {@link NotFoundLabel}.
+ */
+interface NotFoundLabelProps {
+  readonly query: string
+  readonly onCreateLabel: (name: string, color: LChColor) => Promise<void>
+  readonly leastUsedColor: LChColor
+  readonly colors: readonly LChColor[]
+}
+
+/**
+ * A component that displays a label that does not exist.
+ * Offers a form to create a new label.
+ */
+function NotFoundLabel(props: NotFoundLabelProps) {
+  const { query, onCreateLabel, leastUsedColor, colors } = props
+
+  const { getText } = useText()
+
+  const form = Form.useForm({
+    schema: (z) => z.object({ name: z.string(), color: z.custom<LChColor>() }),
+    defaultValues: { name: query, color: leastUsedColor },
+    onSubmit: ({ name, color }) => onCreateLabel(name, color),
+  })
+
+  return (
+    <Button.Group verticalAlign="center" gap="xxsmall" align="center" className="my-4">
+      <Form.FieldValue form={form} name="color">
+        {(color) => (
+          <ColorSwitcher
+            name="color"
+            color={color}
+            colors={colors}
+            leastUsedColor={leastUsedColor}
+          />
+        )}
+      </Form.FieldValue>
+
+      <Form.Submit form={form} variant="icon" size="small">
+        {getText('manageLabelsModal.createLabelWithTitle', query)}
+      </Form.Submit>
+    </Button.Group>
   )
 }
