@@ -404,7 +404,6 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
     const server = ssrmServer.value
     if (server) {
       const response = await server.getSetFilterValues(index!, filterColumnIndexList, filterActions, valueList)
-      console.log({response})
       if (response.success) {
         params.success(response.data)
       }
@@ -432,7 +431,6 @@ function createServer() {
         valueList,
       )
       const response = await config.executeExpression(expressionFunction)
-      console.log({response})
       return {
         success: true,
         data: response.value.distinct_vals,
