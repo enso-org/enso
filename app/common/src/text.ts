@@ -68,7 +68,6 @@ interface PlaceholderOverrides {
   readonly downloadFileError: [fileName: string]
   readonly downloadDatalinkError: [datalinkName: string]
   readonly deleteUserGroupError: [userGroupName: string]
-  readonly removeUserFromUserGroupError: [userName: string, userGroupName: string]
   readonly deleteUserError: [userName: string]
 
   readonly inviteUserBackendError: [userEmail: string]
