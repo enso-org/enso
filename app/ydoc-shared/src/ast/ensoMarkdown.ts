@@ -4,7 +4,10 @@
  * achieve via the public interface are implemented by modifying our implementation of the package.
  */
 import {
+  BlockContext,
   parser as commonmarkParser,
+  Line,
+  MarkdownConfig,
   Strikethrough,
   Table,
   type BlockParser,
@@ -24,9 +27,61 @@ const newlineEndsBlock: BlockParser = {
     !(line.text.startsWith('|') && line.text.length > 2 && line.text.endsWith('|')),
 }
 
+declare module '@lezer/markdown' {
+  interface BlockContext {
+    checkedYaml: boolean | null
+  }
+}
+
+/** TODO */
+const YAMLFrontMatter: MarkdownConfig = {
+  defineNodes: ['YAMLFrontMatter', 'YAMLMarker', 'YAMLContent'],
+  parseBlock: [
+    {
+      name: 'YAMLFrontMatter',
+      parse(ctx: BlockContext, line: Line) {
+        if (ctx.checkedYaml) {
+          return false
+        }
+        ctx.checkedYaml = true
+        const regex = /^\s*---/
+        const match = regex.exec(line.text)
+        const start = ctx.lineStart
+        let contentStart
+        let startMarker
+        let endMarker
+        let content
+        if (match) {
+          const end = ctx.lineStart + match[0].length
+          contentStart = end
+          startMarker = ctx.elt('YAMLMarker', ctx.lineStart, contentStart)
+          while (ctx.nextLine()) {
+            if (regex.exec(line.text)) {
+              content = ctx.elt('YAMLContent', contentStart, ctx.lineStart)
+              endMarker = ctx.elt('YAMLMarker', ctx.lineStart, ctx.lineStart + match[0].length)
+              ctx.addElement(
+                ctx.elt('YAMLFrontMatter', start, ctx.lineStart + match[0].length, [
+                  startMarker,
+                  content,
+                  endMarker,
+                ]),
+              )
+              ctx.nextLine()
+              return true
+            }
+          }
+        }
+        return false
+      },
+      before: 'LinkReference',
+    },
+  ],
+}
+
 const ensoMarkdownDialect = [
   Table,
   Strikethrough,
+  YAMLFrontMatter,
   /**
    * When starting a bulleted list, the `SetextHeading` parser can match when a `-` has been typed
    * and a following space hasn't been entered yet; the resulting style changes are distracting. To
