@@ -403,7 +403,12 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
     const server = ssrmServer.value
     if (server) {
-      const response = await server.getSetFilterValues(index!, filterColumnIndexList, filterActions, valueList)
+      const response = await server.getSetFilterValues(
+        index!,
+        filterColumnIndexList,
+        filterActions,
+        valueList,
+      )
       if (response.success) {
         params.success(response.data)
       }
@@ -415,10 +420,12 @@ const attepmtedCalls = ref(0)
 
 function createServer() {
   return {
-    getSetFilterValues: async (columnIndex: number,
-    filterColumnIndexList: string[] | string,
-    filterActions: string[] | string,
-    valueList: any) => {
+    getSetFilterValues: async (
+      columnIndex: number,
+      filterColumnIndexList: string[] | string,
+      filterActions: string[] | string,
+      valueList: any,
+    ) => {
       const expressionFunction = createDistinctExpressionTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',

@@ -200,7 +200,6 @@ export const createDistinctExpressionTemplate = (
   }
 }
 
-
 export const createExpressionRowTemplate = (
   visulizationModule: string,
   expressionString: string,
