@@ -1433,9 +1433,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     trackCalls,
   } as const
 
-  if (setupAPI) {
-    await setupAPI(api)
-  }
+  await setupAPI?.(api)
 
   await page.addInitScript((flags) => {
     Object.defineProperty(window, 'overrideFeatureFlags', {

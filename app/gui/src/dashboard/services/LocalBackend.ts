@@ -219,7 +219,7 @@ export default class LocalBackend extends Backend {
           } satisfies Partial<backend.DirectoryAsset>
 
           switch (entry.type) {
-            case projectManager.FileSystemEntryType.DirectoryEntry: {
+            case 'DirectoryEntry': {
               const id = newDirectoryId(entry.path)
 
               return {
@@ -231,7 +231,7 @@ export default class LocalBackend extends Backend {
                 title: getFileName(entry.path),
               } satisfies backend.DirectoryAsset
             }
-            case projectManager.FileSystemEntryType.ProjectEntry: {
+            case 'ProjectEntry': {
               return {
                 ...shared,
                 type: backend.AssetType.project,
@@ -246,7 +246,7 @@ export default class LocalBackend extends Backend {
                 },
               } satisfies backend.ProjectAsset
             }
-            case projectManager.FileSystemEntryType.FileEntry: {
+            case 'FileEntry': {
               return {
                 ...shared,
                 type: backend.AssetType.file,
@@ -405,9 +405,7 @@ export default class LocalBackend extends Backend {
     if (state == null) {
       const entries = await this.projectManager.listDirectory(directory)
       const project = entries
-        .flatMap((entry) =>
-          entry.type === projectManager.FileSystemEntryType.ProjectEntry ? [entry.metadata] : [],
-        )
+        .flatMap((entry) => (entry.type === 'ProjectEntry' ? [entry.metadata] : []))
         .find((metadata) => metadata.id === id)
       if (project == null) {
         throw new Error(`Could not get details of project.`)
@@ -492,10 +490,7 @@ export default class LocalBackend extends Backend {
     const parentPath = getDirectoryAndName(this.projectManager.getProjectPath(id)).directoryPath
     const result = await this.projectManager.listDirectory(parentPath)
     const project = result.flatMap((listedProject) =>
-      (
-        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
-        listedProject.metadata.id === id
-      ) ?
+      listedProject.type === 'ProjectEntry' && listedProject.metadata.id === id ?
         [listedProject.metadata]
       : [],
     )[0]
