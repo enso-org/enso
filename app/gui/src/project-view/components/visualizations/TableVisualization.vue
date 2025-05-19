@@ -979,10 +979,17 @@ const getColumnValueToEnso = (columnName: string) => {
     return (item: string, module: Ast.MutableModule) =>
       createDateTimeValue('Date_Time.parse (__)', item, module)
   }
-  if (columnType == 'Mixed') {
+  if (columnType === 'Mixed') {
     return (item: string, module: Ast.MutableModule) => {
       const parsedCellType = getCellValueType(item)
       return getFormattedValueForCell(item, module, parsedCellType)
+    }
+  }
+  if (columnType === 'Boolean') {
+    return (item: string, module: Ast.MutableModule) => {
+      return item === ' false' ?
+          Ast.parseExpression('False', module)!
+        : Ast.parseExpression('True', module)!
     }
   }
   return (item: string) => Ast.TextLiteral.new(item)
