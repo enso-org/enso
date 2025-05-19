@@ -39,8 +39,9 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
   }
 
   @Override
-  public void appendNulls(int count) {
+  public TypedBuilder<T> appendNulls(int count) {
     currentSize += count;
+    return this;
   }
 
   @Override

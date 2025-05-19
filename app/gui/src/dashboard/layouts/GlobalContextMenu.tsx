@@ -111,8 +111,6 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           doAction={() => {
             setModal(
               <UpsertSecretModal
-                id={null}
-                name={null}
                 doCreate={async (name, value) => {
                   await newSecret([
                     { name, value, parentDirectoryId: directoryId ?? currentDirectoryId },

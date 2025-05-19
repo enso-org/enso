@@ -10,6 +10,7 @@ import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'
 import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
 import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowserWidget/paths'
 import { useBackend } from '@/composables/backend'
@@ -198,7 +199,9 @@ function warningDismissed() {
   warningText.value = null
 }
 
-const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.value)
+const isBusy = computed(
+  () => isDirectoryStackInitializing.value || isPending.value || commitSecretPending.value,
+)
 
 const anyError = computed(() =>
   isError.value ? error
@@ -220,6 +223,7 @@ const editedAsset = ref<{
 // `keyOverride` property before getting update from backend.
 const createDir = mutation('createDirectory', { meta: { awaitInvalidates: false } })
 const updateDir = mutation('updateDirectory')
+const createSecret = mutation('createSecret', { meta: { awaitInvalidates: false } })
 
 function addNewDirectory() {
   assert(editedAsset.value == null)
@@ -275,6 +279,22 @@ async function acceptName(name: string) {
 }
 
 const creatingSecret = ref(false)
+const commitSecretPending = ref(false)
+async function commitSecret(value: string, name: string) {
+  creatingSecret.value = false
+  filenameInputContents.value = name
+  commitSecretPending.value = true
+  try {
+    await createSecret.mutateAsync([
+      { name, value, parentDirectoryId: currentDirectory.value?.id ?? null },
+    ])
+    acceptCurrentFile()
+  } catch (error) {
+    errorToast.show(`Failed to create secret: ${error instanceof Error ? error.message : error}`)
+  } finally {
+    commitSecretPending.value = false
+  }
+}
 
 const enableTopBarButtons = computed(() => !creatingSecret.value)
 
@@ -351,9 +371,19 @@ onMounted(() => {
         :disabled="!enableTopBarButtons || editedAsset != null"
         @activate="addNewDirectory"
       />
+      <SvgButton
+        v-if="props.type === 'secret'"
+        name="key_add"
+        title="New Secret"
+        :disabled="!enableTopBarButtons"
+        @click.stop="creatingSecret = true"
+      />
     </div>
 
     <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
+    <div v-else-if="creatingSecret" class="browserContents">
+      <UpsertSecretPanel @accepted="commitSecret" @canceled="creatingSecret = false" />
+    </div>
     <div v-else-if="isBusy" class="centerContent browserContents">
       <LoadingSpinner phase="loading-medium" />
     </div>

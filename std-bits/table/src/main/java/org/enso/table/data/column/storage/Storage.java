@@ -77,11 +77,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     public static final String MOD = "%";
     public static final String POWER = "^";
     public static final String ROUND = "round";
-    public static final String AND = "&&";
-    public static final String OR = "||";
     public static final String IS_IN = "is_in";
-    public static final String MIN = "min";
-    public static final String MAX = "max";
   }
 
   /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/

@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -15,7 +16,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
-import org.enso.table.problems.BlackholeProblemAggregator;
 
 /**
  * A binary coalescing operation for numeric types. This class is used to perform operations on two
@@ -148,7 +148,8 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
   }
 
   @Override
-  public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue) {
+  public ColumnStorage<T> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (rightValue == null) {
       return asTypedStorage(left);
     }
@@ -159,23 +160,30 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
           "Unsupported right value type " + rightValue.getClass() + ".");
     }
 
-    return innerApplyMap(asTypedStorage(left), rightValueTyped);
+    return innerApplyMap(asTypedStorage(left), rightValueTyped, problemAggregator);
   }
 
   @Override
-  public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public ColumnStorage<T> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (NullType.INSTANCE.isOfType(right.getType())) {
       return validType.asTypedStorage(left);
     }
 
-    return innerApplyZip(asTypedStorage(left), asTypedStorage(right));
+    return innerApplyZip(asTypedStorage(left), asTypedStorage(right), problemAggregator);
   }
 
   protected abstract ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
 
-  protected abstract ColumnStorage<T> innerApplyMap(ColumnStorage<T> left, T right);
+  protected abstract ColumnStorage<T> innerApplyMap(
+      ColumnStorage<T> left, T right, MapOperationProblemAggregator problemAggregator);
 
-  protected abstract ColumnStorage<T> innerApplyZip(ColumnStorage<T> left, ColumnStorage<T> right);
+  protected abstract ColumnStorage<T> innerApplyZip(
+      ColumnStorage<T> left,
+      ColumnStorage<T> right,
+      MapOperationProblemAggregator problemAggregator);
 
   private static class BinaryCoalescingOperationDouble
       extends BinaryCoalescingOperationNumeric<Double> {
@@ -204,23 +212,26 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
     }
 
     @Override
-    protected ColumnStorage<Double> innerApplyMap(ColumnStorage<Double> left, Double right) {
+    protected ColumnStorage<Double> innerApplyMap(
+        ColumnStorage<Double> left, Double right, MapOperationProblemAggregator problemAggregator) {
       double rightAsDouble = right;
       return StorageIterators.buildOverDoubleStorage(
           (ColumnDoubleStorage) left,
           false,
-          FloatType.FLOAT_64.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
+          FloatType.FLOAT_64.makeBuilder(left.getSize(), problemAggregator),
           (builder, index, value, isNothing) ->
               builder.appendDouble(isNothing ? right : operation.doDouble(value, right, index)));
     }
 
     @Override
     protected ColumnStorage<Double> innerApplyZip(
-        ColumnStorage<Double> left, ColumnStorage<Double> right) {
+        ColumnStorage<Double> left,
+        ColumnStorage<Double> right,
+        MapOperationProblemAggregator problemAggregator) {
       return StorageIterators.zipOverDoubleStorages(
           (ColumnDoubleStorage) left,
           (ColumnDoubleStorage) right,
-          s -> FloatType.FLOAT_64.makeBuilder(s, BlackholeProblemAggregator.INSTANCE),
+          s -> FloatType.FLOAT_64.makeBuilder(s, problemAggregator),
           false,
           (index, value1, isNothing1, value2, isNothing2) -> {
             if (isNothing1 && isNothing2) {
@@ -244,20 +255,24 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
     }
 
     @Override
-    protected ColumnStorage<T> innerApplyMap(ColumnStorage<T> left, T right) {
+    protected ColumnStorage<T> innerApplyMap(
+        ColumnStorage<T> left, T right, MapOperationProblemAggregator problemAggregator) {
       return StorageIterators.mapOverStorage(
           left,
           false,
-          validType.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
+          validType.makeBuilder(left.getSize(), problemAggregator),
           (index, value) -> value == null ? right : doSingle(value, right, index));
     }
 
     @Override
-    protected ColumnStorage<T> innerApplyZip(ColumnStorage<T> left, ColumnStorage<T> right) {
+    protected ColumnStorage<T> innerApplyZip(
+        ColumnStorage<T> left,
+        ColumnStorage<T> right,
+        MapOperationProblemAggregator problemAggregator) {
       return StorageIterators.zipOverStorages(
           left,
           right,
-          size -> validType.makeBuilder(size, BlackholeProblemAggregator.INSTANCE),
+          size -> validType.makeBuilder(size, problemAggregator),
           false,
           (index, x, y) -> {
             if (x == null) {
@@ -334,23 +349,26 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
     }
 
     @Override
-    protected ColumnStorage<Long> innerApplyMap(ColumnStorage<Long> left, Long right) {
+    protected ColumnStorage<Long> innerApplyMap(
+        ColumnStorage<Long> left, Long right, MapOperationProblemAggregator problemAggregator) {
       long rightAsLong = right;
       return StorageIterators.buildOverLongStorage(
           (ColumnLongStorage) left,
           false,
-          IntegerType.INT_64.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
+          IntegerType.INT_64.makeBuilder(left.getSize(), problemAggregator),
           (builder, index, value, isNothing) ->
               builder.appendLong(isNothing ? right : operation.doLong(value, right, index)));
     }
 
     @Override
     protected ColumnStorage<Long> innerApplyZip(
-        ColumnStorage<Long> left, ColumnStorage<Long> right) {
+        ColumnStorage<Long> left,
+        ColumnStorage<Long> right,
+        MapOperationProblemAggregator problemAggregator) {
       return StorageIterators.zipOverLongStorages(
           (ColumnLongStorage) left,
           (ColumnLongStorage) right,
-          s -> validType.makeBuilder(s, BlackholeProblemAggregator.INSTANCE),
+          s -> validType.makeBuilder(s, problemAggregator),
           true,
           (index, value1, isNothing1, value2, isNothing2) -> {
             if (isNothing1 && isNothing2) {
