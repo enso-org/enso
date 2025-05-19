@@ -17,6 +17,7 @@ import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
+import type { ResponseWithTypedJson } from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
@@ -539,14 +540,6 @@ export default class RemoteBackend extends Backend {
     if (response.status === STATUS_NOT_FOUND) {
       // User info has not yet been created, we should redirect to the onboarding page.
       return null
-    }
-
-    if (response.status === STATUS_NOT_AUTHORIZED) {
-      // User is not authorized, we should redirect to the login page.
-      return await this.throw(
-        response,
-        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError')),
-      )
     }
 
     if (!responseIsSuccessful(response)) {
@@ -1758,39 +1751,64 @@ export default class RemoteBackend extends Backend {
     return !foundSelfPermission ? asset : { ...asset, permissions }
   }
 
+  /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
+  private async checkForAuthenticationError<T>(promise: Promise<ResponseWithTypedJson<T>>) {
+    const response = await promise
+    if (response.status === STATUS_NOT_AUTHORIZED) {
+      // User is not authorized, we should redirect to the login page.
+      return await this.throw(
+        response,
+        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError')),
+      )
+    }
+    return response
+  }
+
   /** Send an HTTP GET request to the given path. */
   private get<T = void>(path: string) {
-    return this.client.get<T>(`${$config.API_URL}/${path}`)
+    return this.checkForAuthenticationError(this.client.get<T>(`${$config.API_URL}/${path}`))
   }
 
   /** Send a JSON HTTP POST request to the given path. */
   private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
-    return this.client.post<T>(`${$config.API_URL}/${path}`, payload, options)
+    return this.checkForAuthenticationError(
+      this.client.post<T>(`${$config.API_URL}/${path}`, payload, options),
+    )
   }
 
   /** Send a binary HTTP POST request to the given path. */
   private postBinary<T = void>(path: string, payload: Blob) {
-    return this.client.postBinary<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(
+      this.client.postBinary<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 
   /** Send a JSON HTTP PATCH request to the given path. */
   private patch<T = void>(path: string, payload: object) {
-    return this.client.patch<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(
+      this.client.patch<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
-    return this.client.put<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(
+      this.client.put<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 
   /** Send a binary HTTP PUT request to the given path. */
   private putBinary<T = void>(path: string, payload: Blob) {
-    return this.client.putBinary<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(
+      this.client.putBinary<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 
   /** Send an HTTP DELETE request to the given path. */
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
-    return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(
+      this.client.delete<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 }
 
