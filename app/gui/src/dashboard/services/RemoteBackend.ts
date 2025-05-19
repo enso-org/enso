@@ -1752,13 +1752,15 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
-  private async checkForAuthenticationError<T>(promise: Promise<ResponseWithTypedJson<T>>) {
-    const response = await promise
+  private async checkForAuthenticationError<T>(
+    makeRequest: () => Promise<ResponseWithTypedJson<T>>,
+  ) {
+    const response = await makeRequest()
     if (response.status === STATUS_NOT_AUTHORIZED) {
       // User is not authorized, we should redirect to the login page.
       return await this.throw(
         response,
-        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError')),
+        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError'), makeRequest),
       )
     }
     return response
@@ -1766,47 +1768,47 @@ export default class RemoteBackend extends Backend {
 
   /** Send an HTTP GET request to the given path. */
   private get<T = void>(path: string) {
-    return this.checkForAuthenticationError(this.client.get<T>(`${$config.API_URL}/${path}`))
+    return this.checkForAuthenticationError(() => this.client.get<T>(`${$config.API_URL}/${path}`))
   }
 
   /** Send a JSON HTTP POST request to the given path. */
   private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
-    return this.checkForAuthenticationError(
+    return this.checkForAuthenticationError(() =>
       this.client.post<T>(`${$config.API_URL}/${path}`, payload, options),
     )
   }
 
   /** Send a binary HTTP POST request to the given path. */
   private postBinary<T = void>(path: string, payload: Blob) {
-    return this.checkForAuthenticationError(
+    return this.checkForAuthenticationError(() =>
       this.client.postBinary<T>(`${$config.API_URL}/${path}`, payload),
     )
   }
 
   /** Send a JSON HTTP PATCH request to the given path. */
   private patch<T = void>(path: string, payload: object) {
-    return this.checkForAuthenticationError(
+    return this.checkForAuthenticationError(() =>
       this.client.patch<T>(`${$config.API_URL}/${path}`, payload),
     )
   }
 
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
-    return this.checkForAuthenticationError(
+    return this.checkForAuthenticationError(() =>
       this.client.put<T>(`${$config.API_URL}/${path}`, payload),
     )
   }
 
   /** Send a binary HTTP PUT request to the given path. */
   private putBinary<T = void>(path: string, payload: Blob) {
-    return this.checkForAuthenticationError(
+    return this.checkForAuthenticationError(() =>
       this.client.putBinary<T>(`${$config.API_URL}/${path}`, payload),
     )
   }
 
   /** Send an HTTP DELETE request to the given path. */
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
-    return this.checkForAuthenticationError(
+    return this.checkForAuthenticationError(() =>
       this.client.delete<T>(`${$config.API_URL}/${path}`, payload),
     )
   }

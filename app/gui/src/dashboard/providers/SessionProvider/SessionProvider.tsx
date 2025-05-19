@@ -290,9 +290,16 @@ export function SessionProvider(props: SessionProviderProps) {
   }, [session.data, saveAccessTokenEventCallback])
 
   React.useEffect(() => {
-    queryClient.getQueryCache().config.onError = (error) => {
+    queryClient.getQueryCache().config.onError = (error, query) => {
       if (error instanceof NotAuthorizedError) {
-        void refreshUserSessionMutation()
+        void refreshUserSessionMutation().then(() =>
+          queryClient.refetchQueries({ queryKey: query.queryKey }),
+        )
+      }
+    }
+    queryClient.getMutationCache().config.onError = (error, variables, _context, mutation) => {
+      if (error instanceof NotAuthorizedError) {
+        void refreshUserSessionMutation().then(() => mutation.execute(variables))
       }
     }
   }, [queryClient, refreshUserSessionMutation])
