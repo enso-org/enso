@@ -699,7 +699,7 @@ function toField(
     filter: filterType,
     filterParams: {
       maxNumConditions: 1,
-      values: getFilterValues,
+      values: isSSRM.value ? getFilterValues : null,
       filterOptions: filterOptions,
       buttons: filterButtons,
       refreshValuesOnOpen: true,
