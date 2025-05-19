@@ -271,8 +271,17 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       formInstance.reset(options.defaultValues as types.FieldValues<Schema>)
     })
 
+    const setValue = useEventCallback<reactHookForm.UseFormSetValue<types.FieldValues<Schema>>>(
+      (name, value, setValueOptions) => {
+        formInstance.setValue(name, value, setValueOptions)
+        // eslint-disable-next-line no-restricted-syntax
+        onChangeStableProp(name as never, value as never, form)
+      },
+    )
+
     const form: types.UseFormReturn<Schema> = {
       ...formInstance,
+      setValue,
       reset,
       submit,
       // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,

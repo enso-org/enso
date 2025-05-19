@@ -223,8 +223,6 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
       </div>
 
       <div className="flex w-full flex-col gap-2 px-2 py-2">
-        <Form.FormError />
-
         <Button.Group width="full" align="between" gap="small">
           <Popover.Trigger>
             <Button variant="icon" size="small" fullWidth icon="add">
@@ -278,6 +276,8 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
             </Popover>
           </Popover.Trigger>
         </Button.Group>
+
+        <Form.FormError />
       </div>
     </Form>
   )
