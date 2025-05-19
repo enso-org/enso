@@ -11,6 +11,7 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FALLBACK_COLOR } from '#/services/Backend'
@@ -25,6 +26,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { backend } = state
 
   const { getText } = useText()
+  const toastAndLog = useToastAndLog()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))
 
   const rootRef = useRef<HTMLDivElement>(null)
@@ -45,7 +47,10 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const doDelete = useEventCallback(async (label: string) => {
     unsetModal()
     const newLabels = item.labels?.filter((oldLabel) => oldLabel !== label) ?? []
-    return associateTag([item.id, newLabels, item.title])
+
+    return associateTag([item.id, newLabels, item.title]).catch((error) => {
+      toastAndLog('deleteLabelBackendError', error, label)
+    })
   })
 
   const labelsList = (item.labels ?? [])
