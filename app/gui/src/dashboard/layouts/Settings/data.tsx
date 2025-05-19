@@ -380,7 +380,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'userGroupsSettingsSection',
-        columnClassName: 'lg:h-[unset] overflow-auto h-auto',
+        columnClassName: 'lg:h-[unset] overflow-auto h-auto max-w-[unset]',
         entries: [{ type: 'custom', render: UserGroupsSettingsSection }],
       },
     ],

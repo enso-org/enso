@@ -36,7 +36,7 @@ const USER_GROUP_SETTINGS_SECTION_STYLES = tv({
   base: '',
   slots: {
     tableContainer: 'mb-[40px] min-h-0 flex-1',
-    table: 'w-full max-w-3xl table-fixed self-start rounded-rows',
+    table: 'max-w-3xl table-fixed self-start rounded-rows',
     column:
       'w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0',
   },
@@ -139,10 +139,10 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
         >
           <Table aria-label={getText('userGroups')} className={styles.table()}>
             <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
-              <Column isRowHeader className={styles.column()}>
+              <Column isRowHeader className={styles.column({ className: 'w-48 min-w-48' })}>
                 {getText('userGroup')}
               </Column>
-              <Column isRowHeader className={styles.column()}>
+              <Column isRowHeader className={styles.column({ className: 'w-60 min-w-60' })}>
                 {getText('users')}
               </Column>
               {isAdmin && (
