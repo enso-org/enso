@@ -13,8 +13,8 @@ import org.enso.table.data.table.Column;
  * Entry point for calling Comparators. Calls the appropriate comparator based on the type of the
  * left columns.
  */
-public interface Comparators extends BinaryOperation<Boolean> {
-  static boolean isSupported(Column left) {
+public final class Comparators {
+  public static boolean isSupported(Column left) {
     var storage = BinaryOperation.getInferredStorage(left);
     var storageType = storage.getType();
 
@@ -26,7 +26,7 @@ public interface Comparators extends BinaryOperation<Boolean> {
         || storageType instanceof BooleanType;
   }
 
-  static BinaryOperation<Boolean> eq(Column left) {
+  public static BinaryOperation<Boolean> eq(Column left) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -39,7 +39,7 @@ public interface Comparators extends BinaryOperation<Boolean> {
     };
   }
 
-  static BinaryOperation<Boolean> notEq(Column left) {
+  public static BinaryOperation<Boolean> notEq(Column left) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -52,7 +52,7 @@ public interface Comparators extends BinaryOperation<Boolean> {
     };
   }
 
-  static BinaryOperation<Boolean> lessThan(Column left) {
+  public static BinaryOperation<Boolean> lessThan(Column left) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -65,7 +65,7 @@ public interface Comparators extends BinaryOperation<Boolean> {
     };
   }
 
-  static BinaryOperation<Boolean> lessThanEq(Column left) {
+  public static BinaryOperation<Boolean> lessThanEq(Column left) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -78,7 +78,7 @@ public interface Comparators extends BinaryOperation<Boolean> {
     };
   }
 
-  static BinaryOperation<Boolean> greaterThan(Column left) {
+  public static BinaryOperation<Boolean> greaterThan(Column left) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -91,7 +91,7 @@ public interface Comparators extends BinaryOperation<Boolean> {
     };
   }
 
-  static BinaryOperation greaterThanEq(Column left) {
+  public static BinaryOperation greaterThanEq(Column left) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;

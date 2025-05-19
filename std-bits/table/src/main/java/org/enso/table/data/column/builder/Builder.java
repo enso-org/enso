@@ -182,7 +182,7 @@ public interface Builder {
    *
    * @param count the number of missing values to append.
    */
-  void appendNulls(int count);
+  Builder appendNulls(int count);
 
   /**
    * Appends the whole contents of some other storage.

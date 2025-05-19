@@ -20,7 +20,6 @@ const {
   closeProject,
   closeAllProjects,
   clearLaunchedProjects,
-  setIsChatOpen,
 } = defineProps<{
   initialProjectName: string | null
   page: LaunchedProjectId | TabType | null
@@ -29,7 +28,6 @@ const {
   closeProject(project: LaunchedProject): void
   closeAllProjects(): void
   clearLaunchedProjects(): void
-  setIsChatOpen(value: boolean): void
 }>()
 
 const readyProjects = reactive(new Set<ProjectId>())
@@ -107,11 +105,7 @@ const onSignOut = () => {
         />
       </div>
       <div class="filler" />
-      <UserBar
-        :goToSettingsPage="() => setPage('settings')"
-        :setIsHelpChatOpen="setIsChatOpen"
-        @signOut="onSignOut"
-      />
+      <UserBar :goToSettingsPage="() => setPage('settings')" @signOut="onSignOut" />
     </div>
     <div role="tabpanel" class="panel">
       <KeepAlive>

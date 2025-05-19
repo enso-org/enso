@@ -20,8 +20,9 @@ public final class NullBuilder implements Builder {
   }
 
   @Override
-  public void appendNulls(int count) {
+  public NullBuilder appendNulls(int count) {
     length += count;
+    return this;
   }
 
   @Override

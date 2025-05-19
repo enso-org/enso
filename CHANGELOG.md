@@ -9,6 +9,7 @@
 - [Type annotations are now visible in the graph editor][12751]
 - [Component Browser shows methods with respect to possible type casts][12751]
 - [Add option to browse cloud for secret values][12953]
+- [Add option to create a new secret in the graph editor's cloud browser][12985]
 - [Allow editing grouped component argument names.][13014]
 - [Add ability to inspect column, row and value from right click on table
   viz][12986]
@@ -19,6 +20,7 @@
 [12913]: https://github.com/enso-org/enso/pull/12913
 [12751]: https://github.com/enso-org/enso/pull/12751
 [12953]: https://github.com/enso-org/enso/pull/12953
+[12985]: https://github.com/enso-org/enso/pull/12985
 [13014]: https://github.com/enso-org/enso/pull/13014
 [12986]: https://github.com/enso-org/enso/pull/12986
 

@@ -682,7 +682,7 @@ function AssetsTable(props: AssetsTableProps) {
                   const id = item.id
                   setModal(
                     <UpsertSecretModal
-                      id={item.id}
+                      secretId={item.id}
                       name={item.title}
                       doCreate={async (title, value) => {
                         try {

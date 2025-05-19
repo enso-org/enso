@@ -23,8 +23,8 @@ public class JsonRpcInitialization extends LockedInitialization {
 
   @Override
   public void initComponent() {
-    logger.debug("Initializing JSON-RPC protocol");
+    logger.trace("Initializing JSON-RPC protocol");
     protocolFactory.init();
-    logger.debug("JSON-RPC protocol initialized");
+    logger.trace("JSON-RPC protocol initialized");
   }
 }
