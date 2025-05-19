@@ -1,30 +1,35 @@
 import * as backend from '#/services/Backend'
 import {
+  Path,
   ProjectName,
+  UUID,
   type Attributes,
+  type CreateProject,
+  type CreateProjectParams,
   type DirectoryEntry,
   type FileEntry,
   type FileSystemEntry,
   type JSONRPCResponse,
   type OpenProject,
   type OpenProjectParams,
-  type Path,
   type ProjectEntry,
   type ProjectMetadata,
   type ProjectState,
-  type UUID,
 } from '#/services/ProjectManager/types'
+import { unsafeMutable } from '#/utilities/object'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { uuidv4 } from 'lib0/random.js'
 import type { Page } from 'playwright'
 
 function array<T>(): Readonly<T>[] {
   return []
 }
 
-const ROOT_PATH = '/home/me'
+const ROOT_PATH = Path('/home/user/enso/enso-projects')
 
 const INITIAL_CALLS_OBJECT = {
   getFileContent: array<{ path: string }>(),
+  createProject: array<CreateProjectParams>(),
   openProject: array<OpenProjectParams>(),
 }
 
@@ -43,20 +48,29 @@ interface JSONRPCRequest<Method extends string, Params> {
   params: Params
 }
 
-type ProjectManagerJsonRpcRequest = JSONRPCRequest<'project/open', OpenProjectParams>
+type ProjectManagerJsonRpcRequest =
+  | JSONRPCRequest<'project/create', CreateProjectParams>
+  | JSONRPCRequest<'project/open', OpenProjectParams>
 
-type FileSystemEntryWithData =
-  | { type: 'DirectoryEntry'; entry: DirectoryEntry; children: FileSystemEntryWithData[] }
-  | {
-      type: 'ProjectEntry'
-      entry: ProjectEntry
-      id: UUID
-      metadata: {
-        projectName: ProjectName
-        projectNormalizedName: string
-      }
-    }
-  | { type: 'FileEntry'; entry: FileEntry; content: string }
+type DirectoryEntryWithData = {
+  type: 'DirectoryEntry'
+  entry: DirectoryEntry
+  children: FileSystemEntryWithData[]
+}
+
+type ProjectEntryWithData = {
+  type: 'ProjectEntry'
+  entry: ProjectEntry
+  id: UUID
+  metadata: {
+    projectName: ProjectName
+    projectNormalizedName: string
+  }
+}
+
+type FileEntryWithData = { type: 'FileEntry'; entry: FileEntry; content: string }
+
+type FileSystemEntryWithData = DirectoryEntryWithData | ProjectEntryWithData | FileEntryWithData
 
 /**
  * Setup function for the mock API.
@@ -172,6 +186,45 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       })
 
       switch (message.method) {
+        case 'project/create': {
+          const params = message.params
+          called('createProject', params)
+          const parentPath = params.projectsDirectory ?? ROOT_PATH
+          const parent = fileSystem.get(parentPath)
+          if (parent?.type !== 'DirectoryEntry') {
+            response = toJSONRPCError(`No directory with path '${parentPath}'`)
+            break
+          }
+          const path = Path(`${parentPath}/${params.name}`)
+          const id = UUID(uuidv4())
+          const metadata: ProjectEntryWithData['metadata'] = {
+            projectName: params.name,
+            projectNormalizedName: params.name,
+          }
+          const result: CreateProject = {
+            projectId: id,
+            ...metadata,
+          }
+          const project = 0
+          const projectEntry: ProjectEntryWithData = {
+            type: 'ProjectEntry',
+            entry: {
+              type: 'ProjectEntry',
+              path,
+              attributes: {},
+              metadata: {
+                id,
+                name: metadata.projectName,
+                namespace: 'local',
+                created: toRfc3339(new Date()),
+              },
+            },
+            metadata,
+          }
+          parent.children.push(project)
+          response = toJSONRPCResult(result)
+          break
+        }
         case 'project/open': {
           const params = message.params
           called('openProject', params)
@@ -188,6 +241,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
             response = toJSONRPCError(`No project with UUID '${params.projectId}'`)
             break
           }
+          unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
           const result: OpenProject = {
             engineVersion: '0.0.0-dev',
             languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
@@ -201,10 +255,6 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
           })
           delay = 1_000
           response = toJSONRPCResult(result)
-          break
-        }
-        default: {
-          response = toJSONRPCError(`Unknown Project Manager JSON-RPC method '${message.method}'`)
           break
         }
       }
