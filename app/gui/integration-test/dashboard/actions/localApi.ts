@@ -482,6 +482,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
   })
 
   const api = {
+    rootPath: ROOT_PATH,
     trackCalls,
     addDirectory,
     addProject,

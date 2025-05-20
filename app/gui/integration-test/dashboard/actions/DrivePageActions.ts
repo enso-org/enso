@@ -285,6 +285,59 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
           })
         })
       },
+      /** Drag a row to a different category. */
+      get dragRowToCategory() {
+        return {
+          /** Switch to the "cloud" category. */
+          cloud(from: number | string) {
+            return self.step('Go to "Cloud" category', (page) =>
+              self.driveTable.dragRow(
+                from,
+                page
+                  .getByLabel(TEXT.categorySwitcherMenuLabel)
+                  .getByRole('button', { name: TEXT.cloudCategory, exact: true })
+                  .getByText(TEXT.cloudCategory),
+              ),
+            )
+          },
+          /** Switch to the "local" category. */
+          local(from: number | string) {
+            return self.step('Go to "Local" category', (page) =>
+              self.driveTable.dragRow(
+                from,
+                page
+                  .getByLabel(TEXT.categorySwitcherMenuLabel)
+                  .getByRole('button', { name: TEXT.localCategory, exact: true })
+                  .getByText(TEXT.localCategory),
+              ),
+            )
+          },
+          /** Switch to the "recent" category. */
+          recent(from: number | string) {
+            return self.step('Go to "Recent" category', (page) =>
+              self.driveTable.dragRow(
+                from,
+                page
+                  .getByLabel(TEXT.categorySwitcherMenuLabel)
+                  .getByRole('button', { name: TEXT.recentCategory, exact: true })
+                  .getByText(TEXT.recentCategory),
+              ),
+            )
+          },
+          /** Switch to the "trash" category. */
+          trash(from: number | string) {
+            return self.step('Go to "Trash" category', (page) =>
+              self.driveTable.dragRow(
+                from,
+                page
+                  .getByLabel(TEXT.categorySwitcherMenuLabel)
+                  .getByRole('button', { name: TEXT.trashCategory, exact: true })
+                  .getByText(TEXT.trashCategory),
+              ),
+            )
+          },
+        }
+      },
       openDirectory(indexOrName: number | string) {
         return self.step(`Open directory on drive table row ${indexOrName}`, async (page) => {
           const rows = locateAssetRows(page)

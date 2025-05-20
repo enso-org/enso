@@ -7,9 +7,12 @@ import EditorPageActions from './EditorPageActions'
 /** Actions for the context menu. */
 export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly open: () => T
-  readonly uploadToCloud: () => T
   readonly rename: () => T
   readonly snapshot: () => T
+  readonly exportToCloud: () => T
+  readonly exportAllToCloud: () => T
+  readonly exportToLocal: () => T
+  readonly exportAllToLocal: () => T
   readonly delete: () => T
   readonly deleteAll: () => T
   readonly moveToTrash: () => T
@@ -40,13 +43,6 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
       step('Open (context menu)', (page) =>
         page.getByRole('button', { name: TEXT.openShortcut }).getByText(TEXT.openShortcut).click(),
       ),
-    uploadToCloud: () =>
-      step('Upload to cloud (context menu)', (page) =>
-        page
-          .getByRole('button', { name: TEXT.uploadToCloudShortcut })
-          .getByText(TEXT.uploadToCloudShortcut)
-          .click(),
-      ),
     rename: () =>
       step('Rename (context menu)', (page) =>
         page
@@ -59,6 +55,34 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
         page
           .getByRole('button', { name: TEXT.snapshotShortcut })
           .getByText(TEXT.snapshotShortcut)
+          .click(),
+      ),
+    exportToCloud: () =>
+      step('Export to cloud (context menu)', (page) =>
+        page
+          .getByRole('button', { name: TEXT.uploadToCloudShortcut })
+          .getByText(TEXT.uploadToCloudShortcut)
+          .click(),
+      ),
+    exportAllToCloud: () =>
+      step('Export all to cloud (context menu)', (page) =>
+        page
+          .getByRole('button', { name: TEXT.uploadAllToCloudShortcut })
+          .getByText(TEXT.uploadAllToCloudShortcut)
+          .click(),
+      ),
+    exportToLocal: () =>
+      step('Export to local (context menu)', (page) =>
+        page
+          .getByRole('button', { name: TEXT.downloadToLocalShortcut })
+          .getByText(TEXT.downloadToLocalShortcut)
+          .click(),
+      ),
+    exportAllToLocal: () =>
+      step('Export all to local (context menu)', (page) =>
+        page
+          .getByRole('button', { name: TEXT.downloadAllToLocalShortcut })
+          .getByText(TEXT.downloadAllToLocalShortcut)
           .click(),
       ),
     delete: () =>
