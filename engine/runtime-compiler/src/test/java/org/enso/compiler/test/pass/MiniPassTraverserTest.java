@@ -1,30 +1,30 @@
 package org.enso.compiler.test.pass;
 
+import static org.enso.compiler.test.ir.IRUtils.binaryOperator;
+import static org.enso.compiler.test.ir.IRUtils.callArg;
+import static org.enso.compiler.test.ir.IRUtils.defArg;
+import static org.enso.compiler.test.ir.IRUtils.emptyIr;
+import static org.enso.compiler.test.ir.IRUtils.literal;
 import static org.enso.scala.wrapper.ScalaConversions.asScala;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
 import java.util.List;
-import org.enso.compiler.core.ir.CallArgument;
-import org.enso.compiler.core.ir.DefinitionArgument;
-import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.MetadataStorage;
-import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.persist.Persistance.Reference;
 import org.junit.Test;
-import scala.Option;
 
 public class MiniPassTraverserTest {
   @Test
   public void traversesOneExpression() {
-    var expr = new MockExpression(false);
+    var expr = new MockExpression(null);
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(MockExpression.class, expr, miniPass);
     assertThat(
@@ -34,9 +34,8 @@ public class MiniPassTraverserTest {
 
   @Test
   public void traversesExpressionWithOneChild() {
-    var parentExpr = new MockExpression(false);
-    var childExpr = new MockExpression(true);
-    parentExpr.addChild(childExpr);
+    var parentExpr = new MockExpression(null);
+    var childExpr = new MockExpression(parentExpr);
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(MockExpression.class, parentExpr, miniPass);
     assertThat(
@@ -47,9 +46,8 @@ public class MiniPassTraverserTest {
 
   @Test
   public void traversesExpressionWithManyChildren() {
-    var parentExpr = new MockExpression(false);
-    var children = List.of(new MockExpression(true), new MockExpression(true));
-    children.forEach(parentExpr::addChild);
+    var parentExpr = new MockExpression(null);
+    var children = List.of(new MockExpression(parentExpr), new MockExpression(parentExpr));
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(MockExpression.class, parentExpr, miniPass);
     for (var ch : children) {
@@ -61,11 +59,9 @@ public class MiniPassTraverserTest {
 
   @Test
   public void stopTraversingWhenPrepareReturnsNull() {
-    var e1 = new MockExpression(false);
-    var e2 = new MockExpression(true);
-    var e3 = new MockExpression(true);
-    e1.addChild(e2);
-    e2.addChild(e3);
+    var e1 = new MockExpression(null);
+    var e2 = new MockExpression(e1);
+    var e3 = new MockExpression(e2);
     // Should stop traversing when e3 is encountered.
     // Should only process e1 and e2, not e3
     var miniPass = MockMiniPass.builder().stopExpr(e3).build();
@@ -78,9 +74,8 @@ public class MiniPassTraverserTest {
 
   @Test
   public void chainedMiniPass_TraversesSingleExpression() {
-    var parentExpr = new MockExpression(false);
-    var childExpr = new MockExpression(true);
-    parentExpr.addChild(childExpr);
+    var parentExpr = new MockExpression(null);
+    var childExpr = new MockExpression(parentExpr);
     var miniPass1 = MockMiniPass.builder().build();
     var miniPass2 = MockMiniPass.builder().build();
     var chainedPass = MiniIRPass.combine(miniPass1, miniPass2);
@@ -101,11 +96,9 @@ public class MiniPassTraverserTest {
 
   @Test
   public void chainedMiniPass_StopsTraversingWhenPrepareReturnsNull() {
-    var e1 = new MockExpression(false);
-    var e2 = new MockExpression(true);
-    var e3 = new MockExpression(true);
-    e1.addChild(e2);
-    e2.addChild(e3);
+    var e1 = new MockExpression(null);
+    var e2 = new MockExpression(e1);
+    var e3 = new MockExpression(e2);
     // miniPass1 stops traversing on e2.
     var miniPass1 = MockMiniPass.builder().stopExpr(e3).build();
     // miniPass2 traverses everything.
@@ -122,11 +115,9 @@ public class MiniPassTraverserTest {
 
   @Test
   public void chainedMiniPass_StopsTraversingWhenPrepareFromBothPassesReturnNull() {
-    var e1 = new MockExpression(false);
-    var e2 = new MockExpression(true);
-    var e3 = new MockExpression(true);
-    e1.addChild(e2);
-    e2.addChild(e3);
+    var e1 = new MockExpression(null);
+    var e2 = new MockExpression(e1);
+    var e3 = new MockExpression(e2);
     // Both mini passes process just e1.
     var miniPass1 = MockMiniPass.builder().stopExpr(e2).build();
     var miniPass2 = MockMiniPass.builder().stopExpr(e2).build();
@@ -157,6 +148,10 @@ public class MiniPassTraverserTest {
     expectVisited(miniPass, caseExpr);
   }
 
+  /**
+   * {@link Operator.Binary} traverses over {@code left} and {@code right}, but not over {@code
+   * operator}.
+   */
   @Test
   public void traverseOver_BinaryOperator() {
     var a = literal("a");
@@ -174,14 +169,17 @@ public class MiniPassTraverserTest {
 
   @Test
   public void traverseOver_FunctionLambda() {
-    var body = binaryOperator();
+    var body = emptyIr();
+    var self = literal("self");
+    var selfArg = defArg(self);
     var lambda =
         Function.Lambda.builder()
             .bodyReference(Reference.of(body))
-            .arguments(scalaList(selfArg()))
+            .arguments(scalaList(selfArg))
             .build();
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(Expression.class, lambda, miniPass);
+    expectVisited(miniPass, self);
     expectVisited(miniPass, lambda);
     expectVisited(miniPass, body);
   }
@@ -193,44 +191,10 @@ public class MiniPassTraverserTest {
     assertThat(
         "Expected expression of type '"
             + expectedVisitedExpr.getClass().getName()
-            + "' to be visited, but visited expressions were: "
+            + "' to be visited, but visited expression types were: "
             + transformedExprClasses,
         transformedExpressions,
         hasItem(expectedVisitedExpr));
-  }
-
-  private static Name.Literal literal(String lit) {
-    return new Name.Literal(lit, false, null, Option.empty(), new MetadataStorage());
-  }
-
-  private static Empty emptyIr() {
-    return Empty.builder().build();
-  }
-
-  private static DefinitionArgument.Specified selfArg() {
-    return DefinitionArgument.Specified.builder()
-        .name(literal("self"))
-        .ascribedType(Option.empty())
-        .defaultValue(Option.empty())
-        .build();
-  }
-
-  private static Operator.Binary binaryOperator() {
-    return new Operator.Binary(
-        callArg("a"), literal("+"), callArg("b"), null, new MetadataStorage());
-  }
-
-  private static Operator.Binary binaryOperator(
-      CallArgument left, CallArgument right, Name operator) {
-    return new Operator.Binary(left, operator, right, null, new MetadataStorage());
-  }
-
-  private static CallArgument.Specified callArg(String name) {
-    return CallArgument.Specified.builder().value(literal(name)).name(Option.empty()).build();
-  }
-
-  private static CallArgument.Specified callArg(Name name) {
-    return CallArgument.Specified.builder().value(name).name(Option.empty()).build();
   }
 
   private static <T> scala.collection.immutable.List<T> scalaList(T elem) {
