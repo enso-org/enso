@@ -65,10 +65,14 @@ public interface IR {
 
   /**
    * Maps the provided function over any expression defined as a child of the node this is called
-   * on.
+   * on. The child does not have to be a <emph>direct</emph> child, it can have an arbitrary number
+   * of intermediate non-expression nodes. The mapping traverses in DFS order, and it stops on first
+   * (non-direct) child that is an {@link Expression}.
+   *
+   * <p>The function is not applied on this IR, even if it is {@link Expression}.
    *
    * @param fn the function to transform the expressions
-   * @return `this`, potentially having had its children transformed by `fn`
+   * @return `this`, potentially having had its (non-direct) children transformed by `fn`
    */
   IR mapExpressions(Function<Expression, Expression> fn);
 
