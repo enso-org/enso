@@ -174,7 +174,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             testId="stop-project"
           />
           <StatelessSpinner
-            state={spinnerState}
+            phase={spinnerState}
             className={tailwindMerge.twJoin(
               'pointer-events-none absolute inset-0',
               isRunningInBackground && 'text-green',
@@ -199,7 +199,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               testId="stop-project"
             />
             <Spinner
-              state="done"
+              phase="done"
               className={tailwindMerge.twMerge(
                 'pointer-events-none absolute inset-0',
                 isRunningInBackground && 'text-green',

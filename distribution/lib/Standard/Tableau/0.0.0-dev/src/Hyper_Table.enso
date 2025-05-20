@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 
+import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Column, Table, Value_Type
@@ -95,5 +96,5 @@ type Hyper_Table
         Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
             row_count = if max_rows == Rows_To_Read.All_Rows then Nothing else max_rows.rows
             java_columns = HyperFormat.readTable self.file.file.path self.schema self.table row_count java_problem_aggregator
-            enso_columns = java_columns.map Column.from_java_column
+            enso_columns = java_columns.map Java_Exports.make_column_from_java_column
             Table.new enso_columns

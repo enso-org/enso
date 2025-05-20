@@ -4,6 +4,8 @@ import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.operation.unary.NotOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 
@@ -17,9 +19,12 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
-            BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
-          return rightBoolean ? left : left.makeNegated();
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
+            BoolStorage left,
+            boolean rightBoolean,
+            boolean rightIsNothing,
+            MapOperationProblemAggregator problemAggregator) {
+          return rightBoolean ? left : NotOperation.applySpecializedBoolStorage(left);
         }
       };
 
@@ -32,9 +37,12 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
-            BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
-          return rightBoolean ? left.makeNegated() : left;
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
+            BoolStorage left,
+            boolean rightBoolean,
+            boolean rightIsNothing,
+            MapOperationProblemAggregator problemAggregator) {
+          return rightBoolean ? NotOperation.applySpecializedBoolStorage(left) : left;
         }
       };
 
@@ -47,10 +55,13 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
-            BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
+            BoolStorage left,
+            boolean rightBoolean,
+            boolean rightIsNothing,
+            MapOperationProblemAggregator problemAggregator) {
           return rightBoolean
-              ? left.makeNegated()
+              ? NotOperation.applySpecializedBoolStorage(left)
               : new BoolStorage(
                   new BitSet(), left.getIsNothingMap(), Builder.checkSize(left.getSize()), false);
         }
@@ -65,12 +76,15 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
-            BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
+            BoolStorage left,
+            boolean rightBoolean,
+            boolean rightIsNothing,
+            MapOperationProblemAggregator problemAggregator) {
           return rightBoolean
               ? new BoolStorage(
                   new BitSet(), left.getIsNothingMap(), Builder.checkSize(left.getSize()), true)
-              : left.makeNegated();
+              : NotOperation.applySpecializedBoolStorage(left);
         }
       };
 
@@ -83,8 +97,11 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
-            BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
+            BoolStorage left,
+            boolean rightBoolean,
+            boolean rightIsNothing,
+            MapOperationProblemAggregator problemAggregator) {
           return rightBoolean
               ? new BoolStorage(
                   new BitSet(), left.getIsNothingMap(), Builder.checkSize(left.getSize()), false)
@@ -101,8 +118,11 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
-            BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
+            BoolStorage left,
+            boolean rightBoolean,
+            boolean rightIsNothing,
+            MapOperationProblemAggregator problemAggregator) {
           return rightBoolean
               ? left
               : new BoolStorage(

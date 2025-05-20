@@ -5,6 +5,7 @@ from Standard.Base.Runtime import assert
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
@@ -230,34 +231,34 @@ type Internal_Missing_Column_Error
 java_aggregator : Text -> Aggregate_Column -> Aggregator
 java_aggregator name column =
     case column of
-        Group_By c _ -> GroupByAggregator.new name c.java_column
+        Group_By c _ -> GroupByAggregator.new name (c:In_Memory_Column).java_column
         Count _ -> CountAggregator.new name
         Count_Distinct columns _ ignore_nothing ->
-            resolved = columns.map c->c.java_column
+            resolved = columns.map c->(c:In_Memory_Column).java_column
             CountDistinctAggregator.new name resolved ignore_nothing
-        Count_Not_Nothing c _ -> CountNothingAggregator.new name c.java_column False
-        Count_Nothing c _ -> CountNothingAggregator.new name c.java_column True
-        Count_Not_Empty c _ -> CountEmptyAggregator.new name c.java_column False
-        Count_Empty c _ -> CountEmptyAggregator.new name c.java_column True
-        Sum c _ -> SumAggregator.new name c.java_column
-        Average c _ -> MeanAggregator.new name c.java_column
-        Standard_Deviation c _ p -> StandardDeviationAggregator.new name c.java_column p
-        Median c _ -> PercentileAggregator.new name c.java_column 0.5
-        Percentile p c _ -> PercentileAggregator.new name c.java_column p
-        Mode c _ -> ModeAggregator.new name c.java_column
+        Count_Not_Nothing c _ -> CountNothingAggregator.new name (c:In_Memory_Column).java_column False
+        Count_Nothing c _ -> CountNothingAggregator.new name (c:In_Memory_Column).java_column True
+        Count_Not_Empty c _ -> CountEmptyAggregator.new name (c:In_Memory_Column).java_column False
+        Count_Empty c _ -> CountEmptyAggregator.new name (c:In_Memory_Column).java_column True
+        Sum c _ -> SumAggregator.new name (c:In_Memory_Column).java_column
+        Average c _ -> MeanAggregator.new name (c:In_Memory_Column).java_column
+        Standard_Deviation c _ p -> StandardDeviationAggregator.new name (c:In_Memory_Column).java_column p
+        Median c _ -> PercentileAggregator.new name (c:In_Memory_Column).java_column 0.5
+        Percentile p c _ -> PercentileAggregator.new name (c:In_Memory_Column).java_column p
+        Mode c _ -> ModeAggregator.new name (c:In_Memory_Column).java_column
         First c _ ignore_nothing ordering ->
-            if ordering.is_nothing then FirstAggregator.new name c.java_column ignore_nothing else
-                order_columns = ordering.map c->c.column.java_column
+            if ordering.is_nothing then FirstAggregator.new name (c:In_Memory_Column).java_column ignore_nothing else
+                order_columns = ordering.map c->(c.column:In_Memory_Column).java_column
                 order_directions = ordering.map c->c.direction.to_sign
-                FirstAggregator.new name c.java_column ignore_nothing order_columns order_directions
+                FirstAggregator.new name (c:In_Memory_Column).java_column ignore_nothing order_columns order_directions
         Last c _ ignore_nothing ordering ->
-            if ordering.is_nothing then LastAggregator.new name c.java_column ignore_nothing else
-                order_columns = ordering.map c->c.column.java_column
+            if ordering.is_nothing then LastAggregator.new name (c:In_Memory_Column).java_column ignore_nothing else
+                order_columns = ordering.map c->(c.column:In_Memory_Column).java_column
                 order_direction = ordering.map c->c.direction.to_sign
-                LastAggregator.new name c.java_column ignore_nothing order_columns order_direction
-        Maximum c _ -> MinOrMaxAggregator.new name c.java_column MinOrMaxAggregator.MAX
-        Minimum c _ -> MinOrMaxAggregator.new name c.java_column MinOrMaxAggregator.MIN
-        Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column ShortestOrLongestAggregator.SHORTEST
-        Longest c _ -> ShortestOrLongestAggregator.new name c.java_column ShortestOrLongestAggregator.LONGEST
-        Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote
+                LastAggregator.new name (c:In_Memory_Column).java_column ignore_nothing order_columns order_direction
+        Maximum c _ -> MinOrMaxAggregator.new name (c:In_Memory_Column).java_column MinOrMaxAggregator.MAX
+        Minimum c _ -> MinOrMaxAggregator.new name (c:In_Memory_Column).java_column MinOrMaxAggregator.MIN
+        Shortest c _ -> ShortestOrLongestAggregator.new name (c:In_Memory_Column).java_column ShortestOrLongestAggregator.SHORTEST
+        Longest c _ -> ShortestOrLongestAggregator.new name (c:In_Memory_Column).java_column ShortestOrLongestAggregator.LONGEST
+        Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name (c:In_Memory_Column).java_column join prefix suffix quote
         unknown -> Error.throw (Invalid_Aggregation.Error name [] "Unsupported aggregation: "+unknown.to_display_text)

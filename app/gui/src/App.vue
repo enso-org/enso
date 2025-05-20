@@ -14,9 +14,10 @@ import { provideKeyboard } from '@/providers/keyboard'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
+import { reactComponent } from '@/util/react'
 import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
-import { applyPureReactInVue } from 'veaury'
+import { Platform, platform } from 'enso-common/src/detect'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 
@@ -43,7 +44,7 @@ const appConfig = computed(() =>
 )
 const appConfigValue = computed((): ApplicationConfigValue => configValue(appConfig.value))
 
-const ReactRootWrapper = applyPureReactInVue(ReactRoot)
+const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
 provideKeyboard()
@@ -66,6 +67,25 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
   capture: true,
 })
 
+const platformClass = (() => {
+  switch (platform()) {
+    case Platform.windows:
+      return 'onWindows'
+    case Platform.macOS:
+      return 'onMacOs'
+    case Platform.linux:
+      return 'onLinux'
+    case Platform.windowsPhone:
+      return 'onWindowsPhone'
+    case Platform.iPhoneOS:
+      return 'onIPhoneOs'
+    case Platform.android:
+      return 'onAndroid'
+    default:
+      return undefined
+  }
+})()
+
 onMounted(() => {
   if (appConfigValue.value.window.vibrancy) {
     document.body.classList.add('vibrancy')
@@ -74,7 +94,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div :class="['App', ...classSet.keys()]">
+  <div :class="['App', platformClass, ...classSet.keys()]">
     <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
     <ContextsForReactProvider v-else>
       <ReactRootWrapper
@@ -102,6 +122,7 @@ onMounted(() => {
   position: absolute;
   color: var(--color-text);
   font-family: var(--font-sans);
+  dominant-baseline: central;
   font-weight: 500;
   font-size: 11.5px;
   line-height: 20px;

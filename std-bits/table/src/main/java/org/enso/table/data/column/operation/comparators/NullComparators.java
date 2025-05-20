@@ -1,10 +1,12 @@
 package org.enso.table.data.column.operation.comparators;
 
+import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.NullType;
 
-public final class NullComparators implements Comparators {
+public final class NullComparators implements BinaryOperation<Boolean> {
   public static final NullComparators INSTANCE = new NullComparators();
 
   private NullComparators() {}
@@ -15,7 +17,8 @@ public final class NullComparators implements Comparators {
   }
 
   @Override
-  public ColumnStorage<Boolean> applyMap(ColumnStorage<?> left, Object rightValue) {
+  public ColumnStorage<Boolean> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     assert canApplyMap(left, rightValue);
     return BoolStorage.makeEmpty(left.getSize());
   }
@@ -26,7 +29,10 @@ public final class NullComparators implements Comparators {
   }
 
   @Override
-  public ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public ColumnStorage<Boolean> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     assert canApplyZip(left, right);
     return BoolStorage.makeEmpty(left.getSize());
   }
