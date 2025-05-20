@@ -3,6 +3,7 @@ package org.enso.microsoft.azure;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
+import com.azure.resourcemanager.storage.models.StorageAccount;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,25 +16,17 @@ public final class AzureResourceManager {
   }
 
   /**
-   * Represents an Azure tenant.
-   *
-   * @param id the tenant ID (a GUID).
-   * @param key ??
-   */
-  public record AzureTenant(String id, String key) {}
-
-  /**
    * Gets a list of Azure tenants associated with the provided credential and environment.
    *
    * @param credential the Azure credential.
    * @param environment the Azure environment.
-   * @return
+   * @return a list of Azure tenants.
    */
-  public static List<AzureTenant> tenants(TokenCredential credential, AzureEnvironment environment) {
+  public static List<String> tenants(TokenCredential credential, AzureEnvironment environment) {
     var tenants = getClient(credential, environment).tenants();
-    var result = new ArrayList<AzureTenant>();
+    var result = new ArrayList<String>();
     for (var tenant : tenants.list()) {
-      result.add(new AzureTenant(tenant.tenantId(), tenant.key()));
+      result.add(tenant.tenantId());
     }
     return result;
   }
@@ -57,6 +50,44 @@ public final class AzureResourceManager {
     var result = new ArrayList<AzureSubscription>();
     for (var subscription : subscriptions.list()) {
       result.add(new AzureSubscription(subscription.subscriptionId(), subscription.displayName()));
+    }
+    return result;
+  }
+
+  /**
+   * Represents an Azure storage account.
+   *
+   * @param credential the Azure credential used to access the storage account.
+   * @param environment the Azure environment.
+   * @param subscriptionId the Azure subscription (if null use the Default subscription).
+   * @param inner the underlying storage account object.
+   * */
+  public record AzureStorageAccount(TokenCredential credential, AzureEnvironment environment, String subscriptionId, StorageAccount inner) {
+    public String id() {
+      return inner.id();
+    }
+
+    public String name() {
+      return inner.name();
+    }
+
+    public String resourceGroup() {
+      return inner.resourceGroupName();
+    }
+
+    public String endpoints() {
+      return inner.endPoints().toString();
+    }
+  }
+
+  public static List<AzureStorageAccount> storageAccounts(TokenCredential credential, AzureEnvironment environment, String subscriptionId) {
+    var client = getClient(credential, environment);
+    var forSubs = subscriptionId == null ? client.withDefaultSubscription() : client.withSubscription(subscriptionId);
+
+    var result = new ArrayList<AzureStorageAccount>();
+    var storageAccounts = forSubs.storageAccounts();
+    for (var account : storageAccounts.list()) {
+      result.add(new AzureStorageAccount(credential, environment, subscriptionId, account));
     }
     return result;
   }
