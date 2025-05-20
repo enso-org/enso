@@ -175,6 +175,7 @@ interface PlaceholderOverrides {
 
   readonly plusXUsers: [count: number]
   readonly managingUserGroupX: [groupName: string]
+  readonly planOverriddenToX: [planName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

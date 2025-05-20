@@ -15,7 +15,6 @@ import {
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { SelectorOption } from './SelectorOption'
 
@@ -79,7 +78,7 @@ export const SELECTOR_STYLES = tv({
 })
 
 /** A horizontal selector. */
-export const Selector = forwardRef(function Selector<
+export const Selector = React.forwardRef(function Selector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, T>,
   T,

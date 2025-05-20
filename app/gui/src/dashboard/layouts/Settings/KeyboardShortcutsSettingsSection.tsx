@@ -59,7 +59,7 @@ export default function KeyboardShortcutsSettingsSection() {
         scrollbar
         orientation="vertical"
         className="mb-[40px] min-h-0 flex-1"
-        shadowStartClassName="mt-8"
+        shadowStartClassName="top-8"
       >
         <table className="table-fixed border-collapse rounded-rows">
           <thead className="sticky top-0 z-1 bg-dashboard">
