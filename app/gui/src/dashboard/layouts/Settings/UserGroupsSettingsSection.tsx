@@ -13,6 +13,7 @@ import {
 import { PaywallDialogButton } from '#/components/Paywall'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import { Scroller } from '#/components/Scroller'
+import { UserWithPopover } from '#/components/UserWithPopover'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -466,8 +467,7 @@ function UserGroupAddUserForm(props: UserGroupAddUserFormProps) {
           <ComboBox
             form={form}
             name="email"
-            noResetButton
-            label={getText('user')}
+            aria-label={getText('user')}
             items={otherEmails}
             toTextValue={(email) => {
               const name = usersByEmail.get(email)?.name
@@ -480,11 +480,14 @@ function UserGroupAddUserForm(props: UserGroupAddUserFormProps) {
             {(email) => {
               const user = usersByEmail.get(email)
 
-              if (!user) {
-                return ''
-              }
-
-              return `${user.name} (${user.email})`
+              return (
+                user && (
+                  <UserWithPopover
+                    user={{ ...user, name: `${user.name} (${user.email})` }}
+                    className="pointer-events-none"
+                  />
+                )
+              )
             }}
           </ComboBox>
           <Button.Group>
