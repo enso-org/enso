@@ -109,7 +109,6 @@ interface EnsoTableOrColumn {
   links: string[] | undefined
   get_child_node_action: string
   get_child_node_link_name: string
-  link_value_type: string
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
@@ -692,29 +691,50 @@ function toField(
   }
 }
 
-function getAstPattern(selector?: string | number, action?: string) {
-  if (action && selector != null) {
-    return Pattern.new<Ast.Expression>((ast) =>
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
-        typeof selector === 'number' ?
-          Ast.tryNumberToEnso(selector, ast.module)!
-        : Ast.TextLiteral.new(selector, ast.module),
-      ),
-    )
-  }
+type ParsedTemplate = {
+  pattern: string;
+  keys: { name: string; numeric: boolean }[];
+};
+
+function parseTemplate(input: string): ParsedTemplate {
+  const regex = /{{(#?)(\w+)}}/g;
+  const keys: { name: string; numeric: boolean }[] = [];
+  let pattern = input;
+  
+  pattern = pattern.replace(regex, (_, flag, key) => {
+    keys.push({ name: key, numeric: flag === "#" });
+    return "__";
+  });
+
+  pattern = "__." + pattern;
+
+  return { pattern, keys };
+}
+
+function getAstPattern(params: CellDoubleClickedEvent, action: string) {
+  const parsedAction = parseTemplate(action);
+
+  return Pattern.new<Ast.Expression>((ast) => {
+    const mappedExpressions = parsedAction.keys.map(({ name, numeric }) => {
+      const value = params.data[name];
+      const castedValue = numeric && !isNaN(Number(value)) ? Number(value) : value
+      return numeric
+        ? Ast.tryNumberToEnso(castedValue, ast.module)!
+        : Ast.TextLiteral.new(castedValue, ast.module);
+    });
+
+    const templatePattern = Pattern.parseExpression(parsedAction.pattern);
+    return templatePattern.instantiateCopied([ast, ...mappedExpressions]);;
+  });
 }
 
 function createNode(
   params: CellDoubleClickedEvent,
   selector: string,
-  action?: string,
-  castValueTypes?: string,
+  action: string,
 ) {
-  const selectorKey = params.data[selector]
-  const castSelector =
-    castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
-  const pattern = getAstPattern(castSelector, action)
+  const pattern = getAstPattern(params, action);
+
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -727,15 +747,14 @@ interface LinkFieldOptions {
   tooltipValue?: string | undefined
   headerName?: string | undefined
   getChildAction?: string | undefined
-  castValueTypes?: string | undefined
 }
 
 function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef {
-  const { tooltipValue, headerName, getChildAction, castValueTypes } = options
+  const { tooltipValue, headerName, getChildAction } = options
   return {
     headerName: headerName ? headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, castValueTypes),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction),
     tooltipValueGetter: (params: ITooltipParams) =>
       params.node?.rowPinned === 'top' ?
         null
@@ -773,8 +792,6 @@ watchEffect(() => {
         child_label: undefined,
         // eslint-disable-next-line camelcase
         visualization_header: undefined,
-        // eslint-disable-next-line camelcase
-        link_value_type: undefined,
         // eslint-disable-next-line camelcase
         is_using_server_sort_and_filter: undefined,
         // eslint-disable-next-line camelcase
@@ -855,7 +872,6 @@ watchEffect(() => {
             tooltipValue: data_.child_label,
             headerName: data_.visualization_header,
             getChildAction: data_.get_child_node_action,
-            castValueTypes: data_.link_value_type,
           })
         }
         return toField(v, { index: i, valueType })
