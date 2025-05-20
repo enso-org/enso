@@ -424,7 +424,7 @@ function createServer() {
       columnIndex: number,
       filterColumnIndexList: string[] | string,
       filterActions: string[] | string,
-      valueList: any,
+      valueList: string[] | string,
     ) => {
       const expressionFunction = createDistinctExpressionTemplate(
         'Standard.Visualization.Table.Visualization',
@@ -435,7 +435,7 @@ function createServer() {
         //column actions i.e Greater Than, Between...
         filterActions as string[] | 'Nothing',
         //values to filter on
-        valueList,
+        valueList as string[] | 'Nothing',
       )
       const response = await config.executeExpression(expressionFunction)
       return {
