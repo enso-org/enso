@@ -37,7 +37,7 @@ export function useLocalBrowser({
   write: ToValue<boolean>
   currentPath: ToValue<string | undefined>
   setPath: (type: 'file', path: string) => void
-  fileTypes: ToValue<FileType[]>
+  fileTypes: ToValue<FileType[] | undefined>
 }): ComputedRef<CustomDropdownItem[]> {
   async function openFileBrowser() {
     if (!window.fileBrowserApi) {
@@ -48,7 +48,8 @@ export function useLocalBrowser({
     const rawKind = toValue(dialogKind)
     assert(rawKind !== 'secret')
     const kind = rawKind === 'file' && toValue(write) ? 'filePath' : rawKind
-    const filters = fileTypesToFileFilters(toValue(fileTypes))
+    const fileTypes_ = toValue(fileTypes)
+    const filters = fileTypes_ != null ? fileTypesToFileFilters(fileTypes_) : undefined
     const selected = await window.fileBrowserApi.openFileBrowser(
       kind,
       toValue(currentPath),

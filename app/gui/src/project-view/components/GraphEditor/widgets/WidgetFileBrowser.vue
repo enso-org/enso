@@ -74,9 +74,9 @@ const write = computed(() => typeInfo.value.write)
 
 const fileTypes = computed(() => {
   if (props.input.dynamicConfig?.kind === 'File_Browse') {
-    return props.input.dynamicConfig?.file_types ?? []
+    return props.input.dynamicConfig?.file_types
   } else {
-    return []
+    return undefined
   }
 })
 

@@ -24,6 +24,7 @@ const extensionInput = defineModel<string>('extensionInput', {
 })
 
 const props = defineProps<{
+  writeMode: boolean
   fileExtensionFilter: Filter
   displayedExtension: string
   fileTypes: FileType[]
@@ -150,6 +151,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
 <template>
   <div class="FileBrowserNameBar">
     <input
+      v-if="writeMode"
       v-model="filenameInput"
       class="inputField"
       @pointerdown.stop
@@ -161,7 +163,11 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
       @keydown.arrow-right.stop
       @keydown.enter.stop="emit('accept')"
     />
-    <div v-if="fileExtensionFilter.type !== 'predefined'" class="fileExtensionSeparator"></div>
+    <div v-else class="expander"></div>
+    <div
+      v-if="writeMode && fileExtensionFilter.type !== 'predefined'"
+      class="fileExtensionSeparator"
+    ></div>
     <div ref="fileExtensionInputRoot" class="fileExtensionInputContainer">
       <SvgIcon
         name="arrow_right_head_only"
@@ -176,6 +182,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
       />
     </div>
     <SvgButton
+      v-if="writeMode"
       class="FileBrowserButton"
       label="Ok"
       :disabled="!filenameInput"
@@ -204,6 +211,10 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
   flex-direction: row;
   padding: var(--border-width) 0 0 0;
   gap: var(--border-width);
+}
+
+.expander {
+  flex-grow: 1;
 }
 
 .inputField {

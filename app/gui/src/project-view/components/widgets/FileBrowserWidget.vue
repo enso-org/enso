@@ -226,9 +226,9 @@ const root = useTemplateRef<HTMLDivElement>('root')
         @update:editingAsset="editingAsset = $event"
       />
       <FileBrowserNameBar
-        v-if="writeMode"
         v-model:filenameInput="filenameInput"
         v-model:extensionInput="extensionInput"
+        :writeMode="writeMode ?? false"
         :root="root"
         :fileExtensionFilter="fileExtensionFilter.filter.value"
         :displayedExtension="fileExtensionFilter.displayedExtension.value"
