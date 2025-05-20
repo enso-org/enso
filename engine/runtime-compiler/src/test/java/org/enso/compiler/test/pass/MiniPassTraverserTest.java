@@ -65,16 +65,15 @@ public class MiniPassTraverserTest {
   }
 
   @Test
-  public void traverseExpression_UnderNonExpressions() {
+  public void traverseExpression_UnderNonExpression() {
     var root = new MockExpression(null);
     var child = new MockIR(root);
-    var nestedChild = new MockIR(child);
-    var expr = new MockExpression(nestedChild);
+    var expr = new MockExpression(child);
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(MockExpression.class, root, miniPass);
     assertThat(
-        "nestedChild must be prepared - it has Expression as child",
-        nestedChild.isPreparedBy(miniPass),
+        "child must be prepared - it has Expression as child",
+        child.isPreparedBy(miniPass),
         is(true));
     assertThat(expr.isTransformedBy(miniPass), is(true));
     assertThat(root.isTransformedBy(miniPass), is(true));
