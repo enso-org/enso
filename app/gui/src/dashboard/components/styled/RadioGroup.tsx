@@ -21,7 +21,6 @@ import * as React from 'react'
 import * as reactStately from 'react-stately'
 
 import * as aria from '#/components/aria'
-import { forwardRef } from '#/utilities/react'
 
 /** Options for {@link useRenderProps}. */
 interface RenderPropsHookOptions<T> extends aria.DOMProps, aria.AriaLabelingProps {
@@ -101,7 +100,7 @@ function useSlot(): [React.RefCallback<Element>, boolean] {
 const UNDEFINED = undefined
 
 /** A radio group allows a user to select a single item from a list of mutually exclusive options. */
-export default forwardRef(RadioGroup)
+export default React.forwardRef(RadioGroup)
 
 /** A radio group allows a user to select a single item from a list of mutually exclusive options. */
 function RadioGroup(props: aria.RadioGroupProps, ref: React.ForwardedRef<HTMLDivElement>) {

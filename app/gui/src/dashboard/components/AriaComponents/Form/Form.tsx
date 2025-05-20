@@ -1,5 +1,4 @@
 /** @file Form component. */
-import { forwardRef } from '#/utilities/react'
 import * as React from 'react'
 import * as dialog from '../Dialog'
 import * as components from './components'
@@ -13,7 +12,7 @@ import type * as types from './types'
  */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
-export const Form = forwardRef(function Form<
+export const Form = React.forwardRef(function Form<
   Schema extends components.TSchema,
   SubmitResult = void,
 >(props: types.FormProps<Schema, SubmitResult>, ref: React.Ref<HTMLFormElement>) {

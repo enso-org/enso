@@ -1,5 +1,6 @@
 /** @file A styled button. */
 import {
+  forwardRef,
   memo,
   useLayoutEffect,
   useRef,
@@ -15,7 +16,6 @@ import { useVisualTooltip } from '#/components/AriaComponents/VisualTooltip'
 import { Icon as IconComponent } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { forwardRef } from '#/utilities/react'
 import { useContextProps } from '../../hooks/useContextProps'
 import { useDialogContext } from '../Dialog'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'

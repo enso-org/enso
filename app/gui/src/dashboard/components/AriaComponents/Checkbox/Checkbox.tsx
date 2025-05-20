@@ -6,11 +6,11 @@
 import type { CheckboxProps as AriaCheckboxProps } from '#/components/aria'
 import { Checkbox as AriaCheckbox, CheckboxGroupStateContext } from '#/components/aria'
 import { mergeRefs, useMergedRef } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import {
+  forwardRef,
   useContext,
   type CSSProperties,
   type ForwardedRef,
