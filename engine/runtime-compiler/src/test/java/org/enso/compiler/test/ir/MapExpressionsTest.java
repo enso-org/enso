@@ -8,9 +8,12 @@ import static org.enso.scala.wrapper.ScalaConversions.nil;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.expression.Application;
@@ -19,6 +22,7 @@ import org.enso.compiler.test.pass.MockExpression;
 import org.enso.compiler.test.pass.MockIR;
 import org.enso.persist.Persistance.Reference;
 import org.junit.Test;
+import scala.Option;
 
 public class MapExpressionsTest {
   /**
@@ -56,7 +60,41 @@ public class MapExpressionsTest {
   }
 
   @Test
-  public void functionLambda() {
+  public void prefix_NoCopy() {
+    var body = emptyIr();
+    var xArg = callArg(literal("x"));
+    var prefix =
+        Application.Prefix.builder().arguments(asScala(List.of(xArg))).function(body).build();
+    var mapped = prefix.mapExpressions(e -> e);
+    assertThat("no copy should occur", mapped == prefix, is(true));
+    assertThat("no copy of body", mapped.function() == body, is(true));
+    var firstMappedArg = mapped.arguments().head();
+    assertThat("no copy of argument", firstMappedArg == xArg, is(true));
+  }
+
+  @Test
+  public void functionLambda_NoCopy() {
+    var body = emptyIr();
+    var self = literal("self");
+    var selfArg = defArg(self);
+    var lambda =
+        Function.Lambda.builder()
+            .bodyReference(Reference.of(body))
+            .arguments(asScala(List.of(selfArg)))
+            .build();
+    var mappedLambda = lambda.mapExpressions(e -> e);
+    assertThat("No copy should occur", mappedLambda == lambda, is(true));
+    assertThat("No copy of body", mappedLambda.body() == body, is(true));
+    var firstMappedArg = mappedLambda.arguments().head();
+    assertThat("No copy of argument", firstMappedArg == selfArg, is(true));
+  }
+
+  /**
+   * Name of {@link DefinitionArgument.Specified} is not collected, despite the fact that it is an
+   * Expression.
+   */
+  @Test
+  public void functionLambda_ArgumentName_IsNotCollected() {
     var body = emptyIr();
     var self = literal("self");
     var selfArg = defArg(self);
@@ -66,6 +104,10 @@ public class MapExpressionsTest {
             .arguments(asScala(List.of(selfArg)))
             .build();
     var collected = mapExpressions(lambda);
+    assertThat("Only body of Lambda is collected", collected, contains(body));
+    assertThat("names of Lambda are not collected", collected, not(hasItem(self)));
+  }
+
     assertThat(collected, hasItem(body));
     assertThat(collected, hasItem(self));
   }
