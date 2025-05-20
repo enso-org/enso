@@ -15,9 +15,6 @@ import {
   type TimeValue,
 } from '#/components/aria'
 import {
-  Button,
-  Form,
-  Text,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
@@ -25,6 +22,9 @@ import {
   type FieldValues,
   type TSchema,
 } from '#/components/AriaComponents'
+import { Button } from '#/components/AriaComponents/Button'
+import { Form } from '#/components/AriaComponents/Form'
+import { Text } from '#/components/AriaComponents/Text'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'

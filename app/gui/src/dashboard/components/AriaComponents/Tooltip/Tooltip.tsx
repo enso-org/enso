@@ -6,7 +6,7 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { ResetButtonGroupContext } from '../Button/shared'
 
 import { DIALOG_BACKGROUND } from '../Dialog/variants'
-import { TEXT_STYLE } from '../Text'
+import { TEXT_STYLE } from '../Text/style'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const TOOLTIP_STYLES = tv({
