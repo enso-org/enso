@@ -71,7 +71,7 @@ export class InteractionHandler {
 
   /**
    * End the interaction, if it is the current interaction or its ancestor.
-   * Any children interactions of the given interaction will be ended as well, in the order from child to parent.
+   * Any children interactions of the given interaction will be ended as well.
    */
   end(interaction: Interaction) {
     search(this.currentInteraction.value, interaction, (found, children) => {
@@ -83,7 +83,7 @@ export class InteractionHandler {
     })
   }
 
-  /** End all interactions, in the order from child to parent. */
+  /** End all interactions. */
   endAll() {
     let current = this.currentInteraction.value
     while (current != null) {
@@ -95,7 +95,7 @@ export class InteractionHandler {
 
   /**
    * Cancel the interaction, if it is currently active.
-   * Any children interactions of the given interaction will be cancelled as well, in the order from child to parent.
+   * Any children interactions of the given interaction will be cancelled as well=.
    */
   cancel(interaction: Interaction) {
     search(this.currentInteraction.value, interaction, (found, children) => {
@@ -108,7 +108,7 @@ export class InteractionHandler {
   }
 
   /**
-   * Cancel all interactions, in the order from child to parent.
+   * Cancel all interactions.
    * @returns `true` if the current interaction was cancelled.
    */
   cancelAll(): boolean {
