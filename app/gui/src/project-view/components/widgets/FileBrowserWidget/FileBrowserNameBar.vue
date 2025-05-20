@@ -1,14 +1,31 @@
 <script setup lang="ts">
-import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
+import SelectionSubmenu, {
+  SubmenuComponent,
+} from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
+import { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
+import { injectInteractionHandler, Interaction } from '@/providers/interactionHandler'
+import {
+  FileType,
+  isExtensions,
+  isFileTypes,
+  isGlobAll,
+} from '@/providers/widgetRegistry/configuration'
+import { endOnClick, targetIsOutside } from '@/util/autoBlur'
+import { Opt } from '@/util/data/opt'
+import { computed, ref, useTemplateRef } from 'vue'
+import { Filter } from './fileExtensionFilter'
 
-const filenameInputContents = defineModel<string>({ required: true })
-const fileExtensionInputContents = defineModel<string>({ required: true })
+const filenameInput = defineModel<string>('filenameInput', { required: true })
+const extensionInput = defineModel<string>('extensionInput', {
+  required: true,
+})
 
 const props = defineProps<{
-  fileExtensionFilter: FileExtensionFilter
+  fileExtensionFilter: Filter
+  displayedExtension: string
   fileTypes: FileType[]
   root: Opt<HTMLElement>
 }>()
@@ -28,10 +45,10 @@ const fileExtensionInput = useTemplateRef<InstanceType<typeof AutoSizedInput>>('
 const fileExtensionEntries = computed(() => props.fileTypes.map(fileTypeToFileExtensionEntry))
 
 function isSelected(value: string): boolean {
-  if (props.fileExtensionFilter.filter.value.type === 'glob') return false
-  if (props.fileExtensionFilter.filter.value.type === 'userInput')
-    return props.fileExtensionFilter.filter.value.input === value
-  return props.fileExtensionFilter.filter.value.label === value
+  if (props.fileExtensionFilter.type === 'glob') return false
+  if (props.fileExtensionFilter.type === 'userInput')
+    return props.fileExtensionFilter.input === value
+  return props.fileExtensionFilter.label === value
 }
 
 function fileTypeToFileExtensionEntry(fileType: FileType): FileExtensionEntry {
@@ -97,8 +114,8 @@ function openDropdown() {
 
 function extensionSelected(entry: FileExtensionEntry) {
   interaction.end(fileExtensionDropdownInteraction)
-  if (fileExtensionInputContents.value !== entry.value) {
-    filenameInputContents.value = ''
+  if (filenameInput.value !== entry.value) {
+    filenameInput.value = ''
   }
   if (entry.extensions === 'all' || entry.extensions.length === 0) {
     emit('setFilter', {
@@ -115,13 +132,13 @@ function extensionSelected(entry: FileExtensionEntry) {
 
 const fileExtensionInputModel = computed({
   get: () => {
-    if (props.fileExtensionFilter.filter.value.type === 'userInput') {
-      return props.fileExtensionFilter.filter.value.input
+    if (props.fileExtensionFilter.type === 'userInput') {
+      return props.fileExtensionFilter.input
     }
-    return props.fileExtensionFilter.displayedExtension.value
+    return props.displayedExtension
   },
   set: (value) => {
-    fileExtensionInputContents.value = value
+    extensionInput.value = value
   },
 })
 
@@ -133,8 +150,8 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
 <template>
   <div class="FileBrowserNameBar">
     <input
-      v-model="filenameInputContents"
-      class="fileNameInput"
+      v-model="filenameInput"
+      class="inputField"
       @pointerdown.stop
       @click.stop
       @contextmenu.stop
@@ -144,10 +161,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
       @keydown.arrow-right.stop
       @keydown.enter.stop="emit('accept')"
     />
-    <div
-      v-if="fileExtensionFilter.filter.value.type !== 'predefined'"
-      class="fileExtensionSeparator"
-    ></div>
+    <div v-if="fileExtensionFilter.type !== 'predefined'" class="fileExtensionSeparator"></div>
     <div ref="fileExtensionInputRoot" class="fileExtensionInputContainer">
       <SvgIcon
         name="arrow_right_head_only"
@@ -164,7 +178,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
     <SvgButton
       class="FileBrowserButton"
       label="Ok"
-      :disabled="!filenameInputContents"
+      :disabled="!filenameInput"
       @click.stop="emit('accept')"
     />
   </div>
@@ -192,7 +206,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
   gap: var(--border-width);
 }
 
-.fileNameInput {
+.inputField {
   border-radius: var(--border-radius-inner);
   height: calc(var(--border-radius-inner) * 2);
   padding: 0 8px;

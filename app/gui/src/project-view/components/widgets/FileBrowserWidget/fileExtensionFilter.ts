@@ -1,4 +1,5 @@
 import { AssetType } from '#/services/Backend'
+import { splitFilename } from '@/components/widgets/FileBrowserWidget/nameBar'
 import { computed, ref, toValue, watch, WatchSource } from 'vue'
 
 export interface Asset {
@@ -54,10 +55,11 @@ export function useFileExtensionFilter(
   function matches(asset: Asset): boolean {
     if (asset.type !== AssetType.file) return true
     if (filter.value.type === 'glob') return true
+    const [_, extension] = splitFilename(asset.title)
     if (filter.value.type === 'userInput') {
-      return asset.title.endsWith(filter.value.input)
+      return extension.startsWith(filter.value.input)
     }
-    return filter.value.extensions.some((extension) => asset.title.endsWith(extension))
+    return filter.value.extensions.some((ext) => extension === ext)
   }
 
   const filenameSuffix = computed(() => {
