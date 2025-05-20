@@ -20,9 +20,6 @@ import ProjectsProvider, {
   useSetPage,
 } from '#/providers/ProjectsProvider'
 
-import Chat from '#/layouts/Chat'
-import ChatPlaceholder from '#/layouts/ChatPlaceholder'
-
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
@@ -86,8 +83,6 @@ function DashboardInner() {
   const initialProjectNameRaw = config.params.startup.project
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
-
-  const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
   const categoriesAPI = useCategoriesAPI()
 
@@ -173,7 +168,7 @@ function DashboardInner() {
   const clearLaunchedProjects = useClearLaunchedProjects()
 
   return (
-    <Page hideInfoBar hideChat>
+    <Page hideInfoBar>
       <div
         className="flex min-h-full flex-col text-xs text-primary"
         onContextMenu={(event) => {
@@ -183,7 +178,6 @@ function DashboardInner() {
       >
         <TabView
           initialProjectName={initialProjectName}
-          setIsChatOpen={setIsHelpChatOpen}
           page={page}
           setPage={setPage}
           launchedProjects={launchedProjects}
@@ -191,21 +185,6 @@ function DashboardInner() {
           closeAllProjects={closeAllProjects}
           clearLaunchedProjects={clearLaunchedProjects}
         />
-        {$config.CHAT_URL != null ?
-          <Chat
-            isOpen={isHelpChatOpen}
-            doClose={() => {
-              setIsHelpChatOpen(false)
-            }}
-            endpoint={$config.CHAT_URL}
-          />
-        : <ChatPlaceholder
-            isOpen={isHelpChatOpen}
-            doClose={() => {
-              setIsHelpChatOpen(false)
-            }}
-          />
-        }
       </div>
     </Page>
   )

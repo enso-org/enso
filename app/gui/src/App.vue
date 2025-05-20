@@ -14,10 +14,10 @@ import { provideKeyboard } from '@/providers/keyboard'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
+import { reactComponent } from '@/util/react'
 import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
-import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 
@@ -44,7 +44,7 @@ const appConfig = computed(() =>
 )
 const appConfigValue = computed((): ApplicationConfigValue => configValue(appConfig.value))
 
-const ReactRootWrapper = applyPureReactInVue(ReactRoot)
+const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
 provideKeyboard()

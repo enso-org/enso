@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation;
 
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -39,11 +40,12 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
       };
 
   private BinaryCoalescingOperationBool() {
-    super(BooleanType.INSTANCE);
+    super(BooleanType.INSTANCE, false);
   }
 
   @Override
-  public ColumnStorage<Boolean> applyMap(ColumnStorage<?> left, Object rightValue) {
+  public ColumnStorage<Boolean> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     var typedStorage = BooleanType.INSTANCE.asTypedStorage(left);
 
     if (rightValue == null) {
@@ -67,7 +69,10 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
   }
 
   @Override
-  public ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public ColumnStorage<Boolean> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     var typedStorage = BooleanType.INSTANCE.asTypedStorage(left);
 
     if (NullType.INSTANCE.isOfType(right.getType())) {

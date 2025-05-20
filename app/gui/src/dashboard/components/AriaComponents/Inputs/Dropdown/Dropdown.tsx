@@ -1,5 +1,5 @@
 /** @file A styled dropdown. */
-import { useEffect, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
+import { forwardRef, useEffect, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
 
 import CheckMarkIcon from '#/assets/check_mark.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
@@ -16,7 +16,6 @@ import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   Form,

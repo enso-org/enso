@@ -20,7 +20,12 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import {
+  assetPanelStore,
+  useAssetPanelCurrentItem,
+  useSetAssetPanelProps,
+} from '#/layouts/AssetPanel/'
+import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
@@ -39,11 +44,6 @@ import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import {
-  assetPanelStore,
-  useAssetPanelCurrentItem,
-  useSetAssetPanelProps,
-} from '../AssetPanelState'
 import type { AssetPanelProps } from './types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
@@ -384,16 +384,14 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           >
             {getText('configuration')}
           </Heading>
-          <UpsertSecretModal
+          <UpsertSecretForm
             key={item.id}
-            noDialog
-            canReset
-            canCancel={false}
-            id={item.id}
+            doCancel="reset"
+            secretId={item.id}
             name={item.title}
-            doCreate={async (title, value) => {
-              await updateSecretMutation.mutateAsync([item.id, { title, value }, title])
-            }}
+            doCreate={(title, value) =>
+              updateSecretMutation.mutateAsync([item.id, { title, value }, title])
+            }
           />
         </div>
       )}

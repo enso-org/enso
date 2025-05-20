@@ -43,12 +43,12 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     val sampler = startSampling(config)
-    logger.debug("Started [{}]", sampler.getClass.getName)
+    logger.trace("Started [{}]", sampler.getClass.getName)
     val module = new MainModule(config, logLevel)
     val bindJsonServer =
       for {
         binding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
-        _       <- Future { logger.debug("Server for JSON RPC is initialized") }
+        _       <- Future { logger.trace("Server for JSON RPC is initialized") }
       } yield binding
     val bindSecureJsonServer: Future[Option[Http.ServerBinding]] = {
       config.secureRpcPort match {
@@ -64,7 +64,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
       for {
         binding <- module.binaryServer.bind(config.interface, config.dataPort)
         _ <- Future {
-          logger.debug("Server for Binary WebSocket is initialized")
+          logger.trace("Server for Binary WebSocket is initialized")
         }
       } yield binding
 
@@ -164,7 +164,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
             2.seconds
           )
           .recover(logError)
-      _ <- Future { logger.debug("Terminated actor system") }
+      _ <- Future { logger.trace("Terminated actor system") }
     } yield ()
   }
 

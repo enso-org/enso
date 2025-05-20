@@ -534,6 +534,124 @@ class RuntimeAsyncCommandsTest
     )
   }
 
+  it should "not interrupt running execution context in Live mode" in {
+    val moduleName = "Enso_Test.Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+
+    val metadata = new Metadata
+    val code =
+      """from Standard.Base import all
+        |polyglot java import java.lang.Thread
+        |
+        |loop n s=0 =
+        |    if s > n then s else
+        |        Thread.sleep 100
+        |        loop n s+1
+        |
+        |main =
+        |    IO.println "started"
+        |    v = loop 50
+        |    IO.println "finished"
+        |    v
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      1
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId))
+    )
+
+    // wait for program to start
+    val isProgramStarted = context.out.awaitOnText("started")
+    if (!isProgramStarted) {
+      fail("Program start timed out")
+    }
+
+    val responses1 = context.receiveNIgnoreExpressionUpdates(
+      1
+    )
+    responses1 should contain theSameElementsAs Seq(
+      context.executionComplete(contextId)
+    )
+    context.out.awaitOnText("finished") shouldBe true
+
+    // set execution environment
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          expressions          = None,
+          executionEnvironment = Some(Api.ExecutionEnvironment.Live()),
+          expressionConfigs    = Seq.empty
+        )
+      )
+    )
+
+    // wait for program to start
+    val isProgramStarted2 = context.out.awaitOnText(exact = true, "started")
+    if (!isProgramStarted2) {
+      fail("Second program start timed out, when in `live` mode")
+    }
+
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            model.TextEdit(
+              model.Range(model.Position(9, 23), model.Position(9, 23)),
+              "?"
+            ),
+            model.TextEdit(
+              model.Range(model.Position(11, 24), model.Position(11, 24)),
+              "?"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+
+    // recompute
+    val responses = context.receiveN(
+      3
+    )
+    responses should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.executionComplete(contextId),
+      context.executionComplete(contextId)
+    )
+    context.out.awaitOnText(exact = true, "finished\nstarted?\nfinished?")
+  }
+
   it should "interrupt running execution context without sending Panic in visualization updates" in {
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
