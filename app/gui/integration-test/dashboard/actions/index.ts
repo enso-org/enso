@@ -8,6 +8,13 @@ import url from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 
 import {
+  INITIAL_LOCAL_CALLS_OBJECT,
+  mockLocalApi,
+  type LocalMockApi,
+  type LocalTrackedCalls,
+  type SetupLocalAPI,
+} from 'integration-test/dashboard/actions/localApi'
+import {
   INITIAL_CALLS_OBJECT,
   mockApi,
   type MockApi,
@@ -89,6 +96,7 @@ const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 interface MockParams {
   readonly page: Page
   readonly setupAPI?: SetupAPI | undefined
+  readonly setupLocalAPI?: SetupLocalAPI | undefined
 }
 
 /** Replace `Date` with a version that returns a fixed time. */
@@ -130,20 +138,27 @@ export async function passAgreementsDialog({ page }: MockParams) {
 
 interface Context {
   readonly api: MockApi
+  readonly localApi: LocalMockApi
   calls: TrackedCalls
+  localCalls: LocalTrackedCalls
 }
 
 /** Set up all mocks, without logging in. */
-export function mockAll({ page, setupAPI }: MockParams) {
+export function mockAll({ page, setupAPI, setupLocalAPI }: MockParams) {
   const context: { -readonly [K in keyof Context]: Context[K] } = {
     api: undefined!,
+    localApi: undefined!,
     calls: INITIAL_CALLS_OBJECT,
+    localCalls: INITIAL_LOCAL_CALLS_OBJECT,
   }
   return new LoginPageActions<Context>(page, context)
     .step('Execute all mocks', async (page) => {
       await Promise.all([
         mockApi({ page, setupAPI }).then((api) => {
           context.api = api
+        }),
+        mockLocalApi({ page, setupLocalAPI }).then((localApi) => {
+          context.localApi = localApi
         }),
         mockDate({ page }),
         mockAllAnimations({ page }),

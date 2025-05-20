@@ -15,7 +15,7 @@ test('delete (local)', ({ page }) =>
     .contextMenu.delete()
     .driveTable.expectPlaceholderRow())
 
-test('delete and restore', ({ page }) =>
+test('delete and restore (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows) => {
@@ -36,7 +36,7 @@ test('delete and restore', ({ page }) =>
       await expect(rows).toHaveCount(1)
     }))
 
-test('delete and restore project', ({ page }) =>
+test('delete and restore project (remote)', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (api) => {
@@ -61,7 +61,7 @@ test('delete and restore project', ({ page }) =>
       await expect(rows).toHaveCount(1)
     }))
 
-test('delete and restore (keyboard)', ({ page }) =>
+test('delete and restore (keyboard) (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows) => {
@@ -85,7 +85,7 @@ test('delete and restore (keyboard)', ({ page }) =>
       await expect(rows).toHaveCount(1)
     }))
 
-test('delete and restore project (keyboard)', ({ page }) =>
+test('delete and restore project (keyboard) (remote)', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (api) => {
@@ -113,7 +113,7 @@ test('delete and restore project (keyboard)', ({ page }) =>
       await expect(rows).toHaveCount(1)
     }))
 
-test('clear trash', ({ page }) =>
+test('clear trash (remote)', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (api) => {
@@ -151,7 +151,7 @@ test('clear trash', ({ page }) =>
       await expect(rows).toHaveCount(0)
     }))
 
-test('clear trash (without directories)', ({ page }) =>
+test('clear trash (without directories) (remote)', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (api) => {

@@ -52,7 +52,7 @@ export default defineConfig({
         ],
       },
     }),
-    await projectManagerShim(),
+    ...(process.env.DASHBOARD_TESTS !== 'true' ? [await projectManagerShim()] : []),
     ...((
       process.env.SENTRY_AUTH_TOKEN != null &&
       process.env.ENSO_IDE_SENTRY_ORGANIZATION != null &&

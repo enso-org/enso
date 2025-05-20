@@ -12,7 +12,7 @@ const SECRET_NAME = 'a secret name'
 /** The value of the created secret. */
 const SECRET_VALUE = 'a secret value'
 
-test('create folder', ({ page }) =>
+test('create folder (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows) => {
@@ -21,14 +21,22 @@ test('create folder', ({ page }) =>
       await expect(rows.nth(0)).toHaveText(/^New Folder 1/)
     }))
 
-test('create project', ({ page }) =>
+test('create project (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .newEmptyProject()
     .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.withRows((rows) => expect(rows).toHaveCount(1)))
 
-test('upload file', ({ page }) =>
+test('create project (local)', ({ page }) =>
+  mockAllAndLogin({ page })
+    .goToCategory.local()
+    .newEmptyProject()
+    .waitForEditorToLoad()
+    .goToPage.drive()
+    .driveTable.withRows((rows) => expect(rows).toHaveCount(1)))
+
+test('upload file (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .uploadFile(FILE_NAME, FILE_CONTENTS)
     .driveTable.withRows(async (rows) => {
@@ -37,7 +45,7 @@ test('upload file', ({ page }) =>
       await expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
     }))
 
-test('create secret', ({ page }) =>
+test('create secret (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .createSecret(SECRET_NAME, SECRET_VALUE)
     .driveTable.withRows(async (rows) => {

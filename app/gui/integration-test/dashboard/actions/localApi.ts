@@ -20,6 +20,7 @@ import { unsafeMutable } from '#/utilities/object'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { uuidv4 } from 'lib0/random.js'
 import type { Page } from 'playwright'
+import test from 'playwright/test'
 
 function array<T>(): Readonly<T>[] {
   return []
@@ -35,11 +36,13 @@ const INITIAL_CALLS_OBJECT = {
 
 const READONLY_INITIAL_CALLS_OBJECT: TrackedCallsInternal = INITIAL_CALLS_OBJECT
 
-export { READONLY_INITIAL_CALLS_OBJECT as INITIAL_CALLS_OBJECT }
+export { READONLY_INITIAL_CALLS_OBJECT as INITIAL_LOCAL_CALLS_OBJECT }
 
 type TrackedCallsInternal = {
   [K in keyof typeof INITIAL_CALLS_OBJECT]: Readonly<(typeof INITIAL_CALLS_OBJECT)[K]>
 }
+
+export interface LocalTrackedCalls extends TrackedCallsInternal {}
 
 interface JSONRPCRequest<Method extends string, Params> {
   jsonrpc: '2.0'
@@ -61,7 +64,6 @@ type DirectoryEntryWithData = {
 type ProjectEntryWithData = {
   type: 'ProjectEntry'
   entry: ProjectEntry
-  id: UUID
   metadata: {
     projectName: ProjectName
     projectNormalizedName: string
@@ -77,7 +79,7 @@ type FileSystemEntryWithData = DirectoryEntryWithData | ProjectEntryWithData | F
  * use it to setup the mock API with custom handlers.
  */
 export interface SetupLocalAPI {
-  (api: Awaited<ReturnType<typeof localMockApi>>): Promise<void> | void
+  (api: Awaited<ReturnType<typeof mockLocalApi>>): Promise<void> | void
 }
 
 /** Parameters for {@link mockApi}. */
@@ -86,9 +88,9 @@ export interface MockParams {
   readonly setupLocalAPI?: SetupLocalAPI | null | undefined
 }
 /** The return type of {@link localMockApi}. */
-export interface MockApi extends Awaited<ReturnType<typeof localMockApiInternal>> {}
+export interface LocalMockApi extends Awaited<ReturnType<typeof localMockApiInternal>> {}
 
-export const localMockApi: (params: MockParams) => Promise<MockApi> = localMockApiInternal
+export const mockLocalApi: (params: MockParams) => Promise<LocalMockApi> = localMockApiInternal
 
 /** Add route handlers for the mock API to a page. */
 async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
@@ -129,189 +131,259 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
     ...attributes,
   })
 
-  const createDirectory = ({
-    path,
-    attributes,
-  }: {
+  type DirectoryEntryOptions = {
     path: Path
     attributes?: Partial<Attributes>
-  }): DirectoryEntry => ({
+  }
+
+  const createDirectoryEntry = ({ path, attributes }: DirectoryEntryOptions): DirectoryEntry => ({
     type: 'DirectoryEntry',
     path,
     attributes: createAttributes(attributes),
   })
 
-  const createProject = ({
-    path,
-    metadata,
-    attributes,
-  }: {
+  const createDirectory = (options: DirectoryEntryOptions): DirectoryEntryWithData => {
+    const entry = createDirectoryEntry(options)
+    return { type: 'DirectoryEntry', entry, children: [] }
+  }
+
+  const addEntry = (path: Path, entry: FileSystemEntryWithData) => {
+    fileSystem.set(path, entry)
+    const [, parentPathRaw] = path.match(/(.+)[/]([^/]+)$/) ?? []
+    if (parentPathRaw == null) {
+      return
+    }
+    const parentPath = Path(parentPathRaw)
+    const parentEntry = fileSystem.get(parentPath)
+    if (parentEntry?.type !== 'DirectoryEntry') {
+      return
+    }
+    parentEntry.children.push(entry)
+  }
+
+  const addDirectory = (options: DirectoryEntryOptions) => {
+    addEntry(options.path, createDirectory(options))
+  }
+
+  type ProjectEntryOptions = {
     path: Path
     metadata: ProjectMetadata
     attributes?: Partial<Attributes>
-  }): ProjectEntry => ({
+  }
+
+  const createProjectEntry = ({
+    path,
+    metadata,
+    attributes,
+  }: ProjectEntryOptions): ProjectEntry => ({
     type: 'ProjectEntry',
     path,
     metadata,
     attributes: createAttributes(attributes),
   })
 
-  const createFile = ({
-    path,
-    attributes,
-  }: {
+  const createProject = (options: ProjectEntryOptions): ProjectEntryWithData => {
+    const entry = createProjectEntry(options)
+    return {
+      type: 'ProjectEntry',
+      entry,
+      metadata: {
+        projectName: ProjectName(entry.metadata.name),
+        projectNormalizedName: entry.metadata.name,
+      },
+    }
+  }
+
+  const addProject = (options: ProjectEntryOptions) => {
+    addEntry(options.path, createProject(options))
+  }
+
+  type FileEntryOptions = {
     path: Path
     attributes?: Partial<Attributes>
-  }): FileEntry => ({
+    content?: string
+  }
+
+  const createFileEntry = ({ path, attributes }: FileEntryOptions): FileEntry => ({
     type: 'FileEntry',
     path,
     attributes: createAttributes(attributes),
   })
 
-  await page.routeWebSocket('ws://127.0.0.1:30535/', (ws) => {
-    ws.onMessage(async (messageRaw) => {
-      const message: ProjectManagerJsonRpcRequest = JSON.parse(messageRaw.toString('utf-8'))
+  const createFile = (options: FileEntryOptions): FileEntryWithData => {
+    const { content = '' } = options
+    const entry = createFileEntry(options)
+    return { type: 'FileEntry', entry, content }
+  }
 
-      let delay = 0
-      let response: JSONRPCResponse<unknown>
-      const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
-        jsonrpc: '2.0',
-        id: message.id,
-        result,
-      })
-      const toJSONRPCError = (errorMessage: string): JSONRPCResponse<unknown> => ({
-        jsonrpc: '2.0',
-        id: message.id,
-        error: { code: 0, message: errorMessage },
-      })
+  const addFile = (options: FileEntryOptions) => {
+    addEntry(options.path, createFile(options))
+  }
 
-      switch (message.method) {
-        case 'project/create': {
-          const params = message.params
-          called('createProject', params)
-          const parentPath = params.projectsDirectory ?? ROOT_PATH
-          const parent = fileSystem.get(parentPath)
-          if (parent?.type !== 'DirectoryEntry') {
-            response = toJSONRPCError(`No directory with path '${parentPath}'`)
-            break
-          }
-          const path = Path(`${parentPath}/${params.name}`)
-          const id = UUID(uuidv4())
-          const metadata: ProjectEntryWithData['metadata'] = {
-            projectName: params.name,
-            projectNormalizedName: params.name,
-          }
-          const result: CreateProject = {
-            projectId: id,
-            ...metadata,
-          }
-          const project = 0
-          const projectEntry: ProjectEntryWithData = {
-            type: 'ProjectEntry',
-            entry: {
-              type: 'ProjectEntry',
+  addDirectory({ path: ROOT_PATH })
+
+  await test.step('Mock Local API', async () => {
+    await page.routeWebSocket('ws://localhost:30535/', (ws) => {
+      ws.onMessage(async (messageRaw) => {
+        const message: ProjectManagerJsonRpcRequest = JSON.parse(messageRaw.toString('utf-8'))
+
+        let delay = 0
+        let response: JSONRPCResponse<unknown>
+        const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
+          jsonrpc: '2.0',
+          id: message.id,
+          result,
+        })
+        const toJSONRPCError = (errorMessage: string): JSONRPCResponse<unknown> => ({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: { code: 0, message: errorMessage },
+        })
+
+        switch (message.method) {
+          case 'project/create': {
+            const params = message.params
+            called('createProject', params)
+            const parentPath = params.projectsDirectory ?? ROOT_PATH
+            const path = Path(`${parentPath}/${params.name}`)
+            const id = UUID(uuidv4())
+            const metadata: ProjectEntryWithData['metadata'] = {
+              projectName: params.name,
+              projectNormalizedName: params.name,
+            }
+            const result: CreateProject = { projectId: id, ...metadata }
+            addProject({
               path,
-              attributes: {},
               metadata: {
                 id,
                 name: metadata.projectName,
                 namespace: 'local',
                 created: toRfc3339(new Date()),
               },
-            },
-            metadata,
-          }
-          parent.children.push(project)
-          response = toJSONRPCResult(result)
-          break
-        }
-        case 'project/open': {
-          const params = message.params
-          called('openProject', params)
-          const parentDirectory = fileSystem.get(
-            projectParentPaths.get(params.projectId) ?? ROOT_PATH,
-          )
-          const project =
-            parentDirectory?.type === 'DirectoryEntry' ?
-              parentDirectory.children.find(
-                (entry) => entry.type === 'ProjectEntry' && entry.id === params.projectId,
-              )
-            : null
-          if (project?.type !== 'ProjectEntry') {
-            response = toJSONRPCError(`No project with UUID '${params.projectId}'`)
+            })
+            response = toJSONRPCResult(result)
             break
           }
-          unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
-          const result: OpenProject = {
-            engineVersion: '0.0.0-dev',
-            languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
-            languageServerJsonAddress: { host: 'ws://localhost', port: 1235 },
-            projectNamespace: 'local',
-            ...project.metadata,
+          case 'project/open': {
+            const params = message.params
+            called('openProject', params)
+            const parentDirectory = fileSystem.get(
+              projectParentPaths.get(params.projectId) ?? ROOT_PATH,
+            )
+            const project =
+              parentDirectory?.type === 'DirectoryEntry' ?
+                parentDirectory.children.find(
+                  (entry) =>
+                    entry.type === 'ProjectEntry' && entry.entry.metadata.id === params.projectId,
+                )
+              : null
+            if (project?.type !== 'ProjectEntry') {
+              response = toJSONRPCError(`No project with UUID '${params.projectId}'`)
+              break
+            }
+            unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
+            const result: OpenProject = {
+              engineVersion: '0.0.0-dev',
+              languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
+              languageServerJsonAddress: { host: 'ws://localhost', port: 1235 },
+              projectNamespace: 'local',
+              ...project.metadata,
+            }
+            openProjects.set(params.projectId, {
+              state: backend.ProjectState.opened,
+              data: result,
+            })
+            delay = 1_000
+            response = toJSONRPCResult(result)
+            break
           }
-          openProjects.set(params.projectId, {
-            state: backend.ProjectState.opened,
-            data: result,
-          })
-          delay = 1_000
-          response = toJSONRPCResult(result)
-          break
         }
-      }
 
-      await new Promise((resolve) => {
-        setTimeout(resolve, delay)
+        await new Promise((resolve) => {
+          setTimeout(resolve, delay)
+        })
+
+        ws.send(JSON.stringify(response))
       })
-
-      ws.send(JSON.stringify(response))
     })
-  })
 
-  await page.route(
-    'https://localhost:8080/api/run-project-manager-command',
-    async (route, request) => {
-      const cliArgumentsRaw = JSON.stringify(
-        new URL(request.url()).searchParams.get('cli-arguments'),
+    await page.route('/api/root-directory', async (route, request) => {
+      if (request.method() !== 'GET') {
+        return route.fulfill({ status: 400 })
+      }
+      return route.fulfill({
+        contentType: 'text/plain',
+        body: ROOT_PATH,
+      })
+    })
+
+    await page.route('/api/run-project-manager-command?*', async (route, request) => {
+      const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
+        jsonrpc: '2.0',
+        id: 0,
+        result,
+      })
+      const succeed = (result: unknown, contentType = 'application/json') => {
+        return route.fulfill({ contentType, body: JSON.stringify(toJSONRPCResult(result)) })
+      }
+      const toJSONRPCError = (errorMessage: string): JSONRPCResponse<unknown> => ({
+        jsonrpc: '2.0',
+        id: 0,
+        error: { code: 0, message: errorMessage },
+      })
+      const fail = (errorMessage: string) => {
+        return route.fulfill({ body: JSON.stringify(toJSONRPCError(errorMessage)) })
+      }
+      if (request.method() !== 'POST') {
+        return route.fulfill({ status: 400 })
+      }
+      const cliArgumentsRaw = JSON.parse(
+        new URL(request.url()).searchParams.get('cli-arguments') ?? '[]',
       )
       const cliArgumentsObject =
         cliArgumentsRaw[0] != null ?
           { name: cliArgumentsRaw[0].slice(2), arguments: cliArgumentsRaw.slice(1) }
         : null
       if (!cliArgumentsObject) {
-        return route.fulfill({ status: 400 })
+        return fail('Missing arguments object')
       }
       const cliArguments = cliArgumentsObject.arguments
       switch (cliArgumentsObject.name) {
+        case 'filesystem-exists': {
+          const path = cliArguments[0]
+          return succeed({ exists: fileSystem.has(path) })
+        }
         case 'filesystem-list': {
           const folderPath = cliArguments[0]
           const folder = folderPath != null ? fileSystem.get(folderPath) : null
           if (folder?.type !== 'DirectoryEntry') {
-            return route.fulfill({ status: 400 })
+            return fail(`Could not find folder at '${folderPath}'`)
           }
           const entries: readonly FileSystemEntry[] = folder.children.map(({ entry }) => entry)
-          return route.fulfill({
-            contentType: 'application/json',
-            body: JSON.stringify({ entries }),
-          })
-          break
+          return succeed({ entries })
         }
         case 'filesystem-read-path': {
           const filePath = cliArguments[0]
           if (filePath == null) {
-            return route.fulfill({ status: 400 })
+            return fail(`Could not find file at '${filePath}'`)
           }
           called('getFileContent', { path: filePath })
           const file = fileSystem.get(filePath)
           if (file?.type !== 'FileEntry') {
-            return route.fulfill({ status: 400 })
+            return fail(`Filesystem entry at '${filePath}' is '${file?.type}', not file`)
           }
-          return route.fulfill({ contentType: 'text/plain', body: file.content })
+          return succeed(file.content, 'text/plain')
         }
       }
-    },
-  )
+    })
+  })
 
-  const api = { trackCalls, createDirectory, createProject, createFile } as const
+  const api = {
+    trackCalls,
+    addDirectory,
+    addProject,
+    addFile,
+  } as const
 
   await setupLocalAPI?.(api)
 
