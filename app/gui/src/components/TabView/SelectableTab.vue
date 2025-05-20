@@ -20,7 +20,7 @@ const whenTooltip = computed(() => (props.label && !props.tooltip ? 'whenOverflo
 <template>
   <TooltipTrigger :when="whenTooltip">
     <template #default="triggerProps">
-      <div class="SelectableTab" v-bind="triggerProps" @click="selected = true">
+      <div class="SelectableTab" @click="selected = true">
         <motion.div v-if="selected" class="underlying" layoutId="tab-highlight">
           <!-- TODO[ao]: Style copied from dashboard. Anyone is welcome to port it <style scoped> 
         in their free time -->
@@ -32,7 +32,7 @@ const whenTooltip = computed(() => (props.label && !props.tooltip ? 'whenOverflo
             class="absolute -right-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_100%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
           />
         </motion.div>
-        <button role="tab" class="content">
+        <button role="tab" class="content" v-bind="triggerProps">
           <SvgIcon v-if="icon" :name="icon" />
           <slot />
           <span v-if="label" class="label">{{ label }}</span>
