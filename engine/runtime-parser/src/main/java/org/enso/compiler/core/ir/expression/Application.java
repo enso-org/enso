@@ -31,6 +31,10 @@ public interface Application extends Expression {
       super(function, arguments, hasDefaultsSuspended, identifiedLocation, passData, diagnostics);
     }
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
     public Prefix(
         Expression function,
         List<CallArgument> arguments,
