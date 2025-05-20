@@ -94,6 +94,7 @@ const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 
 /** Parameters for {@link mockDate}. */
 interface MockParams {
+  readonly startAtLocalCategory?: boolean
   readonly page: Page
   readonly setupAPI?: SetupAPI | undefined
   readonly setupLocalAPI?: SetupLocalAPI | undefined
@@ -174,13 +175,19 @@ export function mockAll({ page, setupAPI, setupLocalAPI }: MockParams) {
 export interface MockAllAndLoginParams extends MockParams {}
 
 /** Set up all mocks, and log in with dummy credentials. */
-export function mockAllAndLogin({ page, setupAPI }: MockAllAndLoginParams) {
-  const actions = mockAll({ page, setupAPI })
+export function mockAllAndLogin({
+  page,
+  setupAPI,
+  setupLocalAPI,
+  startAtLocalCategory = false,
+}: MockAllAndLoginParams) {
+  const actions = mockAll({ page, setupAPI, setupLocalAPI })
 
-  return actions
+  const driveActions = actions
     .step('Login', (page) => login({ page }))
     .step('Wait for dashboard to load', waitForDashboardToLoad)
     .into(DrivePageActions<Context>)
+  return startAtLocalCategory ? driveActions : driveActions.goToCategory.cloud()
 }
 
 /** Mock all animations. */

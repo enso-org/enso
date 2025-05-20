@@ -150,16 +150,11 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
 
   const addEntry = (path: Path, entry: FileSystemEntryWithData) => {
     fileSystem.set(path, entry)
-    const [, parentPathRaw] = path.match(/(.+)[/]([^/]+)$/) ?? []
-    if (parentPathRaw == null) {
-      return
+    const { directoryPath } = getDirectoryAndName(path)
+    const parentEntry = fileSystem.get(directoryPath)
+    if (parentEntry?.type === 'DirectoryEntry') {
+      parentEntry.children.push(entry)
     }
-    const parentPath = Path(parentPathRaw)
-    const parentEntry = fileSystem.get(parentPath)
-    if (parentEntry?.type !== 'DirectoryEntry') {
-      return
-    }
-    parentEntry.children.push(entry)
     return entry
   }
 
