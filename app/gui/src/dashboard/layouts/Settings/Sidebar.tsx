@@ -2,10 +2,9 @@
 import { memo, type Dispatch, type SetStateAction } from 'react'
 
 import { Header } from '#/components/aria'
-import { ButtonGroup } from '#/components/AriaComponents'
+import { ButtonGroup, Text } from '#/components/AriaComponents'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
 import { useText } from '#/providers/TextProvider'
-import { twMerge } from '#/utilities/tailwindMerge'
 import { SETTINGS_DATA, type SettingsContext } from './data'
 import type SettingsTabType from './TabType'
 
@@ -13,7 +12,6 @@ import type SettingsTabType from './TabType'
 export interface SettingsSidebarProps {
   readonly context: SettingsContext
   readonly tabsToShow: readonly SettingsTabType[]
-  readonly isMenu?: true
   readonly tab: SettingsTabType
   readonly setTab: Dispatch<SetStateAction<SettingsTabType>>
   readonly onClickCapture?: () => void
@@ -21,19 +19,14 @@ export interface SettingsSidebarProps {
 
 /** A panel to switch between settings tabs. */
 function SettingsSidebar(props: SettingsSidebarProps) {
-  const { context, tabsToShow, isMenu = false, tab, setTab } = props
+  const { context, tabsToShow, tab, setTab } = props
   const { onClickCapture } = props
   const { getText } = useText()
 
   return (
     <div
       aria-label={getText('settingsSidebarLabel')}
-      className={twMerge(
-        'w-settings-sidebar shrink-0 flex-col gap-4 overflow-y-auto',
-        !isMenu ? 'hidden sm:flex' : (
-          'relative rounded-default p-modal text-xs text-primary before:absolute before:inset before:rounded-default before:bg-frame before:backdrop-blur-default sm:hidden'
-        ),
-      )}
+      className="w-settings-sidebar shrink-0 flex-col gap-4 overflow-y-auto"
       onClickCapture={onClickCapture}
     >
       {SETTINGS_DATA.map((section) => {
@@ -50,7 +43,7 @@ function SettingsSidebar(props: SettingsSidebarProps) {
                 id={`${name}_header`}
                 className="z-1 mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
               >
-                {name}
+                <Text.Heading variant="subtitle">{name}</Text.Heading>
               </Header>
 
               <ButtonGroup gap="xxsmall" direction="column" align="start">

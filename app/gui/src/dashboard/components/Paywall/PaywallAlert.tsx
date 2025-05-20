@@ -3,17 +3,13 @@
  *
  * A paywall alert.
  */
-
-import * as React from 'react'
-
 import LockIcon from '#/assets/lock.svg'
-
-import type * as billingHooks from '#/hooks/billing'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
-import { twJoin } from '#/utilities/tailwindMerge'
+import type * as billingHooks from '#/hooks/billing'
+import * as React from 'react'
+import { twJoin } from 'tailwind-merge'
 
 /** Props for {@link PaywallAlert}. */
 export interface PaywallAlertProps<IconType extends string>
