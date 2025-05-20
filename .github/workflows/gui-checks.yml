@@ -227,22 +227,16 @@ jobs:
         working-directory: app/gui
         run: PLAYWRIGHT_JSON_OUTPUT_FILE=${{ github.workspace }}/app/gui/playwright-report/report.json pnpm playwright merge-reports --reporter=html,github,json ./blob-report
 
-      - name: ⬆️ Upload HTML report
-        id: upload-html-report
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report--attempt-${{ github.run_attempt }}
-          path: app/gui/playwright-report/
-          retention-days: 14
-
       - name: ⤴️ Deploy Playwright Report
         id: deployment
         if: ${{ steps.merge-reports.outcome == 'success' }}
         continue-on-error: true
         uses: actions/upload-pages-artifact@v3
         with:
+          name: playwright-report--attempt-${{ github.run_attempt }}
           path: app/gui/playwright-report/
           token: ${{ secrets.GITHUB_TOKEN }}
+          retention-days: 14
 
       - name: 📝 Create Playwright comment
         uses: actions/github-script@v7
