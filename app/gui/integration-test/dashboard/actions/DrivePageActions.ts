@@ -67,9 +67,9 @@ function locateSecretValueInput(page: Page) {
 }
 
 /** Find an asset panel. */
-function locateAssetPanel(page: Page) {
+function locateRightPanel(page: Page) {
   // This has no identifying features.
-  return page.getByTestId('asset-panel').locator('visible=true')
+  return page.getByTestId('right-panel').locator('visible=true')
 }
 
 /** Actions for the "drive" page. */
@@ -423,7 +423,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
       const isShown = await this.isAssetPanelShown(page)
 
       if (!isShown) {
-        await this.toggleAssetPanel()
+        await this.toggleRightPanel()
       }
     })
   }
@@ -434,14 +434,14 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
       const isShown = await this.isAssetPanelShown(page)
 
       if (isShown) {
-        await this.toggleAssetPanel()
+        await this.toggleRightPanel()
       }
     })
   }
 
   /** Toggle the Asset Panel open or closed. */
-  toggleAssetPanel() {
-    return this.step('Toggle asset panel', async (page) => {
+  toggleRightPanel() {
+    return this.step('Toggle right panel', async (page) => {
       page.getByLabel('Asset Panel').locator('visible=true').click()
       await this.waitForAssetPanelShown(page)
     })
@@ -493,9 +493,9 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   }
 
   /** Interact with the Asset Panel. */
-  withAssetPanel(callback: LocatorCallback<Context>) {
-    return this.step('Interact with asset panel', async (page, context) => {
-      await callback(locateAssetPanel(page), context)
+  withRightPanel(callback: LocatorCallback<Context>) {
+    return this.step('Interact with right panel', async (page, context) => {
+      await callback(locateRightPanel(page), context)
     })
   }
 

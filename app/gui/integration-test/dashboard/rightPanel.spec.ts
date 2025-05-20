@@ -33,11 +33,11 @@ const EMAIL = 'baz.quux@email.com'
 
 test('open and close asset panel', ({ page }) =>
   mockAllAndLogin({ page })
-    .withAssetPanel(async (assetPanel) => {
-      await expect(assetPanel).toBeVisible()
+    .withRightPanel(async (rightPanel) => {
+      await expect(rightPanel).toBeVisible()
     })
-    .toggleAssetPanel()
-    .withAssetPanel(async (assetPanel) => {
+    .toggleRightPanel()
+    .withRightPanel(async (assetPanel) => {
       await expect(assetPanel).not.toBeVisible()
     }))
 
@@ -81,7 +81,7 @@ test('Asset Panel documentation view', ({ page }) =>
   })
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
-    .withAssetPanel(async (assetPanel) => {
+    .withRightPanel(async (assetPanel) => {
       await expect(assetPanel.getByTestId('asset-docs')).toBeVisible()
       await expect(locateMarkdownContent(assetPanel.getByTestId('asset-docs'))).toBeVisible()
       await expect(locateMarkdownContent(assetPanel.getByTestId('asset-docs'))).toHaveText(
@@ -100,7 +100,7 @@ test('Assets Panel docs images', ({ page }) => {
     .do(() => {})
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
-    .withAssetPanel(async (assetPanel) => {
+    .withRightPanel(async (assetPanel) => {
       await expect(locateMarkdownContent(assetPanel.getByTestId('asset-docs'))).toBeVisible()
 
       for (const image of await assetPanel.getByRole('img').all()) {
