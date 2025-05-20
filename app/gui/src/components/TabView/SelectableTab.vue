@@ -10,11 +10,11 @@ const selected = defineModel<boolean>('selected')
 const props = defineProps<{
   icon?: Icon | undefined
   label?: string | undefined
-  title?: string | undefined
+  tooltip?: string | undefined
   onClose?: (() => void) | undefined
 }>()
 
-const whenTooltip = computed(() => (props.label && !props.title ? 'whenOverflow' : 'always'))
+const whenTooltip = computed(() => (props.label && !props.tooltip ? 'whenOverflow' : 'always'))
 </script>
 
 <template>
@@ -40,8 +40,8 @@ const whenTooltip = computed(() => (props.label && !props.title ? 'whenOverflow'
         </button>
       </div>
     </template>
-    <template v-if="$slots.tooltip || title || label" #tooltip>
-      <slot name="tooltip">{{ title ?? label }}</slot>
+    <template v-if="$slots.tooltip || tooltip || label" #tooltip>
+      <slot name="tooltip">{{ tooltip ?? label }}</slot>
     </template>
   </TooltipTrigger>
 </template>
