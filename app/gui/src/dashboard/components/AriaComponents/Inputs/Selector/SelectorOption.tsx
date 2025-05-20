@@ -1,11 +1,9 @@
 /** @file An option in a selector. */
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { Radio, type RadioProps } from '#/components/aria'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import * as React from 'react'
-import { memo } from 'react'
+import { forwardRef, memo, type ForwardedRef } from 'react'
 import { TEXT_STYLE } from '../../Text'
 
 /** Props for a {@link SelectorOption}. */
@@ -158,7 +156,7 @@ export const SELECTOR_OPTION_STYLES = tv({
 export const SelectorOption = memo(
   forwardRef(function SelectorOption(
     props: SelectorOptionProps,
-    ref: React.ForwardedRef<HTMLLabelElement>,
+    ref: ForwardedRef<HTMLLabelElement>,
   ) {
     const {
       label,

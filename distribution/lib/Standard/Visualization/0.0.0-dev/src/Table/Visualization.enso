@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 
 import Standard.Table.Row.Row
+import Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
 from Standard.Table import Column, Sort_Column, Table, Value_Type
 
 import Standard.Database.DB_Column.DB_Column
@@ -198,6 +199,7 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
     act_max = if max_rows < all_rows_count then max_rows else all_rows_count
     get_vector c          = Warning.set (Vector.new act_max i-> _make_json_for_value (c.get i)) []
     columns               = dataframe.columns
+    column_vis_helpers    = columns.map (Visualization_Helpers.from _)
     header                = ["header", columns.map .name]
     value_type            = ["value_type", columns.map .value_type]
     all_rows              = ["all_rows_count", all_rows_count]
@@ -207,15 +209,15 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
     enable_create_node    = ["enable_create_node", if is_column then False else True]
     child_label           = ["child_label", "row"]
     is_using_server_model = if is_db_table then False else all_rows_count > 1000
-    data                 = if is_using_server_model.not then columns.map get_vector else Nothing
-    requires_number_formatting = ["requires_number_format", columns.map .requires_numeric_formatter_check]
+    data                  = if is_using_server_model.not then columns.map get_vector else Nothing
+    requires_number_formatting = ["requires_number_format", column_vis_helpers.map .requires_numeric_formatter_check]
     table_version_hash_val = if is_using_server_model then dataframe.table_version_hash else Nothing
     table_version_hash = ["table_version_hash", table_version_hash_val]
     data_quality_metrics = if is_db_table then [] else
         number_nothing = JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", columns.map .count_nothing]]
-        sampled_label = if all_rows_count > Column.default_sample_size then " (sampled)" else ""
-        number_untrimmed = JS_Object.from_pairs [["name", "Count untrimmed whitespace" + sampled_label], ["percentage_value", columns.map .count_untrimmed]]
-        number_non_triv = JS_Object.from_pairs [["name", "Count non trivial whitespace" + sampled_label], ["percentage_value", columns.map .count_non_trivial_whitespace]]
+        sampled_label = if all_rows_count > Visualization_Helpers.default_sample_size then " (sampled)" else ""
+        number_untrimmed = JS_Object.from_pairs [["name", "Count untrimmed whitespace" + sampled_label], ["percentage_value", column_vis_helpers.map .count_untrimmed]]
+        number_non_triv = JS_Object.from_pairs [["name", "Count non trivial whitespace" + sampled_label], ["percentage_value", column_vis_helpers.map .count_non_trivial_whitespace]]
         JS_Object.from_pairs
         [number_nothing, number_untrimmed, number_non_triv]
     pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, use_bottom_status_bar, enable_create_node, ["data_quality_metrics", data_quality_metrics] ,["type", "EnsoTableOrColumn"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash]

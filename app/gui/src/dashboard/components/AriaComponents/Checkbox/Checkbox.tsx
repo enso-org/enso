@@ -6,17 +6,15 @@
 import type { CheckboxProps as AriaCheckboxProps } from '#/components/aria'
 import { Checkbox as AriaCheckbox, CheckboxGroupStateContext } from '#/components/aria'
 import { mergeRefs, useMergedRef } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import {
+  forwardRef,
   useContext,
   type CSSProperties,
   type ForwardedRef,
   type MutableRefObject,
-  type ReactElement,
-  type RefAttributes,
 } from 'react'
 import type { CheckboxGroupState } from 'react-stately'
 import invariant from 'tiny-invariant'
@@ -113,84 +111,83 @@ export const CHECKBOX_STYLES = tv({
 })
 
 /** Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected. */
-// eslint-disable-next-line no-restricted-syntax
-export const Checkbox = forwardRef(function Checkbox<
-  Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, boolean>,
->(props: CheckboxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLLabelElement>) {
-  const { form, name } = props
+export const Checkbox = Object.assign(
+  forwardRef(function Checkbox<
+    Schema extends TSchema,
+    TFieldName extends FieldPath<Schema, boolean>,
+  >(props: CheckboxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLLabelElement>) {
+    const { form, name } = props
 
-  const { store } = useCheckboxContext()
-  const formInstance = Form.useFormContext(form)
+    const { store } = useCheckboxContext()
+    const formInstance = Form.useFormContext(form)
 
-  const isInsideGroup = useStore(store, (state) => state.insideGroup)
+    const isInsideGroup = useStore(store, (state) => state.insideGroup)
 
-  if (!isInsideGroup) {
-    // This should never happen, because a standalone checkbox should always have a name
-    // and it specified in the props
-    invariant(name != null, 'Checkbox must have a name when placed inside a group')
+    if (!isInsideGroup) {
+      // This should never happen, because a standalone checkbox should always have a name
+      // and it specified in the props
+      invariant(name != null, 'Checkbox must have a name when placed inside a group')
 
-    const {
-      defaultValue: defaultValueOverride,
-      isInvalid,
-      fieldVariants,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      className: _,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      style: __,
-      ...fieldProps
+      const {
+        defaultValue: defaultValueOverride,
+        isInvalid,
+        fieldVariants,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        className: _,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        style: __,
+        ...fieldProps
 
-      // This is safe, because we know that the checkbox is standalone, and
-      // name is specified in the props.
-      // eslint-disable-next-line no-restricted-syntax
-    } = props as StandaloneCheckboxProps<Schema, TFieldName>
+        // This is safe, because we know that the checkbox is standalone, and
+        // name is specified in the props.
+        // eslint-disable-next-line no-restricted-syntax
+      } = props as StandaloneCheckboxProps<Schema, TFieldName>
 
-    return (
-      <Form.Controller
-        name={name}
-        control={formInstance.control}
-        {...(defaultValueOverride != null && { defaultValue: defaultValueOverride })}
-        render={({ field, fieldState }) => {
-          const defaultValue = defaultValueOverride ?? formInstance.control._defaultValues[name]
-          return (
-            <>
-              <CheckboxStandaloneProvider
-                name={name}
-                field={field}
-                defaultValue={defaultValue}
-                onChange={(value) => {
-                  field.onChange({ target: { value } })
-                  void formInstance.trigger(name)
-                }}
-              >
-                <Form.Field
-                  {...fieldProps}
-                  form={formInstance}
+      return (
+        <Form.Controller
+          name={name}
+          control={formInstance.control}
+          {...(defaultValueOverride != null && { defaultValue: defaultValueOverride })}
+          render={({ field, fieldState }) => {
+            const defaultValue = defaultValueOverride ?? formInstance.control._defaultValues[name]
+            return (
+              <>
+                <CheckboxStandaloneProvider
                   name={name}
-                  isInvalid={isInvalid ?? fieldState.invalid}
-                  variants={fieldVariants}
+                  field={field}
+                  defaultValue={defaultValue}
+                  onChange={(value) => {
+                    field.onChange({ target: { value } })
+                    void formInstance.trigger(name)
+                  }}
                 >
-                  <CheckboxInternal ref={ref} value={name} {...props} />
-                </Form.Field>
-              </CheckboxStandaloneProvider>
-            </>
-          )
-        }}
-      />
-    )
-  }
+                  <Form.Field
+                    {...fieldProps}
+                    form={formInstance}
+                    name={name}
+                    isInvalid={isInvalid ?? fieldState.invalid}
+                    variants={fieldVariants}
+                  >
+                    <CheckboxInternal ref={ref} value={name} {...props} />
+                  </Form.Field>
+                </CheckboxStandaloneProvider>
+              </>
+            )
+          }}
+        />
+      )
+    }
 
-  return <CheckboxInternal ref={ref} {...props} />
-}) as unknown as (<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>(
-  props: CheckboxProps<Schema, TFieldName> & RefAttributes<HTMLLabelElement>,
-) => ReactElement) & {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  Group: typeof CheckboxGroup
-}
+    return <CheckboxInternal ref={ref} {...props} />
+  }),
+  /* eslint-disable @typescript-eslint/naming-convention */
+  {
+    Group: CheckboxGroup,
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
+)
 
-/**
- * Internal props for the {@link Checkbox} component.
- */
+/** Internal props for the {@link Checkbox} component. */
 type CheckboxInternalProps<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, boolean>,
@@ -198,7 +195,6 @@ type CheckboxInternalProps<
   name?: string
 }
 
-// eslint-disable-next-line no-restricted-syntax
 const CheckboxInternal = forwardRef(function CheckboxInternal<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, boolean>,
@@ -314,11 +310,4 @@ const CheckboxInternal = forwardRef(function CheckboxInternal<
       )}
     </AriaCheckbox>
   )
-}) as unknown as (<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>(
-  props: CheckboxInternalProps<Schema, TFieldName> & RefAttributes<HTMLLabelElement>,
-) => ReactElement) & {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  Group: typeof CheckboxGroup
-}
-
-Checkbox.Group = CheckboxGroup
+})

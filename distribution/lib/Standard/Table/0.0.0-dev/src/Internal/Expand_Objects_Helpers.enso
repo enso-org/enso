@@ -11,6 +11,7 @@ import project.Column.Column
 import project.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Conversions.Convertible_To_Rows.Convertible_To_Rows
 import project.Errors.No_Such_Column
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Fan_Out
 import project.Internal.Java_Exports
 import project.Internal.Java_Problems
@@ -139,7 +140,7 @@ create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | 
         # Seal all builders and create columns
         column_dict = builder_dict.map_with_key name-> builder->
             _fill_builder builder len
-            Column.from_storage name builder.seal
+            In_Memory_Column.from_storage name builder.seal
 
         column_dict.if_not_error <|
             # Create a vector of columns, preserving the original order if it was specified.
