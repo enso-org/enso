@@ -968,9 +968,9 @@ const getColumnValueToEnso = (columnName: string) => {
   }
   if (columnType === 'Boolean') {
     return (item: string, module: Ast.MutableModule) => {
-      return item === ' false' ?
-          Ast.parseExpression('False', module)!
-        : Ast.parseExpression('True', module)!
+      return item === 'false' ?
+          Ast.Ident.new(module, Ast.identifier('False')!)
+        : Ast.Ident.new(module, Ast.identifier('True')!)
     }
   }
   return (item: string) => Ast.TextLiteral.new(item)

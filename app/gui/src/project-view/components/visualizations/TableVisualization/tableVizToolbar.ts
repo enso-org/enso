@@ -4,7 +4,7 @@ import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import type { ToValue } from '@/util/reactivity'
 import { computed, type ComputedRef, type Ref, toValue } from 'vue'
-import { Expression, MutableExpression, Owned } from 'ydoc-shared/ast'
+import { Expression, MutableExpression } from 'ydoc-shared/ast'
 import { TextFormatOptions } from '../TableVisualization.vue'
 import {
   actionMap,
@@ -89,7 +89,7 @@ function useSortFilterNodesButton({
 
   function createSimpleAstCall(
     name: string,
-    arg: Owned<MutableExpression>,
+    arg: Ast.Owned<MutableExpression>,
     ast: Ast.Owned<Ast.MutableExpression>,
   ) {
     return Ast.App.positional(Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(name)!), arg)
@@ -97,8 +97,8 @@ function useSortFilterNodesButton({
 
   function createFilterCall(
     ast: Ast.Owned<Ast.MutableExpression>,
-    expr: Owned<MutableExpression>,
-    parentPattern: any,
+    expr: Ast.Owned<MutableExpression>,
+    parentPattern: Ast.Owned<Ast.MutableExpression>,
   ) {
     const style = {
       spaced: parentPattern !== undefined,
@@ -137,9 +137,10 @@ function useSortFilterNodesButton({
       return filterPattern.value.instantiateCopied([
         column,
         Ast.parseExpression('..Is_In')!,
-        Ast.Vector.new(
+        Ast.Vector.build(
+          value as string[],
+          (element, tempModule) => valueFormatter(element, tempModule),
           ast.module,
-          (value as string[]).map((v) => valueFormatter(v, ast.module)),
         ),
       ])
     }
@@ -170,7 +171,7 @@ function useSortFilterNodesButton({
 
   function buildPattern(
     ast: Ast.Owned<Ast.MutableExpression>,
-    parentPattern: any,
+    parentPattern: Ast.Owned<Ast.MutableExpression>,
     columnName: string,
     filterType: FilterType,
     filterAction: FilterAction,

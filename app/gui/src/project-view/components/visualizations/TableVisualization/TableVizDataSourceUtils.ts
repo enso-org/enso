@@ -56,8 +56,8 @@ const parseFilterValues = (
     }
     case 'Boolean':
       return value.value === 'false' ?
-          Ast.parseExpression('False', tempModule)!
-        : Ast.parseExpression('True', tempModule)!
+          Ast.Ident.new(tempModule, Ast.identifier('False')!)
+        : Ast.Ident.new(tempModule, Ast.identifier('True')!)
     default:
       return Ast.parseExpression(value, tempModule)!
   }
