@@ -1760,7 +1760,7 @@ export default class RemoteBackend extends Backend {
       // User is not authorized, we should redirect to the login page.
       return await this.throw(
         response,
-        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError'), makeRequest),
+        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError')),
       )
     }
     return response

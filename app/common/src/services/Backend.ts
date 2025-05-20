@@ -1854,15 +1854,7 @@ export class NetworkError extends Error {
 }
 
 /** Error class for when the user is not authorized to access a resource. */
-export class NotAuthorizedError extends NetworkError {
-  constructor(
-    message: string,
-    readonly retry: () => unknown,
-    status?: number | null,
-  ) {
-    super(message, status)
-  }
-}
+export class NotAuthorizedError extends NetworkError {}
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export default abstract class Backend {
