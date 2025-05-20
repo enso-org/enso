@@ -243,6 +243,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           artifact_name: playwright-report
+          preview: true
 
       - name: 📝 Create Playwright comment
         uses: actions/github-script@v7
