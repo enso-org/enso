@@ -21,13 +21,14 @@ export interface ToggleButton extends Button {
 }
 
 export interface SelectionMenuOption extends Button {
-  label?: string
-  disabled?: ToValue<boolean>
+  label?: string | undefined
+  labelExtension?: string | undefined
+  disabled?: ToValue<boolean> | undefined
   /**
    * If `true`, the option will never be shown in the list, but can be rendered as the heading if it
    * is the current model-value.
    */
-  hidden?: ToValue<boolean>
+  hidden?: ToValue<boolean> | undefined
 }
 
 export interface SelectionMenu {

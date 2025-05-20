@@ -13,8 +13,8 @@ const selected = defineModel<Key>({ required: true })
 const _props = defineProps<{
   options: Record<Key, SelectionMenuOption>
   title?: string | undefined
-  labelButton?: boolean
-  alwaysShowArrow?: boolean
+  labelButton?: boolean | undefined
+  alwaysShowArrow?: boolean | undefined
 }>()
 
 const open = ref(false)
@@ -51,6 +51,11 @@ function onClick(option: SelectionMenuOption) {
         >
           <SvgIcon :name="option.icon" :style="option.iconStyle" :data-testid="option.dataTestid" />
           <div v-if="option.label" class="iconLabel" v-text="option.label" />
+          <div
+            v-if="option.labelExtension"
+            class="iconLabel labelExtension"
+            v-text="option.labelExtension"
+          />
         </MenuButton>
       </MenuPanel>
     </template>
@@ -61,10 +66,16 @@ function onClick(option: SelectionMenuOption) {
 .MenuButton {
   margin: -4px;
   justify-content: unset;
+  &:has(.iconLabel) {
+    padding-right: 4px;
+  }
 }
 
 .iconLabel {
-  margin-left: 4px;
-  padding-right: 4px;
+  padding-left: 4px;
+}
+
+.labelExtension {
+  font-size: smaller;
 }
 </style>
