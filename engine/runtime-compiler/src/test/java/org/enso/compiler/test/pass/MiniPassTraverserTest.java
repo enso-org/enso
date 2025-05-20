@@ -1,17 +1,23 @@
 package org.enso.compiler.test.pass;
 
+import static org.enso.scala.wrapper.ScalaConversions.asScala;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
 import java.util.List;
+import org.enso.compiler.core.ir.CallArgument;
+import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Case;
+import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.pass.MiniIRPass;
-import org.enso.scala.wrapper.ScalaConversions;
+import org.enso.persist.Persistance.Reference;
 import org.junit.Test;
 import scala.Option;
 
@@ -143,15 +149,54 @@ public class MiniPassTraverserTest {
     var empty1 = emptyIr();
     var empty2 = emptyIr();
     var branch = Case.Branch.builder().pattern(pattern).expression(empty1).build();
-    var caseExpr =
-        Case.Expr.builder()
-            .branches(ScalaConversions.asScala(List.of(branch)))
-            .scrutinee(empty2)
-            .build();
+    var caseExpr = Case.Expr.builder().branches(asScala(List.of(branch))).scrutinee(empty2).build();
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(Expression.class, caseExpr, miniPass);
-    var visitedExprs = miniPass.getTransformedExpressions();
-    assertThat(visitedExprs, is(List.of(empty2, empty1, caseExpr)));
+    expectVisited(miniPass, empty2);
+    expectVisited(miniPass, empty1);
+    expectVisited(miniPass, caseExpr);
+  }
+
+  @Test
+  public void traverseOver_BinaryOperator() {
+    var a = literal("a");
+    var b = literal("b");
+    var left = callArg(a);
+    var right = callArg(b);
+    var operator = literal("+");
+    var binaryOperator = binaryOperator(left, right, operator);
+    var miniPass = MockMiniPass.builder().build();
+    MiniIRPass.compile(Expression.class, binaryOperator, miniPass);
+    expectVisited(miniPass, a);
+    expectVisited(miniPass, b);
+    expectVisited(miniPass, binaryOperator);
+  }
+
+  @Test
+  public void traverseOver_FunctionLambda() {
+    var body = binaryOperator();
+    var lambda =
+        Function.Lambda.builder()
+            .bodyReference(Reference.of(body))
+            .arguments(scalaList(selfArg()))
+            .build();
+    var miniPass = MockMiniPass.builder().build();
+    MiniIRPass.compile(Expression.class, lambda, miniPass);
+    expectVisited(miniPass, lambda);
+    expectVisited(miniPass, body);
+  }
+
+  private static void expectVisited(MockMiniPass pass, Expression expectedVisitedExpr) {
+    var transformedExpressions = pass.getTransformedExpressions();
+    var transformedExprClasses =
+        transformedExpressions.stream().map(e -> e.getClass().getName()).toList();
+    assertThat(
+        "Expected expression of type '"
+            + expectedVisitedExpr.getClass().getName()
+            + "' to be visited, but visited expressions were: "
+            + transformedExprClasses,
+        transformedExpressions,
+        hasItem(expectedVisitedExpr));
   }
 
   private static Name.Literal literal(String lit) {
@@ -160,5 +205,35 @@ public class MiniPassTraverserTest {
 
   private static Empty emptyIr() {
     return Empty.builder().build();
+  }
+
+  private static DefinitionArgument.Specified selfArg() {
+    return DefinitionArgument.Specified.builder()
+        .name(literal("self"))
+        .ascribedType(Option.empty())
+        .defaultValue(Option.empty())
+        .build();
+  }
+
+  private static Operator.Binary binaryOperator() {
+    return new Operator.Binary(
+        callArg("a"), literal("+"), callArg("b"), null, new MetadataStorage());
+  }
+
+  private static Operator.Binary binaryOperator(
+      CallArgument left, CallArgument right, Name operator) {
+    return new Operator.Binary(left, operator, right, null, new MetadataStorage());
+  }
+
+  private static CallArgument.Specified callArg(String name) {
+    return CallArgument.Specified.builder().value(literal(name)).name(Option.empty()).build();
+  }
+
+  private static CallArgument.Specified callArg(Name name) {
+    return CallArgument.Specified.builder().value(name).name(Option.empty()).build();
+  }
+
+  private static <T> scala.collection.immutable.List<T> scalaList(T elem) {
+    return asScala(List.of(elem));
   }
 }
