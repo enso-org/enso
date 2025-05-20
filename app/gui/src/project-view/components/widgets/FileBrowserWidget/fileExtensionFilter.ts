@@ -38,19 +38,23 @@ export function useFileExtensionFilter(
     return dotIndex !== -1
   })
 
-  watch(fileExtensionInputContents, (value) => {
-    if (value === '*' || value === '') {
-      filter.value = {
-        type: 'glob',
+  watch(
+    fileExtensionInputContents,
+    (value) => {
+      if (value === '*' || value === '') {
+        filter.value = {
+          type: 'glob',
+        }
+      } else {
+        filter.value = {
+          type: 'userInput',
+          // The only supported glob pattern is *, so if it is not the only character, we remove it.
+          input: value.replaceAll('*', ''),
+        }
       }
-    } else {
-      filter.value = {
-        type: 'userInput',
-        // The only supported glob pattern is *, so if it is not the only character, we remove it.
-        input: value.replaceAll('*', ''),
-      }
-    }
-  })
+    },
+    { flush: 'sync' },
+  )
 
   function matches(asset: Asset): boolean {
     if (asset.type !== AssetType.file) return true
