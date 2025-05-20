@@ -1,5 +1,5 @@
 /** @file A horizontal selector supporting multiple input. */
-import { useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
+import { forwardRef, useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
 
 import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
 
@@ -19,7 +19,6 @@ import {
   type TSchema,
 } from '#/components/AriaComponents'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { MultiSelectorOption, type MultiSelectorOptionProps } from './MultiSelectorOption'
 

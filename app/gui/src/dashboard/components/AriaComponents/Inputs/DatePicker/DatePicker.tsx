@@ -1,5 +1,5 @@
 /** @file A date picker. */
-import { useContext, type ForwardedRef } from 'react'
+import { forwardRef, useContext, type ForwardedRef } from 'react'
 
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
@@ -25,7 +25,6 @@ import {
   type DateValue,
 } from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import {

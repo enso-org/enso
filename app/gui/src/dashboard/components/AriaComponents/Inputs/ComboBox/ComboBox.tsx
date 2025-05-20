@@ -1,5 +1,5 @@
 /** @file A combo box with a list of items that can be filtered. */
-import { useContext, useRef, type ForwardedRef } from 'react'
+import { forwardRef, useContext, useRef, type ForwardedRef } from 'react'
 
 import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
@@ -11,7 +11,6 @@ import {
   type ComboBoxProps as AriaComboBoxProps,
 } from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import {
