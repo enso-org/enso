@@ -231,7 +231,7 @@ jobs:
         id: upload-html-report
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report--attempt-${{ github.run_attempt }}
+          name: playwright-report
           path: app/gui/playwright-report/
           retention-days: 14
 
@@ -239,10 +239,10 @@ jobs:
         id: deployment
         if: ${{ steps.merge-reports.outcome == 'success' }}
         continue-on-error: true
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifact_name: playwright-report--attempt-${{ github.run_attempt }}
+          artifact_name: playwright-report
 
       - name: 📝 Create Playwright comment
         uses: actions/github-script@v7
