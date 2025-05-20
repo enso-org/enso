@@ -16,6 +16,7 @@ import { CognitoErrorType, type CognitoUser, type ISessionProvider } from '#/aut
 import * as listen from '#/authentication/listen'
 import { Dialog } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
+import { useThrottledAsyncCallback } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtag from '#/hooks/gtagHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -57,7 +58,7 @@ export function SessionProvider(props: SessionProviderProps) {
 
   const session = reactQuery.useSuspenseQuery(sessionQueryOptions)
 
-  const refreshUserSessionMutation = useMutationCallback({
+  const refreshUserSessionMutationRaw = useMutationCallback({
     mutationKey: ['refreshUserSession', { expireAt: session.data?.expireAt }],
     mutationFn: async () => authService.refreshUserSession(),
     onSuccess: (data) => {
@@ -73,6 +74,7 @@ export function SessionProvider(props: SessionProviderProps) {
       return logoutMutation()
     },
   })
+  const refreshUserSessionMutation = useThrottledAsyncCallback(refreshUserSessionMutationRaw)
 
   const logoutMutation = useMutationCallback({
     mutationKey: ['session', 'logout', session.data?.clientId] as const,
