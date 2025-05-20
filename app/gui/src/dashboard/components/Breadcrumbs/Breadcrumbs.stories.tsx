@@ -1,13 +1,12 @@
 /** @file Stories for the Breadcrumbs component. */
 
 import ArrowDown from '#/assets/expand_arrow.svg'
+import { Button, Menu } from '#/components/AriaComponents'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, fn, userEvent, within } from '@storybook/test'
 import { useState } from 'react'
-import { Button } from '../AriaComponents/Button'
-import { Menu } from '../AriaComponents/Menu'
-import type { BreadcrumbsProps } from './Breadcrumbs'
-import { Breadcrumbs } from './Breadcrumbs'
+import type { BreadcrumbsProps } from '.'
+import { Breadcrumbs } from '.'
 
 export default {
   title: 'Components/Breadcrumbs',

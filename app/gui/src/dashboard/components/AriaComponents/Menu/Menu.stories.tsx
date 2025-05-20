@@ -6,13 +6,13 @@ import type { Meta, StoryObj } from '@storybook/react'
 
 import { useText } from '#/providers/TextProvider'
 import { expect, userEvent, within } from '@storybook/test'
+import type { MenuProps } from '.'
+import { Menu } from '.'
 import { passwordSchema } from '../../../pages/authentication/schemas'
 import { Button } from '../Button'
 import { Popover } from '../Dialog'
 import { Form } from '../Form'
 import { Input } from '../Inputs'
-import type { MenuProps } from './Menu'
-import { Menu } from './Menu'
 
 const meta = {
   title: 'Components/Menu',

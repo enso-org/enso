@@ -17,6 +17,7 @@ import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { DIALOG_BACKGROUND } from '../../Dialog/variants'
 import {
   Form,
   type FieldComponentProps,
@@ -28,8 +29,6 @@ import {
   type FormInstance,
   type TSchema,
 } from '../../Form'
-// This cannot be added to the import above or else it is `undefined` due to a circular import.
-import { DIALOG_BACKGROUND } from '#/components/patterns'
 import { makeRoundedStyles } from '../../utilities'
 
 const DROPDOWN_STYLES = tv({
