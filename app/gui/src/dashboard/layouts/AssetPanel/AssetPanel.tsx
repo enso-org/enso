@@ -6,7 +6,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { memo, startTransition } from 'react'
 
-import type { BackendType } from 'enso-common/src/services/Backend'
+import { Plan, type BackendType } from 'enso-common/src/services/Backend'
 
 import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import DocsIcon from '#/assets/file_text.svg'
@@ -16,6 +16,7 @@ import VersionsIcon from '#/assets/versions.svg'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackend } from '#/providers/BackendProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
@@ -119,6 +120,8 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   const isLocal = isLocalCategory(category)
 
   const { getText } = useText()
+  const { user } = useFullUserSession()
+  const planCannotRunExecutions = user.plan === Plan.free || user.plan === Plan.solo
 
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()
@@ -244,13 +247,14 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             id="executionsCalendar"
             icon={CalendarIcon}
             label={
-              isLocal ?
-                getText('assetProjectExecutionsCalendar.cloudOnly')
+              isLocal ? getText('assetProjectExecutionsCalendar.cloudOnly')
+              : planCannotRunExecutions ?
+                getText('assetProjectExecutionsCalendar.teamPlanOnly')
               : getText('executionsCalendar')
             }
             isExpanded={isExpanded}
             onPress={expandTab}
-            isDisabled={isLocal}
+            isDisabled={isLocal || planCannotRunExecutions}
             isHidden={!enableAsyncExecution}
           />
           <AssetPanelTabs.Tab
