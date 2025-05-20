@@ -55,6 +55,16 @@ test('upload file (remote)', ({ page }) =>
       await expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
     }))
 
+test('upload file (local)', ({ page }) =>
+  mockAllAndLogin({ page })
+    .goToCategory.local()
+    .uploadFile(FILE_NAME, FILE_CONTENTS)
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveCount(1)
+      await expect(rows.nth(0)).toBeVisible()
+      await expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
+    }))
+
 test('create secret (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .createSecret(SECRET_NAME, SECRET_VALUE)

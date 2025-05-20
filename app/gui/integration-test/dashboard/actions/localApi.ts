@@ -17,6 +17,7 @@ import {
   type ProjectState,
 } from '#/services/ProjectManager/types'
 import { unsafeMutable } from '#/utilities/object'
+import { getDirectoryAndName } from '#/utilities/path'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { uuidv4 } from 'lib0/random.js'
 import type { Page } from 'playwright'
@@ -168,12 +169,8 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       return
     }
     fileSystem.delete(path)
-    const [, parentPathRaw] = path.match(/(.+)[/]([^/]+)$/) ?? []
-    if (parentPathRaw == null) {
-      return
-    }
-    const parentPath = Path(parentPathRaw)
-    const parentEntry = fileSystem.get(parentPath)
+    const { directoryPath } = getDirectoryAndName(path)
+    const parentEntry = fileSystem.get(directoryPath)
     if (parentEntry?.type !== 'DirectoryEntry') {
       return
     }
@@ -353,6 +350,21 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       })
     })
 
+    await page.route('/api/upload-file?*', async (route, request) => {
+      const params = new URL(request.url()).searchParams
+      const fileName = params.get('file_name')
+      const directoryPathRaw = params.get('directory')
+      const directoryPath = directoryPathRaw != null ? Path(directoryPathRaw) : ROOT_PATH
+      const filePath = Path(`${directoryPath}/${fileName}`)
+      if (filePath == null) {
+        return route.fulfill({ status: 400 })
+      }
+      // Remove any existing file, if one exists.
+      removeEntry(filePath)
+      addFile({ path: filePath, content: request.postData() ?? '' })
+      return route.fulfill({ body: filePath, contentType: 'text/plain' })
+    })
+
     await page.route('/api/run-project-manager-command?*', async (route, request) => {
       const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
         jsonrpc: '2.0',
@@ -404,11 +416,14 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
         case 'filesystem-read-path': {
           const filePath = cliArguments[0]
           if (filePath == null) {
-            return fail(`Could not find file at '${filePath}'`)
+            return fail('No path provided')
           }
           called('getFileContent', { path: filePath })
           const file = fileSystem.get(filePath)
-          if (file?.type !== 'FileEntry') {
+          if (!file) {
+            return fail(`Could not find file at '${filePath}'`)
+          }
+          if (file.type !== 'FileEntry') {
             return fail(`Filesystem entry at '${filePath}' is '${file?.type}', not file`)
           }
           return succeed(file.content, 'text/plain')
@@ -423,6 +438,16 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
             return fail(`Item already exists at '${folderPath}'`)
           }
           addDirectory({ path: Path(folderPath) })
+          return succeed({})
+        }
+        case 'filesystem-write-path': {
+          const filePath = cliArguments[0]
+          if (filePath == null) {
+            return fail('No path provided')
+          }
+          // Remove any existing file, if one exists.
+          removeEntry(Path(filePath))
+          addFile({ path: Path(filePath), content: request.postData() ?? '' })
           return succeed({})
         }
         case 'filesystem-move-from': {
