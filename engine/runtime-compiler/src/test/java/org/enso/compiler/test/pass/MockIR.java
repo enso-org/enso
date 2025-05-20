@@ -53,6 +53,9 @@ class MockIR implements IR {
 
   @Override
   public IR mapExpressions(Function<Expression, Expression> fn) {
+    for (var child : children) {
+      child.mapExpressions(fn);
+    }
     return this;
   }
 
