@@ -663,6 +663,8 @@ val httpComponentsVersion   = "4.4.1"
 val apacheArrowVersion      = "14.0.1"
 val snowflakeJDBCVersion    = "3.15.0"
 val mssqlserverJDBCVersion  = "12.6.2.jre11"
+val azureIdentityVersion    = "1.16.1"
+val azureResourceVersion    = "2.50.0"
 val jsoniterVersion         = "2.28.5"
 val jnaVersion              = "5.14.0"
 val googleProtobufVersion   = "3.25.1"
@@ -5448,8 +5450,10 @@ lazy val `std-microsoft` = project
     Compile / packageBin / artifactPath :=
       `std-microsoft-polyglot-root` / "std-microsoft.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"        % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
+      "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.microsoft.sqlserver"   % "mssql-jdbc"              % mssqlserverJDBCVersion,
+      "com.azure"                 % "azure-identity"          % azureIdentityVersion,
+      "com.azure.resourcemanager" % "azure-resourcemanager"   % azureResourceVersion,
     ),
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
