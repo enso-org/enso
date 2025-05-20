@@ -1,5 +1,6 @@
 package org.enso.compiler.test.ir;
 
+import static org.enso.compiler.test.ir.IRUtils.callArg;
 import static org.enso.compiler.test.ir.IRUtils.defArg;
 import static org.enso.compiler.test.ir.IRUtils.emptyIr;
 import static org.enso.compiler.test.ir.IRUtils.literal;

@@ -156,7 +156,11 @@ public final class MapExpressionsMethodGenerator {
         .append(System.lineSeparator());
     var changedCond =
         newChildren.stream()
-            .map(newChild -> newChild.newChildName + " != " + newChild.child.getName())
+            .map(
+                newChild ->
+                    "(!Objects.equals(${mappedChildName}, ${childName}))"
+                        .replace("${mappedChildName}", newChild.newChildName)
+                        .replace("${childName}", newChild.child.getName()))
             .collect(Collectors.joining(" || "));
     sb.append("  ").append("if (").append(changedCond).append(") {").append(System.lineSeparator());
     sb.append("    ").append("var bldr = new Builder();").append(System.lineSeparator());
