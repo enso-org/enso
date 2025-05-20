@@ -58,12 +58,22 @@ public class MiniPassTraverserTest {
   }
 
   @Test
-  public void traverseExpression_UnderNonExpressions() {
+  public void traverseModule_SingleExpression() {
+    var root = new MockExpression(null);
+    var module = MockModule.createWithSingleMethod(root);
+    var miniPass = MockMiniPass.builder().build();
+    MiniIRPass.compile(MockModule.class, module, miniPass);
+    assertThat(root.isPreparedBy(miniPass), is(true));
+    assertThat(root.isTransformedBy(miniPass), is(true));
+  }
+
+  @Test
+  public void traverseModule_Expression_UnderNonExpression() {
     var root = new MockExpression(null);
     var child = new MockIR(root);
     var nestedChild = new MockIR(child);
     var expr = new MockExpression(nestedChild);
-    var module = MockModule.createWithSingleMethod("main", root);
+    var module = MockModule.createWithSingleMethod(root);
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(MockModule.class, module, miniPass);
     assertThat(root.isPreparedBy(miniPass), is(true));

@@ -31,7 +31,8 @@ final class MockModule extends Module {
     super(imports, exports, bindings, isPrivate, identifiedLocation, passData, diagnostics);
   }
 
-  static MockModule createWithSingleMethod(String methodName, Expression methodBody) {
+  static MockModule createWithSingleMethod(Expression methodBody) {
+    var methodName = "test";
     var methodRef =
         new Name.MethodReference(
             Option.empty(), IRUtils.literal(methodName), null, new MetadataStorage());
