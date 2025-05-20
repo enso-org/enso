@@ -21,6 +21,16 @@ test('create folder (remote)', ({ page }) =>
       await expect(rows.nth(0)).toHaveText(/^New Folder 1/)
     }))
 
+test('create folder (local)', ({ page }) =>
+  mockAllAndLogin({ page })
+    .goToCategory.local()
+    .createFolder()
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveCount(1)
+      await expect(rows.nth(0)).toBeVisible()
+      await expect(rows.nth(0)).toHaveText(/^New Folder 1/)
+    }))
+
 test('create project (remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .newEmptyProject()

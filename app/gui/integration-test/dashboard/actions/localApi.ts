@@ -159,6 +159,42 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       return
     }
     parentEntry.children.push(entry)
+    return entry
+  }
+
+  const removeEntry = (path: Path) => {
+    const entry = fileSystem.get(path)
+    if (!entry) {
+      return
+    }
+    fileSystem.delete(path)
+    const [, parentPathRaw] = path.match(/(.+)[/]([^/]+)$/) ?? []
+    if (parentPathRaw == null) {
+      return
+    }
+    const parentPath = Path(parentPathRaw)
+    const parentEntry = fileSystem.get(parentPath)
+    if (parentEntry?.type !== 'DirectoryEntry') {
+      return
+    }
+    const index = parentEntry.children.findIndex((child) => child.entry.path === path)
+    if (index !== -1) {
+      parentEntry.children.splice(index, 1)
+    }
+    return entry
+  }
+
+  const moveEntry = (source: Path, destination: Path) => {
+    if (!fileSystem.has(source) || fileSystem.has(destination)) {
+      return
+    }
+    const entry = removeEntry(source)
+    if (!entry) {
+      return
+    }
+    unsafeMutable(entry.entry).path = destination
+    addEntry(destination, entry)
+    return entry
   }
 
   const addDirectory = (options: DirectoryEntryOptions) => {
@@ -347,10 +383,13 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       if (!cliArgumentsObject) {
         return fail('Missing arguments object')
       }
-      const cliArguments = cliArgumentsObject.arguments
+      const cliArguments: readonly string[] = cliArgumentsObject.arguments
       switch (cliArgumentsObject.name) {
         case 'filesystem-exists': {
           const path = cliArguments[0]
+          if (path == null) {
+            return fail('No path provided')
+          }
           return succeed({ exists: fileSystem.has(path) })
         }
         case 'filesystem-list': {
@@ -374,6 +413,45 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
           }
           return succeed(file.content, 'text/plain')
         }
+        case 'filesystem-create-directory': {
+          const folderPath = cliArguments[0]
+          if (folderPath == null) {
+            return fail('No path provided')
+          }
+          const folder = fileSystem.get(folderPath)
+          if (folder) {
+            return fail(`Item already exists at '${folderPath}'`)
+          }
+          addDirectory({ path: Path(folderPath) })
+          return succeed({})
+        }
+        case 'filesystem-move-from': {
+          if (cliArguments[1] !== '--filesystem-move-to') {
+            return fail('`--filesystem-move-to` not found')
+          }
+          const sourcePath = cliArguments[0]
+          const destinationPath = cliArguments[2]
+          if (sourcePath == null) {
+            return fail('No source path provided')
+          }
+          if (destinationPath == null) {
+            return fail('No destination path provided')
+          }
+          moveEntry(Path(sourcePath), Path(destinationPath))
+          return succeed({})
+        }
+        case 'filesystem-delete': {
+          const path = cliArguments[0]
+          if (path == null) {
+            return fail('No path provided')
+          }
+          const entry = fileSystem.get(path)
+          if (!entry) {
+            return fail(`Item does not exist at '${path}'`)
+          }
+          removeEntry(Path(path))
+          return succeed({})
+        }
       }
     })
   })
@@ -383,6 +461,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
     addDirectory,
     addProject,
     addFile,
+    removeEntry,
   } as const
 
   await setupLocalAPI?.(api)

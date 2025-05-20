@@ -66,6 +66,8 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
         await page
           .getByRole('button', { name: TEXT.deleteShortcut })
           .getByText(TEXT.deleteShortcut)
+          // Click the first result; the second one is the text of the keybind.
+          .first()
           .click()
 
         // Confirm the deletion in the dialog
