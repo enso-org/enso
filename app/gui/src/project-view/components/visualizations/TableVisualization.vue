@@ -693,50 +693,61 @@ function toField(
   }
 }
 
-function getAstPattern(selector?: string | number, action?: string) {
-  if (action && selector != null) {
-    return Pattern.new<Ast.Expression>((ast) =>
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
-        typeof selector === 'number' ?
-          Ast.tryNumberToEnso(selector, ast.module)!
-        : Ast.TextLiteral.new(selector, ast.module),
-      ),
-    )
-  }
+function getAstPattern(selectors: (string | number)[], action?: string) {
+  if (!action || selectors.length === 0) return;
+
+  return Pattern.new<Ast.Expression>((ast) => {
+    const args = selectors.map((s) =>
+      typeof s === 'number'
+        ? Ast.tryNumberToEnso(s, ast.module)!
+        : Ast.TextLiteral.new(s, ast.module)
+    );
+
+    const func = Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!);
+    return Ast.App.PositionalSequence(func, args);
+  });
 }
+
+
 
 function createNode(
   params: CellDoubleClickedEvent,
-  selector: string,
+  selectors: string[] | string,
   action?: string,
   castValueTypes?: string,
 ) {
-  const selectorKey = params.data[selector]
-  const castSelector =
-    castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
-  const pattern = getAstPattern(castSelector, action)
+  const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
+
+  const castSelectors = selectorArray.map((key) => {
+    return params.data[key];
+    const value = params.data[key];
+    return castValueTypes === 'number' && !isNaN(Number(value)) ? Number(value) : value;
+  });
+
+  const pattern = getAstPattern(castSelectors, action);
   if (pattern) {
     config.createNodes({
       content: pattern,
       commit: true,
-    })
+    });
   }
 }
-
 interface LinkFieldOptions {
   tooltipValue?: string | undefined
   headerName?: string | undefined
   getChildAction?: string | undefined
   castValueTypes?: string | undefined
+  args?: string[] | undefined
 }
 
 function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef {
-  const { tooltipValue, headerName, getChildAction, castValueTypes } = options
+  const { tooltipValue, headerName, getChildAction, castValueTypes, args } = options
+  const selectorArgs = args ?? [fieldName];
+
   return {
     headerName: headerName ? headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, castValueTypes),
+    onCellDoubleClicked: (params) => createNode(params, selectorArgs, getChildAction, castValueTypes),
     tooltipValueGetter: (params: ITooltipParams) =>
       params.node?.rowPinned === 'top' ?
         null
@@ -834,11 +845,16 @@ watchEffect(() => {
     rowData.value = data_.data.map((name) => ({ Value: name }))
   } else if (isGenericGrid(data_)) {
     columnDefs.value = data_.headers.map((header) => {
-    return toLinkField('Value', {
-      tooltipValue: header.child_label,
-      headerName: header.visualization_header,
-      getChildAction: header.get_child_node_action,
-    })
+      if (header.get_child_node_action) {
+      return toLinkField(header.visualization_header, {
+        tooltipValue: header.child_label,
+        headerName: header.visualization_header,
+        getChildAction: header.get_child_node_action,
+        args: header.args,
+      });
+    } else {
+      return toField(header.visualization_header);
+    }
   })
   rowData.value = data_.data ? createRowsForTable(data_.data, 0, false) : []
   } else if (Array.isArray(data_.json)) {
