@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ExecutableElement;
-import org.enso.runtime.parser.processor.ClassField;
 import org.enso.runtime.parser.processor.GeneratedClassContext;
 import org.enso.runtime.parser.processor.IRProcessingException;
 import org.enso.runtime.parser.processor.field.Field;
@@ -178,15 +177,33 @@ public final class MapExpressionsMethodGenerator {
       }
       sb.append(newChild.newChildName).append(");").append(System.lineSeparator());
     }
-    for (var field : restOfTheFields(newChildren)) {
+    for (var field : restOfUserFields(newChildren)) {
       sb.append("    ")
           .append("bldr.")
-          .append(field.name())
+          .append(field.getName())
           .append("(")
-          .append(field.name())
+          .append(field.getName())
           .append(");")
           .append(System.lineSeparator());
     }
+    // Meta fields are handled specifically - some of them need to be duplicated,
+    // some of them does not.
+    // Note: Keep the indentation of the multiline string.
+    sb.append(
+        """
+            if (this.diagnostics != null) {
+              bldr.diagnostics(this.diagnostics.copy());
+            }
+            if (this.passData != null) {
+              bldr.passData(this.passData.duplicate());
+            }
+            if (this.location != null) {
+              bldr.location(this.location);
+            }
+            if (this.id != null) {
+              bldr.id(this.id);
+            }
+        """);
     sb.append("    return bldr.build();").append(System.lineSeparator());
     sb.append("  } else { ").append(System.lineSeparator());
     sb.append("    // None of the mapped children changed - just return this")
@@ -254,12 +271,12 @@ public final class MapExpressionsMethodGenerator {
     return code;
   }
 
-  private List<ClassField> restOfTheFields(List<MappedChild> newChildren) {
-    var restOfFields = new ArrayList<ClassField>();
-    for (var field : ctx.getAllFields()) {
+  private List<Field> restOfUserFields(List<MappedChild> newChildren) {
+    var restOfFields = new ArrayList<Field>();
+    for (var userField : ctx.getUserFields()) {
       if (newChildren.stream()
-          .noneMatch(newChild -> newChild.child.getName().equals(field.name()))) {
-        restOfFields.add(field);
+          .noneMatch(newChild -> newChild.child.getName().equals(userField.getName()))) {
+        restOfFields.add(userField);
       }
     }
     return restOfFields;
