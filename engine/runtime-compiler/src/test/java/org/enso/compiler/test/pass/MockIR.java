@@ -15,7 +15,7 @@ import org.enso.compiler.core.ir.MetadataStorage;
 import scala.Option;
 import scala.jdk.javaapi.CollectionConverters;
 
-class MockIR implements IR {
+public class MockIR implements IR {
   private final Set<MockMiniPass> preparedBy = new HashSet<>();
   final List<MockIR> children = new ArrayList<>();
   private final MockIR parent;
@@ -23,7 +23,7 @@ class MockIR implements IR {
   /**
    * @param parent null if this is the root element
    */
-  MockIR(MockIR parent) {
+  public MockIR(MockIR parent) {
     this.parent = parent;
     if (parent != null) {
       assert !parent.children.contains(this);
@@ -54,7 +54,11 @@ class MockIR implements IR {
   @Override
   public IR mapExpressions(Function<Expression, Expression> fn) {
     for (var child : children) {
-      child.mapExpressions(fn);
+      if (child instanceof MockExpression expr) {
+        fn.apply(expr);
+      } else {
+        child.mapExpressions(fn);
+      }
     }
     return this;
   }

@@ -8,10 +8,10 @@ import org.enso.compiler.core.ir.IdentifiedLocation;
 import scala.Option;
 import scala.PartialFunction;
 
-final class MockExpression extends MockIR implements Expression {
+public final class MockExpression extends MockIR implements Expression {
   private final Set<MockMiniPass> transformedBy = new HashSet<>();
 
-  MockExpression(MockIR parent) {
+  public MockExpression(MockIR parent) {
     super(parent);
   }
 
