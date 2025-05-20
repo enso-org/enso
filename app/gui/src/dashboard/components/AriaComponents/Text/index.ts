@@ -3,5 +3,6 @@
  *
  * Barrel import file for Text component.
  */
+export * from './style'
 export * from './Text'
 export * from './variant'
