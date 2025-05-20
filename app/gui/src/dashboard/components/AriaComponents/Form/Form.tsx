@@ -89,6 +89,7 @@ export const Form = Object.assign(
     )
   }),
   {
+    /* eslint-disable @typescript-eslint/naming-convention */
     schema: components.schema,
     useForm: components.useForm,
     useField: components.useField,
@@ -110,5 +111,6 @@ export const Form = Object.assign(
     useFieldState: components.useFieldState,
     useFormError: components.useFormError,
     useFormState: components.useFormState,
+    /* eslint-enable @typescript-eslint/naming-convention */
   },
 )

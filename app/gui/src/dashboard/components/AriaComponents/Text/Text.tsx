@@ -282,5 +282,11 @@ export const Text = Object.assign(
       )
     }),
   ),
-  { Heading, Body, Group: TextGroup },
+  /* eslint-disable @typescript-eslint/naming-convention */
+  {
+    Heading,
+    Body,
+    Group: TextGroup,
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
 )

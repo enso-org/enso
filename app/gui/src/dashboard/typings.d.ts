@@ -9,6 +9,7 @@ declare module 'react' {
   // Technically incorrect, as internally it is a `MemoExoticComponent`,
   // however in practice it should be indistinguishable from the original component.
   function memo<P = object>(
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     Component: (props: P) => ReactNode | null,
     propsAreEqual?: (prevProps: Readonly<P>, nextProps: Readonly<P>) => boolean,
   ): (props: P) => ReactNode | null

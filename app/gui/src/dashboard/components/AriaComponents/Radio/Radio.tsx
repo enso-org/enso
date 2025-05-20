@@ -1,15 +1,14 @@
 /** @file A radio button. */
-
 import * as aria from '#/components/aria'
-import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { tv } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 import * as text from '../Text'
-import * as radioGroup from './RadioGroup'
-import * as radioGroupContext from './RadioGroupContext'
+import { RadioGroup } from './RadioGroup'
+import { useRadioGroupContext } from './RadioGroupContext'
 
-const RADIO_STYLES = twv.tv({
+const RADIO_STYLES = tv({
   base: 'flex items-center gap-2 cursor-pointer group w-full',
   variants: {
     isFocused: { true: 'outline-none' },
@@ -52,7 +51,7 @@ export const Radio = Object.assign(
     const id = aria.useId(ariaProps.id)
 
     const state = React.useContext(aria.RadioGroupStateContext)
-    const { setPressed, clearPressed, isSiblingPressed } = radioGroupContext.useRadioGroupContext({
+    const { setPressed, clearPressed, isSiblingPressed } = useRadioGroupContext({
       value: props.value,
     })
 
@@ -121,13 +120,13 @@ export const Radio = Object.assign(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         {...aria.mergeProps<React.LabelHTMLAttributes<HTMLLabelElement>>()(hoverProps, labelProps)}
         ref={(el) => {
-          mergeRefs.mergeRefs(labelRef, ref)(el)
+          mergeRefs(labelRef, ref)(el)
         }}
         className={base()}
       >
         <input
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           {...aria.mergeProps<React.InputHTMLAttributes<HTMLInputElement>>()(
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             inputProps,
             focusProps,
           )}
@@ -144,5 +143,9 @@ export const Radio = Object.assign(
       </label>
     )
   }),
-  { Group: radioGroup.RadioGroup },
+  /* eslint-disable @typescript-eslint/naming-convention */
+  {
+    Group: RadioGroup,
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
 )

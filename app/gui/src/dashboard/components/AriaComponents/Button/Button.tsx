@@ -278,11 +278,13 @@ export const Button = Object.assign(
       )
     }),
   ),
+  /* eslint-disable @typescript-eslint/naming-convention */
   {
     Group: ButtonGroup,
     GroupJoin: ButtonGroupJoin,
     GroupProvider: ButtonGroupProvider,
   },
+  /* eslint-enable @typescript-eslint/naming-convention */
 )
 
 /** Props for {@link ButtonContent}. */

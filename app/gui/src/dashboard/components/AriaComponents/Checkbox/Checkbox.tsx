@@ -180,7 +180,11 @@ export const Checkbox = Object.assign(
 
     return <CheckboxInternal ref={ref} {...props} />
   }),
-  { Group: CheckboxGroup },
+  /* eslint-disable @typescript-eslint/naming-convention */
+  {
+    Group: CheckboxGroup,
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
 )
 
 /** Internal props for the {@link Checkbox} component. */
