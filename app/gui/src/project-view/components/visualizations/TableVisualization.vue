@@ -38,15 +38,17 @@ import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
   Error,
-  SingleColumnOfActions,
   isError,
   isSingleColumnOfActions,
+  SingleColumnOfActions,
 } from './TableVisualization/TableVisualisationTypes'
 import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
   createExpressionRowTemplate,
+  ValueTypeArgumentChild,
+  ValueTypes,
 } from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
@@ -424,7 +426,22 @@ function createServer() {
       columnIndex: number,
       filterColumnIndexList: string[] | string,
       filterActions: string[] | string,
-      valueList: string[] | string,
+      valueList:
+        | string
+        | (
+            | {
+                valueType: ValueTypes
+                value: string
+              }
+            | {
+                valueType: 'Mixed'
+                value: ValueTypeArgumentChild[]
+              }
+            | {
+                valueType: ValueTypes
+                value: string
+              }[]
+          )[],
     ) => {
       const expressionFunction = createDistinctExpressionTemplate(
         'Standard.Visualization.Table.Visualization',

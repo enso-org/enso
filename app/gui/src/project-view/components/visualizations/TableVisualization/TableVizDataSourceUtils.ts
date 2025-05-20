@@ -4,8 +4,8 @@ import type { IServerSideGetRowsRequest } from 'ag-grid-enterprise'
 import { actionMap, FilterAction, getFilterValue, GridFilterModel } from './tableVizFilterUtils'
 import { getCellValueType } from './tableVizUtils'
 
-type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char'
-type ValueTypeArgumentChild = { valueType: ValueTypes; value: string }
+export type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char'
+export type ValueTypeArgumentChild = { valueType: ValueTypes; value: string }
 type ValueTypeArgumentParent =
   | { valueType: ValueTypes; value: string }
   | { valueType: 'Mixed'; value: ValueTypeArgumentChild[] }
