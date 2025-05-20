@@ -137,7 +137,7 @@ const displayedChildren = computed(() => {
 
 const cssPropsToCopy = [
   '--color-node-primary',
-  '--color-node-port',
+  '--color-edge-from-node',
   '--node-border-radius',
   'font-family',
   'font-size',
@@ -420,17 +420,16 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
               :class="{ hintDeletable: entry.hintDeletable.value }"
               data-testid="list-item-content"
             >
-              <slot :item="entry.item"></slot>
+              <slot :item="entry.item" :index="entry.index"></slot>
             </div>
             <SizeTransition width>
-              <!-- This wrapper is needed to animate an `SvgButton` because it ultimately contains a `TooltipTrigger`,
-                       which has a fragment root. -->
+              <!-- This wrapper is needed to animate an `SvgButton` because it ultimately contains a `TooltipTrigger`, which has a fragment root. -->
               <div v-if="props.showHandles" class="iconWrapper">
                 <SvgButton
                   class="item-button"
                   name="close"
                   title="Remove item"
-                  @click.stop="deleteItem(entry.index)"
+                  @activate="deleteItem(entry.index)"
                   @pointerenter="entry.hintDeletable.value = true"
                   @pointerleave="entry.hintDeletable.value = false"
                 />
@@ -449,20 +448,18 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
         ></li>
       </template>
     </template>
-    <div key="add-icon">
-      <SizeTransition :width="axis === 'x'" :height="axis === 'y'">
-        <!-- This wrapper is a workaround: If the `v-if` is applied to the `SvgIcon`, once the button is shown it will
+    <SizeTransition key="add-icon" :width="axis === 'x'" :height="axis === 'y'">
+      <!-- This wrapper is a workaround: If the `v-if` is applied to the `SvgIcon`, once the button is shown it will
              never go back to hidden. This might be a Vue bug? -->
-        <div v-if="props.showHandles" class="iconWrapper axisAligned">
-          <SvgButton
-            class="item-button after-last-item"
-            name="vector_add"
-            title="Add a new item"
-            @click.stop="addItem"
-          />
-        </div>
-      </SizeTransition>
-    </div>
+      <div v-if="props.showHandles" class="iconWrapper axisAligned">
+        <SvgButton
+          class="item-button after-last-item"
+          name="vector_add"
+          title="Add a new item"
+          @activate="addItem"
+        />
+      </div>
+    </SizeTransition>
     <div
       key="drop-area"
       class="drop-area widgetOutOfLayout"
@@ -558,7 +555,7 @@ div {
   transition: color 0.2s ease;
   cursor: grab;
 
-  color: var(--color-widget-unfocus);
+  color: var(--color-widget);
 
   &:hover {
     color: var(--color-widget-focus);
@@ -578,12 +575,14 @@ div {
   .items:empty + & {
     margin: 0 2px;
   }
-  &:hover {
+  &:hover,
+  &:focus,
+  &:active {
     opacity: 1;
   }
 }
 
-.DraggableList.axis-x .after-last-item {
+.DraggableList.axis-x .item + .iconWrapper > .after-last-item {
   margin-left: 4px;
 }
 

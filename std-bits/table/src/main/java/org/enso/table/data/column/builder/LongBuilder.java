@@ -145,6 +145,12 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   @Override
+  public LongBuilder appendNulls(int count) {
+    doAppendNulls(count);
+    return this;
+  }
+
+  @Override
   public void append(Object o) {
     if (o == null) {
       appendNulls(1);

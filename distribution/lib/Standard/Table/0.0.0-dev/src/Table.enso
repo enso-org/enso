@@ -39,6 +39,7 @@ import project.Fill_With.Fill_With
 import project.Generate_Rows_Range.Generate_Rows_Range
 import project.Grouping_Method.Grouping_Method
 import project.Headers.Headers
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Add_Group_Number
 import project.Internal.Add_Row_Number
 import project.Internal.Add_Running
@@ -49,6 +50,7 @@ import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 import project.Internal.Display_Helpers
 import project.Internal.Expand_Objects_Helpers
+import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
 import project.Internal.Lookup_Helpers
@@ -149,13 +151,14 @@ type Table
         invalid_input_shape =
             Error.throw (Illegal_Argument.Error "Each column must be represented by a vector whose first element is the column name, second element is a vector of elements that will constitute that column (or an existing column) and an optional third element that is the Value_Type for the column. Got: "+columns.to_text)
         cols = columns.map on_problems=No_Wrap.Value c->
-            case c of
+            column = case c of
                 v : Vector -> case v.length of
-                    2 -> Column.from_vector (v.at 0) (v.at 1) . java_column
-                    3 -> Column.from_vector (v.at 0) (v.at 1) (v.at 2) . java_column
+                    2 -> Column.from_vector (v.at 0) (v.at 1)
+                    3 -> Column.from_vector (v.at 0) (v.at 1) (v.at 2)
                     _ -> invalid_input_shape
-                col : Column -> col.java_column
+                col : Column -> col
                 _ -> invalid_input_shape
+            (column:In_Memory_Column).java_column
         Panic.recover Illegal_Argument <|
             if cols.is_empty then
                 Panic.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
@@ -347,7 +350,7 @@ type Table
     @selector Widget_Helpers.make_column_name_selector
     at self (selector : Integer | Text = 0) -> Column ! No_Such_Column | Index_Out_Of_Bounds = case selector of
         _ : Integer ->
-            Column.from_java_column (self.java_table.getColumns.at selector)
+            In_Memory_Column.from_java_column (self.java_table.getColumns.at selector)
         _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
     ## ICON select_column
@@ -389,7 +392,7 @@ type Table
         java_column = case selector of
             _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
             _ : Text -> self.java_table.getColumnByName selector
-        if java_column.is_nothing then if_missing else Column.from_java_column java_column
+        if java_column.is_nothing then if_missing else In_Memory_Column.from_java_column java_column
 
     ## ALIAS cell value, get cell
        GROUP Standard.Base.Selections
@@ -1164,7 +1167,7 @@ type Table
             validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
 
             on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
-                java_key_columns = validated.key_columns.map c->c.java_column
+                java_key_columns = validated.key_columns.map c->(c:In_Memory_Column).java_column
                 Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                     index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
                     new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
@@ -1263,7 +1266,7 @@ type Table
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
-            java_columns = columns_for_ordering.map c->c.column.java_column
+            java_columns = columns_for_ordering.map c->(c.column:In_Memory_Column).java_column
             directions = columns_for_ordering.map c->c.associated_selector.direction.to_sign
 
             comparator = case text_ordering.sort_digits_as_numbers of
@@ -1357,7 +1360,7 @@ type Table
     distinct self (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = self.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
-        java_columns = key_columns.map c->c.java_column
+        java_columns = key_columns.map c->(c:In_Memory_Column).java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
             Java_Problems.with_problem_aggregator on_problems java_aggregator->
@@ -1395,7 +1398,7 @@ type Table
     duplicates self (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = self.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
-        java_columns = key_columns.map c->c.java_column
+        java_columns = key_columns.map c->(c:In_Memory_Column).java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
             Java_Problems.with_problem_aggregator on_problems java_aggregator->
@@ -1556,11 +1559,11 @@ type Table
                 already_parsed = Auto != type && column_value_type.is_same_type type
                 if already_parsed then column else
                     Value_Type.expect_text column <|
-                        storage = column.java_column.getStorage
+                        storage = (column:In_Memory_Column).java_column.getStorage
                         new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                             parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
                             parser.parseColumn storage parse_problem_aggregator
-                        Column.from_storage column.name new_storage
+                        In_Memory_Column.from_storage column.name new_storage
             Table.new new_columns
 
     ## GROUP Standard.Base.Conversions
@@ -2166,7 +2169,7 @@ type Table
     @filter Widget_Helpers.make_filter_condition_selector
     filter self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type = case column of
         _ : Column ->
-            mask filter_column = from_java_table (self.java_table.filter filter_column.java_column)
+            mask filter_column = from_java_table (self.java_table.filter (filter_column:In_Memory_Column).java_column)
             filter_condition = Filter_Condition.resolve_auto_scoped filter
             case filter_condition of
                 _ : Filter_Condition ->
@@ -2496,7 +2499,7 @@ type Table
 
             new_table = check_add_mode.if_not_error <|
                 if resolved.length != self.row_count then Error.throw (Row_Count_Mismatch.Error self.row_count resolved.length) else
-                    from_java_table (self.java_table.addOrReplaceColumn renamed.java_column)
+                    from_java_table (self.java_table.addOrReplaceColumn (renamed:In_Memory_Column).java_column)
 
             problem_builder.report_unique_name_strategy unique
             problem_builder.attach_problems_after on_problems new_table
@@ -2531,7 +2534,7 @@ type Table
             _ : Column -> value
             _ -> self.make_constant_column value
         is_column value = value.is_a Column
-        new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" Column.var_args_functions
+        new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" In_Memory_Column_Implementation.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.column_naming_helper.sanitize_name expression.expression)
         on_problems.attach_problems_before problems <|
@@ -2597,7 +2600,7 @@ type Table
              example_columns = Examples.inventory_table.columns
     columns self -> Vector = Vector.from_polyglot_array <|
         Array_Proxy.new self.java_table.getColumns.length i->
-            Column.from_java_column (self.java_table.getColumns.at i)
+            In_Memory_Column.from_java_column (self.java_table.getColumns.at i)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2888,7 +2891,7 @@ type Table
 
         keys = lookup_columns.filter .is_key
         java_keys = keys.map on_problems=No_Wrap.Value key_column->
-            Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
+            Java_Join_Equals.new (key_column.base_column:In_Memory_Column).java_column (key_column.lookup_column:In_Memory_Column).java_column
 
         handle_java_errors ~action =
             translate_null_values_exception caught_panic =
@@ -3273,9 +3276,9 @@ type Table
         selected_names = Dictionary.from_vector (id_columns.map column-> [column.name, True])
 
         data = columns_helper.internal_columns.filter column->(selected_names.get column.name False . not)
-        java_data = data.map c->c.java_column
+        java_data = data.map c->(c:In_Memory_Column).java_column
 
-        java_id = id_columns.map c->c.java_column
+        java_id = id_columns.map c->(c:In_Memory_Column).java_column
 
         unique.mark_used (id_columns.map .name)
         java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -3370,7 +3373,7 @@ type Table
             resolved_values.filter c->(c!=Nothing)
 
         problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
-            java_key_columns = grouping.map c->c.java_column
+            java_key_columns = grouping.map c->(c:In_Memory_Column).java_column
 
             name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
                 if validated_values.length == 1 then (_ -> "") else
@@ -3399,7 +3402,7 @@ type Table
                             Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
                         Panic.catch TooManyColumnsException handler=too_many_columns <|
                             Invalid_Column_Names.handle_java_exception <|
-                                new_java_table = self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names java_problem_aggregator
+                                new_java_table = self.java_table.makeCrossTabTable java_key_columns (matched_name.first:In_Memory_Column).java_column data_columns aggregate_names java_problem_aggregator
                                 from_java_table new_java_table
 
     ## PRIVATE
@@ -3561,13 +3564,13 @@ type Table
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         resolved_element_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
-        java_element_columns = resolved_element_columns.map c->c.java_column
+        java_element_columns = resolved_element_columns.map c->(c:In_Memory_Column).java_column
 
         resolved_attribute_columns = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
-        java_attribute_column = resolved_attribute_columns.map c->c.java_column
+        java_attribute_column = resolved_attribute_columns.map c->(c:In_Memory_Column).java_column
 
         resolved_value_column = if value_column.is_nothing then Nothing else (self.at value_column)
-        java_value_column = if value_column.is_nothing then Nothing else resolved_value_column.java_column
+        java_value_column = if value_column.is_nothing then Nothing else (resolved_value_column:In_Memory_Column).java_column
 
         unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Is_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column] ..Remove) . map .name
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
@@ -3976,11 +3979,11 @@ slice_ranges table ranges =
 
 ## PRIVATE
 make_join_helpers left_table right_table =
-    make_equals _ left right = Java_Join_Equals.new left.java_column right.java_column
+    make_equals _ left right = Java_Join_Equals.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column
     make_equals_ignore_case _ left right locale =
-        Java_Join_Equals_Ignore_Case.new left.java_column right.java_column locale.java_locale
+        Java_Join_Equals_Ignore_Case.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column locale.java_locale
     make_between _ left right_lower right_upper =
-        Java_Join_Between.new left.java_column right_lower.java_column right_upper.java_column
+        Java_Join_Between.new (left:In_Memory_Column).java_column (right_lower:In_Memory_Column).java_column (right_upper:In_Memory_Column).java_column
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
 
 ## PRIVATE
