@@ -1,6 +1,6 @@
 # This file is not auto-generated. Feel free to edit it.
 
-name: 🚂 Engine Changed Files
+name: Engine Changed Files
 
 on:
   workflow_call:
