@@ -1,8 +1,9 @@
 import * as text from 'enso-common/src/text'
 
 import { createContextStore } from '@/providers'
-import { computed, ref } from 'vue'
+import { computed, proxyRefs, ref } from 'vue'
 
+export type TextStore = ReturnType<typeof useText>
 /**
  * A composable for getting localized text and setting the language.
  *
@@ -21,7 +22,7 @@ export function useText() {
     language.value = lang
   }
 
-  return { language, locale, getText, setLanguage }
+  return proxyRefs({ language, locale, getText, setLanguage })
 }
 
 /**

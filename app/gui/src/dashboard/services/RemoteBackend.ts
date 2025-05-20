@@ -19,6 +19,7 @@ import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import type { GetText } from '$/providers/text'
 import invariant from 'tiny-invariant'
+import { markRaw } from 'vue'
 import { z } from 'zod'
 import { extractTypeAndId } from './LocalBackend'
 
@@ -1788,6 +1789,8 @@ export default class RemoteBackend extends Backend {
     return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
   }
 }
+
+markRaw(RemoteBackend.prototype)
 
 /** The schema that checks if the error is a duplicate asset error. */
 const DUPLICATE_ASSET_ERROR_SCHEMA = z.object({

@@ -1,4 +1,3 @@
-import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import { BackendType } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, {
@@ -7,39 +6,39 @@ import ProjectManager, {
 } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 import HttpClient from '#/utilities/HttpClient'
+import { useEvent } from '@/composables/events'
 import { createContextStore } from '@/providers'
 import { GuiConfig } from '@/providers/guiConfig'
 import { ToValue } from '@/util/reactivity'
-import * as common from 'enso-common'
 import invariant from 'tiny-invariant'
-import { computed, markRaw, onScopeDispose, readonly, ref, toValue } from 'vue'
+import { computed, proxyRefs, readonly, ref, toValue, watchEffect } from 'vue'
 import { GetText } from './text'
 
+export type BackendsStore = ReturnType<typeof useBackends>
 function useBackends(
   httpClient: HttpClient,
   config: ToValue<GuiConfig>,
   rootDirPath: ToValue<string | undefined>,
   getText: GetText,
 ) {
-  const projectManager = computed(() => {
-    const rootPath = toValue(rootDirPath)
-    if (rootPath == null) return
-    const cfg = toValue(config)
-    if (cfg.projectManagerUrl == null) return
+  const createProjectManager = (rootPath: string | undefined, projectManagerUrl: string | null) => {
+    if (!rootPath) return
+    if (projectManagerUrl == null) return
     const rootDirectory = ProjectManagerPath(rootPath)
-    if (rootDirPath && cfg.projectManagerUrl != null)
-      return new ProjectManager(cfg.projectManagerUrl, rootDirectory)
-    else return null
+    return new ProjectManager(projectManagerUrl, rootDirectory)
+  }
+  const projectManager = ref<ProjectManager>()
+  watchEffect((onCleanup) => {
+    const pm = createProjectManager(toValue(rootDirPath), toValue(config).projectManagerUrl)
+    onCleanup(() => pm?.dispose())
+    projectManager.value = pm
   })
   const localBackend = computed(() =>
-    projectManager.value ? markRaw(new LocalBackend(projectManager.value)) : null,
+    projectManager.value ? new LocalBackend(projectManager.value) : null,
   )
-  const remoteBackend = markRaw(new RemoteBackend(httpClient, console, getText))
+  const remoteBackend = new RemoteBackend(httpClient, console, getText)
 
-  const backendByCategory = (category: Category) =>
-    pickBackend(category, remoteBackend, localBackend.value)
-
-  const backendForProjectType = (projectType: BackendType) => {
+  const backendForType = (projectType: BackendType) => {
     switch (projectType) {
       case BackendType.remote:
         return remoteBackend
@@ -54,47 +53,23 @@ function useBackends(
   }
 
   const didLoadingProjectManagerFail = ref(false)
-  const onProjectManagerLoadingFailed = () => {
+  useEvent(document, ProjectManagerEvents.loadingFailed, () => {
     didLoadingProjectManagerFail.value = true
-  }
-  document.addEventListener(ProjectManagerEvents.loadingFailed, onProjectManagerLoadingFailed)
-  onScopeDispose(() =>
-    document.removeEventListener(ProjectManagerEvents.loadingFailed, onProjectManagerLoadingFailed),
-  )
+  })
 
   const reconnectToProjectManager = () => {
+    // To avoid race conditions, when someone try to reconnect twice in a row.
+    invariant(didLoadingProjectManagerFail.value)
     didLoadingProjectManagerFail.value = false
     localBackend.value?.reconnectProjectManager()
   }
-  return {
+  return proxyRefs({
     localBackend,
     remoteBackend,
-    backendByCategory,
-    backendForProjectType,
+    backendForType,
     didLoadingProjectManagerFail: readonly(didLoadingProjectManagerFail),
     reconnectToProjectManager,
-  }
+  })
 }
 
 export const [provideBackends, injectBackends] = createContextStore('backends', useBackends)
-
-/**
- * Pick the backend for the given category.
- * @throws {Error} when a Local Backend is requested for a non-local project.
- */
-export function pickBackend(
-  category: Category,
-  remoteBackend: RemoteBackend,
-  localBackend: LocalBackend | null,
-) {
-  if (isCloudCategory(category)) {
-    return remoteBackend
-  }
-
-  invariant(
-    localBackend != null,
-    `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`,
-  )
-
-  return localBackend
-}

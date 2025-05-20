@@ -1,6 +1,5 @@
 import HttpClient from '#/utilities/HttpClient'
 import { createContextStore } from '@/providers'
-import { markRaw } from 'vue'
 
 function generateSessionID() {
   const sessionID = sessionStorage.getItem('sessionID')
@@ -19,5 +18,5 @@ export const [provideHttpClient, injectHttpClient] = createContextStore('http-cl
     'x-enso-ide-version': $config.VERSION ?? '',
     'x-enso-session-id': sessionID,
   })
-  return markRaw(httpClient)
+  return httpClient
 })

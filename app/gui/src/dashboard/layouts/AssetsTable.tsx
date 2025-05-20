@@ -193,9 +193,8 @@ function AssetsTable(props: AssetsTableProps) {
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const { backendByCategory, didLoadingProjectManagerFail, reconnectToProjectManager } =
-    useBackends()
-  const backend = backendByCategory(category)
+  const { backendForType, didLoadingProjectManagerFail, reconnectToProjectManager } = useBackends()
+  const backend = backendForType(category.backend)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const { setModal, unsetModal } = useSetModal()
   const { localStorage } = useLocalStorage()

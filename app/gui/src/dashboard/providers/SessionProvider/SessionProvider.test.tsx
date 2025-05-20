@@ -16,7 +16,6 @@ import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
 import { Result } from 'ts-results'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { proxyRefs } from 'vue'
 import { SessionProvider } from '.'
 
 class MockAuthService implements ISessionProvider {
@@ -76,7 +75,7 @@ describe('SessionProvider', () => {
     const { getByText } = render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={proxyRefs(useText())}>
+          <TextContext.Provider value={useText()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -105,7 +104,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={httpClient}>
-          <TextContext.Provider value={proxyRefs(useText())}>
+          <TextContext.Provider value={useText()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -135,7 +134,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={proxyRefs(useText())}>
+          <TextContext.Provider value={useText()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -170,7 +169,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={proxyRefs(useText())}>
+          <TextContext.Provider value={useText()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -203,7 +202,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={proxyRefs(useText())}>
+          <TextContext.Provider value={useText()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}

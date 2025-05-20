@@ -25,7 +25,7 @@ async function main() {
   configureAnimations()
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
-  const rootDirPath = await getRootDirPath($config.CLOUD_BUILD !== 'true')
+  const rootDirPath = await getRootDirPath()
 
   const app = createApp(App, { onAuthenticated, rootDirPath })
   app.use(VueQueryPlugin, { queryClient })
@@ -169,7 +169,8 @@ function imNotSureButPerhapsFixingRefreshingWithAuthentication() {
   return onAuthenticated
 }
 
-async function getRootDirPath(supportsLocalBackend: boolean) {
+async function getRootDirPath() {
+  const supportsLocalBackend = $config.CLOUD_BUILD !== 'true'
   if (!supportsLocalBackend) return undefined
   const rootDirRequest = await fetch(`/api/root-directory`)
   return await rootDirRequest.text()

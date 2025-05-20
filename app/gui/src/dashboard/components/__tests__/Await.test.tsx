@@ -2,7 +2,6 @@ import { TextContext } from '$/providers/react'
 import { useText } from '$/providers/text'
 import { act, render, screen } from '@testing-library/react'
 import { describe, vi } from 'vitest'
-import { proxyRefs } from 'vue'
 import { Await } from '../Await'
 
 describe('<Await />', (it) => {
@@ -33,7 +32,7 @@ describe('<Await />', (it) => {
     const errorPromise = Promise.reject(new Error('💣'))
 
     render(
-      <TextContext.Provider value={proxyRefs(useText())}>
+      <TextContext.Provider value={useText()}>
         <Await promise={errorPromise}>{() => <>Hello</>}</Await>
       </TextContext.Provider>,
     )

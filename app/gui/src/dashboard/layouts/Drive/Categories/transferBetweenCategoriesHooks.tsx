@@ -64,8 +64,8 @@ export type TransferrableAsset = z.infer<typeof TRANSFERRABLE_ASSET_SCHEMA>
 
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {
-  const { localBackend, remoteBackend, backendByCategory } = useBackends()
-  const backend = backendByCategory(currentCategory)
+  const { localBackend, remoteBackend, backendForType } = useBackends()
+  const backend = backendForType(currentCategory.backend)
 
   const { rootDirectoryId } = useUser()
 

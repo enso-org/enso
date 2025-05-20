@@ -142,8 +142,8 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
 
   const { isOffline } = offlineHooks.useOffline()
   const { user } = authProvider.useFullUserSession()
-  const { localBackend, backendByCategory } = useBackends()
-  const backend = backendByCategory(category)
+  const { localBackend, backendForType } = useBackends()
+  const backend = backendForType(category.backend)
 
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
 

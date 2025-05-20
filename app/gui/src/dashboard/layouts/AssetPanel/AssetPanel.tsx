@@ -101,7 +101,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   props: AssetPanelProps & { panelWidth: number },
 ) {
   const { category, panelWidth } = props
-  const { backendByCategory } = useBackends()
+  const { backendForType } = useBackends()
 
   const itemId = useAssetPanelCurrentItem()?.id
 
@@ -129,7 +129,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
     setIsExpanded(true)
   })
 
-  const backend = backendByCategory(category)
+  const backend = backendForType(category.backend)
 
   const getTranslation = useEventCallback(() => ASSET_SIDEBAR_COLLAPSED_WIDTH)
 

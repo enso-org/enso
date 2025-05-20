@@ -39,7 +39,7 @@ export default function Editor(props: EditorProps) {
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
   const startProject = projectHooks.useReopenProject(openProjectMutation)
 
-  const { localBackend, remoteBackend, backendForProjectType } = useBackends()
+  const { localBackend, remoteBackend, backendForType: backendForProjectType } = useBackends()
   const backend = backendForProjectType(project.type)
 
   const projectStatusQuery = projectHooks.createGetProjectDetailsQuery({
