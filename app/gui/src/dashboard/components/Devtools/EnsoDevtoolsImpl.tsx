@@ -61,7 +61,7 @@ interface DeveloperOverrideEntryProps {
 function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
   const { reset, children } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
     <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
 
 /** A display of current developer overrides. */
 export function EnsoDevStatus() {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
   const { showDeveloperIds, enableMultitabs, enableAdvancedProjectExecutionOptions } =
