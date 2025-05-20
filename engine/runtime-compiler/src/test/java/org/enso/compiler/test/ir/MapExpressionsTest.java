@@ -109,8 +109,50 @@ public class MapExpressionsTest {
     assertThat("names of Lambda are not collected", collected, not(hasItem(self)));
   }
 
+  @Test
+  public void functionLambda_ArgumentDefaultValue_IsCollected() {
+    var body = emptyIr();
+    var xLit = literal("x");
+    var defaultValue = literal("some_default_value");
+    var xArg =
+        DefinitionArgument.Specified.builder()
+            .name(xLit)
+            .defaultValue(Option.apply(defaultValue))
+            .ascribedType(Option.empty())
+            .build();
+    var lambda =
+        Function.Lambda.builder()
+            .bodyReference(Reference.of(body))
+            .arguments(asScala(List.of(xArg)))
+            .build();
+    var collected = mapExpressions(lambda);
+    assertThat(collected.size(), is(2));
+    assertThat(collected, hasItem(defaultValue));
     assertThat(collected, hasItem(body));
-    assertThat(collected, hasItem(self));
+    assertThat("Name of argument is not collected", collected, not(hasItem(xLit)));
+  }
+
+  @Test
+  public void functionLambda_ArgumentAscribedType_IsCollected() {
+    var body = emptyIr();
+    var xLit = literal("x");
+    var ascribedType = literal("Some_Ascribed_Type");
+    var xArg =
+        DefinitionArgument.Specified.builder()
+            .name(xLit)
+            .defaultValue(Option.empty())
+            .ascribedType(Option.apply(ascribedType))
+            .build();
+    var lambda =
+        Function.Lambda.builder()
+            .bodyReference(Reference.of(body))
+            .arguments(asScala(List.of(xArg)))
+            .build();
+    var collected = mapExpressions(lambda);
+    assertThat(collected.size(), is(2));
+    assertThat(collected, hasItem(ascribedType));
+    assertThat(collected, hasItem(body));
+    assertThat("Name of argument is not collected", collected, not(hasItem(xLit)));
   }
 
   private static List<Expression> mapExpressions(Expression rootExpr) {
