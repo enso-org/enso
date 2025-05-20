@@ -27,7 +27,7 @@ function SettingsSection(props: SettingsSectionProps) {
   return (
     <div className="flex w-full flex-1 flex-col gap-2.5">
       {!heading ? null : (
-        <Text.Heading level={2} weight="bold">
+        <Text.Heading level={2} weight="bold" className="cursor-default">
           {getText(nameId)}
         </Text.Heading>
       )}

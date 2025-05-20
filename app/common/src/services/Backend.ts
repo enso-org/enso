@@ -1581,6 +1581,7 @@ export interface CreateCheckoutSessionRequestBody {
 /** URL query string parameters for the "get log events" endpoint. */
 export interface GetLogEventsRequestParams {
   readonly userEmail?: EmailAddress | null | undefined
+  readonly lambdaKind?: string | null | undefined
   readonly startDate?: dateTime.Rfc3339DateTime | null | undefined
   readonly endDate?: dateTime.Rfc3339DateTime | null | undefined
   /** Pagination offset */

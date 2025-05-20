@@ -143,3 +143,5 @@ export function useBackend(which: 'remote' | 'project') {
 
   return { query, fetch, prefetch, ensureQueryData, mutation }
 }
+
+export type Mutation = ReturnType<typeof useBackend>['mutation']

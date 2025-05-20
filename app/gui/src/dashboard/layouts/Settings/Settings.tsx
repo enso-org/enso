@@ -1,9 +1,4 @@
 /** @file Settings screen. */
-import * as React from 'react'
-
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-
-import BurgerMenuIcon from '#/assets/burger_menu.svg'
 import { Heading, MenuTrigger } from '#/components/aria'
 import { Button, Popover, Text } from '#/components/AriaComponents'
 import { useStrictPortalContext } from '#/components/Portal'
@@ -19,6 +14,8 @@ import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
 import { useBackends, useText } from '$/providers/react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import * as React from 'react'
 import {
   ALL_SETTINGS_TABS,
   SETTINGS_DATA,
@@ -33,7 +30,7 @@ import SettingsTab from './Tab'
 import SettingsTabType from './TabType'
 
 /** Settings screen. */
-export default function Settings() {
+export function Settings() {
   const queryClient = useQueryClient()
   const { remoteBackend: backend, localBackend } = useBackends()
   const [tab, setTab] = useSearchParamsState(
@@ -47,7 +44,6 @@ export default function Settings() {
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = useStrictPortalContext()
-  const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
   const { data: organization = null } = useQuery(
     backendQueryOptions(backend, 'getOrganization', []),
   )
@@ -183,10 +179,6 @@ export default function Settings() {
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch, effectiveTab])
 
-  const hideSidebarPopover = useEventCallback(() => {
-    setIsSidebarPopoverOpen(false)
-  })
-
   const changeTab = useEventCallback(() => {
     if (tab !== effectiveTab) {
       setTab(tab)
@@ -196,28 +188,26 @@ export default function Settings() {
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-hidden pl-page-x pt-4">
       <Heading level={1} className="flex items-center px-heading-x">
-        <MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
-          <Button size="custom" variant="custom" icon={BurgerMenuIcon} className="mr-3 sm:hidden" />
-          <Popover UNSTABLE_portalContainer={root}>
+        <MenuTrigger>
+          <Button variant="icon" icon="3_dot_menu" className="mr-3 sm:hidden" />
+          <Popover size="auto" UNSTABLE_portalContainer={root}>
             <SettingsSidebar
-              isMenu
               context={context}
               tabsToShow={tabsToShow}
               tab={effectiveTab}
               setTab={setTab}
-              onClickCapture={hideSidebarPopover}
             />
           </Popover>
         </MenuTrigger>
 
-        <Text variant="h1" className="font-bold">
+        <Text nowrap variant="h1" className="cursor-default font-bold">
           {getText('settingsFor')}
         </Text>
 
         <Text
           variant="h1"
           truncate="1"
-          className="ml-2.5 mr-8 max-w-[min(32rem,_100%)] rounded-full bg-white px-2.5 font-bold"
+          className="ml-2.5 mr-8 max-w-[min(32rem,_100%)] cursor-default rounded-full bg-white px-2.5 font-bold"
           aria-hidden
         >
           {data.organizationOnly === true ? (organization?.name ?? 'your organization') : user.name}

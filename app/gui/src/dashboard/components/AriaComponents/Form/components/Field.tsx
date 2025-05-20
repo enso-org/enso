@@ -1,15 +1,8 @@
-/**
- * @file
- *
- * Field component
- */
-import * as React from 'react'
-
+/** @file Field component */
 import * as aria from '#/components/aria'
-
 import type { Path } from '#/utilities/objectPath'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import * as React from 'react'
 import * as text from '../../Text'
 import { Form } from '../Form'
 import type * as types from './types'
@@ -61,7 +54,7 @@ export const FIELD_STYLES = tv({
 })
 
 /** Field component */
-export const Field = forwardRef(function Field<Schema extends types.TSchema>(
+export const Field = React.forwardRef(function Field<Schema extends types.TSchema>(
   props: FieldComponentProps<Schema>,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {

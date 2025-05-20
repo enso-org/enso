@@ -45,6 +45,7 @@ import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter } from '$/providers/react'
 import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
+import { usePlanOverride } from './authStore'
 import { AuthContext, useAuth } from './hooks'
 import type { AuthContextType } from './types'
 import { UserSessionType, type FullUserSession, type PartialUserSession } from './types'
@@ -100,6 +101,7 @@ export function AuthProvider(props: AuthProviderProps) {
 
   const usersMeQuery = reactQuery.useSuspenseQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
+  const planOverride = usePlanOverride()
 
   const createUserMutation = useMutationCallback({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
@@ -256,9 +258,14 @@ export function AuthProvider(props: AuthProviderProps) {
     }
   }, [userData, setFeatureFlags])
 
+  const effectiveUserData =
+    userData?.type === UserSessionType.full && planOverride != null ?
+      { ...userData, user: { ...userData.user, plan: planOverride } }
+    : userData
+
   const value: AuthContextType = {
     refetchSession,
-    session: userData,
+    session: effectiveUserData,
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,

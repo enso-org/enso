@@ -12,7 +12,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  click: []
   nameAccepted: [string]
 }>()
 
@@ -31,7 +30,7 @@ watch(input, (newInput) => {
 </script>
 
 <template>
-  <div :class="{ FileBrowserEntry: true, highlighted }" @click="emit('click')">
+  <div :class="{ FileBrowserEntry: true, highlighted }">
     <GrowingSpinner v-if="editingState === 'pending'" :size="16" phase="loading-medium" />
     <SvgIcon v-else :name="icon" />
     <input
