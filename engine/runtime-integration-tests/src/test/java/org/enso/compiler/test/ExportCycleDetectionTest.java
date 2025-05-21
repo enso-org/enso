@@ -7,11 +7,9 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
-import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
@@ -114,11 +112,8 @@ public class ExportCycleDetectionTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
       } catch (PolyglotException e) {
@@ -141,11 +136,8 @@ public class ExportCycleDetectionTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
       } catch (PolyglotException e) {
@@ -158,22 +150,15 @@ public class ExportCycleDetectionTest {
   }
 
   private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {
-    var out = new ByteArrayOutputStream();
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .out(out)
-            .err(out)
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
         fail("Expected compilation error");
       } catch (PolyglotException e) {
         assertThat(e.getMessage(), containsString("Compilation aborted"));
       }
+      assertThat(ctx.getOut(), errMsgMatcher);
     }
-    assertThat(out.toString(), errMsgMatcher);
   }
 }

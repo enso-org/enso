@@ -43,9 +43,9 @@ object Graph {
   )
 
   abstract class Scope {
-    def parent:                                                    Option[Scope]
-    def allDefinitions:                                            java.util.Collection[GraphOccurrence.Def]
-    def forEachOccurenceDefinition(fn: (GraphOccurrence => Unit)): Unit
+    def parent:                                                        Option[Scope]
+    def allDefinitions:                                                java.util.Collection[GraphOccurrence.Def]
+    def forEachOccurenceDefinition(fn: (GraphOccurrence.Def => Unit)): Unit
 
     def deepCopy(
       mapping: mutable.Map[Graph.Scope, Graph.Scope] = mutable.Map()

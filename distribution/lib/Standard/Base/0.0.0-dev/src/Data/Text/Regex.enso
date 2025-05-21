@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Dictionary.Dictionary
 import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Hashset.Hashset
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
@@ -427,6 +428,33 @@ type Regex
             should_recompile = self.case_insensitive != case_insensitive
             if should_recompile.not then self else
                 Regex.compile self.pattern case_insensitive
+
+    ## Create a Regex from a glob string
+
+       Arguments:
+       - expression: The glob string to compile into a regex.
+    from_glob : Text -> Regex
+    from_glob expression:Text -> Regex =
+        to_escape = Hashset.from_vector ["/", "$", "^", "+", ".", "(", ")", "=", "|", "\"]
+        characters = expression.characters
+        step pattern:Text index:Integer in_group:Boolean = if index == characters.length then pattern else
+            char = characters.at index
+            new_index = if (char != '*') || (characters.get index+1 != '*') then index+1 else
+                characters.index_of (..Not_Equal '*') index . if_nothing characters.length
+            new_in_group = if char == '{' then True else (if char == '}' then False else in_group)
+            new_pattern = if to_escape.contains char then pattern + "\" + char else case char of
+                '!' -> if characters.get index-1 == '[' then pattern + '^' else pattern + "\!"
+                '?' -> pattern + "."
+                '{' -> pattern + "("
+                '}' -> pattern + ")"
+                ',' -> pattern + (if in_group then "|" else ",")
+                '*' -> if new_index == index + 1 then pattern + ".*" else
+                    ## Multiple * so need to match 0 or more segments
+                    pattern + "((.*?(\/|\\|$))*)"
+                _ -> pattern + char
+            @Tail_Call step new_pattern new_index new_in_group
+        pattern = step "" 0 False
+        Regex.compile pattern
 
 ## PRIVATE
    Convert the polyglot map to a Dictionary.

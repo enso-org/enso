@@ -8,9 +8,11 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.net.URL;
-import java.util.concurrent.Executors;
+import java.util.Random;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.logging.Level;
+import org.enso.runtime.utils.ThreadUtils;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Value;
 
@@ -28,6 +30,7 @@ final class EpbContext {
   private final TruffleLanguage.Env env;
   private @CompilationFinal TruffleContext innerContext;
   private final TruffleLogger log;
+  private final Random delayer = new Random();
   private boolean polyfillInitialized;
 
   /**
@@ -54,6 +57,7 @@ final class EpbContext {
             env.newInnerContextBuilder()
                 .initializeCreatorContext(true)
                 .inheritAllAccess(true)
+                .threadAccessDeniedHandler(this::handleMultiAccess)
                 .config(INNER_OPTION, "yes")
                 .build();
       }
@@ -87,7 +91,9 @@ final class EpbContext {
   final void initializePolyfill(Node node, TruffleContext ctx) {
     if (!polyfillInitialized) {
       polyfillInitialized = true;
-      var exec = Executors.newSingleThreadScheduledExecutor();
+      var ensoLanguage = getEnv().getInternalLanguages().get("enso");
+      var exec = getEnv().lookup(ensoLanguage, ScheduledExecutorService.class);
+      assert exec != null : "Need executor from " + ensoLanguage;
       Function<URL, Value> eval =
           (url) -> {
             try {
@@ -100,5 +106,24 @@ final class EpbContext {
           };
       WebEnvironment.initialize(eval, exec);
     }
+  }
+
+  final void handleMultiAccess(String msg) {
+    try {
+      var ms = delayer.nextInt(10, 1000);
+      // dump stack when assertions on
+      assert dumpStack(ms);
+      Thread.sleep(ms);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private boolean dumpStack(int ms) {
+    var msg =
+        ThreadUtils.dumpAllStacktraces(
+            "Polyglot access failed. Waiting " + ms + " ms. Thread dump:");
+    log(Level.WARNING, msg);
+    return true;
   }
 }

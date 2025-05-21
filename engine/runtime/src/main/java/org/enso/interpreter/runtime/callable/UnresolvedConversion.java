@@ -118,7 +118,7 @@ public final class UnresolvedConversion extends EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind Node node) {
     var ctx = EnsoContext.get(node);
     return ctx.getBuiltins().function();
   }

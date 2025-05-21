@@ -15,29 +15,17 @@ import java.io.StringWriter;
 import java.util.concurrent.Executors;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class ForeignMethodInvokeTest {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx = ContextUtils.defaultContextBuilder("enso", "js").build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder("enso", "js").build();
 
   @Test
   public void testForeignFunctionParseFailure() throws Exception {
@@ -55,7 +43,7 @@ public class ForeignMethodInvokeTest {
         """
             .trim();
     var src = Source.newBuilder("enso", code, "TryPython.enso").build();
-    Value module = ctx.eval(src);
+    Value module = ctxRule.eval(src);
     Value res = module.invokeMember("eval_expression", "main");
     assertTrue("Invoking non-installed foreign function should recover", res.isException());
     try {
@@ -87,7 +75,7 @@ public class ForeignMethodInvokeTest {
         third t = js_array t
         """;
 
-    var module = ctx.eval("enso", source);
+    var module = ctxRule.eval("enso", source);
     var third = module.invokeMember("eval_expression", new AsString("third"));
     var res = third.execute(13);
     assertTrue("It is an array", res.hasArrayElements());
@@ -124,7 +112,7 @@ public class ForeignMethodInvokeTest {
         third t = js_array t (delay-> Thread.sleep delay)
         """;
 
-    var module = ctx.eval("enso", source);
+    var module = ctxRule.eval("enso", source);
     var third = module.invokeMember("eval_expression", new AsString("third"));
 
     var future =
@@ -164,7 +152,7 @@ public class ForeignMethodInvokeTest {
                 f Data.read 7
         """;
 
-    var module = ctx.eval("enso", source);
+    var module = ctxRule.eval("enso", source);
     var callme = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "callme");
     var readData = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Data.read");
 

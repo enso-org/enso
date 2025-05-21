@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory;
 
 public class IGVDumperFactory implements IRDumpFactoryService {
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumperFactory.class);
-  private static final String GRAPHIO_PKG = "org.graalvm.graphio";
-  private static final String COMPILER_MOD = "jdk.internal.vm.compiler";
+  private static final String GRAPHIO_PKG = "jdk.graal.compiler.graphio";
+  private static final String COMPILER_MOD = "jdk.graal.compiler";
 
   public IGVDumperFactory() {
     ensureInternalModuleIsExported();

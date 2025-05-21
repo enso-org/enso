@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Type.SQL_Type
 
@@ -13,7 +13,7 @@ type Internal_Column
        - name: The column name.
        - sql_type_reference: Lazily computed SQL type of the column.
        - expression: An expression for applying to the column.
-    Value name:Text sql_type_reference:SQL_Type_Reference expression:SQL_Expression
+    Value name:Text sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression
 
     ## PRIVATE
 

@@ -18,6 +18,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 /** An implementation of the case expression specialised to working on polyglot types. */
 @NodeInfo(shortName = "PolyglotSymbolTypeMatch")
+@SuppressWarnings("truffle-splitting")
 public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
 
   private final Object polyglotSymbol;

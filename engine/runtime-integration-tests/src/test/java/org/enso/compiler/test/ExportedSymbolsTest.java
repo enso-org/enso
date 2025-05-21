@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.enso.common.RuntimeOptions;
 import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.pkg.QualifiedName;
@@ -21,7 +20,6 @@ import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
-import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -227,19 +225,17 @@ public class ExportedSymbolsTest {
     }
   }
 
-  private static Context createCtx(Path projDir) {
-    return ContextUtils.defaultContextBuilder()
-        .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-        .build();
+  private static ContextUtils createCtx(Path projDir) {
+    return ContextUtils.newBuilder().withProjectRoot(projDir).build();
   }
 
-  private static void compile(Context ctx) {
-    new PolyglotContext(ctx).getTopScope().compile(true);
+  private static void compile(ContextUtils ctx) {
+    new PolyglotContext(ctx.context()).getTopScope().compile(true);
   }
 
   private static Map<String, List<BindingsMap.ResolvedName>> getExportedSymbolsFromModule(
-      Context ctx, String modName) {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+      ContextUtils ctx, String modName) {
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return getExportedSymbols(mod);
   }

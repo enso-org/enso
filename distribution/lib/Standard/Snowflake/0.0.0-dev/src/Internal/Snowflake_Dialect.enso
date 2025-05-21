@@ -26,14 +26,14 @@ import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Common.Row_Number_Helpers
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
-import Standard.Database.Internal.IR.Context.Context
-import Standard.Database.Internal.IR.Context.Context_Extension
-import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
-import Standard.Database.Internal.IR.Query.Query
-import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
+import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
@@ -67,7 +67,10 @@ snowflake =
 type Snowflake_Dialect
     ## PRIVATE
        The dialect of Snowflake databases.
-    Value dialect_operations
+    private Value internal_dialect_operations
+
+    ## PRIVATE
+    dialect_operations self = self.internal_dialect_operations
 
     ## PRIVATE
        Name of the dialect.
@@ -81,7 +84,7 @@ type Snowflake_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> SQL_Statement
+    generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
@@ -101,7 +104,7 @@ type Snowflake_Dialect
 
     ## PRIVATE
        Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using Context_Extension you have to provide an order for them here
+       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         [SQL_Part.Select, SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Extension "snowflake_distinct", SQL_Part.Order, SQL_Part.Limit] . index_of part
 
@@ -151,7 +154,7 @@ type Snowflake_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery
+        new_context = SQL_IR_Source.for_subquery setup.subquery
             . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
@@ -177,7 +180,7 @@ type Snowflake_Dialect
         Statement_Setter.Value custom_fill_hole
 
     ## PRIVATE
-    make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
         mapping = self.get_type_mapping
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
@@ -186,7 +189,7 @@ type Snowflake_Dialect
         new_expression = make_custom_cast column source_type target_value_type . if_nothing <|
             source_expression = Internals_Access.column_expression column
             target_type_sql_text = mapping.sql_type_to_text target_type
-            SQL_Expression.Operation "CAST" [source_expression, SQL_Expression.Literal target_type_sql_text]
+            SQL_IR_Expression.Operation "CAST" [source_expression, SQL_IR_Expression.Literal target_type_sql_text]
 
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
@@ -197,7 +200,7 @@ type Snowflake_Dialect
         query_text = case statement of
             text : Text -> text
             _ : SQL_Statement -> statement.prepare.first
-        keywords_that_need_execute = ["VALUES", "DECODE"]
+        keywords_that_need_execute = ["VALUES", "DECODE", "LEAST", "GREATEST", "COALESCE"]
         regex = keywords_that_need_execute.join "|"
         needs_execute = query_text.find regex . is_nothing . not
         needs_execute
@@ -208,7 +211,7 @@ type Snowflake_Dialect
     temp_table_style self = Temp_Table_Style.Temporary_Table
 
     ## PRIVATE
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]
         column
@@ -223,7 +226,7 @@ type Snowflake_Dialect
        In most cases this method will just return the expression unchanged, it
        is used only to override the type in cases where the default one that the
        database uses is not what we want.
-    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
         _ = [op_kind, args]
         expression
 
@@ -231,10 +234,10 @@ type Snowflake_Dialect
        Add an extra cast to adjust the output type of aggregate operations.
        Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        self.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map Internals_Access.column_expression))
+        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map Internals_Access.column_expression))
 
     ## PRIVATE
-    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Base_Generator.default_fetch_types_query self expression context
 
@@ -296,7 +299,7 @@ type Snowflake_Dialect
             Dialect_Flag.Supports_Nanoseconds_In_Time -> True
             Dialect_Flag.Supports_Mixed_Columns -> False
             Dialect_Flag.Supports_Date_Time_Without_Timezone -> True
-            Dialect_Flag.Supports_Regex_Match -> False
+            Dialect_Flag.Supports_Regex_Match -> True
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -353,7 +356,7 @@ type Snowflake_Dialect
         _                      -> False
 
     ## PRIVATE
-    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
+    generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = for_select
         base_gen.generate_expression self expr
 
@@ -403,7 +406,7 @@ type Snowflake_Dialect
                     True  -> op_kind + "_NOT_NULL"
                 # We just inherit the type of the source column, as the FIRST/LAST element of a column should have the same type.
                 sql_type_reference = aggregate_column.column.sql_type_reference
-                Internal_Column.Value as sql_type_reference (SQL_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+                Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
             case aggregate_column of
                 Aggregate_Column.First _ _ _ _ -> make_first_last "FIRST"
                 Aggregate_Column.Last _ _ _ _ -> make_first_last "LAST"
@@ -416,9 +419,9 @@ type Snowflake_Dialect
 make_dialect_operations =
     arith = [round_bankers]
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
-    arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
+    arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST_IGNORE_NULLS"], ["ROW_MAX", Base_Generator.make_function "GREATEST_IGNORE_NULLS"]]
     bool = [bool_or]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -585,6 +588,10 @@ starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"
 ends_with = Base_Generator.lift_binary_sql_function "ENDS_WITH" "ENDSWITH"
 
 ## PRIVATE
+regex_match = Base_Generator.lift_binary_op "REGEX_MATCH" str-> pattern->
+    (str ++ " REGEXP " ++ pattern).paren
+
+## PRIVATE
 contains = Base_Generator.lift_binary_sql_function "CONTAINS" "CONTAINS"
 
 ## PRIVATE
@@ -698,6 +705,10 @@ supported_replace_params =
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
+empty_string : SQL_Builder
+empty_string = SQL_Builder.interpolation ""
+
+## PRIVATE
 replace : Vector SQL_Builder -> Any -> SQL_Builder
 replace args metadata =
     input = args.at 0
@@ -731,18 +742,20 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1)"
         Regex ->
-            pattern_text = SQL_Builder.interpolation raw_pattern.pattern
+            pair = if raw_pattern.pattern!="(?<=\s)\s+" || replacement!=empty_string then [raw_pattern.pattern, replacement] else
+                ["(\s)\s+", SQL_Builder.interpolation "$1"]
+            pattern_text = SQL_Builder.interpolation pair.first
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 0, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 0, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ")"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 1, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 1)"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 1)"
         DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
@@ -874,18 +887,18 @@ make_distinct_extension distinct_expressions =
            This may be related to #10321
            Once fixed, should re-enable the `Distinct_Returns_First_Row_From_Group_If_Ordered` flag back to `True`.
         SQL_Builder.code " QUALIFY ROW_NUMBER() OVER (PARTITION BY " ++ joined ++ " ORDER BY 1) = 1 "
-    Context_Extension.Value part_name=(SQL_Part.Extension "snowflake_distinct") expressions=distinct_expressions run_generator=run_generator
+    SQL_IR_Source_Extension.Value part_name=(SQL_Part.Extension "snowflake_distinct") expressions=distinct_expressions run_generator=run_generator
 
 ## PRIVATE
    Returns a custom cast expression if it is needed for a specific pair of types,
    or Nothing if the default cast is sufficient.
-make_custom_cast (column : Internal_Column) (source_value_type : Value_Type) (target_value_type : Value_Type) -> SQL_Expression | Nothing =
+make_custom_cast (column : Internal_Column) (source_value_type : Value_Type) (target_value_type : Value_Type) -> SQL_IR_Expression | Nothing =
     result = Ref.new Nothing
 
     # Custom expression for boolean to float cast, as regular cast does not support it.
     if source_value_type.is_boolean && target_value_type.is_floating_point then
         result.put <|
-            SQL_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
+            SQL_IR_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_IR_Expression.Literal "1", SQL_IR_Expression.Literal "0"]
 
     # If the text length is bounded, we need to add a `LEFT` call to truncate to desired length avoiding errors.
     if target_value_type.is_text && target_value_type.size.is_nothing.not then
@@ -893,10 +906,10 @@ make_custom_cast (column : Internal_Column) (source_value_type : Value_Type) (ta
         # For any other source type, we keep the original behaviour - failing to convert if the text representation would not fit.
         if source_value_type.is_text then result.put <|
             max_size = (target_value_type.size : Integer)
-            truncated = SQL_Expression.Operation "LEFT" [Internals_Access.column_expression column, SQL_Expression.Literal max_size.to_text]
+            truncated = SQL_IR_Expression.Operation "LEFT" [Internals_Access.column_expression column, SQL_IR_Expression.Literal max_size.to_text]
             # We still need a cast to ensure the Value_Type gets the max size in it - LEFT returns no size limit unfortunately.
             target_type_name = "VARCHAR(" + max_size.to_text + ")"
-            SQL_Expression.Operation "CAST" [truncated, SQL_Expression.Literal target_type_name]
+            SQL_IR_Expression.Operation "CAST" [truncated, SQL_IR_Expression.Literal target_type_name]
 
     result.get
 

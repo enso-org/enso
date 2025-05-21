@@ -18,8 +18,8 @@ import project.S3.S3_File.S3_File
 polyglot java import java.io.IOException
 polyglot java import org.enso.aws.BucketLocator
 polyglot java import org.enso.aws.ClientBuilder
-polyglot java import org.enso.aws.S3ClientWrapper
 polyglot java import org.enso.aws.file_system.S3Utils
+polyglot java import org.enso.aws.S3ClientWrapper
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchBucketException
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException

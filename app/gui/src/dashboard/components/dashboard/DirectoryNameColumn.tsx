@@ -1,15 +1,13 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
-import FolderIcon from '#/assets/folder.svg'
 import { Button } from '#/components/AriaComponents'
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
-import { useText } from '#/providers/TextProvider'
-import { isNewTitleUnique, type DirectoryAsset } from '#/services/Backend'
+import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { isDirectoryNameContainInvalidCharacters } from '#/utilities/validation'
+import { useText } from '$/providers/react'
 import { useTransition } from 'react'
 
 /** Props for a {@link DirectoryNameColumn}. */
@@ -56,17 +54,16 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }}
     >
       <Button
-        icon={FolderIcon}
-        size="medium"
+        icon="folder"
         variant="icon"
-        loading={isLoading || isNavigating}
+        isLoading={isLoading || isNavigating}
         aria-label={getText('open')}
         tooltipPlacement="left"
         testId="directory-row-navigate-button"
         className="mx-1 transition-transform duration-arrow"
         onPress={() => {
           startNavigation(() => {
-            setCurrentDirectoryId({ current: item.id, parent: item.parentId })
+            setCurrentDirectoryId(item.id)
           })
         }}
       />
@@ -78,14 +75,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           'cursor-pointer bg-transparent font-naming',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
         )}
-        schema={(z) =>
-          z
-            .refine((value) => !isDirectoryNameContainInvalidCharacters(value), {
-              message: getText('nameShouldNotContainInvalidCharacters'),
-            })
-            .refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
-              message: getText('nameShouldBeUnique'),
-            })
+        schema={() =>
+          titleSchema({
+            asset: item,
+            siblings: getAssetChildren(item.parentId),
+          })
         }
         onSubmit={doRename}
         onCancel={() => {

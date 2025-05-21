@@ -2,7 +2,6 @@
  * @file Container responsible for rendering and interactions in second half of forgot password
  * flow.
  */
-import * as router from 'react-router-dom'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
@@ -17,12 +16,12 @@ import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { type GetText, useText } from '#/providers/TextProvider'
 import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { unsafeWriteValue } from '#/utilities/write'
+import { useBackends, useRouter, useText } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import { toast } from 'react-toastify'
 
 /** Create the schema for this form. */
@@ -54,12 +53,10 @@ const REDIRECT_TIMEOUT = 3000
 export default function ResetPassword() {
   const { resetPassword } = useSessionAPI()
   const { getText } = useText()
-  const navigate = router.useNavigate()
-
-  const [searchParams] = router.useSearchParams()
+  const { router, searchParams } = useRouter()
 
   const toastAndLog = useToastAndLog()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
   const defaultEmail = searchParams.get('email')
@@ -71,12 +68,12 @@ export default function ResetPassword() {
   useMount(() => {
     if (defaultEmail == null) {
       toastAndLog('missingEmailError')
-      navigate(LOGIN_PATH)
+      void router.push(LOGIN_PATH)
     }
 
     if (defaultVerificationCode == null) {
       toastAndLog('missingVerificationCodeError')
-      navigate(LOGIN_PATH)
+      void router.push(LOGIN_PATH)
     }
   })
 

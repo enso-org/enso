@@ -10,7 +10,6 @@ import {
   actionMap,
   FilterAction,
   FilterType,
-  FilterValue,
   FilterValueRange,
   getFilterValue,
   GridFilterModel,
@@ -26,8 +25,7 @@ export type SortModel = {
 export interface SortFilterNodesButtonOptions {
   filterModel: ToValue<GridFilterModel[]>
   sortModel: ToValue<SortModel[]>
-  isDisabled: ToValue<boolean>
-  isFilterSortNodeEnabled: ToValue<boolean>
+  isCreateNewNodeEnabled: ToValue<boolean>
   createNodes: (...options: NodeCreationOptions[]) => void
   getColumnValueToEnso: (
     columnName: string,
@@ -38,219 +36,240 @@ export interface FormatMenuOptions {
   textFormatterSelected: Ref<TextFormatOptions>
 }
 
-export interface Options extends SortFilterNodesButtonOptions, FormatMenuOptions {}
+export interface ColumnNodeButton {
+  isCreateNewNodeEnabled: ToValue<boolean>
+  createNodes: (...options: NodeCreationOptions[]) => void
+  hiddenColumns: ToValue<string[]>
+  vizColumnOrder: ToValue<string[] | null>
+}
 
+interface NewNodeOptions extends SortFilterNodesButtonOptions, ColumnNodeButton {
+  isButtonDisabled: ToValue<boolean>
+}
+
+export interface RefreshButtonOptions {
+  refreshGrid: () => void
+}
+
+export interface Options extends NewNodeOptions, FormatMenuOptions, RefreshButtonOptions {}
+
+type ConstructivePattern = (
+  placeholder: Ast.Owned<Ast.MutableExpression>,
+) => Ast.Owned<Ast.MutableExpression>
+
+/***
+ * function that returns a toolbar button item used to apply new nodes to the graph reflecting the sort filter and column changes applied to the current table visualization
+ *
+ * @param {FilterModel} options.filterModel - The current filter model applied to the table.
+ * @param {SortModel} options.sortModel - The current sort model applied to the table.
+ * @param {boolean} options.isButtonDisabled - Whether the button should be disabled, the button will be disabled if there are no changes to the table viz.
+ * @param {boolean} options.isCreateNewNodeEnabled - Whether the functionality to create new nodes is enabled, only enabled for tables (i.e not rows, vectors).
+ * @param options.createNodes - Function to trigger creation of new nodes.
+ * @param {(columnId: string, value: unknown) => EnsoValue} options.getColumnValueToEnso - Function to convert column values to a format compatible with Enso.
+ * @param {string[]} options.hiddenColumns - A list of column Ids that are currently hidden.
+ * @param {string[] | null} options.vizColumnOrder - A list of all column Ids in their new order; if the order is unchanged, this will be null.
+ *
+ * @returns {ComputedRef<ToolbarItem | undefined>} A computed reference to a toolbar item,
+ * or undefined if the button should not be rendered.
+ */
 function useSortFilterNodesButton({
   filterModel,
   sortModel,
-  isDisabled,
-  isFilterSortNodeEnabled,
+  isButtonDisabled,
+  isCreateNewNodeEnabled,
   createNodes,
   getColumnValueToEnso,
-}: SortFilterNodesButtonOptions): ComputedRef<ToolbarItem | undefined> {
-  const sortPatternPattern = computed(() => Pattern.parseExpression('(..Name __ __ )')!)
+  hiddenColumns,
+  vizColumnOrder,
+}: NewNodeOptions): ComputedRef<ToolbarItem | undefined> {
+  const sortPattern = computed(() => Pattern.parseExpression('(..Name __ __ )')!)
+  const filterPattern = computed(() => Pattern.parseExpression('__ (__ __)')!)
+  const filterBetweenPattern = computed(() => Pattern.parseExpression('__ (..Between __ __)')!)
+  const filterNothingPattern = computed(() => Pattern.parseExpression('__ __')!)
+
+  function createSimpleAstCall(
+    name: string,
+    arg: Ast.Owned<MutableExpression>,
+    ast: Ast.Owned<Ast.MutableExpression>,
+  ) {
+    return Ast.App.positional(Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(name)!), arg)
+  }
+
+  function createFilterCall(
+    ast: Ast.Owned<Ast.MutableExpression>,
+    expr: Ast.Owned<MutableExpression>,
+    parentPattern: Ast.Owned<Ast.MutableExpression>,
+  ) {
+    const style = {
+      spaced: parentPattern !== undefined,
+    }
+    return Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, parentPattern, Ast.identifier('filter')!, style),
+      expr,
+    )
+  }
+
+  function buildFilterExpression(
+    ast: Ast.Owned<Ast.MutableExpression>,
+    columnName: string,
+    filterType: FilterType,
+    filterAction: FilterAction,
+    value?: string[] | string | FilterValueRange,
+  ) {
+    const column = Ast.TextLiteral.new(columnName)
+    const valueFormatter = getColumnValueToEnso(columnName)
+
+    if (filterAction === 'blank' || filterAction === 'notBlank') {
+      return filterNothingPattern.value.instantiateCopied([
+        column,
+        Ast.parseExpression(actionMap[filterAction])!,
+      ])
+    }
+
+    if (filterType === 'set') {
+      if (Array.isArray(value) && value.length === 1) {
+        return filterPattern.value.instantiateCopied([
+          column,
+          Ast.parseExpression('..Equal')!,
+          valueFormatter(value[0]!, ast.module) as Expression | MutableExpression,
+        ])
+      }
+      return filterPattern.value.instantiateCopied([
+        column,
+        Ast.parseExpression('..Is_In')!,
+        Ast.Vector.build(
+          value as string[],
+          (element, tempModule) => valueFormatter(element, tempModule),
+          ast.module,
+        ),
+      ])
+    }
+
+    if (filterType === 'number') {
+      if (filterAction === 'inRange' && typeof value === 'object') {
+        const { fromValue, toValue } = value as FilterValueRange
+        return filterBetweenPattern.value.instantiateCopied([
+          column,
+          valueFormatter(fromValue, ast.module) as Expression | MutableExpression,
+          valueFormatter(toValue, ast.module) as Expression | MutableExpression,
+        ])
+      }
+
+      return filterPattern.value.instantiateCopied([
+        column,
+        Ast.parseExpression(actionMap[filterAction])!,
+        valueFormatter(value as string, ast.module) as Expression | MutableExpression,
+      ])
+    }
+
+    return filterPattern.value.instantiateCopied([
+      column,
+      Ast.parseExpression(actionMap[filterAction])!,
+      valueFormatter(value as string, ast.module) as Expression | MutableExpression,
+    ])
+  }
+
+  function buildPattern(
+    ast: Ast.Owned<Ast.MutableExpression>,
+    parentPattern: Ast.Owned<Ast.MutableExpression>,
+    columnName: string,
+    filterType: FilterType,
+    filterAction: FilterAction,
+    value?: string[] | string | FilterValueRange,
+  ) {
+    const filterExpr = buildFilterExpression(ast, columnName, filterType, filterAction, value)
+    return createFilterCall(ast, filterExpr, parentPattern)
+  }
 
   const sortDirection = computed(() => ({
     asc: '..Ascending',
     desc: '..Descending',
   }))
 
-  function makeSortPattern(module: Ast.MutableModule) {
-    const columnSortExpressions = toValue(sortModel)
-      .filter((sort) => sort?.columnName)
+  function makeSortPattern(ast: Ast.Owned<Ast.MutableExpression>) {
+    const sorts = toValue(sortModel)
+      .filter((s) => s?.columnName)
       .sort((a, b) => a.sortIndex - b.sortIndex)
       .map((sort) =>
-        sortPatternPattern.value.instantiateCopied([
+        sortPattern.value.instantiateCopied([
           Ast.TextLiteral.new(sort.columnName),
           Ast.parseExpression(sortDirection.value[sort.sortDirection as SortDirection])!,
         ]),
       )
-    return Ast.Vector.new(module, columnSortExpressions)
+    return Ast.Vector.new(ast.module, sorts)
   }
 
-  const filterPattern = computed(() => Pattern.parseExpression('__ (__ __)')!)
-  const filterBetweenPattern = computed(() => Pattern.parseExpression('__ (..Between __ __)')!)
-  const filterNothingPattern = computed(() => Pattern.parseExpression('__ __')!)
-
-  function makeFilterPattern(module: Ast.MutableModule, columnName: string, items: string[]) {
-    if (
-      (items?.length === 1 && items.indexOf('true') != -1) ||
-      (items?.length === 1 && items.indexOf('false') != -1)
-    ) {
-      const boolToInclude = Ast.Ident.tryParse(items.indexOf('false') != -1 ? 'False' : 'True')!
-      return filterPattern.value.instantiateCopied([
-        Ast.TextLiteral.new(columnName),
-        Ast.parseExpression('..Equal')!,
-        boolToInclude,
-      ])
-    }
-    const valueFormatter = getColumnValueToEnso(columnName)
-    if (items?.length === 1) {
-      const item = items[0]
-      if (item) {
-        return filterPattern.value.instantiateCopied([
-          Ast.TextLiteral.new(columnName),
-          Ast.parseExpression('..Equal')!,
-          valueFormatter(item, module) as Expression | MutableExpression,
-        ])
-      }
-    }
-    const itemList = items.map((i) => valueFormatter(i, module))
-    return filterPattern.value.instantiateCopied([
-      Ast.TextLiteral.new(columnName),
-      Ast.parseExpression('..Is_In')!,
-      Ast.Vector.new(module, itemList),
-    ])
-  }
-
-  function makeNumericFilterPattern(
-    module: Ast.MutableModule,
-    columnName: string,
-    item: string | FilterValueRange,
-    filterAction: FilterAction,
-  ) {
-    const valueFormatter = getColumnValueToEnso(columnName)
-    if (filterAction === 'inRange' && typeof item === 'object') {
-      const filterToValue = valueFormatter(item.toValue, module)
-      const filterFromValue = valueFormatter(item.fromValue, module)
-      return filterBetweenPattern.value.instantiateCopied([
-        Ast.TextLiteral.new(columnName),
-        filterFromValue as Expression | MutableExpression,
-        filterToValue as Expression | MutableExpression,
-      ])
-    }
-    const filterValue = valueFormatter(item as string, module)
-    const action = actionMap[filterAction]
-    return filterPattern.value.instantiateCopied([
-      Ast.TextLiteral.new(columnName),
-      Ast.parseExpression(action)!,
-      filterValue as Expression | MutableExpression,
-    ])
-  }
-
-  function makeNothingFilterPattern(columnName: string, filterAction: FilterAction) {
-    const action = actionMap[filterAction]
-    return filterNothingPattern.value.instantiateCopied([
-      Ast.TextLiteral.new(columnName),
-      Ast.parseExpression(action)!,
-    ])
-  }
-
-  function getAstPatternSort() {
+  function getAstPatternSort(): Pattern {
     return Pattern.new<Ast.Expression>((ast) =>
       Ast.App.positional(
         Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('sort')!),
-        makeSortPattern(ast.module),
-      ),
-    )
-  }
-
-  function getAstPatternFilter(
-    columnName: string,
-    items: string[] | string | FilterValue,
-    filterType: FilterType,
-    filterAction?: FilterAction,
-  ) {
-    return Pattern.new<Ast.Expression>((ast) =>
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-        filterType === 'set' ?
-          makeFilterPattern(ast.module, columnName, items as string[])
-        : makeNumericFilterPattern(
-            ast.module,
-            columnName,
-            items as string | FilterValueRange,
-            filterAction!,
-          ),
-      ),
-    )
-  }
-
-  function getAstNothingPatternFilter(columnName: string, filterAction: FilterAction) {
-    return Pattern.new<Ast.Expression>((ast) =>
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-        makeNothingFilterPattern(columnName, filterAction),
-      ),
-    )
-  }
-
-  function getAstPatternFilterAndSort(
-    columnName: string,
-    items: string[] | string | FilterValueRange,
-    filterType: FilterType,
-    filterAction?: FilterAction,
-  ) {
-    return Pattern.new<Ast.Expression>((ast) =>
-      Ast.OprApp.new(
-        ast.module,
-        Ast.App.positional(
-          Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-          filterType === 'set' ?
-            makeFilterPattern(ast.module, columnName, items as string[])
-          : makeNumericFilterPattern(
-              ast.module,
-              columnName,
-              items as string | FilterValueRange,
-              filterAction!,
-            ),
-        ),
-        '.',
-        Ast.App.positional(
-          Ast.Ident.new(ast.module, Ast.identifier('sort')!),
-          makeSortPattern(ast.module),
-        ),
-      ),
-    )
-  }
-
-  function getAstNothingPatternFilterAndSort(columnName: string, filterAction: FilterAction) {
-    return Pattern.new<Ast.Expression>((ast) =>
-      Ast.OprApp.new(
-        ast.module,
-        Ast.App.positional(
-          Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-          makeNothingFilterPattern(columnName, filterAction),
-        ),
-        '.',
-        Ast.App.positional(
-          Ast.Ident.new(ast.module, Ast.identifier('sort')!),
-          makeSortPattern(ast.module),
-        ),
+        makeSortPattern(ast),
       ),
     )
   }
 
   function createNewNodes() {
-    const patterns = new Array<Pattern>()
-    const filterModelValue = toValue(filterModel)
-    const sortModelValue = toValue(sortModel)
-    if (filterModelValue.length) {
-      filterModelValue.map((filterModel: GridFilterModel) => {
-        const columnName = filterModel.columnName
-        const filterAction = filterModel.filterAction
-        const filterType = filterModel.filterType
-        if (filterAction === 'blank' || filterAction === 'notBlank') {
-          const filterPatterns =
-            sortModelValue.length ?
-              getAstNothingPatternFilterAndSort(columnName, filterAction)
-            : getAstNothingPatternFilter(columnName, filterAction)
-          patterns.push(filterPatterns)
-        }
+    const patterns: Pattern[] = []
+    const filters = toValue(filterModel)
+    const sorts = toValue(sortModel)
 
-        const value = getFilterValue(filterModel)
-
-        if (value) {
-          const filterPatterns =
-            sortModelValue.length ?
-              getAstPatternFilterAndSort(columnName, value, filterType, filterAction)
-            : getAstPatternFilter(columnName, value, filterType, filterAction)
-          patterns.push(filterPatterns)
-        }
-      })
-    } else if (sortModelValue.length) {
+    if (sorts.length > 0) {
       patterns.push(getAstPatternSort())
     }
+
+    const columnsToRemove = toValue(hiddenColumns)
+    if (columnsToRemove.length) {
+      patterns.push(
+        Pattern.new((ast) =>
+          createSimpleAstCall(
+            'remove_columns',
+            Ast.Vector.build(columnsToRemove, Ast.TextLiteral.new, ast.module),
+            ast,
+          ),
+        ),
+      )
+    }
+
+    const columnOrder = toValue(vizColumnOrder)
+    if (columnOrder?.length) {
+      patterns.push(
+        Pattern.new((ast) =>
+          createSimpleAstCall(
+            'reorder_columns',
+            Ast.Vector.build(columnOrder, Ast.TextLiteral.new, ast.module),
+            ast,
+          ),
+        ),
+      )
+    }
+
+    function projector(parentPattern: ConstructivePattern | undefined) {
+      return (columnName: any, filterAction: any, filterType: any, value: any) =>
+        (ast: Ast.Owned<Ast.MutableExpression>) => {
+          const parentPat = parentPattern ? parentPattern(ast) : ast
+          return buildPattern(ast, parentPat, columnName, filterAction, filterType, value)
+        }
+    }
+
+    let filterPatterns = new Array<ConstructivePattern>()
+    for (const filter of filters) {
+      const { columnName, filterAction, filterType } = filter
+      const value = getFilterValue(filter)
+
+      filterPatterns = (filterPatterns.length ? filterPatterns : [undefined]).flatMap((parent) => {
+        const projectionFunction = projector(parent)
+        const pattern = projectionFunction(columnName, filterType, filterAction, value)
+        return [pattern]
+      })
+    }
+
+    createNodes(
+      ...filterPatterns.map(
+        (pattern) =>
+          ({ content: Pattern.new(pattern), commit: true }) satisfies NodeCreationOptions,
+      ),
+    )
+
     createNodes(
       ...patterns.map(
         (pattern) => ({ content: pattern, commit: true }) satisfies NodeCreationOptions,
@@ -260,15 +279,13 @@ function useSortFilterNodesButton({
 
   const createNodesButton: ToolbarItem = {
     icon: 'add_to_graph_editor',
-    title:
-      "Create new component(s) with the current grid's sort and filters applied to the workflow",
-    disabled: isDisabled,
+    title: "Create new component(s) with the current grid's state applied to the workflow",
+    disabled: isButtonDisabled,
     onClick: createNewNodes,
   }
 
-  return computed(() => (toValue(isFilterSortNodeEnabled) ? createNodesButton : undefined))
+  return computed(() => (toValue(isCreateNewNodeEnabled) ? createNodesButton : undefined))
 }
-
 function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): ToolbarItem {
   return {
     selected: textFormatterSelected,
@@ -302,9 +319,22 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
   }
 }
 
+function createRefreshMenu({ refreshGrid }: RefreshButtonOptions): ToolbarItem {
+  return {
+    title: 'Reset any sort, filter or column changes made to the table',
+    icon: 'refresh',
+    onClick: refreshGrid,
+  }
+}
+
 /** TODO: Add docs */
 export function useTableVizToolbar(options: Options): ComputedRef<ToolbarItem[]> {
   const createNodesButton = useSortFilterNodesButton(options)
   const formatMenu = createFormatMenu(options)
-  return computed(() => [formatMenu, ...(createNodesButton.value ? [createNodesButton.value] : [])])
+  const refreshButton = createRefreshMenu(options)
+  return computed(() => [
+    formatMenu,
+    ...(createNodesButton.value ? [createNodesButton.value] : []),
+    refreshButton,
+  ])
 }

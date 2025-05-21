@@ -38,7 +38,7 @@ import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import {
   firstProjectExecutionOnOrAfter,
   nextProjectExecutionDate,
@@ -211,7 +211,10 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const valueJson = useRef('')
 
   // Only initialize `minFirstOccurrence` once.
-  const [minFirstOccurrence] = useState(() => now(timeZone))
+  // Initialize to the start of today.
+  const [minFirstOccurrence] = useState(() =>
+    now(timeZone).set({ hour: 0, minute: 0, second: 0, millisecond: 0 }),
+  )
   const defaultStartDate = defaultDate ?? minFirstOccurrence
   const form = Form.useForm({
     method: 'dialog',

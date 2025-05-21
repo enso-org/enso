@@ -242,3 +242,11 @@ add_row_number_specs suite_builder setup =
             t2.at "Y" . to_vector . should_equal [10, 20, 30, 40, 50]
             t2.at "X" . to_vector . should_equal [500, 400, 30, 1, 2]
             t2.at "Row" . to_vector . should_equal [4, 3, 2, 0, 1]
+
+        group_builder.specify "will throw an error if there is no ordering" <|
+            t = table_builder [["X", [500, 400, 30, 1, 2]], ["Y", [10, 20, 30, 40, 50]]]
+
+            err = t.add_row_number
+            err.should_fail_with Illegal_Argument
+            err.catch.message . should_contain "The table has no existing ordering"
+            err.catch.message . should_contain "`add_row_number` requires"

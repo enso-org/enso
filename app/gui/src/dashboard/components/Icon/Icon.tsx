@@ -38,15 +38,27 @@ interface BaseIconProps<Render = never> extends VariantProps<typeof ICON_STYLES>
  */
 export interface LegacyIconProps<Icon extends string, Render = never>
   extends BaseIconProps<Render> {
-  readonly children: LegacyIconPropType<Icon, Render>
-  readonly icon?: never
+  readonly icon: LegacyIconPropType<Icon, Render>
 }
 
 /** Generic type for icons imported from Figma. */
 export interface SvgUseIconProps<Render = never> {
-  readonly children?: never
   readonly icon: IconTypeSvgUse<Render>
 }
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const ICON_COLORS = [
+  'custom',
+  'primary',
+  'danger',
+  'success',
+  'accent',
+  'muted',
+  'disabled',
+  'invert',
+  'inherit',
+  'current',
+] as const satisfies readonly VariantProps<typeof ICON_STYLES>['color'][]
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const ICON_STYLES = tv({
@@ -88,18 +100,6 @@ export const Icon = memo(function Icon<Render = never>(props: IconProps<Render>)
   const { className, variants = ICON_STYLES, size, testId, renderProps, color, alt } = props
 
   const styles = variants({ size, className, color })
-
-  if ('children' in props) {
-    return (
-      <IconInternal<Render>
-        icon={props.children}
-        className={styles}
-        testId={testId}
-        renderProps={renderProps}
-        alt={alt}
-      />
-    )
-  }
 
   return (
     <IconInternal<Render>

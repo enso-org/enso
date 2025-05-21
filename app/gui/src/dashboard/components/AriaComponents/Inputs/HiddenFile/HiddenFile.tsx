@@ -1,6 +1,5 @@
 /** @file A hidden file input. */
 import {
-  Form,
   type FieldPath,
   type FieldProps,
   type FieldStateProps,
@@ -8,6 +7,7 @@ import {
   type FieldVariantProps,
   type TSchema,
 } from '#/components/AriaComponents'
+import { Form } from '#/components/AriaComponents/Form'
 import { Input, type InputProps } from '#/components/aria'
 
 /** Props for {@link HiddenFile}. */
@@ -48,7 +48,7 @@ export function HiddenFile<Schema extends TSchema, TFieldName extends FieldPath<
       render={({ field }) => (
         <Input
           type="file"
-          className="focus-child w-0"
+          className="w-0"
           accept={accept}
           onChange={(event) => {
             field.onChange(event.target.files?.[0])

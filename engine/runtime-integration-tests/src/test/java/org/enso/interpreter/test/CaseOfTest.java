@@ -2,32 +2,14 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
 
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class CaseOfTest {
-  private static Context ctx;
-  private static EnsoContext leak;
-
-  @BeforeClass
-  public static void initCtx() throws Exception {
-    ctx = ContextUtils.createDefaultContext();
-    leak = ContextUtils.leakContext(ctx);
-  }
-
-  @AfterClass
-  public static void closeCtx() {
-    ctx.close();
-    ctx = null;
-    leak.shutdown();
-    leak = null;
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void caseOfBoolean() {
@@ -46,7 +28,10 @@ public class CaseOfTest {
     var n = EnsoMultiValue.NewNode.getUncached();
 
     var bAndT =
-        new Type[] {leak.getBuiltins().bool().getType(), leak.getBuiltins().number().getInteger()};
+        new Type[] {
+          ctxRule.ensoContext().getBuiltins().bool().getType(),
+          ctxRule.ensoContext().getBuiltins().number().getInteger()
+        };
     var t = n.newValue(bAndT, 2, 0, new Object[] {true, 300});
     var f = n.newValue(bAndT, 2, 0, new Object[] {false, 200});
     doCaseOfBoolean(t, f);
@@ -63,7 +48,7 @@ public class CaseOfTest {
                        _ -> 3
                    """;
 
-    var choose = ContextUtils.evalModule(ctx, code, "choose.enso", "choose");
+    var choose = ctxRule.evalModule(code, "choose.enso", "choose");
 
     var one = choose.execute(t);
     assertEquals("With " + t + " we should get 1", 1, one.asInt());

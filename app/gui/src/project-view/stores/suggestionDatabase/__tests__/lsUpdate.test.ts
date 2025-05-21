@@ -1,5 +1,5 @@
 import { mockProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { assert, assertDefined } from '@/util/assert'
@@ -26,7 +26,7 @@ const projectNames = mockProjectNameStore()
 function applyUpdates(
   db: SuggestionDb,
   updates: SuggestionsDatabaseUpdate[],
-  { groups }: { groups: Group[] },
+  { groups }: { groups: GroupInfo[] },
 ) {
   new SuggestionUpdateProcessor(groups, projectNames).applyUpdates(db, updates)
 }
@@ -159,8 +159,9 @@ test("Modifying suggestion entries' fields", () => {
   test.expectedType.definedIn = stdPath('Standard.Base2.Main')
   test.expectedType.definitionPath = stdPath('Standard.Base2.Main.Type')
   test.expectedType.returnType = () => 'Standard.Base2.Type'
-  test.expectedType.aliases = ['Test Type 2']
+  test.expectedType.aliasesAndMacros = ['Test Type 2']
   test.expectedType.documentation = parseDocs(typeDocs2)
+  test.expectedType.docSummaryHtml = 'A Test type 2'
   test.expectedCon.memberOf = stdPath('Standard.Base2.Main.Type')
   test.expectedCon.definitionPath = stdPath('Standard.Base2.Main.Type.Con')
   test.expectedCon.returnType = () => unwrap(tryQualifiedName('Standard.Base2.Type'))
@@ -194,10 +195,13 @@ test("Unsetting suggestion entries' fields", () => {
   const db = test.createDbWithExpected()
   test.expectedModule.reexportedIn = undefined
   test.expectedType.documentation = []
-  test.expectedType.aliases = []
+  test.expectedType.docSummaryHtml = undefined
+  test.expectedType.aliasesAndMacros = []
   test.expectedCon.documentation = []
+  test.expectedCon.docSummaryHtml = undefined
   test.expectedCon.isUnstable = false
   test.expectedMethod.documentation = []
+  test.expectedMethod.docSummaryHtml = undefined
   test.expectedMethod.groupIndex = undefined
 
   applyUpdates(db, modifications, test.suggestionContext)
@@ -347,11 +351,14 @@ class Fixture {
     returnType: () => 'Standard.Base',
     documentation: parseDocs(this.moduleDocs),
     reexportedIn: stdPath('Standard.Base.Another.Module'),
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: 'A base module',
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedType = suggestionEntry<SuggestionKind.Type>({
     kind: SuggestionKind.Type,
@@ -361,13 +368,16 @@ class Fixture {
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Type',
     documentation: parseDocs(this.typeDocs),
-    aliases: ['Test Type'],
+    aliasesAndMacros: ['Test Type'],
     isPrivate: false,
     isUnstable: false,
     parentType: undefined,
     reexportedIn: stdPath('Standard.Base.Another.Module'),
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: 'A Test type',
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedCon = suggestionEntry<SuggestionKind.Constructor>({
     kind: SuggestionKind.Constructor,
@@ -378,13 +388,16 @@ class Fixture {
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Type',
     documentation: parseDocs(this.conDocs),
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: true,
     reexportedIn: stdPath('Standard.Base.Another.Module'),
     annotations: ['Annotation 1'],
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: 'A Constructor',
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedMethod = suggestionEntry<SuggestionKind.Method>({
     kind: SuggestionKind.Method,
@@ -397,12 +410,15 @@ class Fixture {
     returnType: () => 'Standard.Base.Number',
     documentation: parseDocs(this.methodDocs),
     groupIndex: 0,
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     annotations: ['Annotation 2', 'Annotation 3'],
     iconName: undefined,
     reexportedIn: undefined,
+    docSummaryHtml: 'An instance method',
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedStaticMethod = suggestionEntry<SuggestionKind.Method>({
     kind: SuggestionKind.Method,
@@ -414,13 +430,16 @@ class Fixture {
     returnType: () => 'Standard.Base.Number',
     documentation: parseDocs(this.staticMethodDocs),
     groupIndex: 1,
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     reexportedIn: stdPath('Standard.Base.Another.Module'),
     annotations: [],
     iconName: undefined,
     selfType: undefined,
+    docSummaryHtml: 'A static method',
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedFunction = suggestionEntry<SuggestionKind.Function>({
     kind: SuggestionKind.Function,
@@ -430,12 +449,15 @@ class Fixture {
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Number',
     documentation: parseDocs(this.functionDocs),
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: 'A local function',
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedLocal = suggestionEntry<SuggestionKind.Local>({
     kind: SuggestionKind.Local,
@@ -444,12 +466,15 @@ class Fixture {
     definitionPath: stdPath('Standard.Base.Main.local'),
     returnType: () => 'Standard.Base.Number',
     documentation: parseDocs(this.localDocs),
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: 'A local variable',
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedLocalStaticMethod = suggestionEntry<SuggestionKind.Method>({
     kind: SuggestionKind.Method,
@@ -469,7 +494,7 @@ class Fixture {
     definitionPath: ProjectPath.create(undefined, 'Main.collapsed' as QualifiedName),
     documentation: [{ Tag: { tag: 'Icon', body: 'group' } }, { Paragraph: { body: '' } }],
     iconName: 'group',
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     memberOf: ProjectPath.create(undefined, 'Main' as Identifier),
@@ -477,6 +502,9 @@ class Fixture {
     groupIndex: undefined,
     selfType: undefined,
     reexportedIn: undefined,
+    docSummaryHtml: '',
+    macros: {},
+    suggestedRank: undefined,
   })
 
   addUpdatesForExpected(): lsTypes.SuggestionsDatabaseUpdate[] {

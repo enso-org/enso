@@ -25,12 +25,13 @@ from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Internal.Helpers
-import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Type_Refinements.DB_Column_Refinements
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Errors import Integrity_Error, Unsupported_Database_Operation
@@ -53,7 +54,15 @@ type DB_Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+    private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source
+
+    ## The internal constructor used to construct a DB_Column instance.
+
+       It can perform some additional operations, like refining the type,
+       so it should always be preferred over calling `DB_Column.Value` directly.
+    private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source -> DB_Column =
+        DB_Column_Refinements.refine_column <|
+            DB_Column.Value internal_name connection sql_type_reference expression context
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -303,12 +312,12 @@ type DB_Column
         if use_ctes.not then callback self else
             binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
 
-            ref_expression = SQL_Expression.Let_Ref name binder self.expression
-            ref_column = DB_Column.Value binder self.connection self.sql_type_reference ref_expression self.context
+            ref_expression = SQL_IR_Expression.Let_Ref name binder self.expression
+            ref_column = DB_Column.new binder self.connection self.sql_type_reference ref_expression self.context
             inner_value = callback ref_column
 
-            let_expression = SQL_Expression.Let name binder self.expression inner_value.expression
-            DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
+            let_expression = SQL_IR_Expression.Let name binder self.expression inner_value.expression
+            DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
 
     ## PRIVATE
        Sets up an operation of arbitrary arity.
@@ -318,7 +327,7 @@ type DB_Column
        - operands: A vector of additional operation arguments (the column itself
          is always passed as the first argument).
        - new_name: The name of the resulting column.
-       - metadata: Optional metadata for the `SQL_Expression.Operation`.
+       - metadata: Optional metadata for the `SQL_IR_Expression.Operation`.
     make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> DB_Column
     make_op self op_kind operands new_name metadata=Nothing =
         checked_support = if self.connection.dialect.is_operation_supported op_kind then True else
@@ -329,18 +338,18 @@ type DB_Column
                 other_column : DB_Column ->
                     if Helpers.check_integrity self other_column then other_column.expression else
                         Error.throw (Integrity_Error.Error "DB_Column "+other_column.name)
-                sql_expression : SQL_Expression ->
+                sql_expression : SQL_IR_Expression ->
                     sql_expression
                 constant ->
-                    SQL_Expression.Constant constant
+                    SQL_IR_Expression.Constant constant
 
             expressions = operands.map prepare_operand
-            new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions) metadata
+            new_expr = SQL_IR_Expression.Operation op_kind ([self.expression] + expressions) metadata
 
             infer_from_database_callback expression =
                 SQL_Type_Reference.new self.connection self.context expression
             new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [self]+operands new_expr
-            DB_Column.Value new_name self.connection new_type_ref new_expr self.context
+            DB_Column.new new_name self.connection new_type_ref new_expr self.context
 
     ## PRIVATE
 
@@ -853,7 +862,7 @@ type DB_Column
        `Value_Type.Integer` columns.
 
        By default, rounding uses "symmetric round-half-up", also known as
-       "round towards 0." If use_bankers=True, then it uses "round-half-even",
+       "round towards 0." If rounding_mode=Rounding_Mode.Bankers, then it uses "round-half-even",
        also known as "banker's rounding".
 
        The return type depends on the backend.
@@ -862,7 +871,8 @@ type DB_Column
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.
          Must be between -15 and 15 (inclusive).
-       - use_bankers: Rounds mid-point to nearest even number.
+       - rounding_mode: specifies how to break ties for the least significant
+         digit.
 
        ! NaN/Inf
          If a `NaN` or `Inf` value is passed to `round`, it immediately returns
@@ -884,14 +894,14 @@ type DB_Column
              import Standard.Examples
 
              example_round = Examples.decimal_column.round 2
-    round self decimal_places:Integer=0 use_bankers:Boolean=False -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
+    round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
-            if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places use_bankers else
+            if self.should_use_builtin_round decimal_places rounding_mode then self.round_builtin decimal_places rounding_mode else
                 self.short_circuit_special_floating_point <|
                     case self.value_type of
-                        Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
-                        Value_Type.Float _ -> self.round_float decimal_places use_bankers
-                        Value_Type.Decimal _ _ -> self.round_decimal decimal_places use_bankers
+                        Value_Type.Integer _ -> self.round_integer decimal_places rounding_mode
+                        Value_Type.Float _ -> self.round_float decimal_places rounding_mode
+                        Value_Type.Decimal _ _ -> self.round_decimal decimal_places rounding_mode
                         _ ->
                             expected = "Decimal, Float, or Integer"
                             Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
@@ -903,9 +913,9 @@ type DB_Column
        - We are not passing a floating point value to round with a non-zero decimal_places param (prohibited by postgres)
          (Note that Postgres is fine with a `numeric` value here, just not `double precision`.)
     should_use_builtin_round : Integer -> Boolean -> Boolean
-    should_use_builtin_round self decimal_places use_bankers =
+    should_use_builtin_round self decimal_places rounding_mode =
         # Don't use for banker's rounding (unless the dialect has a builtin for it)
-        bankers_ok = self.connection.dialect.flagged ..Use_Builtin_Bankers || use_bankers.not
+        bankers_ok = self.connection.dialect.flagged ..Use_Builtin_Bankers || rounding_mode != Rounding_Mode.Bankers
         # Don't use for negative decimal places, if the backend doesn't support it
         negative_dp_ok = decimal_places >= 0 || self.connection.dialect.flagged ..Supports_Negative_Decimal_Places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
@@ -915,22 +925,22 @@ type DB_Column
     ## PRIVATE
        Round a float-like column using the backend's builtin ROUND function.
     round_builtin : Integer -> Boolean -> DB_Column
-    round_builtin self decimal_places use_bankers =
+    round_builtin self decimal_places rounding_mode =
         new_name = self.naming_helper.function_name "round" [self]
-        case use_bankers of
-            True ->
-                    self.make_binary_op "ROUND_BANKERS" (SQL_Expression.Literal decimal_places.to_text) new_name
-            False ->
+        case rounding_mode of
+            Rounding_Mode.Bankers ->
+                    self.make_binary_op "ROUND_BANKERS" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
+            Rounding_Mode.Half_Up ->
                 case decimal_places == 0 of
                     True ->
                         self.make_unary_op "ROUND" new_name
                     False ->
-                        self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
+                        self.make_binary_op "ROUND" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
 
     ## PRIVATE
        Round a float-like column.
     round_float : Integer -> Boolean -> DB_Column
-    round_float self decimal_places use_bankers =
+    round_float self decimal_places rounding_mode =
         new_name = self.naming_helper.function_name "round" [self]
         scale = 10 ^ decimal_places
         scaled = self * scale
@@ -942,7 +952,7 @@ type DB_Column
                 round_midpoint.let "round_midpoint" round_midpoint->
                     ((scaled.truncate % 2) == 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                         even_is_up = (self >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                        half_goes_up = if use_bankers then even_is_up else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else self >= 0
                         do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (self >= round_midpoint) (self > round_midpoint)
                         result = do_round_up.let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
                         result.rename new_name
@@ -950,7 +960,7 @@ type DB_Column
     ## PRIVATE
        Round a float-like column.
     round_decimal : Integer -> Boolean -> DB_Column
-    round_decimal self decimal_places use_bankers =
+    round_decimal self decimal_places rounding_mode =
         # Construct a constant Decimal column.
         k x = self.const x . cast Value_Type.Decimal
         new_name = self.naming_helper.function_name "round" [self]
@@ -963,7 +973,7 @@ type DB_Column
                 round_midpoint.let "round_midpoint" round_midpoint->
                     ((scaled.truncate.decimal_mod (k 2)) != k 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                         even_is_up = (self >= k 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                        half_goes_up = if use_bankers then even_is_up else self >= k 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else self >= k 0
                         do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (self >= round_midpoint) (self > round_midpoint)
                         result = do_round_up.let "do_round_up" x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
                         result.rename new_name
@@ -971,7 +981,7 @@ type DB_Column
     ## PRIVATE
        Round an integer column.
     round_integer : Integer -> Boolean -> DB_Column
-    round_integer self decimal_places use_bankers =
+    round_integer self decimal_places rounding_mode =
         new_name = self.naming_helper.function_name "round" [self]
         scale = 10 ^ -decimal_places
         halfway = scale / 2
@@ -982,11 +992,11 @@ type DB_Column
                 result_unnudged = scaled_down * scale
                 result_unnudged.let "result_unnudged" result_unnudged->
                     if_non_neg =
-                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) != 0 else self >= 0
                         round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder >= halfway) (remainder > halfway)
                         round_up.let "round_up" x-> x.iif (result_unnudged + scale) result_unnudged
                     if_neg =
-                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) == 0 else self >= 0
                         round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder < -halfway) (remainder <= -halfway)
                         round_up.let "round_up" x-> x.iif (result_unnudged - scale) result_unnudged
 
@@ -1118,6 +1128,10 @@ type DB_Column
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
+
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
     min self (values : Any | Vector Any) -> DB_Column =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
@@ -1138,6 +1152,10 @@ type DB_Column
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
+
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
     max self (values : Any | Vector Any) -> DB_Column =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
@@ -1312,7 +1330,7 @@ type DB_Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename self name:Text -> DB_Column ! Illegal_Argument = self.naming_helper.ensure_name_is_valid name <|
-        DB_Column.Value name self.connection self.sql_type_reference self.expression self.context
+        DB_Column.new name self.connection self.sql_type_reference self.expression self.context
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
@@ -1616,7 +1634,7 @@ type DB_Column
     @new_text (Text_Input display=..Always)
     text_replace self (term : Text | Regex | DB_Column = "") (new_text : Text | DB_Column = "") case_sensitivity:Case_Sensitivity=..Default only_first:Boolean=False -> DB_Column ! Unsupported_Database_Operation =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
-            input_type = Meta.type_of term
+            input_type = if term.is_error then term else Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
             self.connection.dialect.if_replace_params_supports params <|
                 new_name = self.naming_helper.function_name "replace" [self, term, new_text]
@@ -1840,13 +1858,13 @@ type DB_Column
                 result.rename new_name
             _ : Array -> self.is_in (Vector.from_polyglot_array vector)
             column : DB_Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "DB_Column "+column.name)) else
-                in_subquery = Query.Select [Pair.new column.name column.expression] column.context
-                new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery]
+                in_subquery = SQL_IR_Statement.Select [Pair.new column.name column.expression] column.context
+                new_expr = SQL_IR_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery]
                 # This mapping should never be imprecise, if there are errors we need to amend the implementation.
                 sql_type = self.connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
                 new_type_ref = SQL_Type_Reference.from_constant sql_type . catch Inexact_Type_Coercion _->
                     Error.throw (Illegal_State.Error "The dialect "+self.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
-                DB_Column.Value new_name self.connection new_type_ref new_expr self.context
+                DB_Column.new new_name self.connection new_type_ref new_expr self.context
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1981,7 +1999,7 @@ type DB_Column
             infer_from_database new_expression =
                 SQL_Type_Reference.new self.connection self.context new_expression
             new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
-            DB_Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
+            DB_Column.new new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS transform column
        ICON column_add
@@ -2139,7 +2157,7 @@ adapt_unified_column column expected_type =
     infer_return_type expression =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
-    DB_Column.Value column.name column.connection adapted.sql_type_reference adapted.expression column.context
+    DB_Column.new column.name column.connection adapted.sql_type_reference adapted.expression column.context
 
 ## PRIVATE
 Column.from (that:DB_Column) =

@@ -8,10 +8,10 @@ from Standard.Table import Join_Kind, Value_Type
 from Standard.Table.Errors import all
 
 import project.DB_Table.DB_Table
-import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Internal.Upload.Helpers.Check_Queries import check_for_null_keys
@@ -89,7 +89,7 @@ make_lookup_counter_column dialect lookup_columns unique_name_strategy =
     grouping_expressions = lookup_columns.flat_map c-> case c of
         Lookup_Column.Key_Column _ lookup_column -> [lookup_column.expression]
         _ -> []
-    row_number_expression = SQL_Expression.Operation "ROW_NUMBER_IN_GROUP" grouping_expressions
+    row_number_expression = SQL_IR_Expression.Operation "ROW_NUMBER_IN_GROUP" grouping_expressions
     sql_type = dialect.get_type_mapping.value_type_to_sql Value_Type.Integer Problem_Behavior.Ignore
     Internal_Column.Value (unique_name_strategy.make_unique "lookup_counter") (SQL_Type_Reference.from_constant sql_type) row_number_expression
 
@@ -124,9 +124,9 @@ type Lookup_Subquery_Setup
     create_merged_column self ix expected_type dialect infer_type_in_result allow_unmatched_rows =
         self_col = self.get_self_column ix
         lookup_col = self.get_lookup_column ix
-        is_lookup_found = SQL_Expression.Operation "==" [self.lookup_counter.expression, SQL_Expression.Literal "1"]
+        is_lookup_found = SQL_IR_Expression.Operation "==" [self.lookup_counter.expression, SQL_IR_Expression.Literal "1"]
         expression = case allow_unmatched_rows of
-            True  -> SQL_Expression.Operation "CASE" [is_lookup_found, lookup_col.expression, self_col.expression]
+            True  -> SQL_IR_Expression.Operation "CASE" [is_lookup_found, lookup_col.expression, self_col.expression]
             False -> Error.throw (Illegal_State.Error "Assumed that prepare_columns_for_lookup never returns Replace_Column if allow_unmatched_rows=False. This is a bug in the Database library.")
         input_column = Internal_Column.Value self_col.name (infer_type_in_result expression) expression
         adapted = dialect.adapt_unified_column input_column expected_type infer_type_in_result
@@ -181,11 +181,11 @@ make_context_for_lookup_join lookup_columns subquery_setup =
         Lookup_Column.Key_Column _ _ ->
             self_col = subquery_setup.get_self_column ix
             lookup_col = subquery_setup.get_lookup_column ix
-            [SQL_Expression.Operation "==" [self_col.expression, lookup_col.expression]]
+            [SQL_IR_Expression.Operation "==" [self_col.expression, lookup_col.expression]]
         _ -> []
 
-    new_from = From_Spec.Join SQL_Join_Kind.Left subquery_setup.self_sub.subquery subquery_setup.lookup_sub.subquery on_expressions
-    Context.for_subquery new_from
+    new_from = SQL_IR_From_Part.Join SQL_Join_Kind.Left subquery_setup.self_sub.subquery subquery_setup.lookup_sub.subquery on_expressions
+    SQL_IR_Source.for_subquery new_from
 
 ## PRIVATE
    Runs a query that checks if there are any duplicate matches in the lookup
@@ -226,18 +226,18 @@ precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx 
    information.
 make_invariant_check lookup_counter allow_unmatched_rows =
     make_error message =
-        SQL_Expression.Operation "RUNTIME_ERROR" [SQL_Expression.Text_Literal "lookup_and_replace: "+message, lookup_counter.expression]
+        SQL_IR_Expression.Operation "RUNTIME_ERROR" [SQL_IR_Expression.Text_Literal "lookup_and_replace: "+message, lookup_counter.expression]
 
     exact_match =
-        is_matched = SQL_Expression.Operation "==" [lookup_counter.expression, SQL_Expression.Literal "1"]
-        [is_matched, SQL_Expression.Literal "TRUE"]
+        is_matched = SQL_IR_Expression.Operation "==" [lookup_counter.expression, SQL_IR_Expression.Literal "1"]
+        [is_matched, SQL_IR_Expression.Literal "TRUE"]
     unmatched =
-        is_unmatched = SQL_Expression.Operation "IS_NULL" [lookup_counter.expression]
+        is_unmatched = SQL_IR_Expression.Operation "IS_NULL" [lookup_counter.expression]
         case allow_unmatched_rows of
-            True  -> [is_unmatched, SQL_Expression.Literal "TRUE"]
+            True  -> [is_unmatched, SQL_IR_Expression.Literal "TRUE"]
             False -> [is_unmatched, make_error "Some rows have no matches in the lookup table."]
 
     # This will be matched if the first branches do not match - this should happen if there is more than 1 match for a row.
     fallback = [make_error "Duplicate matches found in the lookup table."]
 
-    SQL_Expression.Operation "CASE" unmatched+exact_match+fallback
+    SQL_IR_Expression.Operation "CASE" unmatched+exact_match+fallback

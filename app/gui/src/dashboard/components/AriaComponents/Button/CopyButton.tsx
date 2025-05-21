@@ -1,9 +1,9 @@
 /** @file A button that copies text to the clipboard. */
 import Error from '#/assets/cross.svg'
-import CopyIcon from '#/assets/duplicate.svg'
 import Done from '#/assets/tick.svg'
+import type { SvgUseIcon } from '#/components/AriaComponents/types'
 import { useCopy } from '#/hooks/copyHooks'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { Button } from './Button'
 import type { ButtonProps } from './types'
 
@@ -16,9 +16,9 @@ export interface CopyButtonProps<IconType extends string>
    * Custom icon
    * If `false` is provided, no icon will be shown.
    */
-  readonly copyIcon?: string | false
-  readonly errorIcon?: string
-  readonly successIcon?: string
+  readonly copyIcon?: SvgUseIcon | false | (string & {})
+  readonly errorIcon?: SvgUseIcon | (string & {})
+  readonly successIcon?: SvgUseIcon | (string & {})
   readonly onCopy?: () => void
   /**
    * Show a toast message when the copy is successful.
@@ -33,14 +33,14 @@ export interface CopyButtonProps<IconType extends string>
 export function CopyButton<IconType extends string>(props: CopyButtonProps<IconType>) {
   const {
     variant = 'icon',
-    copyIcon = CopyIcon,
+    copyIcon = 'duplicate',
     successIcon = Done,
     errorIcon = Error,
     copyText,
     onCopy,
     ...buttonProps
   } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const copyQuery = useCopy({ onCopy })
   const successfullyCopied = copyQuery.isSuccess
   const isError = copyQuery.isError

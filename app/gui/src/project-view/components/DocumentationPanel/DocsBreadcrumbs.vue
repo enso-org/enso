@@ -31,12 +31,12 @@ function shrinkFactor(index: number): number {
       <SvgButton
         name="navigate_back"
         :disabled="!props.canGoBackward"
-        @click.stop="emit('backward')"
+        @activate="emit('backward')"
       />
       <SvgButton
         name="navigate_forward"
         :disabled="!props.canGoForward"
-        @click.stop="emit('forward')"
+        @activate="emit('forward')"
       />
     </div>
     <TransitionGroup name="breadcrumbs">

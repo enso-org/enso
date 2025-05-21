@@ -356,12 +356,6 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
               page.getByLabel(TEXT.accessedDataColumnName).click(),
             )
           },
-          /** Toggle visibility for the "docs" column. */
-          docs() {
-            return self.step('Toggle "docs" column', (page) =>
-              page.getByLabel(TEXT.docsColumnName).click(),
-            )
-          },
         }
       },
     }
@@ -377,18 +371,10 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
 
   /** Create a new empty project. */
   newEmptyProject() {
-    return this.step('Create empty project', (page) =>
-      page.getByText(TEXT.newEmptyProject, { exact: true }).click(),
-    ).into(EditorPageActions<Context>)
-  }
-
-  // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
-  // Delete once cloud execution in the browser is re-enabled.
-  /** Create a new empty project. */
-  newEmptyProjectTest() {
-    return this.step('Create empty project', (page) =>
-      page.getByText(TEXT.newEmptyProject, { exact: true }).click(),
-    ).into(EditorPageActions<Context>)
+    return this.step('Create empty project', async (page) => {
+      await page.getByText(TEXT.newEmptyProject, { exact: true }).click()
+      await expect(page.getByTestId('editor')).toBeVisible()
+    }).into(EditorPageActions<Context>)
   }
 
   /** Interact with the drive view (the main container of this page). */

@@ -10,7 +10,7 @@
     - is_root self -> Standard.Base.Data.Boolean.Boolean
     - join self subpaths:Standard.Base.Data.Vector.Vector -> Standard.AWS.Internal.S3_Path.S3_Path
     - parent self -> (Standard.AWS.Internal.S3_Path.S3_Path|Standard.Base.Nothing.Nothing)
-    - parse uri:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - parse uri:Standard.Base.Data.Text.Text -> Standard.AWS.Internal.S3_Path.S3_Path!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     - resolve self subpath:Standard.Base.Data.Text.Text -> Standard.AWS.Internal.S3_Path.S3_Path
     - to_display_text self -> Standard.Base.Data.Text.Text
     - to_text self -> Standard.Base.Data.Text.Text

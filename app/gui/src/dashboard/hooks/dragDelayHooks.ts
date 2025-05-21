@@ -5,7 +5,7 @@ import type { DOMAttributes, DragEvent } from 'react'
 import { useRef } from 'react'
 
 /** The default delay, in milliseconds, before the drag action triggers. */
-const DEFAULT_DELAY_MS = 500
+const DEFAULT_DELAY_MS = 2000
 
 /** Options for {@link useDragDelayAction}. */
 export interface DragDelayActionOptions {

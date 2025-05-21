@@ -1,8 +1,10 @@
 /** @file A hook for creating a visual tooltip that appears when the target element is hovered over. */
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import type * as ariaComponents from '#/components/AriaComponents'
+import { TOOLTIP_STYLES } from '#/components/AriaComponents/Tooltip'
 import Portal from '#/components/Portal'
 import * as eventCallback from '#/hooks/eventCallbackHooks'
+import { unsafeWriteValue } from '#/utilities/write'
 import * as React from 'react'
 
 /** Props for {@link useVisualTooltip}. */
@@ -101,8 +103,13 @@ export function useVisualTooltip(props: VisualTooltipOptions): VisualTooltipRetu
     onHoverChange: handleHoverChange,
   })
 
+  unsafeWriteValue(targetHoverProps, 'id', id)
+
   return {
-    targetProps: aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(targetHoverProps, { id }),
+    // This is SAFE because we are writing the value to the targetHoverProps object
+    // above.
+    // eslint-disable-next-line no-restricted-syntax
+    targetProps: targetHoverProps as VisualTooltipReturn['targetProps'],
     tooltip:
       state.isOpen ?
         <TooltipInner
@@ -122,7 +129,7 @@ export function useVisualTooltip(props: VisualTooltipOptions): VisualTooltipRetu
           handleHoverChange={handleHoverChange}
         />
       : null,
-  } as const
+  }
 }
 
 /** Props for {@link TooltipInner}. */
@@ -200,7 +207,7 @@ function TooltipInner(props: TooltipInnerProps) {
           tooltipHoverProps,
           {
             id,
-            className: ariaComponents.TOOLTIP_STYLES({
+            className: TOOLTIP_STYLES({
               className,
               variant,
               rounded,

@@ -85,7 +85,7 @@ export const BUTTON_STYLES = tv({
           weight: 'semibold',
           className: 'flex h-8 px-[7px]',
         }),
-        icon: 'h-4 w-4',
+        icon: 'h-4 w-4 -mb-0.5',
         content: 'gap-2',
         extraClickZone: 'after:inset-[-8px]',
       },

@@ -11,9 +11,10 @@ export default class RegisterPageActions<Context> extends BaseActions<Context> {
   get goToPage() {
     return {
       login: (): LoginPageActions<Context> =>
-        this.step("Go to 'login' page", async (page) =>
-          page.getByRole('link', { name: TEXT.alreadyHaveAnAccount, exact: true }).click(),
-        ).into(LoginPageActions<Context>),
+        this.step("Go to 'login' page", async (page) => {
+          await page.getByRole('link', { name: TEXT.alreadyHaveAnAccount, exact: true }).click()
+          await expect(page.getByText(TEXT.loginToYourAccount)).toBeVisible()
+        }).into(LoginPageActions<Context>),
     }
   }
 

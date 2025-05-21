@@ -4,6 +4,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Vector_Lexicographic_Order
 import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
@@ -50,9 +51,6 @@ from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File import find_extension_from_name
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 from project.System.File.Generic.File_Write_Strategy import generic_copy
-
-polyglot java import java.nio.file.Path
-polyglot java import org.enso.base.file_system.File_Utils
 
 type Enso_File
     ## ICON data_input
@@ -118,7 +116,7 @@ type Enso_File
 
        ? Data Links
          If the file is a data link, this checks if the data link itself exists. 
-         It does not tell anything about existence of the data link target.       
+         It does not tell anything about existence of the data link target.
     exists : Boolean
     exists self =
         r = Existing_Enso_Asset.get_asset_reference_for self . if_not_error True
@@ -277,7 +275,7 @@ type Enso_File
        - color: The color of the label to create.
     create_label : Text -> Color -> Nothing
     create_label (name : Text) (color : Color) -> Nothing =
-        # TODO once cloud also checks for tag existance, if the Write context is enabled we could avoid this check as cloud will do it anyway - then we'll have only one request instead of 2 each time
+        # TODO once cloud also checks for tag existence, if the Write context is enabled we could avoid this check as cloud will do it anyway - then we'll have only one request instead of 2 each time
         # Cloud ticket: https://github.com/enso-org/cloud-v2/issues/1544
         if does_tag_exist name then Error.throw (Illegal_Argument.Error "A label with name "+name+" already exists.") else
             Context.Output.if_enabled disabled_message="Cannot create a label when writing is disabled. Press the Write button ▶ to perform the operation." panic=False <|
@@ -292,7 +290,7 @@ type Enso_File
          link is a directory.
     is_directory : Boolean
     is_directory self = Data_Link_Helpers.is_directory self <|
-        Existing_Enso_Asset.get_asset_reference_for self . asset_type == Enso_Asset_Type.Directory
+        self.asset_type == Enso_Asset_Type.Directory
 
     ## GROUP Metadata
        ICON metadata
@@ -303,23 +301,14 @@ type Enso_File
          link is a regular file.
     is_regular_file : Boolean
     is_regular_file self = Data_Link_Helpers.is_regular_file self <|
-        Existing_Enso_Asset.get_asset_reference_for self . asset_type == Enso_Asset_Type.File
+        self.asset_type == Enso_Asset_Type.File
 
     ## PRIVATE
+       Check if the Enso_File is a data link.
     is_data_link self -> Boolean =
-        ## Checking the `asset_type` requires actually fetching the metadata from the cloud.
-           To avoid performing requests for every part of a path that we are resolving,
-           we rely on the assumption that every data link has a name ending with the `.datalink` extension.
-           Thus we perform the costly check only if we find a good potential candidate for the data link.
-        may_be_data_link = Data_Link.is_data_link_name self.name
-        if may_be_data_link.not then False else
-            # We catch `File_Error` which means that the asset just does not exist.
-            asset_type = self.asset_type.catch File_Error _->Nothing
-            ## If the file does not exist, we treat it as a 'possible data link' to allow creating new data links with
-               that `Enso_File` as the data link location. Thus we return True.
-               If the asset already exists, we rely on its type.
-            if asset_type.is_nothing then True else
-                self.asset_type == Enso_Asset_Type.Data_Link
+        if self.exists then self.asset_type == Enso_Asset_Type.Data_Link else
+            ## We know doesn't exist so check if `.datalink`.
+            Data_Link.is_data_link_name self.name
 
     ## GROUP Metadata
        ICON folder
@@ -492,10 +481,9 @@ type Enso_File
                     # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
                     assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
                     filtered_assets = if name_filter == "" then assets else
-                        used_filter = if recursive.not || name_filter.contains "**" then name_filter else
-                            (if name_filter.starts_with "*" then "*" else "{**/,}") + name_filter
-                        matcher = File_Utils.matchPath "glob:"+used_filter
-                        assets.filter a-> matcher.matches (Path.of (a.name.drop Enso_Path.protocol_prefix.length))
+                        ## Does NOT support recursive matching
+                        name_regex = Regex.from_glob name_filter
+                        assets.filter a-> a.name.match name_regex
                     results = filtered_assets.map asset->
                         file = Enso_File.Value (self.enso_path.resolve asset.name)
                         Asset_Cache.update file asset

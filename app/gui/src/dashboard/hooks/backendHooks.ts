@@ -1,7 +1,6 @@
 /** @file Hooks for interacting with the backend. */
 import {
   queryOptions,
-  useMutation,
   useMutationState,
   useQuery,
   useQueryClient,
@@ -89,7 +88,7 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
   })
 }
 
-/** An identity function to help in constructing options for a mutation. */
+/** An identity function to construct options for a mutation. */
 export function mutationOptions<
   TData = unknown,
   TError = DefaultError,
@@ -99,31 +98,6 @@ export function mutationOptions<
   options: UseMutationOptions<TData, TError, TVariables, TContext>,
 ): UseMutationOptions<TData, TError, TVariables, TContext> {
   return options
-}
-
-export function useBackendQuery<Method extends BackendQueryMethod>(
-  backend: Backend,
-  method: Method,
-  args: Readonly<Parameters<Backend[Method]>>,
-  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
-    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
-export function useBackendQuery<Method extends BackendQueryMethod>(
-  backend: Backend | null,
-  method: Method,
-  args: Readonly<Parameters<Backend[Method]>>,
-  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
-    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): UseQueryResult<Awaited<ReturnType<Backend[Method]>> | undefined>
-/** Wrap a backend method call in a React Query. */
-export function useBackendQuery<Method extends BackendQueryMethod>(
-  backend: Backend | null,
-  method: Method,
-  args: Readonly<Parameters<Backend[Method]>>,
-  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
-    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-) {
-  return useQuery(backendQueryOptions(backend, method, args, options))
 }
 
 /** The type of the corresponding mutation for the given backend method. */
@@ -213,8 +187,8 @@ export type ListUserGroupsWithUsersQueryResult = Omit<
 
 /** A list of user groups, taking into account optimistic state. */
 export function useListUserGroupsWithUsers(backend: Backend): ListUserGroupsWithUsersQueryResult {
-  const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
-  const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
+  const listUserGroupsQuery = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
+  const listUsersQuery = useQuery(backendQueryOptions(backend, 'listUsers', []))
 
   const promise: Promise<readonly UserGroupInfoWithUsers[]> = useMemo(
     () =>
@@ -320,7 +294,7 @@ export interface ListDirectoryQueryOptions {
   readonly parentId: DirectoryId | null
   readonly category: Category
   /**
-   * When using React, use {@link useListDirectoryRefetchInterval} to 0.
+   * When using React, use {@link useListDirectoryRefetchInterval} to get the correct value.
    * `undefined` is intentionally excluded as this value should be explicitly given.
    */
   readonly refetchInterval: number | null
@@ -552,18 +526,20 @@ export function useNewProject(backend: Backend, category: Category) {
   const openProjectNatively = useOpenProjectNatively()
   const deleteAsset = useDeleteAsset(backend, category)
 
-  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const createProjectMutation = useMutationCallback(
+    backendMutationOptions(backend, 'createProject'),
+  )
 
   return useEventCallback(
     async (
       {
         templateName,
         templateId,
-        datalinkId,
+        ensoPath,
       }: {
         templateName: string | null | undefined
         templateId?: string | null | undefined
-        datalinkId?: backendModule.DatalinkId | null | undefined
+        ensoPath?: string | null | undefined
       },
       parentId: DirectoryId,
       runLocally = true,
@@ -581,15 +557,14 @@ export function useNewProject(backend: Backend, category: Category) {
 
       const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
 
-      return await createProjectMutation
-        .mutateAsync([
-          {
-            parentDirectoryId: placeholderItem.parentId,
-            projectName: placeholderItem.title,
-            ...(templateId == null ? {} : { projectTemplateName: templateId }),
-            ...(datalinkId == null ? {} : { datalinkId: datalinkId }),
-          },
-        ])
+      return await createProjectMutation([
+        {
+          parentDirectoryId: placeholderItem.parentId,
+          projectName: placeholderItem.title,
+          ...(templateId == null ? {} : { projectTemplateName: templateId }),
+          ...(ensoPath == null ? {} : { ensoPath }),
+        },
+      ])
         .catch((error) => {
           void deleteAsset(placeholderItem.id, parentId)
           throw error
@@ -599,12 +574,13 @@ export function useNewProject(backend: Backend, category: Category) {
             id: createdProject.projectId,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          }
+            ...(createdProject.ensoPath != null ? { ensoPath: createdProject.ensoPath } : {}),
+          } satisfies Partial<backendModule.ProjectAsset>
           if (runLocally) {
             // Open in background.
             void openProjectLocally(openProjectParams, backend.type)
           } else {
-            openProjectNatively(openProjectParams, backend.type)
+            void openProjectNatively(openProjectParams, backend.type)
           }
 
           return createdProject
@@ -617,17 +593,20 @@ export function useNewProject(backend: Backend, category: Category) {
 export function useRemoveSelfPermissionMutation(backend: Backend) {
   const { user } = useFullUserSession()
 
-  const createPermissionMutation = useMutation(
+  const createPermissionMutation = useMutationCallback(
     backendMutationOptions(backend, 'createPermission', {
       meta: {
-        invalidates: [[backend.type, 'listDirectory']],
+        invalidates: [
+          [backend.type, 'listDirectory'],
+          [backend.type, 'getAssetDetails'],
+        ],
         awaitInvalidates: true,
       },
     }),
   )
 
   const mutate = useEventCallback((id: AssetId) => {
-    createPermissionMutation.mutate([
+    void createPermissionMutation([
       {
         action: null,
         resourceId: id,
@@ -637,7 +616,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   })
 
   const mutateAsync = useEventCallback(async (id: AssetId) => {
-    await createPermissionMutation.mutateAsync([
+    await createPermissionMutation([
       {
         action: null,
         resourceId: id,

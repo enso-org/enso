@@ -1,13 +1,9 @@
 /** @file A radio group. */
-import * as React from 'react'
-
 import * as aria from '#/components/aria'
-
 import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
-
 import { omit } from '#/utilities/object'
-import { forwardRef } from '#/utilities/react'
+import * as twv from '#/utilities/tailwindVariants'
+import * as React from 'react'
 import type { FieldVariantProps } from '../Form'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import { RadioGroupProvider } from './RadioGroupContext'
@@ -41,7 +37,7 @@ export const RADIO_GROUP_STYLES = twv.tv({
 const useStringField = Form.makeUseField<string>()
 
 /** A radio group. */
-export const RadioGroup = forwardRef(function RadioGroup<
+export const RadioGroup = React.forwardRef(function RadioGroup<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, string>,
 >(props: RadioGroupProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
@@ -60,6 +56,7 @@ export const RadioGroup = forwardRef(function RadioGroup<
     fullWidth,
     variants = RADIO_GROUP_STYLES,
     fieldVariants,
+    contextualHelp,
     ...radioGroupProps
   } = props
 
@@ -101,6 +98,7 @@ export const RadioGroup = forwardRef(function RadioGroup<
           isInvalid={invalid}
           variants={fieldVariants}
           isRequired={isRequired}
+          contextualHelp={contextualHelp}
         >
           {children}
         </Form.Field>

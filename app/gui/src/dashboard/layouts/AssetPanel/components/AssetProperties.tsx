@@ -17,17 +17,17 @@ import Label from '#/components/dashboard/Label'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { validateDatalink } from '#/data/datalinkValidator'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
-import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import {
+  assetPanelStore,
+  useAssetPanelCurrentItem,
+  useSetAssetPanelProps,
+} from '#/layouts/AssetPanel/'
+import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
-import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -41,8 +41,10 @@ import {
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
-import { useMutation } from '@tanstack/react-query'
+import { useText } from '$/providers/react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import type { AssetPanelProps } from './types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -55,9 +57,7 @@ const ASSET_PROPERTIES_VARIANTS = tv({
 export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
 
 /** Props for an {@link AssetPropertiesProps}. */
-export interface AssetPropertiesProps {
-  readonly backend: Backend
-  readonly category: Category
+export interface AssetPropertiesProps extends AssetPanelProps {
   readonly isReadonly?: boolean
 }
 
@@ -65,13 +65,7 @@ export interface AssetPropertiesProps {
 export function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false, backend, category } = props
 
-  const { item, spotlightOn, defaultItem } = useStore(
-    assetPanelStore,
-    (state) => state.assetPanelProps,
-    { unsafeEnableTransition: true },
-  )
-
-  const currentItem = item ?? defaultItem
+  const item = useAssetPanelCurrentItem()
 
   const { getText } = useText()
 
@@ -79,18 +73,17 @@ export function AssetProperties(props: AssetPropertiesProps) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (currentItem == null) {
+  if (item == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
-      key={currentItem.id}
+      key={item.id}
       backend={backend}
-      item={currentItem}
+      item={item}
       isReadonly={isReadonly}
       category={category}
-      spotlightOn={spotlightOn}
     />
   )
 }
@@ -98,13 +91,16 @@ export function AssetProperties(props: AssetPropertiesProps) {
 /** Props for an {@link AssetPropertiesInternal}. */
 export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
   readonly item: AnyAsset
-  readonly spotlightOn: AssetPropertiesSpotlight | null
 }
 
 /** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
-  const { backend, item, category, spotlightOn, isReadonly = false } = props
+  const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
+
+  const spotlightOn = useStore(assetPanelStore, (state) => state.assetPanelProps.spotlightOn, {
+    unsafeEnableTransition: true,
+  })
 
   const setAssetPanelProps = useSetAssetPanelProps()
 
@@ -131,17 +127,19 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     },
   )
   const featureFlags = useFeatureFlags()
-  const datalinkQuery = useBackendQuery(
-    backend,
-    'getDatalink',
-    // eslint-disable-next-line no-restricted-syntax
-    [item.id as DatalinkId, item.title],
-    {
-      enabled: item.type === AssetType.datalink,
-      ...(featureFlags.enableAssetsTableBackgroundRefresh ?
-        { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
-      : {}),
-    },
+  const datalinkQuery = useQuery(
+    backendQueryOptions(
+      backend,
+      'getDatalink',
+      // eslint-disable-next-line no-restricted-syntax
+      [item.id as DatalinkId, item.title],
+      {
+        enabled: item.type === AssetType.datalink,
+        ...(featureFlags.enableAssetsTableBackgroundRefresh ?
+          { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
+        : {}),
+      },
+    ),
   )
   const descriptionSpotlight = useSpotlight({
     enabled: spotlightOn === 'description',
@@ -156,7 +154,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     close: closeSpotlight,
   })
 
-  const { data: labels = [] } = useBackendQuery(backend, 'listTags', [])
+  const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -203,28 +201,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     resetEditDescriptionForm({ description: item.description ?? '' })
   }, [item.description, resetEditDescriptionForm])
 
-  const editDatalinkForm = Form.useForm({
-    schema: (z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) }),
-    defaultValues: { datalink: datalinkQuery.data },
-    onSubmit: async ({ datalink }) => {
-      await createDatalinkMutation.mutateAsync([
-        {
-          // The UI to submit this form is only visible if the asset is a datalink.
-          // eslint-disable-next-line no-restricted-syntax
-          datalinkId: item.id as DatalinkId,
-          name: item.title,
-          parentDirectoryId: null,
-          value: datalink,
-        },
-      ])
-    },
-  })
-
-  const editDatalinkFormRef = useSyncRef(editDatalinkForm)
-  React.useEffect(() => {
-    editDatalinkFormRef.current.setValue('datalink', datalinkQuery.data)
-  }, [datalinkQuery.data, editDatalinkFormRef])
-
   return (
     <div className="flex w-full flex-col gap-8">
       {descriptionSpotlight.spotlightElement}
@@ -268,6 +244,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           }
         </div>
       </div>
+
       {isCloud && (
         <div className={styles.section()}>
           <Heading
@@ -329,9 +306,11 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                     <Text className="inline-block">{getText('owner')}</Text>
                   </td>
                   <td className="w-full p-0">
-                    <Text className="grow" truncate="1">
-                      {getAssetPermissionName(ownerPermission)}
-                    </Text>
+                    <div className="flex items-center gap-2">
+                      <Text className="w-0 grow" truncate="1">
+                        {getAssetPermissionName(ownerPermission)}
+                      </Text>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -405,16 +384,14 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           >
             {getText('configuration')}
           </Heading>
-          <UpsertSecretModal
+          <UpsertSecretForm
             key={item.id}
-            noDialog
-            canReset
-            canCancel={false}
-            id={item.id}
+            doCancel="reset"
+            secretId={item.id}
             name={item.title}
-            doCreate={async (title, value) => {
-              await updateSecretMutation.mutateAsync([item.id, { title, value }, title])
-            }}
+            doCreate={(title, value) =>
+              updateSecretMutation.mutateAsync([item.id, { title, value }, title])
+            }
           />
         </div>
       )}
@@ -482,24 +459,40 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           {datalinkQuery.isLoading ?
             <div className="grid place-items-center self-stretch">
-              <StatelessSpinner size={48} state="loading-medium" />
+              <StatelessSpinner size={48} phase="loading-medium" />
             </div>
-          : <Form form={editDatalinkForm} className="w-full">
-              <DatalinkFormInput
-                form={editDatalinkForm}
-                name="datalink"
-                readOnly={!canEditThisAsset}
-                dropdownTitle={getText('type')}
-              />
-              {canEditThisAsset && (
-                <ButtonGroup>
-                  <Form.Submit>{getText('update')}</Form.Submit>
-                  <Form.Reset
-                    onPress={() => {
-                      editDatalinkForm.reset({ datalink: datalinkQuery.data })
-                    }}
+          : <Form
+              schema={(z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) })}
+              defaultValues={{ datalink: datalinkQuery.data }}
+              onSubmit={({ datalink }) =>
+                createDatalinkMutation.mutateAsync([
+                  {
+                    datalinkId: item.id,
+                    name: item.title,
+                    parentDirectoryId: item.parentId,
+                    value: datalink,
+                  },
+                ])
+              }
+              className="w-full bg-white"
+            >
+              {(form) => (
+                <>
+                  <DatalinkFormInput
+                    name="datalink"
+                    readOnly={!canEditThisAsset}
+                    dropdownTitle={getText('type')}
                   />
-                </ButtonGroup>
+
+                  {canEditThisAsset && form.formState.isDirty && (
+                    <ButtonGroup>
+                      <Form.Submit>{getText('update')}</Form.Submit>
+                      <Form.Reset />
+                    </ButtonGroup>
+                  )}
+
+                  <Form.FormError />
+                </>
               )}
             </Form>
           }

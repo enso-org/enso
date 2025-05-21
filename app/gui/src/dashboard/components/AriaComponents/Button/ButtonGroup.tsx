@@ -60,7 +60,7 @@ const STYLES = tv({
 })
 
 /** Props for a {@link ButtonGroup}. */
-interface ButtonGroupProps
+export interface ButtonGroupProps
   extends React.PropsWithChildren,
     VariantProps<typeof STYLES>,
     TestIdProps {
@@ -69,7 +69,6 @@ interface ButtonGroupProps
 }
 
 /** A group of buttons. */
-
 export const ButtonGroup = forwardRef(function ButtonGroup(
   props: ButtonGroupProps,
   ref: React.ForwardedRef<HTMLDivElement>,

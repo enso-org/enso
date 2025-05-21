@@ -148,7 +148,7 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
 const createDateTime = (x: DateObj) => {
   const dateTime = new Date()
   if (x.day != null) dateTime.setDate(x.day)
-  if (x.month != null) dateTime.setMonth(x.month)
+  if (x.month != null) dateTime.setMonth(x.month - 1)
   if (x.year != null) dateTime.setFullYear(x.year)
   if (x.hour != null) dateTime.setHours(x.hour)
   if (x.minute != null) dateTime.setMinutes(x.minute)
@@ -508,6 +508,7 @@ const brush = computed(() => {
     ])
     .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
+      createNewFilterNodeEnabled.value = true
     })
 })
 
@@ -681,7 +682,7 @@ function formatXPoint(x: Date | number | DateObj) {
       case 'Time':
         return x.toTimeString()
       case 'Date':
-        return x.toDateString()
+        return x.toISOString()
       default:
         return x.toString()
     }
@@ -750,7 +751,7 @@ watchPostEffect(() => {
 watchPostEffect(() => {
   if (data.value.is_multi_series) {
     const formatLabel = (string: string) =>
-      string.length > 10 ? `${string.substr(0, 10)}...` : string
+      string.length > 15 ? `${string.substr(0, 15)}...` : string
 
     const color = d3
       .scaleOrdinal<string>()
@@ -765,8 +766,8 @@ watchPostEffect(() => {
       .attr('cx', function (d, i) {
         return 90 + i * 120
       })
-      .attr('cy', 10)
-      .attr('r', 6)
+      .attr('cy', 9)
+      .attr('r', 5)
       .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
     d3Legend.value
@@ -777,7 +778,7 @@ watchPostEffect(() => {
         return 100 + i * 120
       })
       .attr('y', 10)
-      .style('font-size', '15px')
+      .style('font-size', LABEL_FONT_STYLE)
       .text((d) => formatLabel(d))
       .attr('alignment-baseline', 'middle')
       .call((labels) => labels.append('title').text((d) => d))
@@ -884,15 +885,15 @@ function useScatterplotVizToolbar() {
       toggle: selectionEnabled,
     },
     {
-      icon: 'show_all',
-      title: 'Fit All',
-      onClick: () => zoomToSelected(false),
-    },
-    {
       icon: 'zoom',
       title: 'Zoom to Selected',
       disabled: () => brushExtent.value == null,
       onClick: zoomToSelected,
+    },
+    {
+      icon: 'refresh',
+      title: 'Reset scatterplot view',
+      onClick: () => zoomToSelected(false),
     },
     {
       icon: 'add_to_graph_editor',

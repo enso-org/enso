@@ -11,8 +11,7 @@ import java.util.stream.Collectors;
 import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Context.Builder;
+import org.enso.test.utils.ContextUtils.Builder;
 import org.graalvm.polyglot.Value;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -43,9 +42,9 @@ public class ProjectUtils {
    *
    * @param projName Name of the project
    * @param modules Set of modules. If the main module is not present in the set, an exception will
-   *     be thrown once you try to {@link #testProjectRun(Builder, Path, Consumer) test} the project
-   *     run. Note that set of modules without a main module makes sense only if you intend to test
-   *     the compilation and not running.
+   *     be thrown once you try to {@link #testProjectRun(ContextUtils.Builder, Path, Consumer)}
+   *     test} the project run. Note that set of modules without a main module makes sense only if
+   *     you intend to test the compilation and not running.
    * @param projDir A directory in which the whole project structure will be created. Must exist and
    *     be a directory.
    */
@@ -85,18 +84,20 @@ prefer-local-libraries: true
    *     main} method
    */
   public static void testProjectRun(
-      Context.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) {
+      ContextUtils.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) {
     if (!(projDir.toFile().exists() && projDir.toFile().isDirectory())) {
       throw new IllegalArgumentException(
           "Project directory " + projDir + " must already be created");
     }
     try (var ctx =
         ctxBuilder
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+                        .option(RuntimeOptions.STRICT_ERRORS, "true")
+                        .option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+      var polyCtx = new PolyglotContext(ctx.context());
       var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
       if (!mainSrcPath.toFile().exists()) {
         throw new IllegalArgumentException("Main module not found in " + projDir);
@@ -119,36 +120,41 @@ prefer-local-libraries: true
    * @param whenDone callback when generated
    */
   public static void generateProjectDocs(
-      String docsFormat, Context.Builder ctxBuilder, Path projDir, Consumer<Context> whenDone) {
+      String docsFormat,
+      ContextUtils.Builder ctxBuilder,
+      Path projDir,
+      Consumer<ContextUtils> whenDone) {
     if (!(projDir.toFile().exists() && projDir.toFile().isDirectory())) {
       throw new IllegalArgumentException(
           "Project directory " + projDir + " must already be created");
     }
     try (var ctx =
         ctxBuilder
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+                        .option(RuntimeOptions.STRICT_ERRORS, "true")
+                        .option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+      var polyCtx = new PolyglotContext(ctx.context());
       var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
       if (!mainSrcPath.toFile().exists()) {
         throw new IllegalArgumentException("Main module not found in " + projDir);
       }
       polyCtx.getTopScope().compile(false, Option.apply(docsFormat));
-      whenDone.accept(polyCtx.context());
+      whenDone.accept(ctx);
     }
   }
 
   /**
-   * Just a wrapper for {@link ProjectUtils#testProjectRun(Builder, Path, Consumer)}.
+   * Just a wrapper for {@link #testProjectRun(Builder, Path, Consumer)}.
    *
    * @param projDir Root directory of the project.
    * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
    *     main} method
    */
   public static void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
-    testProjectRun(ContextUtils.defaultContextBuilder(), projDir, resultConsumer);
+    testProjectRun(ContextUtils.newBuilder(), projDir, resultConsumer);
   }
 
   /** Deletes provided directory recursively. */

@@ -17,10 +17,10 @@ import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 /**
@@ -30,61 +30,51 @@ import org.junit.Test;
  * org.enso.interpreter.runtime.data.atom.Atom}.
  */
 public class MetaTypeMethodsTest {
-  private static Context ctx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
   private static GetTypeMethodsNode getTypeMethodsNode;
   private static TestRootNode testRootNode;
   private static ValuesGenerator valuesGenerator;
 
   @BeforeClass
   public static void initCtx() {
-    ctx = ContextUtils.createDefaultContext();
-    valuesGenerator = ValuesGenerator.create(ctx, Language.ENSO);
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          getTypeMethodsNode = GetTypeMethodsNode.build();
-          testRootNode = new TestRootNode();
-          testRootNode.insertChildren(getTypeMethodsNode);
-          return null;
-        });
+    valuesGenerator = ValuesGenerator.create(ctxRule, Language.ENSO);
+    getTypeMethodsNode = GetTypeMethodsNode.build();
+    testRootNode = new TestRootNode();
+    testRootNode.insertChildren(getTypeMethodsNode);
   }
 
   @AfterClass
   public static void disposeCtx() {
     valuesGenerator.close();
-    ctx.close();
-    ctx = null;
+    valuesGenerator = null;
+    getTypeMethodsNode = null;
+    testRootNode = null;
   }
 
   @Test
   public void testConsistencyBetweenMeta_And_TypeInterop() throws Exception {
     var allTypes = valuesGenerator.allTypes();
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          for (var type : allTypes) {
-            var typeMethods = metaGetTypeMethods(type);
-            var interopMembers = interopGetMembers(type);
-            var errMsg =
-                """
-            Methods returned from `Meta.get_type_methods` and `InteropLibrary.getMembers` must be the same.
-            Type: %s
-            Return value of `Meta.get_type_methods`: %s
-            Return value of `InteropLibrary.getMembers`: %s
-            """
-                    .formatted(type, typeMethods, interopMembers);
-            assertThat(
-                errMsg, typeMethods, containsInAnyOrder(interopMembers.toArray(String[]::new)));
-          }
-          return null;
-        });
+    for (var type : allTypes) {
+      var typeMethods = metaGetTypeMethods(type);
+      var interopMembers = interopGetMembers(type);
+      var errMsg =
+          """
+      Methods returned from `Meta.get_type_methods` and `InteropLibrary.getMembers` must be the same.
+      Type: %s
+      Return value of `Meta.get_type_methods`: %s
+      Return value of `InteropLibrary.getMembers`: %s
+      """
+              .formatted(type, typeMethods, interopMembers);
+      assertThat(errMsg, typeMethods, containsInAnyOrder(interopMembers.toArray(String[]::new)));
+    }
   }
 
   @Test
-  public void inheritedMembersFromNumberAreIncluded() {
+  public void inheritedMembersFromNumberAreIncluded()
+      throws InvalidArrayIndexException, UnsupportedMessageException {
     var integerType =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         import Standard.Base.Any.Any
         import Standard.Base.Data.Numbers.Number
@@ -92,23 +82,18 @@ public class MetaTypeMethodsTest {
 
         main = Integer
         """);
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          var anyMethods = methodsFrom("Standard.Base.Any", "Any");
-          var numberMethods = methodsFrom("Standard.Base.Data.Numbers", "Number");
-          var integerMethods = methodsFrom("Standard.Base.Data.Numbers", "Integer");
-          var actualMethodNames =
-              metaGetTypeMethods(integerType).stream().collect(Collectors.toUnmodifiableSet());
-          assertSubset("Has method from Any", anyMethods, actualMethodNames);
-          assertSubset("Has method from Number", numberMethods, actualMethodNames);
-          assertSubset("Has method from Integer", integerMethods, actualMethodNames);
-          return null;
-        });
+    var anyMethods = methodsFrom("Standard.Base.Any", "Any");
+    var numberMethods = methodsFrom("Standard.Base.Data.Numbers", "Number");
+    var integerMethods = methodsFrom("Standard.Base.Data.Numbers", "Integer");
+    var actualMethodNames =
+        metaGetTypeMethods(integerType).stream().collect(Collectors.toUnmodifiableSet());
+    assertSubset("Has method from Any", anyMethods, actualMethodNames);
+    assertSubset("Has method from Number", numberMethods, actualMethodNames);
+    assertSubset("Has method from Integer", integerMethods, actualMethodNames);
   }
 
   private Set<String> methodsFrom(String moduleName, String typeName) {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+    var ensoCtx = ctxRule.ensoContext();
     var mod = ensoCtx.findModule(moduleName).get();
     var tp = mod.getScope().getType(typeName, true);
     var methods = mod.getScope().getMethodsForType(tp);
@@ -140,7 +125,7 @@ public class MetaTypeMethodsTest {
 
   private List<String> metaGetTypeMethods(Value type)
       throws UnsupportedMessageException, InvalidArrayIndexException {
-    var unwrapped = ContextUtils.unwrapValue(ctx, type);
+    var unwrapped = ctxRule.unwrapValue(type);
     var interop = InteropLibrary.getUncached();
     var typeMethodNames = new ArrayList<String>();
     var typeMethods = getTypeMethodsNode.execute(unwrapped);
@@ -153,7 +138,7 @@ public class MetaTypeMethodsTest {
 
   private List<String> interopGetMembers(Value type)
       throws UnsupportedMessageException, InvalidArrayIndexException {
-    var unwrapped = ContextUtils.unwrapValue(ctx, type);
+    var unwrapped = ctxRule.unwrapValue(type);
     var interop = InteropLibrary.getUncached();
     var memberNames = new ArrayList<String>();
     var members = interop.getMembers(unwrapped, true);

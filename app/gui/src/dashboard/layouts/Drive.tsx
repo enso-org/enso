@@ -8,15 +8,12 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import { AssetPanel } from '#/layouts/AssetPanel'
-import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import Labels from '#/layouts/Labels'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -30,16 +27,15 @@ import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
+import { useBackends } from '$/providers/react'
 import { useDeferredValue } from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
 import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
-import { useDirectoryIds } from './Drive/directoryIdsHooks'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
   readonly initialProjectName: string | null
-  readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
@@ -47,8 +43,8 @@ function Drive(props: DriveProps) {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
-  const { getText } = textProvider.useText()
+  const { localBackend } = useBackends()
+  const { getText } = useText()
   const categoriesAPI = useCategoriesAPI()
   const { category, resetCategory, setCategory } = categoriesAPI
 
@@ -85,7 +81,7 @@ function Drive(props: DriveProps) {
                   if (downloadUrl == null) {
                     toastAndLog('noAppDownloadError')
                   } else {
-                    download.download(downloadUrl)
+                    void download.download({ url: downloadUrl })
                   }
                 }}
               >
@@ -138,18 +134,16 @@ interface DriveAssetsViewProps extends DriveProps {
   readonly setCategory: (categoryId: Category['id']) => void
 }
 
-/**
- * The assets view of the Drive.
- */
+/** The assets view of the Drive. */
 function DriveAssetsView(props: DriveAssetsViewProps) {
-  const { category, setCategory, initialProjectName, assetsManagementApiRef } = props
+  const { category, setCategory, initialProjectName } = props
 
   const deferredCategory = useDeferredValue(category)
 
   const { isOffline } = offlineHooks.useOffline()
   const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
-  const backend = backendProvider.useBackend(category)
+  const { localBackend, backendForType } = useBackends()
+  const backend = backendForType(category.backend)
 
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
 
@@ -161,8 +155,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
     : isCloud && !user.isEnabled ? 'not-enabled'
     : 'ok'
 
-  const { rootDirectoryId } = useDirectoryIds({ category })
-
   return (
     <div className="relative flex grow">
       <div
@@ -173,33 +165,17 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
           <div className="grid-col-1 flex flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
             <CategorySwitcher category={category} setCategoryId={setCategory} />
 
-            {isCloud && (
-              <Labels
-                backend={backend}
-                draggable={category.type !== 'trash'}
-                query={query}
-                setQuery={setQuery}
-              />
-            )}
-
             <AssetsTableAssetsUnselector />
           </div>
 
           <div className="grid-col-2 flex flex-col gap-3">
-            <DriveBar
-              key={rootDirectoryId}
-              backend={backend}
-              query={query}
-              setQuery={setQuery}
-              category={category}
-            />
+            <DriveBar backend={backend} query={query} setQuery={setQuery} category={category} />
 
             {status === 'offline' ?
               <OfflineMessage supportLocalBackend={supportLocalBackend} setCategory={setCategory} />
             : <Suspense>
                 <ErrorBoundary>
                   <AssetsTable
-                    assetManagementApiRef={assetsManagementApiRef}
                     query={query}
                     setQuery={setQuery}
                     category={deferredCategory}
@@ -230,7 +206,7 @@ interface OfflineMessageProps {
  */
 function OfflineMessage(props: OfflineMessageProps) {
   const { supportLocalBackend, setCategory } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
     <result.Result

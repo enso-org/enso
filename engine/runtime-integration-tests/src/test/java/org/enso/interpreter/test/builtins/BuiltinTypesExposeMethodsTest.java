@@ -11,9 +11,8 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,7 +25,7 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public class BuiltinTypesExposeMethodsTest {
-  private static Context ctx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   private final Value type;
 
@@ -34,75 +33,49 @@ public class BuiltinTypesExposeMethodsTest {
     this.type = type;
   }
 
-  private static Context ctx() {
-    if (ctx == null) {
-      ctx = ContextUtils.createDefaultContext();
-    }
-    return ctx;
-  }
-
   @Parameters(name = "{index}: {0}")
   public static Iterable<Value> generateBuiltinObjects() {
     var builtinTypes = new ArrayList<Value>();
-    try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctx(), Language.ENSO)) {
-      ContextUtils.executeInContext(
-          ctx(),
-          () -> {
-            valuesGenerator.allTypes().stream()
-                .filter(
-                    val -> {
-                      var asType = getType(val);
-                      return !shouldSkipType(asType);
-                    })
-                .forEach(builtinTypes::add);
-            return null;
-          });
+    try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctxRule, Language.ENSO)) {
+      valuesGenerator.allTypes().stream()
+          .filter(
+              val -> {
+                var asType = getType(val);
+                return !shouldSkipType(asType);
+              })
+          .forEach(builtinTypes::add);
+    } catch (Exception e) {
+      throw new AssertionError(e);
     }
     return builtinTypes;
   }
 
   private static Type getType(Value object) {
-    var unwrapped = ContextUtils.unwrapValue(ctx(), object);
+    var unwrapped = ctxRule.unwrapValue(object);
     return TypeOfNode.getUncached().findTypeOrNull(unwrapped);
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    if (ctx != null) {
-      ctx.close();
-      ctx = null;
-    }
   }
 
   @Test
   public void builtinExposeMethods() {
-    ContextUtils.executeInContext(
-        ctx(),
-        () -> {
-          assertThat(type, is(notNullValue()));
-          var typeDefScope = getType(type).getDefinitionScope();
-          var methodsDefinedInScope = typeDefScope.getMethodsForType(getType(type));
-          if (methodsDefinedInScope != null) {
-            for (var methodInScope : methodsDefinedInScope) {
-              var methodName = methodInScope.getName();
-              if (methodName.contains(".")) {
-                var items = methodName.split("\\.");
-                methodName = items[items.length - 1];
-              }
-              assertThat(
-                  "Builtin type " + type + " should have members", type.hasMembers(), is(true));
-              assertThat(
-                  "Member " + methodName + " should be present",
-                  type.hasMember(methodName),
-                  is(true));
-              assertThat(
-                  "Member " + methodName + " should be invocable",
-                  type.canInvokeMember(methodName),
-                  is(true));
-            }
-          }
-          return null;
-        });
+    assertThat(type, is(notNullValue()));
+    var typeDefScope = getType(type).getDefinitionScope();
+    var methodsDefinedInScope = typeDefScope.getMethodsForType(getType(type));
+    if (methodsDefinedInScope != null) {
+      for (var methodInScope : methodsDefinedInScope) {
+        var methodName = methodInScope.getName();
+        if (methodName.contains(".")) {
+          var items = methodName.split("\\.");
+          methodName = items[items.length - 1];
+        }
+        assertThat("Builtin type " + type + " should have members", type.hasMembers(), is(true));
+        assertThat(
+            "Member " + methodName + " should be present", type.hasMember(methodName), is(true));
+        assertThat(
+            "Member " + methodName + " should be invocable",
+            type.canInvokeMember(methodName),
+            is(true));
+      }
+    }
   }
 
   private static boolean shouldSkipType(Type type) {
@@ -112,7 +85,7 @@ public class BuiltinTypesExposeMethodsTest {
     if (!type.isBuiltin()) {
       return true;
     }
-    var builtins = ContextUtils.leakContext(ctx()).getBuiltins();
+    var builtins = ctxRule.ensoContext().getBuiltins();
     var typesToSkip =
         List.of(
             builtins.function(), builtins.dataflowError(), builtins.warning(), builtins.nothing());

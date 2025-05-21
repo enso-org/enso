@@ -18,3 +18,5 @@ type Priv_Type
 
     private priv_method self = self.data
 
+type Implicitly_Private
+    Cons data

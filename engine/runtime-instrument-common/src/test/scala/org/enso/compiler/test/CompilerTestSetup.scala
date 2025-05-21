@@ -204,5 +204,5 @@ trait CompilerTestSetup {
     )
   }
 
-  val defaultConfig: CompilerConfig = CompilerConfig()
+  val defaultConfig: CompilerConfig = CompilerConfig.createDefault()
 }

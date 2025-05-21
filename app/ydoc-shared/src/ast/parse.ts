@@ -44,6 +44,7 @@ import {
   parentId,
   PropertyAccess,
   TextLiteral,
+  TypeAnnotated,
   UnaryOprApp,
   Vector,
   Wildcard,
@@ -300,6 +301,13 @@ class Abstractor {
         }
         const right = this.abstractToken(tree.right)
         node = Vector.concrete(this.module, left, elements, right)
+        break
+      }
+      case RawAst.Tree.Type.TypeAnnotated: {
+        const expression = this.abstractExpression(tree.expression)
+        const operator = this.abstractToken(tree.operator)
+        const type = this.abstractExpression(tree.typeNode)
+        node = TypeAnnotated.concrete(this.module, expression, operator, type)
         break
       }
       default: {

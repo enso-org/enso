@@ -63,7 +63,9 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
       class="arrow"
     />
     <SizeTransition height :duration="100">
-      <div v-if="open" ref="floatElement" :style="floatingStyles"><slot name="menu" /></div>
+      <div v-if="open" ref="floatElement" class="DropDownPanel" :style="floatingStyles">
+        <slot name="menu" />
+      </div>
     </SizeTransition>
   </div>
 </template>
@@ -88,5 +90,9 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
   pointer-events: none;
   --icon-transform: translateX(-50%) rotate(90deg) scale(0.7);
   --icon-transform-origin: center;
+}
+
+.DropDownPanel {
+  z-index: var(--drop-down-panel-z-index, 10);
 }
 </style>

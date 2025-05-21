@@ -39,8 +39,8 @@ final class ThreadExecutors {
     return s;
   }
 
-  ExecutorService newFixedThreadPool(int cnt, String name, boolean systemThread) {
-    var s = Executors.newFixedThreadPool(cnt, new Factory(name, systemThread));
+  ScheduledExecutorService newScheduledThreadPool(int cnt, String name, boolean systemThread) {
+    var s = Executors.newScheduledThreadPool(cnt, new Factory(name, systemThread));
     pools.put(s, name);
     return s;
   }

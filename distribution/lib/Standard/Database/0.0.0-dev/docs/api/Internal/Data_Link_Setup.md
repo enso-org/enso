@@ -6,7 +6,7 @@
     - SQL_Statement sql_statement:Standard.Database.SQL_Statement.SQL_Statement
     - Table name:Standard.Base.Data.Text.Text
     - add_to_data_link_description self connection_description:Standard.Base.Data.Json.JS_Object -> Standard.Base.Data.Json.JS_Object
-    - from_js value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - from_js value:Standard.Base.Any.Any -> Standard.Database.Internal.Data_Link_Setup.DB_Data_Link_Type!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     - interpret self connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
 - type Data_Link_Setup

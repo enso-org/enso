@@ -7,28 +7,24 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.util.List;
 import org.enso.common.MethodNames;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logging.service.logback.MemoryAppender;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 public class StdLibLogsTest {
 
-  private static Context ctx;
   private static Value mod;
-  private static EnsoContext ensoContext;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @BeforeClass
   public static void initEnsoContext() {
-    ctx = ContextUtils.createDefaultContext();
-    ensoContext = ContextUtils.leakContext(ctx);
     mod =
-        ctx.eval(
+        ctxRule.eval(
             "enso",
             """
     from Standard.Base import IO
@@ -45,10 +41,7 @@ public class StdLibLogsTest {
 
   @AfterClass
   public static void disposeContext() {
-    ctx.close();
-    ctx = null;
-    ensoContext.shutdown();
-    ensoContext = null;
+    mod = null;
   }
 
   @Test

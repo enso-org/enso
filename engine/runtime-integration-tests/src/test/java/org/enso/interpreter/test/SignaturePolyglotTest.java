@@ -4,35 +4,18 @@ import static org.enso.interpreter.test.SignatureTest.assertTypeError;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.io.OutputStream;
 import java.net.URI;
 import java.time.format.DateTimeFormatter;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class SignaturePolyglotTest {
-  private static Context ctx;
 
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx =
-        ContextUtils.defaultContextBuilder()
-            .out(OutputStream.nullOutputStream())
-            .err(OutputStream.nullOutputStream())
-            .build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void polyglotDataTimeFormatter() throws Exception {
@@ -51,7 +34,7 @@ public class SignaturePolyglotTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
     assertStartsWith(
@@ -90,7 +73,7 @@ public class SignaturePolyglotTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
     var ret = fn.execute("Hi");

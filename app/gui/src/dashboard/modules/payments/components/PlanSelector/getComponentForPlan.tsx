@@ -11,12 +11,12 @@ import type * as text from 'enso-common/src/text'
 
 import OpenInNewTabIcon from '#/assets/open.svg'
 
-import * as textProvider from '#/providers/TextProvider'
-
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
+import { useText } from '$/providers/react'
+import type { GetText } from '$/providers/text'
 import * as constants from '../../constants'
 import { SubscribeButton, type SubscribeButtonProps } from './components'
 
@@ -35,7 +35,7 @@ export interface ComponentForPlan {
  * Get the component for a given plan.
  * @throws Error if the plan is invalid.
  */
-export function getComponentPerPlan(plan: backendModule.Plan, getText: textProvider.GetText) {
+export function getComponentPerPlan(plan: backendModule.Plan, getText: GetText) {
   const result = COMPONENT_PER_PLAN[plan]
 
   // We double-check that the plan exists in the map.
@@ -59,7 +59,9 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
   },
   [backendModule.Plan.solo]: {
     learnMore: () => {
-      const { getText } = textProvider.useText()
+      // False positive
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { getText } = useText()
 
       return (
         <ariaComponents.Button
@@ -82,7 +84,9 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
   },
   [backendModule.Plan.team]: {
     learnMore: () => {
-      const { getText } = textProvider.useText()
+      // False positive
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { getText } = useText()
 
       return (
         <ariaComponents.Button
@@ -106,7 +110,9 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
   },
   [backendModule.Plan.enterprise]: {
     learnMore: () => {
-      const { getText } = textProvider.useText()
+      // False positive
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { getText } = useText()
 
       return (
         <ariaComponents.Button
@@ -126,7 +132,9 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     title: constants.PLAN_TO_TEXT_ID['enterprise'],
     subtitle: 'enterprisePlanSubtitle',
     submitButton: () => {
-      const { getText } = textProvider.useText()
+      // False positive
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { getText } = useText()
 
       return (
         <ariaComponents.Button fullWidth isDisabled variant="outline" size="medium" rounded="full">

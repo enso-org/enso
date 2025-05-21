@@ -36,17 +36,7 @@ export function useContextMenuRef(
               event.preventDefault()
               event.stopPropagation()
               setModal(
-                <ContextMenu
-                  ref={(contextMenuElement) => {
-                    if (contextMenuElement != null) {
-                      const rect = contextMenuElement.getBoundingClientRect()
-                      position.pageX = rect.left
-                      position.pageY = rect.top
-                    }
-                  }}
-                  aria-label={label}
-                  event={event}
-                >
+                <ContextMenu aria-label={label} event={event}>
                   {children}
                 </ContextMenu>,
               )

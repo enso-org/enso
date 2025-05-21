@@ -47,7 +47,7 @@ test('organization settings', ({ page }) =>
     .do((_, context) => {
       context.calls = context.api.trackCalls()
     })
-    .save()
+    .save(false)
     .step('Unsetting organization name should fail', (_, { api, calls }) => {
       expect(api.currentOrganization()?.name).toBe(NEW_NAME)
       expect(calls.updateOrganization).toMatchObject([{ name: '' }])
@@ -56,26 +56,26 @@ test('organization settings', ({ page }) =>
     .cancel()
     .organizationForm()
     .fillEmail(INVALID_EMAIL)
-    .save()
+    .save(false)
     .step('Setting invalid email should fail', (_, { api }) => {
       expect(api.currentOrganization()?.email).toBe('')
     })
     .organizationForm()
     .fillEmail(NEW_EMAIL)
-    .save()
+    .save(true)
     .step('Set email', (_, { api }) => {
       expect(api.currentOrganization()?.email).toBe(NEW_EMAIL)
     })
     .organizationForm()
     .fillWebsite(NEW_WEBSITE)
-    .save()
+    .save(true)
     // NOTE: It is not yet possible to unset the website or the location.
     .step('Set website', async (_, { api }) => {
       expect(api.currentOrganization()?.website).toBe(NEW_WEBSITE)
     })
     .organizationForm()
     .fillLocation(NEW_LOCATION)
-    .save()
+    .save(true)
     .step('Set website', async (_, { api }) => {
       expect(api.currentOrganization()?.address).toBe(NEW_LOCATION)
     }))

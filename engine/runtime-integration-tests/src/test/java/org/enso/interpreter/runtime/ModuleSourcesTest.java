@@ -4,55 +4,33 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.logging.Level;
-import org.enso.common.LanguageInfo;
-import org.enso.common.MethodNames;
-import org.enso.common.RuntimeOptions;
+import org.enso.test.utils.ContextUtils;
 import org.enso.text.buffer.Rope$;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ModuleSourcesTest {
 
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
   private File f;
-  private Context ctx;
 
   @Before
   public void prepareTest() throws IOException {
-
     f = File.createTempFile("module-sources", ".enso");
-    Engine eng =
-        Engine.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
-    this.ctx = Context.newBuilder().engine(eng).allowIO(IOAccess.ALL).allowAllAccess(true).build();
   }
 
   @After
   public void cleanup() {
     f.delete();
-    this.ctx.close();
-    this.ctx = null;
   }
 
   @Test
   public void moduleSourcesWithFile() {
     var sources = ModuleSources.NONE;
-    var ensoContext =
-        (EnsoContext)
-            ctx.getBindings(LanguageInfo.ID)
-                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                .asHostObject();
+    var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
     var sourcesWithFile = sources.newWith(tFile);
     assertTrue("getPath is non-null", sourcesWithFile.getPath() == tFile.getPath());
@@ -62,11 +40,7 @@ public class ModuleSourcesTest {
   @Test
   public void moduleSourcesWithRopePreservesFile() {
     var sources = ModuleSources.NONE;
-    var ensoContext =
-        (EnsoContext)
-            ctx.getBindings(LanguageInfo.ID)
-                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                .asHostObject();
+    var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
     var rope = Rope$.MODULE$.apply("foo");
     var sourcesWithFile = sources.newWith(tFile).newWith(rope);
@@ -77,11 +51,7 @@ public class ModuleSourcesTest {
   @Test
   public void modulesSourcesResetPreservesFile() {
     var sources = ModuleSources.NONE;
-    var ensoContext =
-        (EnsoContext)
-            ctx.getBindings(LanguageInfo.ID)
-                .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                .asHostObject();
+    var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
     var rope = Rope$.MODULE$.apply("foo");
     var sourcesWithFile = sources.newWith(tFile).newWith(rope).reset();

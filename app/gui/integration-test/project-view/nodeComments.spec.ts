@@ -112,3 +112,19 @@ test('URL added to comment is rendered as link', async ({ page, context }) => {
   await commentContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
   await expect(() => newPagePromise).toPass({ timeout: 5000 })
 })
+
+test('Long comment displays wrapped', async ({ page }) => {
+  await actions.goToGraph(page)
+  const nodeComment = locate.nodeCommentContent(locate.graphNodeByBinding(page, 'final'))
+  const shortContentHeight = (await nodeComment.boundingBox())!.height
+  await expect(nodeComment).toHaveText('This node can be entered')
+  await nodeComment.click()
+  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  const NEW_COMMENT = 'long comment '.repeat(30)
+  await nodeComment.fill(NEW_COMMENT)
+  await page.keyboard.press(`Enter`)
+  await expect(nodeComment).not.toBeFocused()
+  await expect(nodeComment).toHaveText(NEW_COMMENT)
+  const longContentHeight = (await nodeComment.boundingBox())!.height
+  expect(longContentHeight).toBeGreaterThan(shortContentHeight)
+})

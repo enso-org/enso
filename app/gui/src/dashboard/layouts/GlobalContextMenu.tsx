@@ -14,10 +14,10 @@ import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenu}. */
@@ -57,7 +57,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
   const driveStore = useDriveStore()
   const hasPasteData = useStore(
     driveStore,
-    (storeState) => (storeState.pasteData?.data.ids.size ?? 0) > 0,
+    (storeState) => (storeState.pasteData?.data.assets.length ?? 0) > 0,
   )
 
   const newFolderRaw = useNewFolder(backend, category)
@@ -111,8 +111,6 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           doAction={() => {
             setModal(
               <UpsertSecretModal
-                id={null}
-                name={null}
                 doCreate={async (name, value) => {
                   await newSecret([
                     { name, value, parentDirectoryId: directoryId ?? currentDirectoryId },
@@ -162,7 +160,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           }}
         />
       )}
-      {isCloud && directoryId == null && hasPasteData && (
+      {hasPasteData && directoryId == null && (
         <ContextMenuEntry
           hidden={hidden}
           action="paste"

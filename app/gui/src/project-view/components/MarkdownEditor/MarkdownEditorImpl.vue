@@ -41,6 +41,7 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
     ensoMarkdown(),
   ],
   vueHost: () => vueHost,
+  lineMode: 'multi',
   contentTestId,
 })
 const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
@@ -94,13 +95,13 @@ defineExpose({
           name="connector_add"
           :disabled="insertLink == null"
           title="Insert link"
-          @click.stop="insertLink?.()"
+          @activate="insertLink?.()"
         />
         <SvgButton
           name="code"
           :disabled="insertCodeBlock == null"
           title="Insert code block"
-          @click.stop="insertCodeBlock?.()"
+          @activate="insertCodeBlock?.()"
         />
       </template>
       <slot name="toolbarRight" />

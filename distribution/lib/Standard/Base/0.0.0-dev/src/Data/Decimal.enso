@@ -991,7 +991,7 @@ type Decimal
        Round to a specified number of decimal places.
 
        By default, rounding uses "symmetric round-half-up", also known as
-       "half-up." If use_bankers=True, then it uses "round-half-even", also
+       "half-up." If rounding_mode=Rounding_Mode.Bankers, then it uses "round-half-even", also
        known as "banker's rounding".
 
        Arguments:
@@ -999,7 +999,8 @@ type Decimal
          negative, which results in rounding to positive integer powers of 10.
          Must be between Java `Integer.MIN_VALUE` and `Integer.MAX_VALUE`
          (-2147483648 and 2147483647) (inclusive).
-       - use_bankers: Rounds mid-point to nearest even number.
+       - rounding_mode: specifies how to break ties for the least significant
+         digit.
 
        ! Error Conditions
 
@@ -1032,12 +1033,12 @@ type Decimal
        > Example
          Use Banker's Rounding.
 
-             Decimal.new "2.5" . round use_bankers=True
+             Decimal.new "2.5" . round rounding_mode=Rounding_Mode.Bankers
              # => 2
-    round : Integer -> Boolean -> Decimal
-    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) -> Decimal =
+    round : Integer -> Rounding_Mode -> Decimal
+    round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode = ..Half_Up) -> Decimal =
         out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
-        if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places use_bankers) else
+        if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places (rounding_mode == Rounding_Mode.Bankers)) else
             message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
             Error.throw (Out_Of_Range.Error decimal_places message)
 

@@ -5,7 +5,6 @@ package alias.graph
 import org.enso.compiler.core.CompilerError
 
 import scala.jdk.CollectionConverters._
-import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
@@ -17,9 +16,10 @@ import scala.reflect.ClassTag
   *                       Note that there may not be a link for all these definitions.
   */
 sealed private[graph] class ScopeImpl(
-  private[graph] var _childScopes: List[ScopeImpl]             = List(),
-  _occurs: scala.collection.Map[GraphImpl.Id, GraphOccurrence] = HashMap(),
-  _defs: java.util.Collection[GraphOccurrence.Def]             = null
+  private[graph] var _childScopes: List[ScopeImpl] = List(),
+  _occurs: java.util.Map[GraphImpl.Id, GraphOccurrence] =
+    new java.util.HashMap(),
+  _defs: java.util.Collection[GraphOccurrence.Def] = null
 ) extends Graph.Scope {
   private[graph] val _allDefinitions: java.util.List[
     GraphOccurrence.Def
@@ -29,7 +29,7 @@ sealed private[graph] class ScopeImpl(
 
   private[graph] var _parent: ScopeImpl = null
   private val occurrencesById: java.util.Map[GraphImpl.Id, GraphOccurrence] =
-    new java.util.HashMap(_occurs.asJava)
+    _occurs
   private val defsBySymbol
     : java.util.Map[GraphImpl.Symbol, GraphOccurrence.Def] = {
     val bySymbol =
@@ -44,7 +44,7 @@ sealed private[graph] class ScopeImpl(
 
   def childScopes = _childScopes
 
-  def forEachOccurenceDefinition(fn: (GraphOccurrence => Unit)): Unit = {
+  def forEachOccurenceDefinition(fn: (GraphOccurrence.Def => Unit)): Unit = {
     allOccurrences().forEach {
       case x: GraphOccurrence.Def => fn(x)
       case _                      =>
@@ -112,7 +112,7 @@ sealed private[graph] class ScopeImpl(
         val newScope =
           new ScopeImpl(
             childScopeCopies.toList,
-            occurrencesById.asScala,
+            new java.util.HashMap(occurrencesById),
             new java.util.ArrayList(_allDefinitions)
           )
         mapping.put(this, newScope)

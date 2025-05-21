@@ -2,10 +2,10 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Iterator;
 import java.util.function.ToDoubleFunction;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /** A facade for a column storage that converts the stored type to a double. */
 public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
@@ -15,6 +15,10 @@ public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   public DoubleStorageFacade(ColumnStorage<T> parent, ToDoubleFunction<T> converter) {
     this.parent = parent;
     this.converter = converter;
+  }
+
+  public static ColumnDoubleStorage forLong(ColumnLongStorage parent) {
+    return new DoubleStorageFacade<>(parent, Long::doubleValue);
   }
 
   public static ColumnDoubleStorage forBigInteger(ColumnStorage<BigInteger> parent) {
@@ -40,7 +44,7 @@ public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   }
 
   @Override
-  public StorageType<Double> getType() {
+  public FloatType getType() {
     return FloatType.FLOAT_64;
   }
 
@@ -56,7 +60,25 @@ public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   }
 
   @Override
-  public ColumnDoubleStorageIterator iterator() {
+  public Iterator<Double> iterator() {
+    return new Iterator<>() {
+      private final Iterator<T> parentIterator = parent.iterator();
+
+      @Override
+      public boolean hasNext() {
+        return parentIterator.hasNext();
+      }
+
+      @Override
+      public Double next() {
+        T item = parentIterator.next();
+        return item == null ? null : converter.applyAsDouble(item);
+      }
+    };
+  }
+
+  @Override
+  public ColumnDoubleStorageIterator iteratorWithIndex() {
     return new BaseDoubleStorageIterator(this);
   }
 

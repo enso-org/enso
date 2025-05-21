@@ -29,10 +29,10 @@ export type FieldPath<Schema extends TSchema, Constraint = unknown> = Extract<
 >
 
 /** Schema type */
-export type TSchema =
-  | z.AnyZodObject
-  | z.ZodEffects<z.AnyZodObject>
-  | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
+export type TSchema<Shape extends z.AnyZodObject = z.AnyZodObject> =
+  | Shape
+  | z.ZodEffects<Shape>
+  | z.ZodEffects<z.ZodEffects<Shape>>
 
 /** A callback that returns a schema. */
 export type SchemaCallback<Schema extends TSchema = TSchema> = (z: SchemaBuilder) => Schema
@@ -197,6 +197,7 @@ export type AnyFormInstance = FormInstance<any>
 // Readonly omitted here to avoid type mismatch with native HTML attributes
 // eslint-disable-next-line no-restricted-syntax
 export interface FieldProps {
+  readonly contextualHelp?: React.ReactNode | undefined
   readonly isRequired?: boolean | undefined
   readonly label?: React.ReactNode | undefined
   readonly description?: React.ReactNode | undefined

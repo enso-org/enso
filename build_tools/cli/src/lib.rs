@@ -278,6 +278,32 @@ impl Processor {
                 let root = self.repo_root.to_path_buf();
                 async move { project::wasm::test(root, &wasm_browsers, !no_native).await }.boxed()
             }
+            arg::wasm::Command::Lint => {
+                let repo_root = self.repo_root.clone();
+                async move {
+                    Cargo
+                        .cmd()?
+                        .current_dir(&repo_root)
+                        .arg(cargo::clippy::COMMAND)
+                        .apply(&cargo::Options::Workspace)
+                        .apply(&cargo::Options::Package("enso-integration-test".into()))
+                        .apply(&cargo::Options::AllTargets)
+                        .apply(&cargo::Color::Always)
+                        .arg("--")
+                        .apply(&rustc::Option::Deny(rustc::Lint::Warnings))
+                        .run_ok()
+                        .await?;
+
+                    Cargo
+                        .cmd()?
+                        .current_dir(&repo_root)
+                        .arg("fmt")
+                        .args(["--", "--check"])
+                        .run_ok()
+                        .await
+                }
+                .boxed()
+            }
         }
     }
 
@@ -363,27 +389,52 @@ impl Processor {
                             config.test_jvm = true;
                             // We also test the Java parser integration when running the JVM tests.
                             config.test_java_generated_from_rust = true;
+                            config.build_native_ydoc = TARGET_OS == OS::Linux;
+                            // Benchmarks are only checked on Linux because:
+                            // * they are then run only on Linux;
+                            // * checking takes time;
+                            // * this rather verifies the Enso code correctness which should not be
+                            //   platform specific.
+                            // Checking benchmarks on Windows has caused some CI issues, see
+                            // https://github.com/enso-org/enso/issues/8777#issuecomment-1895749820 for the
+                            // possible explanation.
+                            config.build_benchmarks = TARGET_OS == OS::Linux;
+                            config.execute_benchmarks_once = true;
+                            config.execute_benchmarks = if TARGET_OS == OS::Linux {
+                                Some(Benchmarks {
+                                    bench_name: None,
+                                    bench_type: BenchmarkType::Runtime,
+                                })
+                            } else {
+                                None
+                            };
+                            config.check_enso_benchmarks = TARGET_OS == OS::Linux;
                         }
-                        Tests::StandardLibrary => config.add_standard_library_test_selection(
-                            StandardLibraryTestsSelection::All,
-                        ),
+                        Tests::StandardLibrary => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::blacklist(vec![
+                                    "Examples_Tests".to_string(),
+                                ]));
+                            config.add_engine_runner_arg("--jvm");
+                            config.use_native_runner = true;
+                        }
                         Tests::StandardLibraryInNative => {
-                            config.add_standard_library_test_selection(
-                                StandardLibraryTestsSelection::All,
-                            );
-                            config.build_native_runner = true;
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::blacklist(vec![
+                                    "Examples_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = true;
                         }
                         Tests::StdSnowflake => {
-                            config.add_standard_library_test_selection(
-                                StandardLibraryTestsSelection::Selected(vec![
-                                    "Snowflake_Tests".to_string()
-                                ]),
-                            );
-                            config.build_native_runner = true;
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Snowflake_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = false;
                         }
                         Tests::StdCloudRelated => {
-                            config.add_standard_library_test_selection(
-                                StandardLibraryTestsSelection::Selected(vec![
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
                                     "Base_Tests".to_string(),
                                     // Base Internal tests contain some cloud tests that need
                                     // access to cloud internals
@@ -395,9 +446,8 @@ impl Processor {
                                     // Image tests check interaction between Image read/write and
                                     // datalinks
                                     "Image_Tests".to_string(),
-                                ]),
-                            );
-                            config.build_native_runner = true;
+                                ]));
+                            config.use_native_runner = true;
                         }
                     }
                 }
@@ -411,45 +461,6 @@ impl Processor {
                     let context = context.await?;
                     context.execute(operation).await
                 }
-                .boxed()
-            }
-            arg::backend::Command::CiCheck {} => {
-                let config = enso_build::engine::BuildConfigurationFlags {
-                    build_benchmarks: true,
-                    build_native_runner: true,
-                    // Espresso+NI needs to be checked only on a single platform.
-                    build_espresso_runner: TARGET_OS == OS::Linux,
-                    build_native_ydoc: TARGET_OS == OS::Linux,
-                    execute_benchmarks: {
-                        // Run benchmarks only on Linux.
-                        if TARGET_OS == OS::Linux {
-                            Some(Benchmarks {
-                                bench_name: None,
-                                bench_type: BenchmarkType::Runtime,
-                            })
-                        } else {
-                            None
-                        }
-                    },
-                    execute_benchmarks_once: true,
-                    // Benchmarks are only checked on Linux because:
-                    // * they are then run only on Linux;
-                    // * checking takes time;
-                    // * this rather verifies the Enso code correctness which should not be platform
-                    //   specific.
-                    // Checking benchmarks on Windows has caused some CI issues, see
-                    // https://github.com/enso-org/enso/issues/8777#issuecomment-1895749820 for the
-                    // possible explanation.
-                    check_enso_benchmarks: TARGET_OS == OS::Linux,
-                    verify_packages: true,
-                    ..default()
-                };
-                let context = self.prepare_backend_context(config);
-                async move {
-                    let context = context.await?;
-                    context.build().await
-                }
-                .void_ok()
                 .boxed()
             }
             arg::backend::Command::StdlibApiCheck {} => {
@@ -471,6 +482,21 @@ impl Processor {
                 cloud_tests::build_credentials_file(auth_config, path).await
             }
             .boxed(),
+            arg::backend::Command::CiBuildEngineDistribution {} => {
+                let config = enso_build::engine::BuildConfigurationFlags {
+                    build_engine_package: true,
+                    build_native_runner: true,
+                    verify_packages: true,
+                    ..default()
+                };
+                let context = self.prepare_backend_context(config);
+                async move {
+                    let context = context.await?;
+                    context.build().await
+                }
+                .void_ok()
+                .boxed()
+            }
         }
     }
 
@@ -737,30 +763,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             };
             try_join(git_clean, clean_cache).await?;
         }
-        Target::Lint => {
-            Cargo
-                .cmd()?
-                .current_dir(&ctx.repo_root)
-                .arg(cargo::clippy::COMMAND)
-                .apply(&cargo::Options::Workspace)
-                .apply(&cargo::Options::Package("enso-integration-test".into()))
-                .apply(&cargo::Options::AllTargets)
-                .apply(&cargo::Color::Always)
-                .arg("--")
-                .apply(&rustc::Option::Deny(rustc::Lint::Warnings))
-                .run_ok()
-                .await?;
-
-            Cargo
-                .cmd()?
-                .current_dir(&ctx.repo_root)
-                .arg("fmt")
-                .args(["--", "--check"])
-                .run_ok()
-                .await?;
-
-            enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
-        }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
             let prettier =
@@ -839,8 +841,16 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             enso_build::changelog::check::check(ctx.repo_root.clone(), ci_context).await?;
         }
         Target::Libraries(command) => match command.action {
+            libraries::Command::CheckSyntax => {
+                enso_build::rust::enso_linter::check_syntax(ctx.repo_root.clone()).await?;
+            }
             libraries::Command::Lint => {
-                enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
+                let config = enso_build::engine::BuildConfigurationFlags {
+                    run_enso_lint: true,
+                    ..default()
+                };
+                let backend_context = ctx.prepare_backend_context(config).await?;
+                backend_context.build().await?;
             }
         },
     };

@@ -19,6 +19,13 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.OutputEncryptor;
 
 public class TestKeyGenerator {
+
+  static {
+    if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+      Security.addProvider(new BouncyCastleProvider());
+    }
+  }
+
   public static void generateKeyPairForTest(
       String privateKeyPath, String publicKeyPath, String passphrase)
       throws NoSuchAlgorithmException, IOException, OperatorCreationException {
@@ -59,7 +66,6 @@ public class TestKeyGenerator {
 
   private static void savePrivateKeyEncrypted(PrivateKey key, File destination, String passphrase)
       throws IOException, OperatorCreationException {
-    Security.addProvider(new BouncyCastleProvider());
     var encryptorBuilder = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC);
     encryptorBuilder.setPassword(passphrase.toCharArray().clone());
     OutputEncryptor encryptor = encryptorBuilder.build();

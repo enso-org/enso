@@ -150,8 +150,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 . locally_expired
                 . set_refresh_token "GET-MALFORMED-RESPONSE"
             Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=credentials <|
-                err = Test.expect_panic Enso_Cloud_Error <|
-                    Enso_User.list
+                err = Enso_User.list
+                err.should_fail_with Enso_Cloud_Error
                 err.to_display_text . should_contain "response from Enso Cloud could not be parsed"
                 err.to_display_text . should_contain "Expected field `TokenType` to be of type Text, but got Integer."
 

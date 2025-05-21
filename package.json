@@ -57,7 +57,7 @@
     ],
     "overrides": {
       "tslib": "$tslib",
-      "jsdom": "^24.1.0",
+      "jsdom": "^26.0.0",
       "@types/react": "^18.3.1",
       "ws": "^8.18.0",
       "esbuild": "^0.25.0"
@@ -165,7 +165,15 @@
         "peerDependencies": {
           "@types/ws": "*"
         }
+      },
+      "veaury": {
+        "peerDependencies": {
+          "vue": "*"
+        }
       }
+    },
+    "patchedDependencies": {
+      "@chromatic-com/playwright": "patches/@chromatic-com__playwright.patch"
     }
   },
   "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92"

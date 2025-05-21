@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { WidgetInput } from '@/providers/widgetRegistry'
+import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
+import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
 import { colorFromString } from '@/util/colors'
+import { Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
+import { useFocusWithin } from '@vueuse/core'
 import { computed, ref, watchEffect } from 'vue'
 import { FunctionDef } from 'ydoc-shared/ast'
 import type * as Y from 'yjs'
@@ -47,9 +51,13 @@ const treeRootInput = computed((): WidgetInput => {
 })
 
 const rootElement = ref<HTMLElement>()
+const { focused } = useFocusWithin(rootElement)
 
-function handleWidgetUpdates() {
-  return true
+const graph = useGraphStore()
+
+function handleWidgetUpdates(update: WidgetUpdate) {
+  applyWidgetUpdates(update, graph)
+  return Ok()
 }
 
 const groupBasedColor = computed(() => {
@@ -72,13 +80,23 @@ const rootStyle = computed(() => {
       groupBasedColor.value ?? returnTypeBasedColor.value ?? 'var(--group-color-fallback)',
   }
 })
+
+// We surely don’t have primary application for the function definition.
+const primaryApplication = emptyPrimaryApplication()
 </script>
 
 <template>
-  <div ref="rootElement" :style="rootStyle" class="FunctionSignatureEditor define-node-colors">
+  <div
+    ref="rootElement"
+    :style="rootStyle"
+    class="FunctionSignatureEditor define-node-colors"
+    :class="{ selected: focused }"
+  >
     <WidgetTreeRoot
+      :selected="focused"
       :externalId="functionAst.externalId"
       :input="treeRootInput"
+      :primaryApplication="primaryApplication"
       :rootElement="rootElement"
       :extended="true"
       :onUpdate="handleWidgetUpdates"

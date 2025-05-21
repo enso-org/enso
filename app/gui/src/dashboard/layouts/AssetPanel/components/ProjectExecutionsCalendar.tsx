@@ -4,6 +4,7 @@ import { useState } from 'react'
 import {
   CalendarDate,
   getLocalTimeZone,
+  now,
   startOfMonth,
   toCalendarDate,
   today,
@@ -27,14 +28,10 @@ import {
 } from '#/components/aria'
 import { Button, DialogTrigger, Form, Text } from '#/components/AriaComponents'
 import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
-import { useStore } from '#/hooks/storeHooks'
-import { assetPanelStore } from '#/layouts/AssetPanel/AssetPanelState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -42,6 +39,9 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
+import { useAssetPanelCurrentItem } from '../AssetPanelState'
+import type { AssetPanelProps } from './types'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
   base: '',
@@ -59,17 +59,14 @@ const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
 })
 
 /** Props for a {@link ProjectExecutionsCalendar}. */
-export interface ProjectExecutionsCalendarProps {
-  readonly backend: Backend
-}
+export interface ProjectExecutionsCalendarProps extends AssetPanelProps {}
 
 /** A calendar showing executions of a project. */
 export function ProjectExecutionsCalendar(props: ProjectExecutionsCalendarProps) {
   const { backend } = props
   const { getText } = useText()
-  const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
-    unsafeEnableTransition: true,
-  })
+
+  const item = useAssetPanelCurrentItem()
 
   if (backend.type === BackendType.local) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />
@@ -142,8 +139,8 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     .flatMap((projectExecution) =>
       getProjectExecutionRepetitionsForDateRange(
         projectExecution,
-        toZoned(selectedDate, timeZone),
-        toZoned(selectedDate.add({ days: 1 }), timeZone),
+        toZoned(selectedDate, projectExecution.timeZone),
+        toZoned(selectedDate.add({ days: 1 }), projectExecution.timeZone),
       ).flatMap((date) => ({ date, projectExecution })),
     )
     .sort((a, b) => Number(a.date) - Number(b.date))
@@ -202,7 +199,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
                             )}
                             size="xxsmall"
                             variant="custom"
-                            className="disabled:opacity-100"
+                            className="disabled:cursor-unset disabled:opacity-100"
                             icon={CalendarIcon}
                           >
                             {todaysExecutions.length}
@@ -222,7 +219,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <NewProjectExecutionModal
           backend={backend}
           item={item}
-          defaultDate={toZoned(selectedDate, timeZone)}
+          defaultDate={toZoned(selectedDate, timeZone).set({ hour: now(timeZone).hour })}
         />
       </DialogTrigger>
       <Text>{getText('projectSessionsOnX', selectedDate.toString())}</Text>

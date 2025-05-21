@@ -7,5 +7,5 @@ import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 export default function ModifiedColumn(props: AssetColumnProps) {
   const { item } = props
 
-  return <Text>{toReadableIsoString(new Date(item.modifiedAt))}</Text>
+  return <Text nowrap>{toReadableIsoString(new Date(item.modifiedAt))}</Text>
 }

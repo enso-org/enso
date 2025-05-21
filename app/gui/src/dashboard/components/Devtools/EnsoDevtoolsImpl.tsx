@@ -1,11 +1,5 @@
-/**
- * @file
- *
- * A component that provides a UI for toggling paywall features.
- */
+/** @file A list of toggles for paywall features. */
 import * as React from 'react'
-
-import * as reactQuery from '@tanstack/react-query'
 
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
@@ -17,7 +11,7 @@ import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
 import { UserSessionType } from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import {
   useAnimationsDisabled,
   useEnableVersionChecker,
@@ -41,6 +35,7 @@ import {
   Text,
   VisualTooltip,
 } from '#/components/AriaComponents'
+import { usePlanOverride, useSetPlanOverride } from '#/providers/AuthProvider'
 import {
   FEATURE_FLAGS_SCHEMA,
   useFeatureFlags,
@@ -51,15 +46,129 @@ import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
+import invariant from 'tiny-invariant'
 import { Icon } from '../Icon'
 
-/** A component that provides a UI for toggling paywall features. */
-export function EnsoDevtools() {
-  const { getText } = textProvider.useText()
+/** Props for a {@link DeveloperOverrideEntry}. */
+interface DeveloperOverrideEntryProps {
+  readonly reset: ariaComponents.ButtonProps['onPress']
+  readonly children: string
+}
 
-  const { authQueryKey, session } = authProvider.useAuth()
-  const queryClient = reactQuery.useQueryClient()
+/** An entry in {@link EnsoDevStatus}. */
+function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
+  const { reset, children } = props
+
+  const { getText } = useText()
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="icon"
+        icon={CrossIcon}
+        aria-label={getText('reset')}
+        tooltipPlacement="right"
+        onPress={reset}
+      />
+      <Text>{children}</Text>
+    </div>
+  )
+}
+
+/** A display of current developer overrides. */
+export function EnsoDevStatus() {
+  const { getText } = useText()
+  const planOverride = usePlanOverride()
+  const setPlanOverride = useSetPlanOverride()
+  const { showDeveloperIds, enableMultitabs, enableAdvancedProjectExecutionOptions } =
+    useFeatureFlags()
+  const setFeatureFlag = useSetFeatureFlag()
+
+  const planName = (() => {
+    switch (planOverride) {
+      case backend.Plan.free: {
+        return getText('free')
+      }
+      case backend.Plan.solo: {
+        return getText('solo')
+      }
+      case backend.Plan.team: {
+        return getText('team')
+      }
+      case backend.Plan.enterprise: {
+        return getText('enterprise')
+      }
+      case undefined: {
+        return
+      }
+    }
+  })()
+  const isOverridden = planName != null || showDeveloperIds
+
+  const styles = ariaComponents.POPOVER_STYLES({ size: 'auto-xxsmall' })
+
+  if (!isOverridden) {
+    return null
+  }
+
+  return (
+    <Portal>
+      <div
+        className={styles.base({
+          className: 'absolute bottom-[4.25rem] left-3',
+        })}
+      >
+        <div className={styles.dialog()}>
+          {planName != null && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setPlanOverride(undefined)
+              }}
+            >
+              {getText('planOverriddenToX', planName)}
+            </DeveloperOverrideEntry>
+          )}
+          {showDeveloperIds && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('showDeveloperIds', false)
+              }}
+            >
+              {getText('showingDeveloperIds')}
+            </DeveloperOverrideEntry>
+          )}
+          {enableMultitabs && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableMultitabs', false)
+              }}
+            >
+              {getText('multitabsEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {enableAdvancedProjectExecutionOptions && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableAdvancedProjectExecutionOptions', false)
+              }}
+            >
+              {getText('advancedProjectExecutionOptionsEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+        </div>
+      </div>
+    </Portal>
+  )
+}
+
+/** A UI for toggling paywall features. */
+export function EnsoDevtools() {
+  const { getText } = useText()
+
+  const queryClient = useQueryClient()
+  const { session } = authProvider.useAuth()
   const { getFeature } = billing.usePaywallFeatures()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
 
@@ -78,6 +187,7 @@ export function EnsoDevtools() {
 
   const featureFlags = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
+  const setPlanOverride = useSetPlanOverride()
 
   return (
     <Portal>
@@ -93,7 +203,7 @@ export function EnsoDevtools() {
           />
         </ariaComponents.Underlay>
 
-        <Popover>
+        <Popover shouldCloseOnInteractOutside={() => true}>
           <div className="flex items-center justify-between">
             <Text.Heading disableLineHeightCompensation>
               {getText('ensoDevtoolsPopoverHeading')}
@@ -111,6 +221,18 @@ export function EnsoDevtools() {
 
           <Separator orientation="horizontal" className="my-3" />
 
+          <Button
+            variant="outline"
+            onPress={async () => {
+              await queryClient.clearWithPersister()
+              location.reload()
+            }}
+          >
+            {getText('clearCacheAndReload')}
+          </Button>
+
+          <Separator orientation="horizontal" className="my-3" />
+
           {session?.type === UserSessionType.full && (
             <>
               <Text variant="subtitle">{getText('ensoDevtoolsPlanSelectSubtitle')}</Text>
@@ -120,36 +242,28 @@ export function EnsoDevtools() {
                 schema={(schema) => schema.object({ plan: schema.nativeEnum(backend.Plan) })}
                 defaultValues={{ plan: session.user.plan }}
               >
-                {({ form }) => (
-                  <>
-                    <RadioGroup
-                      name="plan"
-                      onChange={(value) => {
-                        queryClient.setQueryData(authQueryKey, {
-                          ...session,
-                          user: { ...session.user, plan: value },
-                        })
-                      }}
-                    >
-                      <Radio label={getText('free')} value={backend.Plan.free} />
-                      <Radio label={getText('solo')} value={backend.Plan.solo} />
-                      <Radio label={getText('team')} value={backend.Plan.team} />
-                      <Radio label={getText('enterprise')} value={backend.Plan.enterprise} />
-                    </RadioGroup>
+                <RadioGroup
+                  name="plan"
+                  onChange={(value) => {
+                    invariant(backend.isPlan(value), 'Invalid plan type')
+                    setPlanOverride(value)
+                  }}
+                >
+                  <Radio label={getText('free')} value={backend.Plan.free} />
+                  <Radio label={getText('solo')} value={backend.Plan.solo} />
+                  <Radio label={getText('team')} value={backend.Plan.team} />
+                  <Radio label={getText('enterprise')} value={backend.Plan.enterprise} />
+                </RadioGroup>
 
-                    <Button
-                      size="small"
-                      variant="outline"
-                      onPress={() =>
-                        queryClient.invalidateQueries({ queryKey: authQueryKey }).then(() => {
-                          form.reset()
-                        })
-                      }
-                    >
-                      {getText('reset')}
-                    </Button>
-                  </>
-                )}
+                <Button
+                  size="small"
+                  variant="outline"
+                  onPress={() => {
+                    setPlanOverride(undefined)
+                  }}
+                >
+                  {getText('reset')}
+                </Button>
               </Form>
 
               <Separator orientation="horizontal" className="my-3" />
@@ -384,7 +498,7 @@ export function EnsoDevtools() {
               aria-label={getText('deleteAll')}
               size="small"
               variant="icon"
-              icon="trash2"
+              icon="trash"
               onPress={() => {
                 for (const key of LocalStorage.getAllKeys()) {
                   localStorage.delete(key)
@@ -442,7 +556,9 @@ export function EnsoDevtools() {
                                 .pipe(metadata.schema),
                             })
                           }
-                          defaultValues={{ value: JSON.stringify(localStorageState[key], null, 2) }}
+                          defaultValues={{
+                            value: JSON.stringify(localStorageState[key], null, 2),
+                          }}
                           onSubmit={(data) => {
                             localStorage.set(key, data.value)
                           }}

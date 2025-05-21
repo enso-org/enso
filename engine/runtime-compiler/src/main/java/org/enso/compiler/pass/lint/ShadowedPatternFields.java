@@ -83,14 +83,7 @@ public final class ShadowedPatternFields implements MiniPassFactory {
         case Case.Branch branch -> lintCaseBranch(branch);
         case Case.Expr caseExpr -> {
           Seq<Branch> newBranches = caseExpr.branches().map(this::lintCaseBranch).toSeq();
-          yield caseExpr.copy(
-              caseExpr.scrutinee(),
-              newBranches,
-              caseExpr.isNested(),
-              caseExpr.location(),
-              caseExpr.passData(),
-              caseExpr.diagnostics(),
-              caseExpr.id());
+          yield caseExpr.copy(caseExpr.scrutinee(), newBranches.toList());
         }
         default -> expr;
       };
@@ -104,14 +97,7 @@ public final class ShadowedPatternFields implements MiniPassFactory {
      */
     private Case.Branch lintCaseBranch(Case.Branch branch) {
       var newPattern = lintPattern(branch.pattern());
-      return branch.copy(
-          newPattern,
-          branch.expression(),
-          branch.terminalBranch(),
-          branch.location(),
-          branch.passData(),
-          branch.diagnostics(),
-          branch.id());
+      return branch.copy(newPattern, branch.expression(), branch.terminalBranch());
     }
 
     /**

@@ -1,10 +1,9 @@
 /** @file The icon and name of a {@link FileAsset}. */
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
+import { Icon } from '#/components/Icon'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useText } from '#/providers/TextProvider'
-import { isNewTitleUnique, type FileAsset } from '#/services/Backend'
+import { titleSchema, type FileAsset } from '#/services/Backend'
 import { fileIcon } from '#/utilities/fileIcon'
 import { merger } from '#/utilities/object'
 
@@ -22,7 +21,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, rowState, setRowState, isEditable, renameAsset } = props
 
   const getAssetChildren = useGetAssetChildren()
-  const { getText } = useText()
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -44,7 +42,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
     >
-      <SvgMask src={fileIcon()} className="m-name-column-icon size-4" />
+      <Icon icon={fileIcon(item.title)} className="m-name-column-icon" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
@@ -53,9 +51,10 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        schema={(z) =>
-          z.refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
-            message: getText('nameShouldBeUnique'),
+        schema={() =>
+          titleSchema({
+            asset: item,
+            siblings: getAssetChildren(item.parentId),
           })
         }
       >

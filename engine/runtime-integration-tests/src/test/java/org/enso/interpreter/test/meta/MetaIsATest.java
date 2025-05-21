@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,23 +14,43 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class MetaIsATest {
-  private static Context ctx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
+
   private static Value isACheck;
   private static Value warningCheck;
-  private static ValuesGenerator generator;
+  @Parameter public GeneratorWithName generator;
+
+  @Parameters(name = "{0}")
+  public static List<GeneratorWithName> generators() {
+    return List.of(
+        new GeneratorWithName(
+            "Enso values", ValuesGenerator.create(ctxRule, Language.ENSO, Language.JAVA)),
+        new GeneratorWithName(
+            "Polyglot values", ValuesGenerator.create(ctxRule, Language.values())));
+  }
 
   @BeforeClass
-  public static void prepareCtx() throws Exception {
-    ctx = ContextUtils.createDefaultContext();
-    final URI uri = new URI("memory://choose.enso");
+  public static void prepareCtx() {
+    var ctx = ctxRule.context();
+    final URI uri;
+    try {
+      uri = new URI("memory://choose.enso");
+    } catch (URISyntaxException e) {
+      throw new AssertionError(e);
+    }
     final Source src =
         Source.newBuilder(
                 "enso",
@@ -51,31 +72,12 @@ public class MetaIsATest {
 
   @AfterClass
   public static void disposeCtx() {
-    if (generator != null) {
-      generator.close();
-      generator = null;
-    }
     isACheck = null;
     warningCheck = null;
-    ctx.close();
-    ctx = null;
-  }
-
-  /**
-   * Override to create different values generator.
-   *
-   * @param context the context to allocate values in
-   * @return an instance of values generator
-   */
-  ValuesGenerator createGenerator(Context context) {
-    return ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
   }
 
   private ValuesGenerator generator() {
-    if (generator == null) {
-      generator = createGenerator(ctx);
-    }
-    return generator;
+    return generator.generator;
   }
 
   @Test
@@ -228,7 +230,7 @@ public class MetaIsATest {
     final List<Value> values = generator().constructorsAndValuesAndSumType();
     for (var v1 : values) {
       for (var v2 : values) {
-        assertTypeWithCheck(generator, v1, v2, found);
+        assertTypeWithCheck(generator(), v1, v2, found);
       }
     }
     assertEquals("Just one: " + found, 1, found.size());
@@ -261,7 +263,7 @@ public class MetaIsATest {
       if (v.equals(generator().typeAny())) {
         continue;
       }
-      var unwrappedV = ContextUtils.unwrapValue(ctx, v);
+      var unwrappedV = ctxRule.unwrapValue(v);
       if (unwrappedV instanceof Type type && type.isEigenType()) {
         // Skip singleton types
         continue;
@@ -285,7 +287,7 @@ public class MetaIsATest {
       var typeCaseOf = generator().withType(t);
 
       for (var v : generator().allValues()) {
-        assertTypeAndValue(typeCaseOf, v, t, f, generator);
+        assertTypeAndValue(typeCaseOf, v, t, f, generator());
       }
     }
     if (f.length() > 0) {
@@ -327,6 +329,13 @@ public class MetaIsATest {
           .append(test)
           .append(" Meta.is_a ")
           .append(res);
+    }
+  }
+
+  public record GeneratorWithName(String name, ValuesGenerator generator) {
+    @Override
+    public String toString() {
+      return name;
     }
   }
 }

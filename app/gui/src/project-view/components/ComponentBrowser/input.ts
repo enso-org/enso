@@ -5,6 +5,9 @@ import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
+  entryDisplayOwner,
+  entryDisplayPath,
+  entryHasOwner,
   entryIsStatic,
   type SuggestionEntry,
   type SuggestionId,
@@ -12,8 +15,9 @@ import {
 import { Ast } from '@/util/ast'
 import { selfArgSeparator } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
+import { ANY_TYPE } from '@/util/ensoTypes'
 import { type ProjectPath } from '@/util/projectPath'
-import { qnJoin, qnLastSegment } from '@/util/qualifiedName'
+import { qnLastSegment } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
 import { computed, proxyRefs, readonly, ref, shallowRef, type ComputedRef } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
@@ -134,18 +138,27 @@ export function useComponentBrowserInput(
     if (!sourceNodeIdentifier.value) return null
     const definition = graphDb.getIdentDefiningNode(sourceNodeIdentifier.value)
     if (definition == null) return null
-    const typename = graphDb.getExpressionInfo(definition)?.typename
-    return typename ? { type: 'known', typename } : { type: 'unknown' }
+    const info = graphDb.getExpressionInfo(definition)
+    if (info == null) return { type: 'unknown' }
+    const { typename, hiddenTypes } = info
+    const additionalTypes = [...hiddenTypes]
+    const ancestors = []
+    if (typename != null) {
+      const entry = suggestionDb.getEntryByProjectPath(typename)
+      if (entry) ancestors.push(...suggestionDb.ancestors(entry))
+    }
+    return typename ? { type: 'known', typename, additionalTypes, ancestors } : { type: 'unknown' }
   })
 
   /** Apply given suggested entry to the input. */
-  function applySuggestion(id: SuggestionId): Result {
+  function applySuggestion(id: SuggestionId, suffix: string | undefined): Result {
     const entry = suggestionDb.get(id)
     if (!entry) return Err(`No entry with id ${id}`)
     switchedToCodeMode.value = { appliedSuggestion: entry }
     const { newText, requiredImport } = inputAfterApplyingSuggestion(entry)
-    text.value = newText
-    selection.value = Range.emptyAt(newText.length)
+    const newTextWithSuffix = suffix ? `${newText}${suffix}` : newText
+    text.value = newTextWithSuffix
+    selection.value = Range.emptyAt(newTextWithSuffix.length)
     if (requiredImport) {
       const importId = suggestionDb.findByProjectPath(requiredImport)
       if (importId) {
@@ -168,25 +181,33 @@ export function useComponentBrowserInput(
     newText: string
     requiredImport: ProjectPath | undefined
   } {
-    if (sourceNodeIdentifier.value) {
+    if (sourceNodeIdentifier.value && sourceNodeType.value?.type === 'known') {
+      const sourceType = sourceNodeType.value.typename
+      if (
+        entryHasOwner(entry) &&
+        !sourceType.equals(entry.memberOf) &&
+        !sourceNodeType.value.ancestors.find((ancestor) => ancestor.equals(entry.memberOf)) &&
+        !entry.memberOf.equals(ANY_TYPE)
+      ) {
+        return {
+          newText: ':' + entryDisplayOwner(entry) + ' . ' + entry.name + ' ',
+          requiredImport: entry.memberOf,
+        }
+      }
       return {
         newText: entry.name + ' ',
         requiredImport: undefined,
       }
+    } else if (entryIsStatic(entry)) {
+      return {
+        newText: entryDisplayPath(entry) + ' ',
+        requiredImport: entry.memberOf.normalized(),
+      }
     } else {
       // Perhaps we will add cases for Type/Con imports, but they are not displayed as suggestion ATM.
-      const owner = entryIsStatic(entry) ? entry.memberOf.normalized() : undefined
       return {
-        newText:
-          (owner ?
-            qnJoin(
-              owner.path ? qnLastSegment(owner.path)
-              : owner.project ? qnLastSegment(owner.project)
-              : ('Main' as Ast.Identifier),
-              entry.name,
-            )
-          : entry.name) + ' ',
-        requiredImport: owner,
+        newText: entry.name + ' ',
+        requiredImport: undefined,
       }
     }
   }
@@ -232,7 +253,7 @@ export function useComponentBrowserInput(
         )
         text.value = parsed.text
         sourceNodeIdentifier.value = parsed.sourceNodeIdentifier
-        selection.value = Range.emptyAt(usage.cursorPos)
+        selection.value = Range.emptyAt(usage.cursorPos - parsed.textOffset)
         break
       }
     }
@@ -250,8 +271,12 @@ export function useComponentBrowserInput(
       matchedCode != null &&
       graphDb.getIdentDefiningNode(matchedSource)
     )
-      return { text: matchedCode, sourceNodeIdentifier: matchedSource }
-    return { text: expression, sourceNodeIdentifier: undefined }
+      return {
+        text: matchedCode,
+        textOffset: matchedSource.length + 1,
+        sourceNodeIdentifier: matchedSource,
+      }
+    return { text: expression, textOffset: 0, sourceNodeIdentifier: undefined }
   }
 
   function applyAIPrompt() {

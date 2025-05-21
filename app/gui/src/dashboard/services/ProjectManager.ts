@@ -6,10 +6,10 @@
 import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
-import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as newtype from '#/utilities/newtype'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
+import { getFileName } from '../utilities/fileInfo'
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
@@ -109,7 +109,7 @@ interface Attributes {
 }
 
 /** Metadata for an arbitrary file system entry. */
-type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+export type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
 
 /** The discriminator value for {@link FileSystemEntry}. */
 export enum FileSystemEntryType {
@@ -546,10 +546,20 @@ export default class ProjectManager {
       'json',
       parentId,
     )
-    const result = response.entries.map((entry) => ({
-      ...entry,
-      path: normalizeSlashes(entry.path),
-    }))
+    const result = response.entries
+      .filter((entry) => {
+        // Ignore hybrid project directories.
+        if (entry.type === FileSystemEntryType.DirectoryEntry) {
+          const directoryName = getFileName(entry.path)
+          return !backend.HYBRID_PROJECT_DIRECTORY_MASK.test(directoryName)
+        }
+
+        return true
+      })
+      .map((entry) => ({
+        ...entry,
+        path: normalizeSlashes(entry.path),
+      }))
 
     this.internalDirectories.set(parentId, result)
 
@@ -620,47 +630,6 @@ export default class ProjectManager {
       '--filesystem-move-to',
       to,
     )
-    const children = this.internalDirectories.get(from)
-    // Assume a directory needs to be loaded for its children to be loaded.
-    if (children) {
-      const moveChildren = (directoryChildren: readonly FileSystemEntry[]) => {
-        for (const child of directoryChildren) {
-          switch (child.type) {
-            case FileSystemEntryType.DirectoryEntry: {
-              const childChildren = this.internalDirectories.get(child.path)
-              if (childChildren) {
-                moveChildren(childChildren)
-              }
-              break
-            }
-            case FileSystemEntryType.ProjectEntry: {
-              const path = this.internalProjectPaths.get(child.metadata.id)
-              if (path != null) {
-                this.internalProjectPaths.set(child.metadata.id, Path(path.replace(from, to)))
-              }
-              break
-            }
-            case FileSystemEntryType.FileEntry: {
-              // No special extra metadata is stored for files.
-              break
-            }
-          }
-        }
-        this.internalDirectories.set(
-          from,
-          children.map((child) => ({ ...child, path: Path(child.path.replace(from, to)) })),
-        )
-      }
-      moveChildren(children)
-    }
-    const directoryPath = getDirectoryAndName(from).directoryPath
-    const siblings = this.internalDirectories.get(directoryPath)
-    if (siblings) {
-      this.internalDirectories.set(
-        directoryPath,
-        siblings.filter((entry) => entry.path !== from),
-      )
-    }
   }
 
   /** Delete a file or directory. */
@@ -740,13 +709,10 @@ export default class ProjectManager {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
     }).toString()
-    const response = await fetch(
-      `${appBaseUrl.APP_BASE_URL}/api/run-project-manager-command?${searchParams}`,
-      {
-        method: 'POST',
-        body,
-      },
-    )
+    const response = await fetch(`/api/run-project-manager-command?${searchParams}`, {
+      method: 'POST',
+      body,
+    })
     if (responseType === 'json') {
       // There is no way to avoid this as `JSON.parse` returns `any`.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

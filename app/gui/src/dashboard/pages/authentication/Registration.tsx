@@ -1,6 +1,5 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
 
 import * as z from 'zod'
 
@@ -18,12 +17,11 @@ import {
 } from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { useBackends, useRouter, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { useSessionAPI } from '../../providers/SessionProvider'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -43,16 +41,15 @@ const CONFIRM_SIGN_IN_INTERVAL = 5_000
 export default function Registration() {
   const { signUp, confirmSignUp, signInWithPassword } = useSessionAPI()
 
-  const location = useLocation()
+  const { searchParams } = useRouter()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const query = new URLSearchParams(location.search)
-  const initialEmail = query.get('email') ?? ''
-  const organizationId = query.get('organization_id')
-  const redirectTo = query.get('redirect_to')
+  const initialEmail = searchParams.get('email') ?? ''
+  const organizationId = searchParams.get('organization_id')
+  const redirectTo = searchParams.get('redirect_to')
   const [isManualCodeEntry, setIsManualCodeEntry] = useState(false)
 
   const signupForm = Form.useForm({

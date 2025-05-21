@@ -2,9 +2,9 @@
  * @file The React provider for modals, along with hooks to use the provider via
  * the shared React context.
  */
+import { useStore } from '#/hooks/storeHooks'
 import * as React from 'react'
 import { createStore } from 'zustand'
-import { useStore } from '../hooks/storeHooks'
 
 /** The type of a modal. */
 export type Modal = React.JSX.Element

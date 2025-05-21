@@ -11,12 +11,12 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import jdk.graal.compiler.graphio.GraphOutput;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumper;
 import org.enso.compiler.dump.service.IRSource;
-import org.graalvm.graphio.GraphOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

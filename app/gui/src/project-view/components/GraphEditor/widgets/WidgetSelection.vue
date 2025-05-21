@@ -21,7 +21,7 @@ import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
-import { ToValue } from '@/util/reactivity'
+import { type ToValue } from '@/util/reactivity'
 import type { RendererNode, VNode } from 'vue'
 import { computed, proxyRefs, ref, shallowRef, toValue, useTemplateRef, watch } from 'vue'
 import SelectionSubmenu from './WidgetSelection/SelectionSubmenu.vue'
@@ -49,7 +49,7 @@ const activityElement = ref<HTMLElement>()
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
 const isHovered = ref(false)
-/** See @{link Actions.setActivity} */
+/** See {@link Actions.setActivity} */
 const activity = shallowRef<ToValue<VNode>>()
 const keepActivityAlive = ref(false)
 
@@ -70,8 +70,9 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
   const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedAst instanceof Ast.TextLiteral) {
     return (tag: ExpressionTag) =>
-      tag.expressionAst instanceof Ast.TextLiteral &&
-      tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)
+      (tag.expressionAst instanceof Ast.TextLiteral &&
+        tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)) ||
+      (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedAst.rawTextContent))
   }
   if (editedCode) {
     return (tag: ExpressionTag) => tag.expression.startsWith(editedCode)
@@ -93,14 +94,13 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
     if (choice.value instanceof Array) {
       return new NestedChoiceTag(choice.label ?? '…', choice.value.map(choiceToTag))
     } else {
-      const tag = ExpressionTag.FromExpression(
+      return ExpressionTag.FromExpression(
         suggestions,
         projectNames,
         choice.value,
         choice.label,
         choice.icon,
       )
-      return tag
     }
   }
 
@@ -117,18 +117,21 @@ const filteredTags = computed(() => {
     )
     return flattened.filter(expressionFilter)
   } else {
-    const actionTags = props.input[CustomDropdownItemsKey]?.map(ActionTag.FromItem) ?? []
-    return [...actionTags, ...expressionTags]
+    const customTags =
+      props.input[CustomDropdownItemsKey]?.map((entry) =>
+        entry instanceof ExpressionTag ? entry : ActionTag.FromItem(entry),
+      ) ?? []
+    return [...customTags, ...expressionTags]
   }
 })
-const entries = computed<Entry[]>(() => {
-  return filteredTags.value.map((tag) => ({
+const entries = computed<Entry[]>(() =>
+  filteredTags.value.map((tag) => ({
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
-    icon: tag instanceof ExpressionTag ? tag.icon : undefined,
+    icon: tag instanceof ExpressionTag || tag instanceof ActionTag ? tag.icon : undefined,
     tag,
-  }))
-})
+  })),
+)
 
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
@@ -155,27 +158,35 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     : props.input.dynamicConfig
   return {
     ...props.input,
-    editHandler: dropDownInteraction,
+    editHandler: dropDownInteraction.value,
     dynamicConfig,
   }
 })
+
+function selectionArrowTarget(ast: Ast.Expression): Ast.Expression | Ast.Token | null {
+  let node = ast
+  // If the input is a constructor application, place the arrow under the constructor name.
+  while (node instanceof Ast.Ast) {
+    if (node instanceof Ast.AutoscopedIdentifier) return node.identifier
+    else if (node instanceof Ast.PropertyAccess) return node.rhs
+    else if (node instanceof Ast.App) node = node.function
+    else if (node instanceof Ast.Group && node.expression) node = node.expression
+    else break
+  }
+  return null
+}
 
 const parentSelectionArrow = injectSelectionArrow(true)
 const arrowSuppressed = ref(false)
 const showArrow = computed(() => !arrowSuppressed.value && (tree.extended || isHovered.value))
 provideSelectionArrow(
   proxyRefs({
-    id: computed(() => {
-      // Find the top-most PropertyAccess, and return its rhs id.
-      // It will be used to place the dropdown arrow under the constructor name.
-      let node = props.input.value
-      while (node instanceof Ast.Ast) {
-        if (node instanceof Ast.AutoscopedIdentifier) return node.identifier.id
-        if (node instanceof Ast.PropertyAccess) return node.rhs.id
-        if (node instanceof Ast.App) node = node.function
-        else break
-      }
-      return null
+    id: computed((): Ast.AstId | Ast.TokenId | null => {
+      const node = props.input.value
+      if (!(node instanceof Ast.Ast)) return null
+      if (!node.isExpression()) return null
+      const target = selectionArrowTarget(node)
+      return target ? target.id : null
     }),
     requestArrow: (target: RendererNode) => {
       arrowLocation.value = target
@@ -201,7 +212,7 @@ function onClose() {
 }
 
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
-const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
+const dropDownInteraction = WidgetEditHandler.New(props, {
   cancel: onClose,
   end: onClose,
   pointerdown: (e) => {
@@ -211,7 +222,7 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
       targetIsOutside(e, unrefElement(widgetRoot)) &&
       targetIsOutside(e, document.getElementById('floatingLayer'))
     ) {
-      dropDownInteraction.end()
+      dropDownInteraction.value.end()
       if (editedWidget.value)
         props.onUpdate({
           portUpdate: { origin: props.input.portId, value: editedValue.value },
@@ -234,17 +245,17 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     editedValue.value = value
   },
   addItem: () => {
-    dropDownInteraction.start()
+    dropDownInteraction.value.start()
     return true
   },
   childEnded: () => {
-    if (!isMulti.value) dropDownInteraction.end()
+    if (!isMulti.value) dropDownInteraction.value.end()
   },
 })
 
 function toggleDropdownWidget() {
-  if (!dropDownInteraction.isActive()) dropDownInteraction.start()
-  else dropDownInteraction.cancel()
+  if (!dropDownInteraction.value.isActive()) dropDownInteraction.value.start()
+  else dropDownInteraction.value.cancel()
 }
 
 const dropdownActions: Actions = {
@@ -252,7 +263,7 @@ const dropdownActions: Actions = {
     activity.value = newActivity
     keepActivityAlive.value = keepAlive
   },
-  close: dropDownInteraction.end.bind(dropDownInteraction),
+  close: () => dropDownInteraction.value.end(),
 }
 
 function onClick(clickedEntry: Entry, keepOpen: boolean) {
@@ -263,7 +274,7 @@ function onClick(clickedEntry: Entry, keepOpen: boolean) {
     // We cancel interaction instead of ending it to restore the old value in the inner widget;
     // if we clicked already selected entry, there would be no AST change, thus the inner
     // widget's content would not be updated.
-    dropDownInteraction.cancel()
+    dropDownInteraction.value.cancel()
   }
 }
 
@@ -364,7 +375,7 @@ export const widgetDefinition = defineWidget(
 export { CustomDropdownItemsKey }
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
+    [CustomDropdownItemsKey]?: readonly (CustomDropdownItem | ExpressionTag)[]
   }
 }
 </script>

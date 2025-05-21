@@ -3,6 +3,7 @@ package org.enso.compiler.dump.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,8 +37,8 @@ public final class BindingSorterTest {
     var publicMethod = method(null, "method_XXX", false, false);
     var privMethod = method(null, "AAAA", false, true);
     var sorted = sortBindings(privMethod, publicMethod);
+    assertEquals("Only public method returned: " + sorted, 1, sorted.size());
     assertThat(sorted.get(0), is(publicMethod));
-    assertThat(sorted.get(1), is(privMethod));
   }
 
   @Test

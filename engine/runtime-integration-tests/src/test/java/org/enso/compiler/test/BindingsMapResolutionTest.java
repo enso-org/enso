@@ -21,7 +21,6 @@ import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
-import org.graalvm.polyglot.Context;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -439,18 +438,19 @@ public class BindingsMapResolutionTest {
     }
   }
 
-  private static Context createCtx(Path projDir) {
-    return ContextUtils.defaultContextBuilder()
-        .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+  private static ContextUtils createCtx(Path projDir) {
+    return ContextUtils.newBuilder()
+        .withModifiedContext(
+            bldr -> bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString()))
         .build();
   }
 
-  private static void compile(Context ctx) {
-    new PolyglotContext(ctx).getTopScope().compile(true);
+  private static void compile(ContextUtils ctx) {
+    new PolyglotContext(ctx.context()).getTopScope().compile(true);
   }
 
-  private static BindingsMap getBindingsMap(Context ctx, String moduleName) {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+  private static BindingsMap getBindingsMap(ContextUtils ctx, String moduleName) {
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(moduleName).get();
     assert mod != null;
     return mod.getBindingsMap();

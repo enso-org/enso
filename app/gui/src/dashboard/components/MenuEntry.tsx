@@ -8,19 +8,18 @@ import BlankIcon from '#/assets/blank.svg'
 
 import type * as inputBindings from '#/configurations/inputBindings'
 
-import * as focusHooks from '#/hooks/focusHooks'
-
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import type { TextProps } from '#/components/AriaComponents'
 import { Text, useDialogContext, useVisualTooltip } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 
+import { Icon } from '#/components/Icon'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
@@ -48,6 +47,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   run: 'runShortcut',
   close: 'closeShortcut',
   uploadToCloud: 'uploadToCloudShortcut',
+  downloadToLocal: 'downloadToLocalShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
   snapshot: 'snapshotShortcut',
@@ -70,7 +70,6 @@ export const ACTION_TO_TEXT_ID: Readonly<
   useInNewProject: 'useInNewProjectShortcut',
   closeModal: 'closeModalShortcut',
   cancelEditName: 'cancelEditNameShortcut',
-  signIn: 'signInShortcut',
   signOut: 'signOutShortcut',
   downloadApp: 'downloadAppShortcut',
   cancelCut: 'cancelCutShortcut',
@@ -114,14 +113,17 @@ export default function MenuEntry(props: MenuEntryProps) {
     color,
     ...variantProps
   } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const { unsetModal } = modalProvider.useSetModal()
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const focusChildProps = focusHooks.useFocusChild()
   const info = inputBindings.metadata[action]
   const buttonRef = React.useRef<HTMLButtonElement>(null)
   const isDisabledRef = useSyncRef(isDisabled)
+
+  const doActionCallback = useEventCallback(() => {
+    doAction()
+  })
 
   const labelTextId: text.TextId = (() => {
     if (action === 'openInFileBrowser') {
@@ -140,10 +142,10 @@ export default function MenuEntry(props: MenuEntryProps) {
       inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         [action]: () => {
           if (isDisabledRef.current) return
-          doAction()
+          doActionCallback()
         },
       }),
-    [inputBindings, action, doAction, isDisabledRef],
+    [inputBindings, action, doActionCallback, isDisabledRef],
   )
 
   const { tooltip, targetProps } = useVisualTooltip({
@@ -163,26 +165,27 @@ export default function MenuEntry(props: MenuEntryProps) {
       <FocusRing>
         <aria.Button
           ref={buttonRef}
-          {...aria.mergeProps<aria.ButtonProps>()(focusChildProps, {
-            isDisabled,
-            className: 'group flex w-full rounded-menu-entry',
-            onPress: () => {
-              if (dialogContext) {
-                // Closing a dialog takes precedence over unsetting the modal.
-                dialogContext.close()
-              } else {
-                unsetModal()
-              }
-              doAction()
-            },
-          })}
+          isDisabled={isDisabled}
+          className="group flex w-full rounded-menu-entry"
+          onPress={() => {
+            if (dialogContext) {
+              // Closing a dialog takes precedence over unsetting the modal.
+              dialogContext.close()
+            } else {
+              unsetModal()
+            }
+            doAction()
+          }}
         >
           <div className={MENU_ENTRY_VARIANTS(variantProps)} {...targetProps}>
-            <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-              <SvgMask
-                src={icon ?? info.icon ?? BlankIcon}
-                color={info.color}
-                className="size-4 text-primary"
+            <div
+              title={title}
+              className="flex items-center gap-menu-entry whitespace-nowrap"
+              style={{ color: info.color }}
+            >
+              <Icon
+                icon={icon ?? info.icon ?? BlankIcon}
+                className={info.color != null ? undefined : 'text-primary'}
               />
               <Text color={color} slot="label">
                 {label ?? getText(labelTextId)}

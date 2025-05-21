@@ -8,8 +8,6 @@ import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MaxOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MinOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
@@ -92,17 +90,30 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public StorageType<?> inferPreciseType() {
-    return getType();
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
+    if (!options.shrinkIntegers()) {
+      // If no integer shrinking, nothing to do
+      return getType();
+    } else {
+      return findSmallestFittingType();
+    }
   }
 
-  @Override
-  public StorageType<?> inferPreciseTypeShrunk() {
-    // If the type is already smallest possible, we return it unchanged (we will return 8-bit
+  private IntegerType smallestFittingType = null;
+
+  private IntegerType findSmallestFittingType() {
+    if (smallestFittingType == null) {
+      smallestFittingType = computeSmallestFittingType();
+    }
+    return smallestFittingType;
+  }
+
+  private IntegerType computeSmallestFittingType() {
+    // If the type is already the smallest possible, we return it unchanged (we will return 8-bit
     // columns as-is, although
     // we will not shrink 16-bit columns to 8-bits even if it were possible).
-    if (getType().bits().toInteger() <= 16) {
-      return getType();
+    if (type.bits().toInteger() <= 16) {
+      return type;
     }
 
     IntegerType[] possibleTypes =
@@ -140,8 +151,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
         .add(new ModOp<>())
         .add(new PowerOp<>())
         .add(new LongRoundOp(Maps.ROUND))
-        .add(new MinOp<>())
-        .add(new MaxOp<>())
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())
         .add(new EqualsComparison<>())
@@ -281,7 +290,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public ColumnLongStorageIterator iterator() {
+  public ColumnLongStorageIterator iteratorWithIndex() {
     return new BaseLongStorageIterator(this);
   }
 

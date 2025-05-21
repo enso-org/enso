@@ -1,8 +1,4 @@
-import {
-  textEditorsBindings,
-  textEditorsStandardCommonBindings,
-  textEditorsStandardMultilineBindings,
-} from '@/bindings'
+import { textEditorsBindings, textEditorsMultilineBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
@@ -11,12 +7,13 @@ import {
   contentFocusedExt,
   setContentFocused,
 } from '@/util/codemirror/contentFocusedExt'
+import { baseKeymap, handlerToKeyBinding, verticalMovementKeymap } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
-import { ToValue } from '@/util/reactivity'
-import { standardKeymap } from '@codemirror/commands'
+import { type ToValue } from '@/util/reactivity'
+import { insertNewlineKeepIndent } from '@codemirror/commands'
 import {
   Compartment,
   EditorState,
@@ -51,7 +48,25 @@ function disableEditContextApi() {
 /* Disable EditContext API because of https://github.com/codemirror/dev/issues/1458. */
 disableEditContextApi()
 
+export type LineMode = 'single' | 'multi' | 'auto'
+
 export type Getter<T> = () => T
+
+interface CodeMirrorOptions {
+  /** If a value is provided, the editor state will be synchronized with it. */
+  content?: ToValue<string | Y.Text>
+  placeholder?: ToValue<string>
+  /** CodeMirror {@link Extension}s to include in the editor's initial state. */
+  extensions?: Extension
+  /**
+   * If a value is provided, it will be made available to extensions that render Vue components.
+   */
+  vueHost?: WatchSource<VueHost | undefined>
+  /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
+  contentTestId?: string | undefined
+  readonly?: boolean
+  lineMode: ToValue<LineMode>
+}
 
 /** Creates a CodeMirror editor instance, and sets its initial state. */
 export function useCodeMirror(
@@ -64,21 +79,7 @@ export function useCodeMirror(
     contentTestId,
     readonly: isReadonly,
     lineMode,
-  }: {
-    /** If a value is provided, the editor state will be synchronized with it. */
-    content?: ToValue<string | Y.Text>
-    placeholder?: ToValue<string>
-    /** CodeMirror {@link Extension}s to include in the editor's initial state. */
-    extensions?: Extension
-    /**
-     * If a value is provided, it will be made available to extensions that render Vue components.
-     */
-    vueHost?: WatchSource<VueHost | undefined>
-    /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
-    contentTestId?: string | undefined
-    readonly?: boolean
-    lineMode?: ToValue<'single' | 'multi' | 'auto'>
-  },
+  }: CodeMirrorOptions,
 ) {
   const view = new EditorView()
   onUnmounted(view.destroy.bind(view))
@@ -94,13 +95,8 @@ export function useCodeMirror(
   const { bindingsExt } = useBindings(view)
   const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
-  const bindingsCompartment = useCompartment(view, () =>
-    keyBindings({ lineMode: toValue(lineMode) }),
-  )
-  const singleLineState = computed(() => {
-    const mode = toValue(lineMode)
-    return mode && mode !== 'multi'
-  })
+  const bindingsCompartment = useCompartment(view, () => keyBindings(toValue(lineMode)))
+  const singleLineState = computed(() => toValue(lineMode) !== 'multi')
   const themeCompartment = useCompartment(view, () => theme({ singleLine: singleLineState.value }))
   view.setState(
     EditorState.create({
@@ -318,99 +314,31 @@ function lastEffect<T>(
   }
 }
 
-function handlerToKeyBinding(handler: (event: KeyboardEvent, stopAndPrevent: boolean) => boolean) {
-  return {
-    any: (_view: EditorView, event: KeyboardEvent) => {
-      handler(event, false)
-      // Allow other handlers to override the default behavior.
-      return false
-    },
-  }
-}
-const stopEvent = (event: Event) => event.stopImmediatePropagation()
-const standardBindings = {
-  common: [
-    handlerToKeyBinding(
-      textEditorsStandardCommonBindings.handler({
-        moveLeft: stopEvent,
-        moveRight: stopEvent,
-        deleteBack: stopEvent,
-        deleteForward: stopEvent,
-      }),
-    ),
-  ] satisfies KeyBinding[],
-  multiline: [
-    handlerToKeyBinding(
-      textEditorsStandardMultilineBindings.handler({
-        moveUp: stopEvent,
-        moveDown: stopEvent,
-        newline: stopEvent,
-      }),
-    ),
-    {
-      // This is handled by `standardKeymap`, but it doesn't `stop` handled events.
-      key: 'Shift-Enter',
-      stopPropagation: true,
-    },
-  ] satisfies KeyBinding[],
-  singleline: [
-    {
-      key: 'Enter',
-      run: (view) => {
-        view.contentDOM.blur()
-        return true
-      },
-      preventDefault: true,
-      stopPropagation: false,
-    },
-    {
-      key: 'Shift-Enter',
-      run: (view) => {
-        view.contentDOM.blur()
-        return true
-      },
-      preventDefault: true,
-      stopPropagation: false,
-    },
-  ] satisfies KeyBinding[],
-  autoline: [
-    {
-      key: 'Enter',
-      run: (view) => {
-        view.contentDOM.blur()
-        return true
-      },
-      preventDefault: true,
-    },
-    {
-      // This is handled by `standardKeymap`, but it doesn't `stop` handled events.
-      key: 'Shift-Enter',
-      stopPropagation: true,
-    },
-  ] satisfies KeyBinding[],
+const stopEvent = (event: Event) => {
+  event.stopImmediatePropagation()
+  return false
 }
 
-function keyBindings({
-  lineMode,
-}: { lineMode?: 'single' | 'multi' | 'auto' | undefined } = {}): Extension {
-  const mode = lineMode ?? 'multi'
+const autoOrMultiHandlers = handlerToKeyBinding(
+  textEditorsMultilineBindings.handler({
+    newline: (e) => {
+      e.stopImmediatePropagation()
+      return insertNewlineKeepIndent(e.codemirrorView)
+    },
+  }),
+)
+
+const standardBindings: Record<LineMode, KeyBinding[]> = {
+  single: [],
+  multi: [autoOrMultiHandlers, ...verticalMovementKeymap()],
+  auto: [autoOrMultiHandlers],
+}
+
+function keyBindings(lineMode: LineMode): Extension {
   return [
-    Prec.lowest(keymap.of(standardKeymap)),
-    Prec.low(
-      keymap.of([
-        ...standardBindings.common,
-        ...(mode === 'multi' ? standardBindings.multiline
-        : mode === 'auto' ? standardBindings.autoline
-        : standardBindings.singleline),
-      ]),
-    ),
-    ...(mode === 'multi' ?
-      [
-        EditorView.domEventHandlers({
-          wheel: stopEvent,
-        }),
-      ]
-    : []),
+    Prec.lowest(keymap.of(baseKeymap())),
+    Prec.low(keymap.of(standardBindings[lineMode])),
+    ...(lineMode === 'multi' ? [EditorView.domEventHandlers({ wheel: stopEvent })] : []),
   ]
 }
 

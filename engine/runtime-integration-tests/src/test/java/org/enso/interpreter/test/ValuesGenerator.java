@@ -30,7 +30,6 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
@@ -41,13 +40,13 @@ import org.graalvm.polyglot.Value;
  * meaningfully.
  */
 public final class ValuesGenerator implements AutoCloseable {
-  private final Context ctx;
+  private final ContextUtils ctx;
   private final Set<Language> languages;
   private final Map<String, ValueInfo> values = new HashMap<>();
   private final Map<String, List<Value>> multiValues = new HashMap<>();
   private final Map<Method, Object> computed = new HashMap<>();
 
-  private ValuesGenerator(Context ctx, Set<Language> languages) {
+  private ValuesGenerator(ContextUtils ctx, Set<Language> languages) {
     this.ctx = ctx;
     this.languages = languages;
   }
@@ -59,7 +58,7 @@ public final class ValuesGenerator implements AutoCloseable {
    */
   private record ValueInfo(Value type, Value check) {}
 
-  public static ValuesGenerator create(Context ctx, Language... langs) {
+  public static ValuesGenerator create(ContextUtils ctx, Language... langs) {
     var set =
         langs == null || langs.length == 0
             ? EnumSet.allOf(Language.class)
@@ -871,7 +870,7 @@ public final class ValuesGenerator implements AutoCloseable {
   }
 
   public List<Value> numbersMultiText() {
-    var leak = ContextUtils.leakContext(ctx);
+    var leak = ctx.ensoContext();
     var numberTextTypes =
         new Type[] {
           leak.getBuiltins().number().getInteger(), leak.getBuiltins().text(),
@@ -884,8 +883,8 @@ public final class ValuesGenerator implements AutoCloseable {
     var toEnso = HostValueToEnsoNode.getUncached();
     for (var n : numbers()) {
       for (var t : textual()) {
-        var rawN = toEnso.execute(ContextUtils.unwrapValue(ctx, n));
-        var rawT = ContextUtils.unwrapValue(ctx, t);
+        var rawN = toEnso.execute(ctx.unwrapValue(n));
+        var rawT = ctx.unwrapValue(t);
         if (!(rawT instanceof EnsoObject)) {
           continue;
         }

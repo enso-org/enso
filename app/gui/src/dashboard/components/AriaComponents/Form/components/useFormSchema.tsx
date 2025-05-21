@@ -1,5 +1,4 @@
 /** @file A hook to create a form schema. */
-import * as React from 'react'
 
 import * as callbackEventHooks from '#/hooks/eventCallbackHooks'
 
@@ -12,5 +11,5 @@ export function useFormSchema<Schema extends types.TSchema, T extends types.Fiel
 ) {
   const callbackEvent = callbackEventHooks.useEventCallback(callback)
 
-  return React.useMemo(() => callbackEvent(schemaComponent.schema), [callbackEvent])
+  return callbackEvent(schemaComponent.schema)
 }

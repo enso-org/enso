@@ -53,6 +53,34 @@ add_specs suite_builder =
         group_builder.specify "should escape an expression for use as a literal" <|
             Regex.escape "[a-z\d]+" . should_equal '\\[a-z\\d\\]\\+'
 
+    suite_builder.group "From Glob" group_builder->
+        group_builder.specify "should make convert simple glob patterns" <|
+            Regex.from_glob "*" . pattern . should_equal ".*"
+            Regex.from_glob "a*" . pattern . should_equal "a.*"
+            Regex.from_glob "a*b" . pattern . should_equal "a.*b"
+            Regex.from_glob "a?b" . pattern . should_equal "a.b"
+            Regex.from_glob "a?b?" . pattern . should_equal "a.b."
+            Regex.from_glob "a?b*" . pattern . should_equal "a.b.*"
+
+        group_builder.specify "should make convert glob patterns with brackets" <|
+            Regex.from_glob "[a-z]" . pattern . should_equal "[a-z]"
+            Regex.from_glob "[a-z]*" . pattern . should_equal "[a-z].*"
+            Regex.from_glob "[a-z]?" . pattern . should_equal "[a-z]."
+            Regex.from_glob "[!a-z]?" . pattern . should_equal "[^a-z]."
+
+        group_builder.specify "should escape regex special characters" <|
+            Regex.from_glob "$" . pattern . should_equal "\$"
+            Regex.from_glob "^" . pattern . should_equal "\^"
+            Regex.from_glob "|" . pattern . should_equal "\|"
+            Regex.from_glob "." . pattern . should_equal "\."
+            Regex.from_glob "Hello World (Full).csv" . pattern . should_equal "Hello World \(Full\)\.csv"
+
+        group_builder.specify "should allow braces" <|
+            Regex.from_glob "{a,b}" . pattern . should_equal "(a|b)"
+            Regex.from_glob "{a,b}*" . pattern . should_equal "(a|b).*"
+            Regex.from_glob "{a,b}?" . pattern . should_equal "(a|b)."
+            Regex.from_glob "{a,b}c" . pattern . should_equal "(a|b)c"
+
     suite_builder.group "Pattern.matches" group_builder->
         group_builder.specify "should return True when the pattern matches against the input" <|
             pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"

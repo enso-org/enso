@@ -25,6 +25,32 @@ object Warning {
     override def diagnosticKeys(): Array[Any] = Array()
   }
 
+  /** Warning about unused symbols from an import.
+    * Only relevant for imports of form `from M import A,B,C`.
+    */
+  case class UnusedSymbolsFromImport(
+    override val identifiedLocation: IdentifiedLocation,
+    unusedSymbols: List[String]
+  ) extends Warning {
+
+    override def message(source: IdentifiedLocation => String): String = {
+      val unusedSymbolsRepr = unusedSymbols.sorted.mkString(", ")
+      s"Following symbols are not used in this import: [$unusedSymbolsRepr]."
+    }
+
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
+  case class UnusedImport(
+    override val identifiedLocation: IdentifiedLocation
+  ) extends Warning {
+    override def message(source: IdentifiedLocation => String): String = {
+      "The import is not used"
+    }
+
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
   /** A warning about a `@Tail_Call` annotation placed in a non-tail
     * position.
     *

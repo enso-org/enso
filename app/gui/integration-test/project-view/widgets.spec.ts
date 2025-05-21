@@ -61,7 +61,7 @@ class DropDownLocator {
   }
 }
 
-const CHOOSE_CLOUD_FILE = 'Choose file from cloud...'
+const CHOOSE_CLOUD_FILE = 'Choose file in cloud…'
 const CHOOSE_LOCAL_FILE = 'Choose file…'
 const CHOOSE_FILE_OPTIONS = [CHOOSE_CLOUD_FILE, CHOOSE_LOCAL_FILE]
 
@@ -80,6 +80,25 @@ test('Widget in plain AST', async ({ page }) => {
   const textWidget = textNode.locator('.WidgetText')
   await expect(textWidget).toBeVisible()
   await expect(textWidget.getByTestId('widget-text-content')).toHaveText('test')
+})
+
+test('Text widget: Convert to multiline', async ({ page }) => {
+  await actions.goToGraph(page)
+  const textNode = locate.graphNodeByBinding(page, 'text')
+  const textWidget = textNode.locator('.WidgetText')
+  await expect(textWidget).toBeVisible()
+  await expect(textWidget.getByTestId('widget-text-content')).toHaveText('test')
+  await textWidget.click()
+  await expect(textWidget.getByTestId('widget-text-content')).toBeFocused()
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Alt+Enter')
+  await page.keyboard.insertText('Next line')
+  await page.keyboard.press('Enter')
+  await expect(textWidget.getByTestId('widget-text-content')).not.toBeFocused()
+  await expect(textWidget.getByTestId('widget-text-content').locator('.cm-line')).toHaveText([
+    'test',
+    'Next line',
+  ])
 })
 
 test('Multi-selection widget', async ({ page }) => {

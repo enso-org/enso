@@ -31,7 +31,7 @@ type Column_Operation
     Power (input : Column_Ref|Expression|Number) (rhs : Column_Ref|Expression|Number)
 
     ## Rounds values in the column to the specified precision.
-    Round (input : Column_Ref|Expression|Number) (precision:Integer = 0) (use_bankers:Boolean = False)
+    Round (input : Column_Ref|Expression|Number) (precision:Integer = 0) (rounding_mode : Rounding_Mode = Rounding_Mode.Half_Up)
 
     ## Rounds values in the column up to the nearest integer.
     Ceil (input : Column_Ref|Expression|Number)
@@ -85,7 +85,7 @@ Simple_Expression.from (that:Column_Operation) =
         Column_Operation.Divide input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Divide rhs)
         Column_Operation.Mod input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Mod rhs)
         Column_Operation.Power input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Power rhs)
-        Column_Operation.Round input precision use_bankers -> Simple_Expression.Simple_Expr input (Simple_Calculation.Round precision use_bankers)
+        Column_Operation.Round input precision rounding_mode -> Simple_Expression.Simple_Expr input (Simple_Calculation.Round precision rounding_mode)
         Column_Operation.Ceil input -> Simple_Expression.Simple_Expr input Simple_Calculation.Ceil
         Column_Operation.Floor input -> Simple_Expression.Simple_Expr input Simple_Calculation.Floor
         Column_Operation.Truncate input -> Simple_Expression.Simple_Expr input Simple_Calculation.Truncate

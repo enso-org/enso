@@ -81,6 +81,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      ENSO_LAUNCHER: native
   enso-build-ci-gen-job-build-backend-windows-amd64:
     name: Build Backend (windows, amd64)
     runs-on:
@@ -137,6 +139,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      ENSO_LAUNCHER: native
   enso-build-ci-gen-job-gui-build-linux-amd64:
     name: GUI build (linux, amd64)
     runs-on:
@@ -289,6 +293,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
+          fetch-depth: 2
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -330,7 +335,7 @@ jobs:
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: xvfb-run corepack pnpm -r --filter enso exec playwright test
+      - run: xvfb-run corepack pnpm -r --filter enso ide-integration-test
         env:
           DEBUG: "pw:browser log:"
           ENSO_TEST_APP_ARGS: --no-sandbox
@@ -344,6 +349,15 @@ jobs:
           compression-level: 0
           name: test-traces-linux-amd64
           path: app/ide-desktop/client/test-traces
+      - run: corepack pnpm -r --filter enso ide-build-chromatic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Chromatic snapshots
+        uses: chromaui/action@v11
+        with:
+          projectToken: ${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: storybook-static
+          workingDir: app/ide-desktop/client
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:
@@ -382,6 +396,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
+          fetch-depth: 2
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -425,7 +440,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
-      - run: corepack pnpm -r --filter enso exec playwright test
+      - run: corepack pnpm -r --filter enso ide-integration-test
         env:
           DEBUG: "pw:browser log:"
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
@@ -438,6 +453,15 @@ jobs:
           compression-level: 0
           name: test-traces-windows-amd64
           path: app/ide-desktop/client/test-traces
+      - run: corepack pnpm -r --filter enso ide-build-chromatic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Chromatic snapshots
+        uses: chromaui/action@v11
+        with:
+          projectToken: ${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: storybook-static
+          workingDir: app/ide-desktop/client
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:

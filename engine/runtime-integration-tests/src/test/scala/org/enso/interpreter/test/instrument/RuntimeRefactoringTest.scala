@@ -357,10 +357,17 @@ class RuntimeRefactoringTest
         Api.RenameSymbol(moduleName, symbolOperator1, newName)
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, symbolOperator1, exprOperator2),
+      TestMessages
+        .pending(contextId, symbolOperator1, exprOperator2, exprOperator1),
+      TestMessages.update(
+        contextId,
+        exprOperator1,
+        ConstantsGen.INTEGER,
+        typeChanged = false
+      ),
       TestMessages.update(
         contextId,
         exprOperator2,

@@ -19,7 +19,8 @@
     "types": ["vitest/importMeta"],
     "paths": {
       "@/*": ["./src/project-view/*"],
-      "#/*": ["./src/dashboard/*"]
+      "#/*": ["./src/dashboard/*"],
+      "$/*": ["./src/*"]
     }
   }
 }

@@ -12,8 +12,6 @@ import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MaxOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MinOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
@@ -27,8 +25,8 @@ import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -98,7 +96,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public StorageType<Double> getType() {
+  public FloatType getType() {
     return FloatType.FLOAT_64;
   }
 
@@ -283,8 +281,6 @@ public final class DoubleStorage extends Storage<Double>
         .add(new ModOp<>())
         .add(new PowerOp<>())
         .add(new DoubleRoundOp(Maps.ROUND))
-        .add(new MinOp<>())
-        .add(new MaxOp<>())
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())
         .add(new EqualsComparison<>())
@@ -343,13 +339,31 @@ public final class DoubleStorage extends Storage<Double>
     return new DoubleStorage(newData, newSize, newIsNothing);
   }
 
-  private StorageType<?> inferredType = null;
-
   @Override
-  public StorageType<?> inferPreciseType() {
-    if (inferredType == null) {
-      boolean areAllIntegers = true;
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
+    // If we do not request floats becoming integers, then we can return the answer straight away.
+    if (!options.wholeFloatsBecomeIntegers()) {
+      return getType();
+    }
+
+    if (areAllIntegers()) {
+      if (options.shrinkIntegers()) {
+        return findSmallestIntegerTypeThatFits();
+      } else {
+        return IntegerType.INT_64;
+      }
+    }
+
+    return getType();
+  }
+
+  private Boolean cachedAreAllIntegers = null;
+  private StorageType<?> smallestFittingIntegerType = null;
+
+  private boolean areAllIntegers() {
+    if (cachedAreAllIntegers == null) {
       int visitedNumbers = 0;
+      boolean areAllIntegers = true;
       for (int i = 0; i < size; i++) {
         if (isNothing.get(i)) {
           continue;
@@ -365,26 +379,20 @@ public final class DoubleStorage extends Storage<Double>
         }
       }
 
-      // We only switch to integers if there was at least one number.
-      inferredType = (areAllIntegers && visitedNumbers > 0) ? IntegerType.INT_64 : getType();
+      // We only say 'all are integers' if there was at least one number, because we don't want an
+      // empty Float column to change its type for no good reason.
+      cachedAreAllIntegers = visitedNumbers > 0 && areAllIntegers;
     }
 
-    return inferredType;
-  }
-
-  @Override
-  public StorageType<?> inferPreciseTypeShrunk() {
-    StorageType<?> inferred = inferPreciseType();
-    if (inferred instanceof IntegerType) {
-      return findSmallestIntegerTypeThatFits();
-    } else {
-      return inferred;
-    }
+    return cachedAreAllIntegers;
   }
 
   private StorageType<?> findSmallestIntegerTypeThatFits() {
-    assert inferredType instanceof IntegerType;
+    if (smallestFittingIntegerType != null) {
+      return smallestFittingIntegerType;
+    }
 
+    assert cachedAreAllIntegers;
     final DoubleStorage parent = this;
 
     // We create a Long storage that gets values by converting our storage.
@@ -404,7 +412,8 @@ public final class DoubleStorage extends Storage<Double>
         };
 
     // And rely on its shrinking logic.
-    return longAdapter.inferPreciseTypeShrunk();
+    smallestFittingIntegerType = longAdapter.inferPreciseType(PreciseTypeOptions.SHRINK);
+    return smallestFittingIntegerType;
   }
 
   /** Allow access to the underlying data array for copying. */
@@ -413,7 +422,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public ColumnDoubleStorageIterator iterator() {
+  public ColumnDoubleStorageIterator iteratorWithIndex() {
     return new DoubleStorageIterator(data, isNothing, (int) getSize());
   }
 
@@ -470,88 +479,6 @@ public final class DoubleStorage extends Storage<Double>
       }
       index++;
       return true;
-    }
-
-    @Override
-    public void zip(ColumnDoubleStorage otherStorage, DoubleDoubleZipper zipper) {
-      Context context = Context.getCurrent();
-      var otherSize = otherStorage.getSize();
-      var toCount = Math.max(size, otherSize);
-
-      if (otherStorage instanceof DoubleStorage doubleStorage) {
-        for (int i = 0; i < toCount; i++) {
-          boolean isNothing1 = i >= size || isNothing.get(i);
-          double value1 = isNothing1 ? Double.NaN : data[i];
-          boolean isNothing2 = i >= otherSize || doubleStorage.isNothing.get(i);
-          double value2 = isNothing2 ? Double.NaN : doubleStorage.data[i];
-          zipper.accept(i, value1, isNothing1, value2, isNothing2);
-          context.safepoint();
-        }
-      } else {
-        int minSize = (int) Math.min(size, otherSize);
-        for (int i = 0; i < minSize; i++) {
-          boolean isNothing1 = i >= size || isNothing.get(i);
-          double value1 = isNothing1 ? 0 : data[i];
-          boolean isNothing2 = otherStorage.isNothing(i);
-          if (isNothing2) {
-            zipper.accept(i, value1, isNothing1, Double.NaN, true);
-          } else {
-            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsDouble(i), false);
-          }
-          context.safepoint();
-        }
-
-        for (long i = minSize; i < toCount; i++) {
-          var isNothing2 = otherStorage.isNothing(i);
-          if (isNothing2) {
-            zipper.accept(i, 0, true, Double.NaN, true);
-          } else {
-            zipper.accept(i, 0, true, otherStorage.getItemAsDouble(i), false);
-          }
-          context.safepoint();
-        }
-      }
-    }
-
-    @Override
-    public void zip(ColumnLongStorage otherStorage, DoubleLongZipper zipper) {
-      Context context = Context.getCurrent();
-      var otherSize = otherStorage.getSize();
-      var toCount = Math.max(size, otherSize);
-
-      if (otherStorage instanceof LongStorage longStorage) {
-        for (int i = 0; i < toCount; i++) {
-          boolean isNothing1 = i >= size || isNothing.get(i);
-          double value1 = isNothing1 ? Double.NaN : data[i];
-          boolean isNothing2 = i >= otherSize || longStorage.isNothing.get(i);
-          long value2 = isNothing2 ? 0 : longStorage.data[i];
-          zipper.accept(i, value1, isNothing1, value2, isNothing2);
-          context.safepoint();
-        }
-      } else {
-        int minSize = (int) Math.min(size, otherSize);
-        for (int i = 0; i < minSize; i++) {
-          boolean isNothing1 = i >= size || isNothing.get(i);
-          double value1 = isNothing1 ? 0 : data[i];
-          var isNothing2 = otherStorage.isNothing(i);
-          if (isNothing2) {
-            zipper.accept(i, value1, isNothing1, 0, true);
-          } else {
-            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsLong(i), false);
-          }
-          context.safepoint();
-        }
-
-        for (long i = minSize; i < toCount; i++) {
-          var isNothing2 = otherStorage.isNothing(i);
-          if (isNothing2) {
-            zipper.accept(i, 0, true, 0, true);
-          } else {
-            zipper.accept(i, 0, true, otherStorage.getItemAsLong(i), false);
-          }
-          context.safepoint();
-        }
-      }
     }
   }
 

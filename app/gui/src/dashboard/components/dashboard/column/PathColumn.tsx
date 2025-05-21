@@ -1,10 +1,10 @@
 /** @file A column displaying the path of the asset. */
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import { Button, Popover, Text } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
 import SvgMask from '#/components/SvgMask'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useCategoriesAPI, useCloudCategoryList } from '#/layouts/Drive/Categories/categoriesHooks'
-import type { AnyCloudCategory } from '#/layouts/Drive/Categories/Category'
+import { useCategories, useCategoriesAPI, type AnyCloudCategory } from '#/layouts/Drive/Categories'
 import { useUser } from '#/providers/AuthProvider'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import type { DirectoryId } from '#/services/Backend'
@@ -25,8 +25,7 @@ export default function PathColumn(props: AssetColumnProps) {
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const { rootDirectoryId } = useUser()
 
-  // Path navigation exist only for cloud categories.
-  const { getCategoryByDirectoryId } = useCloudCategoryList()
+  const { getCategoryByDirectoryId } = useCategories()
 
   const { finalPath } = parseDirectoriesPath({
     parentsPath,
@@ -64,10 +63,7 @@ export default function PathColumn(props: AssetColumnProps) {
       setCategory(rootDirectoryInThePath.categoryId)
     }
 
-    setCurrentDirectoryId({
-      current: targetDirectory,
-      parent: finalPath[targetDirectoryIndex - 1]?.id ?? null,
-    })
+    setCurrentDirectoryId(targetDirectory)
   })
 
   if (finalPath.length === 0) {
@@ -104,9 +100,9 @@ export default function PathColumn(props: AssetColumnProps) {
       <Popover.Trigger>
         <Button variant="ghost-fading" size="xsmall">
           <div className="flex items-center gap-2">
-            <SvgMask src={firstItemInPath.icon} className="h-3 w-3" />
-            <SvgMask src={FolderArrowIcon} className="h-3 w-3" />
-            <SvgMask src={lastItemInPath.icon} className="h-3 w-3" />
+            <Icon className="h-3 w-3" icon={firstItemInPath.icon} />
+            <Icon className="h-3 w-3" icon={FolderArrowIcon} />
+            <Icon className="h-3 w-3" icon={lastItemInPath.icon} />
 
             <Text color="custom" truncate="1" className="max-w-48">
               {lastItemInPath.label}
@@ -167,11 +163,11 @@ function PathItem(props: PathItemProps) {
       key={id}
       variant="ghost-fading"
       size="small"
-      loading={transition}
+      isLoading={transition}
       icon={icon}
       onPress={onPress}
       loaderPosition="icon"
-      data-testid={`path-column-item-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      testId={`path-column-item-${label.toLowerCase().replace(/\s+/g, '-')}`}
     >
       <Text color="custom" truncate="1" className="max-w-48">
         {label}

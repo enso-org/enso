@@ -16,6 +16,7 @@ import syntaxImportAttributes from '@babel/plugin-syntax-import-attributes'
 
 const isDevMode = process.env.NODE_ENV === 'development'
 const isE2E = process.env.INTEGRATION_TEST === 'true'
+const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 const entrypoint = isE2E ? './src/project-view/test-entrypoint.ts' : './src/entrypoint.ts'
 
@@ -25,7 +26,7 @@ if (isDevMode) {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  root: fileURLToPath(new URL('.', import.meta.url)),
+  ...(IS_ELECTRON_DEV_MODE ? { root: fileURLToPath(new URL('.', import.meta.url)) } : {}),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
     wasm(),
@@ -74,6 +75,16 @@ export default defineConfig({
     holdUntilCrawlEnd: true,
   },
   server: {
+    warmup: {
+      // Warming server up ***significantly*** speeds up execution of the first batch of tests in dev mode.
+      clientFiles: [
+        './src/**/*.vue',
+        './src/**/*.tsx',
+        './src/dashboard/hooks/**/*.ts',
+        './src/dashboard/tailwind.css',
+        './node_modules/@tanstack/**/*.js',
+      ],
+    },
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
@@ -87,6 +98,7 @@ export default defineConfig({
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src/project-view', import.meta.url)),
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
+      $: fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   envPrefix: 'ENSO_IDE_',

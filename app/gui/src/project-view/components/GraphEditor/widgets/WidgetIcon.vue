@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { type URLString } from '@/util/data/urlString'
@@ -20,6 +20,7 @@ declare module '@/providers/widgetRegistry' {
       icon: Icon | URLString | '$evaluating'
       allowChoice?: boolean
       showContents?: boolean
+      noGap?: boolean
     }
   }
 }
@@ -35,13 +36,14 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetIcon">
+  <div :class="{ WidgetIcon: true, noGap: props.input[DisplayIcon].noGap === true }">
     <div class="iconContainer">
       <Transition>
-        <LoadingSpinner
+        <GrowingSpinner
           v-if="icon === '$evaluating'"
           class="nodeCategoryIcon grab-handle"
           :size="16"
+          phase="loading-medium"
         />
         <SvgIcon v-else class="nodeCategoryIcon grab-handle" :name="icon" />
       </Transition>
@@ -56,6 +58,9 @@ export const widgetDefinition = defineWidget(
   flex-direction: row;
   align-items: center;
   gap: var(--widget-token-pad-unit);
+  &.noGap {
+    gap: 0;
+  }
 }
 .iconContainer {
   position: relative;

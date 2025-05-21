@@ -1,13 +1,13 @@
 /** @file A modal to create a user group. */
 import { useState, type MouseEvent } from 'react'
 
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import { Button, ButtonGroup } from '#/components/AriaComponents'
@@ -29,10 +29,10 @@ export interface NewUserGroupModalProps {
 export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const { backend, event: positionEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [name, setName] = useState('')
-  const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
+  const listUserGroupsQuery = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
   const userGroups = listUserGroupsQuery.data ?? null
   const userGroupNames =
     userGroups == null ? null : (

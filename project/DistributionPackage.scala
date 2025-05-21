@@ -327,6 +327,27 @@ object DistributionPackage {
     }
   }
 
+  private def reduceArgs(
+    args: java.util.List[String],
+    jvmOptName: String,
+    envToFill: java.util.Map[String, String]
+  ): Unit = {
+    var prevValue = System.getenv(jvmOptName)
+    if (prevValue == null) {
+      prevValue = "-ea";
+    }
+
+    val at = args.indexOf("--debug")
+    if (at >= 0) {
+      args.set(at, "--jvm")
+      val newValue =
+        prevValue + " " + WithDebugCommand.DEBUG_OPTION
+      envToFill.put(jvmOptName, newValue)
+    } else {
+      envToFill.put(jvmOptName, prevValue)
+    }
+  }
+
   def runEnginePackage(
     distributionRoot: File,
     args: Seq[String],
@@ -334,30 +355,21 @@ object DistributionPackage {
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso             = distributionRoot / "bin" / batOrExeName("enso")
-    val pb               = new java.lang.ProcessBuilder()
-    val all              = new java.util.ArrayList[String]()
-    val runArgumentIndex = locateRunArgument(args)
-    val runArgument      = runArgumentIndex.map(args)
-    val disablePrivateCheck = runArgument match {
+    val enso        = distributionRoot / "bin" / batOrExeName("enso")
+    val pb          = new java.lang.ProcessBuilder()
+    val all         = new java.util.ArrayList[String]()
+    val projectPath = findProjectPath(args)
+    val disablePrivateCheck = projectPath match {
       case Some(whatToRun) =>
-        if (whatToRun.startsWith("test/") && whatToRun.endsWith("_Tests")) {
-          whatToRun.contains("_Internal_")
-        } else {
-          false
-        }
+        val pathToRun   = file(whatToRun).toPath
+        val projectName = pathToRun.getFileName.toString
+        EnsoProjects.Project(None, projectName, pathToRun).usesPrivateAccess
       case None => false
     }
 
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
-
-    if (args.contains("--debug")) {
-      all.remove("--debug")
-      pb.environment().put("JAVA_OPTS", "-ea " + WithDebugCommand.DEBUG_OPTION)
-    } else {
-      pb.environment().put("JAVA_OPTS", "-ea")
-    }
+    reduceArgs(all, "JAVA_OPTS", pb.environment)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
@@ -404,14 +416,23 @@ object DistributionPackage {
     }
   }
 
-  /** Returns the index of the next argument after `--run`, if it exists. */
-  private def locateRunArgument(args: Seq[String]): Option[Int] = {
-    val findRun = args.indexOf("--run")
-    if (findRun >= 0 && findRun + 1 < args.size) {
-      Some(findRun + 1)
-    } else {
-      None
+  /** Returns the argument specifying the path of the project to run.
+    *
+    * It will be the argument following `--in-project`, `--run` or `--compile`.
+    */
+  private def findProjectPath(args: Seq[String]): Option[String] = {
+    def findArg(name: String): Option[String] = {
+      val location = args.indexOf(name)
+      if (location >= 0 && location + 1 < args.size) {
+        Some(args(location + 1))
+      } else {
+        None
+      }
     }
+
+    findArg("--in-project")
+      .orElse(findArg("--run"))
+      .orElse(findArg("--compile"))
   }
 
   def runProjectManagerPackage(
@@ -445,10 +466,7 @@ object DistributionPackage {
     pb.command(all)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
-    if (args.contains("--debug")) {
-      all.remove("--debug")
-      pb.environment().put("ENSO_JVM_OPTS", WithDebugCommand.DEBUG_OPTION)
-    }
+    reduceArgs(all, "ENSO_JVM_OPTS", pb.environment)
     pb.inheritIO()
     val p        = pb.start()
     val exitCode = p.waitFor()

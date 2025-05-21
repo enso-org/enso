@@ -5,6 +5,7 @@ import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
 import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
@@ -17,26 +18,25 @@ import {
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import { persist } from 'zustand/middleware'
-import { useSearchParamsState } from '../hooks/searchParamsStateHooks'
+import type { TransferrableAsset } from '../layouts/Drive/Categories'
 
 /** State for {@link categoryIdStore}. */
-type CurrentDirectoryIdStoreState = CurrentDirectoryIdContextType['currentDirectoryId']
+interface CurrentDirectoryIdStoreState {
+  readonly current: CurrentDirectoryIdContextType['currentDirectoryId']
+}
 
 const currentDirectoryIdStore = createStore<CurrentDirectoryIdStoreState>()(
-  persist(
-    (): CurrentDirectoryIdStoreState => ({
-      current: null,
-      parent: null,
-    }),
-    { name: 'enso-current-directory-id', version: 1 },
-  ),
+  persist((): CurrentDirectoryIdStoreState => ({ current: null }), {
+    name: 'enso-current-directory-id',
+    version: 2,
+  }),
 )
 
 /** Attached data for a paste payload. */
 export interface DrivePastePayload {
   readonly backendType: BackendType
   readonly category: Category
-  readonly ids: ReadonlySet<AssetId>
+  readonly assets: readonly TransferrableAsset[]
 }
 
 /** The subset of asset information required for selections. */
@@ -77,10 +77,6 @@ interface DriveStore {
   readonly setSelectedAssets: (selectedAssets: readonly SelectedAssetInfo[]) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
   readonly setVisuallySelectedKeys: (visuallySelectedKeys: ReadonlySet<AssetId> | null) => void
-  readonly labelsDragPayload: LabelsDragPayload | null
-  readonly setLabelsDragPayload: (labelsDragPayload: LabelsDragPayload | null) => void
-  readonly isDraggingOverSelectedRow: boolean
-  readonly setIsDraggingOverSelectedRow: (isDraggingOverSelectedRow: boolean) => void
   readonly dragTargetAssetId: AssetId | null
   readonly setDragTargetAssetId: (dragTargetAssetId: AssetId | null) => void
 }
@@ -92,14 +88,8 @@ const DriveContext = React.createContext<ProjectsContextType | null>(null)
 
 /** The current directory ID. */
 interface CurrentDirectoryIdContextType {
-  readonly currentDirectoryId: {
-    readonly current: DirectoryId | null
-    readonly parent: DirectoryId | null
-  }
-  readonly setCurrentDirectoryId: (nextValue: {
-    readonly current: DirectoryId | null
-    readonly parent: DirectoryId | null
-  }) => void
+  readonly currentDirectoryId: DirectoryId | null
+  readonly setCurrentDirectoryId: (nextValue: DirectoryId | null) => void
 }
 
 const CurrentDirectoryIdContext = React.createContext<CurrentDirectoryIdContextType | null>(null)
@@ -120,7 +110,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
 
   const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
     CurrentDirectoryIdContextType['currentDirectoryId']
-  >('currentDirectoryId', () => currentDirectoryIdStore.getState())
+  >('currentDirectoryId', () => currentDirectoryIdStore.getState().current)
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
@@ -168,18 +158,6 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setVisuallySelectedKeys: (visuallySelectedKeys) => {
         set({ visuallySelectedKeys })
       },
-      labelsDragPayload: null,
-      setLabelsDragPayload: (labelsDragPayload) => {
-        if (get().labelsDragPayload !== labelsDragPayload) {
-          set({ labelsDragPayload })
-        }
-      },
-      isDraggingOverSelectedRow: false,
-      setIsDraggingOverSelectedRow: (isDraggingOverSelectedRow) => {
-        if (get().isDraggingOverSelectedRow !== isDraggingOverSelectedRow) {
-          set({ isDraggingOverSelectedRow })
-        }
-      },
       dragTargetAssetId: null,
       setDragTargetAssetId: (dragTargetAssetId) => {
         if (get().dragTargetAssetId !== dragTargetAssetId) {
@@ -191,17 +169,19 @@ export default function DriveProvider(props: ProjectsProviderProps) {
 
   const resetAssetTableState = useEventCallback(() => {
     store.getState().removeSelection()
-    privateSetCurrentDirectoryId({ current: null, parent: null })
-    currentDirectoryIdStore.setState({ current: null, parent: null })
+    privateSetCurrentDirectoryId(null)
+    currentDirectoryIdStore.setState({ current: null })
   })
 
-  const setCurrentDirectoryId = useEventCallback(
-    ({ current, parent }: { current: DirectoryId | null; parent: DirectoryId | null }) => {
-      privateSetCurrentDirectoryId({ current, parent })
-      currentDirectoryIdStore.setState({ current, parent })
-      store.getState().removeSelection()
-    },
-  )
+  const setCurrentDirectoryId = useEventCallback((current: DirectoryId | null) => {
+    if (current === currentDirectoryIdStore.getState().current) {
+      return
+    }
+
+    privateSetCurrentDirectoryId(current)
+    currentDirectoryIdStore.setState({ current })
+    store.getState().removeSelection()
+  })
 
   return (
     <CurrentDirectoryIdContext.Provider value={{ currentDirectoryId, setCurrentDirectoryId }}>
@@ -310,37 +290,6 @@ export function useVisuallySelectedKeys() {
 export function useSetVisuallySelectedKeys() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setVisuallySelectedKeys, { unsafeEnableTransition: true })
-}
-
-/** The drag payload of labels. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useLabelsDragPayload() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.labelsDragPayload)
-}
-
-/** A function to set the drag payload of labels. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSetLabelsDragPayload() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setLabelsDragPayload)
-}
-
-/**
- * Whether dragging is currently active for a selected row.
- * This is true if and only if this row, or another selected row, is being dragged over.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useIsDraggingOverSelectedRow(selected: boolean) {
-  const store = useDriveStore()
-  return useStore(store, (state) => selected && state.isDraggingOverSelectedRow)
-}
-
-/** A function to set whether dragging is currently over a selected row. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSetIsDraggingOverSelectedRow() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setIsDraggingOverSelectedRow)
 }
 
 /** Whether the given {@link AssetId} is the one currently being dragged over. */

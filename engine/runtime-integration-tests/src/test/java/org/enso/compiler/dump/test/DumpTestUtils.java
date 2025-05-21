@@ -1,6 +1,5 @@
 package org.enso.compiler.dump.test;
 
-import static org.enso.test.utils.ContextUtils.compileModule;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -14,7 +13,6 @@ import org.enso.compiler.docs.DocsVisit;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
-import org.graalvm.polyglot.Context;
 
 final class DumpTestUtils {
   private DumpTestUtils() {}
@@ -24,10 +22,10 @@ final class DumpTestUtils {
     ProjectUtils.createProject(projName, code, projDir);
     ProjectUtils.generateProjectDocs(
         "api",
-        ContextUtils.defaultContextBuilder(),
+        ContextUtils.newBuilder(),
         projDir,
         (context) -> {
-          var enso = ContextUtils.leakContext(context);
+          var enso = context.ensoContext();
           var modules = enso.getTopScope().getModules();
           var optMod =
               modules.stream().filter(m -> m.getName().toString().contains(projName)).findFirst();
@@ -55,9 +53,9 @@ final class DumpTestUtils {
    * @param modName FQN of the module.
    * @return Signature string for the module.
    */
-  static String generateSignatures(Context context, String moduleSrc, String modName)
+  static String generateSignatures(ContextUtils context, String moduleSrc, String modName)
       throws IOException {
-    var modIr = compileModule(context, moduleSrc, modName);
+    var modIr = context.compileModule(moduleSrc, modName);
     var sigGenerator = DocsVisit.createSignatures();
     var out = new ByteArrayOutputStream();
     var writer = new PrintWriter(out);

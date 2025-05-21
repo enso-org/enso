@@ -45,6 +45,7 @@ const COMPONENT_EDITOR_PADDING = NODE_CONTENT_PADDING
 const ICON_WIDTH = 24
 // Component editor is larger than a typical node, so the edge should touch it a bit higher.
 const EDGE_Y_OFFSET = -8
+const MIN_WIDTH = 295
 
 const cssComponentEditorPadding = `${COMPONENT_EDITOR_PADDING}px`
 
@@ -129,14 +130,14 @@ function panIntoView() {
   const margins = scaleValues(PAN_MARGINS, clientToSceneFactor.value)
   props.navigator.panToThenFollow([
     // Always include the top-left of the input area.
-    { x: area.left, y: area.top },
+    new Vec2(area.left, area.top),
     // Try to reach the bottom-right corner of the panels.
-    { x: area.right, y: area.bottom },
+    new Vec2(area.right, area.bottom),
     // Top (and left) margins are more important than bottom (and right) margins because the screen has controls across
     // the top and on the left.
-    { x: area.left - margins.left, y: area.top - margins.top },
+    new Vec2(area.left - margins.left, area.top - margins.top),
     // If the screen is very spacious, even the bottom right gets some breathing room.
-    { x: area.right + margins.right, y: area.bottom + margins.bottom },
+    new Vec2(area.right + margins.right, area.bottom + margins.bottom),
   ])
 }
 
@@ -160,6 +161,13 @@ const transform = computed(() => {
   const y = Math.round(screenPosition.y)
 
   return `translate(${x}px, ${y}px)`
+})
+
+const minWidth = computed(() => {
+  if (props.usage.type !== 'editNode') return `${MIN_WIDTH}px`
+  const rect = graphStore.nodeRects.get(props.usage.node)
+  if (rect == null) return `${MIN_WIDTH}px`
+  return `${rect.width * props.navigator.scale}px`
 })
 
 // === Selection ===
@@ -283,7 +291,7 @@ function applyComponent(component: Opt<Component> = null) {
     return Ok()
   }
   if (component.suggestionId != null) {
-    return input.applySuggestion(component.suggestionId)
+    return input.applySuggestion(component.suggestionId, component.macroSuffix)
   } else {
     // Component without suggestion database entry, for example "literal" component.
     input.content = { text: component.label, selection: Range.emptyAt(component.label.length) }
@@ -375,7 +383,7 @@ const listsHandler = listBindings.handler({
   <div
     ref="cbRoot"
     class="ComponentBrowser"
-    :style="{ transform }"
+    :style="{ transform, minWidth }"
     :data-self-argument="input.selfArgument"
     tabindex="-1"
     @focusout="handleDefocus"
@@ -420,11 +428,7 @@ const listsHandler = listBindings.handler({
       v-if="input.mode.mode === 'codeEditing' && !isVisualizationVisible"
       class="show-visualization"
     >
-      <SvgButton
-        name="eye"
-        title="Show visualization"
-        @click.stop="isVisualizationVisible = true"
-      />
+      <SvgButton name="eye" title="Show visualization" @activate="isVisualizationVisible = true" />
     </div>
     <ComponentList
       v-if="input.mode.mode === 'componentBrowsing'"
@@ -442,7 +446,6 @@ const listsHandler = listBindings.handler({
   --radius-default: 20px;
   --background-color: #fff;
   --doc-panel-bottom-clip: 4px;
-  min-width: 295px;
   width: min-content;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;

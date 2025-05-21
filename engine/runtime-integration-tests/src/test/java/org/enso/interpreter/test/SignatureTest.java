@@ -10,12 +10,15 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import org.enso.common.MethodNames;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.ClassRule;
 import org.junit.Test;
 
-public class SignatureTest extends ContextTest {
+public class SignatureTest {
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void wrongFunctionSignature() throws Exception {
@@ -30,7 +33,7 @@ public class SignatureTest extends ContextTest {
             .buildLiteral();
 
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
@@ -49,7 +52,7 @@ public class SignatureTest extends ContextTest {
             .buildLiteral();
 
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       var neg = module.invokeMember("eval_expression", "neg").execute(-1);
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
@@ -68,7 +71,7 @@ public class SignatureTest extends ContextTest {
             .buildLiteral();
 
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       var neg = module.invokeMember("eval_expression", "neg").execute(-1);
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
@@ -87,7 +90,7 @@ public class SignatureTest extends ContextTest {
             .buildLiteral();
 
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
@@ -111,7 +114,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
     var err = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "err");
     try {
@@ -157,7 +160,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var simple = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "simple");
     var complex = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "complex");
@@ -204,7 +207,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var zeroValue = new Object[] {0};
     var neg =
@@ -259,7 +262,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var zeroValue = new ArrayList<Integer>();
     zeroValue.add(0);
@@ -305,7 +308,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Neg.Singleton.twice");
 
     var ten = neg.execute(5);
@@ -334,7 +337,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Neg.twice");
 
     var ten = neg.execute(5);
@@ -365,7 +368,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "call_twice");
 
     var ten = neg.execute(5);
@@ -402,7 +405,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var normal_call = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "normal_call");
     assertEquals("Normal call", 52, normal_call.asInt());
 
@@ -435,7 +438,7 @@ public class SignatureTest extends ContextTest {
             .buildLiteral();
 
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
@@ -458,7 +461,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var some = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Maybe.Some 10");
     assertEquals("Can read ten", 10, some.getMember("unwrap").asInt());
   }
@@ -481,7 +484,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var some = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Maybe.Some 10");
     assertEquals("Can get ten", 10, some.invokeMember("get").asInt());
   }
@@ -503,7 +506,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var some = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Maybe.Some 10");
     assertEquals("Can read ten", 10, some.getMember("unwrap").asInt());
     var lazy = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Maybe.Some (2 * 5)");
@@ -548,7 +551,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "my_func (Non_Existing_Func 23)");
       fail("Expecting Compile error");
     } catch (PolyglotException e) {
@@ -582,7 +585,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var factory = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
     var mix = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "mix");
 
@@ -621,7 +624,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var static_my_type = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "static_my_type");
     assertEquals(
         "My_Type.f is executed directly on 23, yielding 1023", 1023, static_my_type.asInt());
@@ -662,7 +665,7 @@ public class SignatureTest extends ContextTest {
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
-    return ctx.eval(src);
+    return ctxRule.eval(src);
   }
 
   @Test
@@ -738,7 +741,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var mix = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "mix");
 
     try {
@@ -776,7 +779,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var mix = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "mix");
 
     try {
@@ -814,7 +817,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var mix = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "mix");
 
     try {
@@ -869,7 +872,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var compute = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "compute");
 
     assertTrue("true & true", compute.execute(true, true).asBoolean());
@@ -890,7 +893,7 @@ public class SignatureTest extends ContextTest {
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var ok1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 42");
     assertEquals(42, ok1.asInt());
@@ -915,7 +918,7 @@ public class SignatureTest extends ContextTest {
             .buildLiteral();
 
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
@@ -939,7 +942,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var add1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "add1");
     assertEquals(3, add1.execute(1, 2).asInt());
 
@@ -961,7 +964,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
     assertEquals(5, plusChecked.execute(2, 3).asInt());
     try {
@@ -991,7 +994,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
     assertEquals(5, plusChecked.execute(2, 3).asInt());
     var res = plusChecked.execute("a", "b");
@@ -1015,7 +1018,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
     assertEquals(5, plusChecked.execute(2, 3).asInt());
     try {
@@ -1058,7 +1061,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
   }
 
@@ -1081,7 +1084,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusUnchecked");
     assertEquals(5, plusChecked.execute(2, 3).asInt());
     // This variant does allow other types, because the signature remains unchecked:
@@ -1103,7 +1106,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     try {
       var res = plusChecked.execute(2, 3);
@@ -1130,7 +1133,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     assertEquals(8, foo.execute(2).asInt());
     try {
@@ -1158,7 +1161,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     assertEquals(8, plusChecked.execute(2).asInt());
     try {
@@ -1187,7 +1190,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     assertEquals(100, foo.execute(1).asInt());
 
@@ -1222,7 +1225,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var factorial = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "factorial");
     assertEquals(120, factorial.execute(5).asInt());
     assertEquals(1, factorial.execute(0).asInt());
@@ -1258,7 +1261,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     long n = 100000;
     assertEquals(n + 1, foo.execute(n, -1).asInt());
@@ -1289,7 +1292,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var foo_ok = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo_ok");
     long n = 100000;
     assertEquals(0, foo_ok.execute(n).asInt());
@@ -1321,7 +1324,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     assertEquals(20, foo.execute(10).asInt());
     try {
@@ -1356,7 +1359,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     var result = foo.execute(10);
     assertTrue(result.isException());
@@ -1378,7 +1381,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     assertEquals(20, foo.execute(10).asInt());
     assertEquals("..", foo.execute(".").asString());
@@ -1412,7 +1415,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     assertEquals(20, foo.execute(10).asInt());
 
@@ -1443,7 +1446,7 @@ public class SignatureTest extends ContextTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var res1 =
         module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.Value.plus_member 1 2");

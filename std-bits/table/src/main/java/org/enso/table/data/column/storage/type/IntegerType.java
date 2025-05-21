@@ -3,12 +3,12 @@ package org.enso.table.data.column.storage.type;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.BuilderForType;
+import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record IntegerType(Bits bits) implements StorageType<Long> {
+public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
   public static final IntegerType INT_32 = new IntegerType(Bits.BITS_32);
   public static final IntegerType INT_16 = new IntegerType(Bits.BITS_16);
@@ -83,11 +83,19 @@ public record IntegerType(Bits bits) implements StorageType<Long> {
     return bits.toInteger() >= otherType.bits.toInteger();
   }
 
-  public static IntegerType smallestFitting(long value) {
-    if (INT_8.fits(value)) return INT_8;
+  public static IntegerType smallestFitting(long value, boolean allow8bit) {
+    if (allow8bit && INT_8.fits(value)) return INT_8;
     if (INT_16.fits(value)) return INT_16;
     if (INT_32.fits(value)) return INT_32;
     return INT_64;
+  }
+
+  /**
+   * Returns a common type that will fit values from either one (essentially the larger type of the
+   * two).
+   */
+  public static IntegerType commonType(IntegerType type1, IntegerType type2) {
+    return type1.bits.toInteger() >= type2.bits.toInteger() ? type1 : type2;
   }
 
   @Override
@@ -104,8 +112,7 @@ public record IntegerType(Bits bits) implements StorageType<Long> {
   }
 
   @Override
-  public BuilderForType<Long> makeBuilder(
-      long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForLong makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForLong(this, initialCapacity, problemAggregator);
   }
 

@@ -24,7 +24,7 @@ type Enso_Path
     parse (path : Text) -> Enso_Path =
         if path.starts_with Enso_Path.protocol_prefix . not then Error.throw (Illegal_Argument.Error "Invalid path - it should start with `enso://`.") else
             raw_segments = if path.match ".*%\d\d.*" . not then path.drop Enso_Path.protocol_prefix.length . split Enso_Path.delimiter else
-                uri = URI.parse.path
+                uri = URI.parse path
                 [if path.starts_with "enso://~" then "~" else uri.host] + (uri.path.split Enso_Path.delimiter)
             if raw_segments.is_empty then Error.throw (Illegal_Argument.Error "Invalid path - it should contain at least one segment.") else
                 segments = raw_segments.filter s-> s.is_empty.not

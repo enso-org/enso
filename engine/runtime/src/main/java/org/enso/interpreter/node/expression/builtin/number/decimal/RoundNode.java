@@ -7,9 +7,9 @@ import com.oracle.truffle.api.profiles.PrimitiveValueProfile;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.RoundHelpers;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.polyglot.common_utils.Core_Math_Utils;
 
 @BuiltinMethod(
     type = "Float",
@@ -58,7 +58,7 @@ public class RoundNode extends FloatNode {
     if (decimalPlaces > 0) {
       return resultUncast;
     } else {
-      if (fitsProfile.profile(BigIntegerOps.fitsInLong(resultUncast))) {
+      if (fitsProfile.profile(Core_Math_Utils.fitsInLongSafeRange(resultUncast))) {
         return (long) resultUncast;
       } else {
         return new EnsoBigInteger(toBigInteger(resultUncast));

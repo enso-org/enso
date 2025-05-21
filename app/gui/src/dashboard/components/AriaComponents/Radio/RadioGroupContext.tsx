@@ -50,14 +50,11 @@ export function RadioGroupProvider(props: React.PropsWithChildren) {
     setPressedRadio(null)
   })
 
-  const value = React.useMemo<RadioGroupContextProps>(
-    () => ({
-      pressedRadio,
-      setPressedRadio: setRadioPressed,
-      clearPressedRadio,
-    }),
-    [pressedRadio, setRadioPressed, clearPressedRadio],
-  )
+  const value = {
+    pressedRadio,
+    setPressedRadio: setRadioPressed,
+    clearPressedRadio,
+  } satisfies RadioGroupContextProps
 
   return <RadioGroupContext.Provider value={value}>{children}</RadioGroupContext.Provider>
 }

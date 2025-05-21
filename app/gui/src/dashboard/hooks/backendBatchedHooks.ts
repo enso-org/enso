@@ -1,30 +1,54 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
+import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
+import LocalBackend from '#/services/LocalBackend'
+import RemoteBackend from '#/services/RemoteBackend'
 import { getMessageOrToString } from '#/utilities/error'
-import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
+import {
+  useMutationState,
+  type Mutation,
+  type QueryClient,
+  type UseMutationOptions,
+} from '@tanstack/react-query'
 import {
   DuplicateAssetError,
   FilterBy,
   type AnyAsset,
   type AssetId,
   type default as Backend,
+  type BackendType,
   type DirectoryId,
-  type LabelName,
 } from 'enso-common/src/services/Backend'
-import { resolveDuplications } from '../modals/DuplicateAssetsModal'
+
+/** Extract the corresponding {@link Mutation} type from a `MutationOptions` function. */
+export type MutationFromOptionsFunction<T extends (...args: never) => unknown> =
+  ReturnType<T> extends (
+    UseMutationOptions<infer TData, infer TError, infer TVariables, infer TContext>
+  ) ?
+    Mutation<TData, TError, TVariables, TContext>
+  : never
+
+export const DELETE_ASSETS_MUTATION_METHOD = 'deleteAssets'
+
+/** A key for {@link deleteAssetsMutationOptions}. */
+export function deleteAssetsMutationKey(backendType: BackendType) {
+  return [backendType, DELETE_ASSETS_MUTATION_METHOD]
+}
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationKey: [backend.type, 'deleteAssets'],
+    mutationKey: deleteAssetsMutationKey(backend.type),
     mutationFn: async ([ids, force]: readonly [ids: readonly AssetId[], force: boolean]) => {
       const results = await Promise.allSettled(
         ids.map((id) => backend.deleteAsset(id, { force }, '(unknown)')),
       )
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -37,6 +61,7 @@ export function deleteAssetsMutationOptions(backend: Backend) {
     meta: {
       invalidates: [
         [backend.type, 'listDirectory'],
+        [backend.type, 'getAssetDetails'],
         [backend.type, 'listAssetVersions'],
       ],
       awaitInvalidates: true,
@@ -74,13 +99,26 @@ export function useDeleteAssetsMutationState<Result>(
   })
 }
 
+export const RESTORE_ASSETS_MUTATION_METHOD = 'restoreAssets'
+
+/** A key for {@link restoreAssetsMutationOptions}. */
+export function restoreAssetsMutationKey(backendType: BackendType) {
+  return [backendType, RESTORE_ASSETS_MUTATION_METHOD]
+}
+
 /** Call "restore" mutations for a list of assets. */
 export function restoreAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationKey: [backend.type, 'restoreAssets'],
-    mutationFn: async (ids: readonly AssetId[]) => {
+    mutationKey: restoreAssetsMutationKey(backend.type),
+    mutationFn: async ({
+      ids,
+      parentId = null,
+    }: {
+      ids: readonly AssetId[]
+      parentId: DirectoryId | null
+    }) => {
       const results = await Promise.allSettled(
-        ids.map((id) => backend.undoDeleteAsset(id, '(unknown)')),
+        ids.map((id) => backend.undoDeleteAsset(id, parentId)),
       )
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
@@ -95,7 +133,10 @@ export function restoreAssetsMutationOptions(backend: Backend) {
       return null
     },
     meta: {
-      invalidates: [[backend.type, 'listDirectory']],
+      invalidates: [
+        [backend.type, 'listDirectory'],
+        [backend.type, 'getAssetDetails'],
+      ],
       awaitInvalidates: true,
       refetchType: 'all',
     },
@@ -103,7 +144,14 @@ export function restoreAssetsMutationOptions(backend: Backend) {
 }
 
 /** The type of a "restore assets" mutation. */
-type RestoreAssetsMutation = Mutation<null, Error, readonly AssetId[]>
+type RestoreAssetsMutation = Mutation<
+  null,
+  Error,
+  {
+    readonly ids: readonly AssetId[]
+    readonly parentId: DirectoryId | null
+  }
+>
 
 /** Return matching in-flight "restore assets" mutations. */
 export function useRestoreAssetsMutationState<Result>(
@@ -127,10 +175,17 @@ export function useRestoreAssetsMutationState<Result>(
   })
 }
 
+export const COPY_ASSETS_MUTATION_METHOD = 'copyAssets'
+
+/** A key for {@link copyAssetsMutationOptions}. */
+export function copyAssetsMutationKey(backendType: BackendType) {
+  return [backendType, COPY_ASSETS_MUTATION_METHOD]
+}
+
 /** Call "copy" mutations for a list of assets. */
 export function copyAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationKey: [backend.type, 'copyAssets'],
+    mutationKey: copyAssetsMutationKey(backend.type),
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       /**
        * Copy an asset and return a promise that resolves to the asset or an error.
@@ -154,21 +209,24 @@ export function copyAssetsMutationOptions(backend: Backend) {
       return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
     },
     meta: {
-      invalidates: [[backend.type, 'listDirectory']],
+      invalidates: [
+        [backend.type, 'listDirectory'],
+        [backend.type, 'getAssetDetails'],
+      ],
       awaitInvalidates: true,
       refetchType: 'all',
     },
   })
 }
 
-/** The type of a "move assets" mutation. */
+/** The type of a "copy assets" mutation. */
 type CopyAssetsMutation = Mutation<
   null,
   Error,
   readonly [ids: readonly AssetId[], parentId: DirectoryId]
 >
 
-/** Return matching in-flight "move assets" mutations. */
+/** Return matching in-flight "copy assets" mutations. */
 export function useCopyAssetsMutationState<Result>(
   backend: Backend,
   options: {
@@ -190,10 +248,17 @@ export function useCopyAssetsMutationState<Result>(
   })
 }
 
+export const MOVE_ASSETS_MUTATION_METHOD = 'moveAssets'
+
+/** A key for {@link moveAssetsMutationOptions}. */
+export function moveAssetsMutationKey(backendType: BackendType) {
+  return [backendType, MOVE_ASSETS_MUTATION_METHOD]
+}
+
 /** Call "move" mutations for a list of assets. */
 export function moveAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationKey: [backend.type, 'moveAssets'],
+    mutationKey: moveAssetsMutationKey(backend.type),
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       const results = await Promise.allSettled(
         ids.map((id) =>
@@ -314,100 +379,49 @@ export async function getAllTrashedItems(
   )
 }
 
+/**
+ * Options for the "download" mutation.
+ */
+export interface DownloadAssetsMutationOptions {
+  readonly ids: readonly Pick<AnyAsset, 'id' | 'title'>[]
+  readonly targetDirectoryId: DirectoryId | null
+  readonly shouldUnpackProject?: boolean
+}
+
 /** Call "download" mutations for a list of assets. */
 export function downloadAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationFn: async (infos: readonly { id: AssetId; title: string }[]) => {
-      const results = await Promise.allSettled(
-        infos.map(({ id, title }) => backend.download(id, title)),
-      )
-      const errors = results.flatMap((result): unknown =>
-        result.status === 'rejected' ? [result.reason] : [],
-      )
-      if (errors.length !== 0) {
-        throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
-          errors,
-          failed: errors.length,
-          total: infos.length,
-        })
-      }
-      return null
-    },
-  })
-}
+    mutationKey: [backend.type, 'downloadAssets'],
+    mutationFn: async (options: DownloadAssetsMutationOptions) => {
+      const { ids, targetDirectoryId, shouldUnpackProject = true } = options
 
-/** Call "add label" mutations for a list of assets. */
-export function addAssetsLabelsMutationOptions(backend: Backend) {
-  return mutationOptions({
-    mutationFn: async ([infos, labelNames]: [
-      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
-      labelNames: readonly LabelName[],
-    ]) => {
-      const results = await Promise.allSettled(
-        infos.map(async ({ id, labels }) => {
-          const newLabels = [
-            ...new Set([
-              ...(labels ?? []),
-              ...labelNames.filter((label) => labels?.includes(label) !== true),
-            ]),
-          ]
-          if (newLabels.length !== labels?.length) {
-            await backend.associateTag(id, newLabels, '(unknown)')
-          }
-        }),
-      )
-      const errors = results.flatMap((result): unknown =>
-        result.status === 'rejected' ? [result.reason] : [],
-      )
-      if (errors.length !== 0) {
-        throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
-          errors,
-          failed: errors.length,
-          total: infos.length,
+      // Downloading assets should be done in order, because we want to avoid potential
+      // race conditions.
+      const rejects = []
+      for (const { id, title } of ids) {
+        try {
+          await backend.download(id, title, targetDirectoryId, shouldUnpackProject)
+        } catch (error) {
+          rejects.push(error)
+        }
+      }
+
+      if (rejects.length !== 0) {
+        throw Object.assign(new Error(rejects.map(getMessageOrToString).join('\n')), {
+          errors: rejects,
+          failed: rejects.length,
+          total: ids.length,
         })
       }
+
       return null
     },
     meta: {
-      invalidates: [[backend.type, 'listDirectory']],
+      invalidates: [
+        [RemoteBackend.type, 'listDirectory'],
+        [LocalBackend.type, 'listDirectory'],
+      ],
       awaitInvalidates: true,
-      refetchType: 'all',
-    },
-  })
-}
-
-/** Call "remove label" mutations for a list of assets. */
-export function removeAssetsLabelsMutationOptions(backend: Backend) {
-  return mutationOptions({
-    mutationFn: async ([infos, labelNames]: [
-      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
-      labelNames: readonly LabelName[],
-    ]) => {
-      const results = await Promise.allSettled(
-        infos.map(async ({ id, labels }) => {
-          const labelNamesSet = new Set(labelNames)
-          const newLabels = (labels ?? []).filter((label) => !labelNamesSet.has(label))
-          if (labels && newLabels.length !== labels.length) {
-            await backend.associateTag(id, newLabels, '(unknown)')
-          }
-        }),
-      )
-      const errors = results.flatMap((result): unknown =>
-        result.status === 'rejected' ? [result.reason] : [],
-      )
-      if (errors.length !== 0) {
-        throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
-          errors,
-          failed: errors.length,
-          total: infos.length,
-        })
-      }
-      return null
-    },
-    meta: {
-      invalidates: [[backend.type, 'listDirectory']],
-      awaitInvalidates: true,
-      refetchType: 'all',
     },
   })
 }

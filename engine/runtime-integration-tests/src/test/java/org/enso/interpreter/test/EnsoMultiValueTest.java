@@ -9,31 +9,15 @@ import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.TypeLiteral;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class EnsoMultiValueTest {
-  private static Context ctx;
   @Rule public final TemporaryFolder dir = new TemporaryFolder();
-
-  private static Context ctx() {
-    if (ctx == null) {
-      ctx = ContextUtils.defaultContextBuilder().build();
-    }
-    return ctx;
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws Exception {
-    if (ctx != null) {
-      ctx.close();
-      ctx = null;
-    }
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void keepIdentityOfAandB() throws Exception {
@@ -121,7 +105,7 @@ public class EnsoMultiValueTest {
     """
             .replace("$cast", cast);
 
-    var pair = ContextUtils.evalModule(ctx(), code, "fields.enso", "pair");
+    var pair = ctxRule.evalModule(code, "fields.enso", "pair");
     var texts = pair.as(new TypeLiteral<List<String>>() {});
     assertEquals(2, texts.size());
     assertEquals("A", texts.get(0));
@@ -153,7 +137,7 @@ public class EnsoMultiValueTest {
         [text_a, text_b, c.to_text]
     """;
 
-    var tripple = ContextUtils.evalModule(ctx(), code, "tripple.enso", "texts");
+    var tripple = ctxRule.evalModule(code, "tripple.enso", "texts");
     var texts = tripple.as(new TypeLiteral<List<String>>() {});
     assertEquals(3, texts.size());
     assertStartsWith("(A_Ctor", texts.get(0));

@@ -5,20 +5,16 @@
 import * as React from 'react'
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
-
-import ArrowRight from '#/assets/arrow_right.svg'
 
 import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
 
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
 import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
-import { useRemoteBackend } from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Page from '#/components/Page'
@@ -28,6 +24,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
+import { useBackends, useRouter } from '$/providers/react'
 
 /** Step in the setup process */
 interface Step {
@@ -58,7 +55,7 @@ const BASE_STEPS: Step[] = [
     component: function SetUsernameStep({ session, goToNextStep }) {
       const { setUsername } = useAuth()
       const userSession = useUserSession()
-      const { getText } = textProvider.useText()
+      const { getText } = useText()
 
       const isUserCreated = userSession?.type === UserSessionType.full
       const defaultName =
@@ -139,8 +136,8 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for setting organization name. */
     component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep, session }) {
-      const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackend()
+      const { getText } = useText()
+      const { remoteBackend } = useBackends()
       const userId = session && 'user' in session ? session.user.userId : null
 
       const { data: defaultOrgName } = useSuspenseQuery({
@@ -210,7 +207,7 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for inviting users to the organization. */
     component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = textProvider.useText()
+      const { getText } = useText()
 
       return (
         <div className="max-w-96">
@@ -244,8 +241,8 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for creating the first user group. */
     component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackend()
+      const { getText } = useText()
+      const { remoteBackend } = useBackends()
 
       const defaultUserGroupMaxLength = 64
 
@@ -311,9 +308,8 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Final setup step. */
     component: function AllSetStep({ goToPreviousStep }) {
-      const { getText } = textProvider.useText()
-
-      const navigate = useNavigate()
+      const { getText } = useText()
+      const { router } = useRouter()
       const queryClient = useQueryClient()
 
       return (
@@ -325,13 +321,9 @@ const BASE_STEPS: Step[] = [
           <ariaComponents.Button
             variant="primary"
             size="medium"
-            icon={ArrowRight}
+            icon="arrow_right"
             iconPosition="end"
-            onPress={() =>
-              queryClient.invalidateQueries().then(() => {
-                navigate(DASHBOARD_PATH)
-              })
-            }
+            onPress={() => queryClient.invalidateQueries().then(() => router.push(DASHBOARD_PATH))}
           >
             {getText('goToDashboard')}
           </ariaComponents.Button>
@@ -343,16 +335,15 @@ const BASE_STEPS: Step[] = [
 
 /** Setup page */
 export function Setup() {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const { session } = useAuth()
   const isFirstRender = useIsFirstRender()
-
-  const [searchParams] = useSearchParams()
+  const { router, route } = useRouter()
 
   const userPlan = session && 'user' in session ? session.user.plan : Plan.free
 
   const steps = BASE_STEPS
-  const isDebug = searchParams.get('__qd-debg__') === 'true'
+  const isDebug = route.query['__qd-debg__'] === 'true'
 
   const { stepperState, nextStep, previousStep, currentStep } = stepper.useStepperState({
     steps: steps.length,
@@ -396,7 +387,8 @@ export function Setup() {
   }
 
   if (session?.type !== UserSessionType.full && session?.type !== UserSessionType.partial) {
-    return <Navigate to={LOGIN_PATH} />
+    void router.push(LOGIN_PATH)
+    return
   }
 
   const hideNext =

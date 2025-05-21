@@ -4,28 +4,30 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RootNamesTest {
-  private Context ctx;
-  private AutoCloseable insightHandle;
-  private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
   @Before
-  public void initContext() throws Exception {
-    this.ctx = ContextUtils.defaultContextBuilder().out(out).build();
+  public void cleanOut() {
+    ctxRule.resetOut();
+  }
 
+  @BeforeClass
+  public static void initCtx() {
+    var ctx = ctxRule.context();
     var engine = ctx.getEngine();
     Map<String, Language> langs = engine.getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
@@ -36,27 +38,24 @@ public class RootNamesTest {
             engine.getInstruments().get("insight").lookup(Function.class);
     assertNotNull(fn);
 
-    var insightScript =
-        Source.newBuilder(
-                "js",
-                """
-        insight.on('enter', (ctx, frame) => {
-            print(`ENTER: ${ctx.name}`);
-        }, {
-            roots : true
-        });
-        """,
-                "trace.js")
-            .build();
-    this.insightHandle = fn.apply(insightScript);
-  }
-
-  @After
-  public void disposeContext() throws Exception {
-    this.insightHandle.close();
-    this.ctx.close();
-    this.ctx = null;
-    this.out.close();
+    Source insightScript = null;
+    try {
+      insightScript =
+          Source.newBuilder(
+                  "js",
+                  """
+      insight.on('enter', (ctx, frame) => {
+          print(`ENTER: ${ctx.name}`);
+      }, {
+          roots : true
+      });
+      """,
+                  "trace.js")
+              .build();
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+    fn.apply(insightScript);
   }
 
   @Test
@@ -75,12 +74,12 @@ public class RootNamesTest {
                 "factorial.enso")
             .build();
 
-    var m = ctx.eval(code);
+    var m = ctxRule.eval(code);
     var fac = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fac");
     var res = fac.execute(3);
     assertEquals(6, res.asInt());
 
-    var msgs = out.toString();
+    var msgs = ctxRule.getOut();
     var closures =
         msgs.lines()
             .filter(l -> l.startsWith("ENTER: "))
@@ -112,12 +111,12 @@ public class RootNamesTest {
                 "bindings_test.enso")
             .build();
 
-    var m = ctx.eval(code);
+    var m = ctxRule.eval(code);
     var compute = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "compute");
     var powerOfEight = compute.execute(3, 5);
     assertEquals(64, powerOfEight.asInt());
 
-    var msgs = out.toString();
+    var msgs = ctxRule.getOut();
     var closures =
         msgs.lines()
             .filter(l -> l.startsWith("ENTER: "))

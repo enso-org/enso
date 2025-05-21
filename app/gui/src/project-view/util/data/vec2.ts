@@ -3,6 +3,8 @@
  * vector depends on the context where it is used.
  */
 
+import { markRaw } from 'vue'
+
 /**
  * 2D vector, in no particular reference frame. The exact geometric interpretation of the vector
  * depends on the context where it is used.
@@ -170,6 +172,9 @@ export class Vec2 {
     return { x: this.x, y: this.y }
   }
 }
+
+// All Vec2 instances are immutable, therefore we don't need to track them with reactivity.
+markRaw(Vec2.prototype)
 
 Vec2.Zero = new Vec2(0, 0)
 Vec2.Infinity = new Vec2(Infinity, Infinity)

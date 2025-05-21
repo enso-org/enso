@@ -174,8 +174,12 @@ export interface LSMethodPointer {
 }
 
 /** Whether one {@link LSMethodPointer} deeply equals another. */
-export function methodPointerEquals(left: LSMethodPointer, right: LSMethodPointer): boolean {
+export function methodPointerEquals(
+  left: LSMethodPointer | undefined,
+  right: LSMethodPointer,
+): boolean {
   return (
+    !!left &&
     left.module === right.module &&
     left.definedOnType === right.definedOnType &&
     left.name === right.name
@@ -196,6 +200,8 @@ export interface ExpressionUpdate {
   expressionId: ExpressionId
   /** The updated type of the expression. */
   type: string[]
+  /** The list of types this expression can be converted to. */
+  hiddenType: string[]
   /** The updated method call info. */
   methodCall?: MethodCall
   /** Profiling information about the expression. */
@@ -318,6 +324,11 @@ export interface VCSSave {
   message: string
 }
 
+export type SuggestionDatabaseUpdates = {
+  updates: SuggestionsDatabaseUpdate[]
+  currentVersion: number
+}
+
 export type Notifications = {
   'text/autoSave': (param: { path: Path }) => void
   'text/didChange': (param: { edits: FileEdit[] }) => void
@@ -339,10 +350,7 @@ export type Notifications = {
     message: string
     diagnostic?: Diagnostic
   }) => void
-  'search/suggestionsDatabaseUpdates': (param: {
-    updates: SuggestionsDatabaseUpdate[]
-    currentVersion: number
-  }) => void
+  'search/suggestionsDatabaseUpdates': (param: SuggestionDatabaseUpdates) => void
   'file/event': (param: { path: Path; kind: FileEventKind }) => void
   'file/rootAdded': (param: object) => void
   'file/rootRemoved': (param: object) => void

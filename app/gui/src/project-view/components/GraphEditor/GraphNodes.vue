@@ -10,7 +10,7 @@ import type { UploadingFile as File, FileName } from '@/stores/awareness'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { AstId } from '@/util/ast/abstract'
-import type { Vec2 } from '@/util/data/vec2'
+import { type Vec2 } from '@/util/data/vec2'
 import { set } from 'lib0'
 import { computed } from 'vue'
 
@@ -51,10 +51,15 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
   const currentMethod = graphStore.currentMethod.ast.value.externalId
   return uploads.filter(([, file]) => file.method === currentMethod)
 })
+
+const layerStyle = computed(() => ({
+  transform: navigator.transform,
+  willChange: navigator.transformChanging ? 'transform' : 'initial',
+}))
 </script>
 
 <template>
-  <div class="layer" :style="{ transform: navigator.transform }">
+  <div class="layer" :style="layerStyle">
     <GraphNode
       v-for="[id, node] in graphStore.db.nodeIdToNode.entries()"
       :key="id"
@@ -63,8 +68,6 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
       @dragging="nodeIsDragged(id, $event)"
       @draggingCommited="dragging.finishDrag()"
       @draggingCancelled="dragging.cancelDrag()"
-      @outputPortClick="(event, port) => graphStore.createEdgeFromOutput(port, event)"
-      @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
       @enterNode="emit('enterNode', id)"
       @createNodes="emit('createNodes', id, $event)"
       @toggleDocPanel="emit('toggleDocPanel')"
@@ -95,6 +98,5 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
   width: 0;
   height: 0;
   contain: layout size style;
-  will-change: transform;
 }
 </style>

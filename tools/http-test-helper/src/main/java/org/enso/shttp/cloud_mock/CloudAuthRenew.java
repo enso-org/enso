@@ -30,6 +30,10 @@ public class CloudAuthRenew extends SimpleHttpHandler {
     }
   }
 
+  public int getRefreshedTokensCount() {
+    return counter;
+  }
+
   private void sendRenewedToken(HttpExchange exchange) throws IOException {
     String newToken = "TEST-RENEWED-" + (counter++);
     var response = new RenewResponse(new AuthenticationResult(newToken, "Bearer", 3600));

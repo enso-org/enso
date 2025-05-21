@@ -1,9 +1,9 @@
 /** @file The input for viewing and changing the organization's profile picture. */
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
@@ -23,8 +23,8 @@ export default function OrganizationProfilePictureInput(
   props: OrganizationProfilePictureInputProps,
 ) {
   const { backend } = props
-  const { getText } = textProvider.useText()
-  const { data: organization } = useBackendQuery(backend, 'getOrganization', [])
+  const { getText } = useText()
+  const { data: organization } = useQuery(backendQueryOptions(backend, 'getOrganization', []))
 
   const uploadOrganizationPicture = useMutation(
     backendMutationOptions(backend, 'uploadOrganizationPicture'),
@@ -44,7 +44,7 @@ export default function OrganizationProfilePictureInput(
         >
           {uploadOrganizationPicture.isPending && (
             <StatelessSpinner
-              state="loading-medium"
+              phase="loading-medium"
               className="absolute -inset-1"
               thickness={0.5}
             />

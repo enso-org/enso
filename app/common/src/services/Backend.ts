@@ -231,7 +231,7 @@ export interface User extends UserInfo {
   readonly isEnsoTeamMember: boolean
 }
 
-/** A user related to the current user. */
+/** A user group related to the current user. */
 export interface UserGroup {
   readonly id: UserGroupId
   readonly name: string
@@ -315,6 +315,7 @@ export interface BaseProject {
 export interface CreatedProject extends BaseProject {
   readonly state: ProjectStateType
   readonly packageName: string
+  readonly ensoPath?: EnsoPath
 }
 
 /** A `Project` returned by the `listProjects` endpoint. */
@@ -650,7 +651,7 @@ export interface UserPermission {
 
 /** User permission for a specific user group. */
 export interface UserGroupPermission {
-  readonly userGroup: UserGroup
+  readonly userGroup: UserGroupInfo
   readonly permission: permissions.PermissionAction
 }
 
@@ -706,7 +707,7 @@ export function isUserGroupPermissionAnd(predicate: (permission: UserGroupPermis
 
 /** Get the property representing the name on an arbitrary variant of {@link UserPermission}. */
 export function getAssetPermissionName(permission: AssetPermission) {
-  return isUserPermission(permission) ? permission.user.name : permission.userGroup.name
+  return isUserPermission(permission) ? permission.user.name : permission.userGroup.groupName
 }
 
 /** Get the property representing the id on an arbitrary variant of {@link UserPermission}. */
@@ -745,12 +746,17 @@ export enum FilterBy {
 }
 
 /** An event in an audit log. */
-export interface Event {
+export interface AuditLogEvent {
   readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
   readonly timestamp: dateTime.Rfc3339DateTime | null
-  // Called `EventKind` in the backend.
-  readonly metadata: EventMetadata
+  /** The type is called `EventType` in the backend. */
+  readonly metadata: EventMetadata | null
+  readonly message: string | null
+  readonly projectId: ProjectId | null
+  readonly url: string | null
+  readonly method: string | null
+  readonly lambdaKind: string | null
 }
 
 /** Possible types of event in an audit log. */
@@ -760,6 +766,8 @@ export enum EventType {
   ListSecrets = 'listSecrets',
   OpenProject = 'openProject',
   UploadFile = 'uploadFile',
+  Lib = 'lib',
+  Telemetry = 'telemetry',
 }
 
 export const EVENT_TYPES = Object.freeze(Object.values(EventType))
@@ -790,6 +798,16 @@ interface UploadFileEventMetadata {
   readonly type: EventType.UploadFile
 }
 
+/** An event indicating that an action was performed by the Standard libraries. */
+interface LibEventMetadata {
+  readonly type: EventType.Lib
+}
+
+/** An event indicating telemetry data sent from the IDE. */
+interface TelemetryEventMetadata {
+  readonly type: EventType.Telemetry
+}
+
 /** All possible types of metadata for an event in the audit log. */
 export type EventMetadata =
   | DeleteAssetsEventMetadata
@@ -797,6 +815,8 @@ export type EventMetadata =
   | ListSecretsEventMetadata
   | OpenProjectEventMetadata
   | UploadFileEventMetadata
+  | LibEventMetadata
+  | TelemetryEventMetadata
 
 /** A color in the LCh colorspace. */
 export interface LChColor {
@@ -829,6 +849,8 @@ export const COLORS = [
   // Dark blueish grey
   { lightness: 22, chroma: 13, hue: 252 },
 ] as const satisfies LChColor[]
+
+export const FALLBACK_COLOR = COLORS[0]
 
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
@@ -880,6 +902,18 @@ export enum AssetType {
   specialUp = 'specialUp',
 }
 
+export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
+  [AssetType.directory]: 'directoryAssetType',
+  [AssetType.project]: 'projectAssetType',
+  [AssetType.file]: 'fileAssetType',
+  [AssetType.secret]: 'secretAssetType',
+  [AssetType.specialEmpty]: 'specialEmptyAssetType',
+  [AssetType.specialError]: 'specialErrorAssetType',
+  [AssetType.specialLoading]: 'specialLoadingAssetType',
+  [AssetType.specialUp]: 'specialUpAssetType',
+  [AssetType.datalink]: 'datalinkAssetType',
+} satisfies { [Type in AssetType]: `${Type}AssetType` }
+
 export enum ReplaceableAssetType {
   project = 'project',
   file = 'file',
@@ -887,9 +921,16 @@ export enum ReplaceableAssetType {
   secret = 'secret',
 }
 
+/** The types of assets that can be retrieved from the backend. */
+export type RealAssetType =
+  | AssetType.project
+  | AssetType.file
+  | AssetType.datalink
+  | AssetType.secret
+  | AssetType.directory
+
 /** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType extends RealAssetIdType, SpecialAssetIdType {}
-
 export type RealAssetId = ProjectId | FileId | DatalinkId | SecretId | DirectoryId
 export interface RealAssetIdType {
   readonly [AssetType.project]: ProjectId
@@ -899,7 +940,13 @@ export interface RealAssetIdType {
   readonly [AssetType.directory]: DirectoryId
 }
 
-export type SpecialAssetId = LoadingAssetId | EmptyAssetId | ErrorAssetId
+export type RealAssetTypeId<Id extends RealAssetId> =
+  Id extends ProjectId ? AssetType.project
+  : Id extends FileId ? AssetType.file
+  : Id extends DatalinkId ? AssetType.datalink
+  : Id extends SecretId ? AssetType.secret
+  : AssetType.directory
+
 export interface SpecialAssetIdType {
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
@@ -1037,6 +1084,7 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     extension: fileExtension(title),
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1053,6 +1101,7 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1072,6 +1121,7 @@ export function createPlaceholderDirectoryAsset(
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1088,6 +1138,7 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1107,6 +1158,7 @@ export function createPlaceholderDatalinkAsset(
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1126,6 +1178,7 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1150,6 +1203,7 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1174,12 +1228,18 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
 /** Whether a given {@link string} is an {@link ErrorAssetId}. */
 export function isErrorAssetId(id: string): id is ErrorAssetId {
   return id.startsWith(`${AssetType.specialError}-`)
+}
+
+/** Whether a given {@link string} is a special frontend-only asset id. */
+export function isSpecialAssetId(id: string) {
+  return isLoadingAssetId(id) || isEmptyAssetId(id) || isErrorAssetId(id)
 }
 
 /** Any object with a `type` field matching the given `AssetType`. */
@@ -1293,7 +1353,7 @@ export interface S3ObjectVersion {
 export interface OtherUser {
   readonly name: string
   readonly email: EmailAddress
-  readonly profilePicture: HttpsUrl | null
+  readonly profilePicture?: HttpsUrl | null
 }
 
 /** A list of asset versions. */
@@ -1412,7 +1472,7 @@ export interface CreateProjectRequestBody {
   readonly projectName: string
   readonly projectTemplateName?: string
   readonly parentDirectoryId?: DirectoryId
-  readonly datalinkId?: DatalinkId
+  readonly ensoPath?: string
 }
 
 /**
@@ -1518,6 +1578,17 @@ export interface CreateCheckoutSessionRequestBody {
   readonly interval: number
 }
 
+/** URL query string parameters for the "get log events" endpoint. */
+export interface GetLogEventsRequestParams {
+  readonly userEmail?: EmailAddress | null | undefined
+  readonly lambdaKind?: string | null | undefined
+  readonly startDate?: dateTime.Rfc3339DateTime | null | undefined
+  readonly endDate?: dateTime.Rfc3339DateTime | null | undefined
+  /** Pagination offset */
+  readonly from?: number | null | undefined
+  readonly pageSize?: number | null | undefined
+}
+
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
@@ -1600,6 +1671,11 @@ export function detectVersionLifecycle(version: string) {
   } else {
     return VersionLifecycle.stable
   }
+}
+
+/** Get the {@link AssetType} of an asset by its id. */
+export function getAssetTypeFromId(id: AssetId) {
+  return id.match(/^(.+?)-/)?.[1] as AssetType
 }
 
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
@@ -1706,22 +1782,40 @@ export function doesTitleContainInvalidCharacters(name: string) {
   return name.includes('/') || name.includes('\\') || name.includes('..')
 }
 
+/** A regex for matching hybrid project directories. */
+export const HYBRID_PROJECT_DIRECTORY_MASK = /^cloud-project-\w+$/
+
+/** A list of regexes for matching invalid names. */
+const INVALID_NAME_MASKS = [HYBRID_PROJECT_DIRECTORY_MASK]
+
+/**
+ * Check if the title contains invalid names.
+ */
+export function doesContainInvalidNames(title: string) {
+  return INVALID_NAME_MASKS.some((mask) => mask.test(title))
+}
+
 /**
  * A Zod schema for validating a title.
  */
 export function titleSchema(options: TitleSchemaOptions) {
   const { asset, siblings } = options
 
+  const dictionary = resolveDictionary()
+
   return z
     .string()
     .trim()
     .min(1)
     .max(512)
-    .refine((value) => isNewTitleUnique(asset, value, siblings), {
-      message: getText(resolveDictionary(), 'nameShouldBeUnique'),
+    .refine((value) => !doesContainInvalidNames(value), {
+      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
     })
     .refine((value) => !doesTitleContainInvalidCharacters(value), {
-      message: getText(resolveDictionary(), 'nameShouldNotContainInvalidCharacters'),
+      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
+    })
+    .refine((value) => isNewTitleUnique(asset, value, siblings), {
+      message: getText(dictionary, 'nameShouldBeUnique'),
     })
 }
 
@@ -1842,7 +1936,7 @@ export default abstract class Backend {
   /** Delete an arbitrary asset. */
   abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
+  abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
@@ -1892,8 +1986,17 @@ export default abstract class Backend {
     versionId: S3ObjectVersionId,
     title: string,
   ): Promise<CreatedProject>
-  /** Return project details. */
+  /**
+   * Return project details.
+   */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
+  /** Return asset details. */
+  abstract getAssetDetails<
+    Id extends RealAssetId,
+    ReturnType extends Id extends DirectoryId ? Asset<AssetType.directory> | null
+    : Asset<RealAssetTypeId<Id>>,
+  >(assetId: Id): Promise<ReturnType>
+
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
@@ -1977,7 +2080,7 @@ export default abstract class Backend {
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
-  abstract getLogEvents(): Promise<readonly Event[]>
+  abstract getLogEvents(options: GetLogEventsRequestParams): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */
   abstract logEvent(
     message: string,
@@ -1985,7 +2088,12 @@ export default abstract class Backend {
     metadata?: object | null,
   ): Promise<void>
   /** Download an asset. */
-  abstract download(assetId: AssetId, title: string): Promise<void>
+  abstract download(
+    assetId: AssetId,
+    title: string,
+    targetDirectoryId: DirectoryId | null,
+    shouldUnpackProject?: boolean,
+  ): Promise<void>
 
   /**
    * Get the URL for the customer portal.
@@ -1998,24 +2106,34 @@ export default abstract class Backend {
   abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
 }
 
-/** Error thrown when a directory does not exist. */
-export class DirectoryDoesNotExistError extends Error {
+/**
+ * Error thrown when an asset does not exist.
+ */
+export class AssetDoesNotExistError extends Error {
   /**
-   * Create a new instance of the {@link DirectoryDoesNotExistError} class.
+   * Create a new instance of the {@link AssetDoesNotExistError} class.
    */
-  constructor() {
-    super('Directory does not exist.')
+  constructor(message: string = 'Asset could not be found.') {
+    super(message)
   }
 }
 
-/**
- * Error thrown when a duplicate asset is found.
- */
+/** More specific error thrown when a directory does not exist. */
+export class DirectoryDoesNotExistError extends AssetDoesNotExistError {
+  /**
+   * Create a new instance of the {@link DirectoryDoesNotExistError} class.
+   */
+  constructor(message: string = 'Directory does not exist.') {
+    super(message)
+  }
+}
+
+/** Error thrown when an asset already exists. */
 export class DuplicateAssetError extends Error {
   /**
    * Create a new instance of the {@link DuplicateAssetError} class.
    */
-  constructor(message: string) {
+  constructor(message: string = 'Asset already exists.') {
     super(message)
   }
 }

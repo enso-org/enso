@@ -4,8 +4,7 @@ import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/components/dashboard/Projec
 import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
-import { BackendType, isNewTitleUnique, type ProjectAsset } from '#/services/Backend'
+import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
@@ -34,7 +33,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { backend } = state
 
   const { user } = useFullUserSession()
-  const { getText } = useText()
   const getAssetChildren = useGetAssetChildren()
 
   const ownPermission = tryFindSelfPermission(user, item.permissions)
@@ -99,11 +97,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        schema={(z) =>
-          z.refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
-            message: getText('nameShouldBeUnique'),
-          })
-        }
+        schema={() => titleSchema({ asset: item, siblings: getAssetChildren(item.parentId) })}
       >
         {item.title}
       </EditableSpan>

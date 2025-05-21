@@ -31,6 +31,7 @@ export interface PopoverProps
     | ((opts: aria.PopoverRenderProps & { readonly close: () => void }) => React.ReactNode)
   readonly isDismissable?: boolean
   readonly placement?: Placement | undefined
+  readonly onClose?: (() => void) | undefined
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -50,6 +51,9 @@ export const POPOVER_STYLES = twv.tv({
     },
     size: {
       custom: { base: '', dialog: '' },
+      /* eslint-disable @typescript-eslint/naming-convention */
+      'auto-xxsmall': { base: 'w-[unset]', dialog: 'p-1.5' },
+      /* eslint-enable @typescript-eslint/naming-convention */
       auto: { base: 'w-[unset]', dialog: 'p-2.5' },
       xxsmall: { base: 'max-w-[206px]', dialog: 'p-1.5' },
       xsmall: { base: 'max-w-xs', dialog: 'p-3' },
@@ -92,6 +96,7 @@ export function Popover(props: PopoverProps) {
     variant,
     placement,
     isDismissable = true,
+    onClose,
     ...ariaPopoverProps
   } = props
 
@@ -128,6 +133,7 @@ export function Popover(props: PopoverProps) {
           opts={opts}
           isDismissable={isDismissable}
           variant={variant}
+          onClose={onClose}
         >
           {children}
         </PopoverContent>
@@ -147,13 +153,14 @@ interface PopoverContentProps {
   readonly popoverRef: React.RefObject<HTMLDivElement>
   readonly isDismissable: boolean
   readonly variant: PopoverProps['variant']
+  readonly onClose?: (() => void) | undefined
 }
 
 /**
  * The content of a popover.
  */
 function PopoverContent(props: PopoverContentProps) {
-  const { children, size, rounded, opts, isDismissable, popoverRef, variant } = props
+  const { children, size, rounded, opts, isDismissable, popoverRef, variant, onClose } = props
 
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const dialogId = aria.useId()
@@ -168,6 +175,7 @@ function PopoverContent(props: PopoverContentProps) {
 
   const close = useEventCallback(() => {
     contextState?.close()
+    onClose?.()
   })
 
   utlities.useInteractOutside({

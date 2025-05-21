@@ -5,31 +5,26 @@
 import { useState } from 'react'
 
 import { LOGIN_PATH } from '#/appUtils'
-import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import { Form, Input } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
-import { useLocation, useNavigate } from 'react-router'
+import { useBackends, useRouter, useText } from '$/providers/react'
 import { toast } from 'react-toastify'
 
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
   const { forgotPassword } = useSessionAPI()
-  const location = useLocation()
   const { getText } = useText()
 
-  const navigate = useNavigate()
+  const { router, searchParams } = useRouter()
 
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const query = new URLSearchParams(location.search)
-  const initialEmail = query.get('email')
+  const initialEmail = searchParams.get('email')
   const [emailInput, setEmailInput] = useState(initialEmail ?? '')
 
   return (
@@ -46,7 +41,7 @@ export default function ForgotPassword() {
       supportsOffline={supportsOffline}
       onSubmit={({ email }) =>
         forgotPassword(email).then(() => {
-          navigate(LOGIN_PATH)
+          void router.push(LOGIN_PATH)
           toast.success(getText('forgotPasswordSuccess'))
         })
       }
@@ -67,7 +62,7 @@ export default function ForgotPassword() {
         }}
       />
 
-      <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
+      <Form.Submit size="large" icon="arrow_right" iconPosition="end" fullWidth>
         {getText('sendLink')}
       </Form.Submit>
 

@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.state.State;
 /** Node responsible for handling user-requested thunks forcing. */
 @NodeInfo(shortName = "Force", description = "Forces execution of a thunk at runtime")
 @NodeChild(value = "target", type = ExpressionNode.class)
+@SuppressWarnings("truffle-splitting")
 public abstract class ForceNode extends ExpressionNode {
 
   ForceNode() {}

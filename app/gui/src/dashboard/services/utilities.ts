@@ -1,7 +1,6 @@
 /**
  * @file Module containing utility functions related to any backend.
  */
-import FolderIcon from '#/assets/folder.svg'
 import type { AnyCategory } from '../layouts/Drive/Categories/Category'
 import type { DirectoryId } from './Backend'
 import { Path } from './Backend'
@@ -47,7 +46,7 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
   // We remove the root directory from the split path (it doesn't exist in the virtual parents path) -> virtualParentsIds = ['directory-id2adsf', 'directory-id3adsf']
   const virtualParentsIds = splitPath.slice(1)
 
-  const finalPath = (() => {
+  const response = (() => {
     const result: PathItem[] = []
 
     const rootCategory = getCategoryByDirectoryId(rootDirectoryInPath)
@@ -59,7 +58,7 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
     // This shouldn't happen though and these files should be filtered out
     // by the backend. But we need to handle this case anyway.
     if (rootCategory == null) {
-      return result
+      return { finalPath: [], category: null } as const
     }
 
     result.push({
@@ -79,15 +78,15 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
       result.push({
         id,
         label: name,
-        icon: FolderIcon,
+        icon: 'folder',
         categoryId: rootCategory.id,
       })
     }
 
-    return result
+    return { finalPath: result, category: rootCategory }
   })()
 
-  return { finalPath } as const
+  return response
 }
 
 /**

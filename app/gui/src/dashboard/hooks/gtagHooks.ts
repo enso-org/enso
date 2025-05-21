@@ -1,11 +1,14 @@
 /** @file A hook that makes `gtag.event()` a no-op if the user is offline. */
 import * as load from 'enso-common/src/load'
 import * as React from 'react'
+import { noop } from '../utilities/functions'
 
 const GOOGLE_ANALYTICS_TAG = typeof $config !== 'undefined' && $config.GOOGLE_ANALYTICS_TAG
 
 if (GOOGLE_ANALYTICS_TAG != null) {
-  void load.loadScript(`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_TAG}`)
+  void load
+    .loadScript(`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_TAG}`)
+    .catch(noop)
 }
 
 // @ts-expect-error This is explicitly not given types as it is a mistake to acess this

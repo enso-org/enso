@@ -19,16 +19,26 @@ export default class SettingsFormActions<
   }
 
   /** Save and submit this settings section. */
-  save(): InstanceType<ParentClass> {
-    return this.step('Save settings form', (page) =>
-      this.locate(page).getByRole('button', { name: TEXT.save }).getByText(TEXT.save).click(),
-    ).into(this.parentClass)
+  save(waitForSave: boolean = true): InstanceType<ParentClass> {
+    return this.step('Save settings form', async (page) => {
+      const saveButton = this.locate(page).getByRole('button', { name: TEXT.save })
+
+      await saveButton.getByText(TEXT.save).click()
+      if (waitForSave) {
+        await saveButton.waitFor({ state: 'detached' })
+      }
+    }).into(this.parentClass)
   }
 
   /** Cancel editing this settings section. */
-  cancel(): InstanceType<ParentClass> {
-    return this.step('Cancel editing settings form', (page) =>
-      this.locate(page).getByRole('button', { name: TEXT.cancel }).getByText(TEXT.cancel).click(),
-    ).into(this.parentClass)
+  cancel(waitForCancel: boolean = true): InstanceType<ParentClass> {
+    return this.step('Cancel editing settings form', async (page) => {
+      const cancelButton = this.locate(page).getByRole('button', { name: TEXT.cancel })
+
+      await cancelButton.getByText(TEXT.cancel).click()
+      if (waitForCancel) {
+        await cancelButton.waitFor({ state: 'detached' })
+      }
+    }).into(this.parentClass)
   }
 }

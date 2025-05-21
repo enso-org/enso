@@ -93,11 +93,11 @@ export function useNodeCreation(
     const doPlace =
       (adjust: (pos: Vec2) => Vec2 = identity) =>
       (options: NodeCreationOptions) => {
-        const position = adjust(placeNode(options.placement, place)).xy()
-        rects.push(new Rect(Vec2.FromXY(position), Vec2.Zero))
+        const position = adjust(placeNode(options.placement, place))
+        rects.push(new Rect(position, Vec2.Zero))
         return {
           ...options,
-          metadata: { ...options.metadata, position },
+          metadata: { ...options.metadata, position: position.xy() },
         }
       }
     const placedOptions = []

@@ -1,11 +1,11 @@
 /** @file The input for viewing and changing the user's profile picture. */
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 import DefaultUserIcon from '#/assets/default_user.svg'
 
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
@@ -23,8 +23,8 @@ export interface ProfilePictureInputProps {
 /** The input for viewing and changing the user's profile picture. */
 export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { backend } = props
-  const { data: user } = useBackendQuery(backend, 'usersMe', [])
-  const { getText } = textProvider.useText()
+  const { data: user } = useQuery(backendQueryOptions(backend, 'usersMe', []))
+  const { getText } = useText()
 
   const uploadUserPicture = useMutation(backendMutationOptions(backend, 'uploadUserPicture'))
 
@@ -42,7 +42,7 @@ export default function ProfilePictureInput(props: ProfilePictureInputProps) {
         >
           {uploadUserPicture.isPending && (
             <StatelessSpinner
-              state="loading-medium"
+              phase="loading-medium"
               className="absolute -inset-1"
               thickness={0.5}
             />

@@ -25,7 +25,7 @@ test.each([
   makeStaticMethod('local.Project.Internalization.internalize'),
 ])('$name entry is in the CB main view', (entry) => {
   const filtering = new Filtering({})
-  expect(filtering.filter(entry, [])).not.toBeNull()
+  expect(filtering.filter(entry)).not.toBeNull()
 })
 
 test.each([
@@ -37,7 +37,7 @@ test.each([
   makeStaticMethod('Standard.Base.Internal.Foo.bar'), // Internal method
 ])('$name entry is not in the CB main view', (entry) => {
   const filtering = new Filtering({})
-  expect(filtering.filter(entry, [])).toBeNull()
+  expect(filtering.filter(entry)).toBeNull()
 })
 
 function stdPath(path: string) {
@@ -52,18 +52,20 @@ test('An Instance method is shown when self arg matches', () => {
     selfArg: {
       type: 'known',
       typename: stdPath('Standard.Base.Data.Vector.Vector'),
+      additionalTypes: [],
+      ancestors: [],
     },
   })
-  expect(filteringWithSelfType.filter(entry1, [])).not.toBeNull()
-  expect(filteringWithSelfType.filter(entry2, [])).toBeNull()
+  expect(filteringWithSelfType.filter(entry1)).not.toBeNull()
+  expect(filteringWithSelfType.filter(entry2)).toBeNull()
   const filteringWithAnySelfType = new Filtering({
     selfArg: { type: 'unknown' },
   })
-  expect(filteringWithAnySelfType.filter(entry1, [])).not.toBeNull()
-  expect(filteringWithAnySelfType.filter(entry2, [])).not.toBeNull()
+  expect(filteringWithAnySelfType.filter(entry1)).not.toBeNull()
+  expect(filteringWithAnySelfType.filter(entry2)).not.toBeNull()
   const filteringWithoutSelfType = new Filtering({ pattern: 'get' })
-  expect(filteringWithoutSelfType.filter(entry1, [])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry2, [])).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry1)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry2)).toBeNull()
 })
 
 test('`Any` type methods taken into account when filtering', () => {
@@ -73,32 +75,47 @@ test('`Any` type methods taken into account when filtering', () => {
     selfArg: {
       type: 'known',
       typename: stdPath('Standard.Base.Data.Vector.Vector'),
+      additionalTypes: [],
+      ancestors: [],
     },
   })
-  expect(filtering.filter(entry1, [])).not.toBeNull()
-  expect(filtering.filter(entry2, [])).not.toBeNull()
+  expect(filtering.filter(entry1)).not.toBeNull()
+  expect(filtering.filter(entry2)).not.toBeNull()
 
   const filteringWithoutSelfType = new Filtering({})
-  expect(filteringWithoutSelfType.filter(entry1, [])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry2, [])).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry1)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry2)).toBeNull()
 })
 
-test('Additional self types are taken into account when filtering', () => {
+test('Additional self types and ancestors are taken into account when filtering', () => {
   const entry1 = makeMethod('Standard.Base.Data.Numbers.Float.abs')
   const entry2 = makeMethod('Standard.Base.Data.Numbers.Number.sqrt')
   const additionalSelfType = stdPath('Standard.Base.Data.Numbers.Number')
-  const filtering = new Filtering({
-    selfArg: { type: 'known', typename: stdPath('Standard.Base.Data.Numbers.Float') },
+  const filteringWithAdditionalSelfType = new Filtering({
+    selfArg: {
+      type: 'known',
+      typename: stdPath('Standard.Base.Data.Numbers.Float'),
+      additionalTypes: [additionalSelfType],
+      ancestors: [],
+    },
   })
-  expect(filtering.filter(entry1, [additionalSelfType])).not.toBeNull()
-  expect(filtering.filter(entry2, [additionalSelfType])).not.toBeNull()
-  expect(filtering.filter(entry2, [])).toBeNull()
+  expect(filteringWithAdditionalSelfType.filter(entry1)).not.toBeNull()
+  expect(filteringWithAdditionalSelfType.filter(entry2)).not.toBeNull()
 
   const filteringWithoutSelfType = new Filtering({})
-  expect(filteringWithoutSelfType.filter(entry1, [additionalSelfType])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry2, [additionalSelfType])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry1, [])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry2, [])).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry1)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry2)).toBeNull()
+
+  const filteringWithAncestors = new Filtering({
+    selfArg: {
+      type: 'known',
+      typename: stdPath('Standard.Base.Data.Numbers.Float'),
+      additionalTypes: [],
+      ancestors: [additionalSelfType],
+    },
+  })
+  expect(filteringWithAncestors.filter(entry1)).not.toBeNull()
+  expect(filteringWithAncestors.filter(entry2)).not.toBeNull()
 })
 
 test.each([
@@ -114,9 +131,11 @@ test.each([
     selfArg: {
       type: 'known',
       typename: stdPath('Standard.Base.Data.Vector.Vector'),
+      additionalTypes: [],
+      ancestors: [],
     },
   })
-  expect(filtering.filter(entry, [])).toBeNull()
+  expect(filtering.filter(entry)).toBeNull()
 })
 
 test.each`
@@ -131,7 +150,7 @@ test.each`
 `('$name is not matched by pattern $pattern', ({ name, pattern }) => {
   const entry = makeModuleMethod(`local.Project.${name}`)
   const filtering = new Filtering({ pattern })
-  expect(filtering.filter(entry, [])).toBeNull()
+  expect(filtering.filter(entry)).toBeNull()
 })
 
 function matchedText(ownerName: string, name: string, matchResult: MatchResult) {
@@ -239,7 +258,7 @@ test.each<MatchingTestCase>([
   const matchedSortedEntries = matchedSorted.map(({ name, aliases, module }) =>
     makeModuleMethod(`${module ?? 'local.Project'}.${name}`, { aliases: aliases ?? [] }),
   )
-  const matchResults = matchedSortedEntries.map((entry) => filtering.filter(entry, []))
+  const matchResults = matchedSortedEntries.map((entry) => filtering.filter(entry))
   // Checking matching entries
   function checkResult(entry: SuggestionEntry, result: Opt<MatchResult>) {
     expect(result, `Matching entry ${JSON.stringify(entry.definitionPath)}`).not.toBeNull()
@@ -274,6 +293,6 @@ test.each<MatchingTestCase>([
     const entry = makeModuleMethod(`${module ?? 'local.Project'}.${name}`, {
       aliases: aliases ?? [],
     })
-    expect(filtering.filter(entry, []), JSON.stringify(entry.definitionPath)).toBeNull()
+    expect(filtering.filter(entry), JSON.stringify(entry.definitionPath)).toBeNull()
   }
 })
