@@ -24,7 +24,8 @@ type Batch_Runner
         epsilon_vec  = configs.map c-> c.at 3
         warning_vec  = configs.map c-> c.at 4
         got_vec = self.run_batch values_vec dps_vec rounding_mode
-        got_vec.each_with_index ix-> got->
+        0.up_to got_vec.length . each \ix ->
+            got = got_vec.at ix
             expected = expected_vec.at ix
             value = values_vec.at ix
             dp = dps_vec.at ix
