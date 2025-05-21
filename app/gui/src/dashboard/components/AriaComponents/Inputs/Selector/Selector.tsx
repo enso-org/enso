@@ -99,6 +99,7 @@ export const Selector = React.forwardRef(function Selector<
     isInvalid = false,
     fieldVariants,
     defaultValue,
+    contextualHelp,
     ...inputProps
   } = props
 
@@ -128,6 +129,7 @@ export const Selector = React.forwardRef(function Selector<
               form: formInstance,
               label,
               isRequired,
+              contextualHelp,
             })}
             name={props.name}
             ref={ref}

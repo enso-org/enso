@@ -102,19 +102,18 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
     // Perform appropriate AST update, either insertion or deletion.
     if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
       /* Case: Inserting value to a placeholder. */
-      let newArg: Ast.Owned<Ast.MutableExpression>
-      if (value instanceof Ast.Ast) {
-        newArg = value
+      const newArg = value instanceof Ast.Ast ? value : Ast.parseExpression(value, edit)!
+      if (argApp.appTree instanceof Ast.OprApp) {
+        edit.getVersion(argApp.appTree)[argApp.argument.index === 0 ? 'setLhs' : 'setRhs'](newArg)
       } else {
-        newArg = Ast.parseExpression(value, edit)!
+        const name =
+          argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name) ?
+            argApp.argument.argInfo.name
+          : undefined
+        edit
+          .getVersion(argApp.appTree)
+          .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
       }
-      const name =
-        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name) ?
-          argApp.argument.argInfo.name
-        : undefined
-      edit
-        .getVersion(argApp.appTree)
-        .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
       return props.onUpdate({ edit, directInteraction })
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */

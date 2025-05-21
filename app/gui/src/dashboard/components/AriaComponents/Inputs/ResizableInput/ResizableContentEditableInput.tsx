@@ -90,6 +90,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     variant,
     variants = CONTENT_EDITABLE_STYLES,
     fieldVariants,
+    contextualHelp,
     autoFocus = false,
     ...textFieldProps
   } = props
@@ -138,6 +139,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
       fullWidth
       variants={fieldVariants}
       {...textFieldProps}
+      contextualHelp={contextualHelp}
     >
       <div
         className={styles.base()}

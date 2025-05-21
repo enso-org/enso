@@ -115,6 +115,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
     rounded,
     isRequired = false,
     variant,
+    contextualHelp,
     ...inputProps
   } = props
 
@@ -153,6 +154,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
       ref={ref}
       style={props.style}
       className={props.className}
+      contextualHelp={contextualHelp}
     >
       <div
         className={classes.base()}

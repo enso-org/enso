@@ -76,6 +76,7 @@ export const Input = forwardRef(function Input<
     fieldVariants,
     form: formRaw,
     className,
+    contextualHelp,
     testId: testIdRaw,
     ...inputProps
   } = props
@@ -140,6 +141,7 @@ export const Input = forwardRef(function Input<
       ref={ref}
       name={name}
       data-testid={testId}
+      contextualHelp={contextualHelp}
     >
       <BasicInput
         {...aria.mergeProps<BasicInputProps>()(

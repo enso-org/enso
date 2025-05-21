@@ -17,13 +17,13 @@ export function CredentialsFormFooter(props: CredentialsFormFooterProps) {
 
   return (
     <>
-      <Form.FormError />
-
       <ButtonGroup className="mt-2">
         <Form.Submit>{isCreating ? getText('create') : getText('update')}</Form.Submit>
         {canCancel && <DialogDismiss />}
         {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
       </ButtonGroup>
+
+      <Form.FormError />
     </>
   )
 }

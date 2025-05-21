@@ -108,6 +108,7 @@ export const TimeField = forwardRef(function TimeField<
     granularity,
     style,
     isInvalid,
+    contextualHelp,
     ...rest
   } = props
 
@@ -134,6 +135,7 @@ export const TimeField = forwardRef(function TimeField<
       aria-details={props['aria-details']}
       ref={ref}
       style={style}
+      contextualHelp={contextualHelp}
     >
       <Form.Controller
         control={formInstance.control}
