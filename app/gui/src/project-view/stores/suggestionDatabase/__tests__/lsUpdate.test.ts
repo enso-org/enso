@@ -1,5 +1,5 @@
 import { mockProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { assert, assertDefined } from '@/util/assert'
@@ -26,7 +26,7 @@ const projectNames = mockProjectNameStore()
 function applyUpdates(
   db: SuggestionDb,
   updates: SuggestionsDatabaseUpdate[],
-  { groups }: { groups: Group[] },
+  { groups }: { groups: GroupInfo[] },
 ) {
   new SuggestionUpdateProcessor(groups, projectNames).applyUpdates(db, updates)
 }
@@ -352,6 +352,9 @@ class Fixture {
     isUnstable: false,
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: undefined,
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedType = suggestionEntry<SuggestionKind.Type>({
     kind: SuggestionKind.Type,
@@ -368,6 +371,9 @@ class Fixture {
     reexportedIn: stdPath('Standard.Base.Another.Module'),
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: undefined,
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedCon = suggestionEntry<SuggestionKind.Constructor>({
     kind: SuggestionKind.Constructor,
@@ -385,6 +391,9 @@ class Fixture {
     annotations: ['Annotation 1'],
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: undefined,
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedMethod = suggestionEntry<SuggestionKind.Method>({
     kind: SuggestionKind.Method,
@@ -403,6 +412,9 @@ class Fixture {
     annotations: ['Annotation 2', 'Annotation 3'],
     iconName: undefined,
     reexportedIn: undefined,
+    docSummaryHtml: undefined,
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedStaticMethod = suggestionEntry<SuggestionKind.Method>({
     kind: SuggestionKind.Method,
@@ -421,6 +433,9 @@ class Fixture {
     annotations: [],
     iconName: undefined,
     selfType: undefined,
+    docSummaryHtml: undefined,
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedFunction = suggestionEntry<SuggestionKind.Function>({
     kind: SuggestionKind.Function,
@@ -436,6 +451,9 @@ class Fixture {
     scope: this.scope,
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: undefined,
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedLocal = suggestionEntry<SuggestionKind.Local>({
     kind: SuggestionKind.Local,
@@ -450,6 +468,9 @@ class Fixture {
     scope: this.scope,
     iconName: undefined,
     groupIndex: undefined,
+    docSummaryHtml: undefined,
+    macros: {},
+    suggestedRank: undefined,
   })
   expectedLocalStaticMethod = suggestionEntry<SuggestionKind.Method>({
     kind: SuggestionKind.Method,
@@ -477,6 +498,9 @@ class Fixture {
     groupIndex: undefined,
     selfType: undefined,
     reexportedIn: undefined,
+    docSummaryHtml: undefined,
+    macros: {},
+    suggestedRank: undefined,
   })
 
   addUpdatesForExpected(): lsTypes.SuggestionsDatabaseUpdate[] {

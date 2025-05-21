@@ -9,7 +9,7 @@ export const [provideWidgetTree, injectWidgetTree] = createContextStore(
   'Widget tree',
   (
     externalId: Ref<ExternalId>,
-    rootElement: Ref<HTMLElement | undefined>,
+    rootElement: Ref<HTMLElement | null | undefined>,
     conditionalPorts: Ref<Set<Ast.AstId> | undefined>,
     extended: Ref<boolean>,
     hasActiveAnimations: Ref<boolean>,

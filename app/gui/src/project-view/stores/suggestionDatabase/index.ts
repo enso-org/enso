@@ -1,3 +1,4 @@
+import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { createContextStore } from '@/providers'
 import { type ProjectStore } from '@/stores/project'
 import { type ProjectNameStore } from '@/stores/projectNames'
@@ -9,12 +10,13 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
+import { assert } from '@/util/assert'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { type MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
 import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
-import { markRaw, proxyRefs, readonly, ref } from 'vue'
+import { computed, markRaw, proxyRefs, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
@@ -48,11 +50,31 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return []
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
+  readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
 
   /** Constructor. */
   constructor() {
     super()
   }
+
+  /**
+   * Retreive all suggestions of given kind stored in the suggestion database.
+   */
+  *getAllEntriesOfKind<K extends SuggestionKind>(
+    kind: K,
+  ): IterableIterator<SuggestionEntry & { kind: K }> {
+    const ids = this.suggestionsByKind.lookup(kind)
+    for (const id of ids) {
+      const entry = this.get(id)
+      assert(entry?.kind === kind)
+      yield entry as SuggestionEntry & { kind: K }
+    }
+  }
+
+  allTypeExpressionTags = computed((): ExpressionTag[] => {
+    const types = this.getAllEntriesOfKind(SuggestionKind.Type)
+    return Array.from(types, (ty) => ExpressionTag.FromEntry(this, ty))
+  })
 
   /** Look up an entry by its path within a project */
   findByProjectPath(projectPath: ProjectPath): SuggestionId | undefined {

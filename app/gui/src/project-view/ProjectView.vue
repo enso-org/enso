@@ -86,12 +86,6 @@ onDeactivated(() => (visible.value = false))
   cursor: default;
 }
 
-:deep(*),
-:deep(*)::before,
-:deep(*)::after {
-  box-sizing: border-box;
-}
-
 :deep(.icon) {
   width: 16px;
   height: 16px;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { enclosingTopLevelArgument } from '@/components/GraphEditor/widgets/WidgetTopLevelArgument.vue'
+import OptionallyKeepAlive from '@/components/OptionallyKeepAlive.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { unrefElement } from '@/composables/events'
@@ -83,7 +84,8 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
 const staticTags = computed<ExpressionTag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
-  return tags.map((t) => ExpressionTag.FromExpression(suggestions, projectNames, t))
+  const suggestionDb = suggestions.entries
+  return tags.map((t) => ExpressionTag.FromExpression(suggestionDb, projectNames, t))
 })
 
 const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
@@ -95,7 +97,7 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
       return new NestedChoiceTag(choice.label ?? '…', choice.value.map(choiceToTag))
     } else {
       return ExpressionTag.FromExpression(
-        suggestions,
+        suggestions.entries,
         projectNames,
         choice.value,
         choice.label,
@@ -345,6 +347,13 @@ const arrowLocation = ref()
 
 <script lang="ts">
 const CustomDropdownItemsKey: unique symbol = Symbol.for('WidgetInput:CustomDropdownItems')
+export type DropdownItem = CustomDropdownItem | ExpressionTag
+
+/** Add extra dropdown items to a widget input. */
+export function withDropdownItems(input: WidgetInput, items: Iterable<DropdownItem>): WidgetInput {
+  const existingItems = input[CustomDropdownItemsKey] ?? []
+  return { ...input, [CustomDropdownItemsKey]: [...existingItems, ...items] }
+}
 
 function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefined): boolean {
   return (
@@ -375,7 +384,7 @@ export const widgetDefinition = defineWidget(
 export { CustomDropdownItemsKey }
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [CustomDropdownItemsKey]?: readonly (CustomDropdownItem | ExpressionTag)[]
+    [CustomDropdownItemsKey]?: readonly DropdownItem[]
   }
 }
 </script>
@@ -407,25 +416,20 @@ declare module '@/providers/widgetRegistry' {
       :topLevel="true"
       @clickedEntry="onClick"
     />
-    <Teleport v-if="tree.rootElement" :to="tree.rootElement">
-      <div
-        ref="activityElement"
-        class="activityElement widgetOutOfLayout floatingElement"
-        :style="activityStyles"
-      >
-        <SizeTransition height :duration="100">
-          <KeepAlive include="KeepAlive">
-            <KeepAlive v-if="keepActivityAlive">
-              <component :is="dropDownInteraction.isActive() && activity && toValue(activity)" />
-            </KeepAlive>
-            <component
-              :is="dropDownInteraction.isActive() && activity && toValue(activity)"
-              v-else
-            />
-          </KeepAlive>
-        </SizeTransition>
-      </div>
-    </Teleport>
+
+    <OptionallyKeepAlive :when="keepActivityAlive">
+      <Teleport v-if="dropDownInteraction.isActive() && activity" :to="tree.rootElement">
+        <div
+          ref="activityElement"
+          class="activityElement widgetOutOfLayout floatingElement"
+          :style="activityStyles"
+        >
+          <SizeTransition height :duration="100">
+            <component :is="toValue(activity)" />
+          </SizeTransition>
+        </div>
+      </Teleport>
+    </OptionallyKeepAlive>
   </div>
 </template>
 

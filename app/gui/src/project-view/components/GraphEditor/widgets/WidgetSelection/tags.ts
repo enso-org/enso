@@ -1,7 +1,7 @@
 import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { RequiredImport, requiredImports } from '@/stores/graph/imports'
 import { ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDbStore } from '@/stores/suggestionDatabase'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,
@@ -39,12 +39,12 @@ export class ExpressionTag {
    * Create a new {@link ExpressionTag} from qualified path to a suggestion entry.
    */
   static FromProjectPath(
-    suggestions: SuggestionDbStore,
+    suggestionDb: SuggestionDb,
     path: ProjectPath,
     label?: Opt<string>,
   ): ExpressionTag | null {
-    const entry = suggestions.entries.getEntryByProjectPath(path)
-    if (entry) return ExpressionTag.FromEntry(suggestions, entry, label)
+    const entry = suggestionDb.getEntryByProjectPath(path)
+    if (entry) return ExpressionTag.FromEntry(suggestionDb, entry, label)
     else return null
   }
 
@@ -52,7 +52,7 @@ export class ExpressionTag {
    * Create a new {@link ExpressionTag} from a string expression.
    */
   static FromExpression(
-    suggestions: SuggestionDbStore,
+    suggestionDb: SuggestionDb,
     projectNames: ProjectNameStore,
     expression: string,
     label?: Opt<string>,
@@ -62,7 +62,7 @@ export class ExpressionTag {
     if (qn.ok) {
       const projectPath = projectNames.parseProjectPath(qn.value)
       if (projectPath.ok) {
-        const fromProjPath = ExpressionTag.FromProjectPath(suggestions, projectPath.value, label)
+        const fromProjPath = ExpressionTag.FromProjectPath(suggestionDb, projectPath.value, label)
         if (fromProjPath) return fromProjPath
       }
       return new ExpressionTag(
@@ -82,7 +82,7 @@ export class ExpressionTag {
    * Create a new {@link ExpressionTag} from a suggestion entry.
    */
   static FromEntry(
-    suggestions: SuggestionDbStore,
+    suggestionDb: SuggestionDb,
     entry: SuggestionEntry,
     label?: Opt<string>,
   ): ExpressionTag {
@@ -94,7 +94,7 @@ export class ExpressionTag {
       expression,
       label ?? entry.name,
       undefined,
-      requiredImports(suggestions.entries, entry),
+      requiredImports(suggestionDb, entry),
     )
   }
 

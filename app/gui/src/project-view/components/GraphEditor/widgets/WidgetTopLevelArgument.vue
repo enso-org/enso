@@ -22,7 +22,7 @@ export const widgetDefinition = defineWidget(
 /** If the element is the recursively-first-child of a top-level argument, return the top-level argument element. */
 export function enclosingTopLevelArgument(
   element: HTMLElement | undefined,
-  rootElement: HTMLElement | undefined,
+  rootElement: HTMLElement | null | undefined,
 ): HTMLElement | undefined {
   return (
     element?.dataset.topLevelArgument !== undefined ? element

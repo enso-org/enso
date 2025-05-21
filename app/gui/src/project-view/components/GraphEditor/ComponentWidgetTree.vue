@@ -14,7 +14,7 @@ import { Ok } from 'ydoc-shared/util/data/result'
 const props = defineProps<{
   ast: Ast.Expression
   nodeId: NodeId
-  rootElement: HTMLElement | undefined
+  rootElement: HTMLElement | null | undefined
   nodeType: NodeType
   primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */

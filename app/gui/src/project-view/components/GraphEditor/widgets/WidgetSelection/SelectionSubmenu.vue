@@ -8,7 +8,7 @@ import { submenuDropdownStyles } from './styles'
 import { Entry, ExpressionTag, isEntry, NestedChoiceTag } from './tags'
 
 const props = defineProps<{
-  rootElement: HTMLElement | undefined
+  rootElement: HTMLElement | null | undefined
   floatReference: HTMLElement | undefined
   show: boolean
   entries: Entry[]

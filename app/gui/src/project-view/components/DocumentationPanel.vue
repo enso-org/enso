@@ -155,7 +155,6 @@ function openDocs(url: string) {
         @activate="openDocs(documentationUrl)"
       />
     </div>
-    <!-- todo panel -->
     <FunctionSignatureEditor
       v-if="signatureAst"
       :functionAst="signatureAst"

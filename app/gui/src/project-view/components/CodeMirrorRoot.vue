@@ -15,6 +15,11 @@ defineExpose({ highlightClasses })
 .CodeMirrorRoot :deep(.cm-content) {
   cursor: text;
 }
+
+.CodeMirrorRoot :deep(.cm-placeholder) {
+  color: inherit;
+  opacity: 0.6;
+}
 </style>
 
 <!--suppress CssUnusedSymbol -->
