@@ -70,6 +70,7 @@ import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useConfigInReact, useRouterInReact } from '$/providers/react'
@@ -94,13 +95,6 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
-  /**
-   * Whether the application supports deep links. This is only true when using
-   * the installed app on macOS and Windows.
-   */
-  readonly supportsDeepLinks: boolean
   readonly onAuthenticated: (accessToken: string | null) => void
 }
 
@@ -113,6 +107,7 @@ export interface AppProps {
  */
 export default function App(props: React.PropsWithChildren<AppProps>) {
   const config = useConfigInReact()
+  const enableLocalBackend = useFeatureFlag('enableLocalBackend')
   const {
     data: { projectManagerRootDirectory, projectManagerInstance },
   } = reactQuery.useSuspenseQuery<{
@@ -123,7 +118,7 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
       'root-directory',
       {
         projectManagerUrl: config.projectManagerUrl,
-        supportsLocalBackend: props.supportsLocalBackend,
+        enableLocalBackend,
       },
     ] as const,
     networkMode: 'always',
@@ -138,7 +133,7 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
       },
     },
     queryFn: async () => {
-      if (props.supportsLocalBackend && config.projectManagerUrl != null) {
+      if (enableLocalBackend && config.projectManagerUrl != null) {
         const response = await fetch(`/api/root-directory`)
         const text = await response.text()
         const rootDirectory = projectManager.Path(text)
@@ -244,7 +239,7 @@ function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
 
   const mainPageUrl = getMainPageUrl()
 
-  const authService = useInitAuthService(props)
+  const authService = useInitAuthService()
 
   const registerAuthEventListener = authService.registerAuthEventListener
 

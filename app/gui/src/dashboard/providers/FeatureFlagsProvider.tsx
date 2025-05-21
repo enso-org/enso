@@ -6,7 +6,7 @@
  */
 import { unsafeWriteValue } from '#/utilities/write'
 import { createStore, useStore } from '#/utilities/zustand'
-import { IS_DEV_MODE, isOnElectron } from 'enso-common/src/detect'
+import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
 import { z } from 'zod'
 import { persist } from 'zustand/middleware'
 
@@ -24,6 +24,8 @@ export function featureFlagsForInternalTesting() {
 }
 
 export const FEATURE_FLAGS_SCHEMA = z.object({
+  enableDeepLinks: z.boolean(),
+  enableLocalBackend: z.boolean(),
   enableMultitabs: z.boolean(),
   enableAssetsTableBackgroundRefresh: z.boolean(),
   assetsTableBackgroundRefreshInterval: z.number().min(MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS),
@@ -51,6 +53,8 @@ const flagsStore = createStore<FeatureFlagsStore>()(
   persist(
     (set) => ({
       featureFlags: {
+        enableDeepLinks: !IS_DEV_MODE && !isOnLinux() && isOnElectron(),
+        enableLocalBackend: false,
         enableMultitabs: false,
         enableAssetsTableBackgroundRefresh: true,
         assetsTableBackgroundRefreshInterval: DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,

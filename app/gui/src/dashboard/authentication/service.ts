@@ -3,7 +3,6 @@
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron.
  */
-import * as React from 'react'
 
 import * as amplify from '@aws-amplify/auth'
 
@@ -18,6 +17,7 @@ import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 
 import * as cognitoModule from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useRouterInReact } from '$/providers/react'
 
 /**
@@ -115,22 +115,16 @@ export interface AuthService {
  * This hook should only be called in a single place, as it performs global configuration of the
  * Amplify library.
  */
-export function useInitAuthService(authConfig: AuthConfig): AuthService {
-  const { supportsDeepLinks } = authConfig
+export function useInitAuthService(): AuthService {
+  const enableDeepLinks = useFeatureFlag('enableDeepLinks')
 
   const logger = useLogger()
   const { router } = useRouterInReact()
 
-  return React.useMemo(() => {
-    const amplifyConfig = loadAmplifyConfig(
-      logger,
-      supportsDeepLinks,
-      (url) => void router.push(url),
-    )
-    const cognito = new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
+  const amplifyConfig = loadAmplifyConfig(logger, enableDeepLinks, (url) => void router.push(url))
+  const cognito = new cognitoModule.Cognito(logger, enableDeepLinks, amplifyConfig)
 
-    return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
-  }, [logger, router, supportsDeepLinks])
+  return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */
