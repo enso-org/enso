@@ -84,6 +84,8 @@ public class FixedWidthReader {
   // lineLength is the length of the actual line from the input stream, which
   // might be larger than minimumLineLength and the buffer capacity.
   private void addRow(byte[] line, int lineLength) throws IOException {
+    Context context = Context.getCurrent();
+
     if (firstLine) {
       firstLine = false;
       firstLineLength = lineLength;
@@ -123,6 +125,8 @@ public class FixedWidthReader {
       }
 
       builder.append(value);
+
+      context.safepoint();
     }
 
     tableRowNumber++;
@@ -136,6 +140,8 @@ public class FixedWidthReader {
    * Returns -1 if the first read attempt is EOF.
    */
   private int readLine(InputStream inputStream, byte[] buffer) throws IOException {
+    Context context = Context.getCurrent();
+
     int lineLength = 0;
     while (true) {
       int c = inputStream.read();
@@ -156,6 +162,8 @@ public class FixedWidthReader {
         }
         lineLength++;
       }
+
+      context.safepoint();
     }
     return lineLength;
   }
@@ -175,6 +183,7 @@ public class FixedWidthReader {
           ParseProblemAggregator.make(problemAggregator, columnName, expectedEnsoValueType);
       Storage<?> storage = valueParser.parseColumn(stringStorage, parseProblemAggregator);
       columns[i] = new Column(columnName, storage);
+
       context.safepoint();
     }
 

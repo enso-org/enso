@@ -216,6 +216,35 @@ add_direct_specs suite_builder =
             t.at "y" . to Vector . should_equal [True, False, False]
             t.at "z" . to Vector . should_equal ["J", "C", "E"]
 
+        group_builder.specify "should work with all kinds of line endings" pending="https://github.com/enso-org/enso/issues/13137" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 0 1 "x"]
+                + [Fixed_Width_Column_Description.Width 1 "y"]
+                + [Fixed_Width_Column_Description.Width 1 "z"]
+            layout = Fixed_Width_Layout.from_descriptions descs
+
+            path name = enso_project.data / 'transient' / name
+            create_file name ending_style =
+                lines = ['abc', 'def', '123']
+                text = lines.join ending_style
+                text.write (path name)
+
+            test_file name =
+                table = Data.read (path name) (Fixed_Width_Format.Fixed_Width layout) ..Report_Error
+                table.columns.map .name . should_equal ['x', 'y', 'z']
+                table.at 'x' . to_vector . should_equal ['a', 'd', '1']
+                table.at 'y' . to_vector . should_equal ['b', 'e', '2']
+                table.at 'z' . to_vector . should_equal ['c', 'f', '3']
+
+            create_file 'crlf.csv' '\r\n'
+            test_file 'crlf.csv'
+            create_file 'lf.csv' '\n'
+            test_file 'lf.csv'
+            create_file 'cr.csv' '\r'
+            test_file 'cr.csv'
+
+            ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
+
         group_builder.specify "Should report row and column for bad characters" <|
             descs = []
                 + [Fixed_Width_Column_Description.Start_And_Width 8 3]
