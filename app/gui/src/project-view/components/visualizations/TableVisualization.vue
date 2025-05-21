@@ -697,7 +697,7 @@ type ParsedTemplate = {
 };
 
 function parseTemplate(input: string, defaultSelector: string): ParsedTemplate {
-  const regex = /{{(#?)(\w+)}}/g;
+  const regex = /{{([#@]?)(\w+)}}/g;
   const keys: { name: string; numeric: boolean }[] = [];
   let pattern = input;
   
