@@ -9,11 +9,8 @@ import DocsSynopsis from '@/components/DocumentationPanel/DocsSynopsis.vue'
 import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
 import { HistoryStack } from '@/components/DocumentationPanel/history'
 import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
-import {
-  lookupDocumentation,
-  lookupRawDocumentation,
-  placeholder,
-} from '@/components/DocumentationPanel/ir'
+import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useGraphStore } from '@/stores/graph'
@@ -29,8 +26,6 @@ import { ProjectPath } from '@/util/projectPath'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
 import FunctionSignatureEditor from './FunctionSignatureEditor.vue'
-import MarkdownEditor from './MarkdownEditor.vue'
-
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
 const db = useSuggestionDbStore()
@@ -44,26 +39,25 @@ const documentation = computed<Docs>(() => {
 })
 
 const mockFrontMatter = `---
-aliases: [csv,delimited,excel,hyper,load,open,tableau]
-group: File
-icon: data_input
+aliases: [where]
+group: Selections
+icon: preparation
 suggested: 1
-advanced: true
 macros:
- - equals: filter=..Equal
- - not_equals: filter=..Not_Equal
- - not_nothing: filter=..Not_Nothing
- - is_nothing: filter=..Is_Nothing
- - is_in: filter=..Is_In
- - less_than: filter=..Less
- - greater_than: filter=..Greater
- - between: filter=..Between
- - contains: filter=..Contains
- - starts_with: filter=..Starts_With
- - ends_with: filter=..Ends_With
- - like: filter=..Like
- - regex_match: filter=..Regex_Match
- - predicate: filter=v->v==Nothing
+- equals: filter=..Equal
+- not_equals: filter=..Not_Equal
+- not_nothing: filter=..Not_Nothing
+- is_nothing: filter=..Is_Nothing
+- is_in: filter=..Is_In
+- less_than: filter=..Less
+- greater_than: filter=..Greater
+- between: filter=..Between
+- contains: filter=..Contains
+- starts_with: filter=..Starts_With
+- ends_with: filter=..Ends_With
+- like: filter=..Like
+- regex_match: filter=..Regex_Match
+- predicate: filter=v->v==Nothing
 ---
 `
 
@@ -71,7 +65,7 @@ const rawDocumentation = computed(() => {
   if (props.aiMode) return 'AI assistant mode: write query in natural language and press Enter.'
   const entry = props.selectedEntry
   return entry ?
-      mockFrontMatter + lookupRawDocumentation(db.entries, entry)
+      mockFrontMatter // + lookupRawDocumentation(db.entries, entry)
     : 'No suggestion selected.'
 })
 
@@ -112,6 +106,10 @@ const suggestion = computed(() =>
 )
 
 const color = computed(() => groupColorStyle(tryGetIndex(db.groups, suggestion.value?.groupIndex)))
+
+const style = computed(() => ({
+  '--enso-docs-group-color': color.value,
+}))
 
 const icon = computed<IconName>(() => suggestion.value?.iconName ?? 'marketplace')
 
@@ -173,7 +171,7 @@ function openDocs(url: string) {
 </script>
 
 <template>
-  <div class="DocumentationPanel scrollable" @wheel.stop.passive>
+  <div class="DocumentationPanel scrollable" :style="style" @wheel.stop.passive>
     <div v-if="!isPlaceholder" class="topBar">
       <Breadcrumbs
         :breadcrumbs="breadcrumbs"
@@ -199,7 +197,7 @@ function openDocs(url: string) {
       :methodPointer="methodPointer"
       :markdownDocs="markdownDocs"
     ></FunctionSignatureEditor>
-    <div v-if="rawDocumentation">
+    <div v-if="rawDocumentation" class="markdownDocs">
       <MarkdownEditor :content="rawDocumentation" :toolbar="false" />
     </div>
     <DocsTags
@@ -260,6 +258,10 @@ function openDocs(url: string) {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+}
+
+.markdownDocs {
+  padding: 4px 0 0 8px;
 }
 
 .tags {

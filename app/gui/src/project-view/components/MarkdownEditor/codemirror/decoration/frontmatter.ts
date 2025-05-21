@@ -64,6 +64,7 @@ class FrontMatterWidget extends WidgetType {
         () =>
           h(FrontMatter, {
             metadata: this.props.metadata,
+            groupColor: '#000',
           }),
         container,
       )
