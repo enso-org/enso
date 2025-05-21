@@ -185,7 +185,13 @@ case object GlobalNames extends IRPass {
               )
             case _ =>
               if (!lit.isMethod && !isLocalVar(lit)) {
-                val resolution = bindings.resolveName(lit.name)
+                val resolution = if ("project" == lit.name) {
+                  // TBD: make sure project. always resolves to current project
+                  // lazily
+                  return ir
+                } else {
+                  bindings.resolveName(lit.name)
+                }
                 resolution match {
                   case Left(error) =>
                     errors.Resolution(
