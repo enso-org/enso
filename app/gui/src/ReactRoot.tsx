@@ -54,7 +54,7 @@ export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
 
   const setFeatureFlag = useSetFeatureFlag()
   useMount(() => {
-    setFeatureFlag('enableLocalBackend', $config.CLOUD_BUILD === 'true')
+    setFeatureFlag('enableLocalBackend', $config.CLOUD_BUILD !== 'true')
   })
 
   return (
