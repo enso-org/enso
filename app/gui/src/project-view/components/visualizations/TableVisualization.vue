@@ -745,7 +745,7 @@ function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSe
  * or `at {{@fieldname}}` which will generate a Node `at "2"`
  *
  * If the action contains no placeholders then the defaultSelector is used like so
- * `action {{@defaultSelector}}
+ * `action {{@defaultSelector}}`
  *
  * @param params - The grid cell event containing the clicked row's data.
  * @param defaultSelector - A fallback key used when the template contains no placeholders.
