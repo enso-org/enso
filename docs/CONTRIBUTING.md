@@ -24,7 +24,7 @@ sections of this document are linked below:
   - [System Requirements](#system-requirements)
   - [Getting the Sources](#getting-the-sources)
   - Configuration
-    - [Set Up Rust)](#getting-set-up-rust)
+    - [Set Up Rust](#getting-set-up-rust)
     - [Set Up Documentation](#getting-set-up-documentation)
   - Enso Engine CLI
     - [Building Enso Engine](#building-enso-engine)
