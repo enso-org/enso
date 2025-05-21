@@ -1,6 +1,7 @@
 import { BackendType } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import ProjectManager, {
+import {
+  ProjectManager,
   ProjectManagerEvents,
   Path as ProjectManagerPath,
 } from '#/services/ProjectManager'
