@@ -14,10 +14,10 @@ import type { TestIdProps } from '#/components/AriaComponents/types'
 import SvgMask from '#/components/SvgMask'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
 import {
+  forwardRef,
   useRef,
   type CSSProperties,
   type ForwardedRef,
@@ -75,6 +75,7 @@ export const Input = forwardRef(function Input<
     fieldVariants,
     form: formRaw,
     className,
+    contextualHelp,
     testId: testIdRaw,
     ...inputProps
   } = props
@@ -139,6 +140,7 @@ export const Input = forwardRef(function Input<
       ref={ref}
       name={name}
       data-testid={testId}
+      contextualHelp={contextualHelp}
     >
       <BasicInput
         {...aria.mergeProps<BasicInputProps>()(

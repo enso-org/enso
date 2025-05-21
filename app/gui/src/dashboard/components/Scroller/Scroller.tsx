@@ -35,6 +35,7 @@ export function Scroller(props: ScrollerProps) {
     orientation = 'horizontal',
     showShadows = true,
     testId = 'scroller',
+    onScroll,
     ...rest
   } = props
 
@@ -123,6 +124,7 @@ export function Scroller(props: ScrollerProps) {
         ref={(el) => {
           mergeRefs(refCallback, measureRef, containerRef)(el)
         }}
+        onScroll={onScroll}
         className={styles.content()}
       >
         {props.children}

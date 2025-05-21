@@ -77,12 +77,13 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
   }
 
   @Override
-  public void appendNulls(int count) {
+  public SnowflakeIntegerColumnMaterializer appendNulls(int count) {
     if (mode == Mode.LONG) {
       intsMissing.set(currentSize, currentSize + count);
     }
 
     currentSize += count;
+    return this;
   }
 
   @Override

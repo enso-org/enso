@@ -5,9 +5,8 @@ import {
   type SwitchProps as AriaSwitchProps,
 } from '#/components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
-import { useRef, type CSSProperties, type ForwardedRef } from 'react'
+import { forwardRef, useRef, type CSSProperties, type ForwardedRef } from 'react'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import { SWITCH_STYLES } from './variants'
 
@@ -47,6 +46,7 @@ export const Switch = forwardRef(function Switch<
     error,
     size,
     labelPosition = 'after',
+    contextualHelp,
     ...ariaSwitchProps
   } = props
 
@@ -86,6 +86,7 @@ export const Switch = forwardRef(function Switch<
       isInvalid={fieldState.invalid}
       aria-details={props['aria-details']}
       style={props.style}
+      contextualHelp={contextualHelp}
     >
       <AriaSwitch
         ref={(el) => {

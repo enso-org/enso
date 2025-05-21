@@ -1,8 +1,7 @@
 /** @file Alert component. */
 import { Icon } from '#/components/Icon'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
-import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
+import { forwardRef, type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
 import type { IconProp } from '../types'
 import { ALERT_STYLES } from './variants'
 

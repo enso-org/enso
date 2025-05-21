@@ -1,6 +1,5 @@
 /** @file A toolbar containing chat and the user menu. */
 import { SUBSCRIBE_PATH } from '#/appUtils'
-import ChatIcon from '#/assets/chat.svg'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
 import { Button, DialogTrigger, Menu, Popover, Text } from '#/components/AriaComponents'
@@ -20,19 +19,15 @@ import { isAbsoluteUrl } from '#/utilities/url'
 import { AnimatePresence, motion } from 'framer-motion'
 import { TOPBAR_LINKS_SCHEMA, type UserBarLinks } from './constants'
 
-/** Whether the chat button should be visible. Temporarily disabled. */
-const SHOULD_SHOW_CHAT_BUTTON: boolean = false
-
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export function UserBar(props: UserBarProps) {
-  const { setIsHelpChatOpen, goToSettingsPage, onSignOut } = props
+  const { goToSettingsPage, onSignOut } = props
 
   const { user } = useFullUserSession()
   const { getText } = useText()
@@ -72,19 +67,6 @@ export function UserBar(props: UserBarProps) {
         </AnimatePresence>
 
         <UserBarHelpSection items={topbarLinks.items} />
-
-        {SHOULD_SHOW_CHAT_BUTTON && (
-          <Button
-            variant="icon"
-            size="custom"
-            className="mr-1"
-            icon={ChatIcon}
-            aria-label={getText('openHelpChat')}
-            onPress={() => {
-              setIsHelpChatOpen(true)
-            }}
-          />
-        )}
 
         {shouldShowPaywallButton && (
           <PaywallDialogButton feature="inviteUser" size="medium" variant="accent">

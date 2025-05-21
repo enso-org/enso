@@ -1,5 +1,6 @@
 /** @file A resizable input that uses a content-editable div. */
 import {
+  forwardRef,
   useEffect,
   useRef,
   type ClipboardEvent,
@@ -19,7 +20,6 @@ import { Text } from '#/components/AriaComponents/Text'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { INPUT_STYLES } from '../variants'
 
@@ -87,6 +87,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     variant,
     variants = CONTENT_EDITABLE_STYLES,
     fieldVariants,
+    contextualHelp,
     autoFocus = false,
     ...textFieldProps
   } = props
@@ -135,6 +136,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
       fullWidth
       variants={fieldVariants}
       {...textFieldProps}
+      contextualHelp={contextualHelp}
     >
       <div
         className={styles.base()}

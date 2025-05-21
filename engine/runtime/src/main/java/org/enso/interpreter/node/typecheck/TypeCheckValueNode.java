@@ -4,6 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.enso.interpreter.node.ExpressionNode;
@@ -188,16 +189,7 @@ public final class TypeCheckValueNode extends Node {
     if (list == null) {
       return new AbstractTypeCheckNode[0];
     }
-    var cnt = (int) list.stream().filter(n -> n != null).count();
-    var arr = new AbstractTypeCheckNode[cnt];
-    var it = list.iterator();
-    for (int i = 0; i < cnt; ) {
-      var element = it.next();
-      if (element != null) {
-        arr[i++] = element;
-      }
-    }
-    return arr;
+    return list.stream().filter(Objects::nonNull).toArray(AbstractTypeCheckNode[]::new);
   }
 
   final boolean isAllTypes() {

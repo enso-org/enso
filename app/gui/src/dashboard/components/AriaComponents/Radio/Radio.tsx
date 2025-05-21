@@ -1,8 +1,7 @@
 /** @file A radio button. */
 import * as aria from '#/components/aria'
 import { useRadioGroupContext } from '#/components/AriaComponents/Radio/hooks'
-import * as mergeRefs from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
+import { mergeRefs } from '#/utilities/mergeRefs'
 import { tv } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
@@ -43,111 +42,110 @@ export interface RadioProps extends aria.RadioProps {
 }
 
 /** A radio button. */
-// eslint-disable-next-line no-restricted-syntax
-export const Radio = forwardRef(function Radio(
-  props: RadioProps,
-  ref: React.ForwardedRef<HTMLLabelElement>,
-) {
-  const { children, label, className, ...ariaProps } = props
+export const Radio = Object.assign(
+  React.forwardRef(function Radio(props: RadioProps, ref: React.ForwardedRef<HTMLLabelElement>) {
+    const { children, label, className, ...ariaProps } = props
 
-  const inputRef = React.useRef<HTMLInputElement>(null)
-  const labelRef = React.useRef<HTMLLabelElement>(null)
-  const id = aria.useId(ariaProps.id)
+    const inputRef = React.useRef<HTMLInputElement>(null)
+    const labelRef = React.useRef<HTMLLabelElement>(null)
+    const id = aria.useId(ariaProps.id)
 
-  const state = React.useContext(aria.RadioGroupStateContext)
-  const { setPressed, clearPressed, isSiblingPressed } = useRadioGroupContext({
-    value: props.value,
-  })
+    const state = React.useContext(aria.RadioGroupStateContext)
+    const { setPressed, clearPressed, isSiblingPressed } = useRadioGroupContext({
+      value: props.value,
+    })
 
-  invariant(state, '<Radio /> must be used within a <RadioGroup />')
+    invariant(state, '<Radio /> must be used within a <RadioGroup />')
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const { isSelected, isDisabled, isPressed, inputProps, labelProps } = aria.useRadio(
-    aria.mergeProps<aria.RadioProps>()(ariaProps, {
-      id,
-      children: label ?? (typeof children === 'function' ? true : children),
-    }),
-    state,
-    inputRef,
-  )
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const { isSelected, isDisabled, isPressed, inputProps, labelProps } = aria.useRadio(
+      aria.mergeProps<aria.RadioProps>()(ariaProps, {
+        id,
+        children: label ?? (typeof children === 'function' ? true : children),
+      }),
+      state,
+      inputRef,
+    )
 
-  const { isFocused, isFocusVisible, focusProps } = aria.useFocusRing()
-  const interactionDisabled = isDisabled || state.isReadOnly
-  const { hoverProps, isHovered } = aria.useHover({
-    ...props,
-    isDisabled: interactionDisabled,
-  })
+    const { isFocused, isFocusVisible, focusProps } = aria.useFocusRing()
+    const interactionDisabled = isDisabled || state.isReadOnly
+    const { hoverProps, isHovered } = aria.useHover({
+      ...props,
+      isDisabled: interactionDisabled,
+    })
 
-  React.useEffect(() => {
-    if (isPressed) {
-      setPressed()
-    } else {
-      clearPressed()
+    React.useEffect(() => {
+      if (isPressed) {
+        setPressed()
+      } else {
+        clearPressed()
+      }
+    }, [isPressed, setPressed, clearPressed])
+
+    const renderValues = {
+      isSelected,
+      isPressed,
+      isHovered,
+      isFocused,
+      isFocusVisible,
+      isDisabled,
+      isReadOnly: state.isReadOnly,
+      isInvalid: state.isInvalid,
+      isRequired: state.isRequired,
+      defaultChildren: null,
+      defaultClassName: '',
     }
-  }, [isPressed, setPressed, clearPressed])
 
-  const renderValues = {
-    isSelected,
-    isPressed,
-    isHovered,
-    isFocused,
-    isFocusVisible,
-    isDisabled,
-    isReadOnly: state.isReadOnly,
-    isInvalid: state.isInvalid,
-    isRequired: state.isRequired,
-    defaultChildren: null,
-    defaultClassName: '',
-  }
+    const {
+      base,
+      radio,
+      input,
+      label: labelClasses,
+    } = RADIO_STYLES({
+      isSiblingPressed,
+      isFocused,
+      isFocusVisible,
+      isHovered,
+      isSelected,
+      isInvalid: state.isInvalid,
+      isDisabled,
+      isPressed,
+      className: typeof className === 'function' ? className(renderValues) : className,
+    })
 
-  const {
-    base,
-    radio,
-    input,
-    label: labelClasses,
-  } = RADIO_STYLES({
-    isSiblingPressed,
-    isFocused,
-    isFocusVisible,
-    isHovered,
-    isSelected,
-    isInvalid: state.isInvalid,
-    isDisabled,
-    isPressed,
-    className: typeof className === 'function' ? className(renderValues) : className,
-  })
+    const renderedChildren = typeof children === 'function' ? children(renderValues) : children
 
-  const renderedChildren = typeof children === 'function' ? children(renderValues) : children
-
-  return (
-    <label
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      {...aria.mergeProps<React.LabelHTMLAttributes<HTMLLabelElement>>()(hoverProps, labelProps)}
-      ref={(el) => {
-        mergeRefs.mergeRefs(labelRef, ref)(el)
-      }}
-      className={base()}
-    >
-      <input
+    return (
+      <label
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        {...aria.mergeProps<React.InputHTMLAttributes<HTMLInputElement>>()(inputProps, focusProps)}
-        ref={inputRef}
-        id={id}
-        className={input()}
-      />
+        {...aria.mergeProps<React.LabelHTMLAttributes<HTMLLabelElement>>()(hoverProps, labelProps)}
+        ref={(el) => {
+          mergeRefs(labelRef, ref)(el)
+        }}
+        className={base()}
+      >
+        <input
+          {...aria.mergeProps<React.InputHTMLAttributes<HTMLInputElement>>()(
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            inputProps,
+            focusProps,
+          )}
+          ref={inputRef}
+          id={id}
+          className={input()}
+        />
 
-      <div className={radio()} />
+        <div className={radio()} />
 
-      <Text className={labelClasses()} variant="body" truncate="1">
-        {label ?? renderedChildren}
-      </Text>
-    </label>
-  )
-}) as unknown as ((
-  props: RadioProps & React.RefAttributes<HTMLLabelElement>,
-) => React.JSX.Element) & {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  Group: typeof RadioGroup
-}
-
-Radio.Group = RadioGroup
+        <Text className={labelClasses()} variant="body" truncate="1">
+          {label ?? renderedChildren}
+        </Text>
+      </label>
+    )
+  }),
+  /* eslint-disable @typescript-eslint/naming-convention */
+  {
+    Group: RadioGroup,
+  },
+  /* eslint-enable @typescript-eslint/naming-convention */
+)

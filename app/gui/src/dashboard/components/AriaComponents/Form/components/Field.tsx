@@ -1,9 +1,9 @@
 /** @file Field component. */
 import * as aria from '#/components/aria'
 import type { Path } from '#/utilities/objectPath'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import * as React from 'react'
+import { ContextualHelp } from '../../ContextualHelp'
 import { FIELD_ERROR_STYLES, FIELD_STYLES } from '../variants'
 import type { FieldPath, FieldProps, FieldValues, FormInstance, TSchema } from './types'
 import { useFieldState } from './useFieldState'
@@ -38,7 +38,7 @@ export interface FieldChildrenRenderProps {
 }
 
 /** Field component */
-export const Field = forwardRef(function Field<Schema extends TSchema>(
+export const Field = React.forwardRef(function Field<Schema extends TSchema>(
   props: FieldComponentProps<Schema>,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {
@@ -52,6 +52,7 @@ export const Field = forwardRef(function Field<Schema extends TSchema>(
     isHidden,
     isInvalid = false,
     isRequired = false,
+    contextualHelp,
     variants = FIELD_STYLES,
   } = props
 
@@ -82,18 +83,28 @@ export const Field = forwardRef(function Field<Schema extends TSchema>(
       aria-errormessage={hasError ? errorId : ''}
       aria-required={isRequired}
     >
-      <aria.Label id={labelId} className={classes.labelContainer()}>
-        {label != null && (
-          <span id={labelId} className={classes.label()}>
-            {label}
+      <aria.Label id={labelId} className={classes.fieldContent()}>
+        <div className={classes.labelContainer()}>
+          {label != null && (
+            <span id={labelId} className={classes.label()}>
+              {label}
 
-            {isRequired && (
-              <span aria-hidden="true" className="scale-80 text-danger" data-testid="required-mark">
-                {' *'}
-              </span>
+              {isRequired && (
+                <span aria-hidden="true" className="text-primary" data-testid="required-mark">
+                  {' *'}
+                </span>
+              )}
+            </span>
+          )}
+
+          <div className={classes.contextualHelp()}>
+            {contextualHelp != null && (
+              <ContextualHelp placement="top" variant="help">
+                {contextualHelp}
+              </ContextualHelp>
             )}
-          </span>
-        )}
+          </div>
+        </div>
 
         <div className={classes.content()}>
           {typeof children === 'function' ?

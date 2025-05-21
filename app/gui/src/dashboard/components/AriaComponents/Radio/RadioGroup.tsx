@@ -1,9 +1,8 @@
 /** @file A radio group. */
 import * as aria from '#/components/aria'
 import { RADIO_GROUP_STYLES } from '#/components/AriaComponents/Radio/variants'
-import * as mergeRefs from '#/utilities/mergeRefs'
+import { mergeRefs } from '#/utilities/mergeRefs'
 import { omit } from '#/utilities/object'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import type { FieldVariantProps } from '../Form'
@@ -33,7 +32,7 @@ export interface RadioGroupProps<
 const useStringField = Form.makeUseField<string>()
 
 /** A radio group. */
-export const RadioGroup = forwardRef(function RadioGroup<
+export const RadioGroup = React.forwardRef(function RadioGroup<
   Schema extends TSchema,
   FieldName extends FieldPath<Schema, string>,
 >(props: RadioGroupProps<Schema, FieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
@@ -52,6 +51,7 @@ export const RadioGroup = forwardRef(function RadioGroup<
     fullWidth,
     variants = RADIO_GROUP_STYLES,
     fieldVariants,
+    contextualHelp,
     ...radioGroupProps
   } = props
 
@@ -69,7 +69,7 @@ export const RadioGroup = forwardRef(function RadioGroup<
   return (
     <aria.RadioGroup
       ref={(el) => {
-        mergeRefs.mergeRefs(ref, field.ref)(el)
+        mergeRefs(ref, field.ref)(el)
       }}
       {...aria.mergeProps<aria.RadioGroupProps>()(omit(radioGroupProps, 'validate'), {
         name: field.name,
@@ -93,6 +93,7 @@ export const RadioGroup = forwardRef(function RadioGroup<
           isInvalid={invalid}
           variants={fieldVariants}
           isRequired={isRequired}
+          contextualHelp={contextualHelp}
         >
           {children}
         </Form.Field>

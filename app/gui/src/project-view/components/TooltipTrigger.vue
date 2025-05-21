@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { useTooltipRegistry } from '@/providers/tooltipRegistry'
+import { useTooltipRegistry, type TooltipDisplayStrategy } from '@/providers/tooltipRegistry'
 import { usePropagateScopesToAllRoots } from '@/util/patching'
 import { toRef } from 'vue'
+
+const { when = 'always' } = defineProps<{ when?: TooltipDisplayStrategy }>()
 
 usePropagateScopesToAllRoots()
 
@@ -15,7 +17,7 @@ const tooltipSlot = toRef(slots, 'tooltip')
 const registered = registry.registerTooltip(tooltipSlot)
 function onEnter(e: PointerEvent) {
   if (e.target instanceof HTMLElement && tooltipSlot.value != null) {
-    registered.onTargetEnter(e.target)
+    registered.onTargetEnter(e.target, () => when)
   }
 }
 

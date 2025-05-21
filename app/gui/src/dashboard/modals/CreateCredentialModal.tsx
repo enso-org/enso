@@ -21,7 +21,7 @@ export function CreateCredentialForm(props: CreateCredentialFormProps) {
   const selectedItem = CREDENTIAL_INFOS[selectedChildIndex]
 
   return (
-    <div className="w-full">
+    <>
       <Dropdown
         aria-label={getText('credentialTypeLabel')}
         items={CREDENTIAL_INFOS}
@@ -34,7 +34,7 @@ export function CreateCredentialForm(props: CreateCredentialFormProps) {
         {({ item }) => <Text slot="label">{getText(item.nameId)}</Text>}
       </Dropdown>
       {selectedItem && <selectedItem.form createCredentials={createCredentialsHandler} />}
-    </div>
+    </>
   )
 }
 

@@ -14,9 +14,14 @@ import type {
 } from '#/components/AriaComponents/Form/types'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { omit } from '#/utilities/object'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import type { CSSProperties, ForwardedRef, ReactElement, ReactNode } from 'react'
+import {
+  forwardRef,
+  type CSSProperties,
+  type ForwardedRef,
+  type ReactElement,
+  type ReactNode,
+} from 'react'
 import { Controller } from 'react-hook-form'
 import type { TestIdProps } from '../types'
 import { CheckboxGroupProvider } from './CheckboxContext'
@@ -62,6 +67,7 @@ export const CheckboxGroup = forwardRef(
       description,
       fullWidth = false,
       fieldVariants,
+      contextualHelp,
       ...checkboxGroupProps
     } = props
 
@@ -112,6 +118,7 @@ export const CheckboxGroup = forwardRef(
                       isInvalid={invalid}
                       variants={fieldVariants}
                       {...checkboxGroupProps}
+                      contextualHelp={contextualHelp}
                     >
                       {typeof children === 'function' ? children(renderProps) : children}
                     </Field>

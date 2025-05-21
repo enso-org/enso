@@ -1,6 +1,4 @@
 /** @file A combo box with a list of items that can be filtered. */
-import { useContext, useRef, type ForwardedRef } from 'react'
-
 import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
@@ -23,10 +21,12 @@ import {
 } from '#/components/AriaComponents/Form'
 import { Text } from '#/components/AriaComponents/Text'
 import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
+import { VisualTooltip } from '#/components/AriaComponents/VisualTooltip'
 import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { forwardRef, useContext, useRef, type ForwardedRef, type ReactNode } from 'react'
+import invariant from 'tiny-invariant'
 import { BasicInput, type InputProps } from '../Input'
 
 const COMBO_BOX_STYLES = tv({
@@ -34,21 +34,18 @@ const COMBO_BOX_STYLES = tv({
   variants: {
     rounded: makeRoundedStyles('inputContainer'),
     size: {
-      small: {
-        inputContainer: 'h-6 px-2',
-      },
-      medium: {
-        inputContainer: 'h-8 px-4',
-      },
+      custom: '',
+      small: { inputContainer: 'px-[11px] pb-0.5 pt-1' },
+      medium: { inputContainer: 'px-[11px] pb-[6.5px] pt-[8.5px]' },
     },
   },
   slots: {
     inputContainer: 'flex items-center gap-2 px-1.5 rounded-full border-0.5 border-primary/20',
     input: 'grow',
     resetButton: '',
-    popover: 'py-2',
+    popover: 'py-2 w-[calc(var(--trigger-width)_+_48px)]',
     listBox: 'text-primary text-xs',
-    listBoxItem: 'min-w-min cursor-pointer rounded-full hover:bg-hover-bg px-2',
+    listBoxItem: 'cursor-pointer rounded-full hover:bg-hover-bg px-2',
   },
   defaultVariants: {
     size: 'medium',
@@ -73,13 +70,15 @@ export interface ComboBoxProps<Schema extends TSchema, FieldName extends FieldPa
     Pick<InputProps<Schema, FieldName, string>, 'addonEnd' | 'addonStart' | 'placeholder'> {
   /** This may change as the user types in the input. */
   readonly items: readonly FieldValues<Schema>[FieldName][]
-  /** A text representation of the item to be shown on each option. */
-  readonly children: (item: FieldValues<Schema>[FieldName]) => string
+  /** A text-like representation of the item to be shown on each option. */
+  readonly children: (item: FieldValues<Schema>[FieldName]) => ReactNode
   /**
    * Convert an item to a unique text id, if the default text format returned by
    * `children` is not guaranteed (or not supposed) to be unique.
    */
   readonly toTextValue?: (item: FieldValues<Schema>[FieldName]) => string
+  /** Convert an item to the tooltip to be shown, if different from the item itself. */
+  readonly toTooltip?: (item: FieldValues<Schema>[FieldName]) => string
   /** Hide the `x` button to disable resetting the input. */
   readonly noResetButton?: boolean
 }
@@ -109,15 +108,30 @@ export const ComboBox = forwardRef(function ComboBox<
     rounded,
     children,
     toTextValue,
+    toTooltip,
     noResetButton = false,
     variants = COMBO_BOX_STYLES,
+    contextualHelp,
     addonStart,
     addonEnd,
   } = props
   const itemsAreStrings = typeof items[0] === 'string'
   const effectiveItems = itemsAreStrings ? items.map((id) => ({ id })) : items
-  const toTextValueOrText = toTextValue ?? children
-  const reverseMapping = new Map(items.map((item) => [toTextValueOrText(item), item]))
+  const reverseMapping = new Map(
+    items.map((item) => {
+      const childrenEl = children(item)
+      const textValue =
+        toTextValue?.(item) ??
+        (typeof childrenEl === 'string' ? childrenEl
+        : typeof item === 'string' ? item
+        : null)
+      invariant(
+        textValue != null,
+        'Every element in a `ComboBox` must have a string representation',
+      )
+      return [textValue, item]
+    }),
+  )
   const popoverTriggerRef = useRef<HTMLDivElement>(null)
 
   const { fieldState, formInstance } = useStringField({
@@ -142,6 +156,7 @@ export const ComboBox = forwardRef(function ComboBox<
       isInvalid={fieldState.invalid}
       aria-details={props['aria-details']}
       ref={ref}
+      contextualHelp={contextualHelp}
       style={props.style}
     >
       <Form.Controller
@@ -172,7 +187,11 @@ export const ComboBox = forwardRef(function ComboBox<
               />
               {!noResetButton && <ComboBoxResetButton className={styles.resetButton()} />}
             </div>
-            <Popover triggerRef={popoverTriggerRef} className={styles.popover()}>
+            <Popover
+              triggerRef={popoverTriggerRef}
+              size="auto-xxsmall"
+              className={styles.popover()}
+            >
               <ListBox aria-label={props['aria-label'] ?? 'Combo box'} className={styles.listBox()}>
                 {(item) => {
                   // eslint-disable-next-line no-restricted-syntax
@@ -182,17 +201,37 @@ export const ComboBox = forwardRef(function ComboBox<
                       // `{ id: item }`.
                       item.id
                     : item) as FieldValues<Schema>[FieldName]
-                  const text = children(fieldValue)
-                  const textValue = toTextValue?.(fieldValue) ?? text
+                  const childrenEl = children(fieldValue)
+                  const textValue =
+                    toTextValue?.(fieldValue) ??
+                    (typeof childrenEl === 'string' ? childrenEl
+                    : typeof fieldValue === 'string' ? fieldValue
+                    : null)
+                  invariant(
+                    textValue != null,
+                    'Every element in a `ComboBox` must have a string representation',
+                  )
+                  const tooltip = toTooltip?.(fieldValue) ?? textValue
+
                   return (
                     <ListBoxItem
                       id={textValue}
                       textValue={textValue}
                       className={styles.listBoxItem()}
                     >
-                      <Text truncate="1" className="w-full" tooltipPlacement="left">
-                        {text}
-                      </Text>
+                      {typeof childrenEl === 'string' ?
+                        <Text
+                          truncate="1"
+                          className="w-full"
+                          tooltip={toTooltip ? tooltip : childrenEl}
+                          tooltipPlacement="left"
+                        >
+                          {childrenEl}
+                        </Text>
+                      : <VisualTooltip tooltip={tooltip} className="flex w-full">
+                          {childrenEl}
+                        </VisualTooltip>
+                      }
                     </ListBoxItem>
                   )
                 }}

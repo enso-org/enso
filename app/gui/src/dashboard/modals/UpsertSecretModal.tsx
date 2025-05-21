@@ -1,34 +1,45 @@
 /** @file A modal for creating and editing a secret. */
-import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
+import { Button, ButtonGroup, Dialog, Form, Input } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import type { SecretId } from '#/services/Backend'
+import { type SecretId } from '#/services/Backend'
+
+/** Props for a {@link UpsertSecretForm}. */
+export interface UpsertSecretFormProps {
+  readonly secretId?: SecretId | null
+  readonly name?: string | null
+  readonly doCreate: (name: string, value: string) => void
+  /**
+   * If provided, a cancel button will be offered.
+   *
+   * The value may be:
+   * - A callback to run if the button is pressed.
+   * - 'close': The cancel button will close the containing dialog.
+   * - 'reset': The cancel button will reset the form.
+   */
+  readonly doCancel?: 'close' | 'reset' | (() => void) | null
+}
 
 /** Props for a {@link UpsertSecretModal}. */
-export interface UpsertSecretModalProps {
-  readonly noDialog?: boolean
-  readonly id: SecretId | null
-  readonly name: string | null
+export interface UpsertSecretModalProps extends Omit<UpsertSecretFormProps, 'doCancel'> {
   readonly defaultOpen?: boolean
-  readonly doCreate: (name: string, value: string) => Promise<void> | void
   /** Defaults to `true`. */
   readonly canCancel?: boolean
-  /** Defaults to `false`. */
-  readonly canReset?: boolean
 }
 
 /** A modal for creating and editing a secret. */
-export default function UpsertSecretModal(props: UpsertSecretModalProps) {
-  const { noDialog = false, id, name: nameRaw, defaultOpen, doCreate } = props
-  const { canCancel = true, canReset = false } = props
+export function UpsertSecretForm(props: UpsertSecretFormProps) {
+  const { secretId, name: nameRaw, doCreate, doCancel } = props
   const { getText } = useText()
 
-  const isCreatingSecret = id == null
+  const isCreatingSecret = secretId == null
 
-  const content = (
+  return (
     <Form
       schema={(z) => z.object({ title: z.string().min(1), value: z.string() })}
       defaultValues={{ title: nameRaw ?? '', value: '' }}
-      onSubmit={({ title, value }) => doCreate(title, value)}
+      onSubmit={({ title, value }) => {
+        doCreate(title, value)
+      }}
       method="dialog"
       testId="upsert-secret-modal"
       className="w-full"
@@ -55,21 +66,34 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
 
       <ButtonGroup className="mt-2">
         <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
-        {canCancel && <DialogDismiss />}
-        {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
+        {doCancel === 'reset' ?
+          <Form.Reset>{getText('cancel')}</Form.Reset>
+        : doCancel === 'close' ?
+          <Dialog.Close>{getText('cancel')}</Dialog.Close>
+        : doCancel ?
+          <Button onPress={doCancel}>{getText('cancel')}</Button>
+        : null}
       </ButtonGroup>
 
       <Form.FormError />
     </Form>
   )
+}
 
-  return noDialog ? content : (
-      <Dialog
-        title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
-        modalProps={defaultOpen == null ? {} : { defaultOpen }}
-        isDismissable={false}
-      >
-        {content}
-      </Dialog>
-    )
+/** A modal for creating and editing a secret. */
+export default function UpsertSecretModal(props: UpsertSecretModalProps) {
+  const { defaultOpen, canCancel = true, secretId } = props
+  const { getText } = useText()
+
+  const isCreatingSecret = secretId == null
+
+  return (
+    <Dialog
+      title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
+      modalProps={defaultOpen == null ? {} : { defaultOpen }}
+      isDismissable={false}
+    >
+      <UpsertSecretForm {...props} doCancel={canCancel ? 'close' : null} />
+    </Dialog>
+  )
 }

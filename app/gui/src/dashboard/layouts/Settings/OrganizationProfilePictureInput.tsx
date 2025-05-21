@@ -44,7 +44,7 @@ export default function OrganizationProfilePictureInput(
         >
           {uploadOrganizationPicture.isPending && (
             <StatelessSpinner
-              state="loading-medium"
+              phase="loading-medium"
               className="absolute -inset-1"
               thickness={0.5}
             />

@@ -152,7 +152,7 @@ function openDocs(url: string) {
         v-if="documentationUrl"
         name="open"
         title="Open in New Window"
-        @click.stop="openDocs(documentationUrl)"
+        @activate="openDocs(documentationUrl)"
       />
     </div>
     <!-- todo panel -->

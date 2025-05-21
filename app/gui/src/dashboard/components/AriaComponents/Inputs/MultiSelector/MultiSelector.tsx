@@ -1,5 +1,5 @@
 /** @file A horizontal selector supporting multiple input. */
-import { useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
+import { forwardRef, useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
 
 import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
 
@@ -20,7 +20,6 @@ import {
 } from '#/components/AriaComponents/Form'
 import { MULTI_SELECTOR_STYLES } from '#/components/AriaComponents/Inputs/MultiSelector/variants'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { MultiSelectorOption, type MultiSelectorOptionProps } from './MultiSelectorOption'
 
@@ -79,6 +78,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
     rounded,
     isRequired = false,
     variant,
+    contextualHelp,
     ...inputProps
   } = props
 
@@ -117,6 +117,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
       ref={ref}
       style={props.style}
       className={props.className}
+      contextualHelp={contextualHelp}
     >
       <div
         className={classes.base()}

@@ -22,10 +22,9 @@ import {
 } from '#/components/AriaComponents/Form'
 import { Text } from '#/components/AriaComponents/Text'
 import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { useContext, type ForwardedRef } from 'react'
+import { forwardRef, useContext, type ForwardedRef } from 'react'
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
 const DATE_PICKER_STYLES = tv({
@@ -107,6 +106,7 @@ export const TimeField = forwardRef(function TimeField<
     granularity,
     style,
     isInvalid,
+    contextualHelp,
     ...rest
   } = props
 
@@ -133,6 +133,7 @@ export const TimeField = forwardRef(function TimeField<
       aria-details={props['aria-details']}
       ref={ref}
       style={style}
+      contextualHelp={contextualHelp}
     >
       <Form.Controller
         control={formInstance.control}

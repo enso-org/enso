@@ -25,9 +25,8 @@ import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { type VariantProps } from '#/utilities/tailwindVariants'
-import { useEffect, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
+import { forwardRef, useEffect, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
 import { DROPDOWN_STYLES } from './variants'
 
 /** Props for a list item child. */
@@ -277,7 +276,7 @@ export function FormDropdown<
   FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
 >(props: FormDropdownProps<Schema, FieldName, Constraint>) {
-  const { name, children, rounded, size, variants, ...inputProps } = props
+  const { name, children, rounded, size, variants, contextualHelp, ...inputProps } = props
   const { items } = inputProps
 
   const form = Form.useFormContext(props.form)
@@ -296,6 +295,7 @@ export function FormDropdown<
       })}
       name={props.name}
       isRequired={props.isRequired}
+      contextualHelp={contextualHelp}
     >
       <Form.Controller
         control={form.control}

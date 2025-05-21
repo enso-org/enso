@@ -31,13 +31,13 @@ import {
   type FieldValues,
   type TSchema,
 } from '#/components/AriaComponents/Form'
-import { Text } from '#/components/AriaComponents/Text'
+import { Text, TEXT_STYLE } from '#/components/AriaComponents/Text'
 import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
 import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
+import { twJoin } from '#/utilities/tailwindMerge'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { useContext, type ForwardedRef } from 'react'
+import { forwardRef, useContext, type ForwardedRef } from 'react'
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
 const DATE_PICKER_STYLES = tv({
@@ -45,12 +45,9 @@ const DATE_PICKER_STYLES = tv({
   variants: {
     rounded: makeRoundedStyles('inputContainer'),
     size: {
-      small: {
-        inputContainer: 'h-6 px-2',
-      },
-      medium: {
-        inputContainer: 'h-8 px-4',
-      },
+      custom: '',
+      small: { inputContainer: 'px-[11px] pb-0.5 pt-1' },
+      medium: { inputContainer: 'px-[11px] pb-[6.5px] pt-[8.5px]' },
     },
   },
   slots: {
@@ -162,6 +159,7 @@ export const DatePicker = forwardRef(function DatePicker<
     isInvalid,
     style,
     rounded,
+    contextualHelp,
     ...rest
   } = props
 
@@ -173,6 +171,7 @@ export const DatePicker = forwardRef(function DatePicker<
   })
 
   const styles = variants({ size, rounded })
+  const textStyles = TEXT_STYLE()
 
   return (
     <Form.Field
@@ -188,6 +187,7 @@ export const DatePicker = forwardRef(function DatePicker<
       aria-details={props['aria-details']}
       ref={ref}
       style={style}
+      contextualHelp={contextualHelp}
     >
       <Form.Controller
         control={formInstance.control}
@@ -211,8 +211,10 @@ export const DatePicker = forwardRef(function DatePicker<
                     : <DateSegment
                         segment={normalizeDateSegment(segment)}
                         className={styles.dateSegment({
-                          className:
+                          className: twJoin(
                             segment.type === 'literal' && segment.text === ' ' ? 'w-1.5' : '',
+                            textStyles,
+                          ),
                         })}
                       />
                   }

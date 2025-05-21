@@ -17,9 +17,10 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
+import { useAssetPanelCurrentItem } from '#/layouts/AssetPanel/'
 import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/constants'
 import SharedWithColumn from '#/layouts/AssetsTable/components/columns/SharedWithColumn'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
@@ -43,7 +44,6 @@ import { useStore } from '#/utilities/zustand'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
-import { useAssetPanelCurrentItem } from '../constants'
 import type { AssetPanelProps } from './types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
@@ -381,16 +381,14 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           >
             {getText('configuration')}
           </Heading>
-          <UpsertSecretModal
+          <UpsertSecretForm
             key={item.id}
-            noDialog
-            canReset
-            canCancel={false}
-            id={item.id}
+            doCancel="reset"
+            secretId={item.id}
             name={item.title}
-            doCreate={async (title, value) => {
-              await updateSecretMutation.mutateAsync([item.id, { title, value }, title])
-            }}
+            doCreate={(title, value) =>
+              updateSecretMutation.mutateAsync([item.id, { title, value }, title])
+            }
           />
         </div>
       )}
@@ -458,7 +456,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           {datalinkQuery.isLoading ?
             <div className="grid place-items-center self-stretch">
-              <StatelessSpinner size={48} state="loading-medium" />
+              <StatelessSpinner size={48} phase="loading-medium" />
             </div>
           : <Form
               schema={(z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) })}

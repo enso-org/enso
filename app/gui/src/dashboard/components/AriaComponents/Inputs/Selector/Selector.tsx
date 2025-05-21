@@ -12,8 +12,7 @@ import {
 } from '#/components/AriaComponents/Form'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
-import type { VariantProps } from '#/utilities/tailwindVariants'
+import { type VariantProps } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import { SelectorOption } from './SelectorOption'
 import { SELECTOR_STYLES } from './variants'
@@ -39,7 +38,7 @@ export interface SelectorProps<Schema extends TSchema, FieldName extends FieldPa
 }
 
 /** A horizontal selector. */
-export const Selector = forwardRef(function Selector<
+export const Selector = React.forwardRef(function Selector<
   Schema extends TSchema,
   FieldName extends FieldPath<Schema, T>,
   T,
@@ -60,6 +59,7 @@ export const Selector = forwardRef(function Selector<
     isInvalid = false,
     fieldVariants,
     defaultValue,
+    contextualHelp,
     ...inputProps
   } = props
 
@@ -89,6 +89,7 @@ export const Selector = forwardRef(function Selector<
               form: formInstance,
               label,
               isRequired,
+              contextualHelp,
             })}
             name={props.name}
             ref={ref}

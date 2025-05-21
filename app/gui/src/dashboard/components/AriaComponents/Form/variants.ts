@@ -28,8 +28,10 @@ export const FIELD_STYLES = tv({
     isHidden: { true: { base: 'hidden' } },
   },
   slots: {
-    labelContainer: 'contents',
-    label: TEXT_STYLE({ variant: 'body', disableLineHeightCompensation: true }),
+    fieldContent: 'contents',
+    contextualHelp: '',
+    labelContainer: 'flex gap-1 items-center',
+    label: TEXT_STYLE({ variant: 'body' }),
     content: 'flex flex-col items-start w-full',
     description: TEXT_STYLE({ variant: 'body', color: 'disabled' }),
   },

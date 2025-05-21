@@ -8,6 +8,9 @@ import { ensoDevtoolsStore, useShowEnsoDevtools } from './EnsoDevtoolsProvider'
 const EnsoDevtoolsImpl = React.lazy(() =>
   import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevtools })),
 )
+const EnsoDevStatus = React.lazy(() =>
+  import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevStatus })),
+)
 
 /** A component that provides a UI for toggling paywall features. */
 export function EnsoDevtools() {
@@ -25,7 +28,12 @@ export function EnsoDevtools() {
     return null
   }
 
-  return <EnsoDevtoolsImpl />
+  return (
+    <>
+      <EnsoDevtoolsImpl />
+      <EnsoDevStatus />
+    </>
+  )
 }
 
 /**

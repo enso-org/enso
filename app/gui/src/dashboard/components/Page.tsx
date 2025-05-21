@@ -1,44 +1,25 @@
 /** @file A page. */
 import TheModal from '#/components/dashboard/TheModal'
 import Portal from '#/components/Portal'
-import Chat from '#/layouts/Chat'
-import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import InfoBar from '#/layouts/InfoBar'
-import { UserSessionType } from '#/providers/AuthProvider/constants'
-import { useUserSession } from '#/providers/AuthProvider/hooks'
-import { useState, type PropsWithChildren } from 'react'
+import type { PropsWithChildren } from 'react'
 
 /** Props for a {@link Page}. */
 export interface PageProps extends Readonly<PropsWithChildren> {
   readonly hideInfoBar?: true
-  readonly hideChat?: boolean
 }
 
 /** A page. */
 export default function Page(props: PageProps) {
-  const { hideInfoBar = false, children, hideChat = false } = props
-  const [isHelpChatOpen, setIsHelpChatOpen] = useState(false)
-  const session = useUserSession()
-
-  const doCloseChat = () => {
-    setIsHelpChatOpen(false)
-  }
+  const { hideInfoBar = false, children } = props
 
   return (
     <>
       {children}
       {!hideInfoBar && (
         <div className="fixed right top z-1 m-2.5 text-primary">
-          <InfoBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
+          <InfoBar />
         </div>
-      )}
-      {!hideChat && (
-        <>
-          {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-          {!hideInfoBar && session?.type === UserSessionType.full && $config.CHAT_URL != null ?
-            <Chat isOpen={isHelpChatOpen} doClose={doCloseChat} endpoint={$config.CHAT_URL} />
-          : <ChatPlaceholder hideLoginButtons isOpen={isHelpChatOpen} doClose={doCloseChat} />}
-        </>
       )}
       <Portal>
         <div className="select-none text-xs text-primary">

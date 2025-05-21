@@ -1,11 +1,10 @@
 <script lang="ts">
 import { UserBar as UserBarReact } from '#/layouts/UserBar'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
-import { ProjectId } from '#/services/Backend'
+import { BackendType, ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
 import SelectableTab from '$/components/TabView/SelectableTab.vue'
-import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, watch } from 'vue'
 
@@ -21,7 +20,6 @@ const {
   closeProject,
   closeAllProjects,
   clearLaunchedProjects,
-  setIsChatOpen,
 } = defineProps<{
   initialProjectName: string | null
   page: LaunchedProjectId | TabType | null
@@ -30,7 +28,6 @@ const {
   closeProject(project: LaunchedProject): void
   closeAllProjects(): void
   clearLaunchedProjects(): void
-  setIsChatOpen(value: boolean): void
 }>()
 
 const readyProjects = reactive(new Set<ProjectId>())
@@ -43,6 +40,12 @@ function setProjectReady(project: ProjectId, ready: boolean) {
   } else {
     readyProjects.delete(project)
   }
+}
+
+function loadingProjectSpinnerPhase(project: LaunchedProject) {
+  return project.hybrid != null || project.type === BackendType.local ?
+      'loading-fast'
+    : 'loading-slow'
 }
 
 watch(
@@ -72,42 +75,57 @@ const onSignOut = () => {
   <div class="TabView">
     <div class="bar">
       <div role="tablist" class="tablist">
-        <SelectableTab :selected="page === 'drive'" @update:selected="$event && setPage('drive')">
-          <SvgIcon name="drive" /><span>Data Catalog</span>
-        </SelectableTab>
+        <SelectableTab
+          :selected="page === 'drive'"
+          icon="drive"
+          label="Data Catalog"
+          @update:selected="$event && setPage('drive')"
+        />
         <SelectableTab
           v-for="project in launchedProjects"
           :key="project.id"
           data-testid="editor-tab-button"
           :selected="page === project.id"
+          :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
+          :label="projectNames.get(project.id)"
           @update:selected="$event && setPage(project.id)"
+          @close="closeProject(project)"
         >
-          <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
-          <LoadingSpinner v-else :size="16" />
-          <span>{{ projectNames.get(project.id) }}</span>
-          <SvgIcon name="close" @click="closeProject(project)" />
+          <GrowingSpinner
+            v-if="!readyProjects.has(project.id)"
+            :phase="loadingProjectSpinnerPhase(project)"
+            :size="16"
+          />
         </SelectableTab>
-        <SelectableTab v-if="page === 'settings'" :selected="true">Settings</SelectableTab>
+        <SelectableTab
+          v-if="page === 'settings'"
+          :selected="true"
+          icon="settings"
+          label="Settings"
+        />
       </div>
       <div class="filler" />
-      <UserBar
-        :goToSettingsPage="() => setPage('settings')"
-        :setIsHelpChatOpen="setIsChatOpen"
-        @signOut="onSignOut"
-      />
+      <UserBar :goToSettingsPage="() => setPage('settings')" @signOut="onSignOut" />
     </div>
     <div role="tabpanel" class="panel">
       <KeepAlive>
         <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" />
       </KeepAlive>
-      <Editor
+      <!-- instead of v-if we set element hidden, because Editor.tsx is responsible for loading 
+       process -->
+      <div
         v-for="project in launchedProjects"
         :key="project.id"
-        :hidden="page !== project.id"
-        :project="project"
-        @readyUpdate="setProjectReady(project.id, $event)"
-        @nameUpdate="projectNames.set(project.id, $event)"
-      />
+        class="editor"
+        :class="{ hidden: page !== project.id }"
+      >
+        <Editor
+          :hidden="page !== project.id"
+          :project="project"
+          @readyUpdate="setProjectReady(project.id, $event)"
+          @nameUpdate="projectNames.set(project.id, $event)"
+        />
+      </div>
       <KeepAlive>
         <Settings v-if="page === 'settings'" />
       </KeepAlive>
@@ -136,6 +154,9 @@ const onSignOut = () => {
 .tablist {
   display: flex;
   flex-direction: row;
+  /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
+  isolation: isolate;
+  font-family: var(--font-sans);
 }
 
 .filler {
@@ -146,5 +167,13 @@ const onSignOut = () => {
   flex-grow: 1;
   min-height: 0;
   display: flex;
+}
+
+.editor {
+  display: contents;
+
+  &.hidden {
+    display: none;
+  }
 }
 </style>
