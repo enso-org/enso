@@ -68,8 +68,12 @@ public final class TypeCheckValueNode extends Node {
       try {
         var plainValue = warnings.removeWarnings(value);
         var result = handleCheckOrConversionImpl(frame, plainValue, expr);
-        var warnMap = warnings.getWarnings(value, false);
-        return append.executeAppend(frame, result, warnMap);
+        if (result == plainValue) {
+          return value;
+        } else {
+          var warnMap = warnings.getWarnings(value, false);
+          return append.executeAppend(frame, result, warnMap);
+        }
       } catch (UnsupportedMessageException ex) {
         var ctx = EnsoContext.get(this);
         throw ctx.raiseAssertionPanic(this, null, ex);
