@@ -708,6 +708,7 @@ function parseActionTemplate(input: string, defaultSelector: string): ParsedActi
 
   pattern = "__." + pattern;
 
+  // template didn't contain any {{}} placeholders so add a single default argument
   if (selectors.length === 0) {
     selectors.push({ name: defaultSelector, numeric: false });
     pattern = pattern + " __";
