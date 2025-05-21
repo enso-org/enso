@@ -29,42 +29,36 @@ const newlineEndsBlock: BlockParser = {
 
 declare module '@lezer/markdown' {
   interface BlockContext {
-    checkedYaml: boolean | null
+    isFrontmatterChecked: boolean | null
   }
 }
 
-/** TODO */
+/**
+ * A parser for ‘metadata’ section of the Markdown docs.
+ * Similar to https://jekyllrb.com/docs/front-matter/.
+ */
 const YAMLFrontMatter: MarkdownConfig = {
   defineNodes: ['YAMLFrontMatter', 'YAMLMarker', 'YAMLContent'],
   parseBlock: [
     {
       name: 'YAMLFrontMatter',
       parse(ctx: BlockContext, line: Line) {
-        if (ctx.checkedYaml) {
+        if (ctx.isFrontmatterChecked) {
           return false
         }
-        ctx.checkedYaml = true
-        const regex = /^\s*---/
-        const match = regex.exec(line.text)
+        ctx.isFrontmatterChecked = true
+        const regex = /^\s*---\s*$/
         const start = ctx.lineStart
-        let contentStart
-        let startMarker
-        let endMarker
-        let content
-        if (match) {
-          const end = ctx.lineStart + match[0].length
-          contentStart = end
-          startMarker = ctx.elt('YAMLMarker', ctx.lineStart, contentStart)
+        if (regex.test(line.text)) {
+          const contentStart = ctx.lineStart + line.text.length
+          const startMarker = ctx.elt('YAMLMarker', ctx.lineStart, contentStart)
           while (ctx.nextLine()) {
-            if (regex.exec(line.text)) {
-              content = ctx.elt('YAMLContent', contentStart, ctx.lineStart)
-              endMarker = ctx.elt('YAMLMarker', ctx.lineStart, ctx.lineStart + match[0].length)
+            if (regex.test(line.text)) {
+              const content = ctx.elt('YAMLContent', contentStart, ctx.lineStart)
+              const end = ctx.lineStart + line.text.length
+              const endMarker = ctx.elt('YAMLMarker', ctx.lineStart, end)
               ctx.addElement(
-                ctx.elt('YAMLFrontMatter', start, ctx.lineStart + match[0].length, [
-                  startMarker,
-                  content,
-                  endMarker,
-                ]),
+                ctx.elt('YAMLFrontMatter', start, end, [startMarker, content, endMarker]),
               )
               ctx.nextLine()
               return true
