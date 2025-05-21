@@ -692,50 +692,50 @@ function toField(
 }
 
 type ParsedActionTemplate = {
-  pattern: string;
-  selectors: { name: string; numeric: boolean }[];
-};
+  pattern: string
+  selectors: { name: string; numeric: boolean }[]
+}
 
 function parseActionTemplate(input: string, defaultSelector: string): ParsedActionTemplate {
-  const regex = /{{([#@]?)(\w+)}}/g;
-  const selectors: { name: string; numeric: boolean }[] = [];
-  let pattern = input;
-  
-  pattern = pattern.replace(regex, (_, flag, key) => {
-    selectors.push({ name: key, numeric: flag === "#" });
-    return "__";
-  });
+  const regex = /{{([#@]?)(\w+)}}/g
+  const selectors: { name: string; numeric: boolean }[] = []
+  let pattern = input
 
-  pattern = "__." + pattern;
+  pattern = pattern.replace(regex, (_, flag, key) => {
+    selectors.push({ name: key, numeric: flag === '#' })
+    return '__'
+  })
+
+  pattern = '__.' + pattern
 
   // template didn't contain any {{}} placeholders so add a single default argument
   if (selectors.length === 0) {
-    selectors.push({ name: defaultSelector, numeric: false });
-    pattern = pattern + " __";
+    selectors.push({ name: defaultSelector, numeric: false })
+    pattern = pattern + ' __'
   }
 
-  return { pattern, selectors };
+  return { pattern, selectors }
 }
 
 function isNumber(value: unknown): value is number {
-  return typeof value === 'number' && !isNaN(value);
+  return typeof value === 'number' && !isNaN(value)
 }
 
 function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSelector: string) {
-  const parsedAction = parseActionTemplate(action, defaultSelector);
+  const parsedAction = parseActionTemplate(action, defaultSelector)
 
   return Pattern.new<Ast.Expression>((ast) => {
     const mappedExpressions = parsedAction.selectors.map(({ name, numeric }) => {
-      const value = params.data[name];
+      const value = params.data[name]
       const castedValue = numeric && !isNaN(Number(value)) ? Number(value) : value
-      return isNumber(castedValue)
-        ? Ast.tryNumberToEnso(castedValue, ast.module)!
-        : Ast.TextLiteral.new(castedValue, ast.module);
-    });
+      return isNumber(castedValue) ?
+          Ast.tryNumberToEnso(castedValue, ast.module)!
+        : Ast.TextLiteral.new(castedValue, ast.module)
+    })
 
-    const templatePattern = Pattern.parseExpression(parsedAction.pattern);
-    return templatePattern.instantiateCopied([ast, ...mappedExpressions]);;
-  });
+    const templatePattern = Pattern.parseExpression(parsedAction.pattern)
+    return templatePattern.instantiateCopied([ast, ...mappedExpressions])
+  })
 }
 
 /**
@@ -743,7 +743,7 @@ function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSe
  *
  * The action string should be of the format `at {{#fieldname}}` which will generate a Node `at 2`
  * or `at {{@fieldname}}` which will generate a Node `at "2"`
- * 
+ *
  * If the action contains no placeholders then the defaultSelector is used like so
  * `action {{@defaultSelector}}
  *
@@ -751,12 +751,8 @@ function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSe
  * @param defaultSelector - A fallback key used when the template contains no placeholders.
  * @param action - A template string with placeholders (e.g., `at {{@name}}`, `at {{#value}}`) used to generate the AST.
  */
-function createNode(
-  params: CellDoubleClickedEvent,
-  defaultSelector: string,
-  action: string,
-) {
-  const pattern = getAstPattern(params, action, defaultSelector);
+function createNode(params: CellDoubleClickedEvent, defaultSelector: string, action: string) {
+  const pattern = getAstPattern(params, action, defaultSelector)
 
   if (pattern) {
     config.createNodes({
@@ -769,15 +765,15 @@ function createNode(
 interface LinkFieldOptions {
   tooltipValue?: string | undefined
   headerName?: string | undefined
-  getChildAction?: string | undefined
+  getChildAction: string
 }
 
-function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef {
+function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
   const { tooltipValue, headerName, getChildAction } = options
   return {
     headerName: headerName ? headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction!),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction),
     tooltipValueGetter: (params: ITooltipParams) =>
       params.node?.rowPinned === 'top' ?
         null
@@ -808,7 +804,7 @@ watchEffect(() => {
         has_index_col: false,
         links: undefined,
         // eslint-disable-next-line camelcase
-        get_child_node_action: undefined,
+        get_child_node_action: '',
         // eslint-disable-next-line camelcase
         get_child_node_link_name: undefined,
         // eslint-disable-next-line camelcase
