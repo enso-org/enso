@@ -4,7 +4,7 @@
  */
 import type { Meta, StoryObj } from '@storybook/react'
 
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { expect, userEvent, within } from '@storybook/test'
 import type { MenuProps } from '.'
 import { Menu } from '.'

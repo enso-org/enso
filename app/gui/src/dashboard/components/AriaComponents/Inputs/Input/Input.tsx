@@ -10,17 +10,17 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import {
-  Form,
-  Text,
-  type FieldComponentProps,
-  type FieldPath,
-  type FieldProps,
-  type FieldStateProps,
-  type FieldVariantProps,
-  type TestIdProps,
-  type TSchema,
+import type {
+  FieldComponentProps,
+  FieldPath,
+  FieldProps,
+  FieldStateProps,
+  FieldVariantProps,
+  TestIdProps,
+  TSchema,
 } from '#/components/AriaComponents'
+import { Form } from '#/components/AriaComponents/Form'
+import { Text } from '#/components/AriaComponents/Text'
 import SvgMask from '#/components/SvgMask'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'

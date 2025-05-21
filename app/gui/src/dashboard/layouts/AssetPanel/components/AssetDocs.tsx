@@ -1,10 +1,10 @@
 /** @file Documentation display for an asset. */
 import { Result } from '#/components/Result'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { Asset } from '#/services/Backend'
 import { AssetType } from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
+import { useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy, useCallback } from 'react'
 import * as ast from 'ydoc-shared/ast'

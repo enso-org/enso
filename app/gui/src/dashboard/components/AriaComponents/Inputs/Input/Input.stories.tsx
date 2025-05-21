@@ -1,5 +1,6 @@
 /** @file Stories for the Input component */
-import { Form, Text } from '#/components/AriaComponents'
+import { Form } from '#/components/AriaComponents/Form'
+import { Text } from '#/components/AriaComponents/Text'
 import type { Meta, StoryObj } from '@storybook/react'
 
 import { fn } from '@storybook/test'

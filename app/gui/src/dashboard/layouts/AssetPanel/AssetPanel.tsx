@@ -18,10 +18,9 @@ import { usePaywall } from '#/hooks/billing'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useBackend } from '#/providers/BackendProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useText } from '#/providers/TextProvider'
 import { useStore } from '#/utilities/zustand'
+import { useBackends, useText } from '$/providers/react'
 import type { Key } from 'react-aria'
 import {
   assetPanelStore,
@@ -104,6 +103,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   props: AssetPanelProps & { panelWidth: number },
 ) {
   const { category, panelWidth } = props
+  const { backendForType } = useBackends()
 
   const itemId = useAssetPanelCurrentItem()?.id
 
@@ -134,7 +134,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
     setIsExpanded(true)
   })
 
-  const backend = useBackend(category)
+  const backend = backendForType(category.backend)
 
   const getTranslation = useEventCallback(() => ASSET_SIDEBAR_COLLAPSED_WIDTH)
 

@@ -1,7 +1,7 @@
 /** @file A loading screen, displayed while the user is logging in. */
 import { Text } from '#/components/AriaComponents'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 /** The diameter of the spinner. */
 const SPINNER_SIZE_PX = 64

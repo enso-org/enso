@@ -32,7 +32,6 @@ import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPane
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
 import {
   AssetType,
   BackendType,
@@ -40,6 +39,7 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 import { useAssetPanelCurrentItem } from '../AssetPanelState'
 import type { AssetPanelProps } from './types'
 

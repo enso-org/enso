@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
@@ -21,7 +21,7 @@ export interface InviteUsersModalProps {
 /** A modal for inviting one or more users. */
 export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { relativeToTrigger = false } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const { user } = authProvider.useFullUserSession()
 
   if (relativeToTrigger) {

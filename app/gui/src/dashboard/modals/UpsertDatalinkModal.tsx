@@ -3,8 +3,8 @@ import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/Ar
 import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import { validateDatalink } from '#/data/datalinkValidator'
-import { useText } from '#/providers/TextProvider'
 import { constantValueOfSchema } from '#/utilities/jsonSchema'
+import { useText } from '$/providers/react'
 
 const DEFS: Record<string, object> = SCHEMA.$defs
 const INITIAL_DATALINK_VALUE = constantValueOfSchema(DEFS, SCHEMA.$defs.DataLink, true)[0] ?? null
