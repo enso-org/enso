@@ -1,5 +1,6 @@
 /** @file Constants for `AuthProvider`. */
 import type { UserSession as CognitoUserSession } from '#/authentication/cognito'
+import type { UserSessionType } from '#/providers/AuthProvider/types'
 import type { User } from '#/services/Backend'
 import type { QueryKey, QueryObserverResult, RefetchOptions } from '@tanstack/react-query'
 import { createContext } from 'react'
@@ -19,13 +20,13 @@ interface BaseUserSession extends CognitoUserSession {
  * used by the `SetUsername` component.
  */
 export interface PartialUserSession extends BaseUserSession {
-  readonly type: UserSessionType.partial
+  readonly type: 'partial'
 }
 
 /** Object containing the currently signed-in user's session data. */
 export interface FullUserSession extends BaseUserSession {
   /** User's organization information. */
-  readonly type: UserSessionType.full
+  readonly type: 'full'
   readonly user: User
 }
 
@@ -34,13 +35,6 @@ export interface FullUserSession extends BaseUserSession {
  * or in the process of registering.
  */
 export type UserSession = FullUserSession | PartialUserSession
-
-/** Possible types of {@link BaseUserSession}. */
-export enum UserSessionType {
-  offline = 'offline',
-  partial = 'partial',
-  full = 'full',
-}
 
 /**
  * Interface returned by the `useAuth` hook.

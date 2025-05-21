@@ -13,7 +13,7 @@ import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appU
 
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
-import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
+import { useAuth, useUserSession } from '#/providers/AuthProvider'
 import { useRemoteBackend } from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -58,7 +58,7 @@ const BASE_STEPS: Step[] = [
       const userSession = useUserSession()
       const { getText } = textProvider.useText()
 
-      const isUserCreated = userSession?.type === UserSessionType.full
+      const isUserCreated = userSession?.type === 'full'
       const defaultName =
         session && 'user' in session ? session.user.name : (userSession?.email ?? '')
 
@@ -382,12 +382,12 @@ export function Setup() {
   invariant(currentScreen != null, 'Current screen not found')
 
   if (isFirstRender() && !isDebug) {
-    if (session?.type === UserSessionType.full && currentStep === 0) {
+    if (session?.type === 'full' && currentStep === 0) {
       nextStep()
     }
   }
 
-  if (session?.type !== UserSessionType.full && session?.type !== UserSessionType.partial) {
+  if (session?.type !== 'full' && session?.type !== 'partial') {
     void router.push(LOGIN_PATH)
     return
   }

@@ -16,7 +16,6 @@ import {
 import Portal from '#/components/Portal'
 import * as billing from '#/hooks/billing'
 import { usePlanOverride, useSetPlanOverride } from '#/providers/AuthProvider'
-import { UserSessionType } from '#/providers/AuthProvider/constants'
 import { useAuth } from '#/providers/AuthProvider/hooks'
 import {
   FEATURE_FLAGS_SCHEMA,
@@ -160,7 +159,7 @@ export function EnsoDevStatus() {
 export function EnsoDevtools() {
   const { getText } = textProvider.useText()
 
-  const { authQueryKey, session } = useAuth()
+  const { session } = useAuth()
   const queryClient = useQueryClient()
   const { getFeature } = billing.usePaywallFeatures()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
@@ -226,7 +225,7 @@ export function EnsoDevtools() {
 
           <Separator orientation="horizontal" className="my-3" />
 
-          {session?.type === UserSessionType.full && (
+          {session?.type === 'full' && (
             <>
               <Text variant="subtitle">{getText('ensoDevtoolsPlanSelectSubtitle')}</Text>
 

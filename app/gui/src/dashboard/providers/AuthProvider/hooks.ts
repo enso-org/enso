@@ -5,9 +5,7 @@
  */
 import * as React from 'react'
 import invariant from 'tiny-invariant'
-
 import type { AuthContextType, FullUserSession } from './types'
-import { UserSessionType } from './types'
 
 export const AuthContext = React.createContext<AuthContextType | null>(null)
 
@@ -33,7 +31,7 @@ export function useAuth() {
 export function usePartialUserSession() {
   const { session } = useAuth()
 
-  invariant(session?.type === UserSessionType.partial, 'Expected a partial user session.')
+  invariant(session?.type === 'partial', 'Expected a partial user session.')
 
   return session
 }
@@ -47,7 +45,7 @@ export function useUserSession() {
 export function useFullUserSession(): FullUserSession {
   const { session } = useAuth()
 
-  invariant(session?.type === UserSessionType.full, 'Expected a full user session.')
+  invariant(session?.type === 'full', 'Expected a full user session.')
 
   return session
 }

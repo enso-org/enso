@@ -42,7 +42,7 @@ import invariant from 'tiny-invariant'
 import { usePlanOverride } from './authStore'
 import { AuthContext, useAuth } from './hooks'
 import type { AuthContextType } from './types'
-import { UserSessionType, type FullUserSession, type PartialUserSession } from './types'
+import { type FullUserSession, type PartialUserSession } from './types'
 
 /** Query to fetch the user's session data from the backend. */
 function createUsersMeQuery(
@@ -58,8 +58,8 @@ function createUsersMeQuery(
 
       return remoteBackend.usersMe().then((user) => {
         return user == null ?
-            ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
-          : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
+            ({ type: 'partial', ...session } satisfies PartialUserSession)
+          : ({ type: 'full', user, ...session } satisfies FullUserSession)
       })
     },
   })
@@ -134,7 +134,7 @@ export function AuthProvider(props: AuthProviderProps) {
   const setUsername = useEventCallback(async (username: string) => {
     gtagEvent('cloud_user_created')
 
-    if (userData?.type === UserSessionType.full) {
+    if (userData?.type === 'full') {
       await updateUserMutation({ username })
     } else {
       const orgId = await organizationId()
@@ -183,7 +183,7 @@ export function AuthProvider(props: AuthProviderProps) {
   const setUser = useEventCallback((user: Partial<backendModule.User>) => {
     const currentUser = queryClient.getQueryData(usersMeQueryOptions.queryKey)
 
-    if (currentUser != null && currentUser.type === UserSessionType.full) {
+    if (currentUser != null && currentUser.type === 'full') {
       const currentUserData = currentUser.user
       const nextUserData: backendModule.User = Object.assign(currentUserData, user)
 
@@ -218,7 +218,7 @@ export function AuthProvider(props: AuthProviderProps) {
   })
 
   React.useEffect(() => {
-    if (userData?.type === UserSessionType.full) {
+    if (userData?.type === 'full') {
       sentry.setUser({
         id: userData.user.userId,
         email: userData.email,
@@ -230,7 +230,7 @@ export function AuthProvider(props: AuthProviderProps) {
   }, [userData])
 
   React.useEffect(() => {
-    if (userData?.type === UserSessionType.partial) {
+    if (userData?.type === 'partial') {
       sentry.setUser({ email: userData.email })
     }
   }, [userData])
@@ -241,19 +241,19 @@ export function AuthProvider(props: AuthProviderProps) {
   }, [gtagEvent])
 
   React.useEffect(() => {
-    if (userData?.type === UserSessionType.full) {
+    if (userData?.type === 'full') {
       onAuthenticated(userData.accessToken)
     }
   }, [userData, onAuthenticated])
 
   React.useEffect(() => {
-    if (userData?.type === UserSessionType.full && userData.user.isEnsoTeamMember) {
+    if (userData?.type === 'full' && userData.user.isEnsoTeamMember) {
       setFeatureFlags(featureFlagsForInternalTesting())
     }
   }, [userData, setFeatureFlags])
 
   const effectiveUserData =
-    userData?.type === UserSessionType.full && planOverride != null ?
+    userData?.type === 'full' && planOverride != null ?
       { ...userData, user: { ...userData.user, plan: planOverride } }
     : userData
 
@@ -298,7 +298,7 @@ export function ProtectedLayout({ children }: React.PropsWithChildren<object>) {
     return
   }
 
-  if (session.type === UserSessionType.partial) {
+  if (session.type === 'partial') {
     void router.push(appUtils.SETUP_PATH)
     return
   }
@@ -339,7 +339,7 @@ export function SemiProtectedLayout({ children }: React.PropsWithChildren) {
   }
 
   // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.
-  if (session.type === UserSessionType.full) {
+  if (session.type === 'full') {
     void router.replace(localStorage.consume('loginRedirect') ?? appUtils.DASHBOARD_PATH)
     return
   }
@@ -357,10 +357,10 @@ export function GuestLayout({ children }: React.PropsWithChildren) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { router } = useRouterInReact()
 
-  if (session?.type === UserSessionType.partial) {
+  if (session?.type === 'partial') {
     void router.push(appUtils.SETUP_PATH)
     return
-  } else if (session?.type === UserSessionType.full) {
+  } else if (session?.type === 'full') {
     const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
       localStorage.delete('loginRedirect')
