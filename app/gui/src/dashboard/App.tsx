@@ -46,34 +46,27 @@ import * as detect from 'enso-common/src/detect'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { BackendProvider, useLocalBackend } from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
-import { useLogger } from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
-import * as textProvider from '#/providers/TextProvider'
 
 import VersionChecker from '#/layouts/VersionChecker'
 import { RouterProvider } from 'react-aria-components'
 
 import AboutModal from '#/modals/AboutModal'
 
-import LocalBackend from '#/services/LocalBackend'
-import ProjectManager, * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import { Path } from '#/utilities/path'
-import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useConfigInReact, useRouterInReact } from '$/providers/react'
-import { useHttpClient } from './providers/HttpClientProvider'
+import { useBackends, useRouter, useText } from '$/providers/react'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -94,8 +87,6 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
   /**
    * Whether the application supports deep links. This is only true when using
    * the installed app on macOS and Windows.
@@ -112,52 +103,8 @@ export interface AppProps {
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
 export default function App(props: React.PropsWithChildren<AppProps>) {
-  const config = useConfigInReact()
-  const {
-    data: { projectManagerRootDirectory, projectManagerInstance },
-  } = reactQuery.useSuspenseQuery<{
-    projectManagerInstance: ProjectManager | null
-    projectManagerRootDirectory: projectManager.Path | null
-  }>({
-    queryKey: [
-      'root-directory',
-      {
-        projectManagerUrl: config.projectManagerUrl,
-        supportsLocalBackend: props.supportsLocalBackend,
-      },
-    ] as const,
-    networkMode: 'always',
-    ...STATIC_QUERY_OPTIONS,
-    behavior: {
-      onFetch: ({ state }) => {
-        const instance = state.data?.projectManagerInstance ?? null
-
-        if (instance != null) {
-          void instance.dispose()
-        }
-      },
-    },
-    queryFn: async () => {
-      if (props.supportsLocalBackend && config.projectManagerUrl != null) {
-        const response = await fetch(`/api/root-directory`)
-        const text = await response.text()
-        const rootDirectory = projectManager.Path(text)
-
-        return {
-          projectManagerInstance: new ProjectManager(config.projectManagerUrl, rootDirectory),
-          projectManagerRootDirectory: rootDirectory,
-        }
-      } else {
-        return {
-          projectManagerInstance: null,
-          projectManagerRootDirectory: null,
-        }
-      }
-    },
-  })
-
   const { isOffline } = useOffline()
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const queryClient = reactQuery.useQueryClient()
 
   const executeBackgroundUpdate = useMutationCallback({
@@ -178,7 +125,7 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
     }
   }, [executeBackgroundUpdate, isOffline])
 
-  // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
+  // `InputBindingsProvider` depends on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
@@ -194,21 +141,11 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
       />
       <LocalStorageProvider>
         <ModalProvider>
-          <AppRouter
-            {...props}
-            projectManagerInstance={projectManagerInstance}
-            projectManagerRootDirectory={projectManagerRootDirectory}
-          />
+          <AppRouter {...props} />
         </ModalProvider>
       </LocalStorageProvider>
     </>
   )
-}
-
-/** Props for an {@link AppRouter}. */
-export interface AppRouterProps extends AppProps {
-  readonly projectManagerRootDirectory: projectManager.Path | null
-  readonly projectManagerInstance: ProjectManager | null
 }
 
 /**
@@ -218,21 +155,13 @@ export interface AppRouterProps extends AppProps {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider.
  */
-function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
-  const { onAuthenticated, projectManagerInstance, children } = props
-  const httpClient = useHttpClient()
-  const logger = useLogger()
-  const { router } = useRouterInReact()
+function AppRouter(props: React.PropsWithChildren<AppProps>) {
+  const { onAuthenticated, children } = props
+  const { router } = useRouter()
   const navigate = router.push.bind(router)
 
-  const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { setModal } = modalProvider.useSetModal()
-
-  const localBackend =
-    projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null
-
-  const remoteBackend = new RemoteBackend(httpClient, logger, getText)
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
@@ -303,15 +232,13 @@ function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
         mainPageUrl={mainPageUrl}
         registerAuthEventListener={registerAuthEventListener}
       >
-        <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-          <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
-            <InputBindingsProvider>
-              <LocalBackendPathSynchronizer />
-              <VersionChecker />
-              {children}
-            </InputBindingsProvider>
-          </authProvider.AuthProvider>
-        </BackendProvider>
+        <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
+          <InputBindingsProvider>
+            <LocalBackendPathSynchronizer />
+            <VersionChecker />
+            {children}
+          </InputBindingsProvider>
+        </authProvider.AuthProvider>
       </sessionProvider.SessionProvider>
     </RouterProvider>
   )
@@ -320,13 +247,12 @@ function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
 /** Keep `localBackend.rootPath` in sync with the saved root path state. */
 function LocalBackendPathSynchronizer() {
   const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
-  const localBackend = useLocalBackend()
-  if (localBackend) {
-    if (localRootDirectory != null) {
-      localBackend.setRootPath(Path(localRootDirectory))
-    } else {
-      localBackend.resetRootPath()
-    }
+  const { localBackend } = useBackends()
+
+  if (localRootDirectory != null) {
+    localBackend?.setRootPath(Path(localRootDirectory))
+  } else {
+    localBackend?.resetRootPath()
   }
 
   return null

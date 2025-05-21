@@ -3,7 +3,7 @@
  *
  * Hook to get the error message from the form.
  */
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { useFormContext } from './FormProvider'
 import type { FormInstance } from './types'
 

@@ -24,9 +24,9 @@ import {
   type DatePickerProps as AriaDatePickerProps,
   type DateValue,
 } from '#/components/aria'
-import { useText } from '#/providers/TextProvider'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 import {
   Button,
   Form,
@@ -163,6 +163,7 @@ export const DatePicker = forwardRef(function DatePicker<
     isInvalid,
     style,
     rounded,
+    contextualHelp,
     ...rest
   } = props
 
@@ -190,6 +191,7 @@ export const DatePicker = forwardRef(function DatePicker<
       aria-details={props['aria-details']}
       ref={ref}
       style={style}
+      contextualHelp={contextualHelp}
     >
       <Form.Controller
         control={formInstance.control}

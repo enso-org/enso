@@ -8,12 +8,17 @@ import * as errorBoundary from 'react-error-boundary'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
-import * as ariaComponents from '#/components/AriaComponents'
+// We cannot import from `AriaComponents`, because it's reexports `Dialog` which imports this module.
+import { Alert } from '#/components/AriaComponents/Alert'
+import { Button, ButtonGroup } from '#/components/AriaComponents/Button'
+import { Separator } from '#/components/AriaComponents/Separator'
+import { Text } from '#/components/AriaComponents/Text'
+
 import * as result from '#/components/Result'
 
-import { Button, Text, type SvgUseIcon } from '#/components/AriaComponents'
+import { type SvgUseIcon } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as errorUtils from '#/utilities/error'
 import { OfflineError } from '#/utilities/HttpClient'
@@ -115,7 +120,7 @@ export interface ErrorDisplayProps extends errorBoundary.FallbackProps {
 
 /** Default fallback component to show when there is an error. */
 export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const {
     error,
@@ -153,44 +158,38 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
       subtitle={finalSubtitle}
       testId="error-display"
     >
-      <ariaComponents.ButtonGroup align="center">
-        <ariaComponents.Button
-          variant="submit"
-          size="small"
-          rounded="full"
-          className="w-24"
-          onPress={onReset}
-        >
+      <ButtonGroup align="center">
+        <Button variant="submit" size="small" rounded="full" className="w-24" onPress={onReset}>
           {getText('tryAgain')}
-        </ariaComponents.Button>
-      </ariaComponents.ButtonGroup>
+        </Button>
+      </ButtonGroup>
 
       {detect.IS_DEV_MODE && stack != null && (
         <div className="mt-6">
-          <ariaComponents.Separator className="my-2" />
+          <Separator className="my-2" />
 
-          <ariaComponents.Text color="primary" variant="h1" className="text-start">
+          <Text color="primary" variant="h1" className="text-start">
             {getText('developerInfo')}
-          </ariaComponents.Text>
+          </Text>
 
-          <ariaComponents.Text color="danger" variant="body">
+          <Text color="danger" variant="body">
             {getText('errorColon')}
             {message}
-          </ariaComponents.Text>
+          </Text>
 
-          <ariaComponents.Alert
+          <Alert
             className="mx-auto mt-2 max-h-[80vh] max-w-screen-lg overflow-auto"
             variant="neutral"
           >
-            <ariaComponents.Text
+            <Text
               elementType="pre"
               className="whitespace-pre-wrap text-left"
               color="primary"
               variant="body"
             >
               {stack}
-            </ariaComponents.Text>
-          </ariaComponents.Alert>
+            </Text>
+          </Alert>
         </div>
       )}
     </result.Result>
@@ -206,7 +205,7 @@ export interface InlineErrorDisplayProps extends Omit<ErrorDisplayProps, 'status
 export function InlineErrorDisplay(props: InlineErrorDisplayProps) {
   const { error, resetErrorBoundary, onBeforeFallbackShown, title, resetQueries = () => {} } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const render = onBeforeFallbackShown?.({ error, resetErrorBoundary, resetQueries })
 

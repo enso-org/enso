@@ -136,6 +136,7 @@ export const Checkbox = Object.assign(
         className: _,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         style: __,
+        contextualHelp,
         ...fieldProps
 
         // This is safe, because we know that the checkbox is standalone, and
@@ -167,6 +168,7 @@ export const Checkbox = Object.assign(
                     name={name}
                     isInvalid={isInvalid ?? fieldState.invalid}
                     variants={fieldVariants}
+                    contextualHelp={contextualHelp}
                   >
                     <CheckboxInternal ref={ref} value={name} {...props} />
                   </Form.Field>

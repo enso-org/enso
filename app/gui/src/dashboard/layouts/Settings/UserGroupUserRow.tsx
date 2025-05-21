@@ -4,7 +4,7 @@ import Cross2 from '#/assets/cross2.svg'
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -31,7 +31,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   const { user, userGroup, doRemoveUserFromUserGroup } = props
   const { user: currentUser } = useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const isAdmin = currentUser.isOrganizationAdmin
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
     getText('userGroupUserContextMenuLabel'),

@@ -11,7 +11,7 @@ import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 
 import * as safeJsonParse from '#/utilities/safeJsonParse'
-import { useRouterInReact } from '$/providers/react'
+import { useRouter } from '$/providers/react'
 import { useCallback } from 'react'
 import { type RouteLocationOptions } from 'vue-router'
 
@@ -40,7 +40,7 @@ export function useSearchParamsState<T = unknown>(
   defaultValue: T | (() => T),
   predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
-  const { router, searchParams } = useRouterInReact()
+  const { router, searchParams } = useRouter()
 
   const setSearchParams = useCallback(
     (

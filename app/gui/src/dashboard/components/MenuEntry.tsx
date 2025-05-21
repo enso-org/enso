@@ -10,7 +10,7 @@ import type * as inputBindings from '#/configurations/inputBindings'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import type { TextProps } from '#/components/AriaComponents'
@@ -113,7 +113,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     color,
     ...variantProps
   } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const { unsetModal } = modalProvider.useSetModal()
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()

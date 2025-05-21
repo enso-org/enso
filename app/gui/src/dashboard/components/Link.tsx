@@ -5,8 +5,8 @@ import * as toastify from 'react-toastify'
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
-import { useText } from '#/providers/TextProvider'
 import { mergeRefs } from '#/utilities/mergeRefs'
+import { useText } from '$/providers/react'
 
 /** Props for a {@link Link}. */
 export interface LinkProps {

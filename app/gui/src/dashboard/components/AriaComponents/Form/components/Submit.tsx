@@ -6,8 +6,9 @@
  */
 import type { JSX } from 'react'
 
-import { Button, type ButtonProps } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { type ButtonProps } from '#/components/AriaComponents'
+import { Button } from '#/components/AriaComponents/Button'
+import { useText } from '$/providers/react'
 import { useFormContext } from './FormProvider'
 import type { FieldPath, FieldValues, FormInstance, TSchema } from './types'
 

@@ -76,6 +76,7 @@ export const Switch = forwardRef(function Switch<
     error,
     size,
     labelPosition = 'after',
+    contextualHelp,
     ...ariaSwitchProps
   } = props
 
@@ -115,6 +116,7 @@ export const Switch = forwardRef(function Switch<
       isInvalid={fieldState.invalid}
       aria-details={props['aria-details']}
       style={props.style}
+      contextualHelp={contextualHelp}
     >
       <AriaSwitch
         ref={(el) => {

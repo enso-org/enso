@@ -25,8 +25,7 @@ import {
 } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
 import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
-import { injectProjectBackend } from '@/providers/backend'
-
+import { injectProjectBackend } from '@/providers/projectBackend'
 import { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'

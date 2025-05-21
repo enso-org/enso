@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import { useLogger } from '#/providers/LoggerProvider'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { resolveDocImageUrl } from '@/components/DocumentationEditor/images'
 import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
 import { Err, Ok } from '@/util/data/result'
