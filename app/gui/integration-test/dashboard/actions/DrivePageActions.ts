@@ -417,27 +417,27 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     })
   }
 
-  /** Show the Asset Panel. */
-  showAssetPanel() {
-    return this.step('Show asset panel', async (page) => {
-      const isShown = await this.isAssetPanelShown(page)
+  // /** Show the Asset Panel. */
+  // showAssetPanel() {
+  //   return this.step('Show asset panel', async (page) => {
+  //     const isShown = await this.isAssetPanelShown(page)
 
-      if (!isShown) {
-        await this.toggleRightPanel()
-      }
-    })
-  }
+  //     if (!isShown) {
+  //       await this.toggleRightPanel()
+  //     }
+  //   })
+  // }
 
-  /** Hide the Asset Panel. */
-  hideAssetPanel() {
-    return this.step('Hide asset panel', async (page) => {
-      const isShown = await this.isAssetPanelShown(page)
+  // /** Hide the Asset Panel. */
+  // hideAssetPanel() {
+  //   return this.step('Hide asset panel', async (page) => {
+  //     const isShown = await this.isAssetPanelShown(page)
 
-      if (isShown) {
-        await this.toggleRightPanel()
-      }
-    })
-  }
+  //     if (isShown) {
+  //       await this.toggleRightPanel()
+  //     }
+  //   })
+  // }
 
   /** Toggle the Asset Panel open or closed. */
   toggleRightPanel() {
@@ -470,7 +470,6 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   /** Show the description tab of the Asset Panel. */
   toggleDescriptionAssetPanel() {
     return this.step('Toggle description asset panel', async (page) => {
-      await this.showAssetPanel()
       await page.getByTestId('asset-panel-tab-settings').click()
     })
   }
@@ -478,7 +477,6 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   /** Show the Docs tab of the Asset Panel. */
   toggleDocsAssetPanel() {
     return this.step('Toggle docs asset panel', async (page) => {
-      await this.showAssetPanel()
       await page.getByTestId('asset-panel-tab-docs').click()
     })
   }

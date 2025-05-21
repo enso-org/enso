@@ -26,10 +26,10 @@ const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
 const { rightPanel } = injectConainerData()
 const { id: projectId, store: projectStore, graph } = injectCurrentProject()
-const { backendByCategory } = injectBackends()
+const { backendForType } = injectBackends()
 const backendForAsset = computed(() => {
   if (rightPanel.context?.category == null) return null
-  return backendByCategory(rightPanel.context.category)
+  return backendForType(rightPanel.context.category.backend)
 })
 
 const fileContentsFromCloud = useQuery({

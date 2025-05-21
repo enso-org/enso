@@ -32,6 +32,7 @@ import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPane
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -39,8 +40,7 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
-import { useContainerData, useText } from '$/providers/react'
-import type { AssetPanelProps } from './types'
+import { useBackends, useContainerData, useText } from '$/providers/react'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
   base: '',
@@ -57,17 +57,13 @@ const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
   },
 })
 
-/** Props for a {@link ProjectExecutionsCalendar}. */
-export interface ProjectExecutionsCalendarProps extends AssetPanelProps {}
-
 /** A calendar showing executions of a project. */
-export function ProjectExecutionsCalendar(props: ProjectExecutionsCalendarProps) {
-  const { backend } = props
+export function ProjectExecutionsCalendar() {
   const { getText } = useText()
-
+  const { remoteBackend } = useBackends()
   const { rightPanel } = useContainerData()
 
-  if (backend.type === BackendType.local) {
+  if (rightPanel.context?.category?.backend !== BackendType.remote) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />
   }
   if (rightPanel.focusedAsset == null) {
@@ -78,11 +74,14 @@ export function ProjectExecutionsCalendar(props: ProjectExecutionsCalendarProps)
       <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notProjectAsset')} />
     )
   }
-  return <ProjectExecutionsCalendarInternal {...props} item={rightPanel.focusedAsset} />
+  return (
+    <ProjectExecutionsCalendarInternal backend={remoteBackend} item={rightPanel.focusedAsset} />
+  )
 }
 
 /** Props for a {@link ProjectExecutionsCalendarInternal}. */
-interface ProjectExecutionsCalendarInternalProps extends ProjectExecutionsCalendarProps {
+interface ProjectExecutionsCalendarInternalProps {
+  readonly backend: Backend
   readonly item: ProjectAsset
 }
 

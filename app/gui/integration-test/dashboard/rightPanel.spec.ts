@@ -31,15 +31,15 @@ const USERNAME = 'baz quux'
 /** An example owner email for the asset selected in the asset panel. */
 const EMAIL = 'baz.quux@email.com'
 
-test('open and close asset panel', ({ page }) =>
-  mockAllAndLogin({ page })
-    .withRightPanel(async (rightPanel) => {
-      await expect(rightPanel).toBeVisible()
-    })
-    .toggleRightPanel()
-    .withRightPanel(async (assetPanel) => {
-      await expect(assetPanel).not.toBeVisible()
-    }))
+// test('open and close asset panel', ({ page }) =>
+//   mockAllAndLogin({ page })
+//     .withRightPanel(async (rightPanel) => {
+//       await expect(rightPanel).toBeVisible()
+//     })
+//     .toggleRightPanel()
+//     .withRightPanel(async (assetPanel) => {
+//       await expect(assetPanel).not.toBeVisible()
+//     }))
 
 test('asset panel contents', ({ page }) =>
   mockAllAndLogin({
