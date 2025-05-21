@@ -292,8 +292,9 @@ const autoOrMultiHandlers = handlerToKeyBinding(
 
 const standardBindings: Record<LineMode, KeyBinding[]> = {
   single: nonMultilineKeymap,
-  multi: [autoOrMultiHandlers, ...multilineKeymap, ...verticalMovementKeymap],
   auto: [autoOrMultiHandlers, ...nonMultilineKeymap],
+  autoMulti: [autoOrMultiHandlers, ...nonMultilineKeymap, ...verticalMovementKeymap],
+  multi: [autoOrMultiHandlers, ...multilineKeymap, ...verticalMovementKeymap],
 }
 
 function makeBindingsExt(lineMode: LineMode, extras?: Extension[]): Extension {
@@ -304,10 +305,13 @@ function makeBindingsExt(lineMode: LineMode, extras?: Extension[]): Extension {
   ]
 }
 
+const stopWheel = EditorView.domEventHandlers({ wheel: stopEvent })
+
 const bindingsExt = {
   single: makeBindingsExt('single'),
   auto: makeBindingsExt('auto'),
-  multi: makeBindingsExt('multi', [EditorView.domEventHandlers({ wheel: stopEvent })]),
+  autoMulti: makeBindingsExt('autoMulti', [stopWheel]),
+  multi: makeBindingsExt('multi', [stopWheel]),
 }
 
 /** @returns An extension implementing the key bindings for the given line mode. */

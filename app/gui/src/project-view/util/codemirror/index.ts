@@ -46,7 +46,7 @@ function disableEditContextApi() {
 /* Disable EditContext API because of https://github.com/codemirror/dev/issues/1458. */
 disableEditContextApi()
 
-export type LineMode = 'single' | 'multi' | 'auto'
+export type LineMode = 'single' | 'multi' | 'auto' | 'autoMulti'
 
 export type Getter<T> = () => T
 
@@ -94,7 +94,10 @@ export function useCodeMirror(
   const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
   const bindingsCompartment = useCompartment(view, () => keyBindings(toValue(lineMode)))
-  const singleLineState = computed(() => toValue(lineMode) !== 'multi')
+  const singleLineState = computed(() => {
+    const mode = toValue(lineMode)
+    return mode !== 'multi' && mode !== 'autoMulti'
+  })
   const themeCompartment = useCompartment(view, () => theme({ singleLine: singleLineState.value }))
   view.setState(
     EditorState.create({
