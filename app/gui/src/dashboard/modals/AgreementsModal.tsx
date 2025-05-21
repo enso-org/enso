@@ -5,8 +5,8 @@ import * as z from 'zod'
 
 import { Button, Checkbox, Dialog, Form, Text } from '#/components/AriaComponents'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { useText } from '$/providers/react'
 import { memo } from 'react'
 
 const TEN_MINUTES_MS = 600_000

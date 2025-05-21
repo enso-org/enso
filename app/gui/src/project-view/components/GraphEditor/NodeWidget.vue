@@ -1,37 +1,38 @@
 <script setup lang="ts">
-import type { WidgetModule } from '@/providers/widgetRegistry'
-import { injectWidgetRegistry, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
+import type { UpdateHandler, WidgetModule } from '@/providers/widgetRegistry'
+import { injectWidgetRegistry, WidgetInput } from '@/providers/widgetRegistry'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
 import { computed, getCurrentInstance, proxyRefs, shallowRef, watchEffect, withCtx } from 'vue'
+import { bail } from 'ydoc-shared/util/assert'
 
 const props = defineProps<{
   input: WidgetInput
   nest?: boolean
+  /**
+   * Do not display "no matching widget" placeholder when a widget selection fails to resolve.
+   * @default false
+   */
   allowEmpty?: boolean
   /**
-   * A function that intercepts and handles a value update emitted by this widget. When it returns
-   * `false`, the update continues to be propagated to the parent widget. When it returns `true`,
-   * the update is considered handled and is not propagated further.
+   * A function that intercepts and handles an update emitted by this widget. It can internally
+   * call `props.onUpdate` in order to propagate it upwards, or stop propagation by either returning
+   * a success or error value. If the update handler for given widget is not specified, the emitted
+   * widget update is automatically propagated up the tree.
    */
   onUpdate?: UpdateHandler
 }>()
-defineOptions({
-  inheritAttrs: false,
-})
-
-type UpdateHandler = (update: WidgetUpdate) => boolean
+defineOptions({ inheritAttrs: false })
 
 const registry = injectWidgetRegistry()
 const parentUsageInfo = injectWidgetUsageInfo(true)
-const usageKey = computed(() => usageKeyForInput(props.input))
-const sameInputAsParent = computed(() => parentUsageInfo?.usageKey === usageKey.value)
 
+const usageKey = computed(() => usageKeyForInput(props.input))
 const sameInputParentWidgets = computed(() =>
-  sameInputAsParent.value ? parentUsageInfo?.previouslyUsed : undefined,
+  parentUsageInfo?.usageKey === usageKey.value ? parentUsageInfo?.previouslyUsed : undefined,
 )
 const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest === true ? 1 : 0))
 
@@ -46,37 +47,28 @@ const updateSelection = withCtx(() => {
   )
 }, getCurrentInstance())
 watchEffect(() => updateSelection())
-const updateHandler = computed(() => {
-  const nextHandler =
-    parentUsageInfo?.updateHandler ?? (() => console.log('Missing update handler'))
-  if (props.onUpdate != null) {
-    const localHandler = props.onUpdate
-    return (payload: WidgetUpdate) => {
-      const handled = localHandler(payload)
-      if (!handled) nextHandler(payload)
-    }
-  }
-  return nextHandler
+
+const updateHandler = computed(
+  () =>
+    props.onUpdate ??
+    parentUsageInfo?.updateHandler ??
+    bail('Widget tree onUpdate handler missing.'),
+)
+
+const previouslyUsed = computed(() => {
+  const selected = selectedWidget.value
+  if (selected == null) return sameInputParentWidgets.value
+  const nextSameNodeWidgets = new Set(sameInputParentWidgets.value)
+  nextSameNodeWidgets.add(selected.default)
+  selected.widgetDefinition.prevent?.forEach((p) => nextSameNodeWidgets.add(p))
+  return nextSameNodeWidgets
 })
 
-provideWidgetUsageInfo(
-  proxyRefs({
-    usageKey,
-    nesting,
-    updateHandler,
-    previouslyUsed: computed(() => {
-      const nextSameNodeWidgets = new Set(sameInputParentWidgets.value)
-      if (selectedWidget.value != null) {
-        nextSameNodeWidgets.add(selectedWidget.value.default)
-        if (selectedWidget.value.widgetDefinition.prevent) {
-          for (const prevented of selectedWidget.value.widgetDefinition.prevent)
-            nextSameNodeWidgets.add(prevented)
-        }
-      }
-      return nextSameNodeWidgets
-    }),
-  }),
+const inputDebugDescription = computed(
+  () => Object.getPrototypeOf(props.input)?.constructor?.name ?? JSON.stringify(props.input),
 )
+
+provideWidgetUsageInfo(proxyRefs({ usageKey, nesting, updateHandler, previouslyUsed }))
 </script>
 
 <template>
@@ -87,13 +79,11 @@ provideWidgetUsageInfo(
     :input="props.input"
     :nesting="nesting"
     :data-port="props.input.portId"
-    @update="updateHandler"
+    :onUpdate="updateHandler"
   />
   <span
     v-else-if="!props.allowEmpty"
-    :title="`No matching widget for input: ${
-      Object.getPrototypeOf(props.input)?.constructor?.name ?? JSON.stringify(props.input)
-    }`"
+    :title="`No matching widget for input: ${inputDebugDescription}`"
     >🚫</span
   >
 </template>

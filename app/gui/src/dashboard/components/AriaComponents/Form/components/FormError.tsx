@@ -4,7 +4,9 @@
  * Form error component.
  */
 import Offline from '#/assets/offline_filled.svg'
-import { Alert, Text, type AlertProps } from '#/components/AriaComponents'
+import { type AlertProps } from '#/components/AriaComponents'
+import { Alert } from '#/components/AriaComponents/Alert'
+import { Text } from '#/components/AriaComponents/Text'
 import { useFormError, type UseFormErrorProps } from './useFormError'
 
 /** Props for the FormError component. */

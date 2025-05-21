@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Missing_Argument
 
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Storage
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
@@ -44,3 +45,9 @@ make_string_builder initial_size value_type=Value_Type.Char =
 make_inferred_builder : Integer -> ProblemAggregator -> Builder
 make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
     Builder.getInferredBuilder initial_size java_problem_aggregator
+
+## PRIVATE
+make_column_from_storage = In_Memory_Column.from_storage
+
+## PRIVATE
+make_column_from_java_column = In_Memory_Column.from_java_column

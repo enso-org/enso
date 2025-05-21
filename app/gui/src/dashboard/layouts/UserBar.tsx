@@ -1,6 +1,5 @@
 /** @file A toolbar containing chat and the user menu. */
 import { SUBSCRIBE_PATH } from '#/appUtils'
-import ChatIcon from '#/assets/chat.svg'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
 import { Button, DialogTrigger, Menu, Popover, Text } from '#/components/AriaComponents'
@@ -11,17 +10,15 @@ import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import UserMenu from '#/layouts/UserMenu'
 import InviteUsersModal from '#/modals/InviteUsersModal'
+import { NotificationTray } from '#/pages/dashboard/components/NotificationTray'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
 import { Plan } from '#/services/Backend'
 import { isAbsoluteUrl } from '#/utilities/url'
+import { useText } from '$/providers/react'
 import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
 import { ProfilePicture } from '../components/ProfilePicture/ProfilePicture'
-
-/** Whether the chat button should be visible. Temporarily disabled. */
-const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const TOPBAR_LINKS_SCHEMA = z.object({
@@ -59,19 +56,13 @@ export const TOPBAR_LINKS_SCHEMA = z.object({
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  /**
-   * When `true`, the element occupies space in the layout but is not visible.
-   * Defaults to `false`.
-   */
-  readonly invisible?: boolean
-  readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { setIsHelpChatOpen, goToSettingsPage, onSignOut } = props
+  const { goToSettingsPage, onSignOut } = props
 
   const { user } = useFullUserSession()
   const { getText } = useText()
@@ -112,19 +103,6 @@ export default function UserBar(props: UserBarProps) {
 
         <UserBarHelpSection items={topbarLinks.items} />
 
-        {SHOULD_SHOW_CHAT_BUTTON && (
-          <Button
-            variant="icon"
-            size="custom"
-            className="mr-1"
-            icon={ChatIcon}
-            aria-label={getText('openHelpChat')}
-            onPress={() => {
-              setIsHelpChatOpen(true)
-            }}
-          />
-        )}
-
         {shouldShowPaywallButton && (
           <PaywallDialogButton feature="inviteUser" size="medium" variant="accent">
             {getText('invite')}
@@ -147,6 +125,8 @@ export default function UserBar(props: UserBarProps) {
           </Button>
         )}
 
+        <NotificationTray />
+
         <Popover.Trigger>
           <Button
             size="custom"
@@ -167,16 +147,12 @@ export default function UserBar(props: UserBarProps) {
   )
 }
 
-/**
- * Props for a {@link UserBarHelpSection}.
- */
+/** Props for a {@link UserBarHelpSection}. */
 export interface UserBarHelpSectionProps {
   readonly items: z.infer<typeof TOPBAR_LINKS_SCHEMA>['items']
 }
 
-/**
- * A section containing help buttons.
- */
+/** A section containing help buttons. */
 export function UserBarHelpSection(props: UserBarHelpSectionProps) {
   const { items } = props
   const { getText } = useText()

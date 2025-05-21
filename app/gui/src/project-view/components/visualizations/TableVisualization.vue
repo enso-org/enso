@@ -37,6 +37,12 @@ import {
 import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
+  Error,
+  SingleColumnOfActions,
+  isError,
+  isSingleColumnOfActions,
+} from './TableVisualization/TableVisualisationTypes'
+import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
@@ -56,13 +62,14 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | Excel_Workbook
-
-interface Error {
-  type: undefined
-  error: string
-  all_rows_count?: undefined
-}
+type Data =
+  | number
+  | string
+  | Error
+  | Matrix
+  | ObjectMatrix
+  | EnsoTableOrColumn
+  | SingleColumnOfActions
 
 interface ValueType {
   constructor: string
@@ -75,17 +82,6 @@ interface Matrix {
   all_rows_count: number
   json: unknown[][]
   value_type: ValueType[]
-  get_child_node_action: string
-  child_label: string
-  visualization_header: string
-}
-
-interface Excel_Workbook {
-  type: 'Excel_Workbook'
-  column_count: number
-  all_rows_count: number
-  sheet_names: string[]
-  json: unknown[][]
   get_child_node_action: string
   child_label: string
   visualization_header: string
@@ -386,10 +382,7 @@ const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) =
   return Array.from({ length: rows }, (_, i) => {
     return Object.fromEntries(
       columnDefs.value.map((h, j) => {
-        return [
-          h.field,
-          h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : toRender(data?.[j - shift]?.[i]),
-        ]
+        return [h.field, h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : data?.[j - shift]?.[i]]
       }),
     )
   })
@@ -755,11 +748,6 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
   }
 }
 
-/** Return a human-readable representation of an object. */
-function toRender(content: unknown) {
-  return content
-}
-
 watchEffect(() => {
   // If the user switches from one visualization type to another, we can receive the raw object.
   const data_ =
@@ -792,7 +780,7 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         requires_number_format: undefined,
       }
-  if ('error' in data_) {
+  if (isError(data_)) {
     columnDefs.value = [
       {
         field: 'Error',
@@ -834,7 +822,7 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (data_.type === 'Excel_Workbook') {
+  } else if (isSingleColumnOfActions(data_)) {
     columnDefs.value = [
       toLinkField('Value', {
         tooltipValue: data_.child_label,
@@ -842,7 +830,7 @@ watchEffect(() => {
         getChildAction: data_.get_child_node_action,
       }),
     ]
-    rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
+    rowData.value = data_.data.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -852,25 +840,12 @@ watchEffect(() => {
       }),
       toField('Value'),
     ]
-    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
+    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: row }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs.value =
-      data_.links ?
-        [
-          toLinkField('Value', {
-            tooltipValue: data_.child_label,
-            headerName: data_.visualization_header,
-            getChildAction: data_.get_child_node_action,
-          }),
-        ]
-      : [toField('Value')]
-    rowData.value =
-      data_.links ?
-        data_.links.map((link) => ({
-          Value: link,
-        }))
-      : [{ Value: toRender(data_.json) }]
+    // single values like Integer or Text
+    columnDefs.value = [toField('Value')]
+    rowData.value = [{ Value: data_.json }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
@@ -985,10 +960,17 @@ const getColumnValueToEnso = (columnName: string) => {
     return (item: string, module: Ast.MutableModule) =>
       createDateTimeValue('Date_Time.parse (__)', item, module)
   }
-  if (columnType == 'Mixed') {
+  if (columnType === 'Mixed') {
     return (item: string, module: Ast.MutableModule) => {
       const parsedCellType = getCellValueType(item)
       return getFormattedValueForCell(item, module, parsedCellType)
+    }
+  }
+  if (columnType === 'Boolean') {
+    return (item: string, module: Ast.MutableModule) => {
+      return item === 'false' ?
+          Ast.Ident.new(module, Ast.identifier('False')!)
+        : Ast.Ident.new(module, Ast.identifier('True')!)
     }
   }
   return (item: string) => Ast.TextLiteral.new(item)

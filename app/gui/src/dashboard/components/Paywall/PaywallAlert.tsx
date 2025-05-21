@@ -3,18 +3,13 @@
  *
  * A paywall alert.
  */
-
-import * as React from 'react'
-
-import clsx from 'clsx'
-
 import LockIcon from '#/assets/lock.svg'
-
-import type * as billingHooks from '#/hooks/billing'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
+import type * as billingHooks from '#/hooks/billing'
+import * as React from 'react'
+import { twJoin } from 'tailwind-merge'
 
 /** Props for {@link PaywallAlert}. */
 export interface PaywallAlertProps<IconType extends string>
@@ -43,7 +38,7 @@ export function PaywallAlert<IconType extends string>(
       variant="outline"
       size="small"
       rounded="xlarge"
-      className={clsx('border border-primary/20', className)}
+      className={twJoin('border border-primary/20', className)}
       {...alertProps}
     >
       <div className="flex items-center gap-2">

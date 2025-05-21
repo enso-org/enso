@@ -1,5 +1,4 @@
 import { Server } from '@open-rpc/server-js'
-import * as random from 'lib0/random'
 import pmSpec from './pm-openrpc.json' with { type: 'json' }
 import {
   methods as pmMethods,
@@ -33,7 +32,7 @@ export default function setup() {
   })
   pm.start()
   projects.set('mock project id 0001', {
-    id: random.uuidv4() as ProjectId,
+    id: crypto.randomUUID() as ProjectId,
     created: new Date().toISOString() as UTCDateTime,
     lastOpened: new Date().toISOString() as UTCDateTime,
     engineVersion: '',

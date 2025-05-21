@@ -123,6 +123,13 @@ final class MockModule extends CompilerContext.Module {
     return new MockScopeBuilder();
   }
 
+  String getSourceSection(IdentifiedLocation location) {
+    if (location != null) {
+      return code.substring(location.start(), location.end());
+    }
+    return null;
+  }
+
   @Override
   public String toString() {
     return "MockModule{qName='" + qName + "'}";

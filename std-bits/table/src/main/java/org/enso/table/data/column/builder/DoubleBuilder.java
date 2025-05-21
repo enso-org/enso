@@ -59,6 +59,12 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
+  public DoubleBuilder appendNulls(int count) {
+    doAppendNulls(count);
+    return this;
+  }
+
+  @Override
   public void append(Object o) {
     if (o == null) {
       appendNulls(1);

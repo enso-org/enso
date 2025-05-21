@@ -76,11 +76,6 @@ import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import {
-  useBackend,
-  useDidLoadingProjectManagerFail,
-  useReconnectToProjectManager,
-} from '#/providers/BackendProvider'
-import {
   useDriveStore,
   useSetCanDownload,
   useSetNewestFolderId,
@@ -93,7 +88,6 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
 import {
@@ -119,6 +113,7 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackends, useText } from '$/providers/react'
 import invariant from 'tiny-invariant'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
@@ -198,15 +193,14 @@ function AssetsTable(props: AssetsTableProps) {
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const backend = useBackend(category)
+  const { backendForType, didLoadingProjectManagerFail, reconnectToProjectManager } = useBackends()
+  const backend = backendForType(category.backend)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const { setModal, unsetModal } = useSetModal()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()
-  const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
-  const reconnectToProjectManager = useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
@@ -269,7 +263,7 @@ function AssetsTable(props: AssetsTableProps) {
       refetchInterval: listDirectoryRefetchInterval,
     }),
     retry: () => {
-      setCurrentDirectoryId({ current: null, parent: null })
+      setCurrentDirectoryId(null)
       return false
     },
   })
@@ -658,7 +652,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                setCurrentDirectoryId({ current: item.id, parent: item.parentId })
+                setCurrentDirectoryId(item.id)
                 break
               }
               case AssetType.project: {
@@ -682,7 +676,7 @@ function AssetsTable(props: AssetsTableProps) {
                   const id = item.id
                   setModal(
                     <UpsertSecretModal
-                      id={item.id}
+                      secretId={item.id}
                       name={item.title}
                       doCreate={async (title, value) => {
                         try {
@@ -1458,7 +1452,7 @@ function AssetsTable(props: AssetsTableProps) {
         </div>
       </IsolateLayout>
 
-      {isDraggingFiles && !isMainDropzoneVisible && (
+      {isDraggingFiles && !isMainDropzoneVisible && category.canUploadHere && (
         <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
           <div
             className="pointer-events-auto flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"

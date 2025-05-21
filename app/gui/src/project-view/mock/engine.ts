@@ -3,7 +3,6 @@ import { Pattern } from '@/util/ast/match'
 import type { MockYdocProviderImpl } from '@/util/crdt'
 import type { WebSocketHandler } from '@/util/net'
 import type { QualifiedName } from '@/util/qualifiedName'
-import * as random from 'lib0/random'
 import {
   Builder,
   EnsoUUID,
@@ -30,7 +29,7 @@ import { mockFsDirectoryHandle, type FileTree } from '../util/convert/fsAccess'
 import { mockDataWSHandler as originalMockDataWSHandler } from './dataServer'
 import mockDb from './mockSuggestions.json' with { type: 'json' }
 
-const mockProjectId = random.uuidv4() as Uuid
+const mockProjectId = crypto.randomUUID() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
 
 function placeholderGroups(): LibraryComponentGroup[] {
@@ -371,7 +370,7 @@ function mockWidgetConfiguration(method: string | undefined) {
 }
 
 function createMessageId(builder: Builder) {
-  const messageUuid = random.uuidv4()
+  const messageUuid = crypto.randomUUID()
   const [leastSigBits, mostSigBits] = uuidToBits(messageUuid)
   return EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
 }

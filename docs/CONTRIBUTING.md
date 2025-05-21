@@ -23,12 +23,14 @@ sections of this document are linked below:
   - [Design Documentation](#design-documentation)
   - [System Requirements](#system-requirements)
   - [Getting the Sources](#getting-the-sources)
-  - [Getting Set Up \(Rust\)](#getting-set-up-rust)
-  - [Getting Set Up \(JVM\)](#getting-set-up-jvm)
-  - [Getting Set Up \(Documentation\)](#getting-set-up-documentation)
-  - [Building Enso](#building-enso)
-  - [Testing Enso](#testing-enso)
-  - [Running Enso](#running-enso)
+  - Configuration
+    - [Set Up Rust](#getting-set-up-rust)
+    - [Set Up Documentation](#getting-set-up-documentation)
+  - Enso Engine CLI
+    - [Building Enso Engine](#building-enso-engine)
+    - [Running Enso](#running-enso-from-cli)
+    - [Testing Enso](#testing-enso-libraries)
+  - [Running Enso IDE](#running-ide)
 - [Pull Requests](#pull-requests)
 - [Documentation](#documentation)
 - [Issue Triage](#issue-triage)
@@ -238,6 +240,12 @@ git clone https://github.com/enso-org/enso.git
 git clone git@github.com:enso-org/enso.git
 ```
 
+The recommended IDE for working with the sources is
+[VSCode with Enso extension](../tools/enso4igv/README.md). Alternativelly, use
+the IntelliJ with the official
+[Scala plugin](https://plugins.jetbrains.com/plugin/1347-scala) and import the
+`sbt` project.
+
 ### Getting Set Up (Rust)
 
 The Rust code in this repository requires a specific nightly rust toolchain, as
@@ -277,19 +285,26 @@ npx prettier --write <dir>
 
 ### Building Enso Engine
 
-There are multiple projects in this repository, but all of the engine parts can
-be built, run and tested using `sbt`. As long as your configuration is correct,
-with the correct versions of SBT, Rust and GraalVM, the same steps can be
-followed on all of our supported platforms (Linux, MacOS and Windows).
+There are multiple projects in the main Enso repository. All of the engine parts
+can be built, run and tested using
+[Scala Build Tool](https://www.scala-sbt.org/). As long as your configuration is
+correct, with the correct versions of `sbt`, Rust and GraalVM, the same steps
+can be followed on all of our supported platforms (Linux, MacOS and Windows).
 
-SBT will handle downloading and building library dependencies as needed, meaning
-that you don't need to handle any of this manually.
+```sbt
+$ sbt
+sbt:enso> buildEngineDistribution
+```
 
-**Please note** that at the current time, the Windows build of GraalVM is in an
-experimental state. This means that while it may function, we are not intending
-to provide work-arounds for building on that platform while it is still in an
-unstable state.
+The language interpreter CLI distribution is generated into `built-distribution`
+directory with `bin/enso` launcher script/executable located inside. `sbt`
+handles downloading and building library dependencies as needed, meaning that
+you don't need to handle any of this manually.
 
+One can use the generated binaries directly, but the suggested workflow is to
+continue using [sbt for execution](#running-enso-from-cli) as well.
+
+<!--
 #### Building Enso Components
 
 In order to build a specific component (e.g. `runtime`), please follow the
@@ -305,14 +320,6 @@ You can substitute both `bench` and `test` for `compile` in step 3, and the sbt
 shell will execute the appropriate thing. Furthermore we have `testOnly` and
 `benchOnly` that accept a glob pattern that delineates some subset of the tests
 or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
-
-#### Building the Updater Native Binary
-
-Then, you can build the updater/launcher using:
-
-```bash
-sbt launcher/buildNativeImage
-```
 
 #### Passing Debug Options
 
@@ -368,132 +375,44 @@ please choose one best suited for you.
 
 Once you have a copy of the dynamic library, it needs to be placed in
 `$JVM_HOME/lib/server`.
+-->
 
-#### Native Image
+### Running Enso from CLI
 
-Native image is a capability provided alongside GraalVM that allows the
-generation of native executables from JVM language programs (such as the Enso
-interpreter itself). However, it results in significantly degraded peak
-performance, so it is not part of our roadmap currently.
+The language interpreter CLI distribution can be
+[built by `sbt`](#building-enso-engine). To _execute the Enso interpreter_ use
+`sbt` as well:
 
-If you would like to experiment with it, you can execute the `buildNativeImage`
-command in the sbt shell while inside the `runner` project. Please note that
-while the command is available at the moment, and you are welcome to
-[report an issue](https://github.com/enso-org/enso/issues/new?assignees=&labels=Type%3A+Bug&template=bug-report.md&title=)
-with the functionality, any bugs you report will _not_ be considered high
-priority.
-
-**WE CURRENTLY DO NOT SUPPORT THE NATIVE IMAGE BUILD.**
-
-#### Using IntelliJ
-
-Internally, most of the developers working on the Enso project use IntelliJ as
-their primary IDE. To that end, what follows is a basic set of instructions for
-getting the project into a working state in IntelliJ.
-
-1. Clone the project sources.
-2. Open IntelliJ
-3. File -> New -> Project From Existing Sources.
-4. Navigate to the directory into which you cloned the project sources. By
-   default this will be called `enso`. Select the directory, and not the
-   `build.sbt` file it contains.
-5. In the 'Import Project' dialogue, select 'Import project from external model'
-   and choose 'sbt'.
-6. Where it says 'Download:', ensure you check both 'Library Sources' and 'sbt
-   sources'.
-7. In addition, check the boxes next to 'Use sbt shell:' such that it is used
-   both 'for imports' and 'for builds'.
-8. Disallow the overriding of the sbt version.
-9. Under the 'Project JDK' setting, please ensure that it is set up to use a
-   GraalVM version as described in [System requirements](#system-requirements).
-   You may need to add it using the 'New' button if it isn't already set up.
-10. Click 'Finish'. This will prompt you as to whether you want to overwrite the
-    `project` folder. Select 'Yes' to continue. The Enso project will load up
-    with an open SBT shell, which can be interacted with as described above. You
-    will want to use scalafmt for formatting of Scala code, and install Google
-    Java Format for formatting Java code. For more information see the relevant
-    [Style Guides](style-guide/README.md).
-
-Depending on the version of GraalVM with which you are working, you may be
-required to add the following flags to the per-module overrides for IntelliJ's
-java compiler in order for it to not show spurious errors. This is because some
-versions of GraalVM export their own closed version of `com.oracle.truffle.api`
-that IntelliJ picks up preferentially to the version we use for development. You
-can find these options in
-`Preferences -> Build, Execution, Deployment -> Compiler -> Java Compiler`.
-
-```
---add-exports org.graalvm.truffle/com.oracle.truffle.api=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.debug=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.dsl=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.exception=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.frame=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.instrumentation=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.interop=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.io=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.library=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.memory=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.nodes=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.object=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.profiles=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.source=ALL-UNNAMED
---add-exports org.graalvm.truffle/com.oracle.truffle.api.utilities=ALL-UNNAMED
+```sbt
+$ sbt
+sbt:enso> runEngineDistribution --help
 ```
 
-However, as mentioned in the [Troubleshooting](#troubleshooting) section below,
-the forked nature of execution in the SBT shell means that we can't trivially
-make use of the IntelliJ debugger. In order to get debugging working, you will
-need to follow these steps:
+The `runEngineDistribution` task takes care of everything. It builds the
+distribution in the `built-distribution` directory (with the help of
+`buildEngineDistribution` command) and launches the generated Enso launcher
+executable.
 
-1. Go to Run -> Edit Configurations.
-2. Click the `+` button in the header of the 'Run/Debug Configurations' dialogue
-   that pops up.
-3. Select 'Remote' and name the new configuration appropriately.
-4. In the options for that configuration select 'Listen to remote JVM' under
-   'Debugger mode:'
-5. Where it provides the command-line arguments for the remote JVM, copy these
-   and add them to `truffleRunOptions` in [`build.sbt`](build.sbt). Remove the
-   portion of these options after `suspend=y`, including the comma. They are
-   placeholders that we don't use.
-6. Alternatively, certain tasks, such as `run`, `benchOnly` and `testOnly` can
-   be used through the `withDebug` SBT command. For this to work, your remote
-   configuration must specify the host of `localhost` and the port `5005`. The
-   command syntax is `withDebug --debugger TASK_NAME -- TASK_PARAMETERS`, e.g.
-   `withDebug --debugger testOnly -- *AtomConstructors*`.
-7. Now, when you want to debug something, you can place a breakpoint as usual in
-   IntelliJ, and then execute your remote debugging configuration. Now, in the
-   SBT shell, run a command to execute the code you want to debug (e.g.
-   `testOnly *CurryingTest*`). This will open the standard debugger interface
-   and will allow you to step through your code.
+Detailed information on the flags it supports can be shown with the `--help`
+flag, but the primary functionality is as follows:
 
-**Please be careful** to ensure that you don't commit these changes to the sbt
-configuration as they are specific to your machine.
+- `--new PATH`: Creates a new Enso project at the location specified by `PATH`.
+- `--run PATH`: Executes the interpreter on the Enso source specified by `PATH`.
+  In this case, `PATH` must point to either a standalone Enso file or an Enso
+  project.
 
-#### Troubleshooting
+```sbt
+sbt:enso> runEngineDistribution --new Hello
+```
 
-If you are having issues building Enso, please check the list below before
-filing an issue with us.
+The above command generates project in directory `Hello` with the main source
+file being at `Hello/src/Main.enso`. One can edit the file and then execute it:
 
-- **`StackOverflowError` During Compilation:** Please ensure that your version
-  of sbt is respecting the project's `.jvmopts` settings. We make significant
-  use of recursion when expanding macros for the parser, and these require use
-  of additional stack. Alternatively, you can explicitly pass `-Xss8M` to the
-  `sbt` invocation.
-- **Debugging Not Working:** The sbt tasks run the invoked programs in a forked
-  JVM. This means that to attach a debugger to it you need to use the JVM remote
-  debugging support. Follow [Enso debugging instructions](debugger/README.md) or
-  see the [Using IntelliJ](#using-intellj) section for instructions.
+```sbt
+sbt:enso> runEngineDistribution --run Hello
+```
 
-If your problem was not listed above, please
-[file a bug report](https://github.com/enso-org/enso/issues/new?assignees=&labels=Type%3A+Bug&template=bug-report.md&title=)
-in our issue tracker and we will get back to you as soon as possible.
-
-### Testing Enso
-
-Running the tests for the JVM enso components is as simple as running
-`sbt / test`. To test the Rust components you can run `./run wasm test`.
-
-#### Testing Enso Libraries
+### Testing Enso Libraries
 
 To run the tests inside sbt you can use the following command:
 
@@ -516,6 +435,15 @@ Or you can pattern match against the test name using this syntax
 sbt:enso> runEngineDistribution --run test/Base_Tests/src/Data/Time/Duration_Spec.enso should.normalize
 ```
 
+Or even control additional _environment variables_ of the running process. The
+Base tests rely in a few places on the system language controlled (on Linux) by
+a value of `LANG` environment variable. To change value of `LANG` environment
+variable to `C` run the tests with `--env` option and name/value pair:
+
+```sbt
+sbt:enso> runEngineDistribution --env LANG=C --run test/BASE_Tests
+```
+
 This runs all tests in Duration_Spec.enso that have 'should normalize' the their
 name.
 
@@ -526,8 +454,14 @@ breakpoint in a test then run with
 sbt:enso> runEngineDistribution --run test/Base_Tests --debug
 ```
 
-The above running options also work when debugging.
+Then connect your development environment to the 5005 port. More
+[details on debugging](./debugger/README.md) are available in a separate
+document.
 
+When using the `runEngineDistribution` command of `sbt` the Java assertions
+(`-ea` JVM option) as well as Enso assertions are enabled.
+
+<!--
 Alternatively to run the test outisde of sbt you need to first build the engine,
 the easiest way to do so is to run `sbt buildEngineDistributionNoIndex`. That
 will create a distribution in the directory `built-distribution`. The engine
@@ -580,7 +514,33 @@ Note that JVM assertions are not enabled by default, one has to pass `-ea` via
 (method `Runtime.assert`) that can be enabled when `ENSO_ENABLE_ASSERTIONS`
 environment variable is set to "true". If JVM assertions are enable, Enso
 assertions are enabled as well.
+-->
 
+#### Static Analysis
+
+Additionally, you can check a project/script for basic errors (without running
+it) using `--compile` flag. The `--enable-static-analysis` flag enables
+experimental static analysis passes. So if you want to try out the type checker
+prototype on your project, you can run:
+
+```sbt
+sbt:enso> runEngineDistribution --compile Hello --enable-static-analysis
+```
+
+#### Native Image
+
+Native image is a capability provided alongside GraalVM that allows the
+generation of native executables from JVM language programs (such as the Enso
+interpreter itself). Details:
+
+- [infrastructure](./infrastructure/native-image.md)
+- [native image debugging](./debugger/native-debugging.md)
+- [sbt support](./infrastructure/sbt.md)
+
+Native image support is disabled for development (as it slows down
+edit/compile/run cycle significantly). One has to **opt-in** to enable it.
+
+<!--
 #### Test Dependencies
 
 To run all the stdlib test suites, set `CI=true` environment variable:
@@ -591,73 +551,7 @@ env CI=true enso --run test/Base_Tests/
 
 For more details about the CI setup, you can check the
 `.github/workflows/scala.yml` GitHub workflow.
-
-### Running Enso
-
-The language interpreter can be started by the `bin/enso` launcher script
-located inside of the Enso runtime distribution. Use the following `sbt` command
-to compile necessary bits (see
-[Building the Interperter CLI Fat Jar](#building-the-interpreter-cli-fat-jar))
-and generate the Enso distribution:
-
-##### Bash
-
-```bash
-$ sbt buildEngineDistribution
-$ sbt runEngineDistribution --help
-```
-
-Engine package created at
-built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev - use it or
-the `sbt runEngineDistribution` command to invoke Enso.
-
-##### PowerShell
-
-```powershell
-sbt.bat buildEngineDistribution
-sbt.bat runEngineDistribution --help
-```
-
-One can use the `runEngineDistribution` command or execute the launcher:
-
-```bash
-$ built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso
-```
-
-Detailed information on the flags it supports can be shown with the `--help`
-flag, but the primary functionality is as follows:
-
-- `--new PATH`: Creates a new Enso project at the location specified by `PATH`.
-- `--run PATH`: Executes the interpreter on the Enso source specified by `PATH`.
-  In this case, `PATH` must point to either a standalone Enso file or an Enso
-  project.
-
-##### Bash
-
-```bash
-distribution/bin/enso --new ~/Hello
-distribution/bin/enso --run ~/Hello
-Hello, World!
-```
-
-##### PowerShell
-
-```bash
-distribution/bin/enso.bat --new ~/Hello
-distribution/bin/enso.bat --run ~/Hello
-Hello, World!
-```
-
-Additionally, you can check a project/script for basic errors (without running
-it) using `--compile` flag. The `--enable-static-analysis` flag enables
-experimental static analysis passes. So if you want to try out the type checker
-prototype on your project, you can run:
-
-##### Bash
-
-```bash
-sbt runEngineDistribution --compile ~/Hello --enable-static-analysis
-```
+-->
 
 #### Running IDE
 

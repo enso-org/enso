@@ -12,9 +12,9 @@ import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline, useOfflineChange } from '#/hooks/offlineHooks'
-import { useText } from '#/providers/TextProvider'
 import * as errorUtils from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as schemaModule from './schema'
 import type * as types from './types'
@@ -214,7 +214,12 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
         }
       },
       onError: (error, values) => onSubmitFailed?.(error, values, form),
-      onSuccess: (data, values) => onSubmitSuccess?.(data, values, form),
+      onSuccess: async (data, values) => {
+        if (method === 'dialog') {
+          closeRef.current()
+        }
+        return await onSubmitSuccess?.(data, values, form)
+      },
       onSettled: (data, error, values) => onSubmitted?.(data, error, values, form),
     })
 

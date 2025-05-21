@@ -56,12 +56,13 @@ public final class InferredIntegerBuilder implements Builder {
   }
 
   @Override
-  public void appendNulls(int count) {
+  public InferredIntegerBuilder appendNulls(int count) {
     if (bigIntegerBuilder != null) {
       bigIntegerBuilder.appendNulls(count);
     } else {
       longBuilder.appendNulls(count);
     }
+    return this;
   }
 
   @Override

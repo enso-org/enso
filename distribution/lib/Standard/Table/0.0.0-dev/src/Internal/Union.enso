@@ -4,9 +4,11 @@ from Standard.Base import all
 
 import project.Column.Column
 import project.Columns_To_Keep.Columns_To_Keep
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Java_Problems
 import project.Internal.Match_Columns_Helpers
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Storage
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Union_Result_Type
 import project.Match_Columns.Match_Columns
@@ -37,7 +39,7 @@ make_union (tables : Vector) (columns_to_keep : Columns_To_Keep) (match_columns 
 ## A helper that efficiently concatenates storages of in-memory columns.
 private _concat_columns column_set tables result_type result_row_count needs_cast on_problems =
     Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-        storage_builder = make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
+        storage_builder = _make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
         column_set.column_indices.zip tables i-> parent_table->
             case i of
                 Nothing ->
@@ -46,7 +48,16 @@ private _concat_columns column_set tables result_type result_row_count needs_cas
                 _ : Integer ->
                     column = parent_table.at i
                     converted = if needs_cast then column.cast result_type on_problems=..Report_Error else column
-                    storage = converted.java_column.getStorage
+                    storage = (converted:In_Memory_Column).java_column.getStorage
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal
-        Column.from_storage column_set.name sealed_storage
+        In_Memory_Column.from_storage column_set.name sealed_storage
+
+## Creates a storage builder suitable for building a column for the provided
+   column type.
+
+   If a value type is not supported, its closest match is selected and
+   an `Inexact_Type_Coercion` problem is reported.
+private _make_storage_builder_for_type value_type on_problems initial_size java_problem_aggregator =
+    closest_storage_type = Storage.from_value_type value_type on_problems
+    Storage.make_builder closest_storage_type initial_size java_problem_aggregator

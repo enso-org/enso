@@ -19,14 +19,15 @@ const SENTRY_SAMPLE_RATE = 0.005
 const SCAM_WARNING_TIMEOUT = 1000
 const INITIAL_URL_KEY = `Enso-initial-url`
 
-function main() {
+async function main() {
   setupScamWarning()
   setupSentry()
   configureAnimations()
-  const appProps = imNotSureButPerhapsFixingRefreshingWithAuthentication()
+  const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
+  const rootDirPath = await getRootDirPath()
 
-  const app = createApp(App, appProps)
+  const app = createApp(App, { onAuthenticated, rootDirPath })
   app.use(VueQueryPlugin, { queryClient })
   app.use(router)
   app.mount('#enso-app')
@@ -155,18 +156,24 @@ function imNotSureButPerhapsFixingRefreshingWithAuthentication() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
-  return {
-    onAuthenticated() {
-      if (isInAuthenticationFlow) {
-        const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
-        if (initialUrl != null) {
-          // This is not used past this point, however it is set to the initial URL
-          // to make refreshing work as expected.
-          history.replaceState(null, '', initialUrl)
-        }
+  function onAuthenticated() {
+    if (isInAuthenticationFlow) {
+      const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
+      if (initialUrl != null) {
+        // This is not used past this point, however it is set to the initial URL
+        // to make refreshing work as expected.
+        history.replaceState(null, '', initialUrl)
       }
-    },
+    }
   }
+  return onAuthenticated
+}
+
+async function getRootDirPath() {
+  const supportsLocalBackend = $config.CLOUD_BUILD !== 'true'
+  if (!supportsLocalBackend) return undefined
+  const rootDirRequest = await fetch(`/api/root-directory`)
+  return await rootDirRequest.text()
 }
 
 main()
