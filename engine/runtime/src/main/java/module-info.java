@@ -29,7 +29,6 @@ open module org.enso.runtime {
   requires org.slf4j;
   requires org.graalvm.collections;
   requires org.graalvm.polyglot;
-  requires org.graalvm.nativeimage;
   requires org.graalvm.truffle;
   requires com.ibm.icu;
 
