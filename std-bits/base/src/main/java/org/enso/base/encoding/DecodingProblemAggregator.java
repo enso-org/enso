@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * The Location type allows additional location/context information to be added
- * to the positions of bad characters.
+ * The Location type allows additional location/context information to be added to the positions of
+ * bad characters.
  */
 public abstract class DecodingProblemAggregator<Location> {
   private final List<DecodingProblem> baseProblems = new ArrayList<>();

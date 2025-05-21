@@ -1,8 +1,8 @@
 package org.enso.table.read;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,7 +80,7 @@ public class FixedWidthReader {
 
     return makeFinalTable();
   }
-  
+
   // lineLength is the length of the actual line from the input stream, which
   // might be larger than minimumLineLength and the buffer capacity.
   private void addRow(byte[] line, int lineLength) throws IOException {
@@ -95,8 +95,7 @@ public class FixedWidthReader {
 
     if (lineLength < minimumLineLength) {
       var trn = invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP ? tableRowNumber : null;
-      problemAggregator.reportShortLine(
-          sourceLineNumber, trn, lineLength, minimumLineLength);
+      problemAggregator.reportShortLine(sourceLineNumber, trn, lineLength, minimumLineLength);
     }
 
     if (lineLength < minimumLineLength
@@ -115,7 +114,8 @@ public class FixedWidthReader {
       var endPosition = Math.min(lineLength, entry.end());
       var actualWidth = endPosition - startPosition;
       var baos = new ByteArrayInputStream(line, startPosition, actualWidth);
-      var reportingStreamDecoder = new ReportingStreamDecoder(baos, charset, decodingProblemAggregator, false);
+      var reportingStreamDecoder =
+          new ReportingStreamDecoder(baos, charset, decodingProblemAggregator, false);
       String value = reportingStreamDecoder.readAllIntoMemory();
 
       if (entry.end() > lineLength) {
@@ -154,7 +154,7 @@ public class FixedWidthReader {
           // There is room for the next byte.
           buffer[lineLength] = (byte) c;
         }
-        lineLength ++;
+        lineLength++;
       }
     }
     return lineLength;
