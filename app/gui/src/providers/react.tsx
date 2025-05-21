@@ -7,7 +7,7 @@ import { applyPureReactInVue } from 'veaury'
 import { computed } from 'vue'
 import { Router, useRoute, useRouter as useRouterVue } from 'vue-router'
 import { injectHttpClient } from './httpClient'
-import { injectText, type TextStore } from './text'
+import { injectText, useText as useTextVue, type TextStore } from './text'
 
 function useInReactFunction<T>(context: react.Context<T | null>) {
   return () => {
@@ -28,7 +28,7 @@ export const useRouter = useInReactFunction(RouterContext)
 const ConfigContext = react.createContext<GuiConfig | null>(null)
 export const useConfig = useInReactFunction(ConfigContext)
 
-export const TextContext = react.createContext<ReturnType<typeof injectText> | null>(null)
+export const TextContext = react.createContext<TextStore>(useTextVue())
 export const useText = useInReactFunction(TextContext)
 
 export const HTTPClientContext = react.createContext<HttpClient | null>(null)

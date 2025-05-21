@@ -1,4 +1,3 @@
-import { TextContext, useText } from '$/providers/react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, fn, userEvent, within } from '@storybook/test'
 import { Alert } from '../Alert'
@@ -23,13 +22,11 @@ const meta: Meta<AlertDialogProps> = {
     onCancel,
   },
   render: (args) => (
-    <TextContext.Provider value={useText()}>
-      <AlertDialog.Trigger>
-        <Button>Open</Button>
+    <AlertDialog.Trigger>
+      <Button>Open</Button>
 
-        <AlertDialog {...args} />
-      </AlertDialog.Trigger>
-    </TextContext.Provider>
+      <AlertDialog {...args} />
+    </AlertDialog.Trigger>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
