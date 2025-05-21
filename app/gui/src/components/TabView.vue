@@ -174,6 +174,13 @@ const onSignOut = () => {
   flex-direction: row;
 }
 
+.panel {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+}
+
 .editor {
   display: contents;
 

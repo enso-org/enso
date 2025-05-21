@@ -155,7 +155,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
     : 'ok'
 
   return (
-    <div className="relative flex grow">
+    <div className="relative flex h-full w-full">
       <div
         data-testid="drive-view"
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
