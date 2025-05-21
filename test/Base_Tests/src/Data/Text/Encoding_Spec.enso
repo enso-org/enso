@@ -56,25 +56,26 @@ add_codec_specs from_bytes to_bytes suite_builder full_file zero_length =
             Test.assert_no_problems result
             result . should_equal test
 
-        group_builder.specify "Invalid ASCII should raise a problem when decoding (error by default)" <|
-            action = from_bytes invalid_ascii Encoding.ascii on_problems=_
-            tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 12)."]
-            Problems.test_problem_handling action problems tester
+        if full_file then
+            group_builder.specify "Invalid ASCII should raise a problem when decoding (error by default)" <|
+                action = from_bytes invalid_ascii Encoding.ascii on_problems=_
+                tester result = result . should_equal invalid
+                problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 12)."]
+                Problems.test_problem_handling action problems tester
 
-            default_error = from_bytes invalid_ascii Encoding.ascii
-            default_error.should_fail_with Encoding_Error
-            default_error.catch.message . should_equal "Failed to decode 1 code units (at positions: 12)."
+                default_error = from_bytes invalid_ascii Encoding.ascii
+                default_error.should_fail_with Encoding_Error
+                default_error.catch.message . should_equal "Failed to decode 1 code units (at positions: 12)."
 
-        group_builder.specify "Invalid ASCII should raise a problem when encoding (warning by default)" <|
-            action = to_bytes invalid Encoding.ascii on_problems=_
-            tester result = result . should_equal invalid_ascii_out
-            problems = [Encoding_Error.Error "Encoding issues at 12."]
-            Problems.test_problem_handling action problems tester
+            group_builder.specify "Invalid ASCII should raise a problem when encoding (warning by default)" <|
+                action = to_bytes invalid Encoding.ascii on_problems=_
+                tester result = result . should_equal invalid_ascii_out
+                problems = [Encoding_Error.Error "Encoding issues at 12."]
+                Problems.test_problem_handling action problems tester
 
-            default_warning = to_bytes invalid Encoding.ascii
-            default_warning.should_equal invalid_ascii_out
-            Problems.get_attached_warnings default_warning . should_equal_ignoring_order problems
+                default_warning = to_bytes invalid Encoding.ascii
+                default_warning.should_equal invalid_ascii_out
+                Problems.get_attached_warnings default_warning . should_equal_ignoring_order problems
 
     suite_builder.group "Default Encoding" group_builder->
         group_builder.specify "should try reading as UTF-8 by default" <|
@@ -225,11 +226,12 @@ add_codec_specs from_bytes to_bytes suite_builder full_file zero_length =
             Test.assert_no_problems result
             result . should_equal kshi
 
-        group_builder.specify "Invalid UTF-8 should raise a problem when decoding via encoding" <|
-            action = from_bytes invalid_utf_8 Encoding.utf_8 on_problems=_
-            tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 19)."]
-            Problems.test_problem_handling action problems tester
+        if full_file then
+            group_builder.specify "Invalid UTF-8 should raise a problem when decoding via encoding" <|
+                action = from_bytes invalid_utf_8 Encoding.utf_8 on_problems=_
+                tester result = result . should_equal invalid
+                problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 19)."]
+                Problems.test_problem_handling action problems tester
 
         group_builder.specify "Invalid UTF-8 should raise a problem when decoding (error by default)" <|
             action = Text.from_utf_8 invalid_utf_8 on_problems=_
@@ -388,11 +390,12 @@ add_codec_specs from_bytes to_bytes suite_builder full_file zero_length =
             Test.assert_no_problems result
             result . should_equal test
 
-        group_builder.specify "Invalid Windows-1252 should raise a problem when decoding" <|
-            action = from_bytes invalid_windows Encoding.windows_1252 on_problems=_
-            tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 16)."]
-            Problems.test_problem_handling action problems tester
+        if full_file then
+            group_builder.specify "Invalid Windows-1252 should raise a problem when decoding" <|
+                action = from_bytes invalid_windows Encoding.windows_1252 on_problems=_
+                tester result = result . should_equal invalid
+                problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 16)."]
+                Problems.test_problem_handling action problems tester
 
         group_builder.specify "Invalid Windows-1252 should raise a problem when encoding" <|
             action = to_bytes invalid Encoding.windows_1252 on_problems=_
