@@ -17,12 +17,10 @@ import {
 } from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { useRouterInReact } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 declare module '#/utilities/LocalStorage' {
@@ -43,10 +41,10 @@ const CONFIRM_SIGN_IN_INTERVAL = 5_000
 export default function Registration() {
   const { signUp, confirmSignUp, signInWithPassword } = useSessionAPI()
 
-  const { searchParams } = useRouterInReact()
+  const { searchParams } = useRouter()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
   const initialEmail = searchParams.get('email') ?? ''

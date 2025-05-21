@@ -20,12 +20,16 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+import { provideBackends } from './providers/backends'
+import { provideHttpClient } from './providers/httpClient'
+import { provideText } from './providers/text'
 
-const { projectViewOnly, onAuthenticated } = defineProps<{
+const { projectViewOnly, onAuthenticated, rootDirPath } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
   // removed
   projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
   onAuthenticated?: (accessToken: string | null) => void
+  rootDirPath: string | undefined
 }>()
 
 const classSet = provideAppClassSet()
@@ -48,10 +52,10 @@ const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
 provideKeyboard()
-provideGuiConfig(appConfigValue)
+const { getText } = provideText()
+const config = provideGuiConfig(appConfigValue)
 const interaction = provideInteractionHandler()
 initializeActions()
-
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
 
@@ -66,6 +70,8 @@ useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointe
 useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
   capture: true,
 })
+const httpClient = provideHttpClient()
+provideBackends(httpClient, config, rootDirPath, getText)
 
 const platformClass = (() => {
   switch (platform()) {

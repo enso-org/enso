@@ -4,10 +4,10 @@ import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
-import { useText } from '#/providers/TextProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import { useTransition } from 'react'
 
 /** Props for a {@link DirectoryNameColumn}. */

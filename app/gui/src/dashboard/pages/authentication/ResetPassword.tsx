@@ -16,13 +16,12 @@ import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { type GetText, useText } from '#/providers/TextProvider'
 import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouterInReact } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import { toast } from 'react-toastify'
 
 /** Create the schema for this form. */
@@ -54,10 +53,10 @@ const REDIRECT_TIMEOUT = 3000
 export default function ResetPassword() {
   const { resetPassword } = useSessionAPI()
   const { getText } = useText()
-  const { router, searchParams } = useRouterInReact()
+  const { router, searchParams } = useRouter()
 
   const toastAndLog = useToastAndLog()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
   const defaultEmail = searchParams.get('email')

@@ -38,7 +38,7 @@ import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import {
   firstProjectExecutionOnOrAfter,
   nextProjectExecutionDate,

@@ -6,7 +6,7 @@
 
 import { Button, Form, Input } from '#/components/AriaComponents'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as snowflake from './snowflake'
 import type { CredentialFormProps } from './types'
