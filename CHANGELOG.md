@@ -14,6 +14,7 @@
 - [Add ability to inspect column, row and value from right click on table
   viz][12986]
 - [Add option to browse cloud for folders][13117]
+- [Add keyboard shortcuts for formatting documentation][13134]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -25,6 +26,7 @@
 [13014]: https://github.com/enso-org/enso/pull/13014
 [12986]: https://github.com/enso-org/enso/pull/12986
 [13117]: https://github.com/enso-org/enso/pull/13117
+[13134]: https://github.com/enso-org/enso/pull/13134
 
 #### Enso Standard Library
 
