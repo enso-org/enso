@@ -68,8 +68,9 @@ make_json_for_row row =
     column_names = row.column_names
     values = ((0.up_to row.length).map idx-> _make_json_for_value (row.get idx))
     data = ["data", [column_names, values]]
-    links = ["get_child_node_action", "at {{@column}}"]
-    JS_Object.from_pairs [header, all_rows, data, links, ["type", "Map"]]
+    links = ["get_child_node_action", "at"]
+    get_child_node_action_link_name = ["get_child_node_link_name", "column"]
+    JS_Object.from_pairs [header, all_rows, data, links, get_child_node_action_link_name, ["type", "Map"]]
 
 ## PRIVATE
    Render Vector to JSON
