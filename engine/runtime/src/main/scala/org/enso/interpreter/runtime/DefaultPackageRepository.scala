@@ -43,11 +43,10 @@ import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, Editions, LibraryName}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.instrument.NotificationHandler
+import org.enso.interpreter.runtime.nativeimage.NativeLibrarySearchPath
 import org.enso.librarymanager.DefaultLibraryProvider
 import org.graalvm.nativeimage.ImageInfo
 import org.slf4j.LoggerFactory
-
-import java.io.File
 
 /** The default [[PackageRepository]] implementation.
   *
@@ -259,16 +258,15 @@ private class DefaultPackageRepository(
         pkg,
         TruffleFileSystem.INSTANCE
       )
-      val propName = "java.library.path"
       val distinctParentDirs = nativeLibs.asScala
         .map(_.getParent)
         .toSet
       distinctParentDirs.foreach { dir =>
-        logger.debug("Adding '{}' to {} system prop", dir.getPath, propName)
-        val oldPropValue = System.getProperty(propName)
-        System.setProperty(
-          propName,
-          oldPropValue + File.pathSeparator + dir.getPath
+        logger.debug("Adding '{}' to native lib search path", dir.getPath)
+        NativeLibrarySearchPath.addToSearchPath(dir.getPath)
+        logger.trace(
+          "Current value of native lib search path: {}",
+          NativeLibrarySearchPath.getSearchPath
         )
       }
     }
