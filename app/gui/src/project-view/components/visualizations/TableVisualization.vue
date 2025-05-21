@@ -696,7 +696,7 @@ type ParsedTemplate = {
   keys: { name: string; numeric: boolean }[];
 };
 
-function parseTemplate(input: string): ParsedTemplate {
+function parseTemplate(input: string, defaultSelector: string): ParsedTemplate {
   const regex = /{{(#?)(\w+)}}/g;
   const keys: { name: string; numeric: boolean }[] = [];
   let pattern = input;
@@ -708,17 +708,26 @@ function parseTemplate(input: string): ParsedTemplate {
 
   pattern = "__." + pattern;
 
+  if (keys.length === 0) {
+    keys.push({ name: defaultSelector, numeric: false });
+    pattern = pattern + " __";
+  }
+
   return { pattern, keys };
 }
 
-function getAstPattern(params: CellDoubleClickedEvent, action: string) {
-  const parsedAction = parseTemplate(action);
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value);
+}
+
+function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSelector: string) {
+  const parsedAction = parseTemplate(action, defaultSelector);
 
   return Pattern.new<Ast.Expression>((ast) => {
     const mappedExpressions = parsedAction.keys.map(({ name, numeric }) => {
       const value = params.data[name];
       const castedValue = numeric && !isNaN(Number(value)) ? Number(value) : value
-      return numeric
+      return isNumber(castedValue)
         ? Ast.tryNumberToEnso(castedValue, ast.module)!
         : Ast.TextLiteral.new(castedValue, ast.module);
     });
@@ -733,7 +742,7 @@ function createNode(
   selector: string,
   action: string,
 ) {
-  const pattern = getAstPattern(params, action);
+  const pattern = getAstPattern(params, action, selector);
 
   if (pattern) {
     config.createNodes({
@@ -754,7 +763,7 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
   return {
     headerName: headerName ? headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction!),
     tooltipValueGetter: (params: ITooltipParams) =>
       params.node?.rowPinned === 'top' ?
         null
