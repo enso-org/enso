@@ -35,7 +35,7 @@ declare module '@lezer/markdown' {
 
 /**
  * A parser for ‘metadata’ section of the Markdown docs.
- * Similar to https://jekyllrb.com/docs/front-matter/.
+ * A format similar to https://jekyllrb.com/docs/front-matter/.
  */
 const YAMLFrontMatter: MarkdownConfig = {
   defineNodes: ['YAMLFrontMatter', 'YAMLMarker', 'YAMLContent'],
