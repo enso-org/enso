@@ -8,8 +8,8 @@ import * as React from 'react'
 import { memo } from 'react'
 import type { TestIdProps } from '../types'
 import * as visualTooltip from '../VisualTooltip'
-import { TEXT_STYLE } from './style'
 import * as textProvider from './TextProvider'
+import { TEXT_STYLE } from './variant'
 
 /** Props for the Text component */
 export interface TextProps
