@@ -1,17 +1,21 @@
 package org.enso.microsoft.azure;
 
-import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobServiceClientBuilder;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public final class AzureBlobStorage {
-  public static List<String> containers(TokenCredential credential, String storageAccountName, String prefix) {
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(AzureBlobStorage.class);
+
+  public static List<String> containers(AzureCredential credential, String storageAccountName, String prefix) {
+    LOGGER.warn("Reading from Blob Storage: {}", storageAccountName);
+
     var client = new BlobServiceClientBuilder()
         .endpoint("https://" + storageAccountName + ".blob.core.windows.net/")
-        .credential(credential)
+        .credential(CredentialHelper.toTokenCredential(credential))
         .buildClient();
 
     var result = new ArrayList<String>();
