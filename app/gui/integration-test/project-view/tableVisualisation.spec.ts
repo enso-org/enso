@@ -291,5 +291,4 @@ test('get_child_node_action temmplate Test as text', async ({ page }) => {
   const textWidget = newNode.locator('.WidgetText')
   await expect(textWidget).toBeVisible()
   await expect(textWidget.getByTestId('widget-text-content')).toHaveText('2')
-
 })
