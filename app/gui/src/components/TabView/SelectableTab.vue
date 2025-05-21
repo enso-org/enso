@@ -67,6 +67,7 @@ const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always
         </motion.div>
         <button
           role="tab"
+          :aria-label="tooltip ?? label ?? ''"
           class="tabContent"
           :class="{ enabled }"
           :disabled="!enabled"

@@ -25,7 +25,8 @@ const Result = applyPureReactInVue(ResultReact)
 const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
 const { rightPanel } = injectConainerData()
-const { id: projectId, store: projectStore, graph } = injectCurrentProject()
+const { id: openedProjectId, store: projectStore, graph } = injectCurrentProject()
+const projectId = computed(() => rightPanel.focusedProject)
 const { backendForType } = injectBackends()
 const backendForAsset = computed(() => {
   if (rightPanel.context?.category == null) return null
@@ -87,7 +88,6 @@ watch(
   [projectStore, graph],
   ([projectStore, graph], _, onCleanup) => {
     const scope = effectScope()
-    console.log('Updating docImageHandlers')
     scope.run(() => {
       if (projectStore != null && graph != null) {
         docImagesHandlers.value = useDocumentationImages(
@@ -203,8 +203,8 @@ const displaySignatureEditor = computed(
       </template>
       <template #belowToolbar>
         <FunctionSignatureEditor
-          v-if="displaySignatureEditor && currentMethodAst.ok && projectId"
-          :projectId="projectId"
+          v-if="displaySignatureEditor && currentMethodAst.ok && openedProjectId"
+          :projectId="openedProjectId"
           :functionAst="currentMethodAst.value.ast"
           :methodPointer="currentMethodPointer"
           :markdownDocs="markdownDocs.value"
