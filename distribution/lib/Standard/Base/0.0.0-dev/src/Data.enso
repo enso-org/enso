@@ -36,10 +36,12 @@ from project.Metadata.Choice import Option
 from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Vector_Editor
 from project.System.File_Format import Auto_Detect, File_Format
 
-## ALIAS csv, delimited, excel, hyper, load, open, tableau
-   GROUP File
-   ICON data_input
-   SUGGESTED 1
+## ---
+   aliases: [csv, delimited, excel, hyper, load, open, tableau]
+   group: File
+   icon: data_input
+   suggested: 1
+   ---
    Reads a file into Enso.
 
    Uses the specified file format to parse the file into an Enso type. If not
@@ -57,7 +59,7 @@ from project.System.File_Format import Auto_Detect, File_Format
      If set to `Report_Error`, the operation fails with a dataflow error.
      The operation proceeds without errors or warnings if set to `Ignore`.
 
-   > Example
+   ### Example
      Read the first sheet of an XLSX from disk and convert it into a table.
 
          from Standard.Table import all
@@ -66,7 +68,7 @@ from project.System.File_Format import Auto_Detect, File_Format
          example_xlsx_to_table = Data.read Examples.xlsx
 
 
-   > Example
+   ### Example
      Read the sheet named `Dates` from an XLS and convert it to a table.
 
          from Standard.Table import all
@@ -74,7 +76,7 @@ from project.System.File_Format import Auto_Detect, File_Format
 
          example_xls_to_table = Data.read Examples.xls (..Sheet 'Dates')
 
-   ! Request Caching
+   ### Request Caching
 
      Responses to HTTP data requests are cached, and additional requests for the
      same resources will use the cache, saving a round-trip call to the remote

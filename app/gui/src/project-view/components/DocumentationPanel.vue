@@ -9,7 +9,11 @@ import DocsSynopsis from '@/components/DocumentationPanel/DocsSynopsis.vue'
 import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
 import { HistoryStack } from '@/components/DocumentationPanel/history'
 import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
-import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
+import {
+  lookupDocumentation,
+  lookupRawDocumentation,
+  placeholder,
+} from '@/components/DocumentationPanel/ir'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
@@ -38,35 +42,10 @@ const documentation = computed<Docs>(() => {
   return entry ? lookupDocumentation(db.entries, entry) : placeholder('No suggestion selected.')
 })
 
-const mockFrontMatter = `---
-aliases: [where]
-group: Selections
-icon: preparation
-suggested: 1
-macros:
-- equals: filter=..Equal
-- not_equals: filter=..Not_Equal
-- not_nothing: filter=..Not_Nothing
-- is_nothing: filter=..Is_Nothing
-- is_in: filter=..Is_In
-- less_than: filter=..Less
-- greater_than: filter=..Greater
-- between: filter=..Between
-- contains: filter=..Contains
-- starts_with: filter=..Starts_With
-- ends_with: filter=..Ends_With
-- like: filter=..Like
-- regex_match: filter=..Regex_Match
-- predicate: filter=v->v==Nothing
----
-`
-
 const rawDocumentation = computed(() => {
   if (props.aiMode) return 'AI assistant mode: write query in natural language and press Enter.'
   const entry = props.selectedEntry
-  return entry ?
-      mockFrontMatter // + lookupRawDocumentation(db.entries, entry)
-    : 'No suggestion selected.'
+  return entry ? lookupRawDocumentation(db.entries, entry) : 'No suggestion selected.'
 })
 
 const sections = computed<Sections>(() => {

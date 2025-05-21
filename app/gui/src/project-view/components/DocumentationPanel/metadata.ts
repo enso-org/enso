@@ -1,7 +1,11 @@
+import { assert } from '@/util/assert'
+import { Opt } from '@/util/data/opt'
 import { Err, Ok, Result } from '@/util/data/result'
+import { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
+import { parse } from 'yaml'
 import * as z from 'zod'
 
-interface Macro {
+export interface Macro {
   description: string
   value: string
 }
@@ -43,4 +47,26 @@ export function validateMetadata(metadata: object): Result<DocumentationMetadata
     return Err(result.error)
   }
   return Ok(result.data)
+}
+
+/** Extract metadata front-matter section from Markdown document. */
+export function extractMetadata(
+  source: string,
+  documentation: SyntaxNodeRef,
+): Result<Opt<DocumentationMetadata>> {
+  const frontMatter = documentation.node.getChild('YAMLFrontMatter')
+  const content = frontMatter?.node.getChild('YAMLContent')
+  if (!frontMatter || !content) {
+    return Ok(undefined)
+  }
+  return parseMetadata(source.slice.bind(source), content.node)
+}
+
+/** Parse metadata front-matter section from 'YAMLContent' markdown node.  */
+export function parseMetadata(
+  source: (from: number, to: number) => string,
+  frontMatterContent: SyntaxNode,
+): Result<DocumentationMetadata> {
+  assert(frontMatterContent.node.name === 'YAMLContent')
+  return validateMetadata(parse(source(frontMatterContent.from, frontMatterContent.to)))
 }
