@@ -31,10 +31,12 @@
 - [Support for reading fixed-width-column data files.][12726]
 - [Added `row_limit` parameter to the `Fixed_Width` format.][12950]
 - [Add Tableau Hyper write support][12900]
+- [Support character encodings when reading fixed-width files.][13138]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
 [12900]: https://github.com/enso-org/enso/pull/12900
+[13138]: https://github.com/enso-org/enso/pull/13138
 
 #### Enso Language & Runtime
 
