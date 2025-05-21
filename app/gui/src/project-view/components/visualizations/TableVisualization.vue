@@ -691,29 +691,29 @@ function toField(
   }
 }
 
-type ParsedTemplate = {
+type ParsedActionTemplate = {
   pattern: string;
-  keys: { name: string; numeric: boolean }[];
+  selectors: { name: string; numeric: boolean }[];
 };
 
-function parseTemplate(input: string, defaultSelector: string): ParsedTemplate {
+function parseActionTemplate(input: string, defaultSelector: string): ParsedActionTemplate {
   const regex = /{{([#@]?)(\w+)}}/g;
-  const keys: { name: string; numeric: boolean }[] = [];
+  const selectors: { name: string; numeric: boolean }[] = [];
   let pattern = input;
   
   pattern = pattern.replace(regex, (_, flag, key) => {
-    keys.push({ name: key, numeric: flag === "#" });
+    selectors.push({ name: key, numeric: flag === "#" });
     return "__";
   });
 
   pattern = "__." + pattern;
 
-  if (keys.length === 0) {
-    keys.push({ name: defaultSelector, numeric: false });
+  if (selectors.length === 0) {
+    selectors.push({ name: defaultSelector, numeric: false });
     pattern = pattern + " __";
   }
 
-  return { pattern, keys };
+  return { pattern, selectors };
 }
 
 function isNumber(value: unknown): value is number {
@@ -721,10 +721,10 @@ function isNumber(value: unknown): value is number {
 }
 
 function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSelector: string) {
-  const parsedAction = parseTemplate(action, defaultSelector);
+  const parsedAction = parseActionTemplate(action, defaultSelector);
 
   return Pattern.new<Ast.Expression>((ast) => {
-    const mappedExpressions = parsedAction.keys.map(({ name, numeric }) => {
+    const mappedExpressions = parsedAction.selectors.map(({ name, numeric }) => {
       const value = params.data[name];
       const castedValue = numeric && !isNaN(Number(value)) ? Number(value) : value
       return isNumber(castedValue)
@@ -737,12 +737,25 @@ function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSe
   });
 }
 
+/**
+ * Creates a new node in the graph based on the given action template and data from a grid row.
+ *
+ * The action string should be of the format `at {{#fieldname}}` which will generate a Node `at 2`
+ * or `at {{@fieldname}}` which will generate a Node `at "2"`
+ * 
+ * If the action contains no placeholders then the defaultSelector is used like so
+ * `action {{@defaultSelector}}
+ *
+ * @param params - The grid cell event containing the clicked row's data.
+ * @param defaultSelector - A fallback key used when the template contains no placeholders.
+ * @param action - A template string with placeholders (e.g., `at {{@name}}`, `at {{#value}}`) used to generate the AST.
+ */
 function createNode(
   params: CellDoubleClickedEvent,
-  selector: string,
+  defaultSelector: string,
   action: string,
 ) {
-  const pattern = getAstPattern(params, action, selector);
+  const pattern = getAstPattern(params, action, defaultSelector);
 
   if (pattern) {
     config.createNodes({
