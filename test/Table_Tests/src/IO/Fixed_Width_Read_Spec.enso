@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
@@ -21,6 +22,7 @@ add_direct_specs suite_builder =
     data2 = data_dir / "fixed2.txt"
     data3 = data_dir / "fixed3.txt"
     data4 = data_dir / "fixed4.txt"
+    data5 = data_dir / "fixed5.txt"
 
     suite_builder.group "Read fixed-width files" group_builder->
         group_builder.specify "Should make a layout from a description" <|
@@ -214,35 +216,14 @@ add_direct_specs suite_builder =
             t.at "y" . to Vector . should_equal [True, False, False]
             t.at "z" . to Vector . should_equal ["J", "C", "E"]
 
-        ##
-            group_builder.specify "should work with all kinds of line endings" <|
-                descs = []
-                    + [Fixed_Width_Column_Description.Start_And_Width 0 1 "x"]
-                    + [Fixed_Width_Column_Description.Width 1 "y"]
-                    + [Fixed_Width_Column_Description.Width 1 "z"]
-                layout = Fixed_Width_Layout.from_descriptions descs
-
-                path name = enso_project.data / 'transient' / name
-                create_file name ending_style =
-                    lines = ['abc', 'def', '123']
-                    text = lines.join ending_style
-                    text.write (path name)
-
-                test_file name =
-                    table = Data.read (path name) (Fixed_Width_Format.Fixed_Width layout) ..Report_Error
-                    table.columns.map .name . should_equal ['x', 'y', 'z']
-                    table.at 'x' . to_vector . should_equal ['a', 'd', '1']
-                    table.at 'y' . to_vector . should_equal ['b', 'e', '2']
-                    table.at 'z' . to_vector . should_equal ['c', 'f', '3']
-
-                create_file 'crlf.csv' '\r\n'
-                test_file 'crlf.csv'
-                create_file 'lf.csv' '\n'
-                test_file 'lf.csv'
-                create_file 'cr.csv' '\r'
-                test_file 'cr.csv'
-
-                ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
+        group_builder.specify "Should report row and column for bad characters" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 8 3]
+                + [Fixed_Width_Column_Description.Start_And_Width 18 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data5.read (Fixed_Width_Format.Fixed_Width layout)
+            expected = Encoding_Error.Error "Failed to decode 4 code units (at positions: character 0 row 0 column 1, character 1 row 0 column 1, character 1 row 1 column 0, ...)."
+            Problems.expect_warning expected t
 
 fixed_width_spec_from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Error) -> Text =

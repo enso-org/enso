@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import org.enso.base.encoding.DecodingProblemAggregator;
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -27,7 +26,7 @@ public class FixedWidthReader {
   private final long rowLimit;
   private InvalidFixedWidthRowsBehavior invalidRowsBehavior;
   private DatatypeParser valueParser;
-  private final DecodingProblemAggregator decodingProblemAggregator;
+  private final FixedWidthDecodingProblemAggregator decodingProblemAggregator;
   private FixedWidthReaderProblemAggregator problemAggregator;
 
   private List<BuilderForType<String>> builders = null;
@@ -45,7 +44,7 @@ public class FixedWidthReader {
       InvalidFixedWidthRowsBehavior invalidRowsBehavior,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
-      DecodingProblemAggregator decodingProblemAggregator,
+      FixedWidthDecodingProblemAggregator decodingProblemAggregator,
       ProblemAggregator problemAggregator) {
 
     if (layoutEntries.isEmpty()) {
@@ -107,6 +106,8 @@ public class FixedWidthReader {
     }
 
     for (int i = 0; i < layoutEntries.size(); ++i) {
+      decodingProblemAggregator.setRowColumn(sourceLineNumber, i);
+
       var entry = layoutEntries.get(i);
       var builder = builders.get(i);
 

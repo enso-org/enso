@@ -11,7 +11,7 @@ import project.System.Encoding.Encoding_Resolver
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 
-polyglot java import org.enso.base.encoding.DecodingProblemAggregator
+polyglot java import org.enso.base.encoding.SimpleDecodingProblemAggregator
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 
 ## PRIVATE
@@ -20,7 +20,7 @@ polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 run (input_stream : Input_Stream) (encoding : Encoding) (on_problems : Problem_Behavior) (allow_usage_in_background_threads : Boolean) (continuation : ReportingStreamDecoder -> Any) =
     # We always ensure the stream is peekable, as that also implies buffering which is supposedly more efficient e.g. when working with files.
     buffered_input_stream = input_stream.as_peekable_stream
-    problem_aggregator = DecodingProblemAggregator.new
+    problem_aggregator = SimpleDecodingProblemAggregator.new
     result = Encoding_Resolver.resolve_encoding encoding buffered_input_stream problem_aggregator effective_encoding-> amended_input_stream->
         amended_input_stream.with_java_stream java_stream->
             # We can only poll safepoints if the decoder is guaranteed to be used in the main thread only.

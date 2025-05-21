@@ -13,9 +13,9 @@ from project.Table import from_java_table
 
 polyglot java import java.io.IOException
 polyglot java import java.io.Reader
-polyglot java import org.enso.base.encoding.DecodingProblemAggregator
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
+polyglot java import org.enso.table.read.FixedWidthDecodingProblemAggregator
 polyglot java import org.enso.table.read.FixedWidthReader
 polyglot java import org.enso.table.read.FixedWidthReader.FixedWidthLayoutEntry
 polyglot java import org.enso.table.read.InvalidFixedWidthRowsBehavior
@@ -55,7 +55,7 @@ read_stream format input_stream on_problems:Problem_Behavior related_file=Nothin
     # We always ensure the stream is peekable, as that also implies buffering which is supposedly more efficient e.g. when working with files.
     handle_io_exception related_file <|
         buffered_input_stream = input_stream.as_peekable_stream
-        decoding_problem_aggregator = DecodingProblemAggregator.new
+        decoding_problem_aggregator = FixedWidthDecodingProblemAggregator.new
         result = Encoding_Resolver.resolve_encoding format.encoding buffered_input_stream decoding_problem_aggregator effective_encoding-> amended_input_stream->
             amended_input_stream.with_java_stream java_stream->
                 Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <|
