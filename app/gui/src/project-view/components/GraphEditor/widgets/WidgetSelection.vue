@@ -68,15 +68,17 @@ const { floatingStyles: activityStyles } = activityDropdownStyles(
 type ExpressionFilter = (tag: ExpressionTag) => boolean
 function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | undefined {
   const editedAst = typeof pattern === 'string' ? Ast.parseExpression(pattern) : pattern
-  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedAst instanceof Ast.TextLiteral) {
     return (tag: ExpressionTag) =>
       (tag.expressionAst instanceof Ast.TextLiteral &&
         tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)) ||
       (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedAst.rawTextContent))
   }
+  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedCode) {
-    return (tag: ExpressionTag) => tag.expression.startsWith(editedCode)
+    return (tag: ExpressionTag) =>
+      tag.expression.startsWith(editedCode) ||
+      (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedCode))
   }
   return undefined
 }
@@ -109,20 +111,25 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
   return config.values.map(choiceToTag)
 })
 
+const allowExtendingUpwards = computed(() => ArgumentInfoKey in props.input)
+
 const filteredTags = computed(() => {
   const expressionTags = dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value
+  const customTags =
+    props.input[CustomDropdownItemsKey]?.map((entry) =>
+      entry instanceof ExpressionTag ? entry : ActionTag.FromItem(entry),
+    ) ?? []
   const expressionFilter =
     !isMulti.value && editedValue.value && makeExpressionFilter(editedValue.value)
   if (expressionFilter) {
     const flattened = expressionTags.flatMap((tag) =>
       tag instanceof NestedChoiceTag ? tag.flatten() : [tag],
     )
-    return flattened.filter(expressionFilter)
+    const filteredCustomTags = customTags.filter(
+      (tag) => tag instanceof ExpressionTag && expressionFilter(tag),
+    )
+    return [...filteredCustomTags, ...flattened.filter(expressionFilter)]
   } else {
-    const customTags =
-      props.input[CustomDropdownItemsKey]?.map((entry) =>
-        entry instanceof ExpressionTag ? entry : ActionTag.FromItem(entry),
-      ) ?? []
     return [...customTags, ...expressionTags]
   }
 })
@@ -414,6 +421,7 @@ declare module '@/providers/widgetRegistry' {
       :entries="entries"
       :selectedExpressions="selectedExpressions"
       :topLevel="true"
+      :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"
     />
 

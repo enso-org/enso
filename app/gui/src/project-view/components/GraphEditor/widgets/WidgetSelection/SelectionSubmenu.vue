@@ -14,6 +14,7 @@ const props = defineProps<{
   entries: Entry[]
   selectedExpressions: Set<string>
   topLevel?: boolean
+  extendUpwards?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -110,7 +111,7 @@ defineExpose({
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
-          :class="{ ExtendUpwards: props.topLevel }"
+          :class="{ ExtendUpwards: props.topLevel && props.extendUpwards !== false }"
           color="var(--color-node-text)"
           backgroundColor="var(--color-node-background)"
           :entries="entries"

@@ -11,7 +11,7 @@ import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
 import { type MethodPointer } from '@/util/methodPointer'
 import { computed, Ref } from 'vue'
-import { autospaced, newArgumentDefinition } from 'ydoc-shared/ast'
+import { newArgumentDefinition } from 'ydoc-shared/ast'
 import { assertUnreachable } from 'ydoc-shared/util/assert'
 
 const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
@@ -57,7 +57,7 @@ function handleRemove(index: number) {
 }
 
 function handleUpdateType(index: number, typeExpr: Ast.Owned<Ast.MutableExpression>) {
-  doEdit((ast) => ast.setArgumentType(index, autospaced(typeExpr)))
+  doEdit((ast) => ast.setArgumentType(index, typeExpr))
 }
 
 function handleReorder(oldIndex: number, newIndex: number) {

@@ -2702,7 +2702,7 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
     this.fields.set('argumentDefinitions', defs)
   }
 
-  setArgumentType(index: number, typeExpr: NodeChild<Owned<MutableExpression>> | undefined) {
+  setArgumentType(index: number, typeExpr: Owned<MutableExpression> | undefined) {
     const defs = [...this.fields.get('argumentDefinitions')]
     if (defs.length > index) {
       const def = defs[index]!
@@ -2710,8 +2710,8 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
         typeExpr ?
           {
             operator:
-              def.type?.operator ?? autospaced(Token.new(':', TokenType.TypeAnnotationOperator)),
-            type: concreteChild(this.module, typeExpr, this.id),
+              def.type?.operator ?? unspaced(Token.new(':', TokenType.TypeAnnotationOperator)),
+            type: concreteChild(this.module, unspaced(typeExpr), this.id),
           }
         : undefined
       defs[index] = { ...def, type }
