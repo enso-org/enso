@@ -33,6 +33,9 @@ export const textEditorsCommonBindings = defineKeybinds('text-editors-common-bin
   moveRight: ['ArrowRight'],
   deleteBack: ['Backspace'],
   deleteForward: ['Delete'],
+  copy: ['Mod+C'],
+  cut: ['Mod+X'],
+  paste: ['Mod+V'],
 })
 
 export const textEditorsMultilineBindings = defineKeybinds('text-editors-multiline-bindings', {

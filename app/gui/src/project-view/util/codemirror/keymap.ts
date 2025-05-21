@@ -39,17 +39,25 @@ function bindCommands<T extends string>(
   )
 }
 
+const stopEvent = (event: Event) => {
+  event.stopImmediatePropagation()
+  return false
+}
+
 /** Key bindings applicable to all CodeMirror instances. */
 const baseKeymap: KeyBinding[] = [
   handlerToKeyBinding(
-    textEditorsCommonBindings.handler(
-      bindCommands({
+    textEditorsCommonBindings.handler({
+      ...bindCommands({
         moveLeft: commands.cursorCharLeft,
         moveRight: commands.cursorCharRight,
         deleteBack: commands.deleteCharBackward,
         deleteForward: commands.deleteCharForward,
       }),
-    ),
+      copy: stopEvent,
+      cut: stopEvent,
+      paste: stopEvent,
+    }),
     true,
   ),
   {
@@ -275,11 +283,6 @@ export const verticalMovementKeymap: KeyBinding[] = [
   { key: 'Ctrl-o', run: commands.splitLine, stopPropagation: true },
   { key: 'Ctrl-v', run: commands.cursorPageDown, stopPropagation: true },
 ]
-
-const stopEvent = (event: Event) => {
-  event.stopImmediatePropagation()
-  return false
-}
 
 const autoOrMultiHandlers = handlerToKeyBinding(
   textEditorsMultilineBindings.handler({

@@ -1,3 +1,4 @@
+/** @file Tests for the multiline CodeMirror editor panels: documentation editor and code editor. */
 import type { Page } from '@playwright/test'
 import { test } from 'playwright/test'
 import * as actions from './actions'
@@ -50,9 +51,7 @@ test('Doc panel focus (regression #10471)', async ({ page }) => {
   const { rightDock } = await goToGraphAndGetDocs(page)
 
   // Open and focus code editor.
-  await page.keyboard.press(`${CONTROL_KEY}+\``)
-  const codeEditor = page.locator('.CodeEditor')
-  await expect(codeEditor).toBeVisible()
+  const { codeEditor } = await getCodeEditor(page)
   await codeEditor.click()
 
   await page.evaluate(() => {
@@ -66,13 +65,17 @@ test('Doc panel focus (regression #10471)', async ({ page }) => {
   await page.keyboard.press('S')
   await page.keyboard.press('T')
 
-  const content = await page.evaluate(() => {
-    const codeEditor = (window as any).__codeEditorApi
-    return codeEditor.textContent()
-  })
+  const content = await page.evaluate(() => (window as any).__codeEditorApi.textContent())
   expect(content.includes('The main TEST method')).toBe(true)
   await expect(rightDock).toContainText('The main TEST method')
 })
+
+async function getCodeEditor(page: Page) {
+  await page.keyboard.press(`${CONTROL_KEY}+\``)
+  const codeEditor = page.locator('.CodeEditor')
+  await expect(codeEditor).toBeVisible()
+  return { codeEditor }
+}
 
 test('Code editor with wide content does not take space from doc editor (#12476)', async ({
   page,
@@ -84,9 +87,7 @@ test('Code editor with wide content does not take space from doc editor (#12476)
     return (await rightDock.boundingBox())!.x
   }
   const docPosWithoutCodeEditor = await getDocX()
-  await page.keyboard.press(`${CONTROL_KEY}+\``)
-  const codeEditor = page.locator('.CodeEditor')
-  await expect(codeEditor).toBeVisible()
+  await getCodeEditor(page)
   const docPosWithCodeEditor = await getDocX()
 
   // Note that we compare `x` instead of `width`: This will catch either a change in width, or the
@@ -163,7 +164,7 @@ test('Insert link button inserts link and focuses editor', async ({ page }) => {
 test('Documentation editor: Editing with keyboard', async ({ page }) => {
   const { docsContent } = await goToGraphAndGetDocs(page)
 
-  await page.keyboard.press(`${CONTROL_KEY}+\``)
+  await getCodeEditor(page)
   const getGraphCode = () => page.evaluate(() => (window as any).__codeEditorApi.textContent())
 
   await docsContent
@@ -186,4 +187,21 @@ test('Documentation editor: Editing with keyboard', async ({ page }) => {
   await page.keyboard.type('Second line')
   const codeAfterAddingLine = await getGraphCode()
   expect(codeAfterAddingLine).toContain(`## # ${NEW_DOCS}\n   Second line`)
+})
+
+test('Code editor: Copy and paste', async ({ page }) => {
+  await actions.goToGraph(page)
+  const { codeEditor } = await getCodeEditor(page)
+  await codeEditor.click()
+  await page.evaluate(() => {
+    const codeEditor = (window as any).__codeEditorApi
+    const PLUS_TEN = ' + ten'
+    const plusTen = codeEditor.indexOf(PLUS_TEN)
+    codeEditor.select(plusTen, plusTen + PLUS_TEN.length)
+  })
+  await page.keyboard.press(`${CONTROL_KEY}+C`)
+  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  const codeAfterEdit = await page.evaluate(() => (window as any).__codeEditorApi.textContent())
+  expect(codeAfterEdit).toContain(' + ten + ten')
 })
