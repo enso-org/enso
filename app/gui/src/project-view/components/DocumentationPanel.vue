@@ -48,6 +48,22 @@ aliases: [csv,delimited,excel,hyper,load,open,tableau]
 group: File
 icon: data_input
 suggested: 1
+advanced: true
+macros:
+ - equals: filter=..Equal
+ - not_equals: filter=..Not_Equal
+ - not_nothing: filter=..Not_Nothing
+ - is_nothing: filter=..Is_Nothing
+ - is_in: filter=..Is_In
+ - less_than: filter=..Less
+ - greater_than: filter=..Greater
+ - between: filter=..Between
+ - contains: filter=..Contains
+ - starts_with: filter=..Starts_With
+ - ends_with: filter=..Ends_With
+ - like: filter=..Like
+ - regex_match: filter=..Regex_Match
+ - predicate: filter=v->v==Nothing
 ---
 `
 

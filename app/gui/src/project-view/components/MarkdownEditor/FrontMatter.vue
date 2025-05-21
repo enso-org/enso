@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import { DocumentationMetadata } from '@/components/DocumentationPanel/metadata'
+
 const props = defineProps<{
-  properties: object
+  metadata: DocumentationMetadata
 }>()
 </script>
 
 <template>
   <div class="FrontMatter">
     {{ 'Start' }}
-    {{ JSON.stringify(properties) }}
+    {{ JSON.stringify(metadata) }}
     {{ 'End' }}
   </div>
 </template>
