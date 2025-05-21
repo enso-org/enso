@@ -6,7 +6,7 @@
 
 import { Checkbox, Form, Input } from '#/components/AriaComponents'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as strava from './strava'
 import type { CredentialFormProps } from './types'
