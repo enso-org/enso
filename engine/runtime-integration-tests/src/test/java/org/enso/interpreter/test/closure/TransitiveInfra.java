@@ -9,9 +9,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.enso.logger.ObservedMessage;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -26,18 +24,7 @@ public abstract class TransitiveInfra {
 
   protected abstract Collection<String> disallowModules();
 
-  private Context ctx;
-
-  @Before
-  public final void initialize() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @After
-  public final void close() {
-    ctx.close();
-    ctx = null;
-  }
+  @Rule public ContextUtils ctx = ContextUtils.createDefault();
 
   @Test
   public final void executeAndCheckResolvedModules() throws Exception {
@@ -72,8 +59,7 @@ public abstract class TransitiveInfra {
           }
         };
     try (var handle = ObservedMessage.observe(logger, observe)) {
-      var actual =
-          ContextUtils.evalModule(ctx, code(), getClass().getSimpleName() + ".enso", "main");
+      var actual = ctx.evalModule(code(), getClass().getSimpleName() + ".enso", "main");
       assertTrue("It is a type: " + actual, actual.isMetaObject());
       var name = actual.getMetaQualifiedName();
       assertEquals("Module imported", moduleName(), name);
