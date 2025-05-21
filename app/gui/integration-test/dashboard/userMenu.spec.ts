@@ -11,7 +11,13 @@ test('user menu', ({ page }) =>
     }))
 
 test('download app', ({ page }) =>
-  mockAllAndLogin({ page, goToCloudFirst: false })
+  mockAllAndLogin({
+    page,
+    goToCloudFirst: false,
+    setupAPI: (api) => {
+      api.setFeatureFlags({ enableLocalBackend: false })
+    },
+  })
     .openUserMenu()
     .userMenu.downloadApp(async (download) => {
       await download.cancel()
