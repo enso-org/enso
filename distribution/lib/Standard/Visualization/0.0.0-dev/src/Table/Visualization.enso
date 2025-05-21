@@ -137,7 +137,7 @@ make_json_for_dictionary dict max_items =
     as_vector = Warning.clear (dict.to_vector.take max_items)
     mapped = as_vector . map p-> [p.first.to_text, _make_json_for_value p.second]
     data = ["data", [mapped.map .first, mapped.map .second]]
-    links = ["get_child_node_action", "at"]
+    links = ["get_child_node_action", "at {{#key}}"]
     get_child_node_action_link_name = ["get_child_node_link_name", "key"]
     JS_Object.from_pairs [header, data, all_rows, links, get_child_node_action_link_name, ["type", "Map"], ["child_label", "value"]]
 
