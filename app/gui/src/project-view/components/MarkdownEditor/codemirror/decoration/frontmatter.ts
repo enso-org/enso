@@ -1,14 +1,15 @@
+import { DocumentationMetadata, validateMetadata } from '@/components/DocumentationPanel/metadata'
 import FrontMatter from '@/components/MarkdownEditor/FrontMatter.vue'
 import { nodeRange } from '@/components/MarkdownEditor/markdown/trees'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import type { Text } from '@codemirror/state'
 import { Decoration, WidgetType } from '@codemirror/view'
-import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
+import type { SyntaxNodeRef } from '@lezer/common'
 import { h, markRaw } from 'vue'
 import { parse } from 'yaml'
 import { Range } from 'ydoc-shared/util/data/range'
 
-/** Extension that uses a Vue component CodeMirror widget to render Markdown tables. */
+/** Extension that uses a Vue component CodeMirror widget to render documentation metadata. */
 export function decorateFrontMatter(
   nodeRef: SyntaxNodeRef,
   doc: Text,
@@ -16,19 +17,27 @@ export function decorateFrontMatter(
   vueHost: VueHost,
 ) {
   if (nodeRef.name === 'YAMLFrontMatter') {
-    const source = doc.slice(nodeRef.from, nodeRef.to)
     const content = nodeRef.node.getChild('YAMLContent')
-    const widget = new FrontMatterWidget({ source, parsed: content! }, vueHost)
-    emitDecoration(
-      nodeRange(nodeRef),
-      Decoration.replace({
-        widget,
-        // Ensure the cursor is drawn relative to the content before the widget.
-        // If it is drawn relative to the widget, it will be hidden when the widget is hidden (i.e. during editing).
-        side: 1,
-        block: true,
-      }),
-    )
+    if (!content) {
+      console.error('Invalid YAMLFrontMatter node, missing YAMLContent child.')
+      return
+    }
+    const res = validateMetadata(parse(doc.sliceString(content.from, content.to)))
+    if (!res.ok) {
+      console.error('Invalid documentation metadata, parsing failed with error: ', res.error)
+    } else {
+      const widget = new FrontMatterWidget({ metadata: res.value }, vueHost)
+      emitDecoration(
+        nodeRange(nodeRef),
+        Decoration.replace({
+          widget,
+          // Ensure the cursor is drawn relative to the content before the widget.
+          // If it is drawn relative to the widget, it will be hidden when the widget is hidden (i.e. during editing).
+          side: 1,
+          block: true,
+        }),
+      )
+    }
   }
 }
 
@@ -37,7 +46,7 @@ class FrontMatterWidget extends WidgetType {
   private vueHostRegistration: { unregister: () => void } | undefined
 
   constructor(
-    private readonly props: { source: Text; parsed: SyntaxNode },
+    private readonly props: { metadata: DocumentationMetadata },
     private readonly vueHost: VueHost,
   ) {
     super()
@@ -54,9 +63,7 @@ class FrontMatterWidget extends WidgetType {
       this.vueHostRegistration = this.vueHost.register(
         () =>
           h(FrontMatter, {
-            properties: parse(
-              this.props.source.sliceString(this.props.parsed.from, this.props.parsed.to),
-            ),
+            metadata: this.props.metadata,
           }),
         container,
       )
