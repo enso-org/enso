@@ -56,13 +56,12 @@ read_stream format input_stream on_problems:Problem_Behavior related_file=Nothin
     handle_io_exception related_file <|
         buffered_input_stream = input_stream.as_peekable_stream
         decoding_problem_aggregator = FixedWidthDecodingProblemAggregator.new
-        result = Encoding_Resolver.resolve_encoding format.encoding buffered_input_stream decoding_problem_aggregator effective_encoding-> amended_input_stream->
-            amended_input_stream.with_java_stream java_stream->
-                Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <|
-                    Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                        reader = prepare_reader format effective_encoding on_problems decoding_problem_aggregator java_problem_aggregator
-                        java_table = reader.read java_stream
-                        from_java_table java_table
+        result = buffered_input_stream.with_java_stream java_stream->
+            Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <|
+                Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                    reader = prepare_reader format format.encoding on_problems decoding_problem_aggregator java_problem_aggregator
+                    java_table = reader.read java_stream
+                    from_java_table java_table
         problems = Vector.from_polyglot_array decoding_problem_aggregator.summarize . map decoding_problem->
             Encoding_Error.Error decoding_problem.message
         on_problems.attach_problems_after result problems
