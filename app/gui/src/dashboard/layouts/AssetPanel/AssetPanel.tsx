@@ -6,7 +6,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { memo, startTransition } from 'react'
 
-import { Plan, type BackendType } from 'enso-common/src/services/Backend'
+import { type BackendType } from 'enso-common/src/services/Backend'
 
 import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import DocsIcon from '#/assets/file_text.svg'
@@ -14,6 +14,7 @@ import SessionsIcon from '#/assets/group.svg'
 import InspectIcon from '#/assets/inspect.svg'
 import VersionsIcon from '#/assets/versions.svg'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { usePaywall } from '#/hooks/billing'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -121,12 +122,13 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
 
   const { getText } = useText()
   const { user } = useFullUserSession()
-  const planCannotRunExecutions = user.plan === Plan.free || user.plan === Plan.solo
 
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()
 
   const enableAsyncExecution = useFeatureFlag('enableAsyncExecution')
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const isSchedulerDisabled = isFeatureUnderPaywall('scheduler')
 
   const expandTab = useEventCallback(() => {
     setIsExpanded(true)
@@ -248,13 +250,13 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             icon={CalendarIcon}
             label={
               isLocal ? getText('assetProjectExecutionsCalendar.cloudOnly')
-              : planCannotRunExecutions ?
+              : isSchedulerDisabled ?
                 getText('assetProjectExecutionsCalendar.teamPlanOnly')
               : getText('executionsCalendar')
             }
             isExpanded={isExpanded}
             onPress={expandTab}
-            isDisabled={isLocal || planCannotRunExecutions}
+            isDisabled={isLocal || isSchedulerDisabled}
             isHidden={!enableAsyncExecution}
           />
           <AssetPanelTabs.Tab
