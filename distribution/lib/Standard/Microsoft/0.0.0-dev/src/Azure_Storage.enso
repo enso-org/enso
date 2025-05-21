@@ -26,6 +26,7 @@ type Azure_Storage
         as_array = AzureBlobStorage.containers java_cred account prefix
         Vector.from_polyglot_array as_array
 
+## Enso representation of the Azure Storage Account
 type Azure_Storage_Account
     private Value java_object
 
