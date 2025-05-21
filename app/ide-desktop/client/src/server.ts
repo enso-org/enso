@@ -202,26 +202,35 @@ export class Server {
     if (requestUrl == null) {
       logger.error('Request URL is null.')
     } else if (requestUrl.startsWith('/api/project-manager/')) {
-      const actualUrl = new URL(
-        requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
-      )
-      request.pipe(
-        http.request(
-          actualUrl,
-          { headers: request.headers, method: request.method },
-          (actualResponse) => {
-            response.writeHead(
-              // This is SAFE. The documentation says:
-              // Only valid for response obtained from ClientRequest.
-              actualResponse.statusCode!,
-              actualResponse.statusMessage,
-              actualResponse.headers,
-            )
-            actualResponse.pipe(response, { end: true })
-          },
-        ),
-        { end: true },
-      )
+      const route = new URL(`https://example.com${requestUrl.replace('/api/project-manager/', '')}`)
+      switch (route.pathname) {
+        case '/files/upload': {
+          // FIXME: Upload file, preferring to read directly from fs if `file_path` is provided.
+          break
+        }
+        default: {
+          const actualUrl = new URL(
+            requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
+          )
+          request.pipe(
+            http.request(
+              actualUrl,
+              { headers: request.headers, method: request.method },
+              (actualResponse) => {
+                response.writeHead(
+                  // This is SAFE. The documentation says:
+                  // Only valid for response obtained from ClientRequest.
+                  actualResponse.statusCode!,
+                  actualResponse.statusMessage,
+                  actualResponse.headers,
+                )
+                actualResponse.pipe(response, { end: true })
+              },
+            ),
+            { end: true },
+          )
+        }
+      }
     } else if (requestUrl.startsWith('/api/cloud/')) {
       switch (requestPath) {
         case '/api/cloud/download-project': {
