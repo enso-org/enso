@@ -5,8 +5,7 @@ import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
@@ -37,6 +36,7 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackends } from '$/providers/react'
 import {
   isUploadableAsset,
   useUploadFileToCloudMutation,
@@ -75,8 +75,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
-  const { getText } = textProvider.useText()
+  const { localBackend } = useBackends()
+  const { getText } = useText()
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
   const openProjectNatively = projectHooks.useOpenProjectNatively()

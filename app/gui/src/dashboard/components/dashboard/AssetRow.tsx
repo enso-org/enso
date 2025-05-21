@@ -16,7 +16,7 @@ import {
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
@@ -129,7 +129,7 @@ export interface AssetSpecialRowProps {
 const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
   const { type, columnsLength } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   switch (type) {
     case backendModule.AssetType.specialUp: {

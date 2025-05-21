@@ -56,6 +56,7 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
     fullWidth,
     variants = RADIO_GROUP_STYLES,
     fieldVariants,
+    contextualHelp,
     ...radioGroupProps
   } = props
 
@@ -97,6 +98,7 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
           isInvalid={invalid}
           variants={fieldVariants}
           isRequired={isRequired}
+          contextualHelp={contextualHelp}
         >
           {children}
         </Form.Field>

@@ -1,4 +1,5 @@
 /** @file HTTP client definition that includes default HTTP headers for all sent requests. */
+import { markRaw } from 'vue'
 import { NetworkError, OfflineError, isNetworkError } from './error'
 
 export const FETCH_SUCCESS_EVENT_NAME = 'fetch-success'
@@ -166,5 +167,7 @@ export default class HttpClient {
     }
   }
 }
+
+markRaw(HttpClient.prototype)
 
 export { NetworkError, OfflineError }

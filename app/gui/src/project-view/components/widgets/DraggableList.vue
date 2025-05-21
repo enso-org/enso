@@ -6,7 +6,6 @@ import { useRaf } from '@/composables/animation'
 import { useEvent } from '@/composables/events'
 import { useAppClass } from '@/providers/appClass'
 import { Vec2 } from '@/util/data/vec2'
-import { uuidv4 } from 'lib0/random'
 import { computed, type Ref, ref, shallowReactive, watchEffect, watchPostEffect } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
@@ -46,7 +45,7 @@ const emit = defineEmits<{
   dropInsert: [index: number, payload: string]
 }>()
 
-const listUuid = uuidv4()
+const listUuid = crypto.randomUUID()
 
 const mimeType = computed(() => props.dragMimeType ?? 'application/octet-stream')
 

@@ -24,14 +24,15 @@ import {
   type DatePickerProps as AriaDatePickerProps,
   type DateValue,
 } from '#/components/aria'
-import { useText } from '#/providers/TextProvider'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 import {
   Button,
   Form,
   Popover,
   Text,
+  TEXT_STYLE,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
@@ -42,17 +43,15 @@ import {
 // This cannot be added to the import above or else it is `undefined` due to a circular import.
 import { makeRoundedStyles } from '../../utilities'
 
+import { twJoin } from '#/utilities/tailwindMerge'
 const DATE_PICKER_STYLES = tv({
   base: '',
   variants: {
     rounded: makeRoundedStyles('inputContainer'),
     size: {
-      small: {
-        inputContainer: 'h-6 px-2',
-      },
-      medium: {
-        inputContainer: 'h-8 px-4',
-      },
+      custom: '',
+      small: { inputContainer: 'px-[11px] pb-0.5 pt-1' },
+      medium: { inputContainer: 'px-[11px] pb-[6.5px] pt-[8.5px]' },
     },
   },
   slots: {
@@ -164,6 +163,7 @@ export const DatePicker = forwardRef(function DatePicker<
     isInvalid,
     style,
     rounded,
+    contextualHelp,
     ...rest
   } = props
 
@@ -175,6 +175,7 @@ export const DatePicker = forwardRef(function DatePicker<
   })
 
   const styles = variants({ size, rounded })
+  const textStyles = TEXT_STYLE()
 
   return (
     <Form.Field
@@ -190,6 +191,7 @@ export const DatePicker = forwardRef(function DatePicker<
       aria-details={props['aria-details']}
       ref={ref}
       style={style}
+      contextualHelp={contextualHelp}
     >
       <Form.Controller
         control={formInstance.control}
@@ -213,8 +215,10 @@ export const DatePicker = forwardRef(function DatePicker<
                     : <DateSegment
                         segment={normalizeDateSegment(segment)}
                         className={styles.dateSegment({
-                          className:
+                          className: twJoin(
                             segment.type === 'literal' && segment.text === ' ' ? 'w-1.5' : '',
+                            textStyles,
+                          ),
                         })}
                       />
                   }

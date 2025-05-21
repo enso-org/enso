@@ -51,6 +51,9 @@ export const POPOVER_STYLES = twv.tv({
     },
     size: {
       custom: { base: '', dialog: '' },
+      /* eslint-disable @typescript-eslint/naming-convention */
+      'auto-xxsmall': { base: 'w-[unset]', dialog: 'p-1.5' },
+      /* eslint-enable @typescript-eslint/naming-convention */
       auto: { base: 'w-[unset]', dialog: 'p-2.5' },
       xxsmall: { base: 'max-w-[206px]', dialog: 'p-1.5' },
       xsmall: { base: 'max-w-xs', dialog: 'p-3' },

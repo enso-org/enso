@@ -10,10 +10,9 @@ import { Button } from '#/components/AriaComponents'
 import { useMounted } from '#/hooks/mountHooks'
 import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import { noop } from '#/utilities/functions'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouterInReact } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import AuthenticationPage from './AuthenticationPage'
 
@@ -23,7 +22,7 @@ const REDIRECT_TIMEOUT = 5_000
 export default function ConfirmRegistration() {
   const { confirmSignUp } = useSessionAPI()
   const { getText } = useText()
-  const { router, searchParams } = useRouterInReact()
+  const { router, searchParams } = useRouter()
 
   const email = searchParams.get('email')
   const verificationCode = searchParams.get('verification_code')

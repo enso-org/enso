@@ -9,9 +9,7 @@ import UIProviders from '#/components/UIProviders'
 import { useMount } from '#/hooks/mountHooks'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import { useSetFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { HttpClientProvider } from '#/providers/HttpClientProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
-import HttpClient from '#/utilities/HttpClient'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { QueryClient } from '@tanstack/vue-query'
 import { PropsWithChildren, StrictMode } from 'react'
@@ -22,29 +20,11 @@ interface ReactRootProps {
   onAuthenticated: (accessToken: string | null) => void
 }
 
-function generateSessionID() {
-  const sessionID = sessionStorage.getItem('sessionID')
-  if (sessionID) {
-    return sessionID
-  }
-
-  const newSessionID = crypto.randomUUID()
-  sessionStorage.setItem('sessionID', newSessionID)
-  return newSessionID
-}
-
 /**
  * A component gathering all views written currently in React with necessary contexts.
  */
 export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
   const { queryClient, onAuthenticated, children } = props
-
-  const sessionID = generateSessionID()
-
-  const httpClient = new HttpClient({
-    'x-enso-ide-version': $config.VERSION ?? '',
-    'x-enso-session-id': sessionID,
-  })
 
   const appRoot = document.querySelector('#enso-app')
   invariant(appRoot instanceof HTMLElement, 'AppRoot element not found')
@@ -67,9 +47,7 @@ export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
             <Suspense fallback={<LoadingScreen />}>
               <OfflineNotificationManager>
                 <LoggerProvider logger={console}>
-                  <HttpClientProvider httpClient={httpClient}>
-                    <App onAuthenticated={onAuthenticated}>{children}</App>
-                  </HttpClientProvider>
+                  <App onAuthenticated={onAuthenticated}>{children}</App>
                 </LoggerProvider>
               </OfflineNotificationManager>
             </Suspense>

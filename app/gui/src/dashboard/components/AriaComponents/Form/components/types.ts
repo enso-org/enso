@@ -197,6 +197,7 @@ export type AnyFormInstance = FormInstance<any>
 // Readonly omitted here to avoid type mismatch with native HTML attributes
 // eslint-disable-next-line no-restricted-syntax
 export interface FieldProps {
+  readonly contextualHelp?: React.ReactNode | undefined
   readonly isRequired?: boolean | undefined
   readonly label?: React.ReactNode | undefined
   readonly description?: React.ReactNode | undefined

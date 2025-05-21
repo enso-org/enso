@@ -13,6 +13,7 @@ import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/util
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
+import { markRaw } from 'vue'
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
@@ -1065,3 +1066,5 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 }
+
+markRaw(LocalBackend.prototype)
