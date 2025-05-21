@@ -4,6 +4,7 @@ import {
   ProjectName,
   UUID,
   type Attributes,
+  type CloseProjectParams,
   type CreateProject,
   type CreateProjectParams,
   type DirectoryEntry,
@@ -33,6 +34,7 @@ const INITIAL_CALLS_OBJECT = {
   getFileContent: array<{ path: string }>(),
   createProject: array<CreateProjectParams>(),
   openProject: array<OpenProjectParams>(),
+  closeProject: array<CloseProjectParams>(),
 }
 
 const READONLY_INITIAL_CALLS_OBJECT: TrackedCallsInternal = INITIAL_CALLS_OBJECT
@@ -55,6 +57,7 @@ interface JSONRPCRequest<Method extends string, Params> {
 type ProjectManagerJsonRpcRequest =
   | JSONRPCRequest<'project/create', CreateProjectParams>
   | JSONRPCRequest<'project/open', OpenProjectParams>
+  | JSONRPCRequest<'project/close', CloseProjectParams>
 
 type DirectoryEntryWithData = {
   type: 'DirectoryEntry'
@@ -97,7 +100,6 @@ export const mockLocalApi: (params: MockParams) => Promise<LocalMockApi> = local
 async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
   const fileSystem = new Map<string, FileSystemEntryWithData>()
   const openProjects = new Map<UUID, ProjectState>()
-  const projectParentPaths = new Map<UUID, string>()
 
   const callsObjects = new Set<typeof INITIAL_CALLS_OBJECT>()
 
@@ -295,9 +297,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
           case 'project/open': {
             const params = message.params
             called('openProject', params)
-            const parentDirectory = fileSystem.get(
-              projectParentPaths.get(params.projectId) ?? ROOT_PATH,
-            )
+            const parentDirectory = fileSystem.get(params.projectsDirectory ?? ROOT_PATH)
             const project =
               parentDirectory?.type === 'DirectoryEntry' ?
                 parentDirectory.children.find(
@@ -323,6 +323,13 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
             })
             delay = 1_000
             response = toJSONRPCResult(result)
+            break
+          }
+          case 'project/close': {
+            const params = message.params
+            called('closeProject', params)
+            openProjects.delete(params.projectId)
+            response = toJSONRPCResult({})
             break
           }
         }

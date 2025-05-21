@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test'
 import { mockAllAndLogin } from './actions'
 
 test.skip(
-  'move from remote to local (local+remote)',
+  'export from remote to local (local+remote)',
   {
     annotation: {
       type: 'details',
@@ -19,6 +19,7 @@ test.skip(
       .driveTable.withRows(async (rows) => {
         await expect(rows).toHaveCount(1)
       })
+      .driveTable.closeProject(0)
       .driveTable.rightClickRow(0)
       .contextMenu.exportToLocal()
       .goToCategory.local()
@@ -28,7 +29,7 @@ test.skip(
 )
 
 test.skip(
-  'move from remote to local (drag) (local+remote)',
+  'export from remote to local (drag) (local+remote)',
   {
     annotation: {
       type: 'details',
@@ -43,6 +44,8 @@ test.skip(
       .driveTable.withRows(async (rows) => {
         await expect(rows).toHaveCount(1)
       })
+      .driveTable.closeProject(0)
+      .driveTable.clickRow(0)
       .driveTable.dragRowToCategory(0, 'Local')
       .goToCategory.local()
       .driveTable.withRows(async (rows) => {
@@ -50,7 +53,7 @@ test.skip(
       }),
 )
 
-test('move from local to remote (local+remote)', ({ page }) =>
+test('export from local to remote (local+remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .goToCategory.local()
     .newEmptyProject()
@@ -59,6 +62,7 @@ test('move from local to remote (local+remote)', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
     })
+    .driveTable.closeProject(0)
     .driveTable.rightClickRow(0)
     .contextMenu.exportToCloud()
     .goToCategory.cloud()
@@ -66,7 +70,7 @@ test('move from local to remote (local+remote)', ({ page }) =>
       await expect(rows).toHaveCount(1)
     }))
 
-test('move from local to remote (drag) (local+remote)', ({ page }) =>
+test('export from local to remote (drag) (local+remote)', ({ page }) =>
   mockAllAndLogin({ page })
     .goToCategory.local()
     .newEmptyProject()
@@ -75,6 +79,8 @@ test('move from local to remote (drag) (local+remote)', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
     })
+    .driveTable.closeProject(0)
+    .driveTable.clickRow(0)
     .driveTable.dragRowToCategory(0, 'Cloud')
     .goToCategory.cloud()
     .driveTable.withRows(async (rows) => {
