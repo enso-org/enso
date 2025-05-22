@@ -43,9 +43,8 @@ const documentation = computed<Docs>(() => {
 })
 
 const rawDocumentation = computed(() => {
-  if (props.aiMode) return 'AI assistant mode: write query in natural language and press Enter.'
   const entry = props.selectedEntry
-  return entry ? lookupRawDocumentation(db.entries, entry) : 'No suggestion selected.'
+  return entry ? lookupRawDocumentation(db.entries, entry) : undefined
 })
 
 const sections = computed<Sections>(() => {
@@ -179,34 +178,36 @@ function openDocs(url: string) {
     <div v-if="rawDocumentation" class="markdownDocs">
       <MarkdownEditor :content="rawDocumentation" :toolbar="false" />
     </div>
-    <DocsTags
-      v-if="sections.tags.length > 0"
-      class="tags"
-      :tags="sections.tags"
-      :groupColor="color"
-    />
-    <div class="sections">
-      <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
-      <span v-if="sections.synopsis.length == 0">No documentation available.</span>
-      <DocsSynopsis :sections="sections.synopsis" />
-      <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
-      <DocsList
-        :items="{ kind: 'Types', items: types }"
-        @linkClicked="historyStack.record($event)"
+    <template v-else>
+      <DocsTags
+        v-if="sections.tags.length > 0"
+        class="tags"
+        :tags="sections.tags"
+        :groupColor="color"
       />
-      <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
-      <DocsList
-        :items="{ kind: 'Constructors', items: constructors }"
-        @linkClicked="historyStack.record($event)"
-      />
-      <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
-      <DocsList
-        :items="{ kind: 'Methods', items: methods }"
-        @linkClicked="historyStack.record($event)"
-      />
-      <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
-      <DocsExamples :examples="sections.examples" />
-    </div>
+      <div class="sections">
+        <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
+        <span v-if="sections.synopsis.length == 0">No documentation available.</span>
+        <DocsSynopsis :sections="sections.synopsis" />
+        <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
+        <DocsList
+          :items="{ kind: 'Types', items: types }"
+          @linkClicked="historyStack.record($event)"
+        />
+        <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
+        <DocsList
+          :items="{ kind: 'Constructors', items: constructors }"
+          @linkClicked="historyStack.record($event)"
+        />
+        <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
+        <DocsList
+          :items="{ kind: 'Methods', items: methods }"
+          @linkClicked="historyStack.record($event)"
+        />
+        <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
+        <DocsExamples :examples="sections.examples" />
+      </div>
+    </template>
   </div>
 </template>
 

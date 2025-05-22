@@ -112,7 +112,7 @@ export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
 /** @returns The raw documentation for the given entry, if available. */
 export function lookupRawDocumentation(db: SuggestionDb, id: SuggestionId): Opt<string> {
   const entry = db.get(id)
-  if (!entry) return undefined
+  if (!entry || !entry.isMarkdownDocs) return undefined
   return entry.rawDocumentation
 }
 
