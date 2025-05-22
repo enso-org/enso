@@ -11,7 +11,7 @@ import * as toastify from 'react-toastify'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 /** Props for the useCopy hook. */
 export interface UseCopyProps {
@@ -26,7 +26,7 @@ export function useCopy(props: UseCopyProps = {}) {
   const { onCopy, successToastMessage = true } = props
 
   const resetTimeoutIdRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const copyQuery = reactQuery.useMutation({

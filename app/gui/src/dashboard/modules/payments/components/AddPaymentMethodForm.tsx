@@ -3,7 +3,8 @@ import { CardElement } from '@stripe/react-stripe-js'
 import type { PaymentMethod, Stripe, StripeCardElement, StripeElements } from '@stripe/stripe-js'
 
 import { Form, useDialogContext, type FormInstance, type schema } from '#/components/AriaComponents'
-import { useText, type GetText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import { useCreatePaymentMethodMutation } from '../api/createPaymentMethod'
 
 /** Props for an {@link AddPaymentMethodForm}. */

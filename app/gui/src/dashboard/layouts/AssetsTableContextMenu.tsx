@@ -33,10 +33,9 @@ import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useUser } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
+import { useBackends, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 import { twJoin } from '../utilities/tailwindMerge'
@@ -78,7 +77,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const user = useUser()
   const isCloud = isCloudCategory(category)
   const getAsset = useGetAsset()

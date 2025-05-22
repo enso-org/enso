@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
@@ -23,7 +23,7 @@ export default function OrganizationProfilePictureInput(
   props: OrganizationProfilePictureInputProps,
 ) {
   const { backend } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const { data: organization } = useQuery(backendQueryOptions(backend, 'getOrganization', []))
 
   const uploadOrganizationPicture = useMutation(

@@ -5,8 +5,8 @@ import CrossIcon from '#/assets/cross.svg'
 import TickIcon from '#/assets/tick.svg'
 
 import { Button, Form, Input, Text, Underlay } from '#/components/AriaComponents'
-import * as textProvider from '#/providers/TextProvider'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 
 import { useInteractOutside } from '#/components/aria'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
@@ -87,7 +87,7 @@ const TRANSITION_OPTIONS = { stiffness: 300, damping: 150, mass: 1 }
 function EditForm(props: EditFormProps) {
   const { className = '', children, onSubmit, onCancel, schema } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const formRef = React.useRef<HTMLFormElement | null>(null)
   const inputRef = React.useRef<HTMLInputElement | null>(null)

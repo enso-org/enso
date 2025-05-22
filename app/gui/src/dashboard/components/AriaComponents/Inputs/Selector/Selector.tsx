@@ -2,15 +2,15 @@
 import * as React from 'react'
 
 import { mergeProps, type RadioGroupProps } from '#/components/aria'
-import type { FieldComponentProps } from '#/components/AriaComponents'
-import {
-  Form,
-  type FieldPath,
-  type FieldProps,
-  type FieldStateProps,
-  type FieldVariantProps,
-  type TSchema,
+import type {
+  FieldComponentProps,
+  FieldPath,
+  FieldProps,
+  FieldStateProps,
+  FieldVariantProps,
+  TSchema,
 } from '#/components/AriaComponents'
+import { Form } from '#/components/AriaComponents/Form'
 
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'

@@ -24,9 +24,9 @@ import {
   type DatePickerProps as AriaDatePickerProps,
   type DateValue,
 } from '#/components/aria'
-import { useText } from '#/providers/TextProvider'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 import {
   Button,
   Form,

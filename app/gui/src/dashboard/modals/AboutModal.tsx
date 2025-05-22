@@ -3,16 +3,14 @@ import * as React from 'react'
 
 import type * as text from 'enso-common/src/text'
 
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
+import { useBackends, useText } from '$/providers/react'
 
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {
-  const localBackend = backendProvider.useLocalBackend()
-  const { getText } = textProvider.useText()
+  const { localBackend } = useBackends()
+  const { getText } = useText()
 
   const versionsEntries = [
     ...(window.versionInfo != null ?

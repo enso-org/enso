@@ -2,19 +2,19 @@
 
 import * as appUtils from '#/appUtils'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
 import { PLAN_TO_TEXT_ID } from '#/modules/payments'
 import { Plan, isPlan } from '#/services/Backend'
-import { useRouterInReact } from '$/providers/react'
+import { useRouter } from '$/providers/react'
 
 /** A page to show when a user successfully subscribes to a plan. */
 export function SubscribeSuccess() {
-  const { getText } = textProvider.useText()
-  const { router, searchParams } = useRouterInReact()
+  const { getText } = useText()
+  const { router, searchParams } = useRouter()
   const plan = searchParams.get('plan') ?? Plan.solo
 
   if (!isPlan(plan)) {

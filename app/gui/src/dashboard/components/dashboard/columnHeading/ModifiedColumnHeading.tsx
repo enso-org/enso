@@ -4,9 +4,9 @@ import { Icon } from '#/components/Icon'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useText } from '#/providers/TextProvider'
 import { SortDirection, iconIdFor, nextSortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 
 /** A heading for the "Modified" column. */
 export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {

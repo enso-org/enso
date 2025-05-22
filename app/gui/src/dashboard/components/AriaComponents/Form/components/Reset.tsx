@@ -1,7 +1,7 @@
 /** @file Reset button for forms. */
 import * as React from 'react'
 
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { Button, type ButtonProps } from '../../Button'
 import * as formContext from './FormProvider'
 import type * as types from './types'

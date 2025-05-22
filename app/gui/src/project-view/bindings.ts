@@ -15,6 +15,13 @@ export const documentationEditorBindings = defineKeybinds('documentation-editor'
   toggle: ['Mod+D'],
   paste: ['Mod+V'],
   pasteRaw: ['Mod+Shift+V'],
+  bold: ['Mod+B'],
+  italic: ['Mod+I'],
+  paragraph: ['Mod+Alt+0'],
+  header1: ['Mod+Alt+1'],
+  header2: ['Mod+Alt+2'],
+  header3: ['Mod+Alt+3'],
+  link: ['Mod+K'],
 })
 
 export const textEditorsBindings = defineKeybinds('text-editors', {
