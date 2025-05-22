@@ -320,8 +320,9 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 variant="icon"
                 size="medium"
                 icon="data_upload"
-                aria-label={getText('importArchive')}
+                aria-label={isCloud ? getText('importArchive.localOnly') : getText('importArchive')}
                 onPress={importArchiveCallback}
+                isDisabled={isCloud}
               />
               <Button
                 isDisabled={!canDownload}

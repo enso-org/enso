@@ -396,7 +396,7 @@
   "newProject": "New Project",
   "uploadFiles": "Import",
   "importArchive": "Import Archive",
-  "importArchive.cloudOnly": "Import Archive (Exclusive to Cloud)",
+  "importArchive.localOnly": "Import Archive (Local only)",
   "downloadFiles": "Export",
   "uploadFilesToCloud": "Export Projects to Cloud",
   "downloadFilesToLocal": "Export Projects to Local",
