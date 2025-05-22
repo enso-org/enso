@@ -152,27 +152,37 @@ function requiresNewlineBeforeFollowingParagraph(nodeType: string) {
  */
 export function prerenderMarkdown(markdown: string): string {
   let prerendered = ''
-  let prevTo = 0
-  let prevName: string | undefined = undefined
   const cursor = ensoStandardMarkdownParser.parse(markdown).cursor()
   cursor.firstChild()
-  do {
-    if (prevTo < cursor.from) {
-      const textBetween = markdown.slice(prevTo, cursor.from)
-      prerendered +=
-        (
-          cursor.name === 'Paragraph' &&
-          prevName &&
-          requiresNewlineBeforeFollowingParagraph(prevName)
-        ) ?
-          textBetween.slice(0, -1)
-        : textBetween
-    }
-    const text = markdown.slice(cursor.from, cursor.to)
-    prerendered += cursor.name === 'Paragraph' ? text.replaceAll(/ *\n */g, ' ') : text
-    prevTo = cursor.to
-    prevName = cursor.name
-  } while (cursor.nextSibling())
+  function processTree(prevTo: number) {
+    let prevName: string | undefined = undefined
+    do {
+      console.log(cursor.name, markdown.slice(cursor.from, cursor.to))
+      if (prevTo < cursor.from) {
+        const textBetween = markdown.slice(prevTo, cursor.from)
+        prerendered +=
+          (
+            cursor.name === 'Paragraph' &&
+            prevName &&
+            requiresNewlineBeforeFollowingParagraph(prevName)
+          ) ?
+            textBetween.slice(0, -1)
+          : textBetween
+      }
+      const text = markdown.slice(cursor.from, cursor.to)
+      if (cursor.name === 'Paragraph') {
+        prerendered += text.replaceAll(/ *\n */g, ' ')
+      } else if (!cursor.name.startsWith('ATXHeading') && cursor.firstChild()) {
+        processTree(cursor.from)
+        cursor.parent()
+      } else {
+        prerendered += text
+      }
+      prevTo = cursor.to
+      prevName = cursor.name
+    } while (cursor.nextSibling())
+  }
+  processTree(0)
   return prerendered
 }
 
