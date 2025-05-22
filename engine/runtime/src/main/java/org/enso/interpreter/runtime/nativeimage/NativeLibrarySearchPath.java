@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.nativeimage;
 
-import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,15 +44,6 @@ public final class NativeLibrarySearchPath {
     if (ImageInfo.inImageRuntimeCode()) {
       assert Files.isDirectory(Path.of(path));
       addPath(path);
-    }
-  }
-
-  public static String[] getSearchPath() {
-    if (ImageInfo.inImageRuntimeCode()) {
-      return getFieldValue();
-    } else {
-      var prop = System.getProperty("java.library.path");
-      return prop.split(File.pathSeparator);
     }
   }
 

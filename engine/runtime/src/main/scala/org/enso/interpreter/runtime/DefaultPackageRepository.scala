@@ -263,10 +263,6 @@ private class DefaultPackageRepository(
       distinctParentDirs.foreach { dir =>
         logger.debug("Adding '{}' to native lib search path", dir.getPath)
         NativeLibrarySearchPath.addToSearchPath(dir.getPath)
-        logger.trace(
-          "Current value of native lib search path: {}",
-          NativeLibrarySearchPath.getSearchPath
-        )
       }
     }
   }
