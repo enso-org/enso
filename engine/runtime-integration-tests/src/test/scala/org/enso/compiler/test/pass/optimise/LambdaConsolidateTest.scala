@@ -135,7 +135,7 @@ class LambdaConsolidateTest extends CompilerTest {
           .asInstanceOf[Function.Lambda]
 
       ir.arguments.length shouldEqual 3
-      ir.arguments(2).defaultValue shouldBe defined
+      ir.arguments().apply(2).defaultValue shouldBe defined
     }
 
     "work properly with usages of shadowed parameters in default arguments" in {
@@ -174,13 +174,15 @@ class LambdaConsolidateTest extends CompilerTest {
       newXName should not equal "x"
 
       // Usages of the first argument `x` should be replaced by the new name
-      ir.arguments(1)
+      ir.arguments()
+        .apply(1)
         .asInstanceOf[DefinitionArgument.Specified]
         .defaultValue
         .get
         .asInstanceOf[Name.Literal]
         .name shouldEqual newXName
-      ir.arguments(2)
+      ir.arguments()
+        .apply(2)
         .asInstanceOf[DefinitionArgument.Specified]
         .defaultValue
         .get
@@ -206,7 +208,8 @@ class LambdaConsolidateTest extends CompilerTest {
       ir.arguments.head
         .asInstanceOf[DefinitionArgument.Specified]
         .suspended shouldEqual true
-      ir.arguments(1)
+      ir.arguments()
+        .apply(1)
         .asInstanceOf[DefinitionArgument.Specified]
         .suspended shouldEqual true
     }
@@ -218,7 +221,7 @@ class LambdaConsolidateTest extends CompilerTest {
                  |""".stripMargin.preprocessExpression.get.optimise
         .asInstanceOf[Function.Lambda]
       ir.arguments.length shouldEqual 2
-      val defaultExpr = ir.arguments(1).defaultValue.get
+      val defaultExpr = ir.arguments().apply(1).defaultValue.get
       defaultExpr shouldBe a[Function.Lambda]
       defaultExpr
         .asInstanceOf[Function.Lambda]
@@ -287,11 +290,13 @@ class LambdaConsolidateTest extends CompilerTest {
         .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name shouldEqual "a"
-      ir.arguments(1)
+      ir.arguments()
+        .apply(1)
         .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name shouldEqual "b"
-      ir.arguments(2)
+      ir.arguments()
+        .apply(2)
         .asInstanceOf[DefinitionArgument.Specified]
         .name
         .name shouldEqual "c"
@@ -312,7 +317,7 @@ class LambdaConsolidateTest extends CompilerTest {
 
       ws should not be empty
       ws.head.shadowedName shouldEqual "x"
-      ws.head.shadower shouldBe ir.arguments(1)
+      ws.head.shadower shouldBe ir.arguments().apply(1)
       ws.head.message(
         null
       ) shouldBe "The argument 'x' is shadowed by another one with the same name."
