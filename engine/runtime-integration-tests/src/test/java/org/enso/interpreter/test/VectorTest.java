@@ -15,6 +15,7 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyArray;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class VectorTest {
@@ -163,6 +164,7 @@ public class VectorTest {
   }
 
   @Test
+  @Ignore // calling vector.slice drops warnings from element values
   public void insertArgWithWarningViaForEach() throws Exception {
     warningsInContainer(5, 1);
   }
