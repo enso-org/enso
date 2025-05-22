@@ -8,6 +8,7 @@ import static org.enso.scala.wrapper.ScalaConversions.asScala;
 import static org.enso.scala.wrapper.ScalaConversions.nil;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -95,7 +96,7 @@ public class MapExpressionsTest {
    * Expression.
    */
   @Test
-  public void functionLambda_ArgumentName_IsNotCollected() {
+  public void functionLambda_ArgumentName_IsCollected() {
     var body = emptyIr();
     var self = literal("self");
     var selfArg = defArg(self);
@@ -105,8 +106,7 @@ public class MapExpressionsTest {
             .arguments(asScala(List.of(selfArg)))
             .build();
     var collected = mapExpressions(lambda);
-    assertThat("Only body of Lambda is collected", collected, contains(body));
-    assertThat("names of Lambda are not collected", collected, not(hasItem(self)));
+    assertThat("Both body and name of Lambda are collected", collected, containsInAnyOrder(body, self));
   }
 
   @Test
