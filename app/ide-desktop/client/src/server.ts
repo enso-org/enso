@@ -1,7 +1,6 @@
 /** @file A simple HTTP server which serves application data to the Electron web-view. */
 
 import * as mkcert from 'mkcert'
-import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
@@ -32,9 +31,12 @@ import {
 } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { basenameAndExtension, getFileName, getFolderPath } from 'enso-common/src/utilities/file'
-import { createReadStream, createWriteStream, mkdir } from 'node:fs'
+import { createWriteStream } from 'node:fs'
+import { access, mkdir, mkdtemp, readFile, rm, rmdir, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
-import { Entry, Parse } from 'unzip-stream'
+import * as yauzl from 'yauzl'
 
 const logger = contentConfig.logger
 
@@ -265,17 +267,16 @@ export class Server {
             const targetDirectory = path.join(parentDirectory, 'project_root')
 
             try {
-              await fs.mkdir(targetDirectory, { recursive: true })
+              await mkdir(targetDirectory, { recursive: true })
               await projectManagement.unpackBundle(actualResponse, targetDirectory)
               response
                 .writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
                 .end(JSON.stringify({ targetDirectory, parentDirectory }))
             } catch (e) {
               logger.error(e)
-              await fs
-                .access(parentDirectory)
+              await access(parentDirectory)
                 .then(() => {
-                  fs.rmdir(parentDirectory, { maxRetries: 3, recursive: true })
+                  rmdir(parentDirectory, { maxRetries: 3, recursive: true })
                 })
                 .catch((e) => {
                   logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
@@ -325,8 +326,8 @@ export class Server {
         case '/files/upload-archive': {
           const url = new URL(`https://example.com/${requestUrl}`)
           const params = url.searchParams
-          const directoryPath = params.get('directory')
-          if (directoryPath == null) {
+          const directoryPathRaw = params.get('directory')
+          if (directoryPathRaw == null) {
             response
               .writeHead(HTTP_STATUS_BAD_REQUEST, undefined, [['Content-Type', 'application/json']])
               .end(
@@ -337,16 +338,29 @@ export class Server {
               )
             return
           }
-          const filePath = params.get('filePath')
-          const stream = filePath != null ? createReadStream(filePath) : request
+          const directoryPath = directoryPathRaw.replace(/^directory-/, '')
+          let filePath = params.get('filePath')
+          let tempDirectory: string | undefined
+          if (filePath == null) {
+            tempDirectory = await mkdtemp(path.join(tmpdir(), 'enso-'))
+            filePath = path.join(tempDirectory, 'archive.zip')
+            const writeStream = createWriteStream(filePath)
+            request.pipe(writeStream)
+            await finished(writeStream)
+          }
           const assets: AnyAsset[] = []
           await new Promise<void>((resolve) => {
-            stream
-              .pipe(Parse())
-              .on('entry', async (entry: Entry) => {
-                const childPath = path.join(directoryPath, entry.path)
+            yauzl.open(filePath, { lazyEntries: true }, (error, zipfile) => {
+              if (error) {
+                throw error
+              }
+              zipfile.once('end', () => {
+                resolve()
+              })
+              zipfile.on('entry', async (entry: yauzl.Entry) => {
+                const childPath = path.join(directoryPath, entry.fileName)
                 const shared = {
-                  title: getFileName(entry.path),
+                  title: getFileName(childPath),
                   modifiedAt: toRfc3339(new Date()),
                   parentId: DirectoryId(`directory-${getFolderPath(childPath)}` as const),
                   extension: null,
@@ -355,27 +369,37 @@ export class Server {
                   parentsPath: ParentsPath(''),
                   virtualParentsPath: VirtualParentsPath(''),
                 } satisfies Partial<DirectoryAsset>
-                if (entry.type === 'Directory') {
-                  await new Promise((resolve) => mkdir(childPath, resolve))
+                if (entry.fileName.endsWith('/')) {
+                  await mkdir(childPath)
                   assets.push({
                     ...shared,
                     type: AssetType.directory,
                     id: DirectoryId(`directory-${childPath}` as const),
                   })
-                } else if (entry.type === 'File') {
-                  entry.pipe(createWriteStream(childPath, { flags: 'w' }))
-                  assets.push({
-                    ...shared,
-                    type: AssetType.file,
-                    id: FileId(`file-${childPath}`),
-                    extension: basenameAndExtension(entry.path).extension,
+                  zipfile.readEntry()
+                } else {
+                  zipfile.openReadStream(entry, async (openReadError, readStream) => {
+                    if (openReadError) {
+                      throw openReadError
+                    }
+                    const writeStream = readStream.pipe(createWriteStream(childPath))
+                    await finished(writeStream)
+                    assets.push({
+                      ...shared,
+                      type: AssetType.file,
+                      id: FileId(`file-${childPath}`),
+                      extension: basenameAndExtension(childPath).extension,
+                    })
+                    zipfile.readEntry()
                   })
                 }
               })
-              .on('end', () => {
-                resolve()
-              })
+              zipfile.readEntry()
+            })
           })
+          if (tempDirectory != null) {
+            await rm(tempDirectory, { force: true, recursive: true })
+          }
           for (let i = 0; i < assets.length; i += 1) {
             const asset = assets[i]
             if (asset?.type !== AssetType.directory) {
@@ -412,8 +436,7 @@ export class Server {
               .end('Request is missing search parameter `file_name`.')
           } else {
             const filePath = path.join(directory, fileName)
-            void fs
-              .writeFile(filePath, request)
+            void writeFile(filePath, request)
               .then(() => {
                 response
                   .writeHead(HTTP_STATUS_OK, [
@@ -528,7 +551,7 @@ export class Server {
       for (const [header, value] of COOP_COEP_CORP_HEADERS) {
         response.setHeader(header, value)
       }
-      fs.readFile(resourceFile)
+      readFile(resourceFile)
         .then((data) => {
           const contentType = mime.contentType(path.extname(resourceFile))
           const contentLength = data.length

@@ -29,9 +29,9 @@
     "semver": "^7.6.3",
     "string-length": "^5.0.1",
     "tar": "^6.2.1",
-    "unzip-stream": "^0.3.4",
     "yaml": "^2.7.0",
     "yargs": "17.6.2",
+    "yauzl": "^3.2.0",
     "ydoc-server": "workspace:*"
   },
   "devDependencies": {
@@ -44,8 +44,8 @@
     "@types/opener": "^1.4.3",
     "@types/semver": "^7.5.8",
     "@types/tar": "^6.1.13",
-    "@types/unzip-stream": "^0.3.4",
     "@types/yargs": "^17.0.33",
+    "@types/yauzl": "^2.10.3",
     "babel-plugin-react-compiler": "19.0.0-beta-6fc168f-20241025",
     "chromatic": "11.25.1",
     "cross-env": "^7.0.3",
