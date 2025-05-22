@@ -321,24 +321,12 @@ export class Server {
         }
       }
     } else if (request.method === 'POST' && request.url?.startsWith('/api/')) {
-      const route = new URL(`https://example.com${requestUrl.replace('/api', '')}`)
+      const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
+      const params = route.searchParams
       switch (route.pathname) {
         case '/files/upload-archive': {
-          const url = new URL(`https://example.com/${requestUrl}`)
-          const params = url.searchParams
-          const directoryPathRaw = params.get('directory')
-          if (directoryPathRaw == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, undefined, [['Content-Type', 'application/json']])
-              .end(
-                JSON.stringify({
-                  type: 'error',
-                  error: '`/files/upload-zip`: `directoryPath` must be provided',
-                }),
-              )
-            return
-          }
-          const directoryPath = directoryPathRaw.replace(/^directory-/, '')
+          const directory =
+            params.get('directory')?.replace(/^directory-/, '') ?? this.projectsRootDirectory
           let filePath = params.get('filePath')
           let tempDirectory: string | undefined
           if (filePath == null) {
@@ -351,7 +339,7 @@ export class Server {
           const assets: AnyAsset[] = []
           const unzip = new Unzip({
             onEntry(event) {
-              const childPath = path.join(directoryPath, event.entryName)
+              const childPath = path.join(directory, event.entryName)
               const shared = {
                 title: getFileName(childPath),
                 modifiedAt: toRfc3339(new Date()),
@@ -378,7 +366,7 @@ export class Server {
               }
             },
           })
-          await unzip.extract(filePath, directoryPath)
+          await unzip.extract(filePath, directory)
           if (tempDirectory != null) {
             await rm(tempDirectory, { force: true, recursive: true })
           }
@@ -411,9 +399,9 @@ export class Server {
           break
         }
         case '/upload-file': {
-          const url = new URL(`https://example.com/${requestUrl}`)
-          const fileName = url.searchParams.get('file_name')
-          const directory = url.searchParams.get('directory') ?? this.projectsRootDirectory
+          const fileName = params.get('file_name')
+          const directory =
+            params.get('directory')?.replace(/^directory-/, '') ?? this.projectsRootDirectory
           if (fileName == null) {
             response
               .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
@@ -441,9 +429,8 @@ export class Server {
         // When accessing the app from Electron, the file input event will have the
         // full system path.
         case '/upload-project': {
-          const url = new URL(`https://example.com/${requestUrl}`)
-          const directory = url.searchParams.get('directory')
-          const name = url.searchParams.get('name')
+          const directory = params.get('directory')?.replace(/^directory-/, '') ?? null
+          const name = params.get('name')
           void this.config.externalFunctions
             .uploadProjectBundle(request, directory, name)
             .then((project) => {
@@ -461,9 +448,7 @@ export class Server {
           break
         }
         case '/run-project-manager-command': {
-          const cliArguments: unknown = JSON.parse(
-            new URL(`https://example.com/${requestUrl}`).searchParams.get('cli-arguments') ?? '[]',
-          )
+          const cliArguments: unknown = JSON.parse(params.get('cli-arguments') ?? '[]')
           if (
             !Array.isArray(cliArguments) ||
             !cliArguments.every((item): item is string => typeof item === 'string')
