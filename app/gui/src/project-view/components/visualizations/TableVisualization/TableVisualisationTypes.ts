@@ -41,7 +41,6 @@ export function isSingleColumnOfActions(data: unknown): data is SingleColumnOfAc
 
 export interface GenericGrid {
   type: 'Generic_Grid'
-  all_rows_count: number
   headers: Header[]
   data: unknown[][]
   }

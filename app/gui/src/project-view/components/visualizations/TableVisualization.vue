@@ -38,6 +38,7 @@ import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
   Error,
+  GenericGrid,
   SingleColumnOfActions,
   isError,
   isGenericGrid,
@@ -71,6 +72,7 @@ type Data =
   | ObjectMatrix
   | EnsoTableOrColumn
   | SingleColumnOfActions
+  | GenericGrid
 
 interface ValueType {
   constructor: string
@@ -873,7 +875,6 @@ watchEffect(() => {
         tooltipValue: header.child_label,
         headerName: header.visualization_header,
         getChildAction: header.get_child_node_action,
-        args: header.args,
       });
     } else {
       return toField(header.visualization_header);
