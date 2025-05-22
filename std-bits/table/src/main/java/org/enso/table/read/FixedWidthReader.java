@@ -25,6 +25,7 @@ public class FixedWidthReader {
   private final Charset charset;
   private final long rowLimit;
   private InvalidFixedWidthRowsBehavior invalidRowsBehavior;
+  private boolean emptyToNull;
   private DatatypeParser valueParser;
   private final FixedWidthDecodingProblemAggregator decodingProblemAggregator;
   private FixedWidthReaderProblemAggregator problemAggregator;
@@ -42,6 +43,7 @@ public class FixedWidthReader {
       Charset charset,
       long rowLimit,
       InvalidFixedWidthRowsBehavior invalidRowsBehavior,
+      boolean emptyToNull,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
       FixedWidthDecodingProblemAggregator decodingProblemAggregator,
@@ -55,6 +57,7 @@ public class FixedWidthReader {
     this.charset = charset;
     this.rowLimit = rowLimit;
     this.invalidRowsBehavior = invalidRowsBehavior;
+    this.emptyToNull = emptyToNull;
     this.valueParser = valueParser;
     this.decodingProblemAggregator = decodingProblemAggregator;
     this.problemAggregator =
@@ -124,7 +127,11 @@ public class FixedWidthReader {
         assert invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP;
       }
 
-      builder.append(value);
+      if (emptyToNull && value.trim().isEmpty()) {
+        builder.append(null);
+      } else {
+        builder.append(value);
+      }
 
       context.safepoint();
     }

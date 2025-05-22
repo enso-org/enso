@@ -23,6 +23,7 @@ add_direct_specs suite_builder =
     data3 = data_dir / "fixed3.txt"
     data4 = data_dir / "fixed4.txt"
     data5 = data_dir / "fixed5.txt"
+    data6 = data_dir / "fixed6.txt"
 
     suite_builder.group "Read fixed-width files" group_builder->
         group_builder.specify "Should make a layout from a description" <|
@@ -180,7 +181,7 @@ add_direct_specs suite_builder =
             Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 3 17 21) t
             t.at "Column 1" . to Vector . should_equal [1234, 2345, 6789, 4343]
             t.at "Column 2" . to Vector . should_equal [98765, 87654, 51122, 1234]
-            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", ""]
+            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", Nothing]
 
         group_builder.specify "Should drop short lines with Invalid_Rows.Drop_Invalid_Rows" <|
             descs = []
@@ -215,6 +216,24 @@ add_direct_specs suite_builder =
             t.at "x" . to Vector . should_equal [True, True, False]
             t.at "y" . to Vector . should_equal [True, False, False]
             t.at "z" . to Vector . should_equal ["J", "C", "E"]
+
+        group_builder.specify "Should treat empty fields as Nothing" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 5 3]
+                + [Fixed_Width_Column_Description.Start_And_Width 13 5]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data6.read (Fixed_Width_Format.Fixed_Width layout)
+            t.at "Column 1" . to Vector . should_equal [Nothing, 678]
+            t.at "Column 2" . to Vector . should_equal [98765, Nothing]
+
+        group_builder.specify "Should treat empty fields as the empty string" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 5 3]
+                + [Fixed_Width_Column_Description.Start_And_Width 13 5]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data6.read (Fixed_Width_Format.Fixed_Width layout on_empty_field=..As_Empty_String)
+            t.at "Column 1" . to Vector . should_equal ["", '678']
+            t.at "Column 2" . to Vector . should_equal ['98765', ""]
 
         group_builder.specify "should work with all kinds of line endings" pending="https://github.com/enso-org/enso/issues/13137" <|
             descs = []
