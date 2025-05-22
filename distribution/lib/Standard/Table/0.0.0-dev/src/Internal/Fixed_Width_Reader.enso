@@ -18,6 +18,7 @@ polyglot java import org.enso.table.parsing.TypeInferringParser
 polyglot java import org.enso.table.read.FixedWidthDecodingProblemAggregator
 polyglot java import org.enso.table.read.FixedWidthReader
 polyglot java import org.enso.table.read.FixedWidthReader.FixedWidthLayoutEntry
+polyglot java import org.enso.table.read.FixedWidthReader.InvalidFixedWidthRowsBehavior
 polyglot java import org.enso.table.read.InvalidFixedWidthRowsBehavior
 
 ## PRIVATE
