@@ -418,12 +418,14 @@ export class Server {
               projectState: { type: ProjectState.closed },
             }
           }
+          const content = JSON.stringify(assets)
           response
             .writeHead(HTTP_STATUS_OK, undefined, [
+              ['Content-Length', String(content.length)],
               ['Content-Type', 'application/json'],
               ...COOP_COEP_CORP_HEADERS,
             ])
-            .end(JSON.stringify(assets))
+            .end(content)
           break
         }
         case '/upload-file': {
@@ -511,17 +513,17 @@ export class Server {
           break
         }
         default: {
+          const content = JSON.stringify({
+            type: 'error',
+            error: `Unknown endpoint '${route.pathname}'`,
+          })
           response
             .writeHead(HTTP_STATUS_NOT_FOUND, undefined, [
+              ['Content-Length', String(content.length)],
               ['Content-Type', 'application/json'],
               ...COOP_COEP_CORP_HEADERS,
             ])
-            .end(
-              JSON.stringify({
-                type: 'error',
-                error: `Unknown endpoint '${route.pathname}'`,
-              }),
-            )
+            .end(content)
           return
         }
       }
