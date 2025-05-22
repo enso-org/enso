@@ -254,6 +254,7 @@ function AssetsTable(props: AssetsTableProps) {
   const { queryDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
   })
+  const queryDirectoryIdRef = useSyncRef(queryDirectoryId)
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
   const { data: assets = [] } = useSuspenseQuery({
     ...listDirectoryQueryOptions({
@@ -263,7 +264,9 @@ function AssetsTable(props: AssetsTableProps) {
       refetchInterval: listDirectoryRefetchInterval,
     }),
     retry: () => {
-      setCurrentDirectoryId(null)
+      if (queryDirectoryId === queryDirectoryIdRef.current) {
+        setCurrentDirectoryId(null)
+      }
       return false
     },
   })

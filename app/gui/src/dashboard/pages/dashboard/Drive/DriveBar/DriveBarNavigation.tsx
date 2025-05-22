@@ -7,6 +7,7 @@ import { Breadcrumbs, type BreadcrumbItemProps, type OnDrop } from '#/components
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { AssetPanelToggle, useSetAssetPanelDefaultItem } from '#/layouts/AssetPanel'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
@@ -31,6 +32,7 @@ export function DriveBarNavigation() {
   const { rootDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
   })
+  const currentDirectoryIdRef = useSyncRef(currentDirectoryId)
 
   const setAssetPanelDefaultItem = useSetAssetPanelDefaultItem()
 
@@ -57,7 +59,9 @@ export function DriveBarNavigation() {
     meta: { persist: false },
     retry: (count, error) => {
       if (error instanceof AssetDoesNotExistError) {
-        setCurrentDirectoryId(null)
+        if (currentDirectoryId === currentDirectoryIdRef.current) {
+          setCurrentDirectoryId(null)
+        }
         return false
       }
 
@@ -102,16 +106,12 @@ export function DriveBarNavigation() {
   const parentId = finalPath.findIndex((item) => item.id === currentDirectoryId) - 1
   const canNavigateUp = parentId >= 0
 
-  const setDirectoryId = useEventCallback((id: React.Key) => {
+  const navigateToDirectory = useEventCallback((id: React.Key) => {
     if (!isDirectoryId(id)) {
       return
     }
 
     setCurrentDirectoryId(id)
-  })
-
-  const navigateToDirectory = useEventCallback((id: React.Key) => {
-    setDirectoryId(id)
   })
 
   const onDrop = useEventCallback<OnDrop>(async (id) => {
