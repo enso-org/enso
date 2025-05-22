@@ -1530,7 +1530,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Log an event that will be visible in the organization audit log. */
-  async logEvent(message: string, projectId?: string | null, metadata?: object | null) {
+  override async logEvent(message: string, projectId?: string | null, metadata?: object | null) {
     // Prevent events from being logged in dev mode, since we are often using production environment
     // and are polluting real logs.
     if (detect.IS_DEV_MODE) {
@@ -1732,6 +1732,16 @@ export default class RemoteBackend extends Backend {
   async ping(id: backend.ProjectId): Promise<void> {
     const path = remoteBackendPaths.getHybridProjectPing(id)
     await this.post(path, {})
+  }
+
+  /**
+   * Import an archive and unpack into a directory.
+   * @throws {Error} always.
+   */
+  override importArchive(
+    _params: backend.ImportArchiveParams,
+  ): Promise<readonly backend.AnyAsset[]> {
+    throw new Error('`importArchive` is not implemented on the Remote Backend.')
   }
 
   /**

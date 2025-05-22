@@ -1660,6 +1660,20 @@ export interface UploadPictureRequestParams {
   readonly fileName: string | null
 }
 
+interface ImportArchiveParamsBase {
+  readonly directory: DirectoryId
+}
+
+interface ImportArchiveParamsWithPath extends ImportArchiveParamsBase {
+  readonly filePath: Path
+}
+
+interface ImportArchiveParamsWithFile extends ImportArchiveParamsBase {
+  readonly body: Blob
+}
+
+export type ImportArchiveParams = ImportArchiveParamsWithPath | ImportArchiveParamsWithFile
+
 /** Extract the {@link VersionLifecycle} from a version string. */
 export function detectVersionLifecycle(version: string) {
   if (/rc/i.test(version)) {
@@ -2094,6 +2108,8 @@ export default abstract class Backend {
     targetDirectoryId: DirectoryId | null,
     shouldUnpackProject?: boolean,
   ): Promise<void>
+  /** Import an archive and unpack into a directory. */
+  abstract importArchive(params: ImportArchiveParams): Promise<readonly AnyAsset[]>
 
   /**
    * Get the URL for the customer portal.

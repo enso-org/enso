@@ -11,6 +11,7 @@ import * as projectManager from '#/services/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
+import { omit } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
@@ -858,6 +859,21 @@ export default class LocalBackend extends Backend {
       })
     }
     await Promise.resolve()
+  }
+
+  /** Import an archive and unpack into a directory. */
+  override async importArchive(
+    params: backend.ImportArchiveParams,
+  ): Promise<readonly backend.AnyAsset[]> {
+    const rest = 'body' in params ? omit(params, 'body') : params
+    const searchParams = new URLSearchParams(rest).toString()
+    const response = await fetch(`/api/import-archive?${searchParams}`, {
+      method: 'POST',
+      body: 'body' in params ? params.body : null,
+    })
+    const result: unknown = await response.json()
+    // eslint-disable-next-line no-restricted-syntax
+    return result as readonly backend.AnyAsset[]
   }
 
   /** Invalid operation. */

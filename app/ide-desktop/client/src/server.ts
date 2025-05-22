@@ -19,7 +19,22 @@ import * as ydocServer from 'ydoc-server'
 
 import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'
+import {
+  AnyAsset,
+  AssetType,
+  DirectoryAsset,
+  DirectoryId,
+  FileId,
+  ParentsPath,
+  ProjectId,
+  ProjectState,
+  VirtualParentsPath,
+} from 'enso-common/src/services/Backend'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { basenameAndExtension, getFileName, getFolderPath } from 'enso-common/src/utilities/file'
+import { createReadStream, createWriteStream, mkdir } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+import { Entry, Parse } from 'unzip-stream'
 
 const logger = contentConfig.logger
 
@@ -196,47 +211,39 @@ export class Server {
    * @throws {Error} when passing invalid JSON to
    * `/api/run-project-manager-command?cli-arguments=<urlencoded-json>`.
    */
-  process(request: http.IncomingMessage, response: http.ServerResponse) {
+  async process(request: http.IncomingMessage, response: http.ServerResponse) {
     const requestUrl = request.url
     const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
     if (requestUrl == null) {
       logger.error('Request URL is null.')
     } else if (requestUrl.startsWith('/api/project-manager/')) {
-      const route = new URL(`https://example.com${requestUrl.replace('/api/project-manager/', '')}`)
-      switch (route.pathname) {
-        case '/files/upload': {
-          // FIXME: Upload file, preferring to read directly from fs if `file_path` is provided.
-          break
-        }
-        default: {
-          const actualUrl = new URL(
-            requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
-          )
-          request.pipe(
-            http.request(
-              actualUrl,
-              { headers: request.headers, method: request.method },
-              (actualResponse) => {
-                response.writeHead(
-                  // This is SAFE. The documentation says:
-                  // Only valid for response obtained from ClientRequest.
-                  actualResponse.statusCode!,
-                  actualResponse.statusMessage,
-                  actualResponse.headers,
-                )
-                actualResponse.pipe(response, { end: true })
-              },
-            ),
-            { end: true },
-          )
-        }
-      }
+      const actualUrl = new URL(
+        requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
+      )
+      request.pipe(
+        http.request(
+          actualUrl,
+          { headers: request.headers, method: request.method },
+          (actualResponse) => {
+            response.writeHead(
+              // This is SAFE. The documentation says:
+              // Only valid for response obtained from ClientRequest.
+              actualResponse.statusCode!,
+              actualResponse.statusMessage,
+              actualResponse.headers,
+            )
+            actualResponse.pipe(response, { end: true })
+          },
+        ),
+        { end: true },
+      )
     } else if (requestUrl.startsWith('/api/cloud/')) {
       switch (requestPath) {
         case '/api/cloud/download-project': {
           const url = new URL(`https://example.com/${requestUrl}`)
-          const downloadUrl = url.searchParams.get('downloadUrl')
-          const projectId = url.searchParams.get('projectId')
+          const params = url.searchParams
+          const downloadUrl = params.get('downloadUrl')
+          const projectId = params.get('projectId')
 
           if (downloadUrl == null) {
             response
@@ -310,6 +317,103 @@ export class Server {
         default: {
           logger.error(`Unknown Cloud middleware request:`, requestPath)
           break
+        }
+      }
+    } else if (request.url?.startsWith('/api/')) {
+      const route = new URL(`https://example.com${requestUrl.replace('/api', '')}`)
+      switch (route.pathname) {
+        case '/files/upload-archive': {
+          const url = new URL(`https://example.com/${requestUrl}`)
+          const params = url.searchParams
+          const directoryPath = params.get('directoryPath')
+          if (directoryPath == null) {
+            response
+              .writeHead(400)
+              .setHeaders(new Map([['Content-Type', 'application/json']]))
+              .end(
+                JSON.stringify({
+                  type: 'error',
+                  error: '`/files/upload-zip`: `directoryPath` must be provided',
+                }),
+              )
+            return
+          }
+          const filePath = params.get('filePath')
+          const stream = filePath != null ? createReadStream(filePath) : request
+          const assets: AnyAsset[] = []
+          await new Promise<void>((resolve) => {
+            stream
+              .pipe(Parse())
+              .on('entry', async (entry: Entry) => {
+                const childPath = path.join(directoryPath, entry.path)
+                const shared = {
+                  title: getFileName(entry.path),
+                  modifiedAt: toRfc3339(new Date()),
+                  parentId: DirectoryId(`directory-${getFolderPath(childPath)}` as const),
+                  extension: null,
+                  permissions: [],
+                  projectState: null,
+                  parentsPath: ParentsPath(''),
+                  virtualParentsPath: VirtualParentsPath(''),
+                } satisfies Partial<DirectoryAsset>
+                if (entry.type === 'Directory') {
+                  await new Promise((resolve) => mkdir(childPath, resolve))
+                  assets.push({
+                    ...shared,
+                    type: AssetType.directory,
+                    id: DirectoryId(`directory-${childPath}` as const),
+                  })
+                } else if (entry.type === 'File') {
+                  entry.pipe(createWriteStream(childPath, { flags: 'w' }))
+                  assets.push({
+                    ...shared,
+                    type: AssetType.file,
+                    id: FileId(`file-${childPath}`),
+                    extension: basenameAndExtension(entry.path).extension,
+                  })
+                }
+              })
+              .on('end', () => {
+                resolve()
+              })
+          })
+          for (let i = 0; i < assets.length; i += 1) {
+            const asset = assets[i]
+            if (asset?.type !== AssetType.directory) {
+              continue
+            }
+            const path = asset.id.replace('directory-', '')
+            const metadata = projectManagement.getMetadata(path)
+            if (!metadata) {
+              // Ignore; this folder is not a project.
+              continue
+            }
+            assets[i] = {
+              ...asset,
+              type: AssetType.project,
+              id: ProjectId(`project-${metadata.id}-${asset.parentId.replace('directory-', '')}`),
+              projectState: {
+                type: ProjectState.closed,
+              },
+            }
+          }
+          response
+            .writeHead(200)
+            .setHeaders(new Map([['Content-Type', 'application/json']]))
+            .end(JSON.stringify(assets))
+          break
+        }
+        default: {
+          response
+            .writeHead(400)
+            .setHeaders(new Map([['Content-Type', 'application/json']]))
+            .end(
+              JSON.stringify({
+                type: 'error',
+                error: `Unknown endpoint '${route.pathname}'`,
+              }),
+            )
+          return
         }
       }
     } else if (request.method === 'POST') {
