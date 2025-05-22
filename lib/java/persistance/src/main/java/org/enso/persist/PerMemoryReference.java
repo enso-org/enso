@@ -34,6 +34,11 @@ sealed class PerMemoryReference<T> extends Persistance.Reference<T>
     return Objects.hashCode(value);
   }
 
+  @Override
+  public String toString() {
+    return Objects.toString(value);
+  }
+
   static final class Deferred<T> extends PerMemoryReference<T> {
     Deferred(T obj) {
       super(obj);
