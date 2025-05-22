@@ -6,6 +6,7 @@ import { parseDocs, type Doc } from '@/util/docParser'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { type DeepReadonly } from 'vue'
+import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import { ensoStandardMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 import { unwrapOrWithLog } from 'ydoc-shared/util/data/result'
 
@@ -101,7 +102,7 @@ export function documentationData(
   const groupIndex = groupName && project ? getGroupIndex(groupName, project, groups) : undefined
 
   return {
-    rawDocumentation: documentation ?? '',
+    rawDocumentation: prerenderMarkdown(documentation ?? ''),
     documentation: parsed,
     isMarkdownDocs: metadata != null,
     docSummaryHtml: getDocumentationSummary(parsed),

@@ -139,6 +139,11 @@ describe('Function documentation (Markdown)', () => {
       markdown: 'ICON group\nMy function with an icon',
     },
     {
+      source: '## My function\n   > Block quote\n   quote continuation',
+      markdown: 'My function\n> Block quote quote continuation',
+      normalized: '## My function\n   > Block quote quote continuation',
+    },
+    {
       source: [
         '## This paragraph is hard-wrapped because it its contents are very very very very long,',
         'and such long long lines can be inconvenient to work with in most text editors',
@@ -180,8 +185,12 @@ describe('Function documentation (Markdown)', () => {
         '- Bullet list\n  - Nested list\n    - Very nested list\n  - Nested list\n- Bullet list',
     },
     {
-      source: '## Plain text\n   - Bullet list\n   Plain text\n   1. Numbered list\n   Plain text',
-      markdown: 'Plain text\n- Bullet list\nPlain text\n1. Numbered list\nPlain text',
+      source:
+        '## Plain text\n   - Bullet list\n     list item continuation\n   1. Numbered list\n     list item continuation',
+      markdown:
+        'Plain text\n- Bullet list list item continuation\n1. Numbered list list item continuation',
+      normalized:
+        '## Plain text\n   - Bullet list list item continuation\n   1. Numbered list list item continuation',
     },
   ]
 
