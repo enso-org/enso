@@ -106,7 +106,8 @@ public class MapExpressionsTest {
             .arguments(asScala(List.of(selfArg)))
             .build();
     var collected = mapExpressions(lambda);
-    assertThat("Both body and name of Lambda are collected", collected, containsInAnyOrder(body, self));
+    assertThat(
+        "Both body and name of Lambda are collected", collected, containsInAnyOrder(body, self));
   }
 
   @Test
