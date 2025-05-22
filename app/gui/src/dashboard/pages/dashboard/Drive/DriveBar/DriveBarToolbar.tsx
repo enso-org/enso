@@ -45,7 +45,7 @@ import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DrivePr
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import { type CredentialConfig } from '#/services/Backend'
+import { Path, type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -178,7 +178,12 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     if (!archive) {
       return
     }
-    await importArchive([{ directory: currentDirectoryId, archive }])
+    if ('path' in archive && typeof archive.path === 'string') {
+      // This is a non-standard property that is available in Electron.
+      await importArchive([{ directory: currentDirectoryId, filePath: Path(archive.path) }])
+    } else {
+      await importArchive([{ directory: currentDirectoryId, archive }])
+    }
   })
 
   const downloadFilesCallback = useEventCallback(async () => {
