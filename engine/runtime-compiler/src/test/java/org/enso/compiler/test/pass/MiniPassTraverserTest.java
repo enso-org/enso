@@ -7,7 +7,7 @@ import static org.enso.compiler.test.ir.IRUtils.emptyIr;
 import static org.enso.compiler.test.ir.IRUtils.literal;
 import static org.enso.scala.wrapper.ScalaConversions.asScala;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 import java.util.List;
@@ -170,9 +170,8 @@ public class MiniPassTraverserTest {
     var caseExpr = Case.Expr.builder().branches(asScala(List.of(branch))).scrutinee(empty2).build();
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(Expression.class, caseExpr, miniPass);
-    expectVisited(miniPass, empty2);
-    expectVisited(miniPass, empty1);
-    expectVisited(miniPass, caseExpr);
+    var visited = miniPass.getTransformedExpressions();
+    assertThat(visited, containsInAnyOrder(empty1, empty2, caseExpr, branch));
   }
 
   /**
@@ -189,9 +188,8 @@ public class MiniPassTraverserTest {
     var binaryOperator = binaryOperator(left, right, operator);
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(Expression.class, binaryOperator, miniPass);
-    expectVisited(miniPass, a);
-    expectVisited(miniPass, b);
-    expectVisited(miniPass, binaryOperator);
+    var visited = miniPass.getTransformedExpressions();
+    assertThat(visited, containsInAnyOrder(a, b, binaryOperator));
   }
 
   @Test
@@ -208,19 +206,6 @@ public class MiniPassTraverserTest {
     MiniIRPass.compile(Expression.class, lambda, miniPass);
     var visited = miniPass.getTransformedExpressions();
     assertThat(visited, containsInAnyOrder(lambda, self, body));
-  }
-
-  private static void expectVisited(MockMiniPass pass, Expression expectedVisitedExpr) {
-    var transformedExpressions = pass.getTransformedExpressions();
-    var transformedExprClasses =
-        transformedExpressions.stream().map(e -> e.getClass().getName()).toList();
-    assertThat(
-        "Expected expression of type '"
-            + expectedVisitedExpr.getClass().getName()
-            + "' to be visited, but visited expression types were: "
-            + transformedExprClasses,
-        transformedExpressions,
-        hasItem(expectedVisitedExpr));
   }
 
   private static <T> scala.collection.immutable.List<T> scalaList(T elem) {
