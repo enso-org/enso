@@ -438,6 +438,8 @@ final class EnsoModuleAST {
                 "argName", specifiedArg.name().name(),
                 "suspended", specifiedArg.suspended());
         var node = newNode(specifiedArg, props);
+        var nameNode = newNode(specifiedArg.name());
+        createEdge(node, nameNode, "name");
         if (specifiedArg.ascribedType().isDefined()) {
           var ascribedTypeNode = buildTree(specifiedArg.ascribedType().get());
           createEdge(node, ascribedTypeNode, "ascribedType");
