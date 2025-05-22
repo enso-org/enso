@@ -41,10 +41,10 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useLocalBackend } from '#/providers/BackendProvider'
+import { useLocalBackend } from '#/providers/BackendProvider/index'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { type CredentialConfig } from '#/services/Backend'
@@ -70,7 +70,6 @@ export interface DriveBarToolbarProps {
 export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { backend, query, setQuery, category } = props
 
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
   const driveStore = useDriveStore()
   const inputBindings = useInputBindings()
