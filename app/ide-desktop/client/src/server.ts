@@ -36,7 +36,7 @@ import { access, mkdir, mkdtemp, readFile, rm, rmdir, writeFile } from 'node:fs/
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
-import * as yauzl from 'yauzl'
+import { Unzip } from 'zip-lib'
 
 const logger = contentConfig.logger
 
@@ -349,54 +349,36 @@ export class Server {
             await finished(writeStream)
           }
           const assets: AnyAsset[] = []
-          await new Promise<void>((resolve) => {
-            yauzl.open(filePath, { lazyEntries: true }, (error, zipfile) => {
-              if (error) {
-                throw error
+          const unzip = new Unzip({
+            onEntry(event) {
+              const childPath = path.join(directoryPath, event.entryName)
+              const shared = {
+                title: getFileName(childPath),
+                modifiedAt: toRfc3339(new Date()),
+                parentId: DirectoryId(`directory-${getFolderPath(childPath)}` as const),
+                extension: null,
+                permissions: [],
+                projectState: null,
+                parentsPath: ParentsPath(''),
+                virtualParentsPath: VirtualParentsPath(''),
+              } satisfies Partial<DirectoryAsset>
+              if (event.entryName.endsWith('/')) {
+                assets.push({
+                  ...shared,
+                  type: AssetType.directory,
+                  id: DirectoryId(`directory-${childPath}` as const),
+                })
+              } else {
+                assets.push({
+                  ...shared,
+                  type: AssetType.file,
+                  id: FileId(`file-${childPath}`),
+                  extension: basenameAndExtension(childPath).extension,
+                })
               }
-              zipfile.once('end', () => {
-                resolve()
-              })
-              zipfile.on('entry', async (entry: yauzl.Entry) => {
-                const childPath = path.join(directoryPath, entry.fileName)
-                const shared = {
-                  title: getFileName(childPath),
-                  modifiedAt: toRfc3339(new Date()),
-                  parentId: DirectoryId(`directory-${getFolderPath(childPath)}` as const),
-                  extension: null,
-                  permissions: [],
-                  projectState: null,
-                  parentsPath: ParentsPath(''),
-                  virtualParentsPath: VirtualParentsPath(''),
-                } satisfies Partial<DirectoryAsset>
-                if (entry.fileName.endsWith('/')) {
-                  await mkdir(childPath)
-                  assets.push({
-                    ...shared,
-                    type: AssetType.directory,
-                    id: DirectoryId(`directory-${childPath}` as const),
-                  })
-                  zipfile.readEntry()
-                } else {
-                  zipfile.openReadStream(entry, async (openReadError, readStream) => {
-                    if (openReadError) {
-                      throw openReadError
-                    }
-                    const writeStream = readStream.pipe(createWriteStream(childPath))
-                    await finished(writeStream)
-                    assets.push({
-                      ...shared,
-                      type: AssetType.file,
-                      id: FileId(`file-${childPath}`),
-                      extension: basenameAndExtension(childPath).extension,
-                    })
-                    zipfile.readEntry()
-                  })
-                }
-              })
-              zipfile.readEntry()
-            })
+            },
           })
+          await unzip.extract(filePath, directoryPath)
           if (tempDirectory != null) {
             await rm(tempDirectory, { force: true, recursive: true })
           }
