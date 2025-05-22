@@ -43,7 +43,7 @@ export interface GenericGrid {
   type: 'Generic_Grid'
   headers: Header[]
   data: unknown[][]
-  }
+}
 export interface Header {
   visualization_header: string
   get_child_node_action?: string
@@ -56,6 +56,6 @@ export function isGenericGrid(data: unknown): data is GenericGrid {
     typeof data === 'object' &&
     data !== null &&
     'type' in data &&
-    (data as any).type === 'Generic_Grid' 
+    (data as any).type === 'Generic_Grid'
   )
 }

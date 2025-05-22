@@ -871,16 +871,16 @@ watchEffect(() => {
   } else if (isGenericGrid(data_)) {
     columnDefs.value = data_.headers.map((header) => {
       if (header.get_child_node_action) {
-      return toLinkField(header.visualization_header, {
-        tooltipValue: header.child_label,
-        headerName: header.visualization_header,
-        getChildAction: header.get_child_node_action,
-      });
-    } else {
-      return toField(header.visualization_header);
-    }
-  })
-  rowData.value = data_.data ? createRowsForTable(data_.data, 0, false) : []
+        return toLinkField(header.visualization_header, {
+          tooltipValue: header.child_label,
+          headerName: header.visualization_header,
+          getChildAction: header.get_child_node_action,
+        })
+      } else {
+        return toField(header.visualization_header)
+      }
+    })
+    rowData.value = data_.data ? createRowsForTable(data_.data, 0, false) : []
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
