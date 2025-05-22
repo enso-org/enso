@@ -50,6 +50,7 @@ type AWS
         raw_response.decode format=format if_unsupported=raw_response.with_materialized_body
 
     ## ALIAS http post, upload
+       MACRO put method=..Put
        ICON data_upload
        Writes the provided data to the provided AWS URI signing the request with
        the necessary headers. Returns the response, parsing the body if the
@@ -71,6 +72,32 @@ type AWS
          to the default AWS credentials.
        - region_service: The region and service to use for signing the request.
          Defaults to the region and service parsed from the URI.
+
+       Returns
+       - A new table with the group_by columns as well as any aggregate columns.
+
+       > Example
+         Count all the rows
+
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             grouped = table.aggregate columns=[Aggregate_Column.Count]
+
+             ## Returns a Table
+                | Count |
+                |-------|
+                | 2     |
+
+       > Example
+         Group by the Key column, count the rows
+
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             grouped = table.aggregate ["Name"] [Aggregate_Column.Count]
+
+             ## Returns a Table
+                | Name | Count |
+                |------|-------|
+                | John | 1     |
+                | Paul | 1     |
     @uri (Text_Input display=..Always)
     @method HTTP_Method.default_post_widget
     @headers Header.default_widget
