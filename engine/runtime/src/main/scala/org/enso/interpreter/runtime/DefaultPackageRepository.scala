@@ -246,8 +246,7 @@ private class DefaultPackageRepository(
   }
 
   /** If the package contains any native libraries, their parent directories are added to the
-    * `java.library.path` system prop. This only works in native image - in JVM, changes
-    * to `java.library.path` system prop are ignored.
+    * native library search path. This only works in native image.
     * @param pkg the package to check for native libraries
     */
   private def addNativeLibPath(
