@@ -189,7 +189,9 @@ test('Documentation editor: Editing with keyboard', async ({ page }) => {
   expect(codeAfterAddingLine).toContain(`## # ${NEW_DOCS}\n   Second line`)
 })
 
-test('Code editor: Copy and paste', async ({ page }) => {
+test.skip('Code editor: Copy and paste (clipboard cannot be used in CI but test can be run locally)', async ({
+  page,
+}) => {
   await actions.goToGraph(page)
   const { codeEditor } = await getCodeEditor(page)
   await codeEditor.click()
