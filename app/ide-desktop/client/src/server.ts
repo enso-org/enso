@@ -20,9 +20,11 @@ import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'
 import {
   AnyAsset,
+  AssetId,
   AssetType,
   DirectoryAsset,
   DirectoryId,
+  extractTypeFromId,
   FileId,
   ParentsPath,
   ProjectId,
@@ -32,11 +34,11 @@ import {
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { basenameAndExtension, getFileName, getFolderPath } from 'enso-common/src/utilities/file'
 import { createWriteStream } from 'node:fs'
-import { access, mkdir, mkdtemp, readFile, rm, rmdir, writeFile } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readdir, readFile, rm, rmdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
-import { Unzip } from 'zip-lib'
+import { Unzip, Zip } from 'zip-lib'
 
 const logger = contentConfig.logger
 
@@ -324,6 +326,58 @@ export class Server {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       const params = route.searchParams
       switch (route.pathname) {
+        case '/files/download-archive': {
+          const assets = params.getAll('asset') as AssetId[]
+          const archive = new Zip()
+          for (const asset of assets) {
+            const typeAndId = extractTypeFromId(asset)
+            switch (typeAndId.type) {
+              case AssetType.project: {
+                const [, uuid = '', directory = ''] =
+                  asset.replace(/^project-/, '').match(/(\w+-\w+-\w+-\w+-\w+)-(.+)/) ?? []
+                const entries = await readdir(directory, { withFileTypes: true })
+                for (const entry of entries) {
+                  if (entry.isFile()) {
+                    continue
+                  }
+                  try {
+                    const metadata = projectManagement.getMetadata(directory)
+                    if (metadata?.id !== uuid) {
+                      continue
+                    }
+                    const projectPath = path.join(entry.parentPath, entry.name)
+                    archive.addFolder(projectPath)
+                    break
+                  } catch {
+                    // Ignore; this folder is not a project entry.
+                  }
+                }
+                break
+              }
+              case AssetType.file: {
+                const filePath = asset.replace(/^file-/, '')
+                archive.addFile(filePath)
+                break
+              }
+              case AssetType.directory: {
+                const directoryPath = asset.replace(/^directory-/, '')
+                archive.addFolder(directoryPath)
+                break
+              }
+              // These asset types are not valid, however include them to force any newly added
+              // asset types to be handled (by causing a non-exhaustiveness error).
+              case AssetType.secret:
+              case AssetType.datalink:
+              case AssetType.specialLoading:
+              case AssetType.specialEmpty:
+              case AssetType.specialError:
+              case AssetType.specialUp: {
+                return []
+              }
+            }
+          }
+          break
+        }
         case '/files/upload-archive': {
           const directory =
             params.get('directory')?.replace(/^directory-/, '') ?? this.projectsRootDirectory
