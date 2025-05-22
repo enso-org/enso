@@ -26,7 +26,7 @@ const props = defineProps<{
   contentTestId?: string
   transformUserInput?: (value: string) => Ast.Owned<Ast.MutableTextLiteral> | string
   /** Editor line mode. Single-line mode will not allow entering newline characters. */
-  lineMode: 'single' | 'multi' | 'auto'
+  lineMode: 'single' | 'multi' | 'auto' | 'autoMulti'
   onAccepted?: (value: string) => HandledUpdate
 }>()
 
@@ -50,7 +50,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
 watchEffect(() =>
   setExtraExtensions([
     highlightStyle(editorRoot.value?.highlightClasses ?? {}),
-    ...(props.lineMode !== 'multi' ? [selectOnMouseFocus] : []),
+    ...(props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? [selectOnMouseFocus] : []),
     ...(props.extensions ?? []),
   ]),
 )

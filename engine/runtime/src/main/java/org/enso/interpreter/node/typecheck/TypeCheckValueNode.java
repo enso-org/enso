@@ -1,6 +1,8 @@
 package org.enso.interpreter.node.typecheck;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import java.util.List;
@@ -15,16 +17,21 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.util.CachingSupplier;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /** A node and a factory for nodes performing type checks (including necessary conversions). */
 public final class TypeCheckValueNode extends Node {
   private @Child AbstractTypeCheckNode check;
+  private @Child WarningsLibrary warnings;
+  private @Child AppendWarningNode append;
   private final boolean allTypes;
 
   TypeCheckValueNode(AbstractTypeCheckNode check, boolean allTypes) {
     assert check != null;
     this.check = check;
     this.allTypes = allTypes;
+    this.warnings = WarningsLibrary.getFactory().createDispatched(3);
   }
 
   /**
@@ -53,6 +60,31 @@ public final class TypeCheckValueNode extends Node {
    *     null} value that can be used as a result
    */
   public final Object handleCheckOrConversion(
+      VirtualFrame frame, Object value, ExpressionNode expr) {
+    if (warnings.hasWarnings(value)) {
+      if (append == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        append = insert(AppendWarningNode.build());
+      }
+      try {
+        var plainValue = warnings.removeWarnings(value);
+        var result = handleCheckOrConversionImpl(frame, plainValue, expr);
+        if (result == plainValue) {
+          return value;
+        } else {
+          var warnMap = warnings.getWarnings(value, false);
+          return append.executeAppend(frame, result, warnMap);
+        }
+      } catch (UnsupportedMessageException ex) {
+        var ctx = EnsoContext.get(this);
+        throw ctx.raiseAssertionPanic(this, null, ex);
+      }
+    } else {
+      return handleCheckOrConversionImpl(frame, value, expr);
+    }
+  }
+
+  private final Object handleCheckOrConversionImpl(
       VirtualFrame frame, Object value, ExpressionNode expr) {
     var result = check.executeCheckOrConversion(frame, value, expr);
     if (result == null) {
