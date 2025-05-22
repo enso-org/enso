@@ -99,7 +99,7 @@ public class BuilderMethodGenerator {
         .append(System.lineSeparator());
     var metaFieldsCopyCode = """
         this.diagnostics = obj.diagnosticsCopy();
-        this.passData = obj.passData.duplicate();
+        this.passData = obj.passData.copy();
         if (obj.location != null) {
           this.location = new IdentifiedLocation(obj.location.start(), obj.location.end(), obj.location.uuid());
         } else {
