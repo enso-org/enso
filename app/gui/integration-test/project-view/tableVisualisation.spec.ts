@@ -221,3 +221,74 @@ test('Error Visualisation Test', async ({ page }) => {
   )
   await expect(tableVisualization).toContainText('This is an error message.')
 })
+
+test('get_child_node_action temmplate Test as number', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    /* eslint-disable camelcase */
+    {
+      type: 'Single_Column_Of_Actions',
+      visualization_header: 'table',
+      child_label: 'table',
+      data: ['1', '2', '3'],
+      get_child_node_action: 'read {{#Value}}',
+    },
+    /* eslint-enable camelcase */
+  )
+  await expect(tableVisualization).toContainText('table')
+  await expect(tableVisualization).toContainText('1')
+  await expect(tableVisualization).toContainText('2')
+  await expect(tableVisualization).toContainText('3')
+  const value2 = tableVisualization.getByText('2')
+  await value2.dblclick()
+  const newNode = graphNodeByBinding(page, 'node1')
+  await expect(newNode).toContainText('read')
+  const numberWidget = newNode.locator('.WidgetNumber')
+  await expect(numberWidget).toBeVisible()
+  await expect(numberWidget).toHaveValue('2')
+})
+
+test('get_child_node_action temmplate Test as text', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    /* eslint-disable camelcase */
+    {
+      type: 'Single_Column_Of_Actions',
+      visualization_header: 'table',
+      child_label: 'table',
+      data: ['1', '2', '3'],
+      get_child_node_action: 'read {{@Value}}',
+    },
+    /* eslint-enable camelcase */
+  )
+  await expect(tableVisualization).toContainText('table')
+  await expect(tableVisualization).toContainText('1')
+  await expect(tableVisualization).toContainText('2')
+  await expect(tableVisualization).toContainText('3')
+  const value2 = tableVisualization.getByText('2')
+  await value2.dblclick()
+  const newNode = graphNodeByBinding(page, 'node1')
+  const textWidget = newNode.locator('.WidgetText')
+  await expect(textWidget).toBeVisible()
+  await expect(textWidget.getByTestId('widget-text-content')).toHaveText('2')
+})
