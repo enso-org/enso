@@ -33,14 +33,14 @@ remote_write_with_local_file file existing_file_behavior action =
    private: true
    ---
    A backup strategy tailored for S3. Since S3 does not support a cheap 'move'
-   operation, the standard backup strategy that mostly relies on it does not work
-   too well. Instead, S3 relies on a simpler strategy:
-   1. If the destination file exists, copy it to a backup location (overwriting a
-      previous backup file, if it was present).
+   operation, the standard backup strategy that mostly relies on it does not
+   work too well. Instead, S3 relies on a simpler strategy:
+   1. If the destination file exists, copy it to a backup location (overwriting
+      a previous backup file, if it was present).
    2. Write the new file.
      i. If the write succeeded, that's it.
-     ii. If the write failed, 'restore' from the backup - copy the backup back to
-         the original location and delete the backup file (as it's no longer
+     ii. If the write failed, 'restore' from the backup - copy the backup back
+         to the original location and delete the backup file (as it's no longer
          needed because the original file is back with the old contents).
 s3_backup file action = recover_errors <|
     backup_location = file.parent / (file.name + ".bak")

@@ -50,8 +50,8 @@ type S3_File
        - An `S3_File` object representing the file.
 
        ## Errors
-        - If the URI is not in the correct format, an `Illegal_Argument` error is
-          thrown.
+        - If the URI is not in the correct format, an `Illegal_Argument` error
+          is thrown.
     @credentials AWS_Credential.default_widget
     new : Text -> AWS_Credential -> S3_File ! Illegal_Argument
     new (uri : Text = S3.uri_prefix) credentials:AWS_Credential=..Default =
@@ -138,7 +138,7 @@ type S3_File
           set to `Ignore`, the operation proceeds without errors or warnings.
 
        ## Returns
-       - The contents of the file read using the specified `File_Format`.
+        - The contents of the file read using the specified `File_Format`.
 
        ## Errors
         - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
@@ -313,9 +313,9 @@ type S3_File
        ## Remarks
 
        ### S3 Move is a Copy and Delete
-       Since S3 does not support moving files, this operation is implemented   as
-       a copy followed by delete. Keep in mind that the space usage of the   file
-       will briefly be doubled and that the operation may not be as fast   as a
+       Since S3 does not support moving files, this operation is implemented as
+       a copy followed by delete. Keep in mind that the space usage of the file
+       will briefly be doubled and that the operation may not be as fast as a
        local move often is.
     move_to : File_Like -> Boolean -> Any ! File_Error
     move_to self (destination : File_Like) (replace_existing : Boolean = False) =
@@ -434,7 +434,7 @@ type S3_File
        directory or as a regular file.
        However, for ease-of-use, if a path without a trailing slash is used
        with the `/` operator it will be accepted and the sub paths will be
-       resolved, even though such a path would not be treated as a directory   by
+       resolved, even though such a path would not be treated as a directory by
        any other operations.
        See: https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
     / : Text -> S3_File

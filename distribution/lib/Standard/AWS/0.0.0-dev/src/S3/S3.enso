@@ -35,7 +35,7 @@ polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
       default credentials are used.
 
    ## Returns
-   - A vector of bucket names (as Text).
+    - A vector of bucket names (as Text).
 
    ## Errors
     - If the credentials are invalid or access to S3 is denied, then an
@@ -60,7 +60,7 @@ list_buckets credentials:AWS_Credential=..Default = handle_s3_errors <|
       specified, the default credentials are used.
 
    ## Returns
-   - A vector of object keys (as Text) (including the prefix).
+    - A vector of object keys (as Text) (including the prefix).
 
    ## Errors
     - If the credentials are invalid or access to S3 is denied, then an
@@ -118,7 +118,7 @@ get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimite
       specified, the default credentials are used.
 
    ## Returns
-   - A Dictionary of the associated metadata of a bucket or object.
+    - A Dictionary of the associated metadata of a bucket or object.
 
    ## Errors
     - If the credentials are invalid or access to S3 is denied, then an
