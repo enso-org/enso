@@ -40,6 +40,7 @@ import {
   Error,
   SingleColumnOfActions,
   isError,
+  isGenericGrid,
   isSingleColumnOfActions,
 } from './TableVisualization/TableVisualisationTypes'
 import {
@@ -865,6 +866,20 @@ watchEffect(() => {
       }),
     ]
     rowData.value = data_.data.map((name) => ({ Value: name }))
+  } else if (isGenericGrid(data_)) {
+    columnDefs.value = data_.headers.map((header) => {
+      if (header.get_child_node_action) {
+      return toLinkField(header.visualization_header, {
+        tooltipValue: header.child_label,
+        headerName: header.visualization_header,
+        getChildAction: header.get_child_node_action,
+        args: header.args,
+      });
+    } else {
+      return toField(header.visualization_header);
+    }
+  })
+  rowData.value = data_.data ? createRowsForTable(data_.data, 0, false) : []
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
