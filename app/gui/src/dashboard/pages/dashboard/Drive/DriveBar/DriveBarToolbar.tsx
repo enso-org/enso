@@ -41,6 +41,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
@@ -171,6 +172,17 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     await uploadFiles(Array.from(files))
   })
 
+  const localBackend = useLocalBackend() ?? null
+  const importArchive = useMutationCallback(backendMutationOptions(localBackend, 'importArchive'))
+
+  const importArchiveCallback = useEventCallback(async () => {
+    const [archive] = await readUserSelectedFile({ accept: ['.zip'] })
+    if (!archive) {
+      return
+    }
+    await importArchive([{ directory: currentDirectoryId, archive }])
+  })
+
   const downloadFilesCallback = useEventCallback(async () => {
     unsetModal()
     const { selectedAssets } = driveStore.getState()
@@ -265,7 +277,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   variant="icon"
                   size="medium"
                   icon="key_add"
-                  aria-label={isCloud ? getText('newSecret') : getText('newSecretOnlyCloud')}
+                  aria-label={isCloud ? getText('newSecret') : getText('newSecret.cloudOnly')}
                 />
                 <UpsertSecretModal doCreate={newSecretCallback} />
               </DialogTrigger>
@@ -276,7 +288,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   size="medium"
                   icon="credential_add"
                   aria-label={
-                    isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
+                    isCloud ? getText('newCredential') : getText('newCredential.cloudOnly')
                   }
                 />
                 <CreateCredentialModal doCreate={newCredentialCallback} />
@@ -287,7 +299,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   variant="icon"
                   size="medium"
                   icon="connector_add"
-                  aria-label={isCloud ? getText('newDatalink') : getText('newDatalinkOnlyCloud')}
+                  aria-label={isCloud ? getText('newDatalink') : getText('newDatalink.cloudOnly')}
                 />
                 <UpsertDatalinkModal doCreate={newDatalinkCallback} />
               </DialogTrigger>
@@ -300,6 +312,13 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 icon="data_upload"
                 aria-label={getText('uploadFiles')}
                 onPress={uploadFilesCallback}
+              />
+              <Button
+                variant="icon"
+                size="medium"
+                icon="data_upload"
+                aria-label={getText('importArchive')}
+                onPress={importArchiveCallback}
               />
               <Button
                 isDisabled={!canDownload}

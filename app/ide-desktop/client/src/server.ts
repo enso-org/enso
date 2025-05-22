@@ -319,17 +319,16 @@ export class Server {
           break
         }
       }
-    } else if (request.url?.startsWith('/api/')) {
+    } else if (request.method === 'POST' && request.url?.startsWith('/api/')) {
       const route = new URL(`https://example.com${requestUrl.replace('/api', '')}`)
       switch (route.pathname) {
         case '/files/upload-archive': {
           const url = new URL(`https://example.com/${requestUrl}`)
           const params = url.searchParams
-          const directoryPath = params.get('directoryPath')
+          const directoryPath = params.get('directory')
           if (directoryPath == null) {
             response
-              .writeHead(400)
-              .setHeaders(new Map([['Content-Type', 'application/json']]))
+              .writeHead(HTTP_STATUS_BAD_REQUEST, undefined, [['Content-Type', 'application/json']])
               .end(
                 JSON.stringify({
                   type: 'error',
@@ -392,33 +391,18 @@ export class Server {
               ...asset,
               type: AssetType.project,
               id: ProjectId(`project-${metadata.id}-${asset.parentId.replace('directory-', '')}`),
-              projectState: {
-                type: ProjectState.closed,
-              },
+              projectState: { type: ProjectState.closed },
             }
           }
           response
-            .writeHead(200)
-            .setHeaders(new Map([['Content-Type', 'application/json']]))
+            .writeHead(HTTP_STATUS_OK, undefined, [
+              ['Content-Type', 'application/json'],
+              ...COOP_COEP_CORP_HEADERS,
+            ])
             .end(JSON.stringify(assets))
           break
         }
-        default: {
-          response
-            .writeHead(400)
-            .setHeaders(new Map([['Content-Type', 'application/json']]))
-            .end(
-              JSON.stringify({
-                type: 'error',
-                error: `Unknown endpoint '${route.pathname}'`,
-              }),
-            )
-          return
-        }
-      }
-    } else if (request.method === 'POST') {
-      switch (requestPath) {
-        case '/api/upload-file': {
+        case '/upload-file': {
           const url = new URL(`https://example.com/${requestUrl}`)
           const fileName = url.searchParams.get('file_name')
           const directory = url.searchParams.get('directory') ?? this.projectsRootDirectory
@@ -449,7 +433,7 @@ export class Server {
         // This endpoint should only be used when accessing the app from the browser.
         // When accessing the app from Electron, the file input event will have the
         // full system path.
-        case '/api/upload-project': {
+        case '/upload-project': {
           const url = new URL(`https://example.com/${requestUrl}`)
           const directory = url.searchParams.get('directory')
           const name = url.searchParams.get('name')
@@ -469,7 +453,7 @@ export class Server {
             })
           break
         }
-        case '/api/run-project-manager-command': {
+        case '/run-project-manager-command': {
           const cliArguments: unknown = JSON.parse(
             new URL(`https://example.com/${requestUrl}`).searchParams.get('cli-arguments') ?? '[]',
           )
@@ -504,8 +488,18 @@ export class Server {
           break
         }
         default: {
-          response.writeHead(HTTP_STATUS_NOT_FOUND, COOP_COEP_CORP_HEADERS).end()
-          break
+          response
+            .writeHead(HTTP_STATUS_NOT_FOUND, undefined, [
+              ['Content-Type', 'application/json'],
+              ...COOP_COEP_CORP_HEADERS,
+            ])
+            .end(
+              JSON.stringify({
+                type: 'error',
+                error: `Unknown endpoint '${route.pathname}'`,
+              }),
+            )
+          return
         }
       }
     } else if (request.method === 'GET' && requestPath === '/api/root-directory') {

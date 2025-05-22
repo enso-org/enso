@@ -3,7 +3,7 @@ export type FileExtension = `.${string}`
 export type MimeType = `${string}/${string}`
 
 export interface InputFilesOptions {
-  accept?: (FileExtension | MimeType)[]
+  accept?: (FileExtension | MimeType)[] | []
 }
 
 /**

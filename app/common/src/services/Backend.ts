@@ -1669,7 +1669,7 @@ interface ImportArchiveParamsWithPath extends ImportArchiveParamsBase {
 }
 
 interface ImportArchiveParamsWithFile extends ImportArchiveParamsBase {
-  readonly body: Blob
+  readonly archive: Blob
 }
 
 export type ImportArchiveParams = ImportArchiveParamsWithPath | ImportArchiveParamsWithFile

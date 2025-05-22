@@ -865,11 +865,11 @@ export default class LocalBackend extends Backend {
   override async importArchive(
     params: backend.ImportArchiveParams,
   ): Promise<readonly backend.AnyAsset[]> {
-    const rest = 'body' in params ? omit(params, 'body') : params
+    const rest = 'archive' in params ? omit(params, 'archive') : params
     const searchParams = new URLSearchParams(rest).toString()
-    const response = await fetch(`/api/import-archive?${searchParams}`, {
+    const response = await fetch(`/api/files/upload-archive?${searchParams}`, {
       method: 'POST',
-      body: 'body' in params ? params.body : null,
+      body: 'archive' in params ? params.archive : null,
     })
     const result: unknown = await response.json()
     // eslint-disable-next-line no-restricted-syntax
