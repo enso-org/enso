@@ -55,7 +55,7 @@ public class VectorBuilderTest {
     assertEquals(3, three.getArraySize());
     var raw = ctx.unwrapValue(three);
     var pkg = ArrayLikeHelpers.class.getPackage().getName();
-    assertEquals("It is a long value", pkg + ".Vector$Long", raw.getClass().getName());
+    assertEquals("It is a long vector", pkg + ".Vector$Long", raw.getClass().getName());
   }
 
   @Test
