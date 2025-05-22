@@ -93,7 +93,7 @@ public abstract class VectorFromFunctionNode extends Node {
       }
       target.add(valueToAdd, warnsLib);
     }
-    var vector = target.asVector(true);
+    var vector = target.asVector(true, false);
     if (errorsEncountered >= MAX_MAP_WARNINGS) {
       var additionalWarnsBuiltin = ctx.getBuiltins().additionalWarnings();
       long additionalWarnsCnt = errorsEncountered - MAX_MAP_WARNINGS;

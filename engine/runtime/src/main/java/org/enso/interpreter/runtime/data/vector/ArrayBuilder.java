@@ -68,6 +68,25 @@ final class ArrayBuilder extends EnsoObject {
         longArray[size++] = l;
       } else {
         CompilerDirectives.transferToInterpreter();
+        /* No special treatment for long & double:
+        TRY_DOUBLE:
+        if (e instanceof Double) {
+          var copy = new double[longArray.length];
+          for (int i = 0; i < size; i++) {
+            var l = longArray[i];
+            var c = (double) l;
+            if (l == Long.MAX_VALUE || (long) c != l) {
+              // not convertible to double
+              break TRY_DOUBLE;
+            }
+            copy[i] = c;
+          }
+          // try again with double[]
+          primitiveArray = copy;
+          add(e, warnings);
+          return;
+        }
+        */
         objectArray = new Object[longArray.length];
         for (int i = 0; i < size; i++) {
           objectArray[i] = longArray[i];
@@ -76,6 +95,14 @@ final class ArrayBuilder extends EnsoObject {
         addToObjectArray(e);
       }
     } else if (primitiveArray instanceof double[] doubleArray) {
+      /* No special treatment for long & double:
+      if (e instanceof Long l) {
+        var c = (double) l;
+        if (l != Long.MAX_VALUE && (long) c == l) {
+          e = c;
+        }
+      }
+      */
       if (e instanceof Double d) {
         if (size == doubleArray.length) {
           CompilerDirectives.transferToInterpreter();
@@ -212,7 +239,10 @@ final class ArrayBuilder extends EnsoObject {
         yield get(index, iop);
       }
       case "getSize" -> getSize();
-      case "toArray" -> asVector(false);
+      case "toArray" -> {
+        var avoidWarnings = args.length > 0 && Boolean.TRUE.equals(args[0]);
+        yield asVector(false, avoidWarnings);
+      }
       default -> throw UnknownIdentifierException.create(name);
     };
   }
@@ -243,7 +273,7 @@ final class ArrayBuilder extends EnsoObject {
     return "Array_Builder";
   }
 
-  Object asVector(boolean mustBeExact) {
+  Object asVector(boolean mustBeExact, boolean avoidWarningsIgnored) {
     var res = toArray(mustBeExact);
     if (res instanceof long[] longs) {
       return Vector.fromLongArray(longs);
@@ -252,7 +282,8 @@ final class ArrayBuilder extends EnsoObject {
       return Vector.fromDoubleArray(doubles);
     }
     if (nonTrivialEnsoValue) {
-      return Vector.fromInteropArray(Array.wrap((Object[]) res));
+      var arr = Array.wrap((Object[]) res);
+      return Vector.fromInteropArray(arr);
     } else {
       return Vector.fromEnsoOnlyArray((Object[]) res);
     }
