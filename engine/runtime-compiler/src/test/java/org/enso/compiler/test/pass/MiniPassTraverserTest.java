@@ -206,8 +206,8 @@ public class MiniPassTraverserTest {
             .build();
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(Expression.class, lambda, miniPass);
-    expectVisited(miniPass, lambda);
-    expectVisited(miniPass, body);
+    var visited = miniPass.getTransformedExpressions();
+    assertThat(visited, containsInAnyOrder(lambda, self, body));
   }
 
   private static void expectVisited(MockMiniPass pass, Expression expectedVisitedExpr) {
