@@ -215,8 +215,7 @@ public class VectorTest {
     var cnt = new int[1];
     ProxyExecutable callback =
         (arg) -> {
-          if (ctxRule.unwrapValue(arg[0]) instanceof WithWarnings with) {
-            with.getClass();
+          if (ctxRule.unwrapValue(arg[0]) instanceof WithWarnings) {
             cnt[0]++;
             return null;
           }
