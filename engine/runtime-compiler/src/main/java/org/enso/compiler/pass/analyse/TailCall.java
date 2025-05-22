@@ -354,7 +354,12 @@ public final class TailCall implements MiniPassFactory {
                     });
           }
         }
-        default -> throw new CompilerError("Unexpected case branch.");
+        case Case.Branch branch -> {
+          if (isInTailPos) {
+            tailCandidates.put(branch.expression(), true);
+          }
+        }
+        default -> throw new CompilerError("Unexpected value: " + caseExpr);
       }
     }
 
