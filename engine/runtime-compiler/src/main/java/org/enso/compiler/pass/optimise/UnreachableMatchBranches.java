@@ -148,9 +148,8 @@ public final class UnreachableMatchBranches implements MiniPassFactory {
           copiedExpr.getDiagnostics().add(diagnostic);
           return copiedExpr;
         }
-      } else {
-        throw new CompilerError("Unexpected case branch.");
       }
+      return cse;
     }
 
     /**
