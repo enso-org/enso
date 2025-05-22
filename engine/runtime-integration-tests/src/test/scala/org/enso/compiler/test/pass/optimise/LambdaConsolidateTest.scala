@@ -7,7 +7,6 @@ import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Expression,
   Function,
-  Function,
   Module,
   Name
 }
@@ -236,21 +235,22 @@ class LambdaConsolidateTest extends CompilerTest {
         .builder()
         .arguments(
           List(
-            new DefinitionArgument.Specified(
-              Name
-                .Literal("a", isMethod = false, identifiedLocation = null),
-              None,
-              None,
-              suspended          = false,
-              identifiedLocation = null
-            ),
-            new DefinitionArgument.Specified(
-              Name.Literal("b", isMethod = false, identifiedLocation = null),
-              None,
-              None,
-              suspended          = false,
-              identifiedLocation = null
-            )
+            DefinitionArgument.Specified
+              .builder()
+              .name(
+                Name
+                  .Literal("a", isMethod = false, identifiedLocation = null)
+              )
+              .suspended(false)
+              .build(),
+            DefinitionArgument.Specified
+              .builder()
+              .name(
+                Name
+                  .Literal("b", isMethod = false, identifiedLocation = null)
+              )
+              .suspended(false)
+              .build()
           )
         )
         .bodyReference(
@@ -259,18 +259,18 @@ class LambdaConsolidateTest extends CompilerTest {
               .builder()
               .arguments(
                 List(
-                  new DefinitionArgument.Specified(
-                    Name
-                      .Literal(
-                        "c",
-                        isMethod           = false,
-                        identifiedLocation = null
-                      ),
-                    None,
-                    None,
-                    suspended          = false,
-                    identifiedLocation = null
-                  )
+                  DefinitionArgument.Specified
+                    .builder()
+                    .name(
+                      Name
+                        .Literal(
+                          "c",
+                          isMethod           = false,
+                          identifiedLocation = null
+                        )
+                    )
+                    .suspended(false)
+                    .build()
                 )
               )
               .bodyReference(
@@ -278,6 +278,7 @@ class LambdaConsolidateTest extends CompilerTest {
                   Name.Literal("c", isMethod = false, identifiedLocation = null)
                 )
               )
+              .build()
           )
         )
         .build()

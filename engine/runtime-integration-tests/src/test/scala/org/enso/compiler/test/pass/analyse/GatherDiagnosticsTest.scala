@@ -17,36 +17,44 @@ import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
+import org.enso.persist.Persistance.Reference
 
 class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
     val error1 = errors.Syntax(null, errors.Syntax.UnrecognizedToken)
     val plusOp = Name.Literal("+", isMethod = true, identifiedLocation = null)
-    val plusApp = new Application.Prefix(
-      plusOp,
-      List(
-        new CallArgument.Specified(
-          None,
-          error1,
-          false,
-          identifiedLocation = null
+    val plusApp = Application.Prefix
+      .builder()
+      .function(plusOp)
+      .arguments(
+        List(
+          CallArgument.Specified
+            .builder()
+            .name(None)
+            .value(error1)
+            .isSynthetic(false)
+            .build()
         )
       )
-    )
-    val lam = new Function.Lambda(
-      List(
-        new DefinitionArgument.Specified(
-          Name.Literal("bar", isMethod = false, identifiedLocation = null),
-          None,
-          None,
-          suspended          = false,
-          identifiedLocation = null
+      .build()
+    val lam = Function.Lambda
+      .builder()
+      .arguments(
+        List(
+          DefinitionArgument.Specified
+            .builder()
+            .name(
+              Name.Literal("bar", isMethod = false, identifiedLocation = null)
+            )
+            .ascribedType(None)
+            .defaultValue(None)
+            .suspended(false)
+            .build()
         )
-      ),
-      plusApp,
-      identifiedLocation = null
-    )
+      )
+      .bodyReference(Reference.of(plusApp))
+      .build()
 
     "work with expression flow" in {
       val result = GatherDiagnostics.runExpression(lam, buildInlineContext())
@@ -90,13 +98,13 @@ class GatherDiagnosticsTest extends CompilerTest {
           Definition.Type(
             typeName,
             List(
-              new DefinitionArgument.Specified(
-                fooName,
-                None,
-                Some(error2),
-                suspended          = false,
-                identifiedLocation = null
-              )
+              DefinitionArgument.Specified
+                .builder()
+                .name(fooName)
+                .ascribedType(None)
+                .defaultValue(Some(error2))
+                .suspended(false)
+                .build()
             ),
             List(),
             identifiedLocation = null
@@ -114,7 +122,10 @@ class GatherDiagnosticsTest extends CompilerTest {
               error3,
               identifiedLocation = null
             ),
-            lam.copy(body = error3)
+            Function.Lambda
+              .builder(lam)
+              .bodyReference(Reference.of(error3))
+              .build()
           )
         ),
         false,

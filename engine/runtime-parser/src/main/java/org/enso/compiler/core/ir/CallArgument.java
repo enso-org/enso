@@ -54,6 +54,10 @@ public interface CallArgument extends IR {
       super(name, value, isSynthetic, identifiedLocation, passData, diagnostics);
     }
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
     public Specified(
         Option<Name> name,
         Expression value,

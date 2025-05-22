@@ -43,6 +43,10 @@ public interface DefinitionArgument extends IR {
       super(name, ascribedType, defaultValue, suspended, identifiedLocation, passData, diagnostics);
     }
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
     public Specified(
         Name name,
         Option<Expression> ascribedType,
