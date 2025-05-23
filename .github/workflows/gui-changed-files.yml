@@ -52,8 +52,8 @@ jobs:
           for file in ${ALL_CHANGED_FILES}; do
             echo "$file"
           done
-          - name: 💬 Comment on PR
-      - uses: actions/github-script@v7
+      - name: 💬 Comment on PR
+        uses: actions/github-script@v7
         if: steps.gui-changed-files.outputs.any_changed == 'true'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
