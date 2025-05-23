@@ -21,11 +21,9 @@ import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
-import LocalStorage from '#/utilities/LocalStorage'
 import { useBackends, useText } from '$/providers/react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
-import { z } from 'zod'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type {
@@ -43,18 +41,6 @@ import type {
   TrashCategory,
 } from './Category'
 import { isCloudCategory, isLocalCategory } from './Category'
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    /** @deprecated Prefer `useLocalDirectories` and `setLocalDirectories`. */
-    readonly localRootDirectories: z.infer<typeof LOCAL_ROOT_DIRECTORIES_SCHEMA>
-  }
-}
-
-const LOCAL_ROOT_DIRECTORIES_SCHEMA = z.string().array().readonly()
-
-LocalStorage.registerKey('localRootDirectories', { schema: LOCAL_ROOT_DIRECTORIES_SCHEMA })
 
 /** State for {@link categoryIdStore}. */
 interface CategoryIdStoreState {

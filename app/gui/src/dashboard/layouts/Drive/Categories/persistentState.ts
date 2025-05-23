@@ -2,8 +2,21 @@
 import { useStore } from '#/hooks/storeHooks'
 import { Path } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
+import { z } from 'zod'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    /** @deprecated Prefer `useLocalDirectories` and `setLocalDirectories`. */
+    readonly localRootDirectories: z.infer<typeof LOCAL_ROOT_DIRECTORIES_SCHEMA>
+  }
+}
+
+const LOCAL_ROOT_DIRECTORIES_SCHEMA = z.string().array().readonly()
+
+LocalStorage.registerKey('localRootDirectories', { schema: LOCAL_ROOT_DIRECTORIES_SCHEMA })
 
 /** State for {@link categoryIdStore}. */
 interface LocalRootDirectoryStoreState {
