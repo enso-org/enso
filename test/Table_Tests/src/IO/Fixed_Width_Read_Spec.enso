@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -328,6 +329,11 @@ add_direct_specs suite_builder =
             t = data5.read (Fixed_Width_Format.Fixed_Width layout)
             expected = Encoding_Error.Error "Failed to decode 4 code units (at positions: character 0 row 0 column 1, character 1 row 0 column 1, character 1 row 1 column 0, ...)."
             Problems.expect_warning expected t
+
+        group_builder.specify "Should respond to a missing layout with a custom message" <|
+            err = Fixed_Width_Format.Fixed_Width
+            err . should_fail_with Missing_Argument
+            err . catch . message . should_contain "A fixed-width table layout can be a Column or Vector"
 
 fixed_width_spec_from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Error) -> Text =
