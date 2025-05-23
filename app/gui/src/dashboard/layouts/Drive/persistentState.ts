@@ -21,7 +21,7 @@ interface LocalRootDirectoryStoreState {
   readonly downloadDirectory: Path | null
 }
 
-const localRootDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
+export const localRootDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
   persist(
     (): LocalRootDirectoryStoreState => ({
       localRootDirectory: (() => {
