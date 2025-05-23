@@ -235,9 +235,11 @@ private find_named_columns table:Table (specs : Vector Vector) -> Vector (Column
         missing_names = missing.map (x-> x.at 0 . at 0)
         Error.throw (Illegal_Argument.Error ("A fixed-width column specification must have exactly one column matching these names: " + (missing_names.join ", ")))
 
+## PRIVATE
 Fixed_Width_Layout.from (that:Column) =
     Fixed_Width_Layout.from that.to_vector
 
+## PRIVATE
 Fixed_Width_Layout.from (that:Vector) =
     table =
         names = Column.from_vector "names" (Vector.new that.length (_->Nothing))
