@@ -220,6 +220,9 @@ async function loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown
 
 /** {@link useSuggestionDbStore} composable object */
 export type SuggestionDbStore = ReturnType<typeof createSuggestionDbStore>
+/**
+ * A store maintaining suggestions database.
+ */
 export function createSuggestionDbStore(
   projectStore: ProjectStore,
   projectNames: ProjectNameStore,

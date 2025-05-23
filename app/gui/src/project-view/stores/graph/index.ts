@@ -78,6 +78,9 @@ export class PortViewInstance {
 }
 
 export type GraphStore = ReturnType<typeof createGraphStore>
+/**
+ * A store containing state of currently displayed graph.
+ */
 export function createGraphStore(
   proj: ProjectStore,
   suggestionDb: SuggestionDbStore,
