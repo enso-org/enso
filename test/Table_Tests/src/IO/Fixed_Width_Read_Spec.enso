@@ -41,7 +41,7 @@ add_direct_specs suite_builder =
             layout . entries . should_equal expected
 
         group_builder.specify "Should make a layout from a table (no column names)" <|
-            table = Table.input [['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
+            table = Table.input [['width', [4, 1, 3, 3]], ['start', [0, Nothing, Nothing, Nothing]]]
             layout = table : Fixed_Width_Layout
             expected = []
                 + [Fixed_Width_Layout_Entry.Value 0 4 "Column 1"]
@@ -51,8 +51,19 @@ add_direct_specs suite_builder =
             layout . should_be_a Fixed_Width_Layout
             layout . entries . should_equal expected
 
-        group_builder.specify "Should make a layout from a table (column names)" <|
-            table = Table.input [['c', ["a", "b", "c", "d"]], ['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
+        group_builder.specify "Should make a layout from a table (no column names or starts)" <|
+            table = Table.input [['width', [4, 1, 3, 3]]]
+            layout = table : Fixed_Width_Layout
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value 0 4 "Column 1"]
+                + [Fixed_Width_Layout_Entry.Value 4 1 "Column 2"]
+                + [Fixed_Width_Layout_Entry.Value 5 3 "Column 3"]
+                + [Fixed_Width_Layout_Entry.Value 8 3 "Column 4"]
+            layout . should_be_a Fixed_Width_Layout
+            layout . entries . should_equal expected
+
+        group_builder.specify "Should make a layout from a table (with column names)" <|
+            table = Table.input [['start', [0, Nothing, Nothing, Nothing]], ['names', ["a", "b", "c", "d"]], ['width', [4, 1, 3, 3]]]
             layout = table : Fixed_Width_Layout
             expected = []
                 + [Fixed_Width_Layout_Entry.Value 0 4 "a"]
@@ -62,9 +73,43 @@ add_direct_specs suite_builder =
             layout . should_be_a Fixed_Width_Layout
             layout . entries . should_equal expected
 
+        group_builder.specify "Should refused make a layout from a table with missing widths" <|
+            table = Table.input [['start', [0, Nothing, Nothing, Nothing]], ['names', ["a", "b", "c", "d"]]]
+            layout = table : Fixed_Width_Layout
+            layout . should_fail_with Illegal_Argument
+
+        group_builder.specify "Should accept column name variations" <|
+            orders = [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value 0 4 "a"]
+                + [Fixed_Width_Layout_Entry.Value 4 1 "b"]
+                + [Fixed_Width_Layout_Entry.Value 5 3 "c"]
+                + [Fixed_Width_Layout_Entry.Value 8 3 "d"]
+            with_names names starts widths =
+                table_orig = Table.input [[names, ["a", "b", "c", "d"]], [starts, [0, Nothing, Nothing, Nothing]], [widths, [4, 1, 3, 3]]]
+                orders.map order->
+                    table = Table.input [table_orig.at (order.at 0), table_orig.at (order.at 1), table_orig.at (order.at 2)]
+                    layout = table : Fixed_Width_Layout
+                    layout . should_be_a Fixed_Width_Layout
+                    layout . entries . should_equal expected
+            with_names "name" "starts" "Width"
+            with_names "names" "start" "widths"
+            with_names "Names" "start" "Widths"
+
         group_builder.specify "Should make a layout from a column" <|
             col = Column.from_vector 'y' [4, 1, 3, 3]
             layout = col : Fixed_Width_Layout
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value 0 4 "Column 1"]
+                + [Fixed_Width_Layout_Entry.Value 4 1 "Column 2"]
+                + [Fixed_Width_Layout_Entry.Value 5 3 "Column 3"]
+                + [Fixed_Width_Layout_Entry.Value 8 3 "Column 4"]
+            layout . should_be_a Fixed_Width_Layout
+            layout . entries . should_equal expected
+
+        group_builder.specify "Should make a layout from a vector" <|
+            v = [4, 1, 3, 3]
+            layout = v : Fixed_Width_Layout
             expected = []
                 + [Fixed_Width_Layout_Entry.Value 0 4 "Column 1"]
                 + [Fixed_Width_Layout_Entry.Value 4 1 "Column 2"]
