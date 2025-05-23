@@ -24,7 +24,8 @@ import project.Table.Table
    A fixed-width format defines its columns as fixed column offsets and widths.
    The columns are defined in a `Fixed_Width_Layout` object.
 type Fixed_Width_Format
-    ## Read fixed-width files into a Table.
+    ## MACRO example layout=[12]
+       Read fixed-width files into a Table.
 
        Fixed-width files require have a `Fixed_Width_Layout` that specifies the
        start and width of each column, along with an optional column name. This
@@ -187,7 +188,7 @@ type Fixed_Width_Layout
 
     ## PRIVATE
     missing_layout_argument =
-        Missing_Argument.throw "layout" "A fixed-width table layout can be a Column or Vector of field widths, or a Table with columns called 'start', 'width', and (optionally) 'name'"
+        Missing_Argument.throw "layout" "A fixed-width table layout can be a Column or Vector of field widths, or a Table with columns called 'start', 'width', and (optionally) 'name'."
 
 ## PRIVATE
 Fixed_Width_Layout.from (that:Table) =
@@ -250,5 +251,5 @@ Fixed_Width_Layout.from (that:Vector) =
 Fixed_Width_Layout.from (that : Function) =
     is_unapplied_table_input = (that.to_text.starts_with "Table.type.new") || (that.to_text.starts_with "Table.type.input")
     if is_unapplied_table_input then
-        Error.throw (Illegal_Argument.Error "Table has not been populated. A fixed-width column specification must have two or three columns (optional column name; start; width).")
+        Error.throw (Illegal_Argument.Error "Table has not been populated. A fixed-width column specification must have columns called 'start', 'width', and (optionally) 'name'.")
     Panic.throw (Type_Error.Error Fixed_Width_Layout that "Expected to get a Fixed_Width_Layout or a Table describing it.")
