@@ -43,6 +43,9 @@ export interface GenericGrid {
   type: 'Generic_Grid'
   headers: Header[]
   data: unknown[][]
+
+  // TODO: Remove all_rows_count – not used, but we need to fix the type logic
+  all_rows_count: number
 }
 export interface Header {
   visualization_header: string

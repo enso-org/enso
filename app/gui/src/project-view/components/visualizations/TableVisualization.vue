@@ -880,7 +880,7 @@ watchEffect(() => {
         return toField(header.visualization_header)
       }
     })
-    rowData.value = data_.data ? createRowsForTable(data_.data, 0, false) : []
+    rowData.value = createRowsForTable(data_.data, 0, false)
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
