@@ -10,8 +10,8 @@ from Standard.Base.Metadata.Choice import Option
 
 import project.Column.Column
 import project.Data_Formatter.Data_Formatter
-import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Fixed_Width.Internal.Column_Namer.Column_Namer
+import project.Fixed_Width.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Fixed_Width.On_Empty_Field.On_Empty_Field
 import project.Internal.Fixed_Width_Reader
 import project.Internal.Telemetry
