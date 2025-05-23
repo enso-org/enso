@@ -47,6 +47,20 @@ export interface SvgUseIconProps<Render = never> {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
+export const ICON_COLORS = [
+  'custom',
+  'primary',
+  'danger',
+  'success',
+  'accent',
+  'muted',
+  'disabled',
+  'invert',
+  'inherit',
+  'current',
+] as const satisfies readonly VariantProps<typeof ICON_STYLES>['color'][]
+
+// eslint-disable-next-line react-refresh/only-export-components
 export const ICON_STYLES = tv({
   base: 'flex-none aspect-square w-full h-full [&>svg]:stroke-current [&>svg]:w-full [&>svg]:h-full',
   variants: {

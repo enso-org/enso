@@ -54,7 +54,6 @@ public class SocketServer extends Thread {
       while (!closed) {
         signalAlmostReadiness();
         Socket socket = serverSocket.accept();
-        logger.debug("Connected to client at " + socket.getInetAddress() + ":" + socket.getPort());
         SocketLoggingNode newSocketNode = new SocketLoggingNode(this, socket, lc);
         synchronized (socketNodeList) {
           socketNodeList.add(newSocketNode);
@@ -154,8 +153,6 @@ public class SocketServer extends Thread {
   }
 
   public void socketNodeClosing(SocketLoggingNode sn) {
-    logger.debug("Removing {}", sn);
-
     // don't allow simultaneous access to the socketNodeList
     // (e.g. removal whole iterating on the list causes
     // java.util.ConcurrentModificationException)

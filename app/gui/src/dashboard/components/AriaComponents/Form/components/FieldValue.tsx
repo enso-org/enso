@@ -41,12 +41,11 @@ export function FieldValue<
   return <MemoChildren children={children} value={deferredValue} />
 }
 
-// Wrap the childer to make the deferredValue to work
+// Wrap the children to make the deferredValue to work
 // see: https://react.dev/reference/react/useDeferredValue#deferring-re-rendering-for-a-part-of-the-ui
-// eslint-disable-next-line no-restricted-syntax
 const MemoChildren = memo(function MemoChildren<T>(props: {
   children: (value: T) => ReactNode
   value: T
 }) {
   return props.children(props.value)
-}) as unknown as <T>(props: { children: (value: T) => ReactNode; value: T }) => ReactNode
+})

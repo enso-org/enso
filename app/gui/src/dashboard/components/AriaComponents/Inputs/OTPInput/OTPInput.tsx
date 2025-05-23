@@ -81,6 +81,7 @@ export const OTPInput = forwardRef(function OTPInput<
     inputRef,
     submitOnComplete = true,
     onComplete,
+    contextualHelp,
     // eslint-disable-next-line @typescript-eslint/naming-convention
     form: _,
     ...inputProps
@@ -128,6 +129,7 @@ export const OTPInput = forwardRef(function OTPInput<
       })}
       ref={ref}
       name={name}
+      contextualHelp={contextualHelp}
     >
       <BaseOTPInput
         {...filterNonDOMFormProps(mergeProps<OTPInputProps>()(fieldProps, inputProps))}

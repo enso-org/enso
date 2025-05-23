@@ -1,9 +1,9 @@
 /** @file A modal for showing logs for a project. */
 import ReloadIcon from '#/assets/reload.svg'
 import { Button, Dialog } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { ProjectSessionId } from '#/services/Backend'
+import { useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 /** Props for a {@link ProjectLogsModal}. */

@@ -32,7 +32,7 @@ add_specs suite_builder = suite_builder.group "[In-Memory] Storage Builders" gro
                 0.up_to 5 . each _->
                     builder.append e
                 storage = builder.seal
-                column = Column.from_storage "X" storage
+                column = Java_Exports.make_column_from_storage "X" storage
                 column.to_vector . should_equal vector
             Problems.assume_no_problems r
 
@@ -42,6 +42,6 @@ add_specs suite_builder = suite_builder.group "[In-Memory] Storage Builders" gro
             builder = Java_Exports.make_inferred_builder 3 java_problem_aggregator
             mixed_values.map v-> builder.append v
             storage = builder.seal
-            column = Column.from_storage "X" storage
+            column = Java_Exports.make_column_from_storage "X" storage
             column.to_vector . should_equal mixed_values
         Problems.assume_no_problems r

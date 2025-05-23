@@ -174,8 +174,12 @@ export interface LSMethodPointer {
 }
 
 /** Whether one {@link LSMethodPointer} deeply equals another. */
-export function methodPointerEquals(left: LSMethodPointer, right: LSMethodPointer): boolean {
+export function methodPointerEquals(
+  left: LSMethodPointer | undefined,
+  right: LSMethodPointer,
+): boolean {
   return (
+    !!left &&
     left.module === right.module &&
     left.definedOnType === right.definedOnType &&
     left.name === right.name

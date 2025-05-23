@@ -397,4 +397,8 @@ class ProjectFileRepository[
         }
     }
   }
+
+  override def toString: String = {
+    "ProjectFileRepository[path=" + projectsPath + ", metadata=" + metadataStorageConfig + "]"
+  }
 }

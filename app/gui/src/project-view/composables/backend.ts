@@ -1,4 +1,4 @@
-import { injectProjectBackend } from '@/providers/backend'
+import { injectProjectBackend } from '@/providers/projectBackend'
 import type { ToValue } from '@/util/reactivity'
 import type {
   UseMutationOptions,
@@ -143,3 +143,5 @@ export function useBackend(which: 'remote' | 'project') {
 
   return { query, fetch, prefetch, ensureQueryData, mutation }
 }
+
+export type Mutation = ReturnType<typeof useBackend>['mutation']

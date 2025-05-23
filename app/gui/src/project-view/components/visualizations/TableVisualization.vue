@@ -37,6 +37,12 @@ import {
 import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
+  Error,
+  SingleColumnOfActions,
+  isError,
+  isSingleColumnOfActions,
+} from './TableVisualization/TableVisualisationTypes'
+import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
@@ -56,13 +62,14 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | Excel_Workbook
-
-interface Error {
-  type: undefined
-  error: string
-  all_rows_count?: undefined
-}
+type Data =
+  | number
+  | string
+  | Error
+  | Matrix
+  | ObjectMatrix
+  | EnsoTableOrColumn
+  | SingleColumnOfActions
 
 interface ValueType {
   constructor: string
@@ -75,17 +82,6 @@ interface Matrix {
   all_rows_count: number
   json: unknown[][]
   value_type: ValueType[]
-  get_child_node_action: string
-  child_label: string
-  visualization_header: string
-}
-
-interface Excel_Workbook {
-  type: 'Excel_Workbook'
-  column_count: number
-  all_rows_count: number
-  sheet_names: string[]
-  json: unknown[][]
   get_child_node_action: string
   child_label: string
   visualization_header: string
@@ -113,7 +109,6 @@ interface EnsoTableOrColumn {
   links: string[] | undefined
   get_child_node_action: string
   get_child_node_link_name: string
-  link_value_type: string
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
@@ -386,10 +381,7 @@ const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) =
   return Array.from({ length: rows }, (_, i) => {
     return Object.fromEntries(
       columnDefs.value.map((h, j) => {
-        return [
-          h.field,
-          h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : toRender(data?.[j - shift]?.[i]),
-        ]
+        return [h.field, h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : data?.[j - shift]?.[i]]
       }),
     )
   })
@@ -699,29 +691,67 @@ function toField(
   }
 }
 
-function getAstPattern(selector?: string | number, action?: string) {
-  if (action && selector != null) {
-    return Pattern.new<Ast.Expression>((ast) =>
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
-        typeof selector === 'number' ?
-          Ast.tryNumberToEnso(selector, ast.module)!
-        : Ast.TextLiteral.new(selector, ast.module),
-      ),
-    )
-  }
+type ParsedActionTemplate = {
+  pattern: string
+  selectors: { name: string; numeric: boolean }[]
 }
 
-function createNode(
-  params: CellDoubleClickedEvent,
-  selector: string,
-  action?: string,
-  castValueTypes?: string,
-) {
-  const selectorKey = params.data[selector]
-  const castSelector =
-    castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
-  const pattern = getAstPattern(castSelector, action)
+function parseActionTemplate(input: string, defaultSelector: string): ParsedActionTemplate {
+  const regex = /{{([#@]?)(\w+)}}/g
+  const selectors: { name: string; numeric: boolean }[] = []
+  let pattern = input
+
+  pattern = pattern.replace(regex, (_, flag, key) => {
+    selectors.push({ name: key, numeric: flag === '#' })
+    return '__'
+  })
+
+  pattern = '__.' + pattern
+
+  // template didn't contain any {{}} placeholders so add a single default argument
+  if (selectors.length === 0) {
+    selectors.push({ name: defaultSelector, numeric: false })
+    pattern = pattern + ' __'
+  }
+
+  return { pattern, selectors }
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value)
+}
+
+function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSelector: string) {
+  const parsedAction = parseActionTemplate(action, defaultSelector)
+
+  return Pattern.new<Ast.Expression>((ast) => {
+    const mappedExpressions = parsedAction.selectors.map(({ name, numeric }) => {
+      const value = params.data[name]
+      const castedValue = numeric && !isNaN(Number(value)) ? Number(value) : value
+      return isNumber(castedValue) ?
+          Ast.tryNumberToEnso(castedValue, ast.module)!
+        : Ast.TextLiteral.new(castedValue, ast.module)
+    })
+
+    const templatePattern = Pattern.parseExpression(parsedAction.pattern)
+    return templatePattern.instantiateCopied([ast, ...mappedExpressions])
+  })
+}
+
+/**
+ * Creates a new node in the graph based on the given action template and data from a grid row.
+ *
+ * The action string should be of the format `at {{#fieldname}}` which will generate a Node `at 2`
+ * or `at {{@fieldname}}` which will generate a Node `at "2"`
+ * If the action contains no placeholders then the defaultSelector is used like so
+ * `action {{@defaultSelector}}`
+ * @param params - The grid cell event containing the clicked row's data.
+ * @param defaultSelector - A fallback key used when the template contains no placeholders.
+ * @param action - A template string with placeholders (e.g., `at {{@name}}`, `at {{#value}}`) used to generate the AST.
+ */
+function createNode(params: CellDoubleClickedEvent, defaultSelector: string, action: string) {
+  const pattern = getAstPattern(params, action, defaultSelector)
+
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -733,16 +763,15 @@ function createNode(
 interface LinkFieldOptions {
   tooltipValue?: string | undefined
   headerName?: string | undefined
-  getChildAction?: string | undefined
-  castValueTypes?: string | undefined
+  getChildAction: string
 }
 
-function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef {
-  const { tooltipValue, headerName, getChildAction, castValueTypes } = options
+function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
+  const { tooltipValue, headerName, getChildAction } = options
   return {
     headerName: headerName ? headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, castValueTypes),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction),
     tooltipValueGetter: (params: ITooltipParams) =>
       params.node?.rowPinned === 'top' ?
         null
@@ -753,11 +782,6 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       : null,
     filter: fieldName != INDEX_FIELD_NAME,
   }
-}
-
-/** Return a human-readable representation of an object. */
-function toRender(content: unknown) {
-  return content
 }
 
 watchEffect(() => {
@@ -778,7 +802,7 @@ watchEffect(() => {
         has_index_col: false,
         links: undefined,
         // eslint-disable-next-line camelcase
-        get_child_node_action: undefined,
+        get_child_node_action: '',
         // eslint-disable-next-line camelcase
         get_child_node_link_name: undefined,
         // eslint-disable-next-line camelcase
@@ -786,13 +810,11 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         visualization_header: undefined,
         // eslint-disable-next-line camelcase
-        link_value_type: undefined,
-        // eslint-disable-next-line camelcase
         is_using_server_sort_and_filter: undefined,
         // eslint-disable-next-line camelcase
         requires_number_format: undefined,
       }
-  if ('error' in data_) {
+  if (isError(data_)) {
     columnDefs.value = [
       {
         field: 'Error',
@@ -834,7 +856,7 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (data_.type === 'Excel_Workbook') {
+  } else if (isSingleColumnOfActions(data_)) {
     columnDefs.value = [
       toLinkField('Value', {
         tooltipValue: data_.child_label,
@@ -842,7 +864,7 @@ watchEffect(() => {
         getChildAction: data_.get_child_node_action,
       }),
     ]
-    rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
+    rowData.value = data_.data.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -852,25 +874,12 @@ watchEffect(() => {
       }),
       toField('Value'),
     ]
-    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
+    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: row }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs.value =
-      data_.links ?
-        [
-          toLinkField('Value', {
-            tooltipValue: data_.child_label,
-            headerName: data_.visualization_header,
-            getChildAction: data_.get_child_node_action,
-          }),
-        ]
-      : [toField('Value')]
-    rowData.value =
-      data_.links ?
-        data_.links.map((link) => ({
-          Value: link,
-        }))
-      : [{ Value: toRender(data_.json) }]
+    // single values like Integer or Text
+    columnDefs.value = [toField('Value')]
+    rowData.value = [{ Value: data_.json }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
@@ -880,7 +889,6 @@ watchEffect(() => {
             tooltipValue: data_.child_label,
             headerName: data_.visualization_header,
             getChildAction: data_.get_child_node_action,
-            castValueTypes: data_.link_value_type,
           })
         }
         return toField(v, { index: i, valueType })
@@ -985,10 +993,17 @@ const getColumnValueToEnso = (columnName: string) => {
     return (item: string, module: Ast.MutableModule) =>
       createDateTimeValue('Date_Time.parse (__)', item, module)
   }
-  if (columnType == 'Mixed') {
+  if (columnType === 'Mixed') {
     return (item: string, module: Ast.MutableModule) => {
       const parsedCellType = getCellValueType(item)
       return getFormattedValueForCell(item, module, parsedCellType)
+    }
+  }
+  if (columnType === 'Boolean') {
+    return (item: string, module: Ast.MutableModule) => {
+      return item === 'false' ?
+          Ast.Ident.new(module, Ast.identifier('False')!)
+        : Ast.Ident.new(module, Ast.identifier('True')!)
     }
   }
   return (item: string) => Ast.TextLiteral.new(item)

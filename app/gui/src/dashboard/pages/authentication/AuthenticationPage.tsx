@@ -14,7 +14,7 @@ import {
 } from '#/components/AriaComponents'
 import Page from '#/components/Page'
 import { useOffline } from '#/hooks/offlineHooks'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import invariant from 'tiny-invariant'
 
 /** Props for an {@link AuthenticationPage}. */

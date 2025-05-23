@@ -1,7 +1,6 @@
 /** @file Alert component. */
-import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
+import { forwardRef, type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
 
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { Icon } from '../../Icon'
 import type { IconProp } from '../types'

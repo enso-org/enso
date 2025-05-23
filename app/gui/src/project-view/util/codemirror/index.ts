@@ -1,4 +1,4 @@
-import { textEditorsBindings, textEditorsMultilineBindings } from '@/bindings'
+import { textEditorsBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
@@ -7,25 +7,23 @@ import {
   contentFocusedExt,
   setContentFocused,
 } from '@/util/codemirror/contentFocusedExt'
-import { baseKeymap, handlerToKeyBinding, verticalMovementKeymap } from '@/util/codemirror/keymap'
+import { keyBindings } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
 import { type ToValue } from '@/util/reactivity'
-import { insertNewlineKeepIndent } from '@codemirror/commands'
 import {
   Compartment,
   EditorState,
   type Extension,
-  Prec,
   type SelectionRange,
   type StateEffect,
   type StateEffectType,
   Text,
   Transaction,
 } from '@codemirror/state'
-import { EditorView, type KeyBinding, keymap, placeholder } from '@codemirror/view'
+import { EditorView, placeholder } from '@codemirror/view'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
   type ComponentInstance,
@@ -48,7 +46,25 @@ function disableEditContextApi() {
 /* Disable EditContext API because of https://github.com/codemirror/dev/issues/1458. */
 disableEditContextApi()
 
+export type LineMode = 'single' | 'multi' | 'auto' | 'autoMulti'
+
 export type Getter<T> = () => T
+
+interface CodeMirrorOptions {
+  /** If a value is provided, the editor state will be synchronized with it. */
+  content?: ToValue<string | Y.Text>
+  placeholder?: ToValue<string>
+  /** CodeMirror {@link Extension}s to include in the editor's initial state. */
+  extensions?: Extension
+  /**
+   * If a value is provided, it will be made available to extensions that render Vue components.
+   */
+  vueHost?: WatchSource<VueHost | undefined>
+  /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
+  contentTestId?: string | undefined
+  readonly?: boolean
+  lineMode: ToValue<LineMode>
+}
 
 /** Creates a CodeMirror editor instance, and sets its initial state. */
 export function useCodeMirror(
@@ -61,21 +77,7 @@ export function useCodeMirror(
     contentTestId,
     readonly: isReadonly,
     lineMode,
-  }: {
-    /** If a value is provided, the editor state will be synchronized with it. */
-    content?: ToValue<string | Y.Text>
-    placeholder?: ToValue<string>
-    /** CodeMirror {@link Extension}s to include in the editor's initial state. */
-    extensions?: Extension
-    /**
-     * If a value is provided, it will be made available to extensions that render Vue components.
-     */
-    vueHost?: WatchSource<VueHost | undefined>
-    /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
-    contentTestId?: string | undefined
-    readonly?: boolean
-    lineMode?: ToValue<'single' | 'multi' | 'auto'>
-  },
+  }: CodeMirrorOptions,
 ) {
   const view = new EditorView()
   onUnmounted(view.destroy.bind(view))
@@ -91,12 +93,10 @@ export function useCodeMirror(
   const { bindingsExt } = useBindings(view)
   const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
-  const bindingsCompartment = useCompartment(view, () =>
-    keyBindings(view, { lineMode: toValue(lineMode) }),
-  )
+  const bindingsCompartment = useCompartment(view, () => keyBindings(toValue(lineMode)))
   const singleLineState = computed(() => {
     const mode = toValue(lineMode)
-    return mode && mode !== 'multi'
+    return mode !== 'multi' && mode !== 'autoMulti'
   })
   const themeCompartment = useCompartment(view, () => theme({ singleLine: singleLineState.value }))
   view.setState(
@@ -313,51 +313,6 @@ function lastEffect<T>(
     const effect = effects[i]!
     if (effect.is(effectType)) return effect.value
   }
-}
-
-const stopEvent = (event: Event) => {
-  event.stopImmediatePropagation()
-  return false
-}
-function bindStandardBindings(view: EditorView) {
-  const autoOrMultiHandlers = handlerToKeyBinding(
-    textEditorsMultilineBindings.handler({
-      newline: (e) => {
-        e.stopImmediatePropagation()
-        return insertNewlineKeepIndent(view)
-      },
-    }),
-  )
-  return {
-    multiline: [autoOrMultiHandlers, ...verticalMovementKeymap(view)] satisfies KeyBinding[],
-    singleline: [],
-    autoline: [autoOrMultiHandlers] satisfies KeyBinding[],
-  }
-}
-
-function keyBindings(
-  view: EditorView,
-  { lineMode }: { lineMode?: 'single' | 'multi' | 'auto' | undefined } = {},
-): Extension {
-  const mode = lineMode ?? 'multi'
-  const standardBindings = bindStandardBindings(view)
-  return [
-    Prec.lowest(keymap.of(baseKeymap(view))),
-    Prec.low(
-      keymap.of(
-        mode === 'multi' ? standardBindings.multiline
-        : mode === 'auto' ? standardBindings.autoline
-        : standardBindings.singleline,
-      ),
-    ),
-    ...(mode === 'multi' ?
-      [
-        EditorView.domEventHandlers({
-          wheel: stopEvent,
-        }),
-      ]
-    : []),
-  ]
 }
 
 const baseTheme = EditorView.theme({

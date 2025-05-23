@@ -10,9 +10,9 @@ import { TEXT_WITH_ICON } from '#/components/patterns'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import { AssetDiffView } from '../../AssetDiffView'
+import { AssetDiffView } from './AssetDiffView'
 
 /**
  * A version of an asset.

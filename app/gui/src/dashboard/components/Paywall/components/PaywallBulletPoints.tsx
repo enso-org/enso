@@ -2,8 +2,8 @@
 import Check from '#/assets/check_mark.svg'
 import { Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
-import { useText } from '#/providers/TextProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import type { TextId } from 'enso-common/src/text'
 
 /** Props for a {@link PaywallBulletPoints}. */

@@ -28,6 +28,7 @@ export default {
 
         dashboard:
           'rgb(var(--color-dashboard-background-rgb) / var(--color-dashboard-background-opacity))',
+        'dashboard-row': 'var(--dashboard-row-background)',
         accent: 'rgb(var(--color-accent-rgb) / 100%)',
         danger: 'rgb(var(--color-danger-rgb) / 100%)',
         'accent-dark': 'rgba(62, 145, 82, 1)',
@@ -93,7 +94,6 @@ export default {
         'permission-type-selector': 'var(--permission-type-selector-corner-radius)',
         'menu-entry': 'var(--menu-entry-corner-radius)',
         'selection-brush': 'var(--selection-brush-corner-radius)',
-        'chat-input': 'var(--chat-input-corner-radius)',
         'small-rectangle-button': 'var(--small-rectangle-button-corner-radius)',
       },
       spacing: {
@@ -104,7 +104,6 @@ export default {
         'radio-button-dot': 'var(--radio-button-dot-size)',
         'extended-editor-menu': 'var(--extended-editor-menu-size)',
         'plus-icon': 'var(--plus-icon-size)',
-        'chat-profile-picture': 'var(--chat-profile-picture-size)',
         'selection-brush-border': 'var(--selection-brush-border-width)',
         'row-h': 'var(--row-height)',
         'text-h': 'var(--text-height)',
@@ -136,8 +135,6 @@ export default {
         'json-schema-dropdown-title': 'var(--json-schema-dropdown-title-width)',
         'asset-search-bar': 'var(--asset-search-bar-width)',
         'asset-search-bar-wide': 'var(--asset-search-bar-wide-width)',
-        chat: 'var(--chat-width)',
-        'chat-indicator': 'var(--chat-indicator-width)',
         'modal-label': 'var(--modal-label-width)',
         'settings-sidebar': 'var(--settings-sidebar-width)',
         'asset-panel': 'var(--asset-panel-width)',
@@ -182,7 +179,6 @@ export default {
         'sample-image': 'var(--sample-image-height)',
         'sample-info': 'var(--sample-info-height)',
         'side-panel-heading': 'var(--side-panel-heading-height)',
-        'chat-thread-list': 'var(--chat-thread-list-height)',
         'payment-form': 'var(--payment-form-height)',
         'paragraph-input': 'var(--paragraph-input-height)',
         'manage-permissions-modal-permissions-list':
@@ -222,7 +218,6 @@ export default {
         'side-panel-section': 'var(--side-panel-section-gap)',
         'asset-search-bar': 'var(--asset-search-bar-gap)',
         'drive-bar': 'var(--drive-bar-gap)',
-        'column-items': 'var(--column-items-gap)',
         labels: 'var(--labels-gap)',
         'label-icons': 'var(--label-icons-gap)',
         'user-menu': 'var(--user-menu-gap)',
@@ -232,7 +227,6 @@ export default {
         'modal-tabs': 'var(--modal-tabs-gap)',
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',
-        'chat-buttons': 'var(--chat-buttons-gap)',
       },
       padding: {
         'top-bar': 'var(--top-bar-padding)',
@@ -249,7 +243,6 @@ export default {
         'text-link-x': 'var(--text-link-padding-x)',
         'drive-sidebar-y': 'var(--drive-sidebar-padding-y)',
         'radio-button-dot': 'var(--radio-button-dot-padding)',
-        'chat-y': 'chat-padding-y',
         'cell-x': 'var(--cell-padding-x)',
         'button-x': 'var(--button-padding-x)',
         'icons-x': 'var(--icons-padding-x)',
@@ -292,13 +285,6 @@ export default {
         'auth-icon-container-w': 'var(--auth-icon-container-width)',
         'side-panel-description-y': 'var(--side-panel-description-padding-y)',
         'date-input': 'var(--date-input-padding)',
-        'chat-thread-button': 'var(--chat-thread-button-padding)',
-        'chat-form': 'var(--chat-form-padding)',
-        'chat-input': 'var(--chat-input-padding)',
-        'chat-button-x': 'var(--chat-button-padding-x)',
-        'chat-button-y': 'var(--chat-button-padding-y)',
-        'chat-reaction-bar-y': 'var(--chat-reaction-bar-padding-y)',
-        'chat-reaction': 'var(--chat-reaction-padding)',
         'missing-functionality-text-x': 'var(--missing-functionality-text-padding-x)',
       },
       margin: {
@@ -310,17 +296,6 @@ export default {
         'close-icon': 'var(--close-icon-margin)',
         'date-input-gap': 'var(--date-input-gap)',
         'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
-        'chat-header-x': 'var(--chat-header-margin-x)',
-        'chat-header-t': 'var(--chat-header-margin-top)',
-        'chat-form-x': 'var(--chat-form-margin-x)',
-        'chat-form-y': 'var(--chat-form-margin-y)',
-        'chat-message-x': 'var(--chat-message-margin-x)',
-        'chat-message-y': 'var(--chat-message-margin-y)',
-        'chat-profile-picture-y': 'var(--chat-profile-picture-margin-y)',
-        'chat-message-info-x': 'var(--chat-message-info-margin-x)',
-        'chat-reaction-bar-py': 'var(--chat-reaction-bar-padding-y)',
-        'chat-reaction-bar': 'var(--chat-reaction-bar-margin)',
-        'chat-reaction': 'var(--chat-reaction-margin)',
         'separator-y': 'var(--separator-margin-y)',
         'sidebar-section-heading-b': 'var(--sidebar-section-heading-margin-b)',
         'context-menu-entry-px': 'var(--context-menu-entry-padding-x)',
@@ -329,7 +304,6 @@ export default {
       lineHeight: {
         snug: 'var(--snug-line-height)',
         cozy: 'var(--cozy-line-height)',
-        'chat-thread-title': 'var(--chat-thread-title-line-height)',
       },
       zIndex: {
         1: '1',
@@ -371,6 +345,7 @@ inset 0 -36px 51px -51px #00000014`,
         'caret-blink': 'caret-blink 1.5s ease-out infinite',
         'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
         'appear-delayed': 'appear-delayed 0.5s ease-in-out',
+        'horizontal-loader-1/6': 'horizontal-loader-1/6 1.5s ease-in-out infinite',
       },
       transitionProperty: {
         width: 'width',
@@ -413,6 +388,10 @@ inset 0 -36px 51px -51px #00000014`,
         'caret-blink': {
           '0%,70%,100%': { opacity: '1' },
           '20%,50%': { opacity: '0' },
+        },
+        'horizontal-loader-1/6': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(600%)' },
         },
       },
     },
@@ -491,6 +470,10 @@ inset 0 -36px 51px -51px #00000014`,
             '@apply opacity-75 cursor-not-allowed': '',
           },
 
+          '.scroll-offset-edge-0': {
+            '--scrollbar-offset-edge': '0px',
+          },
+
           '.scroll-offset-edge-s': {
             '--scrollbar-offset-edge': '2px',
           },
@@ -544,43 +527,42 @@ inset 0 -36px 51px -51px #00000014`,
           // === Rounded rows ===
 
           '.rounded-rows': {
+            '--dashboard-row-background': 'rgb(239 234 228)',
             [`:where(
               & :nth-child(odd of .rounded-rows-child) > .rounded-rows-have-level
             )`]: {
               backgroundColor: `rgb(0 0 0 / 3%)`,
+              '--dashboard-row-background': 'rgb(232 227 221)',
             },
             [`:where(
               & :nth-child(odd of .rounded-rows-child) > .rounded-rows-skip-level > .rounded-rows-child
             )`]: {
               backgroundColor: `rgb(0 0 0 / 3%)`,
+              '--dashboard-row-background': 'rgb(232 227 221)',
             },
             [`:where(
               & .selected > .rounded-rows-have-level
             )`]: {
               backgroundColor: 'rgb(255 255 255 / 90%)',
+              '--dashboard-row-background': 'rgb(253 253 252)',
             },
             [`:where(
               & .selected > .rounded-rows-skip-level > .rounded-rows-child
             )`]: {
               backgroundColor: 'rgb(255 255 255 / 90%)',
+              '--dashboard-row-background': 'rgb(253 253 252)',
             },
             [`:where(
               & [data-drop-target]:nth-child(odd of .rounded-rows-child) > .rounded-rows-have-level
             )`]: {
               backgroundColor: 'rgb(0 0 0 / 8%)',
+              '--dashboard-row-background': 'rgb(220 216 210)',
             },
             [`:where(
               & [data-drop-target]:nth-child(odd of .rounded-rows-child) > .rounded-rows-skip-level > .rounded-rows-child
             )`]: {
               backgroundColor: 'rgb(0 0 0 / 8%)',
-            },
-          },
-
-          // === Custom column spans ===
-
-          '.col-span-2-news-item.col-span-2-news-item': {
-            '@media screen and (max-width: 40.5625rem)': {
-              gridColumn: 'span 1 / span 1',
+              '--dashboard-row-background': 'rgb(220 216 210)',
             },
           },
         },

@@ -158,9 +158,7 @@ class EnsoParser extends Parser {
   }
 }
 
-/** TODO: Add docs */
-export function ensoSyntax(moduleRoot: Readonly<Ref<Ast.BodyBlock | undefined>>): Extension {
-  return new LanguageSupport(new Language(facet, new EnsoParser(moduleRoot)), [
-    indentUnit.of('    '),
-  ])
+/** CodeMirror extension that adds support for parsing enso language. */
+export function ensoSyntax(astRoot: Readonly<Ref<Ast.BodyBlock | undefined>>): Extension {
+  return new LanguageSupport(new Language(facet, new EnsoParser(astRoot)), [indentUnit.of('    ')])
 }

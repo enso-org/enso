@@ -3,21 +3,14 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.function.IntFunction;
-import org.enso.base.CompareException;
-import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.error.UnexpectedColumnTypeException;
-import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
@@ -49,10 +42,6 @@ public final class BoolStorage extends Storage<Boolean>
 
   public static BoolStorage makeConstant(int size, boolean r) {
     return new BoolStorage(new BitSet(), new BitSet(), size, r);
-  }
-
-  public BoolStorage makeNegated() {
-    return new BoolStorage(values, isNothing, size, !negated);
   }
 
   @Override
@@ -211,48 +200,9 @@ public final class BoolStorage extends Storage<Boolean>
     return builder.seal();
   }
 
-  public Storage<?> iif(
-      Value when_true,
-      Value when_false,
-      StorageType<?> resultStorageType,
-      ProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    var on_true = makeRowProvider(when_true);
-    var on_false = makeRowProvider(when_false);
-    Builder builder = Builder.getForType(resultStorageType, size, problemAggregator);
-    for (int i = 0; i < size; i++) {
-      if (isNothing.get(i)) {
-        builder.appendNulls(1);
-      } else if (getItemAsBoolean(i)) {
-        builder.append(on_true.apply(i));
-      } else {
-        builder.append(on_false.apply(i));
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  private static IntFunction<Object> makeRowProvider(Value value) {
-    if (value.isHostObject() && value.asHostObject() instanceof Storage<?> s) {
-      return i -> (Object) s.getItemBoxed(i);
-    }
-    var converted = Polyglot_Utils.convertPolyglotValue(value);
-    return i -> converted;
-  }
-
   private static MapOperationStorage<Boolean, BoolStorage> buildOps() {
     MapOperationStorage<Boolean, BoolStorage> ops = new MapOperationStorage<>();
-    ops.add(new BoolEq())
-        .add(new BoolAnd())
-        .add(new BoolOr())
-        .add(new BooleanIsInOp())
-        .add(new BoolLess())
-        .add(new BoolLessOrEqual())
-        .add(new BoolGreaterOrEqual())
-        .add(new BoolGreater());
+    ops.add(new BooleanIsInOp());
     return ops;
   }
 
@@ -271,16 +221,6 @@ public final class BoolStorage extends Storage<Boolean>
     BitSet set = new BitSet();
     set.or(this.values);
     if (this.negated) {
-      set.flip(0, this.size);
-    }
-    return set;
-  }
-
-  /** Acts like {@link #normalize} but also negates the bits. */
-  private BitSet negateNormalize() {
-    BitSet set = new BitSet();
-    set.or(this.values);
-    if (!this.negated) {
       set.flip(0, this.size);
     }
     return set;
@@ -323,7 +263,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public ColumnBooleanStorageIterator iterator() {
+  public ColumnBooleanStorageIterator iteratorWithIndex() {
     return new BoolStorageIterator(this);
   }
 
@@ -375,369 +315,6 @@ public final class BoolStorage extends Storage<Boolean>
       }
       index++;
       return true;
-    }
-  }
-
-  private static class BoolEq extends BinaryMapOperation<Boolean, BoolStorage> {
-    public BoolEq() {
-      super(Maps.EQ);
-    }
-
-    @Override
-    public BoolStorage runBinaryMap(
-        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        return BoolStorage.makeEmpty(storage.getSize());
-      } else if (arg instanceof Boolean v) {
-        if (v) {
-          return storage;
-        } else {
-          return storage.makeNegated();
-        }
-      } else {
-        return new BoolStorage(new BitSet(), storage.isNothing, storage.size, false);
-      }
-    }
-
-    @Override
-    public Storage<Boolean> runZip(
-        BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      long n = storage.getSize();
-      var builder = Builder.getForBoolean(n);
-      Context context = Context.getCurrent();
-      for (long i = 0; i < n; i++) {
-        if (!storage.isNothing(i) && i < arg.getSize() && !arg.isNothing(i)) {
-          builder.appendBoolean(
-              ((Boolean) storage.getItemAsBoolean(i)).equals(arg.getItemBoxed(i)));
-        } else {
-          builder.appendNulls(1);
-        }
-        context.safepoint();
-      }
-      return builder.seal();
-    }
-  }
-
-  private static class BoolAnd extends BinaryMapOperation<Boolean, BoolStorage> {
-    public BoolAnd() {
-      super(Maps.AND);
-    }
-
-    @Override
-    public BoolStorage runBinaryMap(
-        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        if (storage.negated) {
-          var newMissing = new BitSet(storage.size);
-          newMissing.flip(0, storage.size);
-          newMissing.xor(storage.values);
-          return new BoolStorage(storage.values, newMissing, storage.size, true);
-        } else {
-          var newMissing = storage.isNothing.get(0, storage.size);
-          newMissing.or(storage.values);
-          return new BoolStorage(new BitSet(), newMissing, storage.size, false);
-        }
-      } else if (arg instanceof Boolean v) {
-        return v ? storage : new BoolStorage(new BitSet(), new BitSet(), storage.size, false);
-      } else {
-        throw new UnexpectedTypeException("a Boolean");
-      }
-    }
-
-    @Override
-    public BoolStorage runZip(
-        BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      if (!(arg instanceof BoolStorage v)) {
-        throw new UnexpectedColumnTypeException("Boolean");
-      }
-
-      BitSet out = v.values.get(0, storage.size);
-      boolean negated;
-      if (storage.negated && v.negated) {
-        out.or(storage.values);
-        negated = true;
-      } else if (storage.negated) {
-        out.andNot(storage.values);
-        negated = false;
-      } else if (v.negated) {
-        out.flip(0, storage.size);
-        out.and(storage.values);
-        negated = false;
-      } else {
-        out.and(storage.values);
-        negated = false;
-      }
-
-      BitSet isNothing = BitSets.makeDuplicate(storage.isNothing);
-      isNothing.or(v.isNothing);
-      if (storage.size > v.size) {
-        isNothing.set(v.size, storage.size);
-      }
-      int current = isNothing.nextSetBit(0);
-      while (current != -1) {
-        Boolean a = storage.getItemBoxed(current);
-        Boolean b = (current < v.size) ? v.getItemBoxed(current) : null;
-        if (a == Boolean.FALSE || b == Boolean.FALSE) {
-          isNothing.clear(current);
-          boolean falseValue = negated;
-          out.set(current, falseValue);
-        }
-        current = isNothing.nextSetBit(current + 1);
-      }
-
-      return new BoolStorage(out, isNothing, storage.size, negated);
-    }
-  }
-
-  private static class BoolOr extends BinaryMapOperation<Boolean, BoolStorage> {
-    public BoolOr() {
-      super(Maps.OR);
-    }
-
-    @Override
-    public BoolStorage runBinaryMap(
-        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        if (storage.negated) {
-          var newMissing = storage.isNothing.get(0, storage.size);
-          newMissing.or(storage.values);
-          return new BoolStorage(new BitSet(), newMissing, storage.size, true);
-        } else {
-          var newMissing = new BitSet(storage.size);
-          newMissing.flip(0, storage.size);
-          newMissing.xor(storage.values);
-          return new BoolStorage(storage.values, newMissing, storage.size, false);
-        }
-      } else if (arg instanceof Boolean v) {
-        return v ? new BoolStorage(new BitSet(), new BitSet(), storage.size, true) : storage;
-      } else {
-        throw new UnexpectedTypeException("a Boolean");
-      }
-    }
-
-    @Override
-    public BoolStorage runZip(
-        BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      if (!(arg instanceof BoolStorage v)) {
-        throw new UnexpectedColumnTypeException("Boolean");
-      }
-
-      BitSet out = v.values.get(0, storage.size);
-      boolean negated;
-      if (storage.negated && v.negated) {
-        out.and(storage.values);
-        negated = true;
-      } else if (storage.negated) {
-        out.flip(0, storage.size);
-        out.and(storage.values);
-        negated = true;
-      } else if (v.negated) {
-        out.flip(0, storage.size);
-        out.or(storage.values);
-        negated = false;
-      } else {
-        out.or(storage.values);
-        negated = false;
-      }
-
-      BitSet isNothing = BitSets.makeDuplicate(storage.isNothing);
-      isNothing.or(v.isNothing);
-      if (storage.size > v.size) {
-        isNothing.set(v.size, storage.size);
-      }
-      int current = isNothing.nextSetBit(0);
-      while (current != -1) {
-        Boolean a = storage.getItemBoxed(current);
-        Boolean b = (current < v.size) ? v.getItemBoxed(current) : null;
-        if (a == Boolean.TRUE || b == Boolean.TRUE) {
-          isNothing.clear(current);
-          boolean trueValue = !negated;
-          out.set(current, trueValue);
-        }
-        current = isNothing.nextSetBit(current + 1);
-      }
-
-      return new BoolStorage(out, isNothing, storage.size, negated);
-    }
-  }
-
-  private abstract static class BoolCompareOp extends BinaryMapOperation<Boolean, BoolStorage> {
-    public BoolCompareOp(String name) {
-      super(name);
-    }
-
-    protected abstract boolean doCompare(boolean a, boolean b);
-
-    @Override
-    public Storage<?> runZip(
-        BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg instanceof BoolStorage argBoolStorage) {
-        long n = storage.getSize();
-        long m = Math.min(n, argBoolStorage.getSize());
-        var builder = Builder.getForBoolean(n);
-        Context context = Context.getCurrent();
-        for (long i = 0; i < n; i++) {
-          if (storage.isNothing(i) || (i >= m || argBoolStorage.isNothing(i))) {
-            builder.appendNulls(1);
-          } else {
-            boolean a = storage.getItemAsBoolean(i);
-            boolean b = argBoolStorage.getItemAsBoolean(i);
-            boolean r = doCompare(a, b);
-            builder.appendBoolean(r);
-          }
-          context.safepoint();
-        }
-        return builder.seal();
-      } else if (arg.getType() instanceof AnyObjectType) {
-        long n = storage.getSize();
-        long m = Math.min(n, arg.getSize());
-        var builder = Builder.getForBoolean(n);
-        Context context = Context.getCurrent();
-        for (long i = 0; i < n; i++) {
-          if (storage.isNothing(i) || (i >= m || arg.isNothing(i))) {
-            builder.appendNulls(1);
-          } else {
-            boolean a = storage.getItemAsBoolean(i);
-            Object b = arg.getItemBoxed(i);
-            if (b instanceof Boolean bBool) {
-              boolean r = doCompare(a, bBool);
-              builder.appendBoolean(r);
-            } else {
-              assert b != null;
-              throw new CompareException(a, b);
-            }
-          }
-
-          context.safepoint();
-        }
-        return builder.seal();
-      } else {
-        throw new UnexpectedColumnTypeException("Boolean");
-      }
-    }
-  }
-
-  private static class BoolLess extends BoolCompareOp {
-    public BoolLess() {
-      super(Maps.LT);
-    }
-
-    @Override
-    public Storage<?> runBinaryMap(
-        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        return BoolStorage.makeEmpty(storage.getSize());
-      }
-
-      if (arg instanceof Boolean b) {
-        if (b) {
-          // false is smaller than true, so we want to negate
-          return new BoolStorage(storage.negateNormalize(), storage.isNothing, storage.size, false);
-        } else {
-          // nothing is strictly smaller than false
-          return new BoolStorage(new BitSet(), storage.isNothing, storage.size, false);
-        }
-      } else {
-        throw new UnexpectedTypeException("a Boolean", arg.toString());
-      }
-    }
-
-    @Override
-    protected boolean doCompare(boolean a, boolean b) {
-      return !a && b;
-    }
-  }
-
-  private static class BoolLessOrEqual extends BoolCompareOp {
-    public BoolLessOrEqual() {
-      super(Maps.LTE);
-    }
-
-    @Override
-    public Storage<?> runBinaryMap(
-        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        return BoolStorage.makeEmpty(storage.getSize());
-      }
-
-      if (arg instanceof Boolean b) {
-        if (b) {
-          // everything is <= true
-          return new BoolStorage(new BitSet(), storage.isNothing, storage.size, true);
-        } else {
-          // false is <= false
-          return new BoolStorage(storage.negateNormalize(), storage.isNothing, storage.size, false);
-        }
-      } else {
-        throw new UnexpectedTypeException("a Boolean", arg.toString());
-      }
-    }
-
-    @Override
-    protected boolean doCompare(boolean a, boolean b) {
-      return !a || b;
-    }
-  }
-
-  private static class BoolGreater extends BoolCompareOp {
-    public BoolGreater() {
-      super(Maps.GT);
-    }
-
-    @Override
-    public Storage<?> runBinaryMap(
-        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        return BoolStorage.makeEmpty(storage.getSize());
-      }
-
-      if (arg instanceof Boolean b) {
-        if (b) {
-          // nothing is strictly greater than true
-          return new BoolStorage(new BitSet(), storage.isNothing, storage.size, false);
-        } else {
-          // true is > false, so we just return as-is
-          return storage;
-        }
-      } else {
-        throw new UnexpectedTypeException("a Boolean", arg.toString());
-      }
-    }
-
-    @Override
-    protected boolean doCompare(boolean a, boolean b) {
-      return a && !b;
-    }
-  }
-
-  private static class BoolGreaterOrEqual extends BoolCompareOp {
-    public BoolGreaterOrEqual() {
-      super(Maps.GTE);
-    }
-
-    @Override
-    public Storage<?> runBinaryMap(
-        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        return BoolStorage.makeEmpty(storage.getSize());
-      }
-
-      if (arg instanceof Boolean b) {
-        if (b) {
-          // true is >= true
-          return storage;
-        } else {
-          // everything is >= false
-          return new BoolStorage(new BitSet(), storage.isNothing, storage.size, true);
-        }
-      } else {
-        throw new UnexpectedTypeException("a Boolean", arg.toString());
-      }
-    }
-
-    @Override
-    protected boolean doCompare(boolean a, boolean b) {
-      return a || !b;
     }
   }
 }

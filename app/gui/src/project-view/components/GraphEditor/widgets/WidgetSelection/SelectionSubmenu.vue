@@ -1,34 +1,33 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends SubmenuEntry<T>">
+import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
 import { targetIsOutside } from '@/util/autoBlur'
 import { computed, ComputedRef, ref, useTemplateRef, watch } from 'vue'
 import { submenuDropdownStyles } from './styles'
-import { Entry, ExpressionTag, isEntry, NestedChoiceTag } from './tags'
+import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
 const props = defineProps<{
-  rootElement: HTMLElement | undefined
-  floatReference: HTMLElement | undefined
+  rootElement: HTMLElement | undefined | null
+  floatReference: HTMLElement | undefined | null
   show: boolean
-  entries: Entry[]
-  selectedExpressions: Set<string>
+  entries: T[]
+  isSelected: (value: T) => boolean
   topLevel?: boolean
+  color?: string | undefined
+  backgroundColor?: string | undefined
 }>()
 
 const emit = defineEmits<{
-  clickedEntry: [Entry, boolean]
+  clickedEntry: [T, boolean]
 }>()
 
-export interface Submenu {
-  entries: ComputedRef<Entry[]>
+interface Submenu {
+  entries: ComputedRef<T[]>
   relativeTo: HTMLElement
 }
 
-/** Referring to the type of the component in the current file is hard, so we define a helper type. */
-interface SubmenuComponent {
-  isTargetOutside: (event: Event) => boolean
-}
 function isSubmenuComponent(component: unknown): component is SubmenuComponent {
   return (
     component != null &&
@@ -53,37 +52,26 @@ const { floatingStyles } = submenuDropdownStyles(
   rootElement,
 )
 
-const nestedEntriesPresent = computed(() =>
-  props.entries.some((entry) => isEntry(entry) && entry.tag instanceof NestedChoiceTag),
-)
+const nestedEntriesPresent = computed(() => props.entries.some((entry) => entry.isNested))
 
 function resetSubmenu() {
   submenu.value = null
 }
 watch([() => props.show, () => props.entries], resetSubmenu)
 
-function nestedChoiceTagToSubmenu(tag: NestedChoiceTag, target: HTMLElement): Submenu {
-  const isSelected = (tag: ExpressionTag | NestedChoiceTag) =>
-    tag instanceof ExpressionTag && props.selectedExpressions.has(tag.expression)
-  const choiceToEntry = (choice: ExpressionTag | NestedChoiceTag): Entry => ({
-    value: choice.label,
-    selected: isSelected(choice),
-    tag: choice,
-  })
-
+function nestedEntryToSubmenu(entry: SubmenuEntry<T>, target: HTMLElement): Submenu {
   return {
-    entries: computed(() => tag.choices.map(choiceToEntry) satisfies Entry[]),
+    entries: computed(() => entry.nestedValues satisfies SubmenuEntry<T>[]),
     relativeTo: target,
   }
 }
 
 function onClick(entry: DropdownEntry, keepOpen: boolean, htmlElement: HTMLElement) {
-  if (!isEntry(entry)) return
-  const tag = entry.tag
-  if (tag instanceof NestedChoiceTag) {
-    submenu.value = nestedChoiceTagToSubmenu(tag, htmlElement)
+  if (!isSubmenuEntry(entry)) return
+  if (entry.isNested) {
+    submenu.value = nestedEntryToSubmenu(entry as SubmenuEntry<T>, htmlElement)
   } else {
-    emit('clickedEntry', entry, keepOpen)
+    emit('clickedEntry', entry as T, keepOpen)
   }
 }
 
@@ -102,24 +90,40 @@ function isTargetOutside(event: Event) {
 defineExpose({
   isTargetOutside,
 })
+
+defineOptions({
+  inheritAttrs: false,
+})
+</script>
+
+<script lang="ts">
+/** Referring to the type of the component in the current file is hard, so we define a helper type. */
+export interface SubmenuComponent {
+  isTargetOutside: (event: Event) => boolean
+}
 </script>
 
 <template>
-  <Teleport v-if="props.rootElement" :to="props.rootElement">
-    <div ref="dropdownElement" :style="floatingStyles" class="SelectionSubmenu widgetOutOfLayout">
+  <ConditionalTeleport :target="props.rootElement">
+    <div
+      ref="dropdownElement"
+      :style="floatingStyles"
+      class="SelectionSubmenu widgetOutOfLayout"
+      v-bind="$attrs"
+    >
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
           :class="{ ExtendUpwards: props.topLevel }"
-          color="var(--color-node-text)"
-          backgroundColor="var(--color-node-background)"
+          :color="props.color ?? 'var(--color-node-text)'"
+          :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
         />
       </SizeTransition>
     </div>
-  </Teleport>
+  </ConditionalTeleport>
   <SelectionSubmenu
     v-if="nestedEntriesPresent"
     ref="submenuRef"
@@ -127,7 +131,9 @@ defineExpose({
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
     :entries="submenuEntries"
-    :selectedExpressions="props.selectedExpressions"
+    :color="props.color ?? 'var(--color-node-text)'"
+    :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
+    :isSelected="props.isSelected"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />
 </template>

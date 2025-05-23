@@ -4,10 +4,10 @@ import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
-import { useText } from '#/providers/TextProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import { useTransition } from 'react'
 
 /** Props for a {@link DirectoryNameColumn}. */
@@ -56,14 +56,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <Button
         icon="folder"
         variant="icon"
-        loading={isLoading || isNavigating}
+        isLoading={isLoading || isNavigating}
         aria-label={getText('open')}
         tooltipPlacement="left"
         testId="directory-row-navigate-button"
         className="mx-1 transition-transform duration-arrow"
         onPress={() => {
           startNavigation(() => {
-            setCurrentDirectoryId({ current: item.id, parent: item.parentId })
+            setCurrentDirectoryId(item.id)
           })
         }}
       />

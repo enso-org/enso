@@ -278,6 +278,32 @@ impl Processor {
                 let root = self.repo_root.to_path_buf();
                 async move { project::wasm::test(root, &wasm_browsers, !no_native).await }.boxed()
             }
+            arg::wasm::Command::Lint => {
+                let repo_root = self.repo_root.clone();
+                async move {
+                    Cargo
+                        .cmd()?
+                        .current_dir(&repo_root)
+                        .arg(cargo::clippy::COMMAND)
+                        .apply(&cargo::Options::Workspace)
+                        .apply(&cargo::Options::Package("enso-integration-test".into()))
+                        .apply(&cargo::Options::AllTargets)
+                        .apply(&cargo::Color::Always)
+                        .arg("--")
+                        .apply(&rustc::Option::Deny(rustc::Lint::Warnings))
+                        .run_ok()
+                        .await?;
+
+                    Cargo
+                        .cmd()?
+                        .current_dir(&repo_root)
+                        .arg("fmt")
+                        .args(["--", "--check"])
+                        .run_ok()
+                        .await
+                }
+                .boxed()
+            }
         }
     }
 
@@ -737,30 +763,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             };
             try_join(git_clean, clean_cache).await?;
         }
-        Target::Lint => {
-            Cargo
-                .cmd()?
-                .current_dir(&ctx.repo_root)
-                .arg(cargo::clippy::COMMAND)
-                .apply(&cargo::Options::Workspace)
-                .apply(&cargo::Options::Package("enso-integration-test".into()))
-                .apply(&cargo::Options::AllTargets)
-                .apply(&cargo::Color::Always)
-                .arg("--")
-                .apply(&rustc::Option::Deny(rustc::Lint::Warnings))
-                .run_ok()
-                .await?;
-
-            Cargo
-                .cmd()?
-                .current_dir(&ctx.repo_root)
-                .arg("fmt")
-                .args(["--", "--check"])
-                .run_ok()
-                .await?;
-
-            enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
-        }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
             let prettier =
@@ -839,6 +841,9 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             enso_build::changelog::check::check(ctx.repo_root.clone(), ci_context).await?;
         }
         Target::Libraries(command) => match command.action {
+            libraries::Command::CheckSyntax => {
+                enso_build::rust::enso_linter::check_syntax(ctx.repo_root.clone()).await?;
+            }
             libraries::Command::Lint => {
                 let config = enso_build::engine::BuildConfigurationFlags {
                     run_enso_lint: true,

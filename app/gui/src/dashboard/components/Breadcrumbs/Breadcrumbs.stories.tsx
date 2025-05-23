@@ -537,7 +537,7 @@ export const WithCustomIcon: Story = {
   ),
 }
 
-export const WithOnAction: Story = {
+export const WithOnactionCallback: Story = {
   args: { onAction: fn() },
   render: (args) => (
     <Breadcrumbs {...args}>
@@ -562,7 +562,7 @@ export const WithOnAction: Story = {
   },
 }
 
-export const WithDnD: Story = {
+export const WithDragAndDrop: Story = {
   args: {
     onDrop: fn(async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000))

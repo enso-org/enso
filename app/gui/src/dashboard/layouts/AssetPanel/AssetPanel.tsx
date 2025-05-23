@@ -8,7 +8,6 @@ import { memo, startTransition } from 'react'
 
 import type { BackendType } from 'enso-common/src/services/Backend'
 
-import RepeatIcon from '#/assets/arrows_repeat.svg'
 import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import DocsIcon from '#/assets/file_text.svg'
 import SessionsIcon from '#/assets/group.svg'
@@ -16,22 +15,22 @@ import InspectIcon from '#/assets/inspect.svg'
 import VersionsIcon from '#/assets/versions.svg'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AssetDocs } from '#/layouts/AssetDocs'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
-import { useBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useStore } from '#/utilities/zustand'
-import { useFeatureFlag } from '../../providers/FeatureFlagsProvider'
+import { useBackends, useText } from '$/providers/react'
+import type { Key } from 'react-aria'
 import {
   assetPanelStore,
+  useAssetPanelCurrentItem,
   useIsAssetPanelExpanded,
   useSetIsAssetPanelExpanded,
 } from './AssetPanelState'
+import { AssetDocs } from './components/AssetDocs'
 import { AssetPanelTabs } from './components/AssetPanelTabs'
 import { AssetPanelToggle } from './components/AssetPanelToggle'
 import { AssetProperties } from './components/AssetProperties'
 import { AssetVersions } from './components/AssetVersions'
-import { ProjectExecutions } from './components/ProjectExecutions'
 import { ProjectExecutionsCalendar } from './components/ProjectExecutionsCalendar'
 import { ProjectSessions } from './components/ProjectSessions'
 import type { AssetPanelTab } from './types'
@@ -61,6 +60,11 @@ export const AssetPanel = memo(function AssetPanel(props: AssetPanelProps) {
 
   const compensationWidth = isVisible ? panelWidth : 0
 
+  const onClick = useEventCallback((event: Event) => {
+    // Prevent deselecting Assets Table rows.
+    event.stopPropagation()
+  })
+
   return (
     // We use hex color here to avoid muliplying bg colors due to opacity.
     <div className="relative flex h-full flex-col">
@@ -82,10 +86,7 @@ export const AssetPanel = memo(function AssetPanel(props: AssetPanelProps) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: ASSET_SIDEBAR_COLLAPSED_WIDTH }}
             className="absolute bottom-0 right-0 top-0 flex flex-col"
-            onClick={(event: Event) => {
-              // Prevent deselecting Assets Table rows.
-              event.stopPropagation()
-            }}
+            onClick={onClick}
           >
             <InternalAssetPanelTabs panelWidth={panelWidth} {...props} />
           </motion.div>
@@ -100,12 +101,9 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   props: AssetPanelProps & { panelWidth: number },
 ) {
   const { category, panelWidth } = props
+  const { backendForType } = useBackends()
 
-  const itemId = useStore(
-    assetPanelStore,
-    (state) => state.assetPanelProps.item?.id ?? state.assetPanelProps.defaultItem?.id,
-    { unsafeEnableTransition: true },
-  )
+  const itemId = useAssetPanelCurrentItem()?.id
 
   const selectedTab = useStore(assetPanelStore, (state) => state.selectedTab, {
     unsafeEnableTransition: true,
@@ -131,9 +129,25 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
     setIsExpanded(true)
   })
 
-  const backend = useBackend(category)
+  const backend = backendForType(category.backend)
 
   const getTranslation = useEventCallback(() => ASSET_SIDEBAR_COLLAPSED_WIDTH)
+
+  const onSelectionChange = useEventCallback((key: Key) => {
+    if (isHidden) {
+      return
+    }
+
+    startTransition(() => {
+      if (key === selectedTab && isExpanded) {
+        setIsExpanded(false)
+      } else {
+        // eslint-disable-next-line no-restricted-syntax
+        setSelectedTab(key as AssetPanelTab)
+        setIsExpanded(true)
+      }
+    })
+  })
 
   return (
     <AssetPanelTabs
@@ -142,22 +156,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
       orientation="vertical"
       selectedKey={selectedTab}
       defaultSelectedKey={selectedTab}
-      onSelectionChange={(key) => {
-        if (isHidden) {
-          return
-        }
-
-        startTransition(() => {
-          if (key === selectedTab && isExpanded) {
-            setIsExpanded(false)
-          } else {
-            // This is safe because we know the key is a valid AssetPanelTab.
-            // eslint-disable-next-line no-restricted-syntax
-            setSelectedTab(key as AssetPanelTab)
-            setIsExpanded(true)
-          }
-        })
-      }}
+      onSelectionChange={onSelectionChange}
     >
       <AnimatePresence initial={!isExpanded} mode="sync">
         {isExpanded && (
@@ -186,23 +185,19 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="versions">
-                  <AssetVersions backend={backend} />
+                  <AssetVersions backend={backend} category={category} />
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="sessions">
-                  <ProjectSessions backend={backend} />
-                </AssetPanelTabs.TabPanel>
-
-                <AssetPanelTabs.TabPanel id="executions">
-                  <ProjectExecutions backend={backend} />
+                  <ProjectSessions backend={backend} category={category} />
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="executionsCalendar">
-                  <ProjectExecutionsCalendar backend={backend} />
+                  <ProjectExecutionsCalendar backend={backend} category={category} />
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="docs">
-                  <AssetDocs backend={backend} />
+                  <AssetDocs backend={backend} category={category} />
                 </AssetPanelTabs.TabPanel>
               </ErrorBoundary>
             </div>
@@ -244,15 +239,6 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
-          />
-          <AssetPanelTabs.Tab
-            id="executions"
-            icon={RepeatIcon}
-            label={isLocal ? getText('assetProjectExecutions.cloudOnly') : getText('executions')}
-            isExpanded={isExpanded}
-            onPress={expandTab}
-            isDisabled={isLocal}
-            isHidden={true}
           />
           <AssetPanelTabs.Tab
             id="executionsCalendar"

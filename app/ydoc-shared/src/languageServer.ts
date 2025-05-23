@@ -3,7 +3,6 @@ import { bytesToHex } from '@noble/hashes/utils'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import debug from 'debug'
 import { ObservableV2 } from 'lib0/observable'
-import { uuidv4 } from 'lib0/random'
 import { z } from 'zod'
 import { walkFs } from './languageServer/files'
 import type {
@@ -238,7 +237,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     if (this.isDisposed) {
       return Err(new LsRpcError('LanguageServer disposed', method, params))
     }
-    const uuid = uuidv4()
+    const uuid = crypto.randomUUID()
     const now = performance.now()
     try {
       debugLog('LS [%s] %s:\n%j', uuid, method, params)
