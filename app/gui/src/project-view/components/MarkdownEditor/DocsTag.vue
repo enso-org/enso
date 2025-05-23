@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
   label: string
-  value: string
+  value?: string
   style?: Record<string, string | number | undefined>
   parentOffset: number
   forceShow: boolean
@@ -17,6 +17,11 @@ const shouldBeHidden = computed(() => {
 })
 
 watch(shouldBeHidden, (m) => m && emit('hidden'))
+
+const text = computed(() => {
+  if (props.value == null || props.value.length === 0) return props.label
+  return `${props.label}: ${props.value}`
+})
 </script>
 
 <template>
@@ -24,9 +29,8 @@ watch(shouldBeHidden, (m) => m && emit('hidden'))
     ref="tagRef"
     :class="{ DocsTag: true, hide: shouldBeHidden && !props.forceShow }"
     :style="props.style || {}"
-  >
-    {{ props.label + (props.value.length > 0 ? `: ${props.value}` : '') }}
-  </div>
+    v-text="text"
+  ></div>
 </template>
 
 <style scoped>

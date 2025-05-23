@@ -1,3 +1,5 @@
+/** Documentation metadata included in the front-matter section of the Markdown doc comment. */
+
 import { assert } from '@/util/assert'
 import { Opt } from '@/util/data/opt'
 import { Err, Ok, Result } from '@/util/data/result'
@@ -5,11 +7,15 @@ import { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
 import { parse } from 'yaml'
 import * as z from 'zod'
 
+/** A macro definition in the `macros` array. */
 export interface Macro {
+  /** The macro name. */
   description: string
+  /** The macro expansion. */
   value: string
 }
 
+/** The documentation metadata schema. It is based on the representation of the parsed YAML object. */
 export const documentationMetadataSchema = z.object({
   advanced: z.boolean().optional(),
   aliases: z.array(z.string()).optional(),
@@ -62,7 +68,7 @@ export function extractMetadata(
   return parseMetadata(source.slice.bind(source), content.node)
 }
 
-/** Parse metadata front-matter section from 'YAMLContent' markdown node.  */
+/** Parse metadata front-matter section from 'YAMLContent' markdown node. Will throw if `frontMatterContent` is not a 'YAMLContent' node. */
 export function parseMetadata(
   source: (from: number, to: number) => string,
   frontMatterContent: SyntaxNode,

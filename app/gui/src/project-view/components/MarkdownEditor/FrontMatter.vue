@@ -9,7 +9,7 @@ const { metadata } = defineProps<{
 
 interface Tag {
   label: string
-  value: string
+  value?: string
   class?: string
   style?: { [key: string]: string | number | undefined }
 }
@@ -20,7 +20,6 @@ const tags = computed<Tag[]>(() => {
       [
         {
           label: metadata.group.toLowerCase().replace('standard.base.', ''),
-          value: '',
           style: {
             'background-color': 'var(--enso-docs-group-color, #5f5e5e)',
             color: '#fff',
@@ -32,7 +31,6 @@ const tags = computed<Tag[]>(() => {
       [
         {
           label: 'unstable',
-          value: '',
           style: {
             'background-color': '#e85252',
             color: '#fff',
@@ -44,7 +42,6 @@ const tags = computed<Tag[]>(() => {
       [
         {
           label: 'advanced',
-          value: '',
           style: {
             'background-color': '#e89d51',
             color: '#fff',
@@ -56,7 +53,6 @@ const tags = computed<Tag[]>(() => {
       [
         {
           label: 'deprecated',
-          value: '',
           style: {
             'background-color': '#e89d51',
             color: '#fff',
@@ -64,16 +60,15 @@ const tags = computed<Tag[]>(() => {
         },
       ]
     : []),
-    ...(metadata.aliases ?? []).map((value) => ({ label: value, value: '' })),
-    ...(metadata.private ? [{ label: 'private', value: '' }] : []),
+    ...(metadata.private ? [{ label: 'private' }] : []),
+    ...(metadata.aliases ?? []).map((value) => ({ label: value })),
+    ...(metadata.macros ?? []).map(({ description }) => ({
+      label: description,
+    })),
     ...(metadata.added ? [{ label: 'added', value: metadata.added }] : []),
     ...(metadata.modified ? [{ label: 'modified', value: metadata.modified }] : []),
     ...(metadata.removed ? [{ label: 'removed', value: metadata.removed }] : []),
     ...(metadata.upcoming ? [{ label: 'upcoming', value: metadata.upcoming }] : []),
-    ...(metadata.macros ?? []).map(({ description }) => ({
-      label: description,
-      value: '',
-    })),
   ]
 })
 

@@ -241,7 +241,7 @@ function openDocs(url: string) {
 }
 
 .markdownDocs {
-  padding: 4px 0 0 8px;
+  margin: 4px 0 0 8px;
 }
 
 .tags {

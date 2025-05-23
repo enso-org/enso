@@ -29,7 +29,7 @@ const newlineEndsBlock: BlockParser = {
 
 declare module '@lezer/markdown' {
   interface BlockContext {
-    isFrontmatterChecked: boolean | null
+    isFrontmatterChecked: boolean | undefined
   }
 }
 
