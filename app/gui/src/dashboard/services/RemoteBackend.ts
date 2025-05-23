@@ -1560,8 +1560,7 @@ export default class RemoteBackend extends Backend {
     shouldUnpackProject = true,
   ) {
     const asset = backend.extractTypeFromId(id)
-    const { id: targetPath } =
-      targetDirectoryId ? extractTypeAndId(targetDirectoryId) : { id: null }
+    const targetPath = targetDirectoryId ? extractTypeAndId(targetDirectoryId).id : null
 
     switch (asset.type) {
       case backend.AssetType.project: {
@@ -1737,6 +1736,14 @@ export default class RemoteBackend extends Backend {
     _params: backend.ImportArchiveParams,
   ): Promise<readonly backend.AnyAsset[]> {
     throw new Error('`importArchive` is not implemented on the Remote Backend.')
+  }
+
+  /**
+   * Export multiple files and pack into an archive.
+   * @throws {Error} always.
+   */
+  override exportArchive(_params: backend.ExportArchiveParams): Promise<backend.ExportedArchive> {
+    throw new Error('`exportArchive` is not implemented on the Remote Backend.')
   }
 
   /**

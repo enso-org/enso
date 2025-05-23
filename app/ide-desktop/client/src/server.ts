@@ -12,12 +12,13 @@ import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
 import * as projectManagement from '@/projectManagement'
-import { COOP_COEP_CORP_HEADERS } from 'enso-common'
+import { COOP_COEP_CORP_HEADERS, PRODUCT_NAME } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as ydocServer from 'ydoc-server'
 
 import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'
+import { app } from 'electron'
 import {
   AnyAsset,
   AssetId,
@@ -31,10 +32,20 @@ import {
   ProjectState,
   VirtualParentsPath,
 } from 'enso-common/src/services/Backend'
-import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { basenameAndExtension, getFileName, getFolderPath } from 'enso-common/src/utilities/file'
 import { createWriteStream } from 'node:fs'
-import { access, mkdir, mkdtemp, readdir, readFile, rm, rmdir, writeFile } from 'node:fs/promises'
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  rmdir,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
@@ -329,6 +340,7 @@ export class Server {
         case '/files/download-archive': {
           const assets = params.getAll('asset') as AssetId[]
           const archive = new Zip()
+          let filePath = params.get('filePath')
           for (const asset of assets) {
             const typeAndId = extractTypeFromId(asset)
             switch (typeAndId.type) {
@@ -376,6 +388,30 @@ export class Server {
               }
             }
           }
+          if (filePath == null) {
+            const folderPath = app.getPath('downloads')
+            let generatedFilePath: string
+            let number = 0
+            do {
+              number += 1
+              const date = toReadableIsoString(new Date()).replace(/[:]/g, ' ')
+              const suffix = number === 1 ? '' : ` (${number})`
+              generatedFilePath = path.join(
+                folderPath,
+                `${PRODUCT_NAME} archive ${date}${suffix}.zip`,
+              )
+            } while (
+              await stat(generatedFilePath).then(
+                // If the file already exists, then try again, incrementing the number.
+                () => true,
+                // Else the file is safe to write to.
+                () => false,
+              )
+            )
+            filePath = generatedFilePath
+          }
+          await archive.archive(filePath)
+          response.writeHead(HTTP_STATUS_OK).end()
           break
         }
         case '/files/upload-archive': {
@@ -391,7 +427,7 @@ export class Server {
             await finished(writeStream)
           }
           const assets: AnyAsset[] = []
-          const unzip = new Unzip({
+          const archive = new Unzip({
             onEntry(event) {
               const childPath = path.join(directory, event.entryName)
               const shared = {
@@ -420,7 +456,7 @@ export class Server {
               }
             },
           })
-          await unzip.extract(filePath, directory)
+          await archive.extract(filePath, directory)
           if (tempDirectory != null) {
             await rm(tempDirectory, { force: true, recursive: true })
           }

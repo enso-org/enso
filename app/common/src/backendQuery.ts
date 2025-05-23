@@ -39,6 +39,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'deleteUser'
   | 'deleteUserGroup'
   | 'duplicateProject'
+  | 'exportArchive'
   | 'importArchive'
   | 'inviteUser'
   | 'logEvent'

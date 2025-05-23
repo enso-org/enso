@@ -19,10 +19,6 @@ import type * as projectManagement from '@/projectManagement'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const electron = require('electron')
 
-// =================
-// === Constants ===
-// =================
-
 const BACKEND_API_KEY = 'backendApi'
 const AUTHENTICATION_API_KEY = 'authenticationApi'
 const FILE_BROWSER_API_KEY = 'fileBrowserApi'
@@ -33,10 +29,6 @@ const SYSTEM_API_KEY = 'systemApi'
 const VERSION_INFO_KEY = 'versionInfo'
 const MAPBOX_API_TOKEN_KEY = 'mapBoxApiToken'
 
-// =========================
-// === exposeInMainWorld ===
-// =========================
-
 /** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
 function exposeInMainWorld<Key extends string & keyof Window>(
   key: Key,
@@ -44,10 +36,6 @@ function exposeInMainWorld<Key extends string & keyof Window>(
 ) {
   electron.contextBridge.exposeInMainWorld(key, value)
 }
-
-// =============================
-// === importProjectFromPath ===
-// =============================
 
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
   string,
@@ -80,10 +68,6 @@ electron.ipcRenderer.on(
     resolveFunction?.(projectInfo)
   },
 )
-
-// ==========================
-// === Authentication API ===
-// ==========================
 
 /** A callback called when a deep link is opened. */
 type OpenDeepLinkHandler = (url: string) => void
@@ -142,18 +126,10 @@ exposeInMainWorld(AUTHENTICATION_API_KEY, {
   },
 })
 
-// ========================
-// === File Browser API ===
-// ========================
-
 exposeInMainWorld(FILE_BROWSER_API_KEY, {
   openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
     electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
 })
-
-// ==============================
-// === Project management API ===
-// ==============================
 
 /** A callback when a project is opened by opening a fileusing the system's default method. */
 type OpenProjectHandler = (projectInfo: projectManagement.ProjectInfo) => void
@@ -172,10 +148,6 @@ exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, {
   },
 })
 
-// ================
-// === Menu API ===
-// ================
-
 let showAboutModalHandler: (() => void) | null = null
 
 electron.ipcRenderer.on(ipc.Channel.showAboutModal, () => {
@@ -188,10 +160,6 @@ exposeInMainWorld(MENU_API_KEY, {
   },
 })
 
-// ==================
-// === System API ===
-// ==================
-
 exposeInMainWorld(SYSTEM_API_KEY, {
   downloadURL: (options) => {
     return electron.ipcRenderer.invoke(ipc.Channel.downloadURL, options)
@@ -201,14 +169,6 @@ exposeInMainWorld(SYSTEM_API_KEY, {
   },
 })
 
-// ====================
-// === Version info ===
-// ====================
-
 exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
-
-// ==================
-// === MapBox API ===
-// ==================
 
 exposeInMainWorld(MAPBOX_API_TOKEN_KEY, () => process.env.ENSO_IDE_MAPBOX_API_TOKEN || '')

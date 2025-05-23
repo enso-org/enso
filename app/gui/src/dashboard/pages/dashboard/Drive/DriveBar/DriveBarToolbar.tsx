@@ -99,6 +99,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
       pasteData
     : null
 
+  const { localBackend = null } = useBackends()
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
   const newFolder = useNewFolder(backend, category)
   const uploadFilesRaw = useUploadFiles(backend, category)
@@ -109,6 +110,8 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
+  const importArchive = useMutationCallback(backendMutationOptions(localBackend, 'importArchive'))
+  const exportArchive = useMutationCallback(backendMutationOptions(localBackend, 'exportArchive'))
 
   const newProjectMutation = useMutationCallback({
     mutationKey: ['newProject'],
@@ -170,9 +173,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     await uploadFiles(Array.from(files))
   })
 
-  const { localBackend = null } = useBackends()
-  const importArchive = useMutationCallback(backendMutationOptions(localBackend, 'importArchive'))
-
   const importArchiveCallback = useEventCallback(async () => {
     const [archive] = await readUserSelectedFile({ accept: ['.zip'] })
     if (!archive) {
@@ -184,6 +184,11 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     } else {
       await importArchive([{ directory: currentDirectoryId, archive }])
     }
+  })
+
+  const exportArchiveCallback = useEventCallback(async () => {
+    const { selectedIds } = driveStore.getState()
+    await exportArchive([{ assetIds: [...selectedIds], filePath: null }])
   })
 
   const downloadFilesCallback = useEventCallback(async () => {
@@ -317,6 +322,14 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 onPress={uploadFilesCallback}
               />
               <Button
+                isDisabled={!canDownload}
+                variant="icon"
+                size="medium"
+                icon="data_download"
+                aria-label={getText('downloadFiles')}
+                onPress={downloadFilesCallback}
+              />
+              <Button
                 variant="icon"
                 size="medium"
                 icon="data_upload"
@@ -325,12 +338,12 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 isDisabled={isCloud}
               />
               <Button
-                isDisabled={!canDownload}
                 variant="icon"
                 size="medium"
                 icon="data_download"
-                aria-label={getText('downloadFiles')}
-                onPress={downloadFilesCallback}
+                aria-label={isCloud ? getText('exportArchive.localOnly') : getText('exportArchive')}
+                onPress={exportArchiveCallback}
+                isDisabled={isCloud}
               />
             </div>
             {createAssetsVisualTooltip.tooltip}

@@ -397,6 +397,8 @@
   "uploadFiles": "Import",
   "importArchive": "Import Archive",
   "importArchive.localOnly": "Import Archive (Local only)",
+  "exportArchive": "Export Archive",
+  "exportArchive.localOnly": "Export Archive (Local only)",
   "downloadFiles": "Export",
   "uploadFilesToCloud": "Export Projects to Cloud",
   "downloadFilesToLocal": "Export Projects to Local",

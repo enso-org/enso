@@ -1674,6 +1674,16 @@ interface ImportArchiveParamsWithFile extends ImportArchiveParamsBase {
 
 export type ImportArchiveParams = ImportArchiveParamsWithPath | ImportArchiveParamsWithFile
 
+export interface ExportArchiveParams {
+  readonly assetIds: readonly AssetId[]
+  /** The path of the archive to export to. */
+  readonly filePath: Path | null
+}
+
+export interface ExportedArchive {
+  readonly filePath: Path
+}
+
 /** Extract the {@link VersionLifecycle} from a version string. */
 export function detectVersionLifecycle(version: string) {
   if (/rc/i.test(version)) {
@@ -2110,6 +2120,8 @@ export default abstract class Backend {
   ): Promise<void>
   /** Import an archive and unpack into a directory. */
   abstract importArchive(params: ImportArchiveParams): Promise<readonly AnyAsset[]>
+  /** Export multiple files and pack into an archive. */
+  abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
 
   /**
    * Get the URL for the customer portal.

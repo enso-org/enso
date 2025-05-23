@@ -11,7 +11,7 @@ import * as projectManager from '#/services/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
-import { omit } from '#/utilities/object'
+import { omit, unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
@@ -872,9 +872,23 @@ export default class LocalBackend extends Backend {
       method: 'POST',
       body: 'archive' in params ? params.archive : null,
     })
-    const result: unknown = await response.json()
-    // eslint-disable-next-line no-restricted-syntax
-    return result as readonly backend.AnyAsset[]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return await response.json()
+  }
+
+  /** Export multiple files and pack into an archive. */
+  override async exportArchive(
+    params: backend.ExportArchiveParams,
+  ): Promise<backend.ExportedArchive> {
+    const entries = unsafeEntries(params).flatMap<[string, string]>(([paramName, v]) =>
+      v == null ? []
+      : typeof v === 'string' ? [[paramName, v]]
+      : v.map<[string, string]>((id) => [paramName, id]),
+    )
+    const searchParams = new URLSearchParams(entries).toString()
+    const response = await fetch(`/api/files/download-archive?${searchParams}`, { method: 'POST' })
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return await response.json()
   }
 
   /** Invalid operation. */
