@@ -30,7 +30,7 @@ const localRootDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
       })(),
       downloadDirectory: null,
     }),
-    { name: 'enso-local-root-directory', version: 1 },
+    { name: 'enso-local-directory', version: 1 },
   ),
 )
 

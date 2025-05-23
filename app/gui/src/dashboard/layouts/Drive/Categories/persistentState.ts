@@ -31,7 +31,7 @@ const localRootDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
           .get('localRootDirectories')
           ?.map((directory) => Path(directory)) ?? [],
     }),
-    { name: 'enso-local-root-directory', version: 1 },
+    { name: 'enso-local-saved-directories', version: 1 },
   ),
 )
 
