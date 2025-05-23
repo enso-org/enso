@@ -24,6 +24,7 @@ export const Form = Object.assign(
       formOptions,
       className,
       style,
+      onChange,
       onSubmit,
       onSubmitted = () => {},
       onSubmitSuccess = () => {},
@@ -44,6 +45,7 @@ export const Form = Object.assign(
       form ?? {
         ...formOptions,
         ...(defaultValues ? { defaultValues } : {}),
+        ...(onChange ? { onChange } : {}),
         method,
         schema,
         canSubmitOffline,

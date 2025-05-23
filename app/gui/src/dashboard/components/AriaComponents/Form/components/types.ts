@@ -93,6 +93,15 @@ export interface UseFormOptions<Schema extends TSchema, SubmitResult = void>
   /** When set to `dialog`, form submission will close the parent dialog on successful submission. */
   readonly method?: 'dialog' | (string & {}) | undefined
   readonly resetOnSubmit?: boolean
+  /**
+   * A callback that is called when the form values change.
+   * This is useful for updating the UI when the form values change.
+   */
+  readonly onChange?: <TFieldName extends FieldPath<Schema>>(
+    field: TFieldName,
+    value: FieldValues<Schema>[TFieldName],
+    form: UseFormReturn<Schema>,
+  ) => void
 }
 
 /** Register function for a form field. */

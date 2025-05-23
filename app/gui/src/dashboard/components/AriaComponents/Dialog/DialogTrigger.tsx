@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as aria from '#/components/aria'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { createHideableComponent } from '@react-aria/collections'
 import { useOverlayTriggerState } from 'react-stately'
 
 /** Props passed to the render function of a {@link DialogTrigger}. */
@@ -30,7 +31,9 @@ export interface DialogTriggerProps {
 }
 
 /** A DialogTrigger opens a dialog when a trigger element is pressed. */
-export function DialogTrigger(props: DialogTriggerProps) {
+export const DialogTrigger = createHideableComponent(function DialogTrigger(
+  props: DialogTriggerProps,
+) {
   const { children, onOpenChange, onOpen = () => {}, onClose = () => {} } = props
 
   // @ts-expect-error Typescript requires to explicitly add `undefined` to the props
@@ -72,4 +75,4 @@ export function DialogTrigger(props: DialogTriggerProps) {
       {typeof dialog === 'function' ? dialog(renderProps) : dialog}
     </aria.DialogTrigger>
   )
-}
+})

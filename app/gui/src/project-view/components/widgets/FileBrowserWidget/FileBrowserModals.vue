@@ -53,6 +53,7 @@ function warningDismissed() {
   gap: 8px;
   align-items: center;
   justify-content: center;
+  z-index: 5;
 }
 
 .confirmationText {
@@ -68,14 +69,5 @@ function warningDismissed() {
   width: 40%;
   flex-direction: row;
   justify-content: space-between;
-}
-
-.FileBrowserButton {
-  --color-menu-entry-hover-bg: color-mix(in oklab, var(--color-frame-selected-bg), black 10%);
-  border-radius: var(--border-radius-inner);
-  height: calc(var(--border-radius-inner) * 2);
-  margin: 0;
-  padding: 4px 12px;
-  background-color: var(--color-frame-selected-bg);
 }
 </style>
