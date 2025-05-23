@@ -135,6 +135,12 @@
     "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_x86_64.so",
     "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_aarch_64.so"
   ],
+  "lib/Standard/Snowflake/0.0.0-dev/polyglot/java/conscrypt-openjdk-uber-2.5.2.jar": [
+    "META-INF/native/conscrypt_openjdk_jni-windows-x86.dll",
+    "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll",
+    "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so",
+    "META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib"
+  ],
   "lib/Standard/Google_Api/0.0.0-dev/polyglot/java/conscrypt-openjdk-uber-2.5.2.jar": [
     "META-INF/native/conscrypt_openjdk_jni-windows-x86.dll",
     "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll",
