@@ -18,6 +18,7 @@ import FileBrowserContent from '@/components/widgets/FileBrowserWidget/FileBrows
 import FileBrowserModals from '@/components/widgets/FileBrowserWidget/FileBrowserModals.vue'
 import FileBrowserNameBar from '@/components/widgets/FileBrowserWidget/FileBrowserNameBar.vue'
 import FileBrowserTopBar from '@/components/widgets/FileBrowserWidget/FileBrowserTopBar.vue'
+import { useNameBar } from '@/components/widgets/FileBrowserWidget/nameBar'
 import {
   usePathBrowsing,
   type Directory,
@@ -25,6 +26,7 @@ import {
 import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
 import { injectProjectBackend } from '@/providers/projectBackend'
+import { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
 import { computed, ref, toValue, useTemplateRef, watch, watchEffect } from 'vue'
@@ -34,8 +36,14 @@ const props = withDefaults(
     writeMode?: boolean
     choosenPath?: string
     type?: 'file' | 'secret' | 'directory'
+    fileTypes?: FileType[]
   }>(),
-  { writeMode: false, choosenPath: '', type: 'file' },
+  {
+    writeMode: false,
+    choosenPath: '',
+    type: 'file',
+    fileTypes: () => [{ label: 'All files', extensions: ['*'] }],
+  },
 )
 
 const emit = defineEmits<{
@@ -88,6 +96,9 @@ watch(data, (assets) => {
 
 // === Current Path ===
 
+const { filenameInput, extensionInput, fullFilePath, setFilename, fileExtensionFilter } =
+  useNameBar()
+
 const { currentDirPath, chosenFilename, setPath, enterDir, popTo, append } = useCurrentPath({
   home: () => ensoPath(toValue(userFiles.value?.home ?? [])),
   enteredPath,
@@ -95,16 +106,14 @@ const { currentDirPath, chosenFilename, setPath, enterDir, popTo, append } = use
 watchEffect(() => setPath(parseEnsoPath(props.choosenPath)))
 watchEffect(() => currentDirPath.value && setBrowsingPath(currentDirPath.value))
 watchEffect(() => {
-  if (props.writeMode && unenteredPathSuffix.value)
-    filenameInputContents.value = unenteredPathSuffix.value
+  if (props.writeMode && unenteredPathSuffix.value) setFilename(unenteredPathSuffix.value)
 })
 
-const filenameInputContents = ref('')
 watchEffect(() => {
-  if (chosenFilename.value) filenameInputContents.value = chosenFilename.value
+  if (chosenFilename.value) setFilename(chosenFilename.value)
 })
 const highlightedFilename = computed(
-  () => (props.writeMode && filenameInputContents.value) || chosenFilename.value,
+  () => (props.writeMode && fullFilePath.value) || chosenFilename.value,
 )
 
 // === Status ===
@@ -137,19 +146,19 @@ async function tryAcceptCurrentFile() {
     warningText.value = 'Unable to access files'
     return
   }
-  const path = mapPath(enteredPath.value, append(...filenameInputContents.value.split('/')))
+  const path = mapPath(enteredPath.value, append(...fullFilePath.value.split('/')))
   const enteringResult = await setBrowsingPath(path)
   currentDirPath.value = path
   if (!enteringResult.ok) {
     warningText.value = `${enteringResult.error.payload.toString()}`
     return
   }
-  filenameInputContents.value = unenteredPathSuffix.value
-  const assetInfo = await assetExists(filenameInputContents.value)
+  setFilename(unenteredPathSuffix.value)
+  const assetInfo = await assetExists(fullFilePath.value)
   if (assetInfo.exists && assetInfo.type === AssetType.file && props.writeMode) {
-    overwriteFilename.value = filenameInputContents.value
+    overwriteFilename.value = fullFilePath.value
   } else if (assetInfo.exists && assetInfo.type === AssetType.directory) {
-    warningText.value = `'${filenameInputContents.value}' is a directory, not a file`
+    warningText.value = `'${fullFilePath.value}' is a directory, not a file`
   } else {
     acceptCurrentFile()
     return
@@ -157,7 +166,7 @@ async function tryAcceptCurrentFile() {
 }
 
 function acceptCurrentFile() {
-  acceptFile(filenameInputContents.value)
+  acceptFile(fullFilePath.value)
 }
 
 function acceptFile(name: string) {
@@ -168,54 +177,65 @@ function acceptFile(name: string) {
 
 function chooseEntry(asset: AnyAsset, close: boolean) {
   if (props.writeMode) {
-    filenameInputContents.value = asset.title
+    setFilename(asset.title)
   } else {
     acceptFile(asset.title)
     if (close) emit('close')
   }
 }
+
+const root = useTemplateRef<HTMLDivElement>('root')
 </script>
 
 <template>
-  <div class="FileBrowserWidget">
-    <FileBrowserModals
-      v-model:overwriteFilename="overwriteFilename"
-      v-model:warningText="warningText"
-      @overwriteConfirmed="acceptCurrentFile"
-    />
-    <FileBrowserTopBar
-      :directoryStack="enteredPath?.segments ?? []"
-      :disabled="disableTopBarButtons"
-      :enableSecretCreation="type === 'secret'"
-      @popTo="popTo"
-      @newDirectory="browserContent?.addNewDirectory"
-      @newSecret="creatingSecret = true"
-    />
-    <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
-    <div v-else-if="isBusy" class="centerContent browserContents">
-      <LoadingSpinner phase="loading-medium" />
+  <div ref="root" class="FileBrowserWidgetWrapper">
+    <div class="FileBrowserWidget">
+      <FileBrowserModals
+        v-model:overwriteFilename="overwriteFilename"
+        v-model:warningText="warningText"
+        @overwriteConfirmed="acceptCurrentFile"
+      />
+      <FileBrowserTopBar
+        :directoryStack="enteredPath?.segments ?? []"
+        :disabled="disableTopBarButtons"
+        :enableSecretCreation="type === 'secret'"
+        @popTo="popTo"
+        @newDirectory="browserContent?.addNewDirectory"
+        @newSecret="creatingSecret = true"
+      />
+      <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
+      <div v-else-if="isBusy" class="centerContent browserContents">
+        <LoadingSpinner phase="loading-medium" />
+      </div>
+      <div v-else-if="creatingSecret" class="browserContents">
+        <UpsertSecretPanel @accepted="createSecret" @canceled="creatingSecret = false" />
+      </div>
+      <FileBrowserContent
+        v-show="!(anyError || isBusy || creatingSecret)"
+        ref="browserContent"
+        :key="currentDirectory?.id ?? 'root'"
+        class="browserContents"
+        :assets="data ?? []"
+        :chosenFilename="highlightedFilename"
+        :targetType="type ?? 'file'"
+        :matchesFilter="fileExtensionFilter.matches"
+        @renameDirectory="acceptName"
+        @enterDirectory="enterDir"
+        @choose="chooseEntry"
+        @update:editingAsset="editingAsset = $event"
+      />
+      <FileBrowserNameBar
+        v-model:filenameInput="filenameInput"
+        v-model:extensionInput="extensionInput"
+        :writeMode="writeMode ?? false"
+        :root="root"
+        :fileExtensionFilter="fileExtensionFilter.filter.value"
+        :displayedExtension="fileExtensionFilter.displayedExtension.value"
+        :fileTypes="props.fileTypes"
+        @accept="tryAcceptCurrentFile"
+        @setFilter="fileExtensionFilter.filter.value = $event"
+      />
     </div>
-    <div v-else-if="creatingSecret" class="browserContents">
-      <UpsertSecretPanel @accepted="createSecret" @canceled="creatingSecret = false" />
-    </div>
-    <FileBrowserContent
-      v-show="!(anyError || isBusy || creatingSecret)"
-      ref="browserContent"
-      :key="currentDirectory?.id ?? 'root'"
-      class="browserContents"
-      :assets="data ?? []"
-      :chosenFilename="highlightedFilename"
-      :targetType="type ?? 'file'"
-      @renameDirectory="acceptName"
-      @enterDirectory="enterDir"
-      @choose="chooseEntry"
-      @update:editingAsset="editingAsset = $event"
-    />
-    <FileBrowserNameBar
-      v-if="writeMode"
-      v-model="filenameInputContents"
-      @accept="tryAcceptCurrentFile"
-    />
   </div>
 </template>
 
@@ -229,8 +249,7 @@ function chooseEntry(asset: AnyAsset, close: boolean) {
   min-width: 400px;
   min-height: 200px;
   max-height: 600px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   contain: layout;
@@ -247,5 +266,14 @@ function chooseEntry(asset: AnyAsset, close: boolean) {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+:deep(.FileBrowserButton) {
+  --color-menu-entry-hover-bg: color-mix(in oklab, var(--color-frame-selected-bg), black 10%);
+  border-radius: var(--border-radius-inner);
+  height: calc(var(--border-radius-inner) * 2);
+  margin: 0;
+  padding: 4px 12px;
+  background-color: var(--color-frame-selected-bg);
 }
 </style>

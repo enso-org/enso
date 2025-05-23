@@ -306,7 +306,7 @@ add_specs suite_builder =
             y.a_method . should_equal "A method"
             y.b_method . should_equal "B method"
 
-        group_builder.specify "attaching warnings to an intersection type should not lose even the hidden refinements" pending="Warnings not yet supported #12180" <|
+        group_builder.specify "attaching warnings to an intersection type should not lose even the hidden refinements" <|
             ab = make_a_and_b
             x = ab:A
             x_with_warning = Warning.attach (Illegal_State.Error "my warning") x

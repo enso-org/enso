@@ -2,6 +2,7 @@
 export * from './Alert'
 export * from './AlertDialog'
 export * from './Button'
+export * from './Check'
 export * from './Checkbox'
 export * from './CopyBlock'
 export * from './Dialog'

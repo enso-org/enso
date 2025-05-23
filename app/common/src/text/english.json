@@ -195,10 +195,8 @@
   "specialLoadingAssetType": "special loading asset",
   "specialEmptyAssetType": "special empty asset",
   "specialErrorAssetType": "special error asset",
-
   "uploadingXFilesWithProgressNotification": "Uploading $0/$1 file(s)... ($2/$3MB)",
   "uploadedXFilesNotification": "Uploaded $0 file(s).",
-
   "couldNotConnectToPM": "Could not connect to the Project Manager. Please try restarting Enso, or manually launching the Project Manager.",
   "upgradeToUseCloud": "Upgrade your plan to use Enso Cloud.",
   "me": "Me",
@@ -313,6 +311,8 @@
   "more": "More",
   "close": "Close",
   "notifications": "Notifications",
+  "search": "Search",
+  "search.placeholder": "Search...",
   "snowflakeCredentialType": "Snowflake",
   "snowflakeCredentialAccount": "Account",
   "snowflakeCredentialClientId": "Client ID",
@@ -579,7 +579,6 @@
   "anUploadIsInProgress": "An upload is in progress.",
   "youAreAllCaughtUp": "You're all caught up!",
   "clearCacheAndReload": "Clear cache and reload",
-
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
   "deleteSelectedAssetsActionText": "delete $0 selected items",
@@ -874,7 +873,7 @@
   "copyAllShortcut": "Copy All",
   "cutAllShortcut": "Cut All",
   "pasteAllShortcut": "Paste All",
-  "deleteLabelShortcut": "Delete Label",
+  "removeLabelShortcut": "Remove Label",
   "openInFileBrowserShortcut": "Open in File Browser",
   "openInFileBrowserShortcutWindows": "Open in Explorer",
   "openInFileBrowserShortcutMacOs": "Open in Finder",
@@ -1207,5 +1206,14 @@
   "createConfigurationLogEvent": "Create Configuration",
   "listConfigurationsLogEvent": "List Configurations",
   "getConfigurationLogEvent": "Get Configuration",
-  "resolvePathLogEvent": "Resolve Path"
+  "resolvePathLogEvent": "Resolve Path",
+  "manageLabelsModal.createLabel": "Create Label",
+  "manageLabelsModal.createLabelWithTitle": "Create $0",
+  "manageLabelsModal.editLabel": "Edit Label",
+  "manageLabelsModal.allLabels": "Select a label or create a new one",
+  "manageLabelsModal.noLabels": "No labels found",
+  "manageLabelsModal.nextColor": "Next color",
+  "manageLabelsModal.chooseColor": "Choose a color",
+  "manageLabelsModal.labelAlreadyExists": "Label already exists",
+  "manageLabelsModal.selectedLabels": "Selected labels"
 }
