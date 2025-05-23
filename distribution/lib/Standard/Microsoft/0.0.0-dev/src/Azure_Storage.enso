@@ -26,6 +26,11 @@ type Azure_Storage
         as_array = AzureBlobStorage.containers java_cred account prefix
         Vector.from_polyglot_array as_array
 
+    ## Lists the Blob Files in the given storage account and container.
+    @subscription make_subscription_selector
+    list_blob account:Text=(Missing_Argument.throw "account") container:Text=(Missing_Argument.throw "container") prefix:Text="" cred:Azure_Credential=..Default -> Vector Text =
+
+
 ## Enso representation of the Azure Storage Account
 type Azure_Storage_Account
     private Value java_object
