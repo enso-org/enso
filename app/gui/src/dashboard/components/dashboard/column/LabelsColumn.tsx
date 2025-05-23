@@ -1,6 +1,6 @@
 /** @file A column listing the labels on this asset. */
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import DotsIcon from '#/assets/dots.svg'
 import ContextMenu from '#/components/ContextMenu'
@@ -22,7 +22,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, state, labels } = props
   const { backend, category, setQuery } = state
   const { user } = authProvider.useFullUserSession()
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const managesThisAsset =

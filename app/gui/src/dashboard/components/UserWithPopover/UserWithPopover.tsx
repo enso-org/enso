@@ -2,17 +2,19 @@
 import { Button, CopyButton, Popover, Text } from '#/components/AriaComponents'
 import { TEXT_WITH_ICON } from '#/components/patterns'
 import { ProfilePicture } from '#/components/ProfilePicture'
-import { useText } from '#/providers/TextProvider'
 import type { OtherUser } from '#/services/Backend'
+import { useText } from '$/providers/react'
+import { twMerge } from 'tailwind-merge'
 
 /** Props for a {@link UserWithPopover}. */
 export interface UserWithPopoverProps {
   readonly user: OtherUser
+  readonly className?: string
 }
 
 /** A user display with a popover for more information. */
 export function UserWithPopover(props: UserWithPopoverProps) {
-  const { user } = props
+  const { user, className } = props
 
   const { getText } = useText()
 
@@ -29,7 +31,7 @@ export function UserWithPopover(props: UserWithPopoverProps) {
             className="-mt-0.5"
           />
         }
-        className="min-w-0"
+        className={twMerge('min-w-0', className)}
       >
         <Text variant="body-sm" truncate="1" nowrap>
           {user.name}

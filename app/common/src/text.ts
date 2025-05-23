@@ -173,6 +173,8 @@ interface PlaceholderOverrides {
     categoryName: string,
     destinationCategoryName: string,
   ]
+
+  readonly planOverriddenToX: [planName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

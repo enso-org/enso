@@ -19,10 +19,9 @@ import * as appUtils from '#/appUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -43,9 +42,10 @@ import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouterInReact } from '$/providers/react'
+import { useBackends, useRouter } from '$/providers/react'
 import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
+import { usePlanOverride } from './authStore'
 import { AuthContext, useAuth } from './hooks'
 import type { AuthContextType } from './types'
 import { UserSessionType, type FullUserSession, type PartialUserSession } from './types'
@@ -82,11 +82,11 @@ export interface AuthProviderProps {
 export function AuthProvider(props: AuthProviderProps) {
   const { onAuthenticated, children } = props
 
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const { remoteBackend } = useBackends()
   const setFeatureFlags = useSetFeatureFlags()
 
   const { session, organizationId, signOut } = sessionProvider.useSession()
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const toastId = React.useId()
 
   const queryClient = reactQuery.useQueryClient()
@@ -101,6 +101,7 @@ export function AuthProvider(props: AuthProviderProps) {
 
   const usersMeQuery = reactQuery.useSuspenseQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
+  const planOverride = usePlanOverride()
 
   const createUserMutation = useMutationCallback({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
@@ -257,9 +258,14 @@ export function AuthProvider(props: AuthProviderProps) {
     }
   }, [userData, setFeatureFlags])
 
+  const effectiveUserData =
+    userData?.type === UserSessionType.full && planOverride != null ?
+      { ...userData, user: { ...userData.user, plan: planOverride } }
+    : userData
+
   const value: AuthContextType = {
     refetchSession,
-    session: userData,
+    session: effectiveUserData,
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,
@@ -278,7 +284,7 @@ export function AuthProvider(props: AuthProviderProps) {
  */
 export function AnyLoggedInUserLayout({ children }: React.PropsWithChildren) {
   const { session } = useAuth()
-  const { router } = useRouterInReact()
+  const { router } = useRouter()
 
   if (session == null) {
     void router.push(appUtils.LOGIN_PATH)
@@ -291,7 +297,7 @@ export function AnyLoggedInUserLayout({ children }: React.PropsWithChildren) {
 /** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout({ children }: React.PropsWithChildren<object>) {
   const { session } = useAuth()
-  const { router } = useRouterInReact()
+  const { router } = useRouter()
 
   if (session == null) {
     void router.push(appUtils.LOGIN_PATH)
@@ -330,7 +336,7 @@ export function ProtectedLayout({ children }: React.PropsWithChildren<object>) {
 export function SemiProtectedLayout({ children }: React.PropsWithChildren) {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { router } = useRouterInReact()
+  const { router } = useRouter()
 
   // The user is not logged in - redirect to the login page.
   if (session == null) {
@@ -355,7 +361,7 @@ export function SemiProtectedLayout({ children }: React.PropsWithChildren) {
 export function GuestLayout({ children }: React.PropsWithChildren) {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { router } = useRouterInReact()
+  const { router } = useRouter()
 
   if (session?.type === UserSessionType.partial) {
     void router.push(appUtils.SETUP_PATH)
@@ -385,7 +391,7 @@ export function GuestLayout({ children }: React.PropsWithChildren) {
 /** A React Router layout route containing routes only accessible by users that are not deleted. */
 export function NotDeletedUserLayout({ children }: React.PropsWithChildren) {
   const { isUserMarkedForDeletion } = useAuth()
-  const { router } = useRouterInReact()
+  const { router } = useRouter()
 
   if (isUserMarkedForDeletion()) {
     void router.push(appUtils.RESTORE_USER_PATH)
@@ -397,7 +403,7 @@ export function NotDeletedUserLayout({ children }: React.PropsWithChildren) {
 /** A React Router layout route containing routes only accessible by users that are deleted softly. */
 export function SoftDeletedUserLayout({ children }: React.PropsWithChildren) {
   const { isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
-  const { router } = useRouterInReact()
+  const { router } = useRouter()
 
   if (isUserMarkedForDeletion()) {
     const isSoftDeleted = isUserSoftDeleted()
@@ -431,7 +437,7 @@ export function CloudBrowserDisabledLayout(
   props: React.PropsWithChildren<CloudBrowserDisabledLayoutProps>,
 ) {
   const { children, redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
   const [isRedirecting, setIsRedirecting] = React.useState(true)
 

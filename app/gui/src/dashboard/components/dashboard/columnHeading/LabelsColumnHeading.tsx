@@ -3,7 +3,7 @@ import { Button, Text } from '#/components/AriaComponents'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 /** A heading for the "Labels" column. */
 export default function LabelsColumnHeading(props: AssetColumnHeadingProps) {

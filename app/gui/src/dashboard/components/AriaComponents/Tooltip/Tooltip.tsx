@@ -3,10 +3,10 @@ import * as aria from '#/components/aria'
 import { useStrictPortalContext } from '#/components/Portal'
 
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { ResetButtonGroupContext } from '../Button'
+import { ResetButtonGroupContext } from '../Button/shared'
 
-import { DIALOG_BACKGROUND } from '../Dialog'
-import { TEXT_STYLE } from '../Text'
+import { DIALOG_BACKGROUND } from '../Dialog/variants'
+import { TEXT_STYLE } from '../Text/variant'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const TOOLTIP_STYLES = tv({

@@ -5,7 +5,7 @@ import * as contextMenuHooks from '#/hooks/contextMenuHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -30,7 +30,7 @@ export default function UserRow(props: UserRowProps) {
   const { draggable = false, user, doDeleteUser: doDeleteUserRaw } = props
   const { user: self } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const isAdmin = self.isOrganizationAdmin
   const isSelf = user.userId === self.userId
   const doDeleteUser = isSelf ? null : doDeleteUserRaw

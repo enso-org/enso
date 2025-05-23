@@ -178,19 +178,9 @@ public abstract class Atom extends EnsoObject {
 
     String[] filteredMembers =
         allMembers.stream()
-            .filter(
-                method -> {
-                  if (includeInternal) {
-                    return true;
-                  } else {
-                    return !method.getSchema().isProjectPrivate();
-                  }
-                })
-            .map(
-                func -> {
-                  var funcNameItems = func.getName().split("\\.");
-                  return funcNameItems[funcNameItems.length - 1];
-                })
+            .filter(method -> includeInternal || !method.getSchema().isProjectPrivate())
+            .map(method -> method.getName())
+            .map(fullName -> fullName.substring(fullName.lastIndexOf('.') + 1))
             .distinct()
             .toArray(String[]::new);
     return ArrayLikeHelpers.wrapStrings(filteredMembers);

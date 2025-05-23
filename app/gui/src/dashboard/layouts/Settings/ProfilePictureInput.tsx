@@ -5,7 +5,7 @@ import DefaultUserIcon from '#/assets/default_user.svg'
 
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
@@ -24,7 +24,7 @@ export interface ProfilePictureInputProps {
 export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { backend } = props
   const { data: user } = useQuery(backendQueryOptions(backend, 'usersMe', []))
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const uploadUserPicture = useMutation(backendMutationOptions(backend, 'uploadUserPicture'))
 

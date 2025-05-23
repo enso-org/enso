@@ -2,9 +2,9 @@
 import LogsIcon from '#/assets/logs.svg'
 import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { ProjectSession as BackendProjectSession, ProjectAsset } from '#/services/Backend'
+import { useText } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 /** Props for a {@link ProjectSession}. */
