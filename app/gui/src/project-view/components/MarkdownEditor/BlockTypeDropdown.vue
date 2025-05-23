@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { documentationEditorBindings } from '@/bindings'
 import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
+import type { SelectionMenuOption } from '@/components/visualizations/toolbar'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { computed } from 'vue'
 
@@ -37,6 +39,28 @@ const blockTypesOrdered: BlockType[] = [
   'OrderedList',
   'Blockquote',
 ]
+const bindings: [BlockType, keyof typeof documentationEditorBindings.bindings][] = [
+  ['Paragraph', 'paragraph'],
+  ['ATXHeading1', 'header1'],
+  ['ATXHeading2', 'header2'],
+  ['ATXHeading3', 'header3'],
+]
+const bindingName = new Map<BlockType, string>(
+  bindings.map(([key, value]) => [
+    key,
+    `(${documentationEditorBindings.bindings[value].humanReadable})`,
+  ]),
+)
+
+function menuOption(key: BlockType | 'Unknown', disableSettingTypes: boolean): SelectionMenuOption {
+  return {
+    icon: blockIcon[key],
+    label: blockName[key],
+    labelExtension: key === 'Unknown' ? undefined : bindingName.get(key),
+    disabled: disableSettingTypes ? key !== blockType.value && key !== 'Paragraph' : false,
+    hidden: key === 'Unknown',
+  }
+}
 
 const blockTypeOptions = computed(() => {
   // Always show the current type.
@@ -48,17 +72,7 @@ const blockTypeOptions = computed(() => {
   // whatever is contained to be interpreted as Markdown; once the content is Markdown, further styling changes can be
   // made.
   const disableSettingTypes = blockType.value === 'FencedCode'
-  return Object.fromEntries(
-    shownTypes.map((key) => [
-      key,
-      {
-        icon: blockIcon[key],
-        label: blockName[key],
-        disabled: disableSettingTypes ? key !== blockType.value && key !== 'Paragraph' : false,
-        hidden: key === 'Unknown',
-      },
-    ]),
-  )
+  return Object.fromEntries(shownTypes.map((key) => [key, menuOption(key, disableSettingTypes)]))
 })
 </script>
 

@@ -1,8 +1,7 @@
 /** @file Success screen for the "invite users" modal. */
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
-import * as textProvider from '#/providers/TextProvider'
-import { useRouterInReact } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 import * as React from 'react'
 
 /**
@@ -22,13 +21,13 @@ export interface InviteUsersSuccessProps {
 /** Success screen for the invite users modal. */
 export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
   const { onClose, emails, invitationLink } = props
-  const { getText, locale } = textProvider.useText()
+  const { getText, locale } = useText()
   const membersSearchParams = [
     ['cloud-ide_page', '"settings"'],
     ['cloud-ide_SettingsTab', '"members"'],
   ] as const
 
-  const { route, router } = useRouterInReact()
+  const { route, router } = useRouter()
 
   const emailListFormatter = React.useMemo(
     () => new Intl.ListFormat(locale, { type: 'conjunction', style: 'long' }),

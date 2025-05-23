@@ -1,3 +1,5 @@
+import { TextContext } from '$/providers/react'
+import { useText } from '$/providers/text'
 import { act, render, screen } from '@testing-library/react'
 import { describe, vi } from 'vitest'
 import { Await } from '../Await'
@@ -29,7 +31,11 @@ describe('<Await />', (it) => {
     const rejectionPromise = new Promise((resolve) => process.once('unhandledRejection', resolve))
     const errorPromise = Promise.reject(new Error('💣'))
 
-    render(<Await promise={errorPromise}>{() => <>Hello</>}</Await>)
+    render(
+      <TextContext.Provider value={useText()}>
+        <Await promise={errorPromise}>{() => <>Hello</>}</Await>
+      </TextContext.Provider>,
+    )
     await expect(rejectionPromise).resolves.toEqual(new Error('💣'))
 
     expect(screen.getByTestId('spinner')).toBeInTheDocument()

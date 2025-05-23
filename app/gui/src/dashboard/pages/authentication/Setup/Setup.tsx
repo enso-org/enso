@@ -14,8 +14,7 @@ import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appU
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
 import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
-import { useRemoteBackend } from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Page from '#/components/Page'
@@ -25,7 +24,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
-import { useRouterInReact } from '$/providers/react'
+import { useBackends, useRouter } from '$/providers/react'
 
 /** Step in the setup process */
 interface Step {
@@ -56,7 +55,7 @@ const BASE_STEPS: Step[] = [
     component: function SetUsernameStep({ session, goToNextStep }) {
       const { setUsername } = useAuth()
       const userSession = useUserSession()
-      const { getText } = textProvider.useText()
+      const { getText } = useText()
 
       const isUserCreated = userSession?.type === UserSessionType.full
       const defaultName =
@@ -137,8 +136,8 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for setting organization name. */
     component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep, session }) {
-      const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackend()
+      const { getText } = useText()
+      const { remoteBackend } = useBackends()
       const userId = session && 'user' in session ? session.user.userId : null
 
       const { data: defaultOrgName } = useSuspenseQuery({
@@ -208,7 +207,7 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for inviting users to the organization. */
     component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = textProvider.useText()
+      const { getText } = useText()
 
       return (
         <div className="max-w-96">
@@ -242,8 +241,8 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for creating the first user group. */
     component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackend()
+      const { getText } = useText()
+      const { remoteBackend } = useBackends()
 
       const defaultUserGroupMaxLength = 64
 
@@ -309,8 +308,8 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Final setup step. */
     component: function AllSetStep({ goToPreviousStep }) {
-      const { getText } = textProvider.useText()
-      const { router } = useRouterInReact()
+      const { getText } = useText()
+      const { router } = useRouter()
       const queryClient = useQueryClient()
 
       return (
@@ -336,10 +335,10 @@ const BASE_STEPS: Step[] = [
 
 /** Setup page */
 export function Setup() {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const { session } = useAuth()
   const isFirstRender = useIsFirstRender()
-  const { router, route } = useRouterInReact()
+  const { router, route } = useRouter()
 
   const userPlan = session && 'user' in session ? session.user.plan : Plan.free
 

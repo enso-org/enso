@@ -18,10 +18,11 @@ import {
 import { computed, reactive, ref, watch } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
 
-const { assets, chosenFilename, targetType } = defineProps<{
+const { assets, chosenFilename, targetType, matchesFilter } = defineProps<{
   assets: readonly AnyAsset[]
   chosenFilename: string | null
   targetType: 'file' | 'secret' | 'directory'
+  matchesFilter: (asset: AnyAsset) => boolean
 }>()
 
 const emit = defineEmits<{
@@ -55,7 +56,7 @@ const entries = computed(() => {
   const files = []
   for (const asset of assets) {
     if (assetIsDirectory(asset)) directories.push(asset)
-    else if (assetIsTargetType(asset)) files.push(asset)
+    else if (assetIsTargetType(asset) && matchesFilter(asset)) files.push(asset)
   }
   directories.sort(compareTitle)
   files.sort(compareTitle)

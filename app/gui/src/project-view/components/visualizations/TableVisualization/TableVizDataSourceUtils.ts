@@ -4,7 +4,7 @@ import type { IServerSideGetRowsRequest } from 'ag-grid-enterprise'
 import { actionMap, FilterAction, getFilterValue, GridFilterModel } from './tableVizFilterUtils'
 import { getCellValueType } from './tableVizUtils'
 
-export type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char'
+export type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char' | 'Boolean'
 export type ValueTypeArgumentChild = { valueType: ValueTypes; value: string }
 type ValueTypeArgumentParent =
   | { valueType: ValueTypes; value: string }
@@ -48,6 +48,10 @@ const parseFilterValues = (
       )
       return Ast.Vector.new(tempModule, items)
     }
+    case 'Boolean':
+      return value.value === 'false' ?
+          Ast.Ident.new(tempModule, Ast.identifier('False')!)
+        : Ast.Ident.new(tempModule, Ast.identifier('True')!)
     default:
       return Ast.parseExpression(value, tempModule)!
   }
@@ -110,11 +114,14 @@ export const convertFilterModel = (
       filterColumnNames.map((colName) => `${columnHeaders.findIndex((h: string) => colName === h)}`)
     : 'Nothing'
 
+  const getSetFilterAction = (filter: GridFilterModel) =>
+    colTypeMap.get(filter.columnName) === 'Boolean' ? '..Equal' : '..Is_In'
+
   const filterActions =
     filterColumnNames.length ?
       gridFilterModelList.map((filter) => {
         return filter.filterType === 'set' ?
-            '..Is_In'
+            getSetFilterAction(filter)
           : actionMap[filter.filterAction as FilterAction]
       })
     : 'Nothing'

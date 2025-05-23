@@ -4,9 +4,10 @@ import {
   type CustomDropdownItem,
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import FileBrowserWidget from '@/components/widgets/FileBrowserWidget.vue'
+import { FileType } from '@/providers/widgetRegistry/configuration'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type ToValue } from '@/util/reactivity'
-import { computed, type ComputedRef, h, toValue } from 'vue'
+import { Component, computed, type ComputedRef, h, toValue } from 'vue'
 
 const TYPES = new Map<BrowserItem, { label: string; icon?: Icon }>([
   ['directory', { label: 'Choose directory in cloud…' }],
@@ -20,23 +21,27 @@ export function useCloudBrowser({
   write,
   currentPath,
   setPath,
+  fileTypes,
 }: {
   dialogKind: ToValue<BrowserItem>
   write: ToValue<boolean>
   currentPath: ToValue<string | undefined>
   setPath: (type: 'file' | 'secret', path: string) => void
+  fileTypes: ToValue<FileType[] | undefined>
 }): ComputedRef<CustomDropdownItem[]> {
   function openCloudBrowser({ setActivity, close }: Actions) {
     setActivity(
       computed(() => {
         const type = toValue(dialogKind)
-        return h(FileBrowserWidget, {
+        return h(FileBrowserWidget as Component, {
           type,
           writeMode: toValue(write),
           choosenPath: toValue(currentPath) ?? '',
           onPathAccepted: (path: string) => {
             setPath(type === 'secret' ? 'secret' : 'file', path)
+            close()
           },
+          fileTypes: toValue(fileTypes),
           onClose: close,
         })
       }),

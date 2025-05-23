@@ -4,6 +4,7 @@
  * Context that injects form instance into the component tree.
  */
 import { createContext, useContext } from 'react'
+import { FormProvider as ReactHookFormProvider } from 'react-hook-form'
 import invariant from 'tiny-invariant'
 import type * as types from './types'
 import type { FormInstance, FormInstanceValidated } from './types'
@@ -19,15 +20,21 @@ const FormContext = createContext<FormContextType<any> | null>(null)
 
 /** Provides the form instance to the component tree. */
 export function FormProvider<Schema extends types.TSchema>(
-  props: FormContextType<Schema> & { children: React.ReactNode },
+  props: FormContextType<Schema> & {
+    children: React.ReactNode | ((form: types.UseFormReturn<Schema>) => React.ReactNode)
+  },
 ) {
   const { children, form } = props
 
+  // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any
+  const narrowedForm = form as types.UseFormReturn<any>
+
   return (
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any
-    <FormContext.Provider value={{ form: form as types.UseFormReturn<any> }}>
-      {children}
-    </FormContext.Provider>
+    <ReactHookFormProvider {...narrowedForm}>
+      <FormContext.Provider value={{ form: narrowedForm }}>
+        {typeof children === 'function' ? children(form) : children}
+      </FormContext.Provider>
+    </ReactHookFormProvider>
   )
 }
 

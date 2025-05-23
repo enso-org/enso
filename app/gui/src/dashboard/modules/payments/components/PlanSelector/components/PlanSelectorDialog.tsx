@@ -4,10 +4,10 @@
  * Dialog that shows the plan details, price, and the payment form.
  */
 
+import { useText } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import type { PaymentMethod } from '@stripe/stripe-js'
 import { useQuery } from '@tanstack/react-query'
-
-import { type GetText, useText } from '#/providers/TextProvider'
 
 import {
   Button,

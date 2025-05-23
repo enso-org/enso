@@ -1,6 +1,6 @@
 /** @file Rendering for a settings section. */
 import { Text } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { memo } from 'react'
 import type { SettingsContext, SettingsSectionData } from './data'
 import SettingsEntry from './Entry'

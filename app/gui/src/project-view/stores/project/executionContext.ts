@@ -13,7 +13,6 @@ import {
 import { AsyncQueue, type AbortScope } from '@/util/net'
 import * as array from 'lib0/array'
 import { ObservableV2 } from 'lib0/observable'
-import * as random from 'lib0/random'
 import { reactive } from 'vue'
 import {
   ErrorCode,
@@ -123,7 +122,7 @@ enum SyncStatus {
  * run only when the previous call is done.
  */
 export class ExecutionContext extends ObservableV2<ExecutionContextNotification> {
-  readonly id: ContextId = random.uuidv4() as ContextId
+  readonly id: ContextId = crypto.randomUUID() as ContextId
   private queue: AsyncQueue<ExecutionContextState>
   private syncStatus = SyncStatus.NOT_SYNCED
   private clearScheduled = false

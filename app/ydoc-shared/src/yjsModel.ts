@@ -1,5 +1,4 @@
 import * as object from 'lib0/object'
-import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { type SourceRange, type SourceRangeKey, sourceRangeKey } from './util/data/text'
 
@@ -200,7 +199,7 @@ export class IdMap {
     if (val !== undefined) {
       return val
     } else {
-      const newId = random.uuidv4() as ExternalId
+      const newId = crypto.randomUUID() as ExternalId
       this.rangeToExpr.set(key, newId)
       return newId
     }

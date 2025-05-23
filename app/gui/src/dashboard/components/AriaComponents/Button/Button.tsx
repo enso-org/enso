@@ -17,7 +17,7 @@ import { Icon as IconComponent } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useContextProps } from '../../hooks/useContextProps'
-import { useDialogContext } from '../Dialog'
+import { useDialogContext } from '../Dialog/DialogProvider'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
 import {
   ButtonContext,

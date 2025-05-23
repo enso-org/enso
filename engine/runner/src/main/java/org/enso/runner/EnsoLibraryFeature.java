@@ -2,39 +2,18 @@ package org.enso.runner;
 
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashSet;
 import java.util.TreeSet;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
-import org.enso.filesystem.FileSystem$;
-import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.PackageManager$;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
 
 public final class EnsoLibraryFeature implements Feature {
-  private static final String LIB_OUTPUT = "org.enso.feature.native.lib.output";
-  private final File nativeLibDir;
-
-  public EnsoLibraryFeature() {
-    var nativeLibOut = System.getProperty(LIB_OUTPUT);
-    if (nativeLibOut == null) {
-      throw new IllegalStateException("Missing system property: " + LIB_OUTPUT);
-    }
-    nativeLibDir = new File(nativeLibOut);
-    if (!nativeLibDir.exists() || !nativeLibDir.isDirectory()) {
-      var created = nativeLibDir.mkdirs();
-      if (!created) {
-        throw new IllegalStateException("Cannot create directory: " + nativeLibDir);
-      }
-    }
-  }
-
   @Override
   public void beforeAnalysis(BeforeAnalysisAccess access) {
 
@@ -68,7 +47,6 @@ public final class EnsoLibraryFeature implements Feature {
     */
 
     var classes = new TreeSet<String>();
-    var nativeLibPaths = new TreeSet<String>();
     try {
       for (var p : libs) {
         var result = PackageManager$.MODULE$.Default().loadPackage(p.toFile());
@@ -106,15 +84,6 @@ public final class EnsoLibraryFeature implements Feature {
               }
             }
           }
-          if (pkg.nativeLibraryDir().exists()) {
-            var nativeLibs =
-                NativeLibraryFinder.listAllNativeLibraries(pkg, FileSystem$.MODULE$.defaultFs());
-            for (var nativeLib : nativeLibs) {
-              var out = new File(nativeLibDir, nativeLib.getName());
-              Files.copy(nativeLib.toPath(), out.toPath(), StandardCopyOption.REPLACE_EXISTING);
-              nativeLibPaths.add(out.getAbsolutePath());
-            }
-          }
           pkg.markAotReady();
         }
       }
@@ -127,6 +96,5 @@ public final class EnsoLibraryFeature implements Feature {
       System.err.println("  " + className);
     }
     System.err.println("Registered " + classes.size() + " classes for reflection");
-    System.err.println("Copied native libraries: " + nativeLibPaths + " into " + nativeLibDir);
   }
 }

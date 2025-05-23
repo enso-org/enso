@@ -10,17 +10,17 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import {
-  Form,
-  Text,
-  type FieldComponentProps,
-  type FieldPath,
-  type FieldProps,
-  type FieldStateProps,
-  type FieldVariantProps,
-  type TestIdProps,
-  type TSchema,
+import type {
+  FieldComponentProps,
+  FieldPath,
+  FieldProps,
+  FieldStateProps,
+  FieldVariantProps,
+  TestIdProps,
+  TSchema,
 } from '#/components/AriaComponents'
+import { Form } from '#/components/AriaComponents/Form'
+import { Text } from '#/components/AriaComponents/Text'
 import SvgMask from '#/components/SvgMask'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
@@ -57,6 +57,7 @@ export interface InputProps<
   readonly icon?: ReactElement | string | null
   readonly variants?: ExtractFunction<typeof INPUT_STYLES> | undefined
   readonly fieldVariants?: FieldComponentProps<Schema>['variants']
+  readonly fieldClassName?: string | undefined
 }
 
 /** Basic input component. Input component is a component that is used to get user input in a text field. */
@@ -74,8 +75,10 @@ export const Input = forwardRef(function Input<
     variant,
     variants = INPUT_STYLES,
     fieldVariants,
+    fieldClassName,
     form: formRaw,
     className,
+    contextualHelp,
     testId: testIdRaw,
     ...inputProps
   } = props
@@ -136,10 +139,12 @@ export const Input = forwardRef(function Input<
         fullWidth: true,
         variants: fieldVariants,
         form: formInstance,
+        className: fieldClassName,
       })}
       ref={ref}
       name={name}
       data-testid={testId}
+      contextualHelp={contextualHelp}
     >
       <BasicInput
         {...aria.mergeProps<BasicInputProps>()(
