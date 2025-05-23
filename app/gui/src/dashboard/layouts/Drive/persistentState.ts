@@ -1,6 +1,7 @@
 /** @file Persistent state for the Drive. */
 import { useStore } from '#/hooks/storeHooks'
-import type { Path } from '#/services/Backend'
+import { Path } from '#/services/Backend'
+import LocalStorage from '#/utilities/LocalStorage'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -13,13 +14,13 @@ interface LocalRootDirectoryStoreState {
 const localRootDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
   persist(
     (): LocalRootDirectoryStoreState => ({
-      localRootDirectory: null,
+      localRootDirectory: (() => {
+        const oldPath = LocalStorage.getInstance().get('localRootDirectory')
+        return oldPath != null ? Path(oldPath) : null
+      })(),
       downloadDirectory: null,
     }),
-    {
-      name: 'enso-local-root-directory',
-      version: 1,
-    },
+    { name: 'enso-local-root-directory', version: 1 },
   ),
 )
 

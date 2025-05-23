@@ -71,9 +71,12 @@ import { useBackends, useRouter, useText } from '$/providers/react'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
+    /** @deprecated Prefer `useLocalRootDirectory` and `setLocalRootDirectory`. */
+    readonly localRootDirectory: string
     readonly preferredTimeZone: string
   }
 }
+LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
 /** Returns the URL to the main page. This is the current URL, with the current route removed. */
