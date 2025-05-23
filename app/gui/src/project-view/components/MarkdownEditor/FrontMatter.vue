@@ -70,9 +70,9 @@ const tags = computed<Tag[]>(() => {
     ...(metadata.modified ? [{ label: 'modified', value: metadata.modified }] : []),
     ...(metadata.removed ? [{ label: 'removed', value: metadata.removed }] : []),
     ...(metadata.upcoming ? [{ label: 'upcoming', value: metadata.upcoming }] : []),
-    ...(metadata.macros ?? []).map(({ description, value }) => ({
-      label: 'macro',
-      value: `${description} ${value}`,
+    ...(metadata.macros ?? []).map(({ description }) => ({
+      label: description,
+      value: '',
     })),
   ]
 })
