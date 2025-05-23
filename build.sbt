@@ -5456,7 +5456,7 @@ lazy val `std-microsoft` = project
       "com.microsoft.sqlserver"   % "mssql-jdbc"              % mssqlserverJDBCVersion,
       "com.azure"                 % "azure-identity"          % azureIdentityVersion,
       "com.azure.resourcemanager" % "azure-resourcemanager"   % azureResourceVersion,
-      "com.azure"                 % "azure-storage-blob"      % azureBlobStorageVersion,
+      "com.azure"                 % "azure-storage-blob"      % azureBlobStorageVersion
     ),
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
