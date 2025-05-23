@@ -8,27 +8,39 @@ polyglot java import java.nio.file.Path as JPath
 
 
 add_specs suite_builder = suite_builder.group "Embedded native libraries" group_builder->
-    group_builder.specify "should have no embedded native libraries in polyglot JARs" <|
-        jars_with_native_libs = collect_jars_with_native_libs libs_root_dir "**/*.jar"
-        total_native_libs_found = jars_with_native_libs.fold 0 \acc native_libs ->
-            acc + native_libs.length
-        clue = "No native libs in polyglot JARs expected, but found "
-            + total_native_libs_found.to_text
-            + " total native libraries: "
-            + jars_with_native_libs.to_text
-        Test.with_clue clue <|
-            jars_with_native_libs.is_empty . should_be_true
+    group_builder.specify "Embedded native libraries in all JARs should be the same as in native_libs.json" <|
+        expected_native_libs = (enso_project.data / "native_libs.json") . read JSON_Format
+        Test.with_clue "native_libs.json is present in the data dir" <|
+            expected_native_libs.is_error . should_be_false
+        stdlib_jars = collect_jars_with_native_libs libs_root_dir "**/*.jar"
+        component_jars = collect_jars_with_native_libs components_dir "*.jar"
+        all_jars_with_native_libs = dicts_to_json stdlib_jars component_jars strip_path=built_distribution_root
+        expect_same_js_objects expected_native_libs all_jars_with_native_libs
 
-    group_builder.specify "should have no embedded native libraries in JARs in component dir" <|
-        jars_with_native_libs = collect_jars_with_native_libs components_dir "*.jar"
-        total_native_libs_found = jars_with_native_libs.fold 0 \acc native_libs ->
-            acc + native_libs.length
-        clue = "No native libs in JARs in component dir expected, but found "
-            + total_native_libs_found.to_text
-            + " total native libraries: "
-            + jars_with_native_libs.to_text
-        Test.with_clue clue <|
-            jars_with_native_libs.is_empty . should_be_true
+
+expect_same_js_objects expected:JS_Object actual:JS_Object =
+    expected_fields = expected.field_names.sort
+    actual_fields = actual.field_names.sort
+    Test.with_clue "field names should equal: "  <|
+        expected_fields.should_equal actual_fields
+    expected_fields.each \field_name ->
+        expected_value = expected.at field_name . sort
+        actual_value = actual.at field_name . sort
+        Test.with_clue "values in field '"+field_name+"' should equal: " <|
+            expected_value.should_equal actual_value
+
+
+## Join two dictionaries collected by `collect_jars_with_native_libs` and strips
+   path prefix from the dictionary keys. Converts to `JS_Object`.
+dicts_to_json dict1:Dictionary dict2:Dictionary strip_path:File -> JS_Object =
+    vec = dict1.to_vector + dict2.to_vector
+    vec_with_relative_paths = vec.map \item ->
+        path = File.new (item.at 0)
+        value = item.at 1
+        path.is_descendant_of strip_path . should_be_true
+        relative = strip_path.relativize path . to_text
+        [relative, value]
+    JS_Object.from_pairs vec_with_relative_paths
 
 
 ## Collects all the native libraries from JAR archives, recursively found in the
