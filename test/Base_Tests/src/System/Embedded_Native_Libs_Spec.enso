@@ -7,15 +7,16 @@ polyglot java import java.util.jar.JarEntry
 polyglot java import java.nio.file.Path as JPath
 polyglot java import java.util.Enumeration
 
+only_on_linux = if System.os == "linux" then Nothing else "Test runs only on Linux"
 
 add_specs suite_builder = suite_builder.group "Embedded native libraries" group_builder->
-    group_builder.specify "Embedded native libraries in all JARs should be the same as in native_libs.json" <|
+    group_builder.specify "Embedded native libraries in all JARs should be the same as in native_libs.json" pending=only_on_linux <|
         expected_native_libs = (enso_project.data / "native_libs.json") . read JSON_Format
         Test.with_clue "native_libs.json is present in the data dir" <|
             expected_native_libs.is_error . should_be_false
         stdlib_jars = collect_jars_with_native_libs libs_root_dir "**/*.jar"
         component_jars = collect_jars_with_native_libs components_dir "*.jar"
-        all_jars_with_native_libs = dicts_to_json stdlib_jars component_jars strip_path=built_distribution_root
+        all_jars_with_native_libs = dicts_to_json stdlib_jars component_jars
         expect_same_js_objects expected_native_libs all_jars_with_native_libs
 
 
@@ -31,17 +32,23 @@ expect_same_js_objects expected:JS_Object actual:JS_Object =
             expected_value.should_equal actual_value
 
 
-## Join two dictionaries collected by `collect_jars_with_native_libs` and strips
-   path prefix from the dictionary keys. Converts to `JS_Object`.
-dicts_to_json dict1:Dictionary dict2:Dictionary strip_path:File -> JS_Object =
+## Trasnforms absolute path of the JAR by removing the `built_distribution_root` prefix,
+   and replacing any version specific subdir by "0.0.0-dev".
+transform_path path:Text -> Text =
+    file = File.new path
+    file.exists . should_be_true
+    file.is_descendant_of built_distribution_root . should_be_true
+    relative = built_distribution_root.relativize file . to_text
+    new_path_items = relative.split "/" . map \path_item ->
+        path_item.replace "\d+\.\d+\.\d+-dev" "0.0.0-dev"
+    new_path_items.join "/"
+
+
+## Join two dictionaries collected by `collect_jars_with_native_libs`
+   Converts to JS_Object
+dicts_to_json dict1:Dictionary dict2:Dictionary -> JS_Object =
     vec = dict1.to_vector + dict2.to_vector
-    vec_with_relative_paths = vec.map \item ->
-        path = File.new (item.at 0)
-        value = item.at 1
-        path.is_descendant_of strip_path . should_be_true
-        relative = strip_path.relativize path . to_text
-        [relative, value]
-    JS_Object.from_pairs vec_with_relative_paths
+    JS_Object.from_pairs vec
 
 
 ## Collects all the native libraries from JAR archives, recursively found in the
@@ -63,7 +70,12 @@ collect_jars_with_native_libs root_dir:File jar_files_filter:Text -> Dictionary 
 
     jars_with_native_libs_vect = dict.to_vector.filter \entry ->
         entry.at 1 . is_empty . not
-    Dictionary.from_vector jars_with_native_libs_vect
+    jars_with_transformed_paths = jars_with_native_libs_vect.map \item ->
+        path = item.at 0
+        value = item.at 1
+        transformed_path = transform_path path
+        [transformed_path, value]
+    Dictionary.from_vector jars_with_transformed_paths
 
 
 built_distribution_root -> File =
