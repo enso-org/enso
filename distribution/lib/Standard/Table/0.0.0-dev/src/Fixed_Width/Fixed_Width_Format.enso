@@ -215,7 +215,7 @@ Fixed_Width_Layout.from (that:Table) =
      - 0: The canonical name for the column
      - 1: A column name matcher
      - 2: True if the column is required
-find_named_columns table:Table (specs : Vector Vector) -> Vector (Column | Nothing) ! Illegal_Argument =
+private find_named_columns table:Table (specs : Vector Vector) -> Vector (Column | Nothing) ! Illegal_Argument =
     columns_or_nothings = specs.map spec->
         matcher = spec.at 1
         cols = table.columns_helper.select_columns matcher Case_Sensitivity.Insensitive True False Problem_Behavior.Ignore False
