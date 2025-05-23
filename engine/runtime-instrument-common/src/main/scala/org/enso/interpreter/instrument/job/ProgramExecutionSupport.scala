@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.job
 
 import org.slf4j.LoggerFactory
-
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
@@ -50,8 +49,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
 
 import java.io.File
 import java.util.UUID
-import java.util.function.Consumer
-
+import java.util.function.{Consumer, Supplier}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -625,6 +623,8 @@ object ProgramExecutionSupport {
     * the updates.
     *
     * @param contextId the identifier of an execution context
+    * @param runtimeCache runtime cache for this execution
+    * @param syncState reference to synchronization state
     * @param value the computed value
     * @param ctx the runtime context
     */
@@ -677,29 +677,33 @@ object ProgramExecutionSupport {
       )
       val holder = ctx.contextManager.getVisualizationHolder(contextId)
 
-      def makeCall(): AnyRef =
-        ctx.executionService.callFunctionWithInstrument(
-          holder,
-          visualization.cache,
-          runtimeCache,
-          visualization.module,
-          visualization.callback,
-          expressionValue +: visualization.arguments: _*
-        )
+      val makeCall = new Supplier[AnyRef] {
+        override def get(): AnyRef = {
+          ctx.executionService.callFunctionWithInstrument(
+            holder,
+            visualization.cache,
+            runtimeCache,
+            visualization.module,
+            visualization.callback,
+            expressionValue +: visualization.arguments: _*
+          )
+        }
+      }
 
       if (runtimeCache != null) {
-        def processUUID(id: UUID): Unit = {
-          logger.trace(
-            "Associating visualization [{}] with additional ID [{}]",
-            visualization.id,
-            id
-          )
-
-          holder.upsert(visualization, id)
+        val processUUID = new Consumer[UUID] {
+          override def accept(id: ContextId): Unit = {
+            logger.trace(
+              "Associating visualization [{}] with additional ID [{}]",
+              visualization.id,
+              id
+            )
+            holder.upsert(visualization, id)
+          }
         }
-        runtimeCache.runQuery(processUUID, () => makeCall())
+        runtimeCache.runQuery(processUUID, makeCall)
       } else {
-        makeCall()
+        makeCall.get()
       }
     }.toEither
 
@@ -778,6 +782,8 @@ object ProgramExecutionSupport {
   /** Compute the visualization of the expression value and send an update.
     *
     * @param contextId an identifier of an execution context
+    * @param runtimeCache runtime cache for this execution
+    * @param syncState reference to synchronization state
     * @param visualization the visualization data
     * @param expressionId the id of expression to visualise
     * @param expressionValue the value of expression to visualise
