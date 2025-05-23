@@ -104,7 +104,7 @@ export function documentationData(
   return {
     rawDocumentation: prerenderMarkdown(documentation ?? ''),
     documentation: parsed,
-    isMarkdownDocs: metadata != null,
+    isMarkdownDocs: true,
     docSummaryHtml: getDocumentationSummary(parsed),
     iconName: iconName != null ? (iconName as Icon) : undefined,
     groupIndex,

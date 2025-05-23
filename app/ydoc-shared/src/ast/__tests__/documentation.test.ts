@@ -122,6 +122,10 @@ describe('Function documentation (Markdown)', () => {
       markdown: '# Header\nParagraph',
     },
     {
+      source: '## # Header\n   - List',
+      markdown: '# Header\n- List',
+    },
+    {
       source: '## Trailing whitespace \n\n   Second paragraph',
       markdown: 'Trailing whitespace \nSecond paragraph',
     },
