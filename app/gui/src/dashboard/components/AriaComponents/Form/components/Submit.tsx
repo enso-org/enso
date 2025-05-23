@@ -72,7 +72,7 @@ export function Submit<
 
   return (
     <Button
-      type="submit"
+      type="button"
       variant={variant}
       size={size}
       isLoading={loading || formState.isSubmitting}
@@ -80,6 +80,8 @@ export function Submit<
         if (value != null && name != null) {
           form.setValue(name, value)
         }
+
+        void form.submit()
 
         return onPress?.(event)
       }}
