@@ -2,8 +2,21 @@
 
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { Button, Dialog, Form, Input, Popover, Separator, Text } from '#/components/AriaComponents'
+import { AnimatedBackground } from '#/components/AnimatedBackground'
+import {
+  Button,
+  Check,
+  Dialog,
+  Form,
+  Input,
+  Popover,
+  Separator,
+  Text,
+} from '#/components/AriaComponents'
+import ColorPicker from '#/components/ColorPicker'
+import { Scroller } from '#/components/Scroller'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
 import {
   COLORS,
@@ -27,11 +40,6 @@ import {
   useFilter,
   type Selection,
 } from 'react-aria-components'
-import { AnimatedBackground } from '../components/AnimatedBackground'
-import { Check } from '#/components/AriaComponents'
-import ColorPicker from '#/components/ColorPicker'
-import { Scroller } from '#/components/Scroller'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
 
 /** Props for a {@link ManageLabelsModal}. */
