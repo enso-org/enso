@@ -24,8 +24,7 @@ import project.Table.Table
    A fixed-width format defines its columns as fixed column offsets and widths.
    The columns are defined in a `Fixed_Width_Layout` object.
 type Fixed_Width_Format
-    ## MACRO example layout=[12]
-       Read fixed-width files into a Table.
+    ## Read fixed-width files into a Table.
 
        Fixed-width files require have a `Fixed_Width_Layout` that specifies the
        start and width of each column, along with an optional column name. This
