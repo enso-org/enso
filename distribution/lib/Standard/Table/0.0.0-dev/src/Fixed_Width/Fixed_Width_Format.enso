@@ -8,6 +8,7 @@ import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Errors.Common import Type_Error
 from Standard.Base.Metadata.Choice import Option
 
+import project.Column.Column
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Fixed_Width.Internal.Column_Namer.Column_Namer
@@ -198,6 +199,13 @@ Fixed_Width_Layout.from (that:Table) =
         if start.is_nothing then Fixed_Width_Column_Description.Width width name else
             Fixed_Width_Column_Description.Start_And_Width start width name
     Fixed_Width_Layout.from_descriptions descriptions
+
+Fixed_Width_Layout.from (that:Column) =
+    table =
+        names = Column.from_vector "names" (Vector.new that.length (_->Nothing))
+        starts = Column.from_vector "starts" (Vector.new that.length (_->Nothing))
+        Table.new [names, starts, that]
+    Fixed_Width_Layout.from table
 
 ## PRIVATE
 Fixed_Width_Layout.from (that : Function) =
