@@ -13,10 +13,6 @@ import url from 'node:url'
 import invariant from 'tiny-invariant'
 
 const UNSAFE_SKIP_BUILD = process.env.PW_UNSAFE_SKIP_BUILD === 'true'
-const WORKER_COUNT_OVERRIDE =
-  process.env.PW_WORKER_COUNT == null ? null
-  : process.env.PW_WORKER_COUNT.endsWith('%') ? process.env.PW_WORKER_COUNT
-  : Number(process.env.PW_WORKER_COUNT)
 const DEBUG = process.env.DEBUG_TEST === 'true'
 const isCI = process.env.CI === 'true'
 const isProd = process.env.PROD === 'true'
@@ -24,7 +20,7 @@ const TIMEOUT_MS = DEBUG ? 100_000_000 : 25_000
 
 // We tend to use less CPU on CI to reduce the number of failures due to timeouts.
 // Instead of using workers on CI, we use shards to run tests in parallel.
-const WORKERS = isCI ? 2 : (WORKER_COUNT_OVERRIDE ?? '35%')
+const WORKERS = isCI ? 2 : '35%'
 
 const dirName = path.dirname(url.fileURLToPath(import.meta.url))
 
