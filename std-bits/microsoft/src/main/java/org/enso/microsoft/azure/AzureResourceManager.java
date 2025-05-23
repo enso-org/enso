@@ -5,7 +5,6 @@ import com.azure.core.management.profile.AzureProfile;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,13 +14,6 @@ public final class AzureResourceManager {
         .authenticate(CredentialHelper.toTokenCredential(credential), new AzureProfile(environment));
   }
 
-  private static Map<String, List<String>> tenantCache = new LinkedHashMap<>(1000, 0.75f, true) {
-    @Override
-    protected boolean removeEldestEntry(java.util.Map.Entry<String, List<String>> eldest) {
-      return size() > 1000;
-    }
-  };
-
   /**
    * Gets a list of Azure tenants associated with the provided credential and environment.
    *
@@ -30,23 +22,15 @@ public final class AzureResourceManager {
    * @return a list of Azure tenants.
    */
   public static List<String> tenants(AzureCredential credential, AzureEnvironment environment) {
-    var cacheKey = credential.uniqueId() + environment.toString();
-    return tenantCache.computeIfAbsent(cacheKey, k -> {
-      var tenants = getClient(credential, environment).tenants();
-      var result = new ArrayList<String>();
-      for (var tenant : tenants.list()) {
-        result.add(tenant.tenantId());
-      }
-      return result;
-    });
+    var tenants = getClient(credential, environment).tenants();
+    var result = new ArrayList<String>();
+    for (var tenant : tenants.list()) {
+      result.add(tenant.tenantId());
+    }
+    return result;
   }
 
-  private static Map<String, List<AzureSubscription>> subscriptionsCache = new LinkedHashMap<>(1000, 0.75f, true) {
-    @Override
-    protected boolean removeEldestEntry(java.util.Map.Entry<String, List<AzureSubscription>> eldest) {
-      return size() > 1000;
-    }
-  };
+  private static final Map<String, List<AzureSubscription>> subscriptionsCache = new LRUCache<>(100);
 
   /**
    * Represents an Azure subscription.
@@ -71,7 +55,7 @@ public final class AzureResourceManager {
         result.add(new AzureSubscription(subscription.subscriptionId(), subscription.displayName()));
       }
       return result;
-    }
+    });
   }
 
   /**

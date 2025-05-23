@@ -5,6 +5,7 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import project.Azure_Credential.Azure_Credential
 import project.Azure_Environment.Azure_Environment
 from project.Azure_Credential import make_subscription_selector
+from project.Internal.Azure_Helpers import handle_azure_exceptions
 
 polyglot java import org.enso.microsoft.azure.AzureBlobStorage
 polyglot java import org.enso.microsoft.azure.AzureResourceManager
@@ -12,7 +13,7 @@ polyglot java import org.enso.microsoft.azure.AzureResourceManager
 type Azure_Storage
     ## Lists the storage accounts in the given subscription.
     @subscription make_subscription_selector
-    accounts environment:Azure_Environment=..Default cred:Azure_Credential=..Default (subscription_id:Text|Nothing=Nothing) -> Vector Azure_Storage_Account =
+    accounts environment:Azure_Environment=..Default cred:Azure_Credential=..Default (subscription_id:Text|Nothing=Nothing) -> Vector Azure_Storage_Account = handle_azure_exceptions <|
         java_cred = cred.to_java
         java_env = environment.to_java
         as_array = AzureResourceManager.storageAccounts java_cred java_env subscription_id
@@ -29,7 +30,7 @@ type Azure_Storage
     ## Lists the Blob Files in the given storage account and container.
     @subscription make_subscription_selector
     list_blob account:Text=(Missing_Argument.throw "account") container:Text=(Missing_Argument.throw "container") prefix:Text="" cred:Azure_Credential=..Default -> Vector Text =
-
+        []
 
 ## Enso representation of the Azure Storage Account
 type Azure_Storage_Account
