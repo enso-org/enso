@@ -80,7 +80,19 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
-  const downloadDirectory = useDownloadDirectory()
+  const { localBackend = null } = useBackends()
+  const { data: defaultDownloadDirectory } = useSuspenseQuery({
+    queryKey: ['downloadDirectory'],
+    queryFn: async () => {
+      if (localBackend) {
+        const response = await fetch('/api/download-directory')
+        return await response.text()
+      } else {
+        return null
+      }
+    },
+  })
+  const downloadDirectory = useDownloadDirectory() ?? defaultDownloadDirectory
   const canDownload = useCanDownload()
   const canExport = useStore(driveStore, ({ selectedIds }) =>
     isCloud ? false : selectedIds.size !== 0,
@@ -108,7 +120,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
       pasteData
     : null
 
-  const { localBackend = null } = useBackends()
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
   const newFolder = useNewFolder(backend, category)
   const uploadFilesRaw = useUploadFiles(backend, category)
@@ -197,10 +208,12 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 
   const exportArchiveCallback = useEventCallback(async () => {
     const { selectedIds } = driveStore.getState()
+    const secondsString = new Date().getSeconds().toString().padStart(2, '0')
+    const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
     const [filePathRaw] =
       (await window.fileBrowserApi?.openFileBrowser(
         'filePath',
-        `${downloadDirectory}/${PRODUCT_NAME} ${toReadableIsoString(new Date()).replace(/[:]/g, ' ')}.zip`,
+        `${downloadDirectory}/${PRODUCT_NAME} ${dateString}.zip`,
       )) ?? []
     if (window.fileBrowserApi && filePathRaw == null) {
       // Assume that the user cancelled the action.

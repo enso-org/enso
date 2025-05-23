@@ -394,11 +394,12 @@ export class Server {
             let number = 0
             do {
               number += 1
-              const date = toReadableIsoString(new Date()).replace(/[:]/g, ' ')
+              const secondsString = new Date().getSeconds().toString().padStart(2, '0')
+              const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
               const suffix = number === 1 ? '' : ` (${number})`
               generatedFilePath = path.join(
                 folderPath,
-                `${PRODUCT_NAME} archive ${date}${suffix}.zip`,
+                `${PRODUCT_NAME} archive ${dateString}${suffix}.zip`,
               )
             } while (
               await stat(generatedFilePath).then(
@@ -480,7 +481,7 @@ export class Server {
           }
           const content = JSON.stringify(assets)
           response
-            .writeHead(HTTP_STATUS_OK, undefined, [
+            .writeHead(HTTP_STATUS_OK, [
               ['Content-Length', String(content.length)],
               ['Content-Type', 'application/json'],
               ...COOP_COEP_CORP_HEADERS,
@@ -575,7 +576,7 @@ export class Server {
             error: `Unknown endpoint '${route.pathname}'`,
           })
           response
-            .writeHead(HTTP_STATUS_NOT_FOUND, undefined, [
+            .writeHead(HTTP_STATUS_NOT_FOUND, [
               ['Content-Length', String(content.length)],
               ['Content-Type', 'application/json'],
               ...COOP_COEP_CORP_HEADERS,
@@ -584,14 +585,31 @@ export class Server {
           return
         }
       }
-    } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
-      response
-        .writeHead(HTTP_STATUS_OK, [
-          ['Content-Length', String(this.projectsRootDirectory.length)],
-          ['Content-Type', 'text/plain'],
-          ...COOP_COEP_CORP_HEADERS,
-        ])
-        .end(this.projectsRootDirectory)
+    } else if (request.method === 'GET' && requestPath?.startsWith('/api/')) {
+      switch (requestPath) {
+        case '/api/root-directory': {
+          const path = this.projectsRootDirectory
+          response
+            .writeHead(HTTP_STATUS_OK, [
+              ['Content-Length', String(path.length)],
+              ['Content-Type', 'text/plain'],
+              ...COOP_COEP_CORP_HEADERS,
+            ])
+            .end(path)
+          break
+        }
+        case '/api/download-directory': {
+          const path = app.getPath('downloads')
+          response
+            .writeHead(HTTP_STATUS_OK, [
+              ['Content-Length', String(path.length)],
+              ['Content-Type', 'text/plain'],
+              ...COOP_COEP_CORP_HEADERS,
+            ])
+            .end(path)
+          break
+        }
+      }
     } else if (this.devServer) {
       this.devServer.middlewares(request, response)
     } else {
