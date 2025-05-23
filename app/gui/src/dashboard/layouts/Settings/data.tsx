@@ -13,12 +13,14 @@ import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
+import { setDownloadDirectory, setLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import type Backend from '#/services/Backend'
 import {
   EmailAddress,
   HttpsUrl,
   isUserOnPlanWithOrganization,
+  Path,
   type OrganizationInfo,
   type User,
 } from '#/services/Backend'
@@ -286,19 +288,21 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           settingsFormEntryData({
             type: 'form',
             schema: z.object({
-              localRootPath: z.string(),
+              localRootDirectory: z.string(),
             }),
-            getValue: ({ localBackend }) => ({ localRootPath: localBackend?.rootPath() ?? '' }),
-            onSubmit: ({ updateLocalRootPath }, { localRootPath }) => {
-              updateLocalRootPath(localRootPath)
+            getValue: ({ localRootDirectory }) => ({
+              localRootDirectory: String(localRootDirectory ?? ''),
+            }),
+            onSubmit: (_, { localRootDirectory }) => {
+              setLocalRootDirectory(Path(localRootDirectory))
             },
-            inputs: [{ nameId: 'localRootPathSettingsInput', name: 'localRootPath' }],
+            inputs: [{ nameId: 'localRootPathSettingsInput', name: 'localRootDirectory' }],
           }),
           {
             type: 'custom',
             aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
             render: (context) => (
-              <ButtonGroup>
+              <ButtonGroup className="grow-0">
                 {window.fileBrowserApi && (
                   <Button
                     size="small"
@@ -307,7 +311,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                       const [newDirectory] =
                         (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
                       if (newDirectory != null) {
-                        context.updateLocalRootPath(normalizePath(newDirectory))
+                        setLocalRootDirectory(Path(normalizePath(newDirectory)))
                       }
                     }}
                   >
@@ -318,9 +322,57 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                   size="small"
                   variant="outline"
                   className="self-start"
-                  onPress={context.resetLocalRootPath}
+                  onPress={() => {
+                    setLocalRootDirectory(null)
+                  }}
                 >
                   {context.getText('resetLocalRootDirectory')}
+                </Button>
+              </ButtonGroup>
+            ),
+          },
+          settingsFormEntryData({
+            type: 'form',
+            schema: z.object({
+              downloadDirectory: z.string(),
+            }),
+            getValue: ({ downloadDirectory }) => ({
+              downloadDirectory: String(downloadDirectory ?? ''),
+            }),
+            onSubmit: (_, { downloadDirectory }) => {
+              setDownloadDirectory(Path(downloadDirectory))
+            },
+            inputs: [{ nameId: 'downloadDirectorySettingsInput', name: 'downloadDirectory' }],
+          }),
+          {
+            type: 'custom',
+            aliasesId: 'downloadDirectoryButtonSettingsCustomEntryAliases',
+            render: (context) => (
+              <ButtonGroup className="grow-0">
+                {window.fileBrowserApi && (
+                  <Button
+                    size="small"
+                    variant="outline"
+                    onPress={async () => {
+                      const [newDirectory] =
+                        (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                      if (newDirectory != null) {
+                        setDownloadDirectory(Path(normalizePath(newDirectory)))
+                      }
+                    }}
+                  >
+                    {context.getText('browseForNewDownloadDirectory')}
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  variant="outline"
+                  className="self-start"
+                  onPress={() => {
+                    setDownloadDirectory(null)
+                  }}
+                >
+                  {context.getText('resetDownloadDirectory')}
                 </Button>
               </ButtonGroup>
             ),
@@ -500,8 +552,8 @@ export interface SettingsContext {
   readonly updateOrganization: (
     variables: Parameters<Backend['updateOrganization']>,
   ) => Promise<OrganizationInfo | null | undefined>
-  readonly updateLocalRootPath: (rootPath: string) => void
-  readonly resetLocalRootPath: () => void
+  readonly localRootDirectory: Path | null
+  readonly downloadDirectory: Path | null
   readonly toastAndLog: ToastAndLogCallback
   readonly getText: GetText
   readonly queryClient: QueryClient
@@ -535,8 +587,8 @@ export interface SettingsInputData<T> {
 export interface SettingsFormEntryData<T> {
   readonly type: 'form'
   readonly schema: z.ZodType<T> | ((context: SettingsContext) => z.ZodType<T>)
-  readonly getValue: (context: SettingsContext) => T
-  readonly onSubmit: (context: SettingsContext, value: T) => Promise<void> | void
+  readonly getValue: (context: SettingsContext) => NoInfer<T>
+  readonly onSubmit: (context: SettingsContext, value: NoInfer<T>) => Promise<void> | void
   readonly inputs: readonly SettingsInputData<NoInfer<T>>[]
   readonly getVisible?: (context: SettingsContext) => boolean
 }

@@ -38,7 +38,7 @@ import {
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
-import { useDownloadDirectory } from '#/layouts/Drive/persistentState'
+import { useDownloadDirectory } from '#/layouts/Drive/useDownloadDirectory'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
@@ -81,18 +81,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
   const { localBackend = null } = useBackends()
-  const { data: defaultDownloadDirectory } = useSuspenseQuery({
-    queryKey: ['downloadDirectory'],
-    queryFn: async () => {
-      if (localBackend) {
-        const response = await fetch('/api/download-directory')
-        return await response.text()
-      } else {
-        return null
-      }
-    },
-  })
-  const downloadDirectory = useDownloadDirectory() ?? defaultDownloadDirectory
+  const downloadDirectory = useDownloadDirectory()
   const canDownload = useCanDownload()
   const canExport = useStore(driveStore, ({ selectedIds }) =>
     isCloud ? false : selectedIds.size !== 0,

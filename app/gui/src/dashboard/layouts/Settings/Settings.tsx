@@ -6,12 +6,12 @@ import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHook
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { setLocalRootDirectory, useLocalRootDirectory } from '#/layouts/Drive/persistentState'
+import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
+import { useDownloadDirectory } from '#/layouts/Drive/useDownloadDirectory'
 import SearchBar from '#/layouts/SearchBar'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
 import { useBackends, useText } from '$/providers/react'
@@ -56,15 +56,8 @@ export function Settings() {
     backendMutationOptions(backend, 'updateOrganization'),
   ).mutateAsync
 
-  const localRootDirectory = useLocalRootDirectory()
-  const updateLocalRootPath = useEventCallback((value: string) => {
-    setLocalRootDirectory(Path(value))
-    localBackend?.setRootPath(Path(value))
-  })
-  const resetLocalRootPath = useEventCallback(() => {
-    setLocalRootDirectory(null)
-    localBackend?.resetRootPath()
-  })
+  const localRootDirectory = useLocalRootDirectory() ?? localBackend?.rootPath() ?? null
+  const downloadDirectory = useDownloadDirectory()
 
   const isMatch = React.useMemo(() => {
     const regex = new RegExp(regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
@@ -80,9 +73,8 @@ export function Settings() {
       organization,
       updateUser,
       updateOrganization,
-      localRootPath: localRootDirectory,
-      updateLocalRootPath,
-      resetLocalRootPath,
+      localRootDirectory,
+      downloadDirectory,
       toastAndLog,
       getText,
       queryClient,
@@ -98,15 +90,14 @@ export function Settings() {
       localBackend,
       organization,
       toastAndLog,
-      updateLocalRootPath,
-      resetLocalRootPath,
-      updateOrganization,
       updateUser,
+      updateOrganization,
+      localRootDirectory,
+      downloadDirectory,
       user,
       queryClient,
       isMatch,
       changePassword,
-      localRootDirectory,
       preferredTimeZone,
       setPreferredTimeZone,
     ],
