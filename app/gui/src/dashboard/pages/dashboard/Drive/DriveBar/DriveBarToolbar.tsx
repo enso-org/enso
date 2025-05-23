@@ -188,7 +188,13 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 
   const exportArchiveCallback = useEventCallback(async () => {
     const { selectedIds } = driveStore.getState()
-    await exportArchive([{ assetIds: [...selectedIds], filePath: null }])
+    const [filePathRaw] = (await window.fileBrowserApi?.openFileBrowser('filePath')) ?? []
+    if (window.fileBrowserApi && filePathRaw == null) {
+      // Assume that the user cancelled the action.
+      return
+    }
+    const filePath = filePathRaw != null ? Path(filePathRaw) : null
+    await exportArchive([{ assetIds: [...selectedIds], filePath }])
   })
 
   const downloadFilesCallback = useEventCallback(async () => {
