@@ -6,6 +6,7 @@ import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHook
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { setLocalRootDirectory, useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import SearchBar from '#/layouts/SearchBar'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
@@ -55,13 +56,13 @@ export function Settings() {
     backendMutationOptions(backend, 'updateOrganization'),
   ).mutateAsync
 
-  const [localRootDirectory, setLocalRootDirectory] = useLocalStorageState('localRootDirectory')
+  const localRootDirectory = useLocalRootDirectory()
   const updateLocalRootPath = useEventCallback((value: string) => {
-    setLocalRootDirectory(value)
+    setLocalRootDirectory(Path(value))
     localBackend?.setRootPath(Path(value))
   })
   const resetLocalRootPath = useEventCallback(() => {
-    setLocalRootDirectory(undefined)
+    setLocalRootDirectory(null)
     localBackend?.resetRootPath()
   })
 

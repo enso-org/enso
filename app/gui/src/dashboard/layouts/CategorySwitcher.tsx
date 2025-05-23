@@ -27,6 +27,7 @@ import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { Path } from '#/services/Backend'
 
 /** Metadata for a category. */
 interface CategoryMetadata {
@@ -410,7 +411,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                       (directory) => directory.rootPath === newDirectory,
                     )
 
-                    const newCategory = addedDirectory ?? addDirectory(newDirectory)
+                    const newCategory = addedDirectory ?? addDirectory(Path(newDirectory))
                     setCategoryId(newCategory.id)
                   }
                 }}

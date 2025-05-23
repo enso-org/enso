@@ -60,10 +60,10 @@ import RemoteBackend from '#/services/RemoteBackend'
 
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
-import { Path } from '#/utilities/path'
 
 import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
+import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter, useText } from '$/providers/react'
@@ -71,11 +71,9 @@ import { useBackends, useRouter, useText } from '$/providers/react'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly localRootDirectory: string
     readonly preferredTimeZone: string
   }
 }
-LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
 /** Returns the URL to the main page. This is the current URL, with the current route removed. */
@@ -246,11 +244,11 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
 
 /** Keep `localBackend.rootPath` in sync with the saved root path state. */
 function LocalBackendPathSynchronizer() {
-  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
+  const localRootDirectory = useLocalRootDirectory()
   const { localBackend } = useBackends()
 
   if (localRootDirectory != null) {
-    localBackend?.setRootPath(Path(localRootDirectory))
+    localBackend?.setRootPath(localRootDirectory)
   } else {
     localBackend?.resetRootPath()
   }

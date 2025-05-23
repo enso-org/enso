@@ -11,17 +11,19 @@ import RecentIcon from '#/assets/recent.svg'
 import { useUser } from '#/providers/AuthProvider'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import {
+  setLocalDirectories,
+  useLocalDirectories,
+} from '#/layouts/Drive/Categories/persistentState'
+import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import type Backend from '#/services/Backend'
 import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
-import LocalStorage from '#/utilities/LocalStorage'
 import { useBackends, useText } from '$/providers/react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
-import { z } from 'zod'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type {
@@ -39,17 +41,6 @@ import type {
   TrashCategory,
 } from './Category'
 import { isCloudCategory, isLocalCategory } from './Category'
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly localRootDirectories: z.infer<typeof LOCAL_ROOT_DIRECTORIES_SCHEMA>
-  }
-}
-
-const LOCAL_ROOT_DIRECTORIES_SCHEMA = z.string().array().readonly()
-
-LocalStorage.registerKey('localRootDirectories', { schema: LOCAL_ROOT_DIRECTORIES_SCHEMA })
 
 /** State for {@link categoryIdStore}. */
 interface CategoryIdStoreState {
@@ -184,15 +175,11 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
 function useLocalCategoryList() {
   const { getText } = useText()
   const { localBackend } = useBackends()
-  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-  const rootPath = localRootDirectory != null ? Path(localRootDirectory) : localBackend?.rootPath()
-  const [localRootDirectories, setLocalRootDirectories] = useLocalStorageState(
-    'localRootDirectories',
-    [],
-  )
+  const rootPath = useLocalRootDirectory() ?? localBackend?.rootPath()
+  const localDirectories = useLocalDirectories()
 
-  const addDirectory = useEventCallback((directory: string) => {
-    setLocalRootDirectories([...localRootDirectories, directory])
+  const addDirectory = useEventCallback((directory: Path) => {
+    setLocalDirectories([...localDirectories, directory])
 
     return createLocalDirectoryCategory(directory)
   })
@@ -201,7 +188,7 @@ function useLocalCategoryList() {
     const category = getCategoryById(directory)
 
     if (category != null && category.type === 'local-directory') {
-      setLocalRootDirectories(localRootDirectories.filter((d) => d !== category.rootPath))
+      setLocalDirectories(localDirectories.filter((d) => d !== category.rootPath))
     }
   })
 
@@ -250,17 +237,19 @@ function useLocalCategoryList() {
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
 
-  const localDirectories = localRootDirectories.map<LocalDirectoryCategory>(
+  const localDirectoryCategories = localDirectories.map<LocalDirectoryCategory>(
     createLocalDirectoryCategory,
   )
 
   const categories =
-    localBackend == null ? [] : ([...predefinedLocalCategories, ...localDirectories] as const)
+    localBackend == null ?
+      []
+    : ([...predefinedLocalCategories, ...localDirectoryCategories] as const)
 
   return {
     categories,
     localCategory,
-    directories: localDirectories,
+    directories: localDirectoryCategories,
     addDirectory,
     removeDirectory,
     getCategoryById,
