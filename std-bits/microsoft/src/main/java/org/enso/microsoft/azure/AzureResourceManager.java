@@ -3,15 +3,15 @@ package org.enso.microsoft.azure;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.resourcemanager.storage.models.StorageAccount;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public final class AzureResourceManager {
-  private static com.azure.resourcemanager.AzureResourceManager.Authenticated getClient(AzureCredential credential, AzureEnvironment environment) {
-    return com.azure.resourcemanager.AzureResourceManager
-        .authenticate(CredentialHelper.toTokenCredential(credential), new AzureProfile(environment));
+  private static com.azure.resourcemanager.AzureResourceManager.Authenticated getClient(
+      AzureCredential credential, AzureEnvironment environment) {
+    return com.azure.resourcemanager.AzureResourceManager.authenticate(
+        CredentialHelper.toTokenCredential(credential), new AzureProfile(environment));
   }
 
   /**
@@ -30,7 +30,8 @@ public final class AzureResourceManager {
     return result;
   }
 
-  private static final Map<String, List<AzureSubscription>> subscriptionsCache = new LRUCache<>(100);
+  private static final Map<String, List<AzureSubscription>> subscriptionsCache =
+      new LRUCache<>(100);
 
   /**
    * Represents an Azure subscription.
@@ -46,16 +47,20 @@ public final class AzureResourceManager {
    * @param credential the Azure credential.
    * @param environment the Azure environment.
    */
-  public static List<AzureSubscription> subscriptions(AzureCredential credential, AzureEnvironment environment) {
+  public static List<AzureSubscription> subscriptions(
+      AzureCredential credential, AzureEnvironment environment) {
     var cacheKey = credential.uniqueId() + environment.toString();
-    return subscriptionsCache.computeIfAbsent(cacheKey, k -> {
-      var subscriptions = getClient(credential, environment).subscriptions();
-      var result = new ArrayList<AzureSubscription>();
-      for (var subscription : subscriptions.list()) {
-        result.add(new AzureSubscription(subscription.subscriptionId(), subscription.displayName()));
-      }
-      return result;
-    });
+    return subscriptionsCache.computeIfAbsent(
+        cacheKey,
+        k -> {
+          var subscriptions = getClient(credential, environment).subscriptions();
+          var result = new ArrayList<AzureSubscription>();
+          for (var subscription : subscriptions.list()) {
+            result.add(
+                new AzureSubscription(subscription.subscriptionId(), subscription.displayName()));
+          }
+          return result;
+        });
   }
 
   /**
@@ -65,8 +70,12 @@ public final class AzureResourceManager {
    * @param environment the Azure environment.
    * @param subscriptionId the Azure subscription (if null use the Default subscription).
    * @param inner the underlying storage account object.
-   * */
-  public record AzureStorageAccount(AzureCredential credential, AzureEnvironment environment, String subscriptionId, StorageAccount inner) {
+   */
+  public record AzureStorageAccount(
+      AzureCredential credential,
+      AzureEnvironment environment,
+      String subscriptionId,
+      StorageAccount inner) {
     public String id() {
       return inner.id();
     }
@@ -84,9 +93,13 @@ public final class AzureResourceManager {
     }
   }
 
-  public static List<AzureStorageAccount> storageAccounts(AzureCredential credential, AzureEnvironment environment, String subscriptionId) {
+  public static List<AzureStorageAccount> storageAccounts(
+      AzureCredential credential, AzureEnvironment environment, String subscriptionId) {
     var client = getClient(credential, environment);
-    var forSubs = subscriptionId == null ? client.withDefaultSubscription() : client.withSubscription(subscriptionId);
+    var forSubs =
+        subscriptionId == null
+            ? client.withDefaultSubscription()
+            : client.withSubscription(subscriptionId);
 
     var result = new ArrayList<AzureStorageAccount>();
     var storageAccounts = forSubs.storageAccounts();

@@ -3,7 +3,6 @@ package org.enso.microsoft.azure;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -34,7 +33,8 @@ public final class AzureBlobStorage {
     return result;
   }
 
-  public static List<String> listBlob(AzureCredential credential, String storageAccountName, String containerName, String prefix) {
+  public static List<String> listBlob(
+      AzureCredential credential, String storageAccountName, String containerName, String prefix) {
     LOGGER.warn("List Blob Storage: {} : {}", storageAccountName);
 
     var client =
