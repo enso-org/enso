@@ -39,8 +39,9 @@ transform_path path:Text -> Text =
     file.exists . should_be_true
     file.is_descendant_of built_distribution_root . should_be_true
     relative = built_distribution_root.relativize file . to_text
+    regex = "\d+\.\d+\.\d+-dev".to_regex
     new_path_items = relative.split "/" . map \path_item ->
-        path_item.replace "\d+\.\d+\.\d+-dev" "0.0.0-dev"
+        path_item.replace regex "0.0.0-dev"
     new_path_items.join "/"
 
 
