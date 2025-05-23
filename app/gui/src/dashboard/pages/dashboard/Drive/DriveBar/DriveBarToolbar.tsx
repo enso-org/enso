@@ -38,6 +38,7 @@ import {
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
+import { useDownloadDirectory } from '#/layouts/Drive/persistentState'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
@@ -52,6 +53,8 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { PRODUCT_NAME } from 'enso-common'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
 import { toast } from 'react-toastify'
@@ -77,6 +80,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
+  const downloadDirectory = useDownloadDirectory()
   const canDownload = useCanDownload()
   const canExport = useStore(driveStore, ({ selectedIds }) =>
     isCloud ? false : selectedIds.size !== 0,
@@ -193,7 +197,11 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 
   const exportArchiveCallback = useEventCallback(async () => {
     const { selectedIds } = driveStore.getState()
-    const [filePathRaw] = (await window.fileBrowserApi?.openFileBrowser('filePath')) ?? []
+    const [filePathRaw] =
+      (await window.fileBrowserApi?.openFileBrowser(
+        'filePath',
+        `${downloadDirectory}/${PRODUCT_NAME} ${toReadableIsoString(new Date()).replace(/[:]/g, ' ')}.zip`,
+      )) ?? []
     if (window.fileBrowserApi && filePathRaw == null) {
       // Assume that the user cancelled the action.
       return

@@ -7,13 +7,20 @@ import { persist } from 'zustand/middleware'
 /** State for {@link categoryIdStore}. */
 interface LocalRootDirectoryStoreState {
   readonly localRootDirectory: Path | null
+  readonly downloadDirectory: Path | null
 }
 
 const localRootDirectoryStore = createStore<LocalRootDirectoryStoreState>()(
-  persist((): LocalRootDirectoryStoreState => ({ localRootDirectory: null }), {
-    name: 'enso-local-root-directory',
-    version: 1,
-  }),
+  persist(
+    (): LocalRootDirectoryStoreState => ({
+      localRootDirectory: null,
+      downloadDirectory: null,
+    }),
+    {
+      name: 'enso-local-root-directory',
+      version: 1,
+    },
+  ),
 )
 
 /** The saved local root directory. */
@@ -24,4 +31,14 @@ export function useLocalRootDirectory() {
 /** Update the saved local root directory. */
 export function setLocalRootDirectory(localRootDirectory: Path | null) {
   localRootDirectoryStore.setState({ localRootDirectory })
+}
+
+/** The saved local root directory. */
+export function useDownloadDirectory() {
+  return useStore(localRootDirectoryStore, ({ downloadDirectory }) => downloadDirectory)
+}
+
+/** Update the saved local root directory. */
+export function setDownloadDirectory(downloadDirectory: Path | null) {
+  localRootDirectoryStore.setState({ downloadDirectory })
 }
