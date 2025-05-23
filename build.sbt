@@ -4091,6 +4091,7 @@ lazy val `engine-runner` = project
               "com.sun.imageio",
               "com.sun.jna",
               "com.microsoft",
+              "com.azure",
               "akka.http",
               "org.enso.base",
               "org.enso.image",
