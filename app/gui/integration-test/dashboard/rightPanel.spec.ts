@@ -31,16 +31,6 @@ const USERNAME = 'baz quux'
 /** An example owner email for the asset selected in the asset panel. */
 const EMAIL = 'baz.quux@email.com'
 
-// test('open and close asset panel', ({ page }) =>
-//   mockAllAndLogin({ page })
-//     .withRightPanel(async (rightPanel) => {
-//       await expect(rightPanel).toBeVisible()
-//     })
-//     .toggleRightPanel()
-//     .withRightPanel(async (assetPanel) => {
-//       await expect(assetPanel).not.toBeVisible()
-//     }))
-
 test('asset panel contents', ({ page }) =>
   mockAllAndLogin({
     page,
@@ -98,9 +88,10 @@ test('Assets Panel docs images', ({ page }) => {
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
     .withRightPanel(async (assetPanel) => {
-      await expect(locateMarkdownContent(assetPanel)).toBeVisible()
+      const content = locateMarkdownContent(assetPanel)
+      await expect(content).toBeVisible()
 
-      for (const image of await assetPanel.getByRole('img').all()) {
+      for (const image of await content.getByRole('img').all()) {
         await expect(image).toBeVisible()
         await expect(image).toHaveJSProperty('complete', true)
       }
