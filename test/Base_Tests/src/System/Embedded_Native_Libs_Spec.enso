@@ -5,6 +5,7 @@ from Standard.Test import all
 polyglot java import java.util.jar.JarFile
 polyglot java import java.util.jar.JarEntry
 polyglot java import java.nio.file.Path as JPath
+polyglot java import java.util.Enumeration
 
 
 add_specs suite_builder = suite_builder.group "Embedded native libraries" group_builder->
