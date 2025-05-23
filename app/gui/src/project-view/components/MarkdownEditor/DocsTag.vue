@@ -22,7 +22,7 @@ watch(shouldBeHidden, (m) => m && emit('hidden'))
 <template>
   <div
     ref="tagRef"
-    :class="{ hide: shouldBeHidden && !props.forceShow }"
+    :class="{ DocsTag: true, hide: shouldBeHidden && !props.forceShow }"
     :style="props.style || {}"
   >
     {{ props.label + (props.value.length > 0 ? `: ${props.value}` : '') }}
@@ -30,6 +30,14 @@ watch(shouldBeHidden, (m) => m && emit('hidden'))
 </template>
 
 <style scoped>
+.DocsTag {
+  height: 24px;
+  color: rgba(0, 0, 0, 0.6);
+  background-color: #dcd8d8;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
 .hide {
   display: none;
 }

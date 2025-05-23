@@ -22,7 +22,7 @@ const tags = computed<Tag[]>(() => {
           label: metadata.group.toLowerCase().replace('standard.base.', ''),
           value: '',
           style: {
-            'background-color': 'var(--enso-docs-group-color)',
+            'background-color': 'var(--enso-docs-group-color, #5f5e5e)',
             color: '#fff',
           },
         },
@@ -118,13 +118,5 @@ watch(
   flex-flow: row wrap;
   align-items: start;
   gap: 2px;
-}
-
-.Tag {
-  height: 24px;
-  color: rgba(0, 0, 0, 0.6);
-  background-color: var(--enso-docs-tag-background-color);
-  border-radius: 4px;
-  padding: 1px 5px;
 }
 </style>
