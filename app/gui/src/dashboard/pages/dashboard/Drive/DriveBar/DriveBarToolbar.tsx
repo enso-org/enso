@@ -54,6 +54,7 @@ import { useBackends, useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
+import { toast } from 'react-toastify'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
@@ -198,7 +199,11 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
       return
     }
     const filePath = filePathRaw != null ? Path(filePathRaw) : null
-    await exportArchive([{ assetIds: [...selectedIds], filePath }])
+    await toast.promise(exportArchive([{ assetIds: [...selectedIds], filePath }]), {
+      pending: getText('exportArchive.inProgress'),
+      success: getText('exportArchive.success'),
+      error: getText('exportArchive.failure'),
+    })
   })
 
   const downloadFilesCallback = useEventCallback(async () => {
