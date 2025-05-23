@@ -356,7 +356,7 @@ public final class ExecutionService {
    * @param cache the runtime cache
    * @param executionCache cache with values provided by main execution
    * @param module the module providing scope for the function
-   * @param fn the function object
+   * @param function the function object
    * @param arguments the sequence of arguments applied to the function
    * @return the result of calling the function
    */
@@ -406,12 +406,8 @@ public final class ExecutionService {
                       service -> service.bind(module, entryCallTarget, callbacks, this.timer));
               var ret = new Object[1];
               try {
-                State state;
-                if (fn instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
-                  state = fnCall.getState();
-                } else {
-                  var tmp = (Function) fn;
-                  state = State.create(context);
+                if (fn instanceof Function tmp) {
+                  State state = State.create(context);
                   fn = new FunctionCallInstrumentationNode.FunctionCall(tmp, state, new Object[0]);
                 }
                 var callArgs = new Object[] {fn, arguments};
@@ -817,13 +813,6 @@ public final class ExecutionService {
      */
     public TypeInfo getType() {
       return typeInfo;
-    }
-
-    /**
-     * @return the cached type of the value.
-     */
-    public TypeInfo getCachedType() {
-      return cachedTypeInfo;
     }
 
     /**
