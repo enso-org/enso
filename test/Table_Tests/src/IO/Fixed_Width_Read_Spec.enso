@@ -163,6 +163,16 @@ add_direct_specs suite_builder =
             t.at "Column 7" . to Vector . should_equal [98765, 87654]
             t.at "Column 8" . to Vector . should_equal ["fgh", "nop"]
 
+        group_builder.specify "Should support skip_rows" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Width 2 "x"]
+                + [Fixed_Width_Column_Description.Width 3 "y"]
+            layout = Fixed_Width_Layout.from_descriptions descs
+
+            t0 = data4.read (Fixed_Width_Format.Fixed_Width layout skip_rows=5)
+            t0.at "x" . to_vector . should_equal ["fg", "gh", "hi"]
+            t0.at "y" . to_vector . should_equal [106, 107, 108]
+
         group_builder.specify "Should support row_limit" <|
             descs = []
                 + [Fixed_Width_Column_Description.Width 2 "x"]
@@ -172,6 +182,17 @@ add_direct_specs suite_builder =
             t0 = data4.read (Fixed_Width_Format.Fixed_Width layout row_limit=4)
             t0.at "x" . to_vector . should_equal ["ab", "bc", "cd", "de"]
             t0.at "y" . to_vector . should_equal [101, 102, 103, 104]
+
+        group_builder.specify "Should support skip_rows and row_limit together" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Width 2 "x"]
+                + [Fixed_Width_Column_Description.Width 3 "y"]
+            layout = Fixed_Width_Layout.from_descriptions descs
+
+            t0 = data4.read (Fixed_Width_Format.Fixed_Width layout skip_rows=4 row_limit=2)
+            t0.at "x" . to_vector . should_equal ["ef", "fg"]
+            t0.at "y" . to_vector . should_equal [105, 106]
+
 
         group_builder.specify "Should use specified column names" <|
             descs = []
