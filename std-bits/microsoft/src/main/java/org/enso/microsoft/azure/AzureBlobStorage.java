@@ -22,8 +22,10 @@ public final class AzureBlobStorage {
             .credential(CredentialHelper.toTokenCredential(credential))
             .buildClient();
 
+    var containerList = client.listBlobContainers();
+
     var result = new ArrayList<String>();
-    for (var blobContainer : client.listBlobContainers()) {
+    for (var blobContainer : containerList) {
       var containerName = blobContainer.getName();
       if ((Objects.equals(prefix, "")) || containerName.startsWith(prefix)) {
         result.add(containerName);
@@ -32,7 +34,33 @@ public final class AzureBlobStorage {
     return result;
   }
 
-  public static Path getBlob(
+  public static List<String> listBlob(AzureCredential credential, String storageAccountName, String containerName, String prefix) {
+    LOGGER.warn("List Blob Storage: {} : {}", storageAccountName);
+
+    var client =
+        new BlobServiceClientBuilder()
+            .endpoint("https://" + storageAccountName + ".blob.core.windows.net/")
+            .credential(CredentialHelper.toTokenCredential(credential))
+            .buildClient();
+
+    var blobContainer = client.getBlobContainerClient(containerName);
+    if (!blobContainer.exists()) {
+      throw new IllegalArgumentException("Container does not exist: " + containerName);
+    }
+
+    var blobList = blobContainer.listBlobs();
+
+    var result = new ArrayList<String>();
+    for (var blob : blobList) {
+      var blobName = blob.getName();
+      if ((Objects.equals(prefix, "")) || blobName.startsWith(prefix)) {
+        result.add(blobName);
+      }
+    }
+    return result;
+  }
+
+  public static String getBlob(
       AzureCredential credential, String storageAccountName, String containerName, String blobName)
       throws IOException {
     LOGGER.trace("Reading from Blob Storage.");
@@ -44,11 +72,18 @@ public final class AzureBlobStorage {
             .buildClient();
 
     var blobContainer = client.getBlobContainerClient(containerName);
-    var blob = blobContainer.getBlobClient(blobName);
+    if (!blobContainer.exists()) {
+      throw new IllegalArgumentException("Container does not exist: " + containerName);
+    }
 
-    var tempFile = Files.createTempFile("enso-blob-", ".tmp");
-    blob.downloadToFile(tempFile.toString());
+    var blob = blobContainer.getBlobClient(blobName);
+    if (!blob.exists()) {
+      throw new IllegalArgumentException("Blob does not exist: " + blobName);
+    }
+
+    var tempFile = Files.createTempFile("enso-blob-", blobName);
+    blob.downloadToFile(tempFile.toString(), true);
     LOGGER.trace("Downloaded blob to: {}", tempFile);
-    return tempFile;
+    return tempFile.toString();
   }
 }

@@ -1,12 +1,13 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 polyglot java import com.azure.core.exception.ClientAuthenticationException
 
-handle_azure_exceptions ~action =
-    Panic.catch ClientAuthenticationException handler=Azure_Client_Authentication.handler
-        action
+handle_azure_exceptions =
+    Panic.catch ClientAuthenticationException handler=Azure_Client_Authentication.handler <|
+        Illegal_Argument.handle_java_exception
 
 type Azure_Client_Authentication
     private Error java_exception
