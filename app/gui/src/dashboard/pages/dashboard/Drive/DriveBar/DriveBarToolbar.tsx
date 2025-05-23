@@ -28,6 +28,7 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
+import { useStore } from '#/hooks/storeHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
@@ -76,6 +77,9 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
+  const canExport = useStore(driveStore, ({ selectedIds }) =>
+    isCloud ? false : selectedIds.size !== 0,
+  )
 
   const { currentDirectoryId } = useDirectoryIds({ category })
 
@@ -349,7 +353,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 icon="data_download"
                 aria-label={isCloud ? getText('exportArchive.localOnly') : getText('exportArchive')}
                 onPress={exportArchiveCallback}
-                isDisabled={isCloud}
+                isDisabled={!canExport}
               />
             </div>
             {createAssetsVisualTooltip.tooltip}
