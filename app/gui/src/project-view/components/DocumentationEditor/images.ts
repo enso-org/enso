@@ -60,7 +60,7 @@ export function resolveDocImageUrl(modulePathSegments: string[], imageUrl: strin
     case null:
       return Err('Invalid image url')
     case 'file:':
-      // Omit the starting '/'..
+      // Omit the starting '/'
       return Ok({ type: 'projectPath' as const, path: decodeURI(appliedUrl.pathname).substring(1) })
     case 'http:':
     case 'https:':

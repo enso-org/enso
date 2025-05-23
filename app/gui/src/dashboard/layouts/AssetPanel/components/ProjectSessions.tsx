@@ -3,14 +3,14 @@ import { Result } from '#/components/Result'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
-import { useBackends, useContainerData, useText } from '$/providers/react'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ProjectSession } from './ProjectSession'
 
 /** A list of previous versions of an asset. */
 export function ProjectSessions() {
   const { getText } = useText()
-  const { rightPanel } = useContainerData()
+  const rightPanel = useRightPanelData()
   const { remoteBackend } = useBackends()
 
   if (rightPanel.context?.category?.backend !== BackendType.remote) {

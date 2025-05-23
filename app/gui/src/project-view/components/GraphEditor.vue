@@ -7,7 +7,7 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
-import { injectConainerData } from '$/providers/container'
+import { injectRightPanelData } from '$/providers/rightPanel'
 import {
   codeEditorBindings,
   documentationEditorBindings,
@@ -78,7 +78,7 @@ import {
 } from 'vue'
 
 const keyboard = injectKeyboard()
-const containerData = injectConainerData()
+const rightPanel = injectRightPanelData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
@@ -220,8 +220,8 @@ const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboa
 
 const actionHandlers = registerHandlers({
   'graphEditor.showHelp': {
-    action: () => containerData.rightPanel.toggleTab('help'),
-    toggled: computed(() => containerData.rightPanel.tab === 'help'),
+    action: () => rightPanel.toggleTab('help'),
+    toggled: computed(() => rightPanel.tab === 'help'),
   },
   'graph.renameProject': toggledAction(projectNameEdited),
   'graph.addComponent': {
@@ -240,8 +240,8 @@ const actionHandlers = registerHandlers({
     toggled: () => showCodeEditor.value,
   },
   'graph.toggleDocumentationEditor': {
-    action: () => containerData.rightPanel.toggleTab('documentation'),
-    toggled: () => containerData.rightPanel.tab === 'documentation',
+    action: () => rightPanel.toggleTab('documentation'),
+    toggled: () => rightPanel.tab === 'documentation',
   },
   'graph.refreshExecution': {
     action: () => nodeExecution.recomputeAll(),
@@ -417,21 +417,21 @@ const displayedDocs = computed(() =>
 
 watchEffect(() => {
   const projectId = projectStore.id as ProjectId
-  containerData.rightPanel.setContext(projectId, {
+  rightPanel.setContext(projectId, {
     item: projectId,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })
 })
 
 function toggleRightDockHelpPanel() {
-  containerData.rightPanel.tab = 'help'
+  rightPanel.tab = 'help'
 }
 
 const docEditor = shallowRef<ComponentInstance<typeof DocumentationEditor>>()
 const documentationEditorArea = computed(() => unrefElement(docEditor))
 
 const documentationEditorHandler = documentationEditorBindings.handler({
-  toggle: () => containerData.rightPanel.toggleTab('documentation'),
+  toggle: () => rightPanel.toggleTab('documentation'),
 })
 
 // === Component Browser ===
@@ -712,7 +712,7 @@ const contextMenuActions: ActionName[] = [
             actionHandlers['graph.toggleDocumentationEditor'].toggled
           "
           :zoomLevel="100.0 * graphNavigator.targetScale"
-          :class="{ extraRightSpace: !containerData.rightPanel.tab }"
+          :class="{ extraRightSpace: !rightPanel.tab }"
           :menuActions="contextMenuActions"
           @contextmenu.stop.prevent
         />

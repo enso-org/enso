@@ -16,7 +16,7 @@ import {
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import { useContainerData, useText } from '$/providers/react'
+import { useRightPanelData, useText } from '$/providers/react'
 
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
@@ -219,7 +219,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const [isNavigating, startNavigation] = useTransition()
 
   const driveStore = useDriveStore()
-  const { rightPanel } = useContainerData()
+  const rightPanel = useRightPanelData()
   const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
   const getAsset = useGetAsset()

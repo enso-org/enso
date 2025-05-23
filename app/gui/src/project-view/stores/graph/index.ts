@@ -671,6 +671,7 @@ export function createGraphStore(
   const viewModule = computed((): Ast.Module => syncModule.value!)
 
   // expose testing hook
+  console.log('Overriding mockExpressionUpdate')
   ;(window as any)._mockExpressionUpdate = mockExpressionUpdate
 
   function mockExpressionUpdate(
@@ -708,6 +709,7 @@ export function createGraphStore(
       hiddenType: update.hiddenType ?? [],
       ...(update.methodCall ? { methodCall: update.methodCall } : {}),
     }
+    console.log('Processing update')
     proj.computedValueRegistry.processUpdates([update_])
   }
 

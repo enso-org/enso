@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { injectConainerData } from '$/providers/container'
+import { injectRightPanelData } from '$/providers/rightPanel'
 import DocumentationPanel from '@/components/DocumentationPanel.vue'
 import { Ok } from '@/util/data/result'
 import { computed } from 'vue'
 
-const { tab, rightPanel } = injectConainerData()
+const container = injectConainerData()
+const rightPanel = injectRightPanelData()
 const displayedId = computed({
   get: () => (rightPanel.context?.help != null ? rightPanel.context.help.item : Ok(undefined)),
   set: (newSelection) => {
-    rightPanel.updateContext(tab.value, (ctx) => {
+    rightPanel.updateContext(container.tab, (ctx) => {
       if (ctx.help == null) ctx.help = { item: newSelection, aiMode: false }
       else ctx.help.item = newSelection
       return ctx

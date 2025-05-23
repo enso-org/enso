@@ -4,10 +4,10 @@ import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { assert } from '@/util/assert'
 import * as react from 'react'
 import { applyPureReactInVue, createCrossingProviderForPureReactInVue } from 'veaury'
-import { computed, ShallowUnwrapRef } from 'vue'
+import { computed, toRefs } from 'vue'
 import { Router, useRoute, useRouter as useRouterVue } from 'vue-router'
-import { injectConainerData, type ContainerData as ContainerDataVue } from './container'
 import { injectHttpClient } from './httpClient'
+import { injectRightPanelData, RightPanelData } from './rightPanel'
 import { injectText, type TextStore } from './text'
 
 function useInReactFunction<T>(context: react.Context<T | null>) {
@@ -35,7 +35,7 @@ export const useText = useInReactFunction(TextContext)
 export const HTTPClientContext = react.createContext<HttpClient | null>(null)
 export const useHttpClient = useInReactFunction(HTTPClientContext)
 
-const BackendsContext = react.createContext<ReturnType<typeof injectBackends> | null>(null)
+const BackendsContext = react.createContext<BackendsStore | null>(null)
 export const useBackends = useInReactFunction(BackendsContext)
 
 interface ContextsForReactProviderProps {
@@ -98,9 +98,8 @@ export const ContextsForReactProvider = applyPureReactInVue(
   },
 )
 
-const [useContainerDataUntyped, ContainerDataProviderForReact] =
-  createCrossingProviderForPureReactInVue(() => injectConainerData())
+const [useRightPanelDataUntyped, RightPanelDataProviderForReact] =
+  createCrossingProviderForPureReactInVue(() => toRefs(injectRightPanelData()))
 
-export type ContainerData = ShallowUnwrapRef<ContainerDataVue>
-export { ContainerDataProviderForReact }
-export const useContainerData = useContainerDataUntyped as () => ContainerData
+export { RightPanelDataProviderForReact }
+export const useRightPanelData = useRightPanelDataUntyped as () => RightPanelData

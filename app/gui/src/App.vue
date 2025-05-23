@@ -1,5 +1,11 @@
 <script setup lang="ts">
+import { ProjectId } from '#/services/Backend'
+import RightPanel from '$/components/TabView/RightPanel.vue'
+import { provideBackends } from '$/providers/backends'
+import { provideHttpClient } from '$/providers/httpClient'
+import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react'
+import { provideText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
 import '@/assets/base.css'
 import { interactionBindings } from '@/bindings'
@@ -20,9 +26,8 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
-import { provideBackends } from './providers/backends'
-import { provideHttpClient } from './providers/httpClient'
-import { provideText } from './providers/text'
+import { provideContainerData } from './providers/container'
+import { provideRightPanelData } from './providers/rightPanel'
 
 const { projectViewOnly, onAuthenticated, rootDirPath } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
@@ -52,7 +57,7 @@ const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
 provideKeyboard()
-const { getText } = provideText()
+const textStore = provideText()
 const config = provideGuiConfig(appConfigValue)
 const interaction = provideInteractionHandler()
 initializeActions()
@@ -71,7 +76,7 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
   capture: true,
 })
 const httpClient = provideHttpClient()
-provideBackends(httpClient, config, rootDirPath, getText)
+provideBackends(httpClient, config, rootDirPath, textStore.getText)
 
 const platformClass = (() => {
   switch (platform()) {
@@ -97,11 +102,20 @@ onMounted(() => {
     document.body.classList.add('vibrancy')
   }
 })
+
+if (projectViewOnly) {
+  provideOpenedProjects()
+  provideContainerData([])
+  provideRightPanelData(projectViewOnly.options.projectId as ProjectId, textStore)
+}
 </script>
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
+    <div v-if="projectViewOnly" id="appContainerMainView" class="mainView">
+      <ProjectView v-bind="projectViewOnly.options" />
+      <RightPanel />
+    </div>
     <ContextsForReactProvider v-else>
       <ReactRootWrapper
         :config="appConfigValue"
@@ -145,6 +159,13 @@ onMounted(() => {
   > * {
     pointer-events: auto;
   }
+}
+
+.mainView {
+  flex-grow: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
 }
 
 /*

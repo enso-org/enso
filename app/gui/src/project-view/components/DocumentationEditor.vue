@@ -3,7 +3,7 @@ import { Result as ResultReact } from '#/components/Result'
 import { ProjectId } from '#/services/Backend'
 import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import { injectBackends } from '$/providers/backends'
-import { injectConainerData } from '$/providers/container'
+import { injectRightPanelData } from '$/providers/rightPanel'
 import { documentationEditorBindings } from '@/bindings'
 import { resolveDocImageUrl, useDocumentationImages } from '@/components/DocumentationEditor/images'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
@@ -24,7 +24,7 @@ import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 const Result = applyPureReactInVue(ResultReact)
 const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
-const { rightPanel } = injectConainerData()
+const rightPanel = injectRightPanelData()
 const { id: openedProjectId, store: projectStore, graph } = injectCurrentProject()
 const projectId = computed(() => rightPanel.focusedProject)
 const { backendForType } = injectBackends()
@@ -98,11 +98,12 @@ watch(
       } else {
         docImagesHandlers.value = {
           transformImageUrl: (path: string) => {
-            // In Enso Documentation, the relative paths are from module's directory
-            // Here we always display docs from `src/Main.enso` module
             if (backendForAsset.value == null) return Promise.resolve(Err('No backend available'))
             if (projectId.value == null) return Promise.resolve(Err('No project selected'))
+            // In Enso Documentation, the relative paths are from module's directory
+            // Here we always display docs from `src/Main.enso` module
             const resolvedUrl = resolveDocImageUrl(['src'], path)
+            console.log('RESOLVED URL', resolvedUrl.value)
             if (!resolvedUrl.ok) return Promise.resolve(resolvedUrl)
             if (resolvedUrl.value.type === 'url') {
               return Promise.resolve(Ok({ url: resolvedUrl.value.url.toString() }))

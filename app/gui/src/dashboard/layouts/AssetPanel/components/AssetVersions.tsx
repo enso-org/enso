@@ -12,7 +12,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
 import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
-import { useBackends, useContainerData, useText } from '$/providers/react'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
 import { includes } from 'enso-common/src/utilities/data/array'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
@@ -27,7 +27,7 @@ interface AddNewVersionVariables {
 export function AssetVersions() {
   const { remoteBackend } = useBackends()
   const { getText } = useText()
-  const { rightPanel } = useContainerData()
+  const rightPanel = useRightPanelData()
 
   if (rightPanel.context?.category?.backend !== BackendType.remote) {
     return (

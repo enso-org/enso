@@ -107,7 +107,7 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useContainerData, useText } from '$/providers/react'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
 import invariant from 'tiny-invariant'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
@@ -196,7 +196,8 @@ function AssetsTable(props: AssetsTableProps) {
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
-  const { rightPanel } = useContainerData()
+  const { setContext: setRightPanelContext, setTemporaryTab: setRightPanelTemporaryTab } =
+    useRightPanelData()
 
   const columns = useMemo(
     () =>
@@ -295,14 +296,14 @@ function AssetsTable(props: AssetsTableProps) {
       const [soleId] = selectedIds
       const asset = soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-      rightPanel.setContext('drive', {
+      setRightPanelContext('drive', {
         item: asset ?? undefined,
         category,
       })
     } else {
-      rightPanel.setContext('drive', { category })
+      setRightPanelContext('drive', { category })
     }
-  }, [assets, driveStore, rightPanel, category])
+  }, [assets, driveStore, setRightPanelContext, category])
 
   useEffect(
     () =>
@@ -313,17 +314,17 @@ function AssetsTable(props: AssetsTableProps) {
             const asset =
               soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-            rightPanel.setContext('drive', {
+            setRightPanelContext('drive', {
               item: asset ?? undefined,
               category,
             })
-            rightPanel.setTemporaryTab(undefined)
+            setRightPanelTemporaryTab(undefined)
           } else {
-            rightPanel.setContext('drive', { category })
+            setRightPanelContext('drive', { category })
           }
         }
       }),
-    [category, driveStore, assets, rightPanel],
+    [category, driveStore, assets, setRightPanelContext, setRightPanelTemporaryTab],
   )
 
   useEffect(() => {
@@ -575,11 +576,11 @@ function AssetsTable(props: AssetsTableProps) {
     () =>
       driveStore.subscribe(({ selectedIds }) => {
         if (selectedIds.size !== 1) {
-          rightPanel.setContext('drive', { category })
-          rightPanel.setTemporaryTab(undefined)
+          setRightPanelContext('drive', { category })
+          setRightPanelTemporaryTab(undefined)
         }
       }),
-    [driveStore, rightPanel, category],
+    [driveStore, setRightPanelContext, setRightPanelTemporaryTab, category],
   )
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number | null>(null)
@@ -634,7 +635,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.datalink: {
                 event.preventDefault()
                 event.stopPropagation()
-                rightPanel.setTemporaryTab('settings')
+                setRightPanelTemporaryTab('settings')
                 break
               }
               case AssetType.secret: {

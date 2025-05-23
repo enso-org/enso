@@ -7,10 +7,11 @@ import RightPanel from '$/components/TabView/RightPanel.vue'
 import SelectableTab from '$/components/TabView/SelectableTab.vue'
 import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
-import { ContainerDataProviderForReact } from '$/providers/react'
+import { RightPanelDataProviderForReact } from '$/providers/react'
+import { provideRightPanelData } from '$/providers/rightPanel'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { applyPureReactInVue } from 'veaury'
-import { reactive, watch } from 'vue'
+import { reactive, toRefs, watch } from 'vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
@@ -24,7 +25,8 @@ const { initialProjectName, launchedProjects, closeProject, closeAllProjects } =
 }>()
 
 provideOpenedProjects()
-const { tab, openedProjects } = provideContainerData(() => launchedProjects)
+const { tab, openedProjects } = toRefs(provideContainerData(() => launchedProjects))
+provideRightPanelData(tab)
 
 const readyProjects = reactive(new Set<ProjectId>())
 const projectNames = reactive(new Map<ProjectId, string>())
@@ -68,7 +70,7 @@ const onSignOut = () => {
 </script>
 <template>
   <div class="TabView">
-    <ContainerDataProviderForReact>
+    <RightPanelDataProviderForReact>
       <div class="bar">
         <div role="tablist" class="tablist">
           <SelectableTab
@@ -131,7 +133,7 @@ const onSignOut = () => {
         </div>
         <RightPanel />
       </div>
-    </ContainerDataProviderForReact>
+    </RightPanelDataProviderForReact>
   </div>
 </template>
 

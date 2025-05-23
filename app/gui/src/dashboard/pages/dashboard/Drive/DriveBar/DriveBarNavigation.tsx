@@ -13,7 +13,7 @@ import { useDriveStore } from '#/providers/DriveProvider'
 import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useContainerData, useText } from '$/providers/react'
+import { useRightPanelData, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
@@ -31,7 +31,7 @@ export function DriveBarNavigation() {
     category,
   })
 
-  const { rightPanel } = useContainerData()
+  const rightPanel = useRightPanelData()
 
   const driveStore = useDriveStore()
 

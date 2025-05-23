@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
-import { injectConainerData, RightPanelTabId } from '$/providers/container'
+import { injectRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
@@ -12,7 +12,7 @@ import { ToValue } from '@/util/reactivity'
 import { computed, ref, toValue } from 'vue'
 import SelectableTab from './SelectableTab.vue'
 
-const { rightPanel: data } = injectConainerData()
+const data = injectRightPanelData()
 
 const displayedTab = computed(() => data.temporaryTab ?? data.tab)
 

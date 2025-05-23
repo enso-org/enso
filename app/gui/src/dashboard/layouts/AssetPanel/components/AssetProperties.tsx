@@ -37,7 +37,7 @@ import {
 } from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackends, useContainerData, useText } from '$/providers/react'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
@@ -48,13 +48,10 @@ const ASSET_PROPERTIES_VARIANTS = tv({
   },
 })
 
-/** Possible elements in this screen to spotlight on. */
-export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
-
 /** Display and modify the properties of an asset. */
 export function AssetProperties() {
   const { remoteBackend } = useBackends()
-  const { rightPanel } = useContainerData()
+  const rightPanel = useRightPanelData()
   const { getText } = useText()
   const isReadonly = rightPanel.context?.category?.type === 'trash'
 
@@ -89,7 +86,7 @@ export interface AssetPropertiesInternalProps {
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
-  const { rightPanel } = useContainerData()
+  const rightPanel = useRightPanelData()
 
   const closeSpotlight = useEventCallback(() => {
     rightPanel.updateContext('drive', (ctx) => {

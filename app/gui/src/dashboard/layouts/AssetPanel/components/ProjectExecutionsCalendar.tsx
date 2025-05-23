@@ -40,7 +40,7 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackends, useContainerData, useText } from '$/providers/react'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
   base: '',
@@ -61,7 +61,7 @@ const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
 export function ProjectExecutionsCalendar() {
   const { getText } = useText()
   const { remoteBackend } = useBackends()
-  const { rightPanel } = useContainerData()
+  const rightPanel = useRightPanelData()
 
   if (rightPanel.context?.category?.backend !== BackendType.remote) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />

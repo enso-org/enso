@@ -36,8 +36,8 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import type { RightPanelData } from '$/providers/container'
 import { useBackends } from '$/providers/react'
+import type { RightPanelData } from '$/providers/rightPanel'
 import {
   isUploadableAsset,
   useUploadFileToCloudMutation,

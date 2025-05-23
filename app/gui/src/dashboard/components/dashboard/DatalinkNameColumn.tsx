@@ -5,7 +5,7 @@ import { Icon } from '#/components/Icon'
 import { titleSchema, type DatalinkAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
-import { useContainerData } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react'
 import { useGetAssetChildren } from '../../layouts/Drive/assetsTableItemsHooks'
 
 /** Props for a {@link DatalinkNameColumn}. */
@@ -23,7 +23,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
 
   const getAssetChildren = useGetAssetChildren()
 
-  const { rightPanel } = useContainerData()
+  const rightPanel = useRightPanelData()
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
