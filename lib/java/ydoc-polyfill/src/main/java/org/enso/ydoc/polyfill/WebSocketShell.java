@@ -29,18 +29,18 @@ import org.graalvm.polyglot.Value;
  * <pre>
  * $ graalvm/bin/java
  *    -p enso-engine-*?/enso-*?/component/
- *    -m org.enso.ydoc.polyfill/org.enso.ydoc.polyfill.WebSocketClient
+ *    -m org.enso.ydoc.polyfill/org.enso.ydoc.polyfill.WebSocketShell
  * </pre>
  *
  * The {@code enso-engine-*?/enso-*?/component/} represents path to the @{code component} directory
  * which needs to be adjusted to proper path on each operating system. All lines may need to be
  * concatenated into a single line.
  */
-final class WebSocketClient implements AutoCloseable {
+final class WebSocketShell implements AutoCloseable {
   private final Context ctx;
   private final ScheduledExecutorService executor;
 
-  private WebSocketClient(boolean inspect) throws Exception {
+  private WebSocketShell(boolean inspect) throws Exception {
     var access =
         HostAccess.newBuilder(HostAccess.EXPLICIT).allowBufferAccess(true).allowArrayAccess(true);
     var b = Context.newBuilder().allowExperimentalOptions(true).allowHostAccess(access.build());
@@ -67,6 +67,15 @@ final class WebSocketClient implements AutoCloseable {
                 t.printStackTrace();
                 throw t;
               }
+            });
+    return res;
+  }
+
+  final Future<Value> eval(String line) throws Exception {
+    var res =
+        executor.submit(
+            () -> {
+              return ctx.eval("js", line);
             });
     return res;
   }
@@ -101,12 +110,20 @@ final class WebSocketClient implements AutoCloseable {
       System.exit(1);
     }
 
-    try (var client = new WebSocketClient(inspect)) {
+    try (var client = new WebSocketShell(inspect)) {
       var code = files.get(0);
       var res = client.eval(code);
-      System.out.printf("Script %s evaluated to %s\nPress any key to stop...", code, res);
-      System.in.read();
-      System.out.println("Exiting");
+      System.out.printf("Script %s evaluated to %s\n", code, res);
+      var console = System.console();
+      for (int i = 0; i < 10; i++) {
+        var line = console.readLine("js> ");
+        if (line == null) {
+          break;
+        }
+        res = client.eval(line);
+        System.out.println(res.get());
+      }
+      System.out.printf("Exiting with %s", res);
     }
   }
 }
