@@ -16,6 +16,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Random;
@@ -188,7 +189,11 @@ final class WebSocket implements ProxyExecutable {
 
         var byteArray = byteSequence.subSequence(byteOffset, byteOffset + byteLength).toByteArray();
 
-        yield connection.getSession().send(BufferData.create(byteArray), true);
+        var session =
+            Objects.requireNonNull(
+                connection.getSession(), "No session for connection " + connection);
+
+        yield session.send(BufferData.create(byteArray), true);
       }
 
       case WEB_SOCKET_TERMINATE -> {
@@ -316,19 +321,18 @@ final class WebSocket implements ProxyExecutable {
 
     @Override
     public void onOpen(WsSession session) {
-      log.debug("onOpen");
+      log.debug("onOpen [this={}, session={}]", this, session);
 
       this.session = session;
-
       handleCallback(() -> handleOpen.executeVoid());
     }
 
     @Override
     public void onClose(WsSession session, int status, String reason) {
-      log.debug("onClose [{}] [{}]", status, reason);
+      log.debug(
+          "onClose [this={}, session={}, status={}, reason={}]", this, session, status, reason);
 
       handleCallback(() -> handleClose.executeVoid(status, reason));
-      this.session = null;
     }
 
     @Override
