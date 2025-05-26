@@ -507,43 +507,51 @@ val commons = Seq(
 )
 
 // === Helidon ================================================================
-val jakartaVersion = "2.0.1"
-val helidonVersion = "4.1.2"
-val helidon = Seq(
-  "io.helidon"                 % "helidon"                     % helidonVersion,
-  "io.helidon.builder"         % "helidon-builder-api"         % helidonVersion,
-  "io.helidon.common"          % "helidon-common"              % helidonVersion,
-  "io.helidon.common"          % "helidon-common-buffers"      % helidonVersion,
-  "io.helidon.common"          % "helidon-common-config"       % helidonVersion,
-  "io.helidon.common"          % "helidon-common-configurable" % helidonVersion,
-  "io.helidon.common"          % "helidon-common-context"      % helidonVersion,
-  "io.helidon.common"          % "helidon-common-key-util"     % helidonVersion,
-  "io.helidon.common"          % "helidon-common-mapper"       % helidonVersion,
-  "io.helidon.common"          % "helidon-common-media-type"   % helidonVersion,
-  "io.helidon.common"          % "helidon-common-parameters"   % helidonVersion,
-  "io.helidon.common"          % "helidon-common-socket"       % helidonVersion,
-  "io.helidon.common"          % "helidon-common-security"     % helidonVersion,
-  "io.helidon.common"          % "helidon-common-task"         % helidonVersion,
-  "io.helidon.common"          % "helidon-common-types"        % helidonVersion,
-  "io.helidon.common"          % "helidon-common-tls"          % helidonVersion,
-  "io.helidon.common"          % "helidon-common-uri"          % helidonVersion,
-  "io.helidon.common.features" % "helidon-common-features"     % helidonVersion,
-  "io.helidon.common.features" % "helidon-common-features-api" % helidonVersion,
-  "io.helidon.config"          % "helidon-config"              % helidonVersion,
-  "io.helidon.logging"         % "helidon-logging-common"      % helidonVersion,
-  "io.helidon.inject"          % "helidon-inject-api"          % helidonVersion,
-  "io.helidon.http"            % "helidon-http"                % helidonVersion,
-  "io.helidon.http.encoding"   % "helidon-http-encoding"       % helidonVersion,
-  "io.helidon.http.media"      % "helidon-http-media"          % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient"           % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient-api"       % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient-http1"     % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion,
-  "io.helidon.webserver"       % "helidon-webserver"           % helidonVersion,
-  "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
-  "io.helidon.websocket"       % "helidon-websocket"           % helidonVersion,
-  "jakarta.inject"             % "jakarta.inject-api"          % jakartaVersion
-)
+val helidonVersion = "4.2.2"
+val helidon = {
+  val clientAndSharedDeps = Seq(
+    "io.helidon"               % "helidon"                     % helidonVersion,
+    "io.helidon.builder"       % "helidon-builder-api"         % helidonVersion,
+    "io.helidon.common"        % "helidon-common"              % helidonVersion,
+    "io.helidon.common"        % "helidon-common-buffers"      % helidonVersion,
+    "io.helidon.common"        % "helidon-common-config"       % helidonVersion,
+    "io.helidon.common"        % "helidon-common-configurable" % helidonVersion,
+    "io.helidon.common"        % "helidon-common-context"      % helidonVersion,
+    "io.helidon.common"        % "helidon-common-key-util"     % helidonVersion,
+    "io.helidon.common"        % "helidon-common-mapper"       % helidonVersion,
+    "io.helidon.common"        % "helidon-common-media-type"   % helidonVersion,
+    "io.helidon.common"        % "helidon-common-parameters"   % helidonVersion,
+    "io.helidon.common"        % "helidon-common-resumable"    % helidonVersion,
+    "io.helidon.common"        % "helidon-common-socket"       % helidonVersion,
+    "io.helidon.common"        % "helidon-common-tls"          % helidonVersion,
+    "io.helidon.common"        % "helidon-common-types"        % helidonVersion,
+    "io.helidon.common"        % "helidon-common-uri"          % helidonVersion,
+    "io.helidon.http"          % "helidon-http"                % helidonVersion,
+    "io.helidon.http.encoding" % "helidon-http-encoding"       % helidonVersion,
+    "io.helidon.http.media"    % "helidon-http-media"          % helidonVersion,
+    "io.helidon.logging"       % "helidon-logging-common"      % helidonVersion,
+    "io.helidon.metadata"      % "helidon-metadata-hson"       % helidonVersion,
+    "io.helidon.service"       % "helidon-service-metadata"    % helidonVersion,
+    "io.helidon.service"       % "helidon-service-registry"    % helidonVersion,
+    "io.helidon.webclient"     % "helidon-webclient"           % helidonVersion,
+    "io.helidon.webclient"     % "helidon-webclient-api"       % helidonVersion,
+    "io.helidon.webclient"     % "helidon-webclient-http1"     % helidonVersion,
+    "io.helidon.webclient"     % "helidon-webclient-websocket" % helidonVersion,
+    "io.helidon.websocket"     % "helidon-websocket"           % helidonVersion
+  )
+  val serverDeps = Seq(
+    "io.helidon.webserver"          % "helidon-webserver"                 % helidonVersion,
+    "io.helidon.webserver"          % "helidon-webserver-websocket"       % helidonVersion,
+    "io.helidon.config"             % "helidon-config"                    % helidonVersion,
+    "io.helidon.common"             % "helidon-common-security"           % helidonVersion,
+    "io.helidon.common.concurrency" % "helidon-common-concurrency-limits" % helidonVersion,
+    "io.helidon.common.features"    % "helidon-common-features"           % helidonVersion,
+    "io.helidon.common.features"    % "helidon-common-features-api"       % helidonVersion,
+    "io.helidon.common"             % "helidon-common-task"               % helidonVersion,
+    "io.helidon.metrics"            % "helidon-metrics-api"               % helidonVersion
+  )
+  clientAndSharedDeps ++ serverDeps
+}
 
 // === Jackson ================================================================
 
