@@ -87,6 +87,9 @@ object SmallJDK {
   def buildSmallJDKForRelease(
     smallJdkDirectory: File
   ): Unit = {
+    if (smallJdkDirectory.exists()) {
+      IO.delete(smallJdkDirectory)
+    }
     val mp = modulePath()
       .map(_.toAbsolutePath.toString)
       .mkString(File.pathSeparator)
