@@ -366,7 +366,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'membersSettingsSection',
-        entries: [{ type: 'custom', render: () => <MembersSettingsSection /> }],
+        columnClassName: 'h-full *:flex-1 *:min-h-0',
+        entries: [{ type: 'custom', render: MembersSettingsSection }],
       },
     ],
   },
@@ -380,7 +381,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'userGroupsSettingsSection',
-        columnClassName: 'lg:h-[unset] overflow-auto h-auto max-w-[unset]',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
         entries: [{ type: 'custom', render: UserGroupsSettingsSection }],
       },
     ],

@@ -35,7 +35,7 @@ const MAXIMUM_USER_ICONS = 6
 const USER_GROUP_SETTINGS_SECTION_STYLES = tv({
   base: '',
   slots: {
-    tableContainer: 'mb-[40px] min-h-0 flex-1',
+    tableContainer: 'min-h-0 flex-1',
     table: 'max-w-3xl table-fixed self-start rounded-rows',
     column:
       'w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0',
@@ -98,7 +98,7 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
         animate={{ opacity: 1, y: 0 }}
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         exit={{ opacity: 0, y: -10 }}
-        className="flex flex-col gap-2"
+        className="flex min-h-0 flex-1 flex-col gap-2"
       >
         {isAdmin && (
           <Button.Group verticalAlign="center" className="flex-initial">
@@ -319,7 +319,7 @@ function UserGroupSettingsSection(props: UserGroupSettingsSectionProps) {
         animate={{ opacity: 1, y: 0 }}
         // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         exit={{ opacity: 0, y: -10 }}
-        className="flex flex-col gap-2"
+        className="flex min-h-0 flex-1 flex-col gap-2"
       >
         <Button
           variant="icon"
