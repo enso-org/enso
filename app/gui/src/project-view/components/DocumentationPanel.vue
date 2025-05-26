@@ -157,6 +157,7 @@ function openDocs(url: string) {
     </div>
     <FunctionSignatureEditor
       v-if="signatureAst"
+      class="self-stretch"
       :functionAst="signatureAst"
       :methodPointer="methodPointer"
       :markdownDocs="markdownDocs"
@@ -211,13 +212,14 @@ function openDocs(url: string) {
   line-height: 160%;
   color: var(--enso-docs-text-color);
   background-color: var(--enso-docs-background-color);
-  padding: 4px 12px var(--doc-panel-bottom-clip, 0) 4px;
+  padding: 4px 4px var(--doc-panel-bottom-clip, 0) 4px;
   white-space: normal;
   clip-path: inset(0 0 var(--doc-panel-bottom-clip, 0) 0);
   height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 4px;
   align-items: flex-start;
 }
 
