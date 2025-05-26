@@ -50,10 +50,7 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
     /// ```text
     /// H:\NBO\enso\built-distribution\enso-engine-0.0.0-SNAPSHOT.2022-01-19-windows-amd64\enso-0.0.0-SNAPSHOT.2022-01-19
     /// ```
-    fn create(
-        &self,
-        repo_root: &RepoRoot
-    ) -> BoxFuture<'static, Result> {
+    fn create(&self, repo_root: &RepoRoot) -> BoxFuture<'static, Result> {
         let bundle_dir = self.as_ref().to_path_buf();
         let base_component = self.base_component(repo_root);
         let engine_src_path =
