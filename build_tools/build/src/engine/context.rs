@@ -187,22 +187,6 @@ impl RunContext {
         graalpy.install_if_missing(&self.cache).await?;
         ide_ci::programs::graalpy::GraalPy.require_present().await?;
 
-        if self.config.build_small_jdk {
-            let sbt = engine::sbt::Context {
-                repo_root:         self.paths.repo_root.path.clone(),
-                system_properties: default(),
-            };
-            if self.config.small_jdk_dir.is_none() {
-                return Err(anyhow::anyhow!(
-                    "Small JDK directory is not set. Please set `small_jdk_dir` in the build configuration."
-                ));
-            }
-            let target_dir = self.config.small_jdk_dir.as_ref().unwrap();
-            debug!("Building small JDK in {}", target_dir.display());
-            let sbt_cmd = format!("buildSmallJdkForRelease {}", target_dir.as_str());
-            sbt.call_arg(sbt_cmd).await?;
-        }
-
         if self.config.test_java_generated_from_rust {
             // Ensure all runtime dependencies are resolved and exported so that they can be
             // appended to classpath
@@ -329,6 +313,18 @@ impl RunContext {
                 command
             };
             sbt.call_arg(command).await?;
+        }
+
+        if self.config.build_small_jdk {
+            if self.config.small_jdk_dir.is_none() {
+                return Err(anyhow::anyhow!(
+                    "Small JDK directory is not set. Please set `small_jdk_dir` in the build configuration."
+                ));
+            }
+            let target_dir = self.config.small_jdk_dir.as_ref().unwrap();
+            debug!("Building small JDK in {}", target_dir.display());
+            let sbt_cmd = format!("buildSmallJdkForRelease {}", target_dir.as_str());
+            sbt.call_arg(sbt_cmd).await?;
         }
 
         // === End of Build project-manager distribution and native image ===
