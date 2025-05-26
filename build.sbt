@@ -675,21 +675,6 @@ val jimFsVersion            = "1.3.0"
 // === Utility methods =====================================================
 // ============================================================================
 
-// TODO: Remove
-lazy val componentModulesIds =
-  taskKey[Seq[ModuleID]](
-    "Gather all sbt module IDs that will be put on the module-path for the engine runner"
-  )
-(ThisBuild / componentModulesIds) := {
-  GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ logbackPkg ++ slf4jApi ++ Seq(
-    "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
-    (`runtime-language-arrow` / projectID).value,
-    (`syntax-rust-definition` / projectID).value,
-    (`ydoc-polyfill` / projectID).value,
-    (`profiling-utils` / projectID).value
-  )
-}
-
 lazy val componentModulesPaths =
   taskKey[Seq[File]](
     "Gathers all component modules (Jar archives that should be put on module-path" +
@@ -6039,34 +6024,6 @@ buildProjectManagerDistribution := {
   val cacheFactory = streams.value.cacheStoreFactory
   DistributionPackage.createProjectManagerPackage(root, cacheFactory)
   log.info(s"Project Manager package created at $root")
-}
-
-lazy val buildGraalDistribution =
-  taskKey[Unit]("Builds the GraalVM distribution")
-buildGraalDistribution := {
-  val log      = streams.value.log
-  val distOs   = "DIST_OS"
-  val distArch = "DIST_ARCH"
-  val osName   = "os.name"
-  val archName = "os.arch"
-  val distName = sys.env.get(distOs).getOrElse {
-    val name = sys.props(osName).takeWhile(!_.isWhitespace)
-    if (sys.env.contains("CI")) {
-      log.warn(
-        s"$distOs env var is empty. Fallback to system property $osName=$name."
-      )
-    }
-    name
-  }
-  val arch = sys.env.get(distArch).orElse(sys.env.get(archName))
-  val os = DistributionPackage.OS(distName, arch).getOrElse {
-    throw new RuntimeException(s"Failed to determine OS: $distName.")
-  }
-  packageBuilder.createGraalPackage(
-    log,
-    os,
-    os.archs.head
-  )
 }
 
 lazy val updateLibraryManifests =
