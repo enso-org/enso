@@ -362,10 +362,10 @@ function UserGroupSettingsSection(props: UserGroupSettingsSectionProps) {
         >
           <Table>
             <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
-              <Column isRowHeader className={styles.column()}>
+              <Column isRowHeader className={styles.column({ className: 'w-80 max-w-80' })}>
                 {getText('user')}
               </Column>
-              <Column isRowHeader className={styles.column()}>
+              <Column isRowHeader className={styles.column({ className: 'w-32 max-w-32' })}>
                 {getText('actions')}
               </Column>
             </TableHeader>
