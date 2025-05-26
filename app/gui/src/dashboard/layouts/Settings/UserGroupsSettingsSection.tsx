@@ -142,7 +142,10 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
               <Column isRowHeader className={styles.column({ className: 'w-48 min-w-48' })}>
                 {getText('userGroup')}
               </Column>
-              <Column isRowHeader className={styles.column({ className: 'w-60 min-w-60' })}>
+              <Column
+                isRowHeader
+                className={styles.column({ className: 'w-[21rem] min-w-[21rem]' })}
+              >
                 {getText('users')}
               </Column>
               {isAdmin && (
@@ -212,21 +215,27 @@ function UserGroupRow(props: UserGroupRowProps) {
         </Text>
       </Cell>
       <Cell className={styles.cell()}>
-        {users.slice(0, MAXIMUM_USER_ICONS).map((otherUser) => (
-          <VisualTooltip key={otherUser.userId} tooltip={`${otherUser.name} (${otherUser.email})`}>
-            <ProfilePicture picture={user.profilePicture} name={user.name} />
-          </VisualTooltip>
-        ))}
-        {users.length === 0 && (
-          <Text nowrap truncate="1">
-            {getText('zeroUsers')}
-          </Text>
-        )}
-        {users.length > MAXIMUM_USER_ICONS && (
-          <Text nowrap truncate="1">
-            {getText('plusXUsers', users.length - MAXIMUM_USER_ICONS)}
-          </Text>
-        )}
+        <div className="flex items-center gap-2">
+          {users.slice(0, MAXIMUM_USER_ICONS).map((otherUser) => (
+            <VisualTooltip
+              key={otherUser.userId}
+              tooltip={`${otherUser.name} (${otherUser.email})`}
+              className="shrink-0"
+            >
+              <ProfilePicture picture={user.profilePicture} name={user.name} />
+            </VisualTooltip>
+          ))}
+          {users.length === 0 && (
+            <Text nowrap truncate="1">
+              {getText('zeroUsers')}
+            </Text>
+          )}
+          {users.length > MAXIMUM_USER_ICONS && (
+            <Text nowrap truncate="1">
+              {getText('plusXUsers', users.length - MAXIMUM_USER_ICONS)}
+            </Text>
+          )}
+        </div>
       </Cell>
       {isAdmin && (
         <Cell className={styles.cell()}>
