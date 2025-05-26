@@ -87,23 +87,6 @@ object SmallJDK {
   def buildSmallJDKForRelease(
     smallJdkDirectory: File
   ): Unit = {
-    val modules_ = Seq(
-      "java.base",
-      "java.net.http",
-      "java.naming",
-      "jdk.charsets",
-      "jdk.unsupported",
-      "jdk.graal.compiler",
-      "jdk.graal.compiler.management",
-      "jdk.zipfs",
-      "org.graalvm.nativeimage",
-      "org.graalvm.truffle.compiler",
-      "org.graalvm.word",
-    )
-    val defaultCmdLine = Seq(
-      "--no-header-files",
-      "--no-man-pages",
-    )
     val mp = modulePath()
       .map(_.toAbsolutePath.toString)
       .mkString(File.pathSeparator)
