@@ -213,8 +213,7 @@ final class ArrayBuilder extends EnsoObject {
       }
       case "getSize" -> getSize();
       case "toArray" -> {
-        var avoidWarnings = args.length > 0 && Boolean.TRUE.equals(args[0]);
-        yield asVector(false, avoidWarnings);
+        yield asVector(false);
       }
       default -> throw UnknownIdentifierException.create(name);
     };
@@ -246,7 +245,7 @@ final class ArrayBuilder extends EnsoObject {
     return "Array_Builder";
   }
 
-  Object asVector(boolean mustBeExact, boolean avoidWarningsIgnored) {
+  final Object asVector(boolean mustBeExact) {
     var res = toArray(mustBeExact);
     if (res instanceof long[] longs) {
       return Vector.fromLongArray(longs);
