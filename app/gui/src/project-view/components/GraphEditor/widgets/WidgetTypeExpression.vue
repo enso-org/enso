@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 import { EnsoExpression } from './WidgetEnsoExpression.vue'
 import { withDropdownItems } from './WidgetSelection.vue'
@@ -26,13 +25,10 @@ declare module '@/providers/widgetRegistry' {
 }
 
 export const widgetDefinition = defineWidget(
-  WidgetInput.placeholderOrAstMatcher(Ast.BaseExpression),
+  EnsoTypeExpression,
   {
     priority: 40,
-    score: (props) =>
-      EnsoTypeExpression in props.input || props.input.expectedType === 'Type' ?
-        Score.Perfect
-      : Score.Mismatch,
+    score: Score.Perfect,
   },
   import.meta.hot,
 )

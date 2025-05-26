@@ -364,6 +364,7 @@ export type DropdownItem = CustomDropdownItem | ExpressionTag
 const CustomDropdownItemsKey: unique symbol = Symbol.for('WidgetInput:CustomDropdownItems')
 
 /** Add extra dropdown items to a widget input. */
+// eslint-disable-next-line jsdoc/require-jsdoc
 export function withDropdownItems(input: WidgetInput, items: Iterable<DropdownItem>): WidgetInput {
   const existingItems = input[CustomDropdownItemsKey] ?? []
   return { ...input, [CustomDropdownItemsKey]: [...existingItems, ...items] }
