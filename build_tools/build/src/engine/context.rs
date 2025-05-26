@@ -187,22 +187,6 @@ impl RunContext {
         graalpy.install_if_missing(&self.cache).await?;
         ide_ci::programs::graalpy::GraalPy.require_present().await?;
 
-        if self.config.build_small_jdk {
-            let sbt = engine::sbt::Context {
-                repo_root:         self.paths.repo_root.path.clone(),
-                system_properties: default(),
-            };
-            if self.config.small_jdk_dir.is_none() {
-                return Err(anyhow::anyhow!(
-                    "Small JDK directory is not set. Please set `small_jdk_dir` in the build configuration."
-                ));
-            }
-            let target_dir = self.config.small_jdk_dir.as_ref().unwrap();
-            debug!("Building small JDK in {}", target_dir.display());
-            let sbt_cmd = format!("buildSmallJdkForRelease {}", target_dir.as_str());
-            sbt.call_arg(sbt_cmd).await?;
-        }
-
         if self.config.test_java_generated_from_rust {
             // Ensure all runtime dependencies are resolved and exported so that they can be
             // appended to classpath
@@ -297,31 +281,41 @@ impl RunContext {
         // we don't want to call this in environments like GH-hosted runners.
 
         // === Build project-manager distribution and native image ===
-        let mut tasks = vec![];
+        let mut tasks: Vec<String> = vec![];
         let mut run_sbt_clean = false;
         if self.config.build_engine_package {
             run_sbt_clean = true;
-            tasks.push("buildEngineDistribution");
+            tasks.push("buildEngineDistribution".to_string());
         }
         if self.config.build_native_ydoc {
-            tasks.push("ydoc-server/buildNativeImage");
+            tasks.push("ydoc-server/buildNativeImage".to_string());
         }
         if self.config.build_project_manager_package() {
-            tasks.push("buildProjectManagerDistribution");
+            tasks.push("buildProjectManagerDistribution".to_string());
         }
         if self.config.build_launcher_package() {
-            tasks.push("buildLauncherDistribution");
+            tasks.push("buildLauncherDistribution".to_string());
         }
         if self.config.run_enso_lint {
-            tasks.push("lintEnso");
+            tasks.push("lintEnso".to_string());
+        }
+        if self.config.build_small_jdk {
+            if self.config.small_jdk_dir.is_none() {
+                return Err(anyhow::anyhow!(
+                    "Small JDK directory is not set. Please set `small_jdk_dir` in the build configuration."
+                ));
+            }
+            let target_dir = self.config.small_jdk_dir.as_ref().unwrap();
+            let sbt_cmd = format!("buildSmallJdkForRelease {}", target_dir.as_str());
+            tasks.push(sbt_cmd);
         }
 
         if !tasks.is_empty() {
             debug!("Building distributions and native images.");
             let mut command = if crate::ci::big_memory_machine() {
-                Sbt::concurrent_tasks(tasks)
+                Sbt::concurrent_tasks(tasks.iter().map(|s| s.as_str()))
             } else {
-                Sbt::sequential_tasks(tasks)
+                Sbt::sequential_tasks(tasks.iter().map(|s| s.as_str()))
             };
             command = if run_sbt_clean {
                 Sbt::sequential_tasks(vec!["clean", &command])
