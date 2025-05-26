@@ -135,11 +135,11 @@ export function addImports(
   scope.insert(position, ...imports)
 }
 
-  /**
-   * Create a non user-facing string representation of a required import.
-   * Meant for key generation and debugging, does not generate a valid code representation.
-   */
-  export function printRequiredImport(i: RequiredImport): string {
+/**
+ * Create a non user-facing string representation of a required import.
+ * Meant for key generation and debugging, does not generate a valid code representation.
+ */
+export function printRequiredImport(i: RequiredImport): string {
   if (i.kind === 'Qualified') return `${i.kind}:${i.module}`
   return `${i.kind}:${i.from}(${i.import})`
 }
