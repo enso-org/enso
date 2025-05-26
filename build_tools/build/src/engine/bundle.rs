@@ -3,8 +3,6 @@ use crate::prelude::*;
 use crate::engine::artifact::IsArtifact;
 use crate::paths::generated::RepoRoot;
 
-use ide_ci::cache::goodie::graalvm::locate_graal;
-
 
 
 /// Version of the bundled GraalVM.
@@ -46,7 +44,6 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
     /// Creates a bundle for a given component. This requires already built:
     ///  * the base component package (e.g. launcher package for launcher bundle);
     ///  * the engine package;
-    ///  * the GraalVM package.
     ///  *
     ///
     /// `bundle_dir` is like:
@@ -55,8 +52,7 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
     /// ```
     fn create(
         &self,
-        repo_root: &RepoRoot,
-        graal_version: &GraalVmVersion,
+        repo_root: &RepoRoot
     ) -> BoxFuture<'static, Result> {
         let bundle_dir = self.as_ref().to_path_buf();
         let base_component = self.base_component(repo_root);

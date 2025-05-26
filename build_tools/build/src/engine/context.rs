@@ -19,7 +19,6 @@ use crate::paths::TargetTriple;
 use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
-use aws_sdk_ecr::error;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
@@ -475,9 +474,8 @@ impl RunContext {
             }
         }
 
-        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
         for bundle in ret.bundles() {
-            bundle.create(&self.repo_root, &graal_version).await?;
+            bundle.create(&self.repo_root).await?;
         }
 
         scala_test_result?;
