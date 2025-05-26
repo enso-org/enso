@@ -79,10 +79,13 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       onSubmitSuccess,
       debugName,
       resetOnSubmit = true,
+      onChange: onChangeProp,
       ...options
     } = optionsOrFormInstance
 
     const computedSchema = typeof schema === 'function' ? schema(schemaModule.schema) : schema
+
+    const onChangeStableProp = useEventCallback(onChangeProp)
 
     const formInstance = reactHookForm.useForm({
       ...options,
@@ -140,32 +143,33 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       ),
     })
 
-    const register: types.UseFormRegister<Schema> = React.useCallback(
-      (name, opts) => {
-        const registered = formInstance.register(name, opts)
+    const register: types.UseFormRegister<Schema> = useEventCallback((name, opts) => {
+      const registered = formInstance.register(name, opts)
 
-        const onChange: types.UseFormRegisterReturn<Schema>['onChange'] = (value) =>
-          registered.onChange(mapValueOnEvent(value))
-
-        const onBlur: types.UseFormRegisterReturn<Schema>['onBlur'] = (value) =>
-          registered.onBlur(mapValueOnEvent(value))
-
-        const result: types.UseFormRegisterReturn<Schema, typeof name> = {
-          ...registered,
-          disabled: registered.disabled ?? false,
-          isDisabled: registered.disabled ?? false,
-          invalid: !!formInstance.formState.errors[name],
-          isInvalid: !!formInstance.formState.errors[name],
-          required: registered.required ?? false,
-          isRequired: registered.required ?? false,
-          onChange,
-          onBlur,
-        }
-
+      const onChange: types.UseFormRegisterReturn<Schema>['onChange'] = async (value) => {
+        const result = await registered.onChange(mapValueOnEvent(value))
+        const values = formInstance.getValues()
+        onChangeStableProp(name, values[name], form)
         return result
-      },
-      [formInstance],
-    )
+      }
+
+      const onBlur: types.UseFormRegisterReturn<Schema>['onBlur'] = (value) =>
+        registered.onBlur(mapValueOnEvent(value))
+
+      const result: types.UseFormRegisterReturn<Schema, typeof name> = {
+        ...registered,
+        disabled: registered.disabled ?? false,
+        isDisabled: registered.disabled ?? false,
+        invalid: !!formInstance.formState.errors[name],
+        isInvalid: !!formInstance.formState.errors[name],
+        required: registered.required ?? false,
+        isRequired: registered.required ?? false,
+        onChange,
+        onBlur,
+      }
+
+      return result
+    })
 
     // We need to disable the eslint rules here, because we call hooks conditionally
     // but it's safe to do so, because we don't switch between the two types of arguments
@@ -248,13 +252,13 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
         if (isOffline && !canSubmitOffline) {
           formInstance.setError('root.offline', { message: getText('unavailableOffline') })
           return Promise.resolve()
-        } else {
-          if (event) {
-            return formOnSubmit(event)
-          } else {
-            return formOnSubmit()
-          }
         }
+
+        if (event != null) {
+          return formOnSubmit(event)
+        }
+
+        return formOnSubmit()
       },
     )
 
@@ -267,8 +271,17 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       formInstance.reset(options.defaultValues as types.FieldValues<Schema>)
     })
 
+    const setValue = useEventCallback<reactHookForm.UseFormSetValue<types.FieldValues<Schema>>>(
+      (name, value, setValueOptions) => {
+        formInstance.setValue(name, value, setValueOptions)
+        // eslint-disable-next-line no-restricted-syntax
+        onChangeStableProp(name as never, value as never, form)
+      },
+    )
+
     const form: types.UseFormReturn<Schema> = {
       ...formInstance,
+      setValue,
       reset,
       submit,
       // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,

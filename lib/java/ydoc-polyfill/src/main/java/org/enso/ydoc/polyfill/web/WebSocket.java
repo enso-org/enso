@@ -14,16 +14,11 @@ import io.helidon.websocket.WsSession;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayDeque;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
-import java.util.Random;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Value;
@@ -101,7 +96,7 @@ final class WebSocket implements ProxyExecutable {
 
         var protocolConfig = WsClientProtocolConfig.builder();
         if (protocols != null) {
-          protocolConfig.subProtocols(Arrays.asList(protocols));
+          protocolConfig.subProtocols(List.of(protocols));
         }
 
         var wsClient = WsClient.builder().protocolConfig(protocolConfig.build()).build();
@@ -248,9 +243,7 @@ final class WebSocket implements ProxyExecutable {
   }
 
   private static final class WebSocketConnection implements WsListener {
-
-    private final Executor executor;
-
+    private final ScheduledExecutorService executor;
     private final Value handleOpen;
     private final Value handleClose;
     private final Value handleError;
@@ -270,7 +263,7 @@ final class WebSocket implements ProxyExecutable {
         Value handlePing,
         Value handlePong,
         Value handleUpgrade) {
-      this.executor = new ReTryingExecutor(executor);
+      this.executor = executor;
       this.handleOpen = handleOpen;
       this.handleClose = handleClose;
       this.handleError = handleError;
@@ -360,7 +353,8 @@ final class WebSocket implements ProxyExecutable {
   /*
    * This would be way more simpler if we could use
    * <a href="https://github.com/oracle/graal/pull/8266">Allow control of throwDeniedThreadAccess via TruffleContext.threadAccessDeniedHandler</a>.
-   */
+   * Which we can use now, so hopefully this code isn't needed.
+   *
   private static final class ReTryingExecutor implements Executor, Runnable {
     private final ScheduledExecutorService executor;
     private final Random delayer = new Random();
@@ -402,4 +396,5 @@ final class WebSocket implements ProxyExecutable {
       }
     }
   }
+   */
 }
