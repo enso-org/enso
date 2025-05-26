@@ -22,7 +22,14 @@ export type FormProps<Schema extends components.TSchema, SubmitResult = void> =
 interface BaseFormProps<Schema extends components.TSchema>
   extends Omit<
       React.HTMLProps<HTMLFormElement>,
-      'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
+      | 'children'
+      | 'className'
+      | 'form'
+      | 'onChange'
+      | 'onChangeCapture'
+      | 'onSubmit'
+      | 'onSubmitCapture'
+      | 'style'
     >,
     Omit<styles.FormStyleProps, 'class' | 'className'>,
     TestIdProps {
@@ -42,7 +49,6 @@ interface BaseFormProps<Schema extends components.TSchema>
 
   /** When set to `dialog`, form submission will close the parent dialog on successful submission. */
   readonly method?: 'dialog' | (NonNullable<unknown> & string)
-
   readonly canSubmitOffline?: boolean
 }
 
@@ -60,6 +66,7 @@ export interface FormPropsWithParentForm<Schema extends components.TSchema>
   readonly onSubmitSuccess?: never
   readonly onSubmitFailed?: never
   readonly onSubmitted?: never
+  readonly onChange?: never
 }
 
 /**
@@ -83,6 +90,15 @@ export interface FormPropsWithOptions<Schema extends components.TSchema, SubmitR
    */
   readonly defaultValues?: components.UseFormOptions<Schema>['defaultValues']
   readonly form?: never
+  /**
+   * A callback that is called when the form values change.
+   * This is useful for updating the UI when the form values change.
+   */
+  readonly onChange?: (
+    field: components.FieldPath<Schema>,
+    value: components.FieldValues<Schema>[components.FieldPath<Schema>],
+    form: components.UseFormReturn<Schema>,
+  ) => void
 }
 
 /** Register function for a form field. */

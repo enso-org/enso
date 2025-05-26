@@ -1,5 +1,4 @@
 /** @file A column listing the labels on this asset. */
-import * as authProvider from '#/providers/AuthProvider'
 import { useText } from '$/providers/react'
 
 import DotsIcon from '#/assets/dots.svg'
@@ -9,26 +8,26 @@ import Label from '#/components/dashboard/Label'
 
 import { Button, DialogTrigger, Popover } from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FALLBACK_COLOR } from '#/services/Backend'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import * as permissions from '#/utilities/permissions'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRef, useState } from 'react'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, state, labels } = props
-  const { backend, category, setQuery } = state
-  const { user } = authProvider.useFullUserSession()
+
+  const { backend } = state
+
   const { getText } = useText()
+  const toastAndLog = useToastAndLog()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))
-  const self = permissions.tryFindSelfPermission(user, item.permissions)
-  const managesThisAsset =
-    category.type !== 'trash' &&
-    (self?.permission === permissions.PermissionAction.own ||
-      self?.permission === permissions.PermissionAction.admin)
 
   const rootRef = useRef<HTMLDivElement>(null)
   const labelsListRef = useRef<HTMLDivElement>(null)
@@ -43,6 +42,17 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     },
   })
 
+  const associateTag = useMutationCallback(backendMutationOptions(backend, 'associateTag'))
+
+  const doDelete = useEventCallback(async (label: string) => {
+    unsetModal()
+    const newLabels = item.labels?.filter((oldLabel) => oldLabel !== label) ?? []
+
+    return associateTag([item.id, newLabels, item.title]).catch((error) => {
+      toastAndLog('deleteLabelBackendError', error, label)
+    })
+  })
+
   const labelsList = (item.labels ?? [])
     .filter((label) => labelsByName.has(label))
     .map((label) => (
@@ -52,27 +62,21 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         title={getText('rightClickToRemoveLabel')}
         color={labelsByName.get(label)?.color ?? FALLBACK_COLOR}
         active
+        onDelete={() => doDelete(label)}
         onContextMenu={(event) => {
           event.preventDefault()
           event.stopPropagation()
-          const doDelete = () => {
-            unsetModal()
-            const newLabels = item.labels?.filter((oldLabel) => oldLabel !== label) ?? []
-            void backend.associateTag(item.id, newLabels, item.title)
-          }
           setModal(
             <ContextMenu aria-label={getText('labelContextMenuLabel')} event={event}>
               <ContextMenuEntry
                 action="delete"
-                label={getText('deleteLabelShortcut')}
-                doAction={doDelete}
+                label={getText('removeLabelShortcut')}
+                doAction={() => {
+                  unsetModal()
+                  void doDelete(label)
+                }}
               />
             </ContextMenu>,
-          )
-        }}
-        onPress={(event) => {
-          setQuery((oldQuery) =>
-            oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey),
           )
         }}
       >
@@ -93,48 +97,54 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <div className="pointer-events-none absolute bottom-0 right-10 top-0 w-10 bg-gradient-to-l from-dashboard-row opacity-100" />
         )}
       </div>
-      {managesThisAsset && (
+      <div
+        className="contents"
+        onClick={(event) => {
+          // Prevent the click from being propagated to the parent and trigger the row selection.
+          event.stopPropagation()
+        }}
+      >
+        {isOverflowing && (
+          <Popover.Trigger>
+            <Button
+              variant="icon"
+              showIconOnHover
+              icon={DotsIcon}
+              tooltip={getText('showAllLabels')}
+            />
+            <Popover
+              triggerRef={rootRef}
+              size="auto"
+              style={() => ({ width: rootRef.current?.clientWidth })}
+            >
+              <div className="flex flex-wrap items-center gap-1">
+                {labelsList}
+
+                <DialogTrigger>
+                  <Button
+                    variant="icon"
+                    tooltip={getText('manageLabels')}
+                    tooltipPlacement="top"
+                    icon="edit"
+                  />
+                  <ManageLabelsModal backend={backend} item={item} />
+                </DialogTrigger>
+              </div>
+            </Popover>
+          </Popover.Trigger>
+        )}
+
         <DialogTrigger>
           <Button
             variant="icon"
             showIconOnHover
             tooltip={getText('manageLabels')}
-            tooltipPlacement="left"
+            tooltipPlacement="top"
             icon="edit"
           />
           <ManageLabelsModal backend={backend} item={item} />
         </DialogTrigger>
-      )}
-      {isOverflowing && (
-        <Popover.Trigger>
-          <Button
-            variant="icon"
-            showIconOnHover
-            icon={DotsIcon}
-            tooltip={getText('showAllLabels')}
-          />
-          <Popover
-            triggerRef={rootRef}
-            size="auto"
-            style={() => ({ width: rootRef.current?.clientWidth })}
-          >
-            <div className="flex flex-wrap items-center gap-1">
-              {labelsList}
-              {managesThisAsset && (
-                <DialogTrigger>
-                  <Button
-                    variant="icon"
-                    tooltip={getText('manageLabels')}
-                    tooltipPlacement="left"
-                    icon="edit"
-                  />
-                  <ManageLabelsModal backend={backend} item={item} />
-                </DialogTrigger>
-              )}
-            </div>
-          </Popover>
-        </Popover.Trigger>
-      )}
+      </div>
     </div>
   )
 }
