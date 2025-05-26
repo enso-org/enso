@@ -21,7 +21,7 @@ import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter, useText } from '$/providers/react'
-import { type GetText } from '$/providers/text'
+import type { GetText } from '$/providers/text'
 import { toast } from 'react-toastify'
 
 /** Create the schema for this form. */
