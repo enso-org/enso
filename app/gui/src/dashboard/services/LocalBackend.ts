@@ -881,9 +881,9 @@ export default class LocalBackend extends Backend {
     params: backend.ExportArchiveParams,
   ): Promise<backend.ExportedArchive> {
     const entries = unsafeEntries(params).flatMap<[string, string]>(([paramName, v]) =>
-      v == null ? []
-      : typeof v === 'string' ? [[paramName, v]]
-      : v.map<[string, string]>((id) => [paramName, id]),
+      paramName === 'assetIds' ? v.map<[string, string]>((id) => ['asset', id])
+      : v != null ? [[paramName, v]]
+      : [],
     )
     const searchParams = new URLSearchParams(entries).toString()
     const response = await fetch(`/api/files/download-archive?${searchParams}`, { method: 'POST' })
