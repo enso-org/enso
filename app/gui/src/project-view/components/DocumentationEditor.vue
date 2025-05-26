@@ -66,6 +66,13 @@ function handlePaste(raw: boolean) {
 const handler = documentationEditorBindings.handler({
   paste: () => handlePaste(false),
   pasteRaw: () => handlePaste(true),
+  bold: () => markdownEditor.value?.bold(),
+  italic: () => markdownEditor.value?.italic(),
+  header1: () => markdownEditor.value?.header1(),
+  header2: () => markdownEditor.value?.header2(),
+  header3: () => markdownEditor.value?.header3(),
+  paragraph: () => markdownEditor.value?.paragraph(),
+  link: () => markdownEditor.value?.link(),
 })
 </script>
 

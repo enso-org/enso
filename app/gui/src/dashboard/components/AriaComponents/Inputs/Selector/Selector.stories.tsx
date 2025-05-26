@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { z } from 'zod'
 
-import { Form, type FieldPath, type TSchema } from '#/components/AriaComponents'
+import { type FieldPath, type TSchema } from '#/components/AriaComponents'
+import { Form } from '#/components/AriaComponents/Form'
 import { StoryVariants } from '#/utilities/StoryVariants'
 import { userEvent, within } from '@storybook/test'
 import type { SelectorProps } from './Selector'

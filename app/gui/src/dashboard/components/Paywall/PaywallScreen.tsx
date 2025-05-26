@@ -1,8 +1,8 @@
 /** @file A screen that shows a paywall. */
 import { Text } from '#/components/AriaComponents'
 import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
-import { useText } from '#/providers/TextProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import { PaywallBulletPoints, PaywallLock } from './components'
 import { UpgradeButton } from './UpgradeButton'
 

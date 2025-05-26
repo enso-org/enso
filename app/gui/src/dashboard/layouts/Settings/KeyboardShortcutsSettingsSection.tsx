@@ -15,8 +15,8 @@ import { useRefresh } from '#/hooks/refreshHooks'
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useText } from '#/providers/TextProvider'
 import { unsafeEntries } from '#/utilities/object'
+import { useText } from '$/providers/react'
 
 /** Settings tab for viewing and editing keyboard shortcuts. */
 export default function KeyboardShortcutsSettingsSection() {
@@ -58,8 +58,8 @@ export default function KeyboardShortcutsSettingsSection() {
       <Scroller
         scrollbar
         orientation="vertical"
-        className="mb-[40px] min-h-0 flex-1 overflow-auto"
-        shadowStartClassName="mt-8"
+        className="mb-[40px] min-h-0 flex-1"
+        shadowStartClassName="top-8"
       >
         <table className="table-fixed border-collapse rounded-rows">
           <thead className="sticky top-0 z-1 bg-dashboard">

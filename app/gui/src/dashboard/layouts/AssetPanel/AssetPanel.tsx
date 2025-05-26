@@ -6,7 +6,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { memo, startTransition } from 'react'
 
-import type { BackendType } from 'enso-common/src/services/Backend'
+import { type BackendType } from 'enso-common/src/services/Backend'
 
 import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import DocsIcon from '#/assets/file_text.svg'
@@ -14,12 +14,13 @@ import SessionsIcon from '#/assets/group.svg'
 import InspectIcon from '#/assets/inspect.svg'
 import VersionsIcon from '#/assets/versions.svg'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { usePaywall } from '#/hooks/billing'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
-import { useBackend } from '#/providers/BackendProvider'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useText } from '#/providers/TextProvider'
 import { useStore } from '#/utilities/zustand'
+import { useBackends, useText } from '$/providers/react'
 import type { Key } from 'react-aria'
 import {
   assetPanelStore,
@@ -102,6 +103,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   props: AssetPanelProps & { panelWidth: number },
 ) {
   const { category, panelWidth } = props
+  const { backendForType } = useBackends()
 
   const itemId = useAssetPanelCurrentItem()?.id
 
@@ -119,17 +121,20 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   const isLocal = isLocalCategory(category)
 
   const { getText } = useText()
+  const { user } = useFullUserSession()
 
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()
 
   const enableAsyncExecution = useFeatureFlag('enableAsyncExecution')
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const isSchedulerDisabled = isFeatureUnderPaywall('scheduler')
 
   const expandTab = useEventCallback(() => {
     setIsExpanded(true)
   })
 
-  const backend = useBackend(category)
+  const backend = backendForType(category.backend)
 
   const getTranslation = useEventCallback(() => ASSET_SIDEBAR_COLLAPSED_WIDTH)
 
@@ -244,13 +249,14 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             id="executionsCalendar"
             icon={CalendarIcon}
             label={
-              isLocal ?
-                getText('assetProjectExecutionsCalendar.cloudOnly')
+              isLocal ? getText('assetProjectExecutionsCalendar.cloudOnly')
+              : isSchedulerDisabled ?
+                getText('assetProjectExecutionsCalendar.teamPlanOnly')
               : getText('executionsCalendar')
             }
             isExpanded={isExpanded}
             onPress={expandTab}
-            isDisabled={isLocal}
+            isDisabled={isLocal || isSchedulerDisabled}
             isHidden={!enableAsyncExecution}
           />
           <AssetPanelTabs.Tab

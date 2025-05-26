@@ -17,6 +17,7 @@ export const PAYWALL_FEATURES = {
   share: 'share',
   shareFull: 'shareFull',
   uploadToCloud: 'uploadToCloud',
+  scheduler: 'scheduler',
 } as const
 
 /** Paywall features. */
@@ -69,6 +70,7 @@ const PAYWALL_FEATURES_LABELS: Record<PaywallFeatureName, text.TextId> = {
   share: 'shareFeatureLabel',
   shareFull: 'shareFullFeatureLabel',
   uploadToCloud: 'uploadToCloudFeatureLabel',
+  scheduler: 'schedulerFeatureLabel',
 } satisfies { [K in PaywallFeatureName]: `${K}FeatureLabel` }
 
 const PAYWALL_FEATURE_META = {
@@ -80,6 +82,7 @@ const PAYWALL_FEATURE_META = {
   share: undefined,
   shareFull: undefined,
   uploadToCloud: undefined,
+  scheduler: undefined,
 } satisfies { [K in PaywallFeatureName]: unknown }
 
 /** Basic feature configuration. */
@@ -132,6 +135,11 @@ const PAYWALL_CONFIGURATION: Record<PaywallFeatureName, BasicFeatureConfiguratio
     level: PAYWALL_LEVELS.enterprise,
     bulletPointsTextId: 'shareFullFeatureBulletPoints',
     descriptionTextId: 'shareFullFeatureDescription',
+  },
+  scheduler: {
+    level: PAYWALL_LEVELS.team,
+    bulletPointsTextId: 'schedulerFeatureBulletPoints',
+    descriptionTextId: 'schedulerFeatureDescription',
   },
 }
 

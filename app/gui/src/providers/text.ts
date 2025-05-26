@@ -1,0 +1,40 @@
+import * as text from 'enso-common/src/text'
+
+import { createContextStore } from '@/providers'
+import { computed, proxyRefs, ref } from 'vue'
+
+export type TextStore = ReturnType<typeof useText>
+/**
+ * A composable for getting localized text and setting the language.
+ *
+ * The composable is used in tests only; the application should use
+ * `injectText` instead.
+ */
+export function useText() {
+  const language = ref(text.resolveUserLanguage())
+  const locale = computed(() => text.LANGUAGE_TO_LOCALE[language.value])
+  const localizedText = computed(() => text.getDictionary(language.value))
+
+  const getText: GetText = (key, ...replacements) =>
+    text.getText(localizedText.value, key, ...replacements)
+
+  function setLanguage(lang: text.Language) {
+    language.value = lang
+  }
+
+  return proxyRefs({ language, locale, getText, setLanguage })
+}
+
+/**
+ * A function that gets localized text for a given key, with optional replacements.
+ * @param key - The key of the text to get.
+ * @param replacements - The replacements to insert into the text.
+ * If the text contains placeholders like `$0`, `$1`, etc.,
+ * they will be replaced with the corresponding replacement.
+ */
+export type GetText = <K extends text.TextId>(
+  key: K,
+  ...replacements: text.Replacements[K]
+) => string
+
+export const [provideText, injectText] = createContextStore('text', useText)

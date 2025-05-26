@@ -470,6 +470,10 @@ inset 0 -36px 51px -51px #00000014`,
             '@apply opacity-75 cursor-not-allowed': '',
           },
 
+          '.scroll-offset-edge-0': {
+            '--scrollbar-offset-edge': '0px',
+          },
+
           '.scroll-offset-edge-s': {
             '--scrollbar-offset-edge': '2px',
           },

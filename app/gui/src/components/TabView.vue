@@ -5,10 +5,8 @@ import { BackendType, ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
 import SelectableTab from '$/components/TabView/SelectableTab.vue'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, watch } from 'vue'
-import CloseButton from './CloseButton.vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
@@ -77,24 +75,34 @@ const onSignOut = () => {
   <div class="TabView">
     <div class="bar">
       <div role="tablist" class="tablist">
-        <SelectableTab :selected="page === 'drive'" @update:selected="$event && setPage('drive')">
-          <SvgIcon name="drive" /><span>Data Catalog</span>
-        </SelectableTab>
+        <SelectableTab
+          :selected="page === 'drive'"
+          icon="drive"
+          label="Data Catalog"
+          @update:selected="$event && setPage('drive')"
+        />
         <SelectableTab
           v-for="project in launchedProjects"
           :key="project.id"
           data-testid="editor-tab-button"
           :selected="page === project.id"
+          :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
+          :label="projectNames.get(project.id)"
           @update:selected="$event && setPage(project.id)"
+          @close="closeProject(project)"
         >
-          <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
-          <GrowingSpinner v-else :phase="loadingProjectSpinnerPhase(project)" :size="16" />
-          <span class="projectName">{{ projectNames.get(project.id) }}</span>
-          <CloseButton @click="closeProject(project)" />
+          <GrowingSpinner
+            v-if="!readyProjects.has(project.id)"
+            :phase="loadingProjectSpinnerPhase(project)"
+            :size="16"
+          />
         </SelectableTab>
-        <SelectableTab v-if="page === 'settings'" :selected="true">
-          <SvgIcon name="settings" /><span>Settings</span>
-        </SelectableTab>
+        <SelectableTab
+          v-if="page === 'settings'"
+          :selected="true"
+          icon="settings"
+          label="Settings"
+        />
       </div>
       <div class="filler" />
       <UserBar :goToSettingsPage="() => setPage('settings')" @signOut="onSignOut" />
@@ -159,12 +167,6 @@ const onSignOut = () => {
   flex-grow: 1;
   min-height: 0;
   display: flex;
-}
-
-.projectName {
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .editor {

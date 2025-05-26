@@ -10,7 +10,6 @@ import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import DriveProvider from '#/providers/DriveProvider'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
@@ -31,7 +30,7 @@ import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
-import { useConfigInReact } from '$/providers/react'
+import { useBackends, useConfig } from '$/providers/react'
 import { usePrefetchQuery } from '@tanstack/react-query'
 
 const TabView = React.lazy(() =>
@@ -76,9 +75,9 @@ function fileURLToPath(url: string): string | null {
 
 /** The component that contains the entire UI. */
 function DashboardInner() {
-  const localBackend = backendProvider.useLocalBackend()
+  const { localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const config = useConfigInReact()
+  const config = useConfig()
 
   const initialProjectNameRaw = config.params.startup.project
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)

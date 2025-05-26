@@ -44,12 +44,12 @@ export type ButtonProps<IconType extends string = string> =
       PropsWithHref)
 
 /** Props for a button with an href. */
-interface PropsWithHref {
+export interface PropsWithHref {
   readonly href: string
 }
 
 /** Props for a button without an href. */
-interface PropsWithoutHref {
+export interface PropsWithoutHref {
   readonly href?: never
 }
 

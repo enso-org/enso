@@ -2,7 +2,7 @@
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import { ConfirmDeleteUserModal } from '#/modals/ConfirmDeleteUserModal'
 import { useAuth } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 /** Settings tab for deleting the current user. */
 export default function DeleteUserAccountSettingsSection() {

@@ -1,9 +1,5 @@
-/**
- * @file
- *
- * A switch allows a user to turn a setting on or off.
- */
-import { useRef, type CSSProperties, type ForwardedRef } from 'react'
+/** @file A switch allows a user to turn a setting on or off. */
+import { forwardRef, useRef, type CSSProperties, type ForwardedRef } from 'react'
 
 import {
   Switch as AriaSwitch,
@@ -11,7 +7,6 @@ import {
   type SwitchProps as AriaSwitchProps,
 } from '#/components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import { TEXT_STYLE } from '../Text'
@@ -81,6 +76,7 @@ export const Switch = forwardRef(function Switch<
     error,
     size,
     labelPosition = 'after',
+    contextualHelp,
     ...ariaSwitchProps
   } = props
 
@@ -120,6 +116,7 @@ export const Switch = forwardRef(function Switch<
       isInvalid={fieldState.invalid}
       aria-details={props['aria-details']}
       style={props.style}
+      contextualHelp={contextualHelp}
     >
       <AriaSwitch
         ref={(el) => {
