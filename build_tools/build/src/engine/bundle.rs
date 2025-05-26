@@ -65,7 +65,14 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
         let engine_target_dir = self.engine_dir();
         let graalvm_dir = self.graalvm_dir();
         let distribution_marker = self.distribution_marker();
-        let graalvm_version = graal_version.clone();
+        let small_jdk_dir = repo_root.target.small_jdk.clone();
+        if !small_jdk_dir.exists() {
+            return futures::future::err(anyhow::anyhow!(
+                "Small JDK directory does not exist in {}. It should have been built",
+                small_jdk_dir.display()
+            ))
+            .boxed();
+        }
 
         async move {
             ide_ci::fs::tokio::remove_dir_if_exists(&bundle_dir).await?;
@@ -73,8 +80,8 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
             ide_ci::fs::copy(&base_component, bundle_dir)?;
             // Add engine.
             ide_ci::fs::mirror_directory(&engine_src_path, &engine_target_dir).await?;
-            // Add GraalVM runtime.
-            place_graal_under(graalvm_dir, &graalvm_version).await?;
+            // Add runtime
+            ide_ci::fs::mirror_directory(&small_jdk_dir, &graalvm_dir).await?;
             // Add portable distribution marker.
             ide_ci::fs::create(distribution_marker)?;
             Ok(())
@@ -121,18 +128,4 @@ impl IsBundle for crate::paths::generated::LauncherBundle {
     fn distribution_marker(&self) -> PathBuf {
         self.enso_portable.to_path_buf()
     }
-}
-
-/// Places a copy of the GraalVM's installation directory in the target directory.
-///
-/// The GraalVM installation will be located using [`locate_graal`] function.
-#[context("Failed to place a GraalVM package under {}.", target_directory.as_ref().display())]
-pub async fn place_graal_under(
-    target_directory: impl AsRef<Path>,
-    graal_version: &GraalVmVersion,
-) -> Result {
-    let graal_path = locate_graal()?;
-    let graal_dirname =
-        format!("graalvm-ce-java{}-{}", graal_version.graal, graal_version.packages);
-    ide_ci::fs::mirror_directory(&graal_path, target_directory.as_ref().join(graal_dirname)).await
 }
