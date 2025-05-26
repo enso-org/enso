@@ -19,13 +19,12 @@ import { usePaywall } from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { NewUserGroupForm } from '#/modals/NewUserGroupForm'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useRemoteBackend } from '#/providers/BackendProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import type { EmailAddress } from '#/services/Backend'
 import { type User, type UserGroupInfo } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackends, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
@@ -77,7 +76,7 @@ export interface UserGroupsSettingsRootSectionProps {
 function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps) {
   const { setUserGroup } = props
 
-  const backend = useRemoteBackend()
+  const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
   const { user } = useFullUserSession()
   const { data: userGroups } = useSuspenseQuery(backendQueryOptions(backend, 'listUserGroups', []))
@@ -187,7 +186,7 @@ interface UserGroupRowProps {
 function UserGroupRow(props: UserGroupRowProps) {
   const { userGroup, setUserGroup } = props
 
-  const backend = useRemoteBackend()
+  const { remoteBackend: backend } = useBackends()
   const { user } = useFullUserSession()
   const { getText } = useText()
   const isAdmin = user.isOrganizationAdmin
@@ -278,7 +277,7 @@ interface UserGroupSettingsSectionProps {
 function UserGroupSettingsSection(props: UserGroupSettingsSectionProps) {
   const { userGroup, unsetUserGroup } = props
 
-  const backend = useRemoteBackend()
+  const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
 
   const deleteUserGroupRaw = useMutationCallback(backendMutationOptions(backend, 'deleteUserGroup'))
@@ -426,7 +425,7 @@ function UserGroupAddUserForm(props: UserGroupAddUserFormProps) {
   const { userGroup } = props
 
   const { getText } = useText()
-  const backend = useRemoteBackend()
+  const { remoteBackend: backend } = useBackends()
   const changeUserGroup = useMutationCallback(backendMutationOptions(backend, 'changeUserGroup'))
 
   const { data: allUsers } = useSuspenseQuery(backendQueryOptions(backend, 'listUsers', []))

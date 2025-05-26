@@ -3,7 +3,7 @@ import Error from '#/assets/cross.svg'
 import Done from '#/assets/tick.svg'
 import type { SvgUseIcon } from '#/components/AriaComponents/types'
 import { useCopy } from '#/hooks/copyHooks'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { Button } from './Button'
 import type { ButtonProps } from './types'
 
@@ -40,7 +40,7 @@ export function CopyButton<IconType extends string>(props: CopyButtonProps<IconT
     onCopy,
     ...buttonProps
   } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const copyQuery = useCopy({ onCopy })
   const successfullyCopied = copyQuery.isSuccess
   const isError = copyQuery.isError

@@ -13,15 +13,13 @@ import {
   useTransferBetweenCategories,
 } from '#/layouts/Drive/Categories'
 import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
-import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
-import { useHttpClient } from '#/providers/HttpClientProvider'
 import { setModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import type LocalBackend from '#/services/LocalBackend'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
+import { useBackends, useHttpClient, useText } from '$/providers/react'
 import {
   queryOptions,
   useMutation,
@@ -420,7 +418,7 @@ export function useUploadFileToCloudMutation() {
   const { getText } = useText()
   const httpClient = useHttpClient()
   const toastAndLog = useToastAndLog()
-  const remoteBackend = useRemoteBackend()
+  const { remoteBackend } = useBackends()
   const uploadFileMutation = useUploadFileMutation(remoteBackend)
   const getSiblings = useGetSiblings()
   const { cloudCategories } = useCategoriesAPI()

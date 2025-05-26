@@ -7,7 +7,7 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { pickBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useBackends } from '$/providers/react'
 import type { ReactNode } from 'react'
 import type { Category, CategoryId } from './Category'
 import {
@@ -32,8 +32,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
   const { children, onCategoryChange = () => {} } = props
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
-  const localBackend = useLocalBackend()
-  const remoteBackend = useRemoteBackend()
+  const { backendForType, localBackend } = useBackends()
   const { isOffline } = useOffline()
 
   const [categoryId, privateSetCategoryId, privateResetCategoryId] =
@@ -90,7 +89,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
     return <></>
   }
 
-  const backend = pickBackend(category, remoteBackend, localBackend)
+  const backend = backendForType(category.backend)
 
   const contextValue = {
     cloudCategories,

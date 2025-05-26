@@ -8,15 +8,15 @@ import {
   type HTMLAttributes,
 } from 'react'
 
-import type { FieldVariantProps } from '#/components/AriaComponents'
-import {
-  Form,
-  Text,
-  type FieldPath,
-  type FieldProps,
-  type FieldStateProps,
-  type TSchema,
+import type {
+  FieldPath,
+  FieldProps,
+  FieldStateProps,
+  FieldVariantProps,
+  TSchema,
 } from '#/components/AriaComponents'
+import { Form } from '#/components/AriaComponents/Form'
+import { Text } from '#/components/AriaComponents/Text'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
@@ -90,6 +90,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     variant,
     variants = CONTENT_EDITABLE_STYLES,
     fieldVariants,
+    contextualHelp,
     autoFocus = false,
     ...textFieldProps
   } = props
@@ -138,6 +139,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
       fullWidth
       variants={fieldVariants}
       {...textFieldProps}
+      contextualHelp={contextualHelp}
     >
       <div
         className={styles.base()}

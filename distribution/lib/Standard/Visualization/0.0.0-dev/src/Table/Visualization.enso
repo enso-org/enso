@@ -138,7 +138,7 @@ make_json_for_dictionary dict max_items =
     as_vector = Warning.clear (dict.to_vector.take max_items)
     mapped = as_vector . map p-> [p.first.to_text, _make_json_for_value p.second]
     data = ["data", [mapped.map .first, mapped.map .second]]
-    links = ["get_child_node_action", "at"]
+    links = ["get_child_node_action", "at {{#key}}"]
     get_child_node_action_link_name = ["get_child_node_link_name", "key"]
     JS_Object.from_pairs [header, data, all_rows, links, get_child_node_action_link_name, ["type", "Map"], ["child_label", "value"]]
 
@@ -174,7 +174,8 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
     map_vector = Warning.clear (attribs + children)
 
     data = ["data", [map_vector.map .first, map_vector.map .second, map_vector.map i-> i.at 2]]
-    get_child_node_fields = if type == "XML_Element" then [["get_child_node_action", "get"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]] else [["get_child_node_action", "get_child_element"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]]
+    child_node_action = if type == "XML_Element" then "get" else "get_child_element"
+    get_child_node_fields = [["get_child_node_action", child_node_action + " {{#key}}"], ["get_child_node_link_name", "key"]]
     JS_Object.from_pairs <| [header, data, all_rows, ["type", type]] + get_child_node_fields
 
 private _make_json_for_db_table t max_rows is_column =

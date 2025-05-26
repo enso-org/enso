@@ -332,14 +332,25 @@ object DistributionPackage {
     jvmOptName: String,
     envToFill: java.util.Map[String, String]
   ): Unit = {
+    var atEnv = args.indexOf("--env")
+    while (atEnv >= 0) {
+      var keyAndValue = args.get(atEnv + 1).split("=")
+      envToFill.put(keyAndValue(0), keyAndValue(1))
+      args.remove(atEnv)
+      args.remove(atEnv)
+      atEnv = args.indexOf("--env")
+    }
+
     var prevValue = System.getenv(jvmOptName)
     if (prevValue == null) {
       prevValue = "-ea";
+    } else {
+      prevValue = prevValue + " -ea"
     }
 
     val at = args.indexOf("--debug")
     if (at >= 0) {
-      args.set(at, "--jvm")
+      args.set(at, "--jvm=" + System.getProperty("java.home"))
       val newValue =
         prevValue + " " + WithDebugCommand.DEBUG_OPTION
       envToFill.put(jvmOptName, newValue)

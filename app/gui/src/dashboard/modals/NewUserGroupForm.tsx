@@ -1,15 +1,15 @@
 /** @file A form to create a user group. */
 import { ButtonGroup, Dialog, Form, Input, Text } from '#/components/AriaComponents'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import { useRemoteBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
 import { normalizeName } from '#/utilities/string'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackends } from '$/providers/react'
+import { useText } from '$/providers/text'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 /** A form to create a user group. */
 export function NewUserGroupForm() {
-  const backend = useRemoteBackend()
+  const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
   const { data: userGroups } = useSuspenseQuery(backendQueryOptions(backend, 'listUserGroups', []))
   const userGroupNames = new Set(userGroups.map((group) => normalizeName(group.groupName)))
