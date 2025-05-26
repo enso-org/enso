@@ -222,7 +222,7 @@ function UserGroupRow(props: UserGroupRowProps) {
               tooltip={`${otherUser.name} (${otherUser.email})`}
               className="shrink-0"
             >
-              <ProfilePicture picture={user.profilePicture} name={user.name} />
+              <ProfilePicture picture={otherUser.profilePicture} name={otherUser.name} />
             </VisualTooltip>
           ))}
           {users.length === 0 && (
