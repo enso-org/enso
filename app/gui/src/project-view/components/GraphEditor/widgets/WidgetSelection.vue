@@ -139,6 +139,7 @@ const entries = computed<Entry[]>(() => filteredTags.value.map(tagToEntry))
 function tagToEntry(tag: ExpressionTag | NestedChoiceTag | ActionTag): Entry {
   return {
     value: tag.label,
+    key: tag instanceof ExpressionTag ? tag.toString() : undefined,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
     icon: tag instanceof ExpressionTag || tag instanceof ActionTag ? tag.icon : undefined,
     tag,
@@ -358,8 +359,9 @@ const arrowLocation = ref()
 </script>
 
 <script lang="ts">
-const CustomDropdownItemsKey: unique symbol = Symbol.for('WidgetInput:CustomDropdownItems')
+/** An entry that can be added to a dropdown list by other parent widgets. */
 export type DropdownItem = CustomDropdownItem | ExpressionTag
+const CustomDropdownItemsKey: unique symbol = Symbol.for('WidgetInput:CustomDropdownItems')
 
 /** Add extra dropdown items to a widget input. */
 export function withDropdownItems(input: WidgetInput, items: Iterable<DropdownItem>): WidgetInput {

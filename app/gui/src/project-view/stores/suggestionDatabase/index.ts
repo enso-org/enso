@@ -4,6 +4,7 @@ import { type ProjectStore } from '@/stores/project'
 import { type ProjectNameStore } from '@/stores/projectNames'
 import {
   entryIsCallable,
+  isUserSelectableType,
   SuggestionKind,
   type CallableSuggestionEntry,
   type SuggestionEntry,
@@ -16,16 +17,12 @@ import { type MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
 import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
+import { filter } from 'enso-common/src/utilities/data/iter'
 import { computed, markRaw, proxyRefs, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
-
-function pathKey({ project, path }: ProjectPath): string {
-  const projectKey = project ?? '$'
-  return path ? `${projectKey}.${path}` : projectKey
-}
 
 /**
  * Suggestion Database.
@@ -38,13 +35,13 @@ function pathKey({ project, path }: ProjectPath): string {
  */
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   private readonly pathToId = new ReactiveIndex(this, (id, entry) => [
-    [pathKey(entry.definitionPath), id],
+    [entry.definitionPath.key(), id],
   ])
   readonly childIdToParentId = new ReactiveIndex(this, (id, entry) => {
     const parentAndChild = entry.definitionPath.splitAtName()
     if (parentAndChild) {
       const [parentPath] = parentAndChild
-      const parents = this.pathToId.lookup(pathKey(parentPath))
+      const parents = this.pathToId.lookup(parentPath.key())
       return Array.from(parents, (p) => [id, p])
     }
     return []
@@ -71,14 +68,15 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     }
   }
 
-  allTypeExpressionTags = computed((): ExpressionTag[] => {
-    const types = this.getAllEntriesOfKind(SuggestionKind.Type)
-    return Array.from(types, (ty) => ExpressionTag.FromEntry(this, ty))
+  dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
+    const allTypeEntries = this.getAllEntriesOfKind(SuggestionKind.Type)
+    const filteredTypes = filter(allTypeEntries, isUserSelectableType)
+    return Array.from(filteredTypes, (ty) => ExpressionTag.FromEntry(this, ty))
   })
 
   /** Look up an entry by its path within a project */
   findByProjectPath(projectPath: ProjectPath): SuggestionId | undefined {
-    const [id] = this.pathToId.lookup(pathKey(projectPath))
+    const [id] = this.pathToId.lookup(projectPath.toString())
     return id
   }
 

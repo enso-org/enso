@@ -11,7 +11,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 const suggestionDb = useSuggestionDbStore()
 
 const input = computed(() => ({
-  ...withDropdownItems(props.input, suggestionDb.entries.allTypeExpressionTags.value),
+  ...withDropdownItems(props.input, suggestionDb.entries.dropdownTypeExpressionTags.value),
   value: props.input.value ?? 'Any',
   [EnsoExpression]: {},
 }))

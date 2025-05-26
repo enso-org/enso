@@ -1,5 +1,5 @@
 import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { RequiredImport, requiredImports } from '@/stores/graph/imports'
+import { printRequiredImport, RequiredImport, requiredImports } from '@/stores/graph/imports'
 import { ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
@@ -121,6 +121,13 @@ export class ExpressionTag {
       this.cachedExpressionAst = Ast.parseExpression(this.expression)
     }
     return this.cachedExpressionAst
+  }
+
+  /**
+   * Create a non user-facing string representation of expression tag. Meant for key generation and debugging.
+   */
+  toString() {
+    return `${this.label}[${this.requiredImports?.map(printRequiredImport).join(',')}]`
   }
 }
 
