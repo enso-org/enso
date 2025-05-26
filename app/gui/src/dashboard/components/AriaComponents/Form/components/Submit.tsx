@@ -6,8 +6,9 @@
  */
 import type { JSX } from 'react'
 
-import { Button, type ButtonProps } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { type ButtonProps } from '#/components/AriaComponents'
+import { Button } from '#/components/AriaComponents/Button'
+import { useText } from '$/providers/react'
 import { useFormContext } from './FormProvider'
 import type { FieldPath, FieldValues, FormInstance, TSchema } from './types'
 
@@ -71,7 +72,7 @@ export function Submit<
 
   return (
     <Button
-      type="submit"
+      type="button"
       variant={variant}
       size={size}
       isLoading={loading || formState.isSubmitting}
@@ -79,6 +80,8 @@ export function Submit<
         if (value != null && name != null) {
           form.setValue(name, value)
         }
+
+        void form.submit()
 
         return onPress?.(event)
       }}

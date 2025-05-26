@@ -7,7 +7,7 @@ import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHook
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import { Button, ButtonGroup } from '#/components/AriaComponents'
@@ -29,7 +29,7 @@ export interface NewUserGroupModalProps {
 export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const { backend, event: positionEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [name, setName] = useState('')
   const listUserGroupsQuery = useQuery(backendQueryOptions(backend, 'listUserGroups', []))

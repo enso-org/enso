@@ -6,7 +6,7 @@ import StopIcon from '#/assets/stop.svg'
 import * as projectHooks from '#/hooks/projectHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
@@ -82,7 +82,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isUnconditionallyDisabled = !projectHooks.useCanOpenProjects()
 
   const { user } = authProvider.useFullUserSession()
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const projectState = item.projectState ?? CLOSED_PROJECT_STATE
@@ -174,7 +174,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             testId="stop-project"
           />
           <StatelessSpinner
-            state={spinnerState}
+            phase={spinnerState}
             className={tailwindMerge.twJoin(
               'pointer-events-none absolute inset-0',
               isRunningInBackground && 'text-green',
@@ -199,7 +199,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               testId="stop-project"
             />
             <Spinner
-              state="done"
+              phase="done"
               className={tailwindMerge.twMerge(
                 'pointer-events-none absolute inset-0',
                 isRunningInBackground && 'text-green',

@@ -941,19 +941,14 @@ public class Main {
       } else {
         // Opportunistically parse arguments and convert to ints.
         // This avoids conversions in main function.
-        var parsedArgs =
-            additionalArgs.stream()
-                .map(
-                    arg -> {
-                      try {
-                        return Integer.valueOf(arg);
-                      } catch (NumberFormatException ex) {
-                        return arg;
-                      }
-                    })
-                .toList();
         var listOfArgs = nil();
-        for (var e : parsedArgs) {
+        for (var arg : additionalArgs) {
+          Object e;
+          try {
+            e = Integer.valueOf(arg);
+          } catch (NumberFormatException ex) {
+            e = arg;
+          }
           listOfArgs = join(e, listOfArgs);
         }
         listOfArgs = listOfArgs.reverse();

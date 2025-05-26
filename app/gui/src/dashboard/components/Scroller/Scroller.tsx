@@ -28,6 +28,16 @@ export const SCROLLER_STYLES = tv({
         content: 'no-scrollbar',
       },
     },
+    background: {
+      primary: {
+        shadowStart: 'from-dashboard',
+        shadowEnd: 'from-dashboard',
+      },
+      secondary: {
+        shadowStart: 'from-background/80',
+        shadowEnd: 'from-background/80',
+      },
+    },
     orientation: {
       horizontal: {
         content: '',
@@ -74,8 +84,8 @@ export const SCROLLER_STYLES = tv({
 
   slots: {
     content: '',
-    shadowStart: 'pointer-events-none absolute from-dashboard transition-opacity',
-    shadowEnd: 'pointer-events-none absolute from-dashboard transition-opacity',
+    shadowStart: 'pointer-events-none absolute transition-opacity',
+    shadowEnd: 'pointer-events-none absolute transition-opacity',
   },
 
   compoundVariants: [
@@ -126,6 +136,7 @@ export const SCROLLER_STYLES = tv({
     showShadows: true,
     startHidden: true,
     endHidden: true,
+    background: 'primary',
   },
 })
 
@@ -153,6 +164,8 @@ export function Scroller(props: ScrollerProps) {
     orientation = 'horizontal',
     showShadows = true,
     testId = 'scroller',
+    onScroll,
+    background = 'primary',
     ...rest
   } = props
 
@@ -233,6 +246,7 @@ export function Scroller(props: ScrollerProps) {
     startHidden,
     endHidden,
     showShadows,
+    background,
   })
 
   return (
@@ -241,6 +255,7 @@ export function Scroller(props: ScrollerProps) {
         ref={(el) => {
           mergeRefs(refCallback, measureRef, containerRef)(el)
         }}
+        onScroll={onScroll}
         className={styles.content()}
       >
         {props.children}

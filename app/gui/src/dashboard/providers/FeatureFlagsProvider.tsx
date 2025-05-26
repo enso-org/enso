@@ -34,6 +34,8 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   showDeveloperIds: z.boolean(),
 })
 
+const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA })
+
 /** Feature flags. */
 export type FeatureFlags = z.infer<typeof FEATURE_FLAGS_SCHEMA>
 
@@ -81,10 +83,10 @@ const flagsStore = createStore<FeatureFlagsStore>()(
           })
         }
 
-        const parsedPersistedState = FEATURE_FLAGS_SCHEMA.safeParse(persistedState)
+        const parsedPersistedState = FEATURE_FLAGS_STATE_SCHEMA.safeParse(persistedState)
 
-        if (parsedPersistedState.success) {
-          unsafeMutateFeatureFlags(parsedPersistedState.data)
+        if (parsedPersistedState.success === true) {
+          unsafeMutateFeatureFlags(parsedPersistedState.data.featureFlags)
         }
 
         if (typeof window !== 'undefined') {

@@ -5,6 +5,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -40,7 +41,8 @@ public final class TextPartOperation implements BinaryOperation<String> {
   }
 
   @Override
-  public ColumnStorage<String> applyMap(ColumnStorage<?> left, Object rightValue) {
+  public ColumnStorage<String> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType) {
       return StringStorage.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
     }
@@ -65,7 +67,10 @@ public final class TextPartOperation implements BinaryOperation<String> {
   }
 
   @Override
-  public ColumnStorage<String> applyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public ColumnStorage<String> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (left.getSize() != right.getSize()) {
       throw new IllegalArgumentException("Columns must be of the same size.");
     }

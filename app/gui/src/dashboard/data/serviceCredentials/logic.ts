@@ -2,7 +2,6 @@
 
 import type { CredentialConfig, SecretId } from '#/services/Backend'
 import { openInNewBrowserTab } from '#/utilities/window'
-import { uuidv4 } from 'lib0/random.js'
 import type { CredentialRecipe } from './types'
 
 /**
@@ -12,7 +11,7 @@ export function makeCredentialCreationHandler(
   doCreate: (name: string, value: CredentialConfig) => Promise<SecretId>,
 ) {
   return async (recipe: CredentialRecipe) => {
-    const nonce = uuidv4()
+    const nonce = crypto.randomUUID()
     const metadata: CredentialConfig = {
       nonce,
       input: recipe.input,

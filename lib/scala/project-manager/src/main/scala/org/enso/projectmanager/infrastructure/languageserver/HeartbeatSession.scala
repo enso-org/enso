@@ -60,7 +60,7 @@ class HeartbeatSession(
   override def preStart(): Unit = {
     connection.attachListener(self)
     connection.connect()
-    logger.debug("Heartbeat connection initialized [{}].", socket)
+    logger.trace("Heartbeat connection initialized [{}].", socket)
   }
 
   override def postStop(): Unit = {
@@ -71,7 +71,6 @@ class HeartbeatSession(
 
   private def pingStage: Receive = {
     case WebSocketConnected =>
-      logger.debug("Sending ping message to {}.", socket)
       connection.send(s"""
                          |{ 
                          |   "jsonrpc": "2.0",
@@ -107,12 +106,9 @@ class HeartbeatSession(
 
         case Right(id) =>
           if (id == requestId.toString) {
-            logger.debug("Received correct pong message from {}.", socket)
-
             if (sendConfirmations) {
               context.parent ! HeartbeatReceived
             }
-
             cancellable.cancel()
             stop()
           } else {

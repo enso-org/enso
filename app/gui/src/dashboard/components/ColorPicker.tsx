@@ -7,7 +7,6 @@ import RadioGroup from '#/components/styled/RadioGroup'
 
 import * as backend from '#/services/Backend'
 
-import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link ColorPickerItem}. */
@@ -24,10 +23,10 @@ function ColorPickerItem(props: InternalColorPickerItemProps) {
     <FocusRing within>
       <aria.Radio
         value={cssColor}
-        className="group flex size-radio-button cursor-pointer rounded-full p-radio-button-dot"
+        className="group flex h-6 w-6 cursor-pointer items-center justify-center rounded-full"
         style={{ backgroundColor: cssColor }}
       >
-        <div className="hidden size-radio-button-dot rounded-full bg-selected-frame group-selected:block" />
+        <div className="hidden aspect-square h-3 w-3 rounded-full bg-selected-frame group-selected:block" />
       </aria.Radio>
     </FocusRing>
   )
@@ -42,7 +41,7 @@ export interface ColorPickerProps extends Readonly<Omit<aria.RadioGroupProps, 'c
 }
 
 /** A color picker to select from a predetermined list of colors. */
-export default forwardRef(ColorPicker)
+export default React.forwardRef(ColorPicker)
 
 /** A color picker to select from a predetermined list of colors. */
 function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivElement>) {

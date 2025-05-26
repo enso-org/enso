@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation;
 
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -47,7 +48,8 @@ public interface BinaryOperation<T> {
    * @param newName the name of the new column.
    * @return the result of the operation.
    */
-  default Column apply(Column left, Object right, String newName) {
+  default Column apply(
+      Column left, Object right, String newName, MapOperationProblemAggregator problemAggregator) {
     ColumnStorage<?> leftStorage = getStorage(left);
 
     ColumnStorage<?> output;
@@ -56,12 +58,12 @@ public interface BinaryOperation<T> {
       if (!canApplyZip(leftStorage, rightStorage)) {
         throw new IllegalArgumentException("Cannot apply zip");
       }
-      output = applyZip(leftStorage, rightStorage);
+      output = applyZip(leftStorage, rightStorage, problemAggregator);
     } else {
       if (!canApplyMap(leftStorage, right)) {
         throw new IllegalArgumentException("Cannot apply map");
       }
-      output = applyMap(leftStorage, right);
+      output = applyMap(leftStorage, right, problemAggregator);
     }
 
     return new Column(newName, (Storage<?>) output);
@@ -74,8 +76,12 @@ public interface BinaryOperation<T> {
   boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right);
 
   /** Apply the map to the pair of ColumnStorage and constant. */
-  ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue);
+  ColumnStorage<T> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator);
 
   /** Apply the map to the pair of ColumnStorage. */
-  ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right);
+  ColumnStorage<T> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator);
 }

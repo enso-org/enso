@@ -503,7 +503,7 @@ class Compiler(
 
           if (generateCode) {
             context.log(
-              Compiler.defaultLogLevel,
+              Level.FINEST,
               "Generating code for module [{0}].",
               module.getName()
             )

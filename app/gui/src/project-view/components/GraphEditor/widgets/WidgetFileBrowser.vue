@@ -72,8 +72,16 @@ function setPath(type: 'file' | 'secret', path: string) {
 
 const write = computed(() => typeInfo.value.write)
 
-const localBrowserItems = useLocalBrowser({ dialogKind, write, currentPath, setPath })
-const cloudBrowserItems = useCloudBrowser({ dialogKind, write, currentPath, setPath })
+const fileTypes = computed(() => {
+  if (props.input.dynamicConfig?.kind === 'File_Browse') {
+    return props.input.dynamicConfig?.file_types
+  } else {
+    return undefined
+  }
+})
+
+const localBrowserItems = useLocalBrowser({ dialogKind, write, currentPath, setPath, fileTypes })
+const cloudBrowserItems = useCloudBrowser({ dialogKind, write, currentPath, setPath, fileTypes })
 const textSecretsItems = useTextSecrets({ dialogKind, reprType })
 
 const items = computed((): (CustomDropdownItem | ExpressionTag)[] => [

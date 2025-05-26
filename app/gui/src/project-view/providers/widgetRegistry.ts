@@ -6,7 +6,6 @@ import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { Result } from '@/util/data/result'
-import { uuidv4 } from 'lib0/random.js'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import { Class } from 'ydoc-shared/util/types'
@@ -424,7 +423,7 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
     score,
     prevent: definition.prevent,
     allowAsLeaf: definition.allowAsLeaf ?? true,
-    widgetTypeId: uuidv4() as WidgetTypeId,
+    widgetTypeId: crypto.randomUUID() as WidgetTypeId,
   }
 
   if (import.meta.hot && hmr) {

@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.No_Such_Method
 
 import project.Data.Complex.Complex
+import project.Semantic.Multi_Value_Column_Like_Spec
 
 type A
     a = "a"
@@ -182,4 +183,5 @@ Any.confuse_me self = self
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
+        Multi_Value_Column_Like_Spec.add_specs suite_builder
     suite.run_with_filter filter

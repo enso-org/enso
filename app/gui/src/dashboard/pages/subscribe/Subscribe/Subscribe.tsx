@@ -4,9 +4,8 @@ import { DASHBOARD_PATH, SUBSCRIBE_SUCCESS_PATH } from '#/appUtils'
 import { Button, Text } from '#/components/AriaComponents'
 import { PlanSelector } from '#/modules/payments'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
 import { isPlan } from '#/services/Backend'
-import { useRouterInReact } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 
 /**
  * A page in which the currently active payment plan can be changed.
@@ -24,7 +23,7 @@ import { useRouterInReact } from '$/providers/react'
  */
 export function Subscribe() {
   const { getText } = useText()
-  const { router, searchParams } = useRouterInReact()
+  const { router, searchParams } = useRouter()
   const { user } = useFullUserSession()
 
   const maybePlan = searchParams.get('plan')

@@ -4,7 +4,7 @@ import type { ContextMenuEntryProps as ContextMenuEntryBaseProps } from '#/compo
 import ContextMenuEntryBase from '#/components/ContextMenuEntry'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { PaywallDialog } from './PaywallDialog'
 
 /** Props for {@link ContextMenuEntry}. */

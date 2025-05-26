@@ -10,10 +10,8 @@ import GoBackIcon from '#/assets/go_back.svg'
 import { Form, Input } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
-import { useRouterInReact } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
 import { toast } from 'react-toastify'
 
 /** A form for users to request for their password to be reset. */
@@ -21,9 +19,9 @@ export default function ForgotPassword() {
   const { forgotPassword } = useSessionAPI()
   const { getText } = useText()
 
-  const { router, searchParams } = useRouterInReact()
+  const { router, searchParams } = useRouter()
 
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
   const initialEmail = searchParams.get('email')

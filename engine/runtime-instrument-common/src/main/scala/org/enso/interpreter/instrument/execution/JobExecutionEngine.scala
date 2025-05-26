@@ -5,7 +5,6 @@ import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
 import org.enso.text.Sha3_224VersionCalculator
 import org.enso.runtime.utils.ThreadUtils
-
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -225,18 +224,19 @@ final class JobExecutionEngine(
   ): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
-    logger.debug(
+    logger.trace(
       s"Submitting job: {} with {} id...",
       job,
       jobId
     )
+    job.setJobId(jobId)
     val future = executorService.submit(() => {
       logger.debug("Executing job: {}...", job)
       val before = System.currentTimeMillis()
       try {
         val result = job.run(runtimeContext)
         val took   = System.currentTimeMillis() - before
-        logger.debug(
+        logger.trace(
           "Job {} finished in {} ms.",
           job,
           took
@@ -259,11 +259,11 @@ final class JobExecutionEngine(
         )
       }
     })
-    job.setJobId(jobId)
+
     val runningJob = RunningJob(jobId, job, future)
 
     val queue = runningJobsRef.updateAndGet(_ :+ runningJob)
-    logger.debug("Number of pending jobs: {}", queue.size)
+    logger.trace("Number of pending jobs: {}", queue.size)
 
     promise.future
   }
@@ -294,8 +294,6 @@ final class JobExecutionEngine(
       maybeForceCancelRunningJob(_, softAbortFirst = true)
     )
     updatePendingCancellations(pending)
-    runtimeContext.executionService.getContext.getThreadManager
-      .interruptThreads()
   }
 
   /** @inheritdoc */
@@ -323,8 +321,6 @@ final class JobExecutionEngine(
       }
       .flatMap(maybeForceCancelRunningJob(_, softAbortFirst))
     updatePendingCancellations(pending)
-    runtimeContext.executionService.getContext.getThreadManager
-      .interruptThreads()
   }
 
   /** @inheritdoc */
@@ -348,8 +344,6 @@ final class JobExecutionEngine(
       }
       .flatMap(maybeForceCancelRunningJob(_, softAbortFirst = true))
     updatePendingCancellations(pending)
-    runtimeContext.executionService.getContext.getThreadManager
-      .interruptThreads()
   }
 
   override def abortBackgroundJobs(
@@ -409,7 +403,7 @@ final class JobExecutionEngine(
       delayedBackgroundJobsQueue,
       BackgroundJob.BACKGROUND_JOBS_QUEUE_ORDER
     )
-    logger.debug(
+    logger.trace(
       "Submitting {} background jobs [{}]",
       delayedBackgroundJobsQueue.size(): Integer,
       delayedBackgroundJobsQueue

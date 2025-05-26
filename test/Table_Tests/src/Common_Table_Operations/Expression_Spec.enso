@@ -373,6 +373,7 @@ add_expression_specs suite_builder detailed setup =
             if setup.is_database.not || (setup.prefix.contains "SQLite")  then
                 expression_test "Nothing && False" False
                 expression_test "Nothing && True" Nothing
+                expression_test "Nothing && Nothing" Nothing
 
             expression_test "True && [Bad]] Name]" [True, False, True, False, True]
             expression_test "False AND [Bad]] Name]" False
@@ -386,6 +387,7 @@ add_expression_specs suite_builder detailed setup =
             if setup.is_database.not || (setup.prefix.contains "SQLite") then
                 expression_test "Nothing || False" Nothing
                 expression_test "Nothing || True" True
+                expression_test "Nothing || Nothing" Nothing
 
             expression_test "True OR [Bad]] Name]" True
             expression_test "False || [Bad]] Name]" [True, False, True, False, True]

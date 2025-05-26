@@ -2,7 +2,6 @@ import createDebug from 'debug'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
-import * as random from 'lib0/random'
 import * as zlib from 'node:zlib'
 import * as Ast from 'ydoc-shared/ast'
 import { astCount } from 'ydoc-shared/ast'
@@ -68,7 +67,7 @@ export class LanguageServerSession {
   /** Create a {@link LanguageServerSession}. */
   constructor(url: string) {
     this.clientScope = new AbortScope()
-    this.clientId = random.uuidv4() as Uuid
+    this.clientId = crypto.randomUUID() as Uuid
     this.docs = new Map()
     this.retainCount = 0
     this.url = url
