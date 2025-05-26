@@ -1,0 +1,39 @@
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useDownloadDirectory } from '#/layouts/Drive/useDownloadDirectory'
+import { useDriveStore } from '#/providers/DriveProvider'
+import { Path } from '#/services/Backend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackends, useText } from '$/providers/react'
+import { PRODUCT_NAME } from 'enso-common'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import { toast } from 'react-toastify'
+
+export function useExportArchive() {
+  const { getText } = useText()
+  const { localBackend } = useBackends()
+  const exportArchive = useMutationCallback(backendMutationOptions(localBackend, 'exportArchive'))
+  const driveStore = useDriveStore()
+  const downloadDirectory = useDownloadDirectory()
+
+  return useEventCallback(async () => {
+    const { selectedIds } = driveStore.getState()
+    const secondsString = new Date().getSeconds().toString().padStart(2, '0')
+    const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
+    const [filePathRaw] =
+      (await window.fileBrowserApi?.openFileBrowser(
+        'filePath',
+        `${downloadDirectory}/${PRODUCT_NAME} ${dateString}.zip`,
+      )) ?? []
+    if (window.fileBrowserApi && filePathRaw == null) {
+      // Assume that the user cancelled the action.
+      return
+    }
+    const filePath = filePathRaw != null ? Path(filePathRaw) : null
+    await toast.promise(exportArchive([{ assetIds: [...selectedIds], filePath }]), {
+      pending: getText('exportArchive.inProgress'),
+      success: getText('exportArchive.success'),
+      error: getText('exportArchive.failure'),
+    })
+  })
+}

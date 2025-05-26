@@ -32,6 +32,7 @@ import { useUploadFileToCloudMutation, useUploadFileToLocal } from '#/hooks/back
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useExportArchive } from '#/pages/useExportArchive'
 import { useUser } from '#/providers/AuthProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
@@ -90,6 +91,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
+  const exportArchive = useExportArchive()
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
@@ -289,6 +291,14 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             action="downloadToLocal"
             label={getText('downloadAllToLocalShortcut')}
             doAction={downloadFilesToLocalCallback}
+          />
+        )}
+        {selectedAssets.length !== 0 && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="exportArchive"
+            label={getText('exportArchiveShortcut')}
+            doAction={exportArchive}
           />
         )}
         {selectedAssets.length !== 0 && isCloud && (

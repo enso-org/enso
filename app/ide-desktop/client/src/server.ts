@@ -25,9 +25,11 @@ import {
   AssetType,
   DirectoryAsset,
   DirectoryId,
+  ExportedArchive,
   extractTypeFromId,
   FileId,
   ParentsPath,
+  Path,
   ProjectId,
   ProjectState,
   VirtualParentsPath,
@@ -529,7 +531,17 @@ async function apiDownloadArchive(
     filePath = generatedFilePath
   }
   await archive.archive(filePath)
-  response.writeHead(HTTP_STATUS_OK).end()
+  const result: ExportedArchive = {
+    filePath: Path(filePath),
+  }
+  const content = JSON.stringify(result)
+  response
+    .writeHead(HTTP_STATUS_OK, [
+      ['Content-Length', String(content.length)],
+      ['Content-Type', 'application/json'],
+      ...COOP_COEP_CORP_HEADERS,
+    ])
+    .end(content)
 }
 
 async function apiUploadArchive(

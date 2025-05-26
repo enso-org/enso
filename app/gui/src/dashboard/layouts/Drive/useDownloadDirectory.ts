@@ -1,5 +1,6 @@
 /** @file A hook to return the default download directory. */
-import { useDownloadDirectory as originalUseDownloadDirectory } from '#/layouts/Drive/persistentState'
+import { useStore } from '#/hooks/storeHooks'
+import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
 import { Path } from '#/services/Backend'
 import { useBackends } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -23,7 +24,10 @@ export function useDefaultDownloadDirectory() {
 
 /** The download directory. */
 export function useDownloadDirectory() {
-  const downloadDirectory = originalUseDownloadDirectory()
+  const downloadDirectory = useStore(
+    localRootDirectoryStore,
+    ({ downloadDirectory }) => downloadDirectory,
+  )
   const defaultDownloadDirectory = useDefaultDownloadDirectory()
   return downloadDirectory ?? defaultDownloadDirectory
 }

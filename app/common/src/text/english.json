@@ -841,6 +841,7 @@
   "uploadAllToCloudShortcut": "Export All to Cloud",
   "downloadToLocalShortcut": "Export to Local",
   "downloadAllToLocalShortcut": "Export All to Local",
+  "exportArchiveShortcut": "Export Archive",
   "renameShortcut": "Rename",
   "editShortcut": "Edit",
   "snapshotShortcut": "Snapshot",

@@ -43,6 +43,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useExportArchive } from '#/pages/useExportArchive'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
@@ -53,11 +54,8 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { PRODUCT_NAME } from 'enso-common'
-import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
-import { toast } from 'react-toastify'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
@@ -120,7 +118,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
   const importArchive = useMutationCallback(backendMutationOptions(localBackend, 'importArchive'))
-  const exportArchive = useMutationCallback(backendMutationOptions(localBackend, 'exportArchive'))
+  const exportArchive = useExportArchive()
 
   const newProjectMutation = useMutationCallback({
     mutationKey: ['newProject'],
@@ -193,27 +191,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     } else {
       await importArchive([{ directory: currentDirectoryId, archive }])
     }
-  })
-
-  const exportArchiveCallback = useEventCallback(async () => {
-    const { selectedIds } = driveStore.getState()
-    const secondsString = new Date().getSeconds().toString().padStart(2, '0')
-    const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
-    const [filePathRaw] =
-      (await window.fileBrowserApi?.openFileBrowser(
-        'filePath',
-        `${downloadDirectory}/${PRODUCT_NAME} ${dateString}.zip`,
-      )) ?? []
-    if (window.fileBrowserApi && filePathRaw == null) {
-      // Assume that the user cancelled the action.
-      return
-    }
-    const filePath = filePathRaw != null ? Path(filePathRaw) : null
-    await toast.promise(exportArchive([{ assetIds: [...selectedIds], filePath }]), {
-      pending: getText('exportArchive.inProgress'),
-      success: getText('exportArchive.success'),
-      error: getText('exportArchive.failure'),
-    })
   })
 
   const downloadFilesCallback = useEventCallback(async () => {
@@ -367,7 +344,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 size="medium"
                 icon="data_download"
                 aria-label={isCloud ? getText('exportArchive.localOnly') : getText('exportArchive')}
-                onPress={exportArchiveCallback}
+                onPress={exportArchive}
                 isDisabled={!canExport}
               />
             </div>

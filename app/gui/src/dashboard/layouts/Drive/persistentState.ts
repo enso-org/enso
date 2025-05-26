@@ -44,11 +44,6 @@ export function setLocalRootDirectory(localRootDirectory: Path | null) {
   localRootDirectoryStore.setState({ localRootDirectory })
 }
 
-/** The saved local root directory. */
-export function useDownloadDirectory() {
-  return useStore(localRootDirectoryStore, ({ downloadDirectory }) => downloadDirectory)
-}
-
 /** Update the saved local root directory. */
 export function setDownloadDirectory(downloadDirectory: Path | null) {
   localRootDirectoryStore.setState({ downloadDirectory })
