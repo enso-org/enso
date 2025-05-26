@@ -61,7 +61,7 @@ import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import { isDef, templateRef, VueInstance } from '@vueuse/core'
+import { isDef, VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { set } from 'lib0'
 import {
@@ -85,7 +85,8 @@ const graphStore = provideGraphStore(projectStore, suggestionDb, projectNames)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 
-const fullscreenRoot = provideFullscreenRoot(templateRef('fullscreenRoot'))
+const fullscreenRoot = useTemplateRef('fullscreenRoot')
+provideFullscreenRoot(fullscreenRoot)
 
 const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
