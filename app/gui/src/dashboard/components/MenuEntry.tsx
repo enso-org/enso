@@ -48,6 +48,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   close: 'closeShortcut',
   uploadToCloud: 'uploadToCloudShortcut',
   downloadToLocal: 'downloadToLocalShortcut',
+  exportArchive: 'exportArchiveShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
   snapshot: 'snapshotShortcut',
