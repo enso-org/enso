@@ -32,6 +32,8 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableAdvancedProjectExecutionOptions: z.boolean(),
   enableHybridExecution: z.boolean(),
   showDeveloperIds: z.boolean(),
+  overrideProfilePicture: z.boolean(),
+  multiplyUserList: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA })
@@ -49,7 +51,7 @@ export interface FeatureFlagsStore {
   readonly setFeatureFlags: (flags: Partial<FeatureFlags>) => void
 }
 
-const flagsStore = createStore<FeatureFlagsStore>()(
+export const flagsStore = createStore<FeatureFlagsStore>()(
   persist(
     (set) => ({
       featureFlags: {
@@ -61,6 +63,8 @@ const flagsStore = createStore<FeatureFlagsStore>()(
         enableAdvancedProjectExecutionOptions: false,
         enableHybridExecution: IS_DEV_MODE,
         showDeveloperIds: false,
+        overrideProfilePicture: false,
+        multiplyUserList: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

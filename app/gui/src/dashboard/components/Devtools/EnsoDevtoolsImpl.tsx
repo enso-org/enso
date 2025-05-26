@@ -79,11 +79,17 @@ function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
 
 /** A display of current developer overrides. */
 export function EnsoDevStatus() {
+  const queryClient = useQueryClient()
   const { getText } = useText()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
-  const { showDeveloperIds, enableMultitabs, enableAdvancedProjectExecutionOptions } =
-    useFeatureFlags()
+  const {
+    showDeveloperIds,
+    enableMultitabs,
+    enableAdvancedProjectExecutionOptions,
+    overrideProfilePicture,
+    multiplyUserList,
+  } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
   const planName = (() => {
@@ -137,6 +143,25 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('showingDeveloperIds')}
+            </DeveloperOverrideEntry>
+          )}
+          {overrideProfilePicture && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('overrideProfilePicture', false)
+              }}
+            >
+              {getText('overridingProfilePicture')}
+            </DeveloperOverrideEntry>
+          )}
+          {multiplyUserList && (
+            <DeveloperOverrideEntry
+              reset={async () => {
+                setFeatureFlag('multiplyUserList', false)
+                await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
+              }}
+            >
+              {getText('multiplyingUserList')}
             </DeveloperOverrideEntry>
           )}
           {enableMultitabs && (
@@ -340,6 +365,27 @@ export function EnsoDevtools() {
                     description={getText('ensoDevtoolsFeatureFlags.showDeveloperIdsDescription')}
                     onChange={(value) => {
                       setFeatureFlag('showDeveloperIds', value)
+                    }}
+                  />
+                  <ariaComponents.Switch
+                    form={form}
+                    name="overrideProfilePicture"
+                    label={getText('ensoDevtoolsFeatureFlags.overrideProfilePicture')}
+                    description={getText(
+                      'ensoDevtoolsFeatureFlags.overrideProfilePictureDescription',
+                    )}
+                    onChange={(value) => {
+                      setFeatureFlag('overrideProfilePicture', value)
+                    }}
+                  />
+                  <ariaComponents.Switch
+                    form={form}
+                    name="multiplyUserList"
+                    label={getText('ensoDevtoolsFeatureFlags.multiplyUserList')}
+                    description={getText('ensoDevtoolsFeatureFlags.multiplyUserListDescription')}
+                    onChange={async (value) => {
+                      setFeatureFlag('multiplyUserList', value)
+                      await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
                     }}
                   />
                   <ariaComponents.Switch

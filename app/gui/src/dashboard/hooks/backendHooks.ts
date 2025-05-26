@@ -26,7 +26,7 @@ import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHo
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
+import { flagsStore, useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -79,8 +79,27 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
   return queryOptions<Awaited<ReturnType<Backend[Method]>>>({
     ...options,
     ...backendQueryOptionsBase(backend, method, args, options?.queryKey),
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    queryFn: () => (backend?.[method] as any)?.(...args),
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+      let result = await (backend?.[method] as any)?.(...args)
+      // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+      switch (method) {
+        case 'listUsers': {
+          const { multiplyUserList } = flagsStore.getState().featureFlags
+          if (multiplyUserList) {
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/no-unsafe-return
+            result = Array.from({ length: 10 }).flatMap(() => result)
+          }
+          break
+        }
+        default: {
+          // No action needed.
+          break
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return result
+    },
   })
 }
 

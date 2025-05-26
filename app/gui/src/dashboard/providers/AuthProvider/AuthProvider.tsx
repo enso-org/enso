@@ -40,6 +40,7 @@ import {
 import { isOrganizationId } from '#/services/RemoteBackend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
+import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter } from '$/providers/react'
@@ -47,7 +48,7 @@ import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { usePlanOverride } from './authStore'
 import { AuthContext, useAuth } from './hooks'
-import type { AuthContextType } from './types'
+import type { AuthContextType, UserSession } from './types'
 import { UserSessionType, type FullUserSession, type PartialUserSession } from './types'
 
 /** Query to fetch the user's session data from the backend. */
@@ -102,6 +103,7 @@ export function AuthProvider(props: AuthProviderProps) {
   const usersMeQuery = reactQuery.useSuspenseQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
   const planOverride = usePlanOverride()
+  const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
 
   const createUserMutation = useMutationCallback({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
@@ -258,10 +260,17 @@ export function AuthProvider(props: AuthProviderProps) {
     }
   }, [userData, setFeatureFlags])
 
-  const effectiveUserData =
+  const userDataWithPlanOverride: UserSession | null =
     userData?.type === UserSessionType.full && planOverride != null ?
       { ...userData, user: { ...userData.user, plan: planOverride } }
     : userData
+  const effectiveUserData: UserSession | null =
+    userDataWithPlanOverride?.type === UserSessionType.full && overrideProfilePicture ?
+      {
+        ...userDataWithPlanOverride,
+        user: { ...userDataWithPlanOverride.user, profilePicture: BLACK_SQUARE_IMAGE_512PX },
+      }
+    : userDataWithPlanOverride
 
   const value: AuthContextType = {
     refetchSession,
