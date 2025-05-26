@@ -1,6 +1,6 @@
 /** @file Modal for confirming delete of any type of asset. */
 import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import * as z from 'zod'
 
 /** Props for a {@link ConfirmDeleteUserModal}. */

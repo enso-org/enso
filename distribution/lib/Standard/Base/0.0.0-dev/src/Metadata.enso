@@ -38,6 +38,16 @@ type Choice
        - icon: The icon to display for the entry. By default, no icon is used.
     Option label:Text value:(Text | Vector Choice)=label parameters:(Vector (Pair Text Widget))=[] icon:Text=""
 
+type File_Type
+    ## Describes a file type.
+
+       Arguments:
+       - label: The text to display for the file type.
+       - extensions: A list of extensions for the file type. 
+         Extensions do not include the dot, the only supported glob pattern is '*' (all files).
+       - icon: The icon to display for the file type.
+    Option label:Text extensions:(Vector Text | Vector File_Type)=[label] icon:Text=""
+
 type Widget
     ## Describes a single value widget (dropdown).
 
@@ -81,7 +91,12 @@ type Widget
     Folder_Browse label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
 
     ## Describes a file chooser.
-    File_Browse existing_only:Boolean=True label:(Nothing | Text)=Nothing display:Display=Display.When_Modified action:File_Action=File_Action.Open file_types:(Vector Pair)=[Pair.new "All Files" "*.*"]
+    File_Browse 
+        existing_only:Boolean=True 
+        label:(Nothing | Text)=Nothing 
+        display:Display=Display.When_Modified 
+        action:File_Action=File_Action.Open 
+        file_types:(Vector File_Type)=[File_Type.Option "All Files" ["*"]]
 
     ## Describes a secret chooser.
     Secret_Browse display:Display=..When_Modified

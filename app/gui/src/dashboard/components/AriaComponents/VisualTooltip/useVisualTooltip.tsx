@@ -1,6 +1,7 @@
 /** @file A hook for creating a visual tooltip that appears when the target element is hovered over. */
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import type * as ariaComponents from '#/components/AriaComponents'
+import { TOOLTIP_STYLES } from '#/components/AriaComponents/Tooltip'
 import Portal from '#/components/Portal'
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 import { unsafeWriteValue } from '#/utilities/write'
@@ -206,7 +207,7 @@ function TooltipInner(props: TooltipInnerProps) {
           tooltipHoverProps,
           {
             id,
-            className: ariaComponents.TOOLTIP_STYLES({
+            className: TOOLTIP_STYLES({
               className,
               variant,
               rounded,

@@ -4,7 +4,7 @@ import { memo, type Dispatch, type SetStateAction } from 'react'
 import { Header } from '#/components/aria'
 import { ButtonGroup, Text } from '#/components/AriaComponents'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { SETTINGS_DATA, type SettingsContext } from './data'
 import type SettingsTabType from './TabType'
 

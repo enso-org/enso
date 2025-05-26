@@ -124,14 +124,19 @@ const filteredTags = computed(() => {
     return [...customTags, ...expressionTags]
   }
 })
-const entries = computed<Entry[]>(() =>
-  filteredTags.value.map((tag) => ({
+
+const entries = computed<Entry[]>(() => filteredTags.value.map(tagToEntry))
+
+function tagToEntry(tag: ExpressionTag | NestedChoiceTag | ActionTag): Entry {
+  return {
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
     icon: tag instanceof ExpressionTag || tag instanceof ActionTag ? tag.icon : undefined,
     tag,
-  })),
-)
+    isNested: tag instanceof NestedChoiceTag,
+    nestedValues: tag instanceof NestedChoiceTag ? tag.choices.map(tagToEntry) : [],
+  }
+}
 
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
@@ -403,7 +408,10 @@ declare module '@/providers/widgetRegistry' {
       :floatReference="floatReference"
       :show="dropDownInteraction.isActive() && activity == null"
       :entries="entries"
-      :selectedExpressions="selectedExpressions"
+      :isSelected="
+        (entry) =>
+          entry.tag instanceof ExpressionTag && selectedExpressions.has(entry.tag.expression)
+      "
       :topLevel="true"
       @clickedEntry="onClick"
     />

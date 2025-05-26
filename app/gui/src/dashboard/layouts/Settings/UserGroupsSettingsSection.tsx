@@ -18,7 +18,6 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import {
   isPlaceholderUserGroupId,
@@ -26,6 +25,7 @@ import {
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
+import { useText } from '$/providers/react'
 import UserGroupRow from './UserGroupRow'
 import UserGroupUserRow from './UserGroupUserRow'
 

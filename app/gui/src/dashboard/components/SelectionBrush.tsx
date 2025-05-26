@@ -89,7 +89,7 @@ const enum DIRECTION {
 /**
  * A selection brush to indicate the area being selected by the mouse drag action.
  */
-export const SelectionBrush = React.memo(function SelectionBrush(props: SelectionBrushV2Props) {
+export function SelectionBrush(props: SelectionBrushV2Props) {
   const {
     targetRef,
     preventDrag = () => false,
@@ -136,6 +136,7 @@ export const SelectionBrush = React.memo(function SelectionBrush(props: Selectio
   const startDragging = useEventCallback(() => {
     setIsDragging(true)
     hasPassedDeadZoneRef.current = true
+    document.documentElement.style.userSelect = 'none'
   })
 
   const applyBrushPosition = useEventCallback((rectangle: geometry.DetailedRectangle) => {
@@ -158,6 +159,7 @@ export const SelectionBrush = React.memo(function SelectionBrush(props: Selectio
     top.set(null)
     width.set(null)
     height.set(null)
+    document.documentElement.style.userSelect = ''
   })
 
   const updateBrush = useEventCallback((rectangle: geometry.DetailedRectangle) => {
@@ -376,7 +378,7 @@ export const SelectionBrush = React.memo(function SelectionBrush(props: Selectio
       />
     </Portal>
   )
-})
+}
 
 /**
  * Whether the current position is in the dead zone.

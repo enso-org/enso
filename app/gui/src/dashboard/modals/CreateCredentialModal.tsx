@@ -2,8 +2,8 @@
 import { Dialog, Dropdown, Text } from '#/components/AriaComponents'
 import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
 import { makeCredentialCreationHandler } from '#/data/serviceCredentials/logic'
-import { useText } from '#/providers/TextProvider'
 import type { CredentialConfig, SecretId } from '#/services/Backend'
+import { useText } from '$/providers/react'
 import { useState } from 'react'
 
 /** Props for a {@link CreateCredentialForm}. */
