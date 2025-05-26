@@ -5114,7 +5114,7 @@ lazy val `std-table` = project
           ignoreScalaLibrary = true,
           libraryUpdates     = (Compile / update).value,
           unmanagedClasspath = (Compile / unmanagedJars).value,
-          ignoreDependencies = Some(
+          ignoreDependenciesByModuleID = Some(
             Seq(
               "org.apache.poi" % "poi"            % poiOoxmlVersion,
               "org.apache.poi" % "poi-ooxml"      % poiOoxmlVersion,
@@ -5167,7 +5167,7 @@ lazy val `std-image` = project
           `image-polyglot-root`,
           Seq("std-image.jar", "opencv.jar"),
           ignoreScalaLibrary = true,
-          ignoreDependencies =
+          ignoreDependenciesByModuleID =
             Some(Seq("org.openpnp" % "opencv" % opencvVersion)),
           libraryUpdates     = (Compile / update).value,
           logger             = logger,
@@ -5451,6 +5451,11 @@ lazy val `std-microsoft` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-microsoft-polyglot-root` / "std-microsoft.jar",
+    Compile / unmanagedJars := {
+      Seq(
+        Attributed.blank((`jna-wrapper` / assembly).value)
+      )
+    },
     libraryDependencies ++= Seq(
       "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.microsoft.sqlserver"   % "mssql-jdbc"              % mssqlserverJDBCVersion,
@@ -5468,9 +5473,32 @@ lazy val `std-microsoft` = project
           ignoreScalaLibrary = true,
           libraryUpdates     = (Compile / update).value,
           unmanagedClasspath = (Compile / unmanagedClasspath).value,
-          logger             = streams.value.log,
-          cacheStoreFactory,
-          previousRun = None
+          ignoreDependenciesByModuleID = Some(
+            Seq(
+              "net.java.dev.jna" % "jna"                              % "5.13.0",
+              "net.java.dev.jna" % "jna-platform"                     % "5.13.0",
+              "io.netty"         % "netty-resolver-dns-native-macos"  % "4.1.112.Final",
+              "io.netty"         % "netty-resolver-dns-classes-macos" % "4.1.112.Final"
+            )
+          ),
+          ignoreDependencies = Some((fileName: String) => {
+            val nameCheck = fileName.startsWith(
+              "netty-transport-native"
+            ) || fileName.startsWith("netty-tcnative-boringssl-static") ||
+              fileName.startsWith("netty-resolver-dns-native")
+
+            nameCheck &&
+            StdBits
+              .allSupportedOs()
+              .exists(osName => fileName.contains(osName)) && {
+              val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
+              val thisPlatform  = StdBits.currentPlatformSuffix()
+              !sanitizedName.contains(thisPlatform)
+            }
+          }),
+          logger            = streams.value.log,
+          cacheStoreFactory = cacheStoreFactory,
+          previousRun       = None
         )
       result
     }
@@ -5478,6 +5506,7 @@ lazy val `std-microsoft` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
+  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val `std-tableau` = project
   .in(file("std-bits") / "tableau")
