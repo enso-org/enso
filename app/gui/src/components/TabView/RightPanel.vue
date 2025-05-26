@@ -60,18 +60,21 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
         <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
       </div>
     </SizeTransition>
-    <div class="tabs">
-      <SelectableTab
-        v-for="[id, tabInfo] in data.allTabs.entries()"
-        :key="id"
-        layoutId="right-tab-highlight"
-        :icon="tabInfo.icon"
-        :tooltip="tabTooltip(tabInfo.title, tabInfo.enabled)"
-        orientation="vertical"
-        :selected="displayedTab === id"
-        :enabled="tabEnabled(id, tabInfo.enabled)"
-        @update:selected="setTab($event ? id : undefined)"
-      />
+    <div class="rightBar">
+      <div class="shadow" />
+      <div class="tabs">
+        <SelectableTab
+          v-for="[id, tabInfo] in data.allTabs.entries()"
+          :key="id"
+          layoutId="right-tab-highlight"
+          :icon="tabInfo.icon"
+          :tooltip="tabTooltip(tabInfo.title, tabInfo.enabled)"
+          orientation="vertical"
+          :selected="displayedTab === id"
+          :enabled="tabEnabled(id, tabInfo.enabled)"
+          @update:selected="setTab($event ? id : undefined)"
+        />
+      </div>
       <div class="filler" />
     </div>
   </div>
@@ -93,10 +96,30 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   width: 400px;
 }
 
+.rightBar {
+  display: flex;
+  flex-direction: column;
+}
+
 .tabs {
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
   isolation: isolate;
+  padding: 16px 0;
+}
+
+.shadow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-shadow:
+    0.5px 2.2px 0px rgb(0 0 0 / 0.84%),
+    0 1.2px 5.65px 0px rgb(0 0 0 / 1.21%),
+    0 2.25px 10.64px 0 rgb(0 0 0 / 1.5%),
+    0 4px 19px 0 rgb(0 0 0 / 1.79%),
+    0 7.5px 35.5px 0 rgb(0 0 0 / 2.16%),
+    0 18px 85px 0 rgb(0 0 0 / 3%);
+  clip-path: polygon(-100vw 0, 100% 0, 100% 100%, -100vw 100%);
+  z-index: -1;
 }
 </style>
