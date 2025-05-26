@@ -1,4 +1,5 @@
 <script lang="ts">
+import { type PaywallFeatureName } from '#/hooks/billing'
 import UserBarReact from '#/layouts/UserBar'
 import { LaunchedProject } from '#/providers/ProjectsProvider'
 import { BackendType, ProjectId } from '#/services/Backend'
@@ -17,16 +18,23 @@ const UserBar = applyPureReactInVue(UserBarReact)
 </script>
 
 <script setup lang="ts">
-const { initialProjectName, launchedProjects, closeProject, closeAllProjects } = defineProps<{
+const {
+  initialProjectName,
+  launchedProjects,
+  closeProject,
+  closeAllProjects,
+  isFeatureUnderPaywall,
+} = defineProps<{
   initialProjectName: string | null
   launchedProjects: readonly LaunchedProject[]
   closeProject(project: LaunchedProject): void
   closeAllProjects(): void
+  isFeatureUnderPaywall(feature: PaywallFeatureName): boolean
 }>()
 
 provideOpenedProjects()
 const { tab, openedProjects } = toRefs(provideContainerData(() => launchedProjects))
-provideRightPanelData(tab)
+provideRightPanelData(tab, isFeatureUnderPaywall)
 
 const readyProjects = reactive(new Set<ProjectId>())
 const projectNames = reactive(new Map<ProjectId, string>())

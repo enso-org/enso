@@ -1,3 +1,4 @@
+import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import { AnyAsset, AssetType, ProjectId } from '#/services/Backend'
 import {
@@ -49,7 +50,8 @@ interface RightPanelStore {
 function useRightPanelTabs(
   currentTab: ToValue<TabId>,
   rightPanelContext: Ref<RightPanelContext | undefined>,
-  { textRef }: TextStore,
+  isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
+  { textRef, getText }: TextStore,
 ) {
   const isDriveView = computed(() => toValue(currentTab) === 'drive')
   const isCloudDirectoryView = computed(
@@ -58,18 +60,17 @@ function useRightPanelTabs(
       rightPanelContext.value?.category != null &&
       isCloudCategory(rightPanelContext.value.category),
   )
-  const enabledInCloudOnly = () =>
-    computed(() =>
-      isCloudDirectoryView.value ? Ok(true)
-      : isDriveView.value ? Err('Exclusive to Cloud')
-      : Err('Exclusive to Cloud category in Drive'),
-    )
+  const enabledInCloudOnly = computed(() =>
+    isCloudDirectoryView.value ? Ok(true)
+    : isDriveView.value ? Err('Exclusive to Cloud')
+    : Err('Exclusive to Cloud category in Drive'),
+  )
   return new Map([
     [
       'settings',
       {
         icon: 'properties',
-        enabled: enabledInCloudOnly(),
+        enabled: enabledInCloudOnly,
         title: textRef('properties'),
         component: AssetProperties,
       },
@@ -78,7 +79,7 @@ function useRightPanelTabs(
       'versions',
       {
         icon: 'versions',
-        enabled: enabledInCloudOnly(),
+        enabled: enabledInCloudOnly,
         title: textRef('versions'),
         component: AssetVersions,
       },
@@ -87,7 +88,7 @@ function useRightPanelTabs(
       'sessions',
       {
         icon: 'sessions',
-        enabled: enabledInCloudOnly(),
+        enabled: enabledInCloudOnly,
         title: textRef('projectSessions'),
         component: ProjectSessions,
       },
@@ -96,7 +97,12 @@ function useRightPanelTabs(
       'executionsCalendar',
       {
         icon: 'schedule',
-        enabled: enabledInCloudOnly(),
+        enabled: computed(() => {
+          if (!enabledInCloudOnly.value.ok) return enabledInCloudOnly.value
+          if (!isFeatureUnderPaywall('scheduler'))
+            return Err(getText('assetProjectExecutionsCalendar.teamPlanOnly'))
+          return Ok(true)
+        }),
         title: textRef('executionsCalendar'),
         component: ProjectExecutionsCalendar,
       },
@@ -129,10 +135,14 @@ export type RightPanelTabId =
   ReturnType<typeof useRightPanelTabs> extends Map<infer K, any> ? K : never
 
 export type RightPanelData = ReturnType<typeof useRightPanel>
-function useRightPanel(containerTab: ToValue<TabId>, textStore: TextStore = injectText()) {
+function useRightPanel(
+  containerTab: ToValue<TabId>,
+  isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
+  textStore: TextStore = injectText(),
+) {
   const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
-  const allTabs = useRightPanelTabs(containerTab, context, textStore)
+  const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
 

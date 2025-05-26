@@ -20,7 +20,9 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { usePaywall } from '#/hooks/billing'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -157,6 +159,8 @@ function DashboardInner() {
   const launchedProjects = useLaunchedProjects()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
+  const { user } = useFullUserSession()
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 
   return (
     <Page hideInfoBar>
@@ -172,6 +176,7 @@ function DashboardInner() {
           launchedProjects={launchedProjects}
           closeProject={closeProject}
           closeAllProjects={closeAllProjects}
+          isFeatureUnderPaywall={isFeatureUnderPaywall}
         />
       </div>
     </Page>
