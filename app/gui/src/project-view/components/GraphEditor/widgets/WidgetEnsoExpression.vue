@@ -53,7 +53,7 @@ declare module '@/providers/widgetRegistry' {
 export const widgetDefinition = defineWidget(
   EnsoExpression,
   {
-    priority: 1002,
+    priority: 150,
     score: Score.Perfect,
   },
   import.meta.hot,

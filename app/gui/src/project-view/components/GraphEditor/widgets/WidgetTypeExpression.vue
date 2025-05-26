@@ -27,7 +27,6 @@ declare module '@/providers/widgetRegistry' {
 
 export const widgetDefinition = defineWidget(
   WidgetInput.placeholderOrAstMatcher(Ast.BaseExpression),
-
   {
     priority: 40,
     score: (props) =>

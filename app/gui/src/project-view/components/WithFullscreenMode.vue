@@ -85,14 +85,14 @@ watch([toRef(props, 'fullscreen'), content], ([fullscreen, el]) => {
   }
 })
 
-const active = computed(() => props.fullscreen || animating.value)
+const active = computed(() => props.fullscreen || animating.value > 0)
 </script>
 
 <!-- The outer `div` is to avoid having a dynamic root. A component whose root may change cannot be passed to a `slot`,
 or used with `unrefElement`. -->
 <template>
   <div class="WithFullscreenMode fullsize">
-    <Teleport defer :disabled="!active" to="#graphEditorRoot">
+    <Teleport :defer="active" :disabled="!active" to="#graphEditorRoot">
       <div ref="content" class="fullsize" :class="{ active }">
         <slot />
       </div>
