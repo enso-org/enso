@@ -120,6 +120,16 @@ async function findPort(port: number): Promise<number> {
   return await portfinder.getPortPromise({ port, startPort: port, stopPort: port + 4 })
 }
 
+/** Return whether a file exists. */
+async function exists(path: string) {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
 // ==============
 // === Server ===
 // ==============
@@ -460,6 +470,16 @@ async function apiDownloadArchive(
   const assets = params.getAll('asset') as AssetId[]
   const archive = new Zip()
   let filePath = params.get('filePath')
+  const notFound = (id: AssetId) => {
+    const content = JSON.stringify({ error: `Asset '${id}' not found` })
+    response
+      .writeHead(HTTP_STATUS_NOT_FOUND, [
+        ['Content-Length', String(content.length)],
+        ['Content-Type', 'application/json'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      .end(content)
+  }
   for (const asset of assets) {
     const typeAndId = extractTypeFromId(asset)
     switch (typeAndId.type) {
@@ -467,32 +487,46 @@ async function apiDownloadArchive(
         const [, uuid = '', directory = ''] =
           asset.replace(/^project-/, '').match(/(\w+-\w+-\w+-\w+-\w+)-(.+)/) ?? []
         const entries = await readdir(directory, { withFileTypes: true })
+        let found = false
         for (const entry of entries) {
           if (entry.isFile()) {
             continue
           }
           try {
-            const metadata = projectManagement.getMetadata(directory)
+            const projectPath = path.join(entry.parentPath, entry.name)
+            const metadata = projectManagement.getMetadata(projectPath)
             if (metadata?.id !== uuid) {
               continue
             }
-            const projectPath = path.join(entry.parentPath, entry.name)
-            archive.addFolder(projectPath)
+            archive.addFolder(projectPath, entry.name)
+            found = true
             break
           } catch {
             // Ignore; this folder is not a project entry.
           }
         }
+        if (!found) {
+          notFound(asset)
+          return
+        }
         break
       }
       case AssetType.file: {
         const filePath = asset.replace(/^file-/, '')
-        archive.addFile(filePath)
+        if (!(await exists(filePath))) {
+          notFound(asset)
+          return
+        }
+        archive.addFile(filePath, getFileName(filePath))
         break
       }
       case AssetType.directory: {
         const directoryPath = asset.replace(/^directory-/, '')
-        archive.addFolder(directoryPath)
+        if (!(await exists(directoryPath))) {
+          notFound(asset)
+          return
+        }
+        archive.addFolder(directoryPath, getFileName(directoryPath))
         break
       }
       // These asset types are not valid, however include them to force any newly added
@@ -503,7 +537,7 @@ async function apiDownloadArchive(
       case AssetType.specialEmpty:
       case AssetType.specialError:
       case AssetType.specialUp: {
-        return []
+        continue
       }
     }
   }
@@ -520,14 +554,7 @@ async function apiDownloadArchive(
         folderPath,
         `${PRODUCT_NAME} archive ${dateString}${suffix}.zip`,
       )
-    } while (
-      await stat(generatedFilePath).then(
-        // If the file already exists, then try again, incrementing the number.
-        () => true,
-        // Else the file is safe to write to.
-        () => false,
-      )
-    )
+    } while (await exists(generatedFilePath))
     filePath = generatedFilePath
   }
   await archive.archive(filePath)
