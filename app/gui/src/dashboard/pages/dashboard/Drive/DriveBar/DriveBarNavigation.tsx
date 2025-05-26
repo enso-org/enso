@@ -191,10 +191,6 @@ export function DriveBarNavigation() {
               ))}
             </Breadcrumbs>
           </Scroller>
-
-          {/* <div className="ml-auto">
-            <AssetPanelToggle showWhen="collapsed" className="my-auto" />
-          </div> */}
         </div>
       )
     }

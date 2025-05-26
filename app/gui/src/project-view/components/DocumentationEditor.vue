@@ -25,7 +25,7 @@ const Result = applyPureReactInVue(ResultReact)
 const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
 const rightPanel = injectRightPanelData()
-const { id: openedProjectId, store: projectStore, graph } = injectCurrentProject()
+const openedProject = injectCurrentProject().ref
 const projectId = computed(() => rightPanel.focusedProject)
 const { backendForType } = injectBackends()
 const backendForAsset = computed(() => {
@@ -45,7 +45,7 @@ const fileContentsFromCloud = useQuery({
       ] as const,
   ),
   enabled: computed(
-    () => graph.value == null && backendForAsset.value != null && projectId.value != null,
+    () => openedProject.value == null && backendForAsset.value != null && projectId.value != null,
   ),
   queryFn: ({ queryKey }) => {
     const [, { projectId }] = queryKey
@@ -54,8 +54,8 @@ const fileContentsFromCloud = useQuery({
 })
 
 const currentMethodAst = computed(() => {
-  if (graph.value) {
-    return mapOk(graph.value.currentMethod.ast, (ast) => ({ ast, readOnly: false }))
+  if (openedProject.value) {
+    return mapOk(openedProject.value.graph.currentMethod.ast, (ast) => ({ ast, readOnly: false }))
   } else if (fileContentsFromCloud.data != null) {
     if (fileContentsFromCloud.error.value) return Err(fileContentsFromCloud.error.value)
     if (fileContentsFromCloud.isLoading.value) return Err('Loading documentation...')
@@ -85,15 +85,16 @@ const markdownDocs = computed(() => {
 const docImagesHandlers = ref<ReturnType<typeof useDocumentationImages>>()
 
 watch(
-  [projectStore, graph],
-  ([projectStore, graph], _, onCleanup) => {
+  openedProject,
+  (openedProject, _, onCleanup) => {
     const scope = effectScope()
     scope.run(() => {
-      if (projectStore != null && graph != null) {
+      if (openedProject != null) {
+        const { store, graph } = openedProject
         docImagesHandlers.value = useDocumentationImages(
           () => (markdownEditor.value?.loaded ? markdownEditor.value : undefined),
           computed(() => graph.modulePath),
-          useProjectFiles(projectStore),
+          useProjectFiles(store),
         )
       } else {
         docImagesHandlers.value = {
@@ -103,7 +104,6 @@ watch(
             // In Enso Documentation, the relative paths are from module's directory
             // Here we always display docs from `src/Main.enso` module
             const resolvedUrl = resolveDocImageUrl(['src'], path)
-            console.log('RESOLVED URL', resolvedUrl.value)
             if (!resolvedUrl.ok) return Promise.resolve(resolvedUrl)
             if (resolvedUrl.value.type === 'url') {
               return Promise.resolve(Ok({ url: resolvedUrl.value.url.toString() }))
@@ -168,13 +168,13 @@ const handler = documentationEditorBindings.handler({
 })
 
 const currentMethodPointer = computed(
-  () => graph.value && unwrapOr(graph.value.currentMethod.pointer, undefined),
+  () => openedProject.value && unwrapOr(openedProject.value.graph.currentMethod.pointer, undefined),
 )
 const displaySignatureEditor = computed(
   () =>
     currentMethodPointer.value &&
-    projectStore.value?.entryPoint &&
-    !methodPointerEquals(currentMethodPointer.value, projectStore.value.entryPoint),
+    openedProject.value?.store.entryPoint &&
+    !methodPointerEquals(currentMethodPointer.value, openedProject.value.store.entryPoint),
 )
 </script>
 
@@ -204,8 +204,8 @@ const displaySignatureEditor = computed(
       </template>
       <template #belowToolbar>
         <FunctionSignatureEditor
-          v-if="displaySignatureEditor && currentMethodAst.ok && openedProjectId"
-          :projectId="openedProjectId"
+          v-if="displaySignatureEditor && currentMethodAst.ok && openedProject"
+          :projectId="openedProject.store.id"
           :functionAst="currentMethodAst.value.ast"
           :methodPointer="currentMethodPointer"
           :markdownDocs="markdownDocs.value"

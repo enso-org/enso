@@ -1,7 +1,8 @@
 import * as text from 'enso-common/src/text'
 
 import { createContextStore } from '@/providers'
-import { computed, MaybeRefOrGetter, proxyRefs, ref, toValue } from 'vue'
+import { MaybeRefOrGetterArray } from '@/util/reactivity'
+import { computed, proxyRefs, ref, toValue } from 'vue'
 
 export type TextStore = ReturnType<typeof useText>
 /**
@@ -18,7 +19,10 @@ export function useText() {
   const getText: GetText = (key, ...replacements) =>
     text.getText(localizedText.value, key, ...replacements)
 
-  function textRef<K extends text.TextId>(key: K, ...replacements: RefArray<text.Replacements[K]>) {
+  function textRef<K extends text.TextId>(
+    key: K,
+    ...replacements: MaybeRefOrGetterArray<text.Replacements[K]>
+  ) {
     return computed(() =>
       getText(toValue(key), ...(replacements.map((x) => toValue(x)) as text.Replacements[K])),
     )
@@ -42,9 +46,5 @@ export type GetText = <K extends text.TextId>(
   key: K,
   ...replacements: text.Replacements[K]
 ) => string
-
-type RefArray<K extends [...any[]]> = {
-  [I in keyof K]: MaybeRefOrGetter<K[I]>
-}
 
 export const [provideText, injectText] = createContextStore('text', useText)

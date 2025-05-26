@@ -7,13 +7,13 @@ import { createSuggestionDbStore, SuggestionDbStore } from '@/stores/suggestionD
 import { ToValue } from '@/util/reactivity'
 import { EffectScope, effectScope, shallowReactive } from 'vue'
 
-interface OpenedProject {
+/** All stores of a single opened project */
+export interface OpenedProject {
   store: ProjectStore
   names: ProjectNameStore
   suggestionDb: SuggestionDbStore
   graph: GraphStore
   widgetRegistry: WidgetRegistry
-  storesScope: EffectScope
 }
 
 /**
@@ -30,11 +30,27 @@ export interface ProjectProps {
   engine: LsUrls
 }
 
+/**
+ * A type for Opened Project Store.
+ */
 export type OpenedProjectsStore = ReturnType<typeof injectOpenedProjects>
+
+/**
+ * Opened Projects Store
+ *
+ * This store maintains all "substores" of opened projects. When an opened project registers,
+ * the names, project, suggestionDb, graph and widgetRegistry stores are created and available
+ * through `get` method.
+ *
+ * See also `WithCurrentProject` component which allows setting one opened project as "default"
+ * for component subtree.
+ */
 export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
   'opened-projects',
   () => {
-    const projects = shallowReactive(new Map<string, OpenedProject>())
+    const projects = shallowReactive(
+      new Map<string, OpenedProject & { storesScope: EffectScope }>(),
+    )
 
     function registerProject(props: ProjectProps) {
       const { projectId } = props
@@ -55,7 +71,7 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
       projects.delete(id)
     }
 
-    function get(id: string) {
+    function get(id: string): OpenedProject | undefined {
       return projects.get(id)
     }
 

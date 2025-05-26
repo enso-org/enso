@@ -103,10 +103,12 @@ onMounted(() => {
   }
 })
 
+// Mock external context in Project View integration tests. Once both test projects will be merged,
+// this should be removed
 if (projectViewOnly) {
   provideOpenedProjects()
   provideContainerData([])
-  provideRightPanelData(projectViewOnly.options.projectId as ProjectId, textStore)
+  provideRightPanelData(projectViewOnly.options.projectId as ProjectId, () => false, textStore)
 }
 </script>
 

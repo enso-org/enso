@@ -19,6 +19,7 @@ import { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { TabId } from './container'
 import { injectText, TextStore } from './text'
 
+/** Information about content of "Help" panel. */
 export interface DisplayedHelp {
   item: Result<SuggestionId | undefined>
   aiMode: boolean
@@ -27,21 +28,27 @@ export interface DisplayedHelp {
 /** Possible elements in this screen to spotlight on. */
 export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
 
+/**
+ * Context of right-side panels. See {@link useRightPanel}.
+ */
 export interface RightPanelContext {
   category?: Category
+  // TODO[ao]: Project View could get full information about asset, so this type could be just
+  //  `AnyAsset | undefined`
   item?: AnyAsset | ProjectId | undefined
   defaultItem?: AnyAsset | undefined
   spotlightOn?: AssetPropertiesSpotlight | undefined
   help?: DisplayedHelp
 }
 
-export interface RightPanelTabInfo {
+interface RightPanelTabInfo {
   icon: Icon
   enabled: ToValue<Result<boolean>>
   title: ToValue<string>
   component: Component
 }
 
+/** Right Panel Data kept in local storage. */
 interface RightPanelStore {
   tab: RightPanelTabId | undefined
   width: number | undefined
@@ -135,6 +142,7 @@ export type RightPanelTabId =
   ReturnType<typeof useRightPanelTabs> extends Map<infer K, any> ? K : never
 
 export type RightPanelData = ReturnType<typeof useRightPanel>
+
 function useRightPanel(
   containerTab: ToValue<TabId>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
@@ -151,10 +159,21 @@ function useRightPanel(
     width: undefined,
   })
 
+  /**
+   * Set context from given tab.
+   *
+   * Every tab may register and update the context assigned to it, which will be active when the
+   * tab is selected.
+   */
   function setContext(tab: TabId, ctx: RightPanelContext) {
     contextPerTab.set(tab, ctx)
   }
 
+  /**
+   * Update context for given tab.
+   *
+   * If the tab didn't set any context, this method does nothing.
+   */
   function updateContext(tab: TabId, f: (ctx: RightPanelContext) => RightPanelContext) {
     const ctx = contextPerTab.get(tab)
     if (ctx == null) return
@@ -162,6 +181,10 @@ function useRightPanel(
     contextPerTab.set(tab, newCtx)
   }
 
+  /**
+   * The project being a focus of the right panel, e.g. the currently opened project tab or
+   * selected project in Drive View.
+   */
   const focusedProject = computed(() => {
     if (typeof context.value?.item === 'string') {
       return context.value.item
@@ -172,6 +195,9 @@ function useRightPanel(
     }
   })
 
+  /**
+   * The asset being a focus of the right panel, e.g. the currently selected asset in Drive View.
+   */
   const focusedAsset = computed<AnyAsset | undefined>(() => {
     const currentItem = context.value?.item ?? context.value?.defaultItem
     return typeof currentItem === 'object' ? currentItem : undefined

@@ -30,7 +30,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
 
-const { graph, suggestionDb: db, names: projectNames } = injectCurrentProject()
+const { graph, suggestionDb: db, names: projectNames } = injectCurrentProject().storesRefs
 
 const documentation = computed<Docs>(() => {
   if (props.aiMode)
