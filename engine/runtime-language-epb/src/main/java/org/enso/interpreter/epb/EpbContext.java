@@ -13,6 +13,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.enso.runtime.utils.ThreadUtils;
+import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Value;
 
@@ -90,6 +91,7 @@ final class EpbContext {
 
   final void initializePolyfill(Node node, TruffleContext ctx) {
     if (!polyfillInitialized) {
+      var parserPolyfill = new ParserPolyfill();
       polyfillInitialized = true;
       var ensoLanguage = getEnv().getInternalLanguages().get("enso");
       var exec = getEnv().lookup(ensoLanguage, ScheduledExecutorService.class);
@@ -105,6 +107,7 @@ final class EpbContext {
             }
           };
       WebEnvironment.initialize(eval, exec);
+      parserPolyfill.initialize(eval);
     }
   }
 
