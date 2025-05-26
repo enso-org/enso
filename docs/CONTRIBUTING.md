@@ -555,11 +555,11 @@ For more details about the CI setup, you can check the
 
 #### Running IDE
 
-You can start [IDE](https://github.com/enso-org/enso/tree/develop/gui) with a
-development version of the language server. IDE executable has `--no-engine`
-flag that switches off the bundled backend. That requires you to run the project
-manager process yourself. Running development version of the IDE is also
-possible via the npm script in the root of the repository:
+You can start IDE with a development version of the language server. IDE
+executable has `--no-engine` flag that switches off the bundled backend. That
+requires you to run the project manager process yourself. Running development
+version of the IDE is also possible via the npm script in the root of the
+repository:
 
 ```bash
 enso$ corepack pnpm i
