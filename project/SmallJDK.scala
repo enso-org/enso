@@ -1,13 +1,48 @@
 import sbt.io.IO
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import scala.collection.immutable.Seq
 
 /**
  * Building small JDK distributions with `jlink` command
  */
 object SmallJDK {
+
+  private val NI_BUILDER_MODULES = Seq(
+    "org.graalvm.nativeimage.builder",
+    "org.graalvm.nativeimage.driver",
+    "org.graalvm.nativeimage.librarysupport",
+    "org.graalvm.nativeimage.objectfile",
+    "org.graalvm.nativeimage.pointsto",
+  )
+
+  private val NI_BASE_MODULES = Seq(
+    "org.graalvm.nativeimage",
+    "org.graalvm.nativeimage.base",
+    "com.oracle.graal.graal_enterprise",
+    "com.oracle.svm.svm_enterprise",
+  )
+
+  private val JDK_MODULES = Seq(
+    "java.naming",
+    "java.net.http",
+    "java.rmi",
+    "jdk.charsets",
+    "jdk.crypto.ec",
+    "jdk.httpserver",
+    "jdk.localedata",
+  )
+
+  private val DEBUG_MODULES = Seq(
+    "jdk.jdwp.agent"
+  )
+
+  private val PYTHON_MODULES = Seq(
+    "java.naming",
+    "jdk.security.auth",
+  )
+
   /**
    * Builds a small JDK appropriate for building native image.
    * @param smallJdkDirectory Target directory. If non empty, will be deleted.
@@ -18,51 +53,93 @@ object SmallJDK {
     if (smallJdkDirectory.exists()) {
       IO.delete(smallJdkDirectory)
     }
-    val NI_MODULES =
-      "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
-    val JDK_MODULES =
-      "java.naming,java.net.http,jdk.charsets,jdk.crypto.ec,jdk.localedata,jdk.httpserver,java.rmi"
-    val DEBUG_MODULES  = "jdk.jdwp.agent"
-    val PYTHON_MODULES = "jdk.security.auth,java.naming"
+    val niModules = (NI_BASE_MODULES ++ NI_BUILDER_MODULES).mkString(",")
+    val jdkModules = JDK_MODULES.mkString(",")
+    val debugModules  = DEBUG_MODULES.mkString(",")
+    val pythonModules = PYTHON_MODULES.mkString(",")
 
-    val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
-    val (jlink, modules, libDirs) = javaHome match {
-      case None =>
-        throw new RuntimeException("Missing java.home variable")
-      case Some(jh) =>
-        val exec = jh.resolve("bin").resolve("jlink")
-        val moduleJars = List(
-          "lib/svm/bin/../../graalvm/svm-driver.jar",
-          "lib/svm/bin/../builder/native-image-base.jar",
-          "lib/svm/bin/../builder/objectfile.jar",
-          "lib/svm/bin/../builder/pointsto.jar",
-          "lib/svm/bin/../builder/svm-enterprise.jar",
-          "lib/svm/bin/../builder/svm.jar",
-          "lib/svm/bin/../library-support.jar"
-        )
-        val targetLibDirs = List("graalvm", "svm", "static", "truffle")
-        (
-          exec,
-          moduleJars.map(jar => jh.resolve(jar).toString),
-          targetLibDirs.map(d => jh.resolve("lib").resolve(d))
-        )
-    }
+    val mp = modulePath()
+      .map(_.toAbsolutePath.toString)
+      .mkString(File.pathSeparator)
 
     val jlinkArgs = Seq(
       "--module-path",
-      modules.mkString(File.pathSeparator),
+      mp,
       "--output",
-      smallJdkDirectory.toString(),
+      smallJdkDirectory.toString,
       "--add-modules",
-      s"$NI_MODULES,$JDK_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
+      s"$niModules,$jdkModules,$debugModules,$pythonModules"
     )
-    val exitCode = scala.sys.process.Process(jlink.toString(), jlinkArgs).!
+    runJlink(jlinkArgs)
+    copyLibDirs(smallJdkDirectory)
+    assert(
+      smallJdkDirectory.exists(),
+      "Directory of small JDK " + smallJdkDirectory + " is not present"
+    )
+  }
+
+  /**
+   * Builds a small JDK with `jlink` appropriate for running
+   * Enso in `--jvm` mode.
+   * @param smallJdkDirectory Target directory. If not empty,
+   *                          will be deleted.
+   */
+  def buildSmallJDKForRelease(
+    smallJdkDirectory: File
+  ): Unit = {
+    val modules_ = Seq(
+      "java.base",
+      "java.net.http",
+      "java.naming",
+      "jdk.charsets",
+      "jdk.unsupported",
+      "jdk.graal.compiler",
+      "jdk.graal.compiler.management",
+      "jdk.zipfs",
+      "org.graalvm.nativeimage",
+      "org.graalvm.truffle.compiler",
+      "org.graalvm.word",
+    )
+    val defaultCmdLine = Seq(
+      "--no-header-files",
+      "--no-man-pages",
+    )
+    val mp = modulePath()
+      .map(_.toAbsolutePath.toString)
+      .mkString(File.pathSeparator)
+    val modules = JDK_MODULES ++ NI_BASE_MODULES ++ PYTHON_MODULES
+    val jlinkArgs = Seq(
+      "--no-header-files",
+      "--no-man-pages",
+      "--module-path",
+      mp,
+      "--output",
+      smallJdkDirectory.toString,
+      "--add-modules",
+      modules.mkString(",")
+    )
+    runJlink(jlinkArgs)
+    copyLibDirs(smallJdkDirectory)
+    assert(
+      smallJdkDirectory.exists(),
+      "Directory of small JDK " + smallJdkDirectory +
+        " was not created."
+    )
+  }
+
+  private def runJlink(
+    args: Seq[String]
+  ): Unit = {
+    val exitCode = scala.sys.process.Process(jlink().toString, args).!
     if (exitCode != 0) {
       throw new RuntimeException(
-        s"Failed to execute $jlink ${jlinkArgs.mkString(" ")} - exit code: $exitCode"
+        s"Failed to execute ${jlink()} ${args.mkString(" ")} - exit code: $exitCode"
       )
     }
-    libDirs.foreach(libDir =>
+  }
+
+  private def copyLibDirs(smallJdkDirectory: File): Unit = {
+    libDirs().foreach(libDir =>
       IO.copyDirectory(
         libDir.toFile,
         smallJdkDirectory.toPath
@@ -71,9 +148,45 @@ object SmallJDK {
           .toFile
       )
     )
-    assert(
-      smallJdkDirectory.exists(),
-      "Directory of small JDK " + smallJdkDirectory + " is not present"
+  }
+
+  private def javaHome(): Path = {
+    val prop = System.getProperty("java.home")
+    if (prop == null) {
+      throw new RuntimeException("Missing java.home prop")
+    } else {
+      Path.of(prop)
+    }
+  }
+
+  private def jlink(): Path = {
+    javaHome().resolve("bin").resolve("jlink")
+  }
+
+  private def modulePath(): List[Path] = {
+    val moduleJars = List(
+      "lib/svm/bin/../../graalvm/svm-driver.jar",
+      "lib/svm/bin/../builder/native-image-base.jar",
+      "lib/svm/bin/../builder/objectfile.jar",
+      "lib/svm/bin/../builder/pointsto.jar",
+      "lib/svm/bin/../builder/svm-enterprise.jar",
+      "lib/svm/bin/../builder/svm.jar",
+      "lib/svm/bin/../library-support.jar"
     )
+    moduleJars.map { jar =>
+      javaHome().resolve(jar)
+    }
+  }
+
+  private def libDirs(): List[Path] = {
+    val targetLibDirs = List(
+      "graalvm",
+      "svm",
+      "static",
+      "truffle"
+    )
+    targetLibDirs.map { d =>
+      javaHome().resolve("lib").resolve(d)
+    }
   }
 }
