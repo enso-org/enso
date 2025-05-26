@@ -68,25 +68,6 @@ final class ArrayBuilder extends EnsoObject {
         longArray[size++] = l;
       } else {
         CompilerDirectives.transferToInterpreter();
-        /* No special treatment for long & double:
-        TRY_DOUBLE:
-        if (e instanceof Double) {
-          var copy = new double[longArray.length];
-          for (int i = 0; i < size; i++) {
-            var l = longArray[i];
-            var c = (double) l;
-            if (l == Long.MAX_VALUE || (long) c != l) {
-              // not convertible to double
-              break TRY_DOUBLE;
-            }
-            copy[i] = c;
-          }
-          // try again with double[]
-          primitiveArray = copy;
-          add(e, warnings);
-          return;
-        }
-        */
         objectArray = new Object[longArray.length];
         for (int i = 0; i < size; i++) {
           objectArray[i] = longArray[i];
@@ -95,14 +76,6 @@ final class ArrayBuilder extends EnsoObject {
         addToObjectArray(e);
       }
     } else if (primitiveArray instanceof double[] doubleArray) {
-      /* No special treatment for long & double:
-      if (e instanceof Long l) {
-        var c = (double) l;
-        if (l != Long.MAX_VALUE && (long) c == l) {
-          e = c;
-        }
-      }
-      */
       if (e instanceof Double d) {
         if (size == doubleArray.length) {
           CompilerDirectives.transferToInterpreter();
