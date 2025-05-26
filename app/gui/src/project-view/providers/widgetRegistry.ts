@@ -373,7 +373,7 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
     widgetTypeId: crypto.randomUUID() as WidgetTypeId,
   }
 
-  if (import.meta.hot && hmr) {
+  if (import.meta.hot && hmr && hmr.data) {
     if (hmr.data.widgetDefinition) {
       const widgetTypeId = hmr.data.widgetDefinition.widgetTypeId
       Object.assign(hmr.data.widgetDefinition, resolved, { widgetTypeId })

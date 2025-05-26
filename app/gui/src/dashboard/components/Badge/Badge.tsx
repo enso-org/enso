@@ -6,7 +6,8 @@
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import type { ReactNode } from 'react'
-import { TEXT_STYLE, type IconPropSvgUse } from '../AriaComponents'
+import { type IconPropSvgUse } from '../AriaComponents'
+import { TEXT_STYLE } from '../AriaComponents/Text'
 import { Icon } from '../Icon'
 
 /** Props for the {@link Badge} component. */
