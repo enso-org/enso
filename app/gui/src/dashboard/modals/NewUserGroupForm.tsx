@@ -3,8 +3,7 @@ import { ButtonGroup, Dialog, Form, Input, Text } from '#/components/AriaCompone
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { normalizeName } from '#/utilities/string'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends } from '$/providers/react'
-import { useText } from '$/providers/text'
+import { useBackends, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 /** A form to create a user group. */
