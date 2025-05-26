@@ -9,7 +9,7 @@ import type * as text from 'enso-common/src/text'
 
 import Check from '#/assets/check_mark.svg'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
@@ -88,7 +88,7 @@ export function Card(props: CardProps) {
     highlighted,
   } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const classes = CARD_STYLES({ elevated, rounded, highlighted })
 

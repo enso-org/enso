@@ -1,8 +1,8 @@
 /** @file An item in the notification tray. */
 import { CloseButton, ProgressBar, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
-import { useText } from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 import type { NotificationInfo } from './types'
 
 const NOTIFICATION_ITEM_STYLES = tv({

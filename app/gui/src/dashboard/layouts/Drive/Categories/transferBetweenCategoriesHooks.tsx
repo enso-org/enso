@@ -13,11 +13,11 @@ import {
 import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useUser } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
-import { useText, type GetText } from '#/providers/TextProvider'
 import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackends, useText } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import type { DropOperation } from '@react-types/shared'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
@@ -64,9 +64,8 @@ export type TransferrableAsset = z.infer<typeof TRANSFERRABLE_ASSET_SCHEMA>
 
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {
-  const localBackend = useLocalBackend()
-  const remoteBackend = useRemoteBackend()
-  const backend = useBackend(currentCategory)
+  const { localBackend, remoteBackend, backendForType } = useBackends()
+  const backend = backendForType(currentCategory.backend)
 
   const { rootDirectoryId } = useUser()
 

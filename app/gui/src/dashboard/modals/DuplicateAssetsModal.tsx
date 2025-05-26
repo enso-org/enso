@@ -1,7 +1,7 @@
 /** @file A modal opened when uploaded assets. */
 import * as React from 'react'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -73,7 +73,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
   const { nonConflictingFileCount, nonConflictingProjectCount, doUploadNonConflicting } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
   const [conflictingProjects, setConflictingProjects] = React.useState(conflictingProjectsRaw)
   const [didUploadNonConflicting, setDidUploadNonConflicting] = React.useState(false)
@@ -415,7 +415,7 @@ export interface ResolveDuplicationsProps {
  */
 export function ResolveDuplicationsModal(props: ResolveDuplicationsProps) {
   const { conflictingIds } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
     <Dialog
@@ -445,7 +445,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
     canReplace = false,
   } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const queryClient = useQueryClient()
 

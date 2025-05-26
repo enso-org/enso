@@ -2,7 +2,13 @@
 
 name: Storybook Chromatic Deployment
 
-on: workflow_call
+on:
+  workflow_call:
+    inputs:
+      skip-label:
+        type: string
+        required: false
+        default: "CI:\ Run Chromatic"
 
 # Cancel in-progress workflows if a new one is started
 concurrency:
@@ -23,16 +29,46 @@ env:
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
 jobs:
+  check-for-label:
+    name: 🏷️ Check for label
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check-for-label.outputs.skip }}
+    steps:
+      - name: Check for label
+        id: check-for-label
+        # Check if this is a PR and if the skip label exists
+        # If it's not a PR or the label doesn't exist, we'll skip
+        # If it's the develop branch, we'll never skip
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            if [[ "${{ contains(github.event.pull_request.labels.*.name, inputs.skip-label) }}" == "true" ]]; then
+              echo "skip=false" >> $GITHUB_OUTPUT
+            else
+              echo "skip=true" >> $GITHUB_OUTPUT
+            fi
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "skip=false" >> $GITHUB_OUTPUT
+          else
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
   deploy-chromatic-react:
     name: 🚀 Deploy React to Chromatic
     runs-on: ubuntu-latest
+    needs: check-for-label
+    if: ${{ needs.check-for-label.outputs.skip != 'true' }}
     outputs:
       dashboardUrl: ${{ steps.publish_chromatic.outputs.url }}
       dashboardStorybookUrl: ${{ steps.publish_chromatic.outputs.storybookUrl }}
+      testCount: ${{ steps.publish_chromatic.outputs.testCount }}
+      interactionTestFailuresCount: ${{ steps.publish_chromatic.outputs.interactionTestFailuresCount }}
+      skipped: ${{ needs.check-for-label.outputs.skip }}
     env:
       CHROMATIC_RETRIES: 3
       CHROMATIC_PROJECT_TOKEN: ${{ secrets.DASHBOARD_CHROMATIC_PROJECT_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SKIP_TESTS: ${{ needs.check-for-label.outputs.skip }}
 
     steps:
       - uses: actions/checkout@v4
@@ -56,6 +92,29 @@ jobs:
           node-version-file: .node-version
           cache: "pnpm"
 
+      - name: 📝 Create Chromatic comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
+            await setMessage({
+              id: "chromatic-comment",
+              header: "## 📚 Storybook Deployment Status",
+              body: `
+              ### 🔄 Deployment in Progress
+              - Building and deploying Storybook to Chromatic
+              - Visual and interaction tests will be run automatically
+              - Links to the dashboard and storybook appear once completed
+              
+              > Note: This process typically takes 3-5 minutes
+              `,
+              context,
+              github,
+              repo: context.repo,
+              prNumber: context.payload.pull_request.number
+            })
+
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -74,19 +133,67 @@ jobs:
         id: publish_chromatic
         uses: chromaui/action@v11
         with:
+          skip: ${{ env.SKIP_TESTS }}
           workingDir: app/gui
           autoAcceptChanges: develop
           exitZeroOnChanges: true
           exitOnceUploaded: true
           configFile: "chromatic.config.json"
 
-  comment-on-pr:
-    name: 💬 Comment on PR
+  comment-if-skipped:
+    name: 💬 Tip for Chromatic
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    needs: deploy-chromatic-react
+    needs: [check-for-label]
+    if: github.event_name == 'pull_request' && ${{ needs.check-for-label.outputs.skip == 'true' }}
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        name: Checkout
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-tags: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: 📝 Create Chromatic comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
+            await setMessage({
+              id: "chromatic-comment",
+              header: "## ℹ️ Chromatic Tests Skipped",
+              body: `
+                Chromatic visual regression tests were skipped for this PR.
+                
+                To run the tests and deploy Storybook, add the \`${{ inputs.skip-label }}\` label to this PR.
+                
+                _Note: We skip tests by default to optimize CI costs. Only run them when your UI changes are ready for review._
+              `,
+              github,
+              repo: context.repo,
+              prNumber: context.payload.pull_request.number,
+              context,
+            })
+
+  comment-on-pr:
+    name: 💬 Tip for Chromatic
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && ${{ needs.check-for-label.outputs.skip != 'true' }}
+    needs: [check-for-label, deploy-chromatic-react]
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-tags: false
+
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
@@ -98,13 +205,19 @@ jobs:
             const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
 
             await setMessage({
-              header: "## 🧪 Storybook is successfully deployed!",
+              id: "chromatic-comment",
+              header: "## 📚 Storybook Deployment",
               body: `
-                ### 📊 Dashboard:
-                - 👀 Review changes: ${{ needs.deploy-chromatic-react.outputs.dashboardUrl }}
-                - 👨‍🎨 Preview storybook: ${{ needs.deploy-chromatic-react.outputs.dashboardStorybookUrl }}
+                ### 📊 Dashboard has been successfully deployed!
+                
+                #### 🔍 Review Links:
+                - [👀 View UI Changes](${{ needs.deploy-chromatic-react.outputs.dashboardUrl }}) - Compare visual changes in Chromatic
+                - [🧑‍🎨 Browse Storybook](${{ needs.deploy-chromatic-react.outputs.dashboardStorybookUrl }}) - Explore the deployed components
+                
+                Please review your UI changes and ensure everything looks as expected.
               `,
               github,
               repo: context.repo,
-              prNumber: context.payload.pull_request.number
+              prNumber: context.payload.pull_request.number,
+              context,
             })

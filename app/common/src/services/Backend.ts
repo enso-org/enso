@@ -852,6 +852,13 @@ export const COLORS = [
 
 export const FALLBACK_COLOR = COLORS[0]
 
+/** Returns true if the two colors are equal. */
+export function colorsAreEqual(a: LChColor, b: LChColor) {
+  return (
+    a.lightness === b.lightness && a.chroma === b.chroma && a.hue === b.hue && a.alpha === b.alpha
+  )
+}
+
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
   const alpha = 'alpha' in color ? ` / ${color.alpha}` : ''
@@ -1581,6 +1588,7 @@ export interface CreateCheckoutSessionRequestBody {
 /** URL query string parameters for the "get log events" endpoint. */
 export interface GetLogEventsRequestParams {
   readonly userEmail?: EmailAddress | null | undefined
+  readonly lambdaKind?: string | null | undefined
   readonly startDate?: dateTime.Rfc3339DateTime | null | undefined
   readonly endDate?: dateTime.Rfc3339DateTime | null | undefined
   /** Pagination offset */

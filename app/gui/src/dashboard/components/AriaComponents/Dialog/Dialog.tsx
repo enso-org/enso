@@ -5,14 +5,15 @@
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as portal from '#/components/Portal'
 import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
-import { DialogDismiss, ResetButtonGroupContext } from '#/components/AriaComponents'
+import { CloseButton, ResetButtonGroupContext } from '#/components/AriaComponents/Button'
+import { DialogDismiss } from '#/components/AriaComponents/Dialog/DialogDismiss'
+import { Text } from '#/components/AriaComponents/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { LayoutGroup, motion, type Spring } from '#/utilities/motion'
@@ -442,19 +443,12 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
       ref={headerDimensionsRef}
       className={styles.header({ scrolledToTop: isScrolledToTop })}
     >
-      {closeButton !== 'none' && (
-        <ariaComponents.CloseButton className={styles.closeButton()} onPress={close} />
-      )}
+      {closeButton !== 'none' && <CloseButton className={styles.closeButton()} onPress={close} />}
 
       {title != null && (
-        <ariaComponents.Text.Heading
-          id={titleId}
-          level={2}
-          className={styles.heading()}
-          weight="semibold"
-        >
+        <Text.Heading id={titleId} level={2} className={styles.heading()} weight="semibold">
           {title}
-        </ariaComponents.Text.Heading>
+        </Text.Heading>
       )}
     </aria.Header>
   )

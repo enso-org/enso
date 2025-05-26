@@ -1,4 +1,4 @@
-import { textEditorsBindings, textEditorsMultilineBindings } from '@/bindings'
+import { textEditorsBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
@@ -7,25 +7,23 @@ import {
   contentFocusedExt,
   setContentFocused,
 } from '@/util/codemirror/contentFocusedExt'
-import { baseKeymap, handlerToKeyBinding, verticalMovementKeymap } from '@/util/codemirror/keymap'
+import { keyBindings } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
 import { type ToValue } from '@/util/reactivity'
-import { insertNewlineKeepIndent } from '@codemirror/commands'
 import {
   Compartment,
   EditorState,
   type Extension,
-  Prec,
   type SelectionRange,
   type StateEffect,
   type StateEffectType,
   Text,
   Transaction,
 } from '@codemirror/state'
-import { EditorView, type KeyBinding, keymap, placeholder } from '@codemirror/view'
+import { EditorView, placeholder } from '@codemirror/view'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
   type ComponentInstance,
@@ -48,7 +46,7 @@ function disableEditContextApi() {
 /* Disable EditContext API because of https://github.com/codemirror/dev/issues/1458. */
 disableEditContextApi()
 
-export type LineMode = 'single' | 'multi' | 'auto'
+export type LineMode = 'single' | 'multi' | 'auto' | 'autoMulti'
 
 export type Getter<T> = () => T
 
@@ -96,7 +94,10 @@ export function useCodeMirror(
   const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
   const bindingsCompartment = useCompartment(view, () => keyBindings(toValue(lineMode)))
-  const singleLineState = computed(() => toValue(lineMode) !== 'multi')
+  const singleLineState = computed(() => {
+    const mode = toValue(lineMode)
+    return mode !== 'multi' && mode !== 'autoMulti'
+  })
   const themeCompartment = useCompartment(view, () => theme({ singleLine: singleLineState.value }))
   view.setState(
     EditorState.create({
@@ -312,34 +313,6 @@ function lastEffect<T>(
     const effect = effects[i]!
     if (effect.is(effectType)) return effect.value
   }
-}
-
-const stopEvent = (event: Event) => {
-  event.stopImmediatePropagation()
-  return false
-}
-
-const autoOrMultiHandlers = handlerToKeyBinding(
-  textEditorsMultilineBindings.handler({
-    newline: (e) => {
-      e.stopImmediatePropagation()
-      return insertNewlineKeepIndent(e.codemirrorView)
-    },
-  }),
-)
-
-const standardBindings: Record<LineMode, KeyBinding[]> = {
-  single: [],
-  multi: [autoOrMultiHandlers, ...verticalMovementKeymap()],
-  auto: [autoOrMultiHandlers],
-}
-
-function keyBindings(lineMode: LineMode): Extension {
-  return [
-    Prec.lowest(keymap.of(baseKeymap())),
-    Prec.low(keymap.of(standardBindings[lineMode])),
-    ...(lineMode === 'multi' ? [EditorView.domEventHandlers({ wheel: stopEvent })] : []),
-  ]
 }
 
 const baseTheme = EditorView.theme({

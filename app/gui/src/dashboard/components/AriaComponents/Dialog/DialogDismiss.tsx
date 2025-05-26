@@ -1,7 +1,7 @@
 /** @file A button to close a dialog without submitting it. */
 import type { JSX } from 'react'
 
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { Button, type ButtonProps } from '../Button'
 import { useDialogContext } from './DialogProvider'
 

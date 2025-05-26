@@ -1,5 +1,5 @@
 /** @file A date picker. */
-import { useContext, type ForwardedRef } from 'react'
+import { forwardRef, useContext, type ForwardedRef } from 'react'
 
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
@@ -15,9 +15,6 @@ import {
   type TimeValue,
 } from '#/components/aria'
 import {
-  Button,
-  Form,
-  Text,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
@@ -25,10 +22,12 @@ import {
   type FieldValues,
   type TSchema,
 } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
+import { Button } from '#/components/AriaComponents/Button'
+import { Form } from '#/components/AriaComponents/Form'
+import { Text } from '#/components/AriaComponents/Text'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 
 const DATE_PICKER_STYLES = tv({
   base: '',
@@ -109,6 +108,7 @@ export const TimeField = forwardRef(function TimeField<
     granularity,
     style,
     isInvalid,
+    contextualHelp,
     ...rest
   } = props
 
@@ -135,6 +135,7 @@ export const TimeField = forwardRef(function TimeField<
       aria-details={props['aria-details']}
       ref={ref}
       style={style}
+      contextualHelp={contextualHelp}
     >
       <Form.Controller
         control={formInstance.control}

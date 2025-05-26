@@ -7,11 +7,20 @@ import {
   type Transaction,
 } from '@codemirror/state'
 
+export interface ValueExt<SetT, InitialT = SetT> {
+  set: StateEffectType<SetT>
+  get: StateField<InitialT>
+  extension: Extension
+  changed: (update: { state: EditorState; startState: EditorState }) => boolean
+}
+
 /**
  * Creates an extension for a state fields that holds a value, and related types for reading and
  * writing the value.
  */
-export function valueExt<SetT extends InitialT, InitialT = SetT>(initial: InitialT) {
+export function valueExt<SetT extends InitialT, InitialT = SetT>(
+  initial: InitialT,
+): ValueExt<SetT, InitialT> {
   const set = StateEffect.define<SetT>()
   const get = StateField.define<InitialT>({
     create: () => initial,
