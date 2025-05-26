@@ -952,7 +952,11 @@ lazy val `syntax-rust-definition` = project
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
-    Compile / compile / javacOptions ++= Seq("-source", "11", "-target", "11")
+    Compile / compile / javacOptions ++= Seq("-source", "11", "-target", "11"),
+    // The only managedResource is the native library produced by the
+    // `cargo` command. Setting it explictly to empty seq so that this native
+    // library will not get included into the `jar` produced by `packageBin` task.
+    Compile / managedResources := Seq.empty
   )
 
 lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
