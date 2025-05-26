@@ -1,3 +1,4 @@
+/** @file A React hook returning a function to export an archive. */
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDownloadDirectory } from '#/layouts/Drive/useDownloadDirectory'
@@ -9,6 +10,7 @@ import { PRODUCT_NAME } from 'enso-common'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { toast } from 'react-toastify'
 
+/** Return a function to export an archive. */
 export function useExportArchive() {
   const { getText } = useText()
   const { localBackend } = useBackends()

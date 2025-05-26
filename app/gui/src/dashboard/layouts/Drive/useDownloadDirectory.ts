@@ -24,10 +24,7 @@ export function useDefaultDownloadDirectory() {
 
 /** The download directory. */
 export function useDownloadDirectory() {
-  const downloadDirectory = useStore(
-    localRootDirectoryStore,
-    ({ downloadDirectory }) => downloadDirectory,
-  )
+  const downloadDirectory = useStore(localRootDirectoryStore, (store) => store.downloadDirectory)
   const defaultDownloadDirectory = useDefaultDownloadDirectory()
   return downloadDirectory ?? defaultDownloadDirectory
 }
