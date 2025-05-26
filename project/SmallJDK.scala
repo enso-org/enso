@@ -4,9 +4,8 @@ import java.io.File
 import java.nio.file.{Path, Paths}
 import scala.collection.immutable.Seq
 
-/**
- * Building small JDK distributions with `jlink` command
- */
+/** Building small JDK distributions with `jlink` command
+  */
 object SmallJDK {
 
   private val NI_BUILDER_MODULES = Seq(
@@ -14,14 +13,14 @@ object SmallJDK {
     "org.graalvm.nativeimage.driver",
     "org.graalvm.nativeimage.librarysupport",
     "org.graalvm.nativeimage.objectfile",
-    "org.graalvm.nativeimage.pointsto",
+    "org.graalvm.nativeimage.pointsto"
   )
 
   private val NI_BASE_MODULES = Seq(
     "org.graalvm.nativeimage",
     "org.graalvm.nativeimage.base",
     "com.oracle.graal.graal_enterprise",
-    "com.oracle.svm.svm_enterprise",
+    "com.oracle.svm.svm_enterprise"
   )
 
   private val JDK_MODULES = Seq(
@@ -31,7 +30,7 @@ object SmallJDK {
     "jdk.charsets",
     "jdk.crypto.ec",
     "jdk.httpserver",
-    "jdk.localedata",
+    "jdk.localedata"
   )
 
   private val DEBUG_MODULES = Seq(
@@ -40,21 +39,20 @@ object SmallJDK {
 
   private val PYTHON_MODULES = Seq(
     "java.naming",
-    "jdk.security.auth",
+    "jdk.security.auth"
   )
 
-  /**
-   * Builds a small JDK appropriate for building native image.
-   * @param smallJdkDirectory Target directory. If non empty, will be deleted.
-   */
+  /** Builds a small JDK appropriate for building native image.
+    * @param smallJdkDirectory Target directory. If non empty, will be deleted.
+    */
   def buildSmallJDKForNativeImage(
     smallJdkDirectory: File
   ): Unit = {
     if (smallJdkDirectory.exists()) {
       IO.delete(smallJdkDirectory)
     }
-    val niModules = (NI_BASE_MODULES ++ NI_BUILDER_MODULES).mkString(",")
-    val jdkModules = JDK_MODULES.mkString(",")
+    val niModules     = (NI_BASE_MODULES ++ NI_BUILDER_MODULES).mkString(",")
+    val jdkModules    = JDK_MODULES.mkString(",")
     val debugModules  = DEBUG_MODULES.mkString(",")
     val pythonModules = PYTHON_MODULES.mkString(",")
 
@@ -78,12 +76,11 @@ object SmallJDK {
     )
   }
 
-  /**
-   * Builds a small JDK with `jlink` appropriate for running
-   * Enso in `--jvm` mode.
-   * @param smallJdkDirectory Target directory. If not empty,
-   *                          will be deleted.
-   */
+  /** Builds a small JDK with `jlink` appropriate for running
+    * Enso in `--jvm` mode.
+    * @param smallJdkDirectory Target directory. If not empty,
+    *                          will be deleted.
+    */
   def buildSmallJDKForRelease(
     smallJdkDirectory: File
   ): Unit = {
@@ -109,7 +106,7 @@ object SmallJDK {
     assert(
       smallJdkDirectory.exists(),
       "Directory of small JDK " + smallJdkDirectory +
-        " was not created."
+      " was not created."
     )
   }
 

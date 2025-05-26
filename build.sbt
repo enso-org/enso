@@ -4099,10 +4099,9 @@ lazy val `engine-runner` = project
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
 
-/**
- * Command for building small JDK for the release.
- * Use as `buildSmallJdkForRelease <targetDir>`.
- */
+/** Command for building small JDK for the release.
+  * Use as `buildSmallJdkForRelease <targetDir>`.
+  */
 ThisBuild / commands += {
   Command.single("buildSmallJdkForRelease") { (state, targetDir) =>
     SmallJDK.buildSmallJDKForRelease(new File(targetDir))
