@@ -156,9 +156,13 @@ export function prerenderMarkdown(markdown: string): string {
   cursor.firstChild()
 
   /** Remove the trailing newline from a block followed by the Paragraph block, if necessary. */
-  function mergeSubsequentBlocks(text: string, prevName: string | undefined) {
+  function mergeSubsequentBlocks(
+    currentNodeName: string,
+    text: string,
+    prevName: string | undefined,
+  ) {
     if (
-      cursor.name === 'Paragraph' &&
+      currentNodeName === 'Paragraph' &&
       prevName &&
       requiresNewlineBeforeFollowingParagraph(prevName)
     ) {
@@ -172,7 +176,7 @@ export function prerenderMarkdown(markdown: string): string {
     do {
       if (prevTo < cursor.from) {
         const textBetween = markdown.slice(prevTo, cursor.from)
-        prerendered += mergeSubsequentBlocks(textBetween, prevName)
+        prerendered += mergeSubsequentBlocks(cursor.name, textBetween, prevName)
       }
       const text = markdown.slice(cursor.from, cursor.to)
       if (cursor.name === 'Paragraph') {
