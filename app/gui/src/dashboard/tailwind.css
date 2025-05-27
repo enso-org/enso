@@ -7,6 +7,8 @@
 @tailwind utilities;
 
 body.theme-dark {
+  color-scheme: dark light;
+
   --color-primary-rgb: 240 240 240;
   --color-primary-opacity: 80%;
   --color-primary: rgb(var(--color-primary-rgb) / var(--color-primary-opacity));
