@@ -972,7 +972,8 @@ lazy val `syntax-rust-definition` = project
         shouldContainAll = true
       )
     },
-    Compile / exportedModule := assembly.value
+    Compile / exportedModule := assembly.value,
+    Compile / exportedModuleBin := assembly.value
   )
 
 lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
