@@ -1,5 +1,4 @@
 /** @file The directory header bar and directory item listing. */
-import * as appUtils from '#/appUtils'
 import Offline from '#/assets/offline_filled.svg'
 import { Button } from '#/components/Button'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
@@ -19,6 +18,7 @@ import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
+import * as appUtils from '$/appUtils'
 import { useBackends, useText } from '$/providers/react'
 import * as React from 'react'
 import { useDeferredValue } from 'react'

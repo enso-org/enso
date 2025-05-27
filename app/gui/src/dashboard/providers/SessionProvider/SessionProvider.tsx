@@ -2,9 +2,6 @@
  * @file Provider for the {@link SessionContextType}, which contains information about the
  * currently authenticated user's session.
  */
-import type * as cognito from '#/authentication/cognito'
-import { CognitoErrorType, type CognitoUser, type ISessionProvider } from '#/authentication/cognito'
-import * as listen from '#/authentication/listen'
 import { Dialog } from '#/components/Dialog'
 import { Result } from '#/components/Result'
 import { useThrottledAsyncCallback } from '#/hooks/debounceCallbackHooks'
@@ -16,6 +13,9 @@ import { NotAuthorizedError } from '#/services/Backend'
 import { UnreachableCaseError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
+import type * as cognito from '$/authentication/cognito'
+import { CognitoErrorType, type CognitoUser, type ISessionProvider } from '$/authentication/cognito'
+import * as listen from '$/authentication/listen'
 import { useHttpClient, useText } from '$/providers/react'
 import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'

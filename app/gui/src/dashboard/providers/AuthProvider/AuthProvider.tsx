@@ -5,8 +5,6 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc.
  */
-import * as appUtils from '#/appUtils'
-import type * as cognitoModule from '#/authentication/cognito'
 import { Button } from '#/components/Button'
 import { EnsoDevtools } from '#/components/Devtools/EnsoDevtools'
 import Page from '#/components/Page'
@@ -29,6 +27,9 @@ import { getDownloadUrl } from '#/utilities/github'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
+import * as appUtils from '$/appUtils'
+import type * as cognitoModule from '$/authentication/cognito'
+import { UserSessionType, type FullUserSession, type PartialUserSession } from '$/providers/auth'
 import { useBackends, useLocalStorage, useRouter, useText } from '$/providers/react'
 import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
@@ -41,7 +42,6 @@ import invariant from 'tiny-invariant'
 import { usePlanOverride } from './authStore'
 import { AuthContext, useAuth } from './hooks'
 import type { AuthContextType, UserSession } from './types'
-import { UserSessionType, type FullUserSession, type PartialUserSession } from './types'
 
 /** Query to fetch the user's session data from the backend. */
 function createUsersMeQuery(
@@ -327,9 +327,6 @@ export function ProtectedLayout({ children }: React.PropsWithChildren<object>) {
   )
 }
 
-/**
- * A React Router layout route containing routes only accessible by users that are logged in.
- */
 /**
  * A React Router layout route containing routes only accessible by users that are
  * in the process of registering.

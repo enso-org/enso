@@ -1,5 +1,4 @@
 /** @file Modal for setting the organization name. */
-import { ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
@@ -9,6 +8,7 @@ import { Stepper } from '#/components/Stepper'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendModule from '#/services/Backend'
+import { ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
 import { useBackends, useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'

@@ -70,7 +70,6 @@ watch(openedProjects, (openedProjectsList) => {
 })
 
 const onSignOut = () => {
-  tab.value = 'drive'
   void props.closeAllProjects()
 }
 </script>

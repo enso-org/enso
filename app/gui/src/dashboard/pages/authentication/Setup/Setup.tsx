@@ -2,7 +2,6 @@
  * @file
  * Setup page
  */
-import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
 import { Button } from '#/components/Button'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs'
@@ -16,6 +15,7 @@ import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
 import { Plan } from '#/services/Backend'
+import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
 import { useBackends, useRouter, useText } from '$/providers/react'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import type * as text from 'enso-common/src/text'

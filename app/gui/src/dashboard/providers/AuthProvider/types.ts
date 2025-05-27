@@ -7,11 +7,10 @@ import type * as reactQuery from '@tanstack/react-query'
 
 import type * as backendModule from '#/services/Backend'
 
-import type * as cognitoModule from '#/authentication/cognito'
+import type * as cognitoModule from '$/authentication/cognito'
 
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {
-  offline = 'offline',
   partial = 'partial',
   full = 'full',
 }

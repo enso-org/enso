@@ -1,3 +1,5 @@
+import { render, waitFor } from '#/test'
+import HttpClient from '#/utilities/HttpClient'
 import type {
   AmplifyError,
   ConfirmSignUpError,
@@ -6,11 +8,9 @@ import type {
   MfaType,
   SignUpError,
   UserSession,
-} from '#/authentication/cognito'
-import { render, waitFor } from '#/test'
-import HttpClient from '#/utilities/HttpClient'
+} from '$/authentication/cognito'
 import { HTTPClientContext, TextContext } from '$/providers/react'
-import { createTextStore } from '$/providers/text'
+import { useText } from '$/providers/text'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
@@ -75,7 +75,7 @@ describe('SessionProvider', () => {
     const { getByText } = render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={createTextStore()}>
+          <TextContext.Provider value={useText()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -104,7 +104,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={httpClient}>
-          <TextContext.Provider value={createTextStore()}>
+          <TextContext.Provider value={useText()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -126,7 +126,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={createTextStore()}>
+          <TextContext.Provider value={useText()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}

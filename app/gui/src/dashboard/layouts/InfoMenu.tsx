@@ -1,5 +1,4 @@
 /** @file A menu containing info about the app. */
-import { LOGIN_PATH } from '#/appUtils'
 import { Popover } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
 import MenuEntry from '#/components/MenuEntry'
@@ -8,6 +7,7 @@ import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
+import { LOGIN_PATH } from '$/appUtils'
 import { useRouter, useText } from '$/providers/react'
 import { PRODUCT_NAME } from 'enso-common'
 

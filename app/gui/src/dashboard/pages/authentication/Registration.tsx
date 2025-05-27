@@ -1,5 +1,4 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import { LOGIN_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
@@ -20,6 +19,7 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { LOGIN_PATH } from '$/appUtils'
 import { useBackends, useLocalStorage, useRouter, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'

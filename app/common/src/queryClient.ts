@@ -175,7 +175,10 @@ export function createQueryClient<TStorageValue = string>(
   })
 
   Object.defineProperty(queryClient, 'nukePersister', {
-    value: () => persisterStorage?.clear(),
+    value: () => {
+      console.log('NUKE')
+      return persisterStorage?.clear()
+    },
     enumerable: false,
     configurable: false,
     writable: false,
@@ -184,7 +187,7 @@ export function createQueryClient<TStorageValue = string>(
   Object.defineProperty(queryClient, 'clearWithPersister', {
     value: () => {
       queryClient.clear()
-      return queryClient.nukePersister()
+      // return queryClient.nukePersister()
     },
     enumerable: false,
     configurable: false,

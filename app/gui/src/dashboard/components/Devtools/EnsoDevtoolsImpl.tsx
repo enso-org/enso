@@ -1,5 +1,4 @@
 /** @file A list of toggles for paywall features. */
-import { SETUP_PATH } from '#/appUtils'
 import CrossIcon from '#/assets/cross.svg'
 import { Button, CopyButton, type ButtonProps } from '#/components/Button'
 import { Dialog, Popover, POPOVER_STYLES } from '#/components/Dialog'
@@ -30,6 +29,7 @@ import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
+import { SETUP_PATH } from '$/appUtils'
 import { useLocalStorage, useText } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'

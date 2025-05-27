@@ -14,8 +14,8 @@ import {
   type SetupTOTPReturn,
   type UserSession,
   type UserSessionChallenge,
-} from '#/authentication/cognito'
-import type * as listen from '#/authentication/listen'
+} from '$/authentication/cognito'
+import type * as listen from '$/authentication/listen'
 
 /** State contained in a {@link SessionContext}. */
 export interface SessionContextType {

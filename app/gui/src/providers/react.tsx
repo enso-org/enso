@@ -8,9 +8,11 @@ import * as react from 'react'
 import { applyPureReactInVue, createCrossingProviderForPureReactInVue } from 'veaury'
 import { computed, toRefs } from 'vue'
 import { Router, useRoute, useRouter as useRouterVue } from 'vue-router'
+import { AuthStore, useAuth as useAuthVue } from './auth'
 import { useHttpClient as useHttpClientVue } from './httpClient'
 import { RightPanelData, useRightPanelData as useRightPanelDataVue } from './rightPanel'
-import { createTextStore as useTextVue, type TextStore } from './text'
+import { SessionStore, useSession as useSessionVue } from './session'
+import { useText as useTextVue, type TextStore } from './text'
 
 function useInReactFunction<T>(context: react.Context<T | null>) {
   return () => {
@@ -43,6 +45,12 @@ export const useBackends = useInReactFunction(BackendsContext)
 const LocalStorageContext = react.createContext<LocalStorage | null>(null)
 export const useLocalStorage = useInReactFunction(LocalStorageContext)
 
+const SessionContext = react.createContext<SessionStore | null>(null)
+export const useSession = useInReactFunction(SessionContext)
+
+const AuthContext = react.createContext<AuthStore | null>(null)
+export const useAuth = useInReactFunction(AuthContext)
+
 interface ContextsForReactProviderProps {
   router: RouterForReact
   config: GuiConfig
@@ -50,6 +58,8 @@ interface ContextsForReactProviderProps {
   httpClient: HttpClient
   backends: BackendsStore
   localStorage: LocalStorage
+  session: SessionStore
+  auth: AuthStore
 }
 
 /**
@@ -60,14 +70,19 @@ interface ContextsForReactProviderProps {
  */
 export const ContextsForReactProvider = applyPureReactInVue(
   (props: react.PropsWithChildren<ContextsForReactProviderProps>) => {
-    const { children, router, config, text, httpClient, backends, localStorage } = props
+    const { children, router, config, text, httpClient, backends, localStorage, session, auth } =
+      props
     return (
       <RouterContext.Provider value={router}>
         <ConfigContext.Provider value={config}>
           <TextContext.Provider value={text}>
             <HTTPClientContext.Provider value={httpClient}>
               <LocalStorageContext.Provider value={localStorage}>
-                <BackendsContext.Provider value={backends}>{children}</BackendsContext.Provider>
+                <SessionContext.Provider value={session}>
+                  <AuthContext.Provider value={auth}>
+                    <BackendsContext.Provider value={backends}>{children}</BackendsContext.Provider>
+                  </AuthContext.Provider>
+                </SessionContext.Provider>
               </LocalStorageContext.Provider>
             </HTTPClientContext.Provider>
           </TextContext.Provider>
@@ -102,6 +117,8 @@ export const ContextsForReactProvider = applyPureReactInVue(
         httpClient: useHttpClientVue(),
         backends: useBackendsVue(),
         localStorage: useLocalStorageVue(),
+        session: useSessionVue(),
+        auth: useAuthVue(),
       }
     },
   },

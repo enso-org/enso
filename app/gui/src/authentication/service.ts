@@ -3,22 +3,21 @@
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron.
  */
-import * as React from 'react'
 
 import * as amplify from '@aws-amplify/auth'
 
 import * as common from 'enso-common'
 import * as detect from 'enso-common/src/detect'
 
-import * as appUtils from '#/appUtils'
+import * as appUtils from '$/appUtils'
 
-import { useLogger, type Logger } from '#/providers/LoggerProvider'
+import { type Logger } from '#/providers/LoggerProvider'
 
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 
-import * as cognitoModule from '#/authentication/cognito'
-import * as listen from '#/authentication/listen'
-import { useRouter } from '$/providers/react'
+import * as cognitoModule from '$/authentication/cognito'
+import * as listen from '$/authentication/listen'
+import { useRouter } from 'vue-router'
 
 /**
  * Configuration for the AWS Amplify library.
@@ -118,19 +117,18 @@ export interface AuthService {
 export function useInitAuthService(authConfig: AuthConfig): AuthService {
   const { supportsDeepLinks } = authConfig
 
-  const logger = useLogger()
-  const { router } = useRouter()
+  // TODO[ao] Do we want logger in Vue?
+  // const logger = useLogger()
+  const router = useRouter()
 
-  return React.useMemo(() => {
-    const amplifyConfig = loadAmplifyConfig(
-      logger,
-      supportsDeepLinks,
-      (url) => void router.push(url),
-    )
-    const cognito = new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
+  const amplifyConfig = loadAmplifyConfig(
+    console,
+    supportsDeepLinks,
+    (url) => void router.push(url),
+  )
+  const cognito = new cognitoModule.Cognito(console, supportsDeepLinks, amplifyConfig)
 
-    return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
-  }, [logger, router, supportsDeepLinks])
+  return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */

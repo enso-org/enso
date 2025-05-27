@@ -1,5 +1,4 @@
 /** @file A toolbar containing chat and the user menu. */
-import { SUBSCRIBE_PATH } from '#/appUtils'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
 import { Button } from '#/components/Button'
@@ -16,6 +15,7 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { Plan } from '#/services/Backend'
 import { isAbsoluteUrl } from '#/utilities/url'
+import { SUBSCRIBE_PATH } from '$/appUtils'
 import { useText } from '$/providers/react'
 import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'

@@ -1,11 +1,11 @@
 /** @file Restore an account that has been deleted. */
-import { LOGIN_PATH } from '#/appUtils'
 import UntrashIcon from '#/assets/untrash.svg'
 import * as aria from '#/components/aria'
 import { Button } from '#/components/Button'
 import SvgMask from '#/components/SvgMask'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
+import { LOGIN_PATH } from '$/appUtils'
 import { useRouter, useText } from '$/providers/react'
 
 /** Restore an account that has been deleted. */

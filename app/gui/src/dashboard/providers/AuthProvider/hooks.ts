@@ -6,8 +6,10 @@
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 
-import type { AuthContextType, FullUserSession } from './types'
-import { UserSessionType } from './types'
+import { UserSessionType, type FullUserSession } from '$/providers/auth'
+import { useAuth } from '$/providers/react'
+import type { AuthContextType } from './types'
+export { useAuth }
 
 export const AuthContext = React.createContext<AuthContextType | null>(null)
 
@@ -18,13 +20,13 @@ export const AuthContext = React.createContext<AuthContextType | null>(null)
  * never the context component.
  * @throws {Error} when used outside a {@link AuthProvider}.
  */
-export function useAuth() {
-  const context = React.useContext(AuthContext)
+// export function useAuth() {
+//   const context = React.useContext(AuthContext)
 
-  invariant(context != null, '`useAuth` must be used within an `<AuthProvider />`.')
+//   invariant(context != null, '`useAuth` must be used within an `<AuthProvider />`.')
 
-  return context
-}
+//   return context
+// }
 
 /**
  * A React context hook returning the user session

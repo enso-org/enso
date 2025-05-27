@@ -42,7 +42,7 @@ import type * as loggerProvider from '#/providers/LoggerProvider'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
-import * as service from '#/authentication/service'
+import * as service from '$/authentication/service'
 
 /**
  * String used to identify the GitHub federated identity provider in AWS Amplify.

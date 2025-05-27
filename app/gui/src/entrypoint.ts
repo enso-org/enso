@@ -28,8 +28,10 @@ async function main() {
   const rootDirPath = await getRootDirPath()
 
   const app = createApp(App, { onAuthenticated, rootDirPath })
-  app.use(VueQueryPlugin, { queryClient })
+  app.use(VueQueryPlugin, { queryClient, enableDevtoolsV6Plugin: true })
   app.use(router)
+  app.provide('rootDirPath', rootDirPath)
+  app.provide('onAuthenticated', onAuthenticated)
   app.mount('#enso-app')
 }
 

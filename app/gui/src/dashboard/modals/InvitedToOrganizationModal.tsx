@@ -1,5 +1,4 @@
 /** @file Modal for accepting or rejecting an invite to an organization. */
-import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
 import { Alert } from '#/components/Alert'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
@@ -7,6 +6,7 @@ import { Form } from '#/components/Form'
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '$/appUtils'
 import { useBackends, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import * as React from 'react'

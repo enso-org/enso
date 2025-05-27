@@ -1,10 +1,8 @@
 <script setup lang="ts">
+import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
-import { provideBackends } from '$/providers/backends'
-import { provideHttpClient } from '$/providers/httpClient'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react'
-import { provideText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
 import '@/assets/base.css'
 import { interactionBindings } from '@/bindings'
@@ -14,20 +12,19 @@ import ProjectView from '@/ProjectView.vue'
 import { initializeActions } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
-import { provideGuiConfig } from '@/providers/guiConfig'
+import { injectGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
-import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
 import { reactComponent } from '@/util/react'
-import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
-import { computed, onMounted, shallowRef } from 'vue'
+import { onMounted, shallowRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 import { provideContainerData } from './providers/container'
 import { provideRightPanelData } from './providers/rightPanel'
+import { useText } from './providers/text'
 
 const { projectViewOnly, onAuthenticated, rootDirPath } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
@@ -37,29 +34,18 @@ const { projectViewOnly, onAuthenticated, rootDirPath } = defineProps<{
   rootDirPath: string | undefined
 }>()
 
+const LoadingScreen = reactComponent(LoadingScreenReact)
+
+const config = injectGuiConfig()
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
-
-const appConfig = computed(() =>
-  mergeConfig(baseConfig, urlParams(), {
-    onUnrecognizedOption: (p) => {
-      const filtered = p.filter((p) => !p.startsWith('cloud-ide'))
-
-      if (filtered.length > 0) {
-        console.warn('Unrecognized option:', filtered)
-      }
-    },
-  }),
-)
-const appConfigValue = computed((): ApplicationConfigValue => configValue(appConfig.value))
 
 const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
 provideKeyboard()
-const textStore = provideText()
-const config = provideGuiConfig(appConfigValue)
 const interaction = provideInteractionHandler()
+
 initializeActions()
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
@@ -75,8 +61,6 @@ useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointe
 useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
   capture: true,
 })
-const httpClient = provideHttpClient()
-provideBackends(httpClient, config, rootDirPath, textStore.getText)
 
 const platformClass = (() => {
   switch (platform()) {
@@ -98,7 +82,7 @@ const platformClass = (() => {
 })()
 
 onMounted(() => {
-  if (appConfigValue.value.window.vibrancy) {
+  if (config.params.window.vibrancy) {
     document.body.classList.add('vibrancy')
   }
 })
@@ -109,7 +93,7 @@ const fullscreenRoot = shallowRef<HTMLElement>()
 if (projectViewOnly) {
   provideOpenedProjects()
   provideContainerData([])
-  provideRightPanelData(projectViewOnly.options.projectId, () => false, true, textStore)
+  provideRightPanelData(projectViewOnly.options.projectId, () => false, true, useText())
   provideFullscreenRoot(fullscreenRoot)
 }
 </script>
@@ -121,12 +105,11 @@ if (projectViewOnly) {
       <RightPanel />
     </div>
     <ContextsForReactProvider v-else>
-      <ReactRootWrapper
-        :config="appConfigValue"
-        :queryClient="queryClient"
-        @authenticated="onAuthenticated ?? (() => {})"
-      >
-        <RouterView />
+      <ReactRootWrapper :queryClient="queryClient" @authenticated="onAuthenticated ?? (() => {})">
+        <RouterView v-slot="{ Component }">
+          <component :is="Component" v-if="Component" />
+          <LoadingScreen v-else />
+        </RouterView>
       </ReactRootWrapper>
     </ContextsForReactProvider>
   </div>

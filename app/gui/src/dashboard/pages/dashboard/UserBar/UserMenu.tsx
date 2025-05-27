@@ -1,5 +1,4 @@
 /** @file A dropdown menu of user actions and settings. */
-import { LOGIN_PATH } from '#/appUtils'
 import { useToggleEnsoDevtools } from '#/components/Devtools'
 import { Popover } from '#/components/Dialog'
 import MenuEntry from '#/components/MenuEntry'
@@ -12,6 +11,7 @@ import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
+import { LOGIN_PATH } from '$/appUtils'
 import { useBackends, useRouter, useText } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 

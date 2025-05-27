@@ -1,5 +1,4 @@
 /** @file Switcher to choose the currently visible assets table category. */
-import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import * as aria from '#/components/aria'
 import { Badge } from '#/components/Badge'
@@ -25,6 +24,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { tv } from '#/utilities/tailwindVariants'
+import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
 import { useBackends, useRouter, useText } from '$/providers/react'
 import * as React from 'react'
 import { twJoin } from 'tailwind-merge'
