@@ -39,7 +39,6 @@ import { TableVisualisationTooltip } from './TableVisualization/TableVisualisati
 import {
   Error,
   GenericGrid,
-  SingleColumnOfActions,
   isError,
   isGenericGrid,
   isSingleColumnOfActions,
