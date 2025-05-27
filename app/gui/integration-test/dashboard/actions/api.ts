@@ -204,7 +204,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   let featureFlags: Partial<FeatureFlags> = {
     enableCloudExecution: true,
-    enableAsyncExecution: true,
+    enableScheduledExecution: true,
     enableAdvancedProjectExecutionOptions: true,
     enableAssetsTableBackgroundRefresh: false,
   }

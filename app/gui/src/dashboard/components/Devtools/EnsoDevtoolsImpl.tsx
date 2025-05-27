@@ -37,6 +37,7 @@ import {
 } from '#/components/AriaComponents'
 import { usePlanOverride, useSetPlanOverride } from '#/providers/AuthProvider'
 import {
+  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
   FEATURE_FLAGS_SCHEMA,
   useFeatureFlags,
   useSetFeatureFlag,
@@ -86,6 +87,11 @@ export function EnsoDevStatus() {
   const {
     showDeveloperIds,
     enableMultitabs,
+    enableAssetsTableBackgroundRefresh,
+    assetsTableBackgroundRefreshInterval,
+    enableCloudExecution,
+    enableScheduledExecution,
+    enableHybridExecution,
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
@@ -134,6 +140,57 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('planOverriddenToX', planName)}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableAssetsTableBackgroundRefresh && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableAssetsTableBackgroundRefresh', true)
+              }}
+            >
+              {getText('assetsTableBackgroundRefreshDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag(
+                  'assetsTableBackgroundRefreshInterval',
+                  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
+                )
+              }}
+            >
+              {getText(
+                'assetsTableBackgroundRefreshIntervalOverridenToXMs',
+                assetsTableBackgroundRefreshInterval,
+              )}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableCloudExecution && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableCloudExecution', true)
+              }}
+            >
+              {getText('cloudExecutionDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableScheduledExecution && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableScheduledExecution', true)
+              }}
+            >
+              {getText('scheduledExecutionDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableHybridExecution && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableHybridExecution', false)
+              }}
+            >
+              {getText('hybridExecutionDisabled')}
             </DeveloperOverrideEntry>
           )}
           {showDeveloperIds && (
@@ -439,11 +496,11 @@ export function EnsoDevtools() {
                   />
                   <ariaComponents.Switch
                     form={form}
-                    name="enableAsyncExecution"
+                    name="enableScheduledExecution"
                     label="Enable Async Execution"
                     description="Enable Async Execution"
                     onChange={(value) => {
-                      setFeatureFlag('enableAsyncExecution', value)
+                      setFeatureFlag('enableScheduledExecution', value)
                     }}
                   />
                   <ariaComponents.Switch

@@ -177,6 +177,7 @@ interface PlaceholderOverrides {
   readonly managingUserGroupX: [groupName: string]
   readonly planOverriddenToX: [planName: string]
   readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
+  readonly assetsTableBackgroundRefreshIntervalOverridenToXMs: [ms: number]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes
