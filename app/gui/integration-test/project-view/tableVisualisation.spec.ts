@@ -222,7 +222,7 @@ test('Error Visualisation Test', async ({ page }) => {
   await expect(tableVisualization).toContainText('This is an error message.')
 })
 
-test.only('get_child_node_action temmplate Test as number', async ({ page }) => {
+test('get_child_node_action temmplate Test as number', async ({ page }) => {
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
