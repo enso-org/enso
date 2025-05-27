@@ -11,12 +11,14 @@ import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.websocket.WsRouting;
 import io.helidon.websocket.WsListener;
 import io.helidon.websocket.WsSession;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Value;
@@ -46,9 +48,9 @@ final class WebSocket implements ProxyExecutable {
 
   private static final String WEBSOCKET_JS = "websocket.js";
 
-  private final ExecutorService executor;
+  private final ScheduledExecutorService executor;
 
-  WebSocket(ExecutorService executor) {
+  WebSocket(ScheduledExecutorService executor) {
     this.executor = executor;
   }
 
@@ -94,12 +96,15 @@ final class WebSocket implements ProxyExecutable {
 
         var protocolConfig = WsClientProtocolConfig.builder();
         if (protocols != null) {
-          protocolConfig.subProtocols(Arrays.asList(protocols));
+          protocolConfig.subProtocols(List.of(protocols));
         }
 
         var wsClient = WsClient.builder().protocolConfig(protocolConfig.build()).build();
-        wsClient.connect(uri, connection);
-
+        try {
+          wsClient.connect(uri, connection);
+        } catch (UncheckedIOException ex) {
+          throw new UncheckedIOException("Cannot connect to " + urlString, ex.getCause());
+        }
         yield connection;
       }
 
@@ -179,7 +184,11 @@ final class WebSocket implements ProxyExecutable {
 
         var byteArray = byteSequence.subSequence(byteOffset, byteOffset + byteLength).toByteArray();
 
-        yield connection.getSession().send(BufferData.create(byteArray), true);
+        var session =
+            Objects.requireNonNull(
+                connection.getSession(), "No session for connection " + connection);
+
+        yield session.send(BufferData.create(byteArray), true);
       }
 
       case WEB_SOCKET_TERMINATE -> {
@@ -234,9 +243,7 @@ final class WebSocket implements ProxyExecutable {
   }
 
   private static final class WebSocketConnection implements WsListener {
-
-    private final ExecutorService executor;
-
+    private final ScheduledExecutorService executor;
     private final Value handleOpen;
     private final Value handleClose;
     private final Value handleError;
@@ -248,7 +255,7 @@ final class WebSocket implements ProxyExecutable {
     private WsSession session;
 
     private WebSocketConnection(
-        ExecutorService executor,
+        ScheduledExecutorService executor,
         Value handleOpen,
         Value handleClose,
         Value handleError,
@@ -307,19 +314,18 @@ final class WebSocket implements ProxyExecutable {
 
     @Override
     public void onOpen(WsSession session) {
-      log.debug("onOpen");
+      log.debug("onOpen [this={}, session={}]", this, session);
 
       this.session = session;
-
       handleCallback(() -> handleOpen.executeVoid());
     }
 
     @Override
     public void onClose(WsSession session, int status, String reason) {
-      log.debug("onClose [{}] [{}]", status, reason);
+      log.debug(
+          "onClose [this={}, session={}, status={}, reason={}]", this, session, status, reason);
 
       handleCallback(() -> handleClose.executeVoid(status, reason));
-      this.session = null;
     }
 
     @Override

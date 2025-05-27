@@ -6,7 +6,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { memo, startTransition } from 'react'
 
-import type { BackendType } from 'enso-common/src/services/Backend'
+import { type BackendType } from 'enso-common/src/services/Backend'
 
 import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import DocsIcon from '#/assets/file_text.svg'
@@ -14,8 +14,10 @@ import SessionsIcon from '#/assets/group.svg'
 import InspectIcon from '#/assets/inspect.svg'
 import VersionsIcon from '#/assets/versions.svg'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { usePaywall } from '#/hooks/billing'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useStore } from '#/utilities/zustand'
 import { useBackends, useText } from '$/providers/react'
@@ -119,11 +121,14 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   const isLocal = isLocalCategory(category)
 
   const { getText } = useText()
+  const { user } = useFullUserSession()
 
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()
 
   const enableAsyncExecution = useFeatureFlag('enableAsyncExecution')
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const isSchedulerDisabled = isFeatureUnderPaywall('scheduler')
 
   const expandTab = useEventCallback(() => {
     setIsExpanded(true)
@@ -244,13 +249,14 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             id="executionsCalendar"
             icon={CalendarIcon}
             label={
-              isLocal ?
-                getText('assetProjectExecutionsCalendar.cloudOnly')
+              isLocal ? getText('assetProjectExecutionsCalendar.cloudOnly')
+              : isSchedulerDisabled ?
+                getText('assetProjectExecutionsCalendar.teamPlanOnly')
               : getText('executionsCalendar')
             }
             isExpanded={isExpanded}
             onPress={expandTab}
-            isDisabled={isLocal}
+            isDisabled={isLocal || isSchedulerDisabled}
             isHidden={!enableAsyncExecution}
           />
           <AssetPanelTabs.Tab
