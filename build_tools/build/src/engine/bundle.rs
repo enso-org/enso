@@ -50,13 +50,19 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
     /// ```text
     /// H:\NBO\enso\built-distribution\enso-engine-0.0.0-SNAPSHOT.2022-01-19-windows-amd64\enso-0.0.0-SNAPSHOT.2022-01-19
     /// ```
-    fn create(&self, repo_root: &RepoRoot) -> BoxFuture<'static, Result> {
+    fn create(
+        &self,
+        repo_root: &RepoRoot,
+        graal_version: &GraalVmVersion,
+    ) -> BoxFuture<'static, Result> {
         let bundle_dir = self.as_ref().to_path_buf();
         let base_component = self.base_component(repo_root);
         let engine_src_path =
             repo_root.built_distribution.enso_engine_triple.engine_package.clone();
         let engine_target_dir = self.engine_dir();
-        let graalvm_dir = self.graalvm_dir();
+        let graal_dirname =
+            format!("graalvm-ce-java{}-{}", graal_version.graal, graal_version.packages);
+        let graalvm_target_dir = self.graalvm_dir().join(graal_dirname);
         let distribution_marker = self.distribution_marker();
         let small_jdk_dir = repo_root.target.small_jdk.clone();
         if !small_jdk_dir.exists() {
@@ -74,7 +80,7 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
             // Add engine.
             ide_ci::fs::mirror_directory(&engine_src_path, &engine_target_dir).await?;
             // Add runtime
-            ide_ci::fs::mirror_directory(&small_jdk_dir, &graalvm_dir).await?;
+            ide_ci::fs::mirror_directory(&small_jdk_dir, &graalvm_target_dir).await?;
             // Add portable distribution marker.
             ide_ci::fs::create(distribution_marker)?;
             Ok(())
