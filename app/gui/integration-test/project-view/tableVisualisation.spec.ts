@@ -309,7 +309,7 @@ test('GenericGrid Table Visualisation Test - single column - no links', async ({
     /* eslint-disable camelcase */
     {
       type: 'Generic_Grid',
-      headers: [{visualization_header:'table'}],
+      headers: [{ visualization_header: 'table' }],
       data: [['Sheet1', 'Sheet2', 'Sheet3']],
     },
     /* eslint-enable camelcase */
@@ -319,7 +319,6 @@ test('GenericGrid Table Visualisation Test - single column - no links', async ({
   await expect(tableVisualization).toContainText('Sheet2')
   await expect(tableVisualization).toContainText('Sheet3')
 })
-
 
 test('GenericGrid Table Visualisation Test - two column - link on second', async ({ page }) => {
   await initGraph(page)
@@ -337,8 +336,14 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
     /* eslint-disable camelcase */
     {
       type: 'Generic_Grid',
-      headers: [{visualization_header:'table'}, {visualization_header:'number', get_child_node_action:'read {{#number}} {{@table}}'}],
-      data: [['SheetA', 'SheetB', 'SheetC'], ['1', '2', '3']],
+      headers: [
+        { visualization_header: 'table' },
+        { visualization_header: 'number', get_child_node_action: 'read {{#number}} {{@table}}' },
+      ],
+      data: [
+        ['SheetA', 'SheetB', 'SheetC'],
+        ['1', '2', '3'],
+      ],
     },
     /* eslint-enable camelcase */
   )
@@ -359,7 +364,7 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
   const textWidget = newNode.locator('.WidgetText')
   await expect(textWidget).toBeVisible()
   await expect(textWidget.getByTestId('widget-text-content')).toHaveText('SheetB')
-  
+
   const numberWidget = newNode.locator('.WidgetNumber')
   await expect(numberWidget).toBeVisible()
   await expect(numberWidget).toHaveValue('2')
