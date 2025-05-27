@@ -15,6 +15,7 @@ import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
 import { VNode } from 'vue'
+import { SubmenuEntry } from './submenuEntry'
 
 /**
  * The most basic dropdown item. When you click on it, the expression is inserted.
@@ -209,7 +210,7 @@ export interface Actions {
 }
 
 /** A helper type for all possible dropdown entries. */
-export interface Entry extends DropdownEntry {
+export interface Entry extends SubmenuEntry<Entry> {
   tag: ExpressionTag | NestedChoiceTag | ActionTag
 }
 

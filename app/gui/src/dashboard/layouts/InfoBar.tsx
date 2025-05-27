@@ -2,7 +2,7 @@
 import { Button, DialogTrigger } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import InfoMenu from '#/layouts/InfoMenu'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { memo } from 'react'
 
 /** A toolbar containing chat and the user menu. */

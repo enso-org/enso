@@ -23,8 +23,8 @@ import {
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
 

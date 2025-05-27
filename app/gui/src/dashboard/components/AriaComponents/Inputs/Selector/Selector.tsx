@@ -2,20 +2,19 @@
 import * as React from 'react'
 
 import { mergeProps, type RadioGroupProps } from '#/components/aria'
-import type { FieldComponentProps } from '#/components/AriaComponents'
-import {
-  Form,
-  type FieldPath,
-  type FieldProps,
-  type FieldStateProps,
-  type FieldVariantProps,
-  type TSchema,
+import type {
+  FieldComponentProps,
+  FieldPath,
+  FieldProps,
+  FieldStateProps,
+  FieldVariantProps,
+  TSchema,
 } from '#/components/AriaComponents'
+import { Form } from '#/components/AriaComponents/Form'
 
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { SelectorOption } from './SelectorOption'
 
@@ -79,7 +78,7 @@ export const SELECTOR_STYLES = tv({
 })
 
 /** A horizontal selector. */
-export const Selector = forwardRef(function Selector<
+export const Selector = React.forwardRef(function Selector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, T>,
   T,
@@ -100,6 +99,7 @@ export const Selector = forwardRef(function Selector<
     isInvalid = false,
     fieldVariants,
     defaultValue,
+    contextualHelp,
     ...inputProps
   } = props
 
@@ -129,6 +129,7 @@ export const Selector = forwardRef(function Selector<
               form: formInstance,
               label,
               isRequired,
+              contextualHelp,
             })}
             name={props.name}
             ref={ref}

@@ -1,7 +1,7 @@
 /** @file A modal for creating and editing a secret. */
 import { Button, ButtonGroup, Dialog, Form, Input } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
 import { type SecretId } from '#/services/Backend'
+import { useText } from '$/providers/react'
 
 /** Props for a {@link UpsertSecretForm}. */
 export interface UpsertSecretFormProps {

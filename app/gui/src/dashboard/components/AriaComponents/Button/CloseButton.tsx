@@ -1,7 +1,7 @@
 /** @file A button for closing a modal. */
 import DismissIcon from '#/assets/dismiss.svg'
-import { useText } from '#/providers/TextProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import { isOnMacOS } from 'enso-common/src/detect'
 import { memo } from 'react'
 import { Button } from './Button'

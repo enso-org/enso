@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import java.nio.ByteBuffer;
+import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -79,7 +80,7 @@ public final class ArrayLikeHelpers extends BuiltinObject {
       name = "vector_to_array",
       description = "Returns an Array representation of this Vector.")
   @SuppressWarnings("generic-enso-builtin-type")
-  public static Object vectorToArray(Object obj) {
+  public static Object vectorToArray(@AcceptsWarning Object obj) {
     if (obj instanceof Vector.Generic vector) {
       return vector.toArray();
     } else {
