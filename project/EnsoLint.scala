@@ -46,6 +46,7 @@ class EnsoLint(
   private def runCompiler(path: File): Boolean = {
     log.debug(s"Linting $path")
     DistributionPackage.runEnginePackage(
+      baseDirectory,
       engineDistributionRoot,
       Seq(
         "--compile",
@@ -94,6 +95,7 @@ class EnsoLint(
     }
 
     val result = DistributionPackage.runEnginePackage(
+      baseDirectory,
       engineDistributionRoot,
       Seq(
         "--new",

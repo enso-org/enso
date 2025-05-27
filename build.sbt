@@ -5811,6 +5811,7 @@ runEngineDistribution := {
   buildEngineDistributionNoIndex.value
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runEnginePackage(
+    baseDirectory.value,
     engineDistributionRoot.value,
     args,
     streams.value.log
@@ -5865,6 +5866,7 @@ runProjectManagerDistribution := {
   val projectManagerJar = (`project-manager` / assembly).value.getAbsoluteFile()
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runProjectManagerPackage(
+    baseDirectory.value,
     engineDistributionRoot.value,
     projectManagerDistributionRoot.value,
     projectManagerJar,

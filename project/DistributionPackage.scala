@@ -328,6 +328,7 @@ object DistributionPackage {
   }
 
   private def reduceArgs(
+    cwd: File,
     args: java.util.List[String],
     jvmOptName: String,
     envToFill: java.util.Map[String, String]
@@ -341,11 +342,26 @@ object DistributionPackage {
 
     var atEnv = args.indexOf("--env")
     while (atEnv >= 0) {
-      var keyAndValue = args.get(atEnv + 1).split("=", 2)
-      if (jvmOptName == keyAndValue(0)) {
-        prevValue = prevValue + " " + keyAndValue(1)
+      val (key, value) = {
+        val keyAndValue = args.get(atEnv + 1).split("=", 2)
+        val cwdToken    = "$PWD"
+        val cwdRef      = keyAndValue(1).indexOf(cwdToken)
+        (
+          keyAndValue(0),
+          if (cwdRef != -1) {
+            val before = keyAndValue(1).substring(0, cwdRef)
+            val after  = keyAndValue(1).substring(cwdRef + cwdToken.length)
+            before + cwd + after
+          } else {
+            keyAndValue(1)
+          }
+        )
+      }
+
+      if (jvmOptName == key) {
+        prevValue = prevValue + " " + value
       } else {
-        envToFill.put(keyAndValue(0), keyAndValue(1))
+        envToFill.put(key, value)
       }
       args.remove(atEnv)
       args.remove(atEnv)
@@ -364,6 +380,7 @@ object DistributionPackage {
   }
 
   def runEnginePackage(
+    cwd: File,
     distributionRoot: File,
     args: Seq[String],
     log: Logger
@@ -384,7 +401,7 @@ object DistributionPackage {
 
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
-    reduceArgs(all, "JAVA_OPTS", pb.environment)
+    reduceArgs(cwd, all, "JAVA_OPTS", pb.environment)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
@@ -451,6 +468,7 @@ object DistributionPackage {
   }
 
   def runProjectManagerPackage(
+    cwd: File,
     engineRoot: File,
     distributionRoot: File,
     projectManagerJar: File,
@@ -481,7 +499,7 @@ object DistributionPackage {
     pb.command(all)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
-    reduceArgs(all, "ENSO_JVM_OPTS", pb.environment)
+    reduceArgs(cwd, all, "ENSO_JVM_OPTS", pb.environment)
     pb.inheritIO()
     val p        = pb.start()
     val exitCode = p.waitFor()
