@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.table.data.column.builder.Builder;
@@ -21,7 +22,10 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 public class FixedWidthReader {
+  public static final int MAXIMUM_LINE_LENGTH = 1024 * 1024;
+
   private List<FixedWidthLayoutEntry> layoutEntries;
+  private Justification justification,
   private final Charset charset;
   private final long skipRows;
   private final long rowLimit;
@@ -33,14 +37,18 @@ public class FixedWidthReader {
 
   private List<BuilderForType<String>> builders = null;
 
-  private int minimumLineLength;
+  private int layoutWidth = 0;
   private boolean firstLine = true;
   private int firstLineLength = 0;
   private long sourceLineNumber = 0;
   private long tableRowNumber = 0;
 
+  private static final int READ_BUFFER_INITIAL_SIZE = 128;
+  private byte[] readBuffer = new byte[READ_BUFFER_INITIAL_SIZE];
+
   public FixedWidthReader(
       List<FixedWidthLayoutEntry> layoutEntries,
+      Justification justification,
       Charset charset,
       long skipRows,
       long rowLimit,
@@ -50,10 +58,8 @@ public class FixedWidthReader {
       boolean warningsAsErrors,
       FixedWidthDecodingProblemAggregator decodingProblemAggregator,
       ProblemAggregator problemAggregator) {
-
-    if (layoutEntries.isEmpty()) {
-      throw new IllegalArgumentException("Must specify at least one column");
-    }
+    
+    assert layoutEntries == null || justificaiton == null : "Exactly one of 'layoutEntries' and 'justification' can be specified";
 
     this.layoutEntries = layoutEntries;
     this.charset = charset;
@@ -67,15 +73,22 @@ public class FixedWidthReader {
         new FixedWidthReaderProblemAggregator(
             problemAggregator, invalidRowsBehavior, warningsAsErrors);
 
-    minimumLineLength = layoutEntries.get(layoutEntries.size() - 1).end();
+    if (layoutEntires != null && layoutEntries.isEmpty()) {
+      throw new IllegalArgumentException("Must specify at least one column");
+    }
+
+    if (layoutEntries == null) {
+      inferHeaders();
+    }
+
+    layoutWidth = layoutEntries.get(layoutEntries.size() - 1).end();
   }
 
   public Table read(InputStream inputStream) throws IOException {
     initBuilders(layoutEntries.size());
-    byte[] readBuffer = new byte[minimumLineLength];
 
     while (true) {
-      int lineLength = readLine(inputStream, readBuffer);
+      int lineLength = readLine(inputStream);
 
       if (lineLength == -1 || (rowLimit != -1 && tableRowNumber >= rowLimit)) {
         break;
@@ -93,7 +106,7 @@ public class FixedWidthReader {
 
   // lineLength is the length of the actual line from the input stream, which
   // might be larger than minimumLineLength and the buffer capacity.
-  private void addRow(byte[] line, int lineLength) throws IOException {
+  private void addRow(int lineLength) throws IOException {
     Context context = Context.getCurrent();
 
     if (firstLine) {
@@ -124,10 +137,7 @@ public class FixedWidthReader {
       var startPosition = Math.min(lineLength, entry.start());
       var endPosition = Math.min(lineLength, entry.end());
       var actualWidth = endPosition - startPosition;
-      var baos = new ByteArrayInputStream(line, startPosition, actualWidth);
-      var reportingStreamDecoder =
-          new ReportingStreamDecoder(baos, charset, decodingProblemAggregator, false);
-      String value = reportingStreamDecoder.readAllIntoMemory();
+      String value = decodeSubarray(readBuffer, startPosition, actualWidth);
 
       if (entry.end() > lineLength) {
         assert invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP;
@@ -145,16 +155,24 @@ public class FixedWidthReader {
     tableRowNumber++;
   }
 
+  private String decodeSubarray(int start, int width) {
+      var baos = new ByteArrayInputStream(readBuffer, start, width);
+      var reportingStreamDecoder =
+          new ReportingStreamDecoder(baos, charset, decodingProblemAggregator, false);
+      String value = reportingStreamDecoder.readAllIntoMemory();
+  }
+
   /*
    * Reads up to `minimumLineLength` bytes into the buffer. Returns the actual
    * length of the entire line, even if that is not equal to
    * `minimumLineLength`.
    * Returns -1 if the first read attempt is EOF.
    */
-  private int readLine(InputStream inputStream, byte[] buffer) throws IOException {
+  private int readLine(InputStream inputStream) throws IOException {
     Context context = Context.getCurrent();
 
     int lineLength = 0;
+
     while (true) {
       int c = inputStream.read();
       if (c == -1) {
@@ -168,15 +186,23 @@ public class FixedWidthReader {
         // Line is done. Don't include the newline.
         break;
       } else {
-        if (lineLength < minimumLineLength) {
-          // There is room for the next byte.
-          buffer[lineLength] = (byte) c;
+        if (lineLength >= MAXIMUM_LINE_LENGTH) {
+          throw new FixedWidthLineTooLongException("Fixed width file line " + sourceLineNumber + " is longer than the maximum length of " + MAXIMUM_LINE_LENGTH);
         }
+
+        assert lineLength <= readBuffer.length;
+
+        if (lineLength == readBuffer.length) {
+          readBuffer = Arrays.copyOf(readBuffer, readBuffer.length * 2);
+        }
+
+        readBuffer[lineLength] = (byte) c;
         lineLength++;
       }
 
       context.safepoint();
     }
+
     return lineLength;
   }
 
@@ -230,5 +256,77 @@ public class FixedWidthReader {
      * using empty strings for entirely missing columns.
      */
     KEEP,
+  }
+
+  private void inferHeaders() {
+    int lineLength = readLine(inputStream);
+  }
+
+  private List<FixedWidthLayoutEntry> inferHeadersFromLine(Justificiaton justification, int lineLength) {
+      var entries = new ArrayList<FixedWidthLayoutEntry>();
+
+      switch (justificaiton) {
+          case LEFT -> {
+              var starts = findStarts(readBuffer, lineLength);
+              for (int i = 0; i < starts.length(); ++i) {
+                var start = starts.get(i);
+                var end = i < starts.length()-1 ? starts.get(i+1) : lineLength;
+                var width - end-start;
+                var columnName = decodeSubarray(readBuffer, start, width).trim();
+                entries.add(new FixedWidthLayoutEntry(start, width, columnName);
+              }
+          }
+          case RIGHT -> {
+              var ends = findEnds(readBuffer, lineLength);
+              for (int i = 0; i < starts.length(); ++i) {
+                var start = i == 0 ? 0 : ends.get(i-1) + 1;
+                var end = ends.get(i);
+                var width - end-start;
+                var columnName = decodeSubarray(readBuffer, start, width).trim();
+                entries.add(new FixedWidthLayoutEntry(start, width, columnName);
+              }
+          }
+      }
+
+      if (entries.isEmpty()) {
+        throw new NoColumnNamesFoundException();
+      }
+
+      return entries;
+  }
+
+  private List<Integer> findStarts(int lineLength) {
+      var starts = new ArrayList<FixedWidthLayoutEntry>();
+
+      boolean inWhitespace = true;
+      for (int i = 0; i < lineLength; ++i) {
+          var isWhitespace = readBuffer[i] == 32;
+          if (inWhitespace && !isWhitespace) {
+              starts.add(i);
+          }
+          inWhiteSpace = isWhitespace;
+      }
+
+      return starts;
+  }
+
+  private List<Integer> findEnds(int lineLength) {
+      var ends = new ArrayList<FixedWidthLayoutEntry>();
+
+      boolean inWhitespace = true;
+      for (int i = 0; i < lineLength; ++i) {
+          var isWhitespace = readBuffer[i] == 32;
+          if (!inWhitespace && isWhitespace) {
+              ends.add(i-1);
+          }
+          inWhiteSpace = isWhitespace;
+      }
+
+      return ends;
+  }
+
+  public enum Justification {
+    LEFT,
+    RIGHT
   }
 }

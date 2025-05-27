@@ -9,6 +9,7 @@ polyglot java import org.enso.table.error.ColumnNameMismatchException
 polyglot java import org.enso.table.error.EmptyFileException
 polyglot java import org.enso.table.error.EmptySheetException
 polyglot java import org.enso.table.error.InvalidColumnNameException
+polyglot java import package org.enso.table.read.NoColumnNamesFoundException
 
 type Missing_Input_Columns
     ## PRIVATE
@@ -929,3 +930,15 @@ type No_Rows
 
     ## PRIVATE
     to_display_text self -> Text = self.message
+
+## Indicates that a fixed-width file's header line contained no column names.
+type No_Column_Names_Found
+    ## PRIVATE
+    private Error
+
+    ## PRIVATE
+    to_display_text self -> Text = "No column names were foond in the header line."
+
+    ## PRIVATE
+    handle_java_exception =
+        Panic.catch NoColumnNamesFoundException handler=(_ -> Error.throw No_Column_Names_Found.Error)
