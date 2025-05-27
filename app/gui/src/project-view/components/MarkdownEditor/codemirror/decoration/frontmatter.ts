@@ -1,11 +1,11 @@
 import { DocumentationMetadata, parseMetadata } from '@/components/DocumentationPanel/metadata'
+import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/VueDecorationWidget'
 import FrontMatter from '@/components/MarkdownEditor/FrontMatter.vue'
 import { nodeRange } from '@/components/MarkdownEditor/markdown/trees'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import type { Text } from '@codemirror/state'
-import { Decoration, WidgetType } from '@codemirror/view'
+import { Decoration } from '@codemirror/view'
 import type { SyntaxNodeRef } from '@lezer/common'
-import { h, markRaw } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
 /** Extension that uses a Vue component CodeMirror widget to render documentation metadata. */
@@ -36,39 +36,8 @@ export function decorateFrontMatter(
   }
 }
 
-class FrontMatterWidget extends WidgetType {
-  private container: HTMLElement | undefined
-  private vueHostRegistration: { unregister: () => void } | undefined
-
-  constructor(
-    private readonly props: { metadata: DocumentationMetadata },
-    private readonly vueHost: VueHost,
-  ) {
-    super()
-  }
-
-  override get estimatedHeight() {
-    return -1
-  }
-
-  override toDOM(): HTMLElement {
-    if (!this.container) {
-      const container = markRaw(document.createElement('div'))
-      container.className = 'cm-frontmatter'
-      this.vueHostRegistration = this.vueHost.register(
-        () =>
-          h(FrontMatter, {
-            metadata: this.props.metadata,
-          }),
-        container,
-      )
-      this.container = container
-    }
-    return this.container
-  }
-
-  override destroy() {
-    this.vueHostRegistration?.unregister()
-    this.container = undefined
+class FrontMatterWidget extends VueDecorationWidget<{ metadata: DocumentationMetadata }> {
+  constructor(props: { metadata: DocumentationMetadata }, vueHost: VueHost) {
+    super(FrontMatter, props, vueHost, 'cm-frontmatter')
   }
 }
