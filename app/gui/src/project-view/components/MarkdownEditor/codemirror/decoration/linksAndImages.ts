@@ -1,6 +1,6 @@
 import DocumentationImage from '@/components/MarkdownEditor/DocumentationImage.vue'
-import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/VueDecorationWidget'
 import { TreeViewDecorator } from '@/components/MarkdownEditor/codemirror/decoration/treeViewDecorator'
+import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/vueDecorationWidget'
 import {
   analyzeAutolink,
   analyzeLinkOrImage,

@@ -1,4 +1,4 @@
-import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/VueDecorationWidget'
+import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/vueDecorationWidget'
 import { nodeRange } from '@/components/MarkdownEditor/markdown/trees'
 import TableEditor from '@/components/MarkdownEditor/TableEditor.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
