@@ -27,10 +27,8 @@ const newlineEndsBlock: BlockParser = {
     !(line.text.startsWith('|') && line.text.length > 2 && line.text.endsWith('|')),
 }
 
-declare module '@lezer/markdown' {
-  interface BlockContext {
-    isFrontmatterChecked: boolean | undefined
-  }
+function isFirstLine(ctx: BlockContext): boolean {
+  return ctx.prevLineEnd() === -1
 }
 
 /**
@@ -43,10 +41,9 @@ const YAMLFrontMatter: MarkdownConfig = {
     {
       name: 'YAMLFrontMatter',
       parse(ctx: BlockContext, line: Line) {
-        if (ctx.isFrontmatterChecked) {
+        if (!isFirstLine(ctx)) {
           return false
         }
-        ctx.isFrontmatterChecked = true
         const regex = /^\s*---\s*$/
         const start = ctx.lineStart
         if (regex.test(line.text)) {
@@ -64,6 +61,7 @@ const YAMLFrontMatter: MarkdownConfig = {
               return true
             }
           }
+          return true
         }
         return false
       },
