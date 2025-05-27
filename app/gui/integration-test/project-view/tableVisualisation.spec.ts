@@ -186,9 +186,7 @@ test('Single Column Of Actions Table Visualisation Test', async ({ page }) => {
       headers: [
         { visualization_header: 'table', child_label: 'table', get_child_node_action: 'read' },
       ],
-      data: [
-        ['Sheet1', 'Sheet2', 'Sheet3']
-      ],
+      data: [['Sheet1', 'Sheet2', 'Sheet3']],
     },
     /* eslint-enable camelcase */
   )
@@ -241,11 +239,13 @@ test('get_child_node_action temmplate Test as number', async ({ page }) => {
     {
       type: 'Generic_Grid',
       headers: [
-        { visualization_header: 'table', child_label: 'table', get_child_node_action: 'read {{#Value}}' },
+        {
+          visualization_header: 'table',
+          child_label: 'table',
+          get_child_node_action: 'read {{#Value}}',
+        },
       ],
-      data: [
-        ['1', '2', '3']
-      ],
+      data: [['1', '2', '3']],
     },
     /* eslint-enable camelcase */
   )
@@ -279,11 +279,13 @@ test('get_child_node_action temmplate Test as text', async ({ page }) => {
     {
       type: 'Generic_Grid',
       headers: [
-        { visualization_header: 'table', child_label: 'table', get_child_node_action: 'read {{@Value}}' },
+        {
+          visualization_header: 'table',
+          child_label: 'table',
+          get_child_node_action: 'read {{@Value}}',
+        },
       ],
-      data: [
-        ['1', '2', '3']
-      ],
+      data: [['1', '2', '3']],
     },
     /* eslint-enable camelcase */
   )

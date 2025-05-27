@@ -62,14 +62,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data =
-  | number
-  | string
-  | Error
-  | Matrix
-  | ObjectMatrix
-  | EnsoTableOrColumn
-  | GenericGrid
+type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | GenericGrid
 
 interface ValueType {
   constructor: string
