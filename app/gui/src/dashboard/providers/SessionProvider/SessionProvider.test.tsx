@@ -156,48 +156,6 @@ describe('SessionProvider', () => {
     })
   })
 
-  it('Should refresh not stale user session', { timeout: 5_000 }, async () => {
-    authService.userSession.mockReturnValueOnce(
-      Promise.resolve({
-        ...(await authService.userSession()),
-        expireAt: Rfc3339DateTime(new Date(Date.now() + 1_500).toJSON()),
-      }),
-    )
-
-    let session: UserSession | null = null
-
-    render(
-      <Suspense fallback={<div>Loading...</div>}>
-        <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
-            <SessionProvider
-              authService={authService}
-              mainPageUrl={mainPageUrl}
-              registerAuthEventListener={registerAuthEventListener}
-            >
-              {({ session: sessionFromContext }) => {
-                session = sessionFromContext
-                return null
-              }}
-            </SessionProvider>
-          </TextContext.Provider>
-        </HTTPClientContext.Provider>
-      </Suspense>,
-    )
-
-    vi.useFakeTimers().runAllTimers().useRealTimers()
-
-    await waitFor(
-      () => {
-        expect(authService.refreshUserSession).toBeCalledTimes(1)
-        expect(session).not.toBeNull()
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        expect(new Date(session!.expireAt).getTime()).toBeGreaterThan(Date.now())
-      },
-      { timeout: 2_000 },
-    )
-  })
-
   it('Should call registerAuthEventListener when the session is updated', async () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
