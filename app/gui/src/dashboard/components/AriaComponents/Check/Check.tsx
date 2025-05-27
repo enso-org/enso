@@ -51,7 +51,7 @@ export const CHECK_CLASSES = tv({
     // Defined in compoundVariants
     color: {
       custom: { base: '' },
-      primary: { base: 'border-dark' },
+      primary: { base: 'border-primary' },
       accent: { base: 'border-accent' },
       error: { base: 'border-danger' },
     },
@@ -90,7 +90,7 @@ export const CHECK_CLASSES = tv({
     {
       isSelected: true,
       color: 'primary',
-      class: { base: 'bg-dark text-light' },
+      class: { base: 'bg-primary text-invert' },
     },
     {
       isSelected: true,
