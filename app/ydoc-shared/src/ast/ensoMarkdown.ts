@@ -62,8 +62,9 @@ const YAMLFrontMatter: MarkdownConfig = {
             }
           }
           return true
+        } else {
+          return false
         }
-        return false
       },
       before: 'LinkReference',
     },

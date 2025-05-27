@@ -3,7 +3,7 @@ import type { GroupInfo } from '@/stores/suggestionDatabase'
 import { findIndexOpt } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
 import { parseDocs, type Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { type DeepReadonly } from 'vue'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
@@ -106,7 +106,7 @@ export function documentationData(
     documentation: parsed,
     isMarkdownDocs: metadata != null,
     docSummaryHtml: getDocumentationSummary(parsed),
-    iconName: iconName != null ? (iconName as Icon) : undefined,
+    iconName: iconName != null && isIconName(iconName) ? iconName : undefined,
     groupIndex,
     aliasesAndMacros: [...aliases, ...macros.map((macro) => macro.description)].sort(),
     macros: macros.reduce(
