@@ -5,6 +5,7 @@ from Standard.Test import all
 polyglot java import java.util.jar.JarFile
 polyglot java import java.util.jar.JarEntry
 polyglot java import java.nio.file.Path as JPath
+polyglot java import java.io.File as JFile
 polyglot java import java.util.Enumeration
 
 add_specs suite_builder = suite_builder.group "Embedded native libraries" group_builder->
@@ -38,7 +39,8 @@ transform_path path:Text -> Text =
     file.is_descendant_of built_distribution_root . should_be_true
     relative = built_distribution_root.relativize file . to_text
     regex = "\d+\.\d+\.\d+-dev".to_regex
-    new_path_items = relative.split "/" . map \path_item ->
+    separator = JFile.separator
+    new_path_items = relative.split separator . map \path_item ->
         path_item.replace regex "0.0.0-dev"
     new_path_items.join "/"
 
