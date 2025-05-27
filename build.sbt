@@ -3899,6 +3899,12 @@ lazy val `engine-runner` = project
       ).distinct
       def stdLibsJars = {
         val log = streams.value.log
+        // databaseCp needs to be included in class-path because of
+        // the patched SqliteJdbcFeature. It is not enough to include just
+        // the jars from `database-polyglot-root`.
+        val databaseCp =
+          (`std-database` / Compile / fullClasspath).value
+            .map(_.data.getAbsolutePath)
         val base =
           `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
         if (GraalVM.EnsoLauncher.fast) {
@@ -3908,6 +3914,7 @@ lazy val `engine-runner` = project
           base
         } else {
           base ++
+           databaseCp ++
           `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `database-polyglot-root`
@@ -4022,7 +4029,13 @@ lazy val `engine-runner` = project
         // Limit max memory limit
         val macArmOnCI =
           sys.env.get("CI").isDefined && Platform.isMacOS && Platform.isArm64
-        val maxLimit = if (macArmOnCI) Some(14336) else Some(15608)
+        val maxLimit           = if (macArmOnCI) Some(14336) else Some(15608)
+        val areStdlibsIncluded = !GraalVM.EnsoLauncher.fast
+        val databaseFeature =
+          "org.enso.database.nativeimage.SqliteJdbcPatchedFeature"
+        val features = Seq(
+          "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
+        ) ++ (if (areStdlibsIncluded) Seq(databaseFeature) else Seq())
         NativeImage
           .buildNativeImage(
             "enso",
@@ -4046,7 +4059,7 @@ lazy val `engine-runner` = project
               // by disabling this service provider
               "-H:ServiceLoaderFeatureExcludeServiceProviders=net.snowflake.client.core.FileTypeDetector",
               "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin"),
-              "--features=org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature",
+              "--features=" + features.mkString(","),
               // Needed for the NativeLibraryFeature
               "--add-opens=org.graalvm.nativeimage.builder/com.oracle.svm.core.jdk=ALL-UNNAMED",
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
