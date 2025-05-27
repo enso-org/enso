@@ -60,6 +60,7 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useRouter, useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 
 window.menuApi?.setShowAboutModalHandler(() => {
   setModal(<AboutModal />)
@@ -193,8 +194,25 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
     <RouterProvider navigate={navigate}>
       <InputBindingsProvider>
         <VersionChecker />
+        <ThemeSynchronizer />
         {children}
       </InputBindingsProvider>
     </RouterProvider>
   )
+}
+
+/** Keep theme class on document body in sync with saved theme state. */
+function ThemeSynchronizer() {
+  const isDarkTheme = useFeatureFlag('unsafeDarkTheme')
+
+  React.useEffect(() => {
+    if (isDarkTheme) {
+      document.documentElement.classList.add('theme-dark')
+    } else {
+      document.documentElement.classList.remove('theme-dark')
+    }
+    localStorage.setItem('enso-theme', isDarkTheme ? 'dark' : 'light')
+  }, [isDarkTheme])
+
+  return null
 }

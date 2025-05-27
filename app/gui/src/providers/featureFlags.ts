@@ -35,6 +35,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   showDeveloperIds: z.boolean(),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
+  unsafeDarkTheme: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA })
@@ -66,6 +67,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         showDeveloperIds: false,
         overrideProfilePicture: false,
         multiplyUserList: false,
+        unsafeDarkTheme: localStorage.getItem('enso-theme') === 'dark',
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

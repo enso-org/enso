@@ -88,29 +88,38 @@ export function EnsoDevStatus() {
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
+    unsafeDarkTheme,
   } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
   const planName = (() => {
     switch (planOverride) {
-      case backend.Plan.free: {
-        return getText('free')
-      }
-      case backend.Plan.solo: {
-        return getText('solo')
-      }
-      case backend.Plan.team: {
-        return getText('team')
-      }
+      case backend.Plan.free:
+      case backend.Plan.solo:
+      case backend.Plan.team:
       case backend.Plan.enterprise: {
-        return getText('enterprise')
+        return getText(planOverride)
       }
       case undefined: {
         return
       }
     }
   })()
-  const isOverridden = planName != null || showDeveloperIds
+  const isOverridden =
+    planName != null ||
+    animationsDisabled ||
+    versionCheckerEnabled ||
+    !enableAssetsTableBackgroundRefresh ||
+    assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
+    !enableCloudExecution ||
+    !enableScheduledExecution ||
+    !enableHybridExecution ||
+    showDeveloperIds ||
+    overrideProfilePicture ||
+    multiplyUserList ||
+    enableMultitabs ||
+    enableAdvancedProjectExecutionOptions ||
+    unsafeDarkTheme
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
@@ -120,11 +129,7 @@ export function EnsoDevStatus() {
 
   return (
     <Portal>
-      <div
-        className={styles.base({
-          className: 'absolute bottom-[4.25rem] left-3',
-        })}
-      >
+      <div className={styles.base({ className: 'absolute bottom-[4.25rem] left-3' })}>
         <div className={styles.dialog()}>
           {planName != null && (
             <DeveloperOverrideEntry
@@ -248,6 +253,15 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('advancedProjectExecutionOptionsEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {unsafeDarkTheme && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('unsafeDarkTheme', false)
+              }}
+            >
+              {getText('developerDarkThemeEnabled')}
             </DeveloperOverrideEntry>
           )}
         </div>
@@ -530,6 +544,15 @@ export function EnsoDevtools() {
                     description="Enable Hybrid Execution"
                     onChange={(value) => {
                       setFeatureFlag('enableHybridExecution', value)
+                    }}
+                  />
+                  <Switch
+                    form={form}
+                    name="unsafeDarkTheme"
+                    label="Developer Dark Theme"
+                    description="Enable quick-and-dirty dark theme for developer use only"
+                    onChange={(value) => {
+                      setFeatureFlag('unsafeDarkTheme', value)
                     }}
                   />
                 </>

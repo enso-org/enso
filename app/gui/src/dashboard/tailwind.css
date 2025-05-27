@@ -6,6 +6,14 @@
 @tailwind components;
 @tailwind utilities;
 
+.theme-dark {
+  filter: invert(90%) hue-rotate(180deg) brightness(1.2);
+
+  .profile-picture {
+    filter: invert(90%) hue-rotate(180deg) brightness(1.2);
+  }
+}
+
 :root {
   --color-primary-rgb: 0 0 0;
   --color-primary-opacity: 60%;

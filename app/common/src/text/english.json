@@ -1163,6 +1163,7 @@
   "multiplyingUserList": "Multiplying user list",
   "multitabsEnabled": "Multiple open projects allowed",
   "advancedProjectExecutionOptionsEnabled": "Advanced Scheduler options enabled",
+  "developerDarkThemeEnabled": "Developer dark theme enabled",
   "authLogEvent": "Authenticate",
   "getOrganizationLogEvent": "Get Organization",
   "updateOrganizationLogEvent": "Update Organization",
