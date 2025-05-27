@@ -43,6 +43,12 @@
 
       document.documentElement.classList.add(platform().toLowerCase())
     </script>
+    <script>
+      const theme = localStorage.getItem('enso-theme')
+      if (theme != null) {
+        document.body.classList.add(`theme-${theme}`)
+      }
+    </script>
   </head>
 
   <body>

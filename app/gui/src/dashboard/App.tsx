@@ -268,6 +268,7 @@ function ThemeSynchronizer() {
   React.useEffect(() => {
     document.body.classList.remove(`theme-${oldTheme.current}`)
     document.body.classList.add(`theme-${theme}`)
+    localStorage.setItem('enso-theme', theme)
     oldTheme.current = theme
   }, [theme])
 
