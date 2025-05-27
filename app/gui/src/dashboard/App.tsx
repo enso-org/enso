@@ -260,7 +260,7 @@ function LocalBackendPathSynchronizer() {
   return null
 }
 
-/** Keep `localBackend.rootPath` in sync with the saved root path state. */
+/** Keep theme class on document body in sync with saved theme state. */
 function ThemeSynchronizer() {
   const theme = useFeatureFlag('theme')
   const oldTheme = React.useRef(theme)
