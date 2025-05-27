@@ -222,7 +222,7 @@ test('Error Visualisation Test', async ({ page }) => {
   await expect(tableVisualization).toContainText('This is an error message.')
 })
 
-test('get_child_node_action temmplate Test as number', async ({ page }) => {
+test.only('get_child_node_action temmplate Test as number', async ({ page }) => {
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
@@ -242,7 +242,7 @@ test('get_child_node_action temmplate Test as number', async ({ page }) => {
         {
           visualization_header: 'table',
           child_label: 'table',
-          get_child_node_action: 'read {{#Value}}',
+          get_child_node_action: 'read {{#table}}',
         },
       ],
       data: [['1', '2', '3']],
@@ -282,7 +282,7 @@ test('get_child_node_action temmplate Test as text', async ({ page }) => {
         {
           visualization_header: 'table',
           child_label: 'table',
-          get_child_node_action: 'read {{@Value}}',
+          get_child_node_action: 'read {{@table}}',
         },
       ],
       data: [['1', '2', '3']],
