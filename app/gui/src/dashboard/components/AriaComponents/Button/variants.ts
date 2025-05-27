@@ -154,10 +154,10 @@ export const BUTTON_STYLES = tv({
         extraClickZone: 'w-full h-full',
       },
       ghost:
-        'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
+        'text-primary hover:text-primary/80 hover:bg-invert focus-visible:text-primary/80 focus-visible:bg-invert',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'ghost-fading':
-        'text-primary opacity-80 hover:opacity-100 hover:bg-white focus-visible:bg-white',
+        'text-primary opacity-80 hover:opacity-100 hover:bg-invert focus-visible:bg-invert',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100',
       outline: 'border-primary/20 text-primary hover:border-primary hover:bg-primary/5',
     },

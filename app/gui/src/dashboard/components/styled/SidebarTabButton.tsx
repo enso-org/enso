@@ -5,7 +5,7 @@ import { tv } from '#/utilities/tailwindVariants'
 const SIDEBAR_TAB_BUTTON_STYLES = tv({
   base: 'z-1 font-medium',
   variants: {
-    isActive: { true: 'bg-white opacity-100' },
+    isActive: { true: 'bg-invert opacity-100' },
   },
 })
 

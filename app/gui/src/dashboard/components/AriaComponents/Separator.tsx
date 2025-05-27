@@ -27,7 +27,7 @@ export const SEPARATOR_STYLES = tv({
     variant: {
       current: 'bg-current',
       primary: 'bg-primary/30',
-      inverted: 'bg-white/30',
+      inverted: 'bg-invert/30',
     },
   },
   defaultVariants: {

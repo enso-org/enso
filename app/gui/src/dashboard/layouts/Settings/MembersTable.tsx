@@ -60,7 +60,7 @@ export default function MembersTable(props: MembersTableProps) {
       }),
     renderDragPreview: (items) => {
       return (
-        <div className="flex flex-col rounded-default bg-white backdrop-blur-default">
+        <div className="flex flex-col rounded-default bg-invert backdrop-blur-default">
           {items.flatMap((item) => {
             const payload = item[USER_MIME_TYPE]
             if (payload == null) {

@@ -6,6 +6,34 @@
 @tailwind components;
 @tailwind utilities;
 
+body.theme-dark {
+  --color-primary-rgb: 240 240 240;
+  --color-primary-opacity: 80%;
+  --color-primary: rgb(var(--color-primary-rgb) / var(--color-primary-opacity));
+  --color-accent-rgb: 73 159 75;
+  --color-accent-opacity: 100%;
+  --color-accent: rgb(var(--color-accent-rgb) / var(--color-accent-opacity));
+  --color-danger-rgb: 211 59 11;
+  --color-danger-opacity: 100%;
+  --color-danger: rgb(var(--color-danger-rgb) / var(--color-danger-opacity));
+  --color-invert-rgb: 42 70 100;
+  --color-invert-opacity: 100%;
+  --color-invert: rgb(var(--color-invert-rgb) / var(--color-invert-opacity));
+  --color-background-rgb: 33 56 80;
+  --color-background-opacity: 60%;
+  --color-background: rgb(
+    var(--color-background-rgb) / var(--color-background-opacity)
+  );
+  --color-background-hex: #213850;
+
+  --color-dashboard-background-rgb: 22 37 56;
+  --color-dashboard-background-opacity: 100%;
+  --color-dashboard-background: rgb(
+    var(--color-dashboard-background-rgb) /
+      var(--color-dashboard-background-opacity)
+  );
+}
+
 :root {
   --color-primary-rgb: 0 0 0;
   --color-primary-opacity: 60%;

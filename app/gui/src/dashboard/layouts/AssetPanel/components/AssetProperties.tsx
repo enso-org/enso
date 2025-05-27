@@ -474,7 +474,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   },
                 ])
               }
-              className="w-full bg-white"
+              className="w-full bg-invert"
             >
               {(form) => (
                 <>

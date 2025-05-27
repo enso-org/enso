@@ -565,6 +565,46 @@ inset 0 -36px 51px -51px #00000014`,
               '--dashboard-row-background': 'rgb(220 216 210)',
             },
           },
+
+          'body.theme-dark .rounded-rows': {
+            '--dashboard-row-background': 'rgb(22 37 56)',
+            [`:where(
+              & :nth-child(odd of .rounded-rows-child) > .rounded-rows-have-level
+            )`]: {
+              backgroundColor: `rgb(224 240 255 / 3%)`,
+              '--dashboard-row-background': 'rgb(28 44 62)',
+            },
+            [`:where(
+              & :nth-child(odd of .rounded-rows-child) > .rounded-rows-skip-level > .rounded-rows-child
+            )`]: {
+              backgroundColor: `rgb(224 240 255 / 3%)`,
+              '--dashboard-row-background': 'rgb(28 44 62)',
+            },
+            [`:where(
+              & .selected > .rounded-rows-have-level
+            )`]: {
+              backgroundColor: 'rgb(224 240 255 / 20%)',
+              '--dashboard-row-background': 'rgb(63 78 96)',
+            },
+            [`:where(
+              & .selected > .rounded-rows-skip-level > .rounded-rows-child
+            )`]: {
+              backgroundColor: 'rgb(224 240 255 / 20%)',
+              '--dashboard-row-background': 'rgb(63 78 96)',
+            },
+            [`:where(
+              & [data-drop-target]:nth-child(odd of .rounded-rows-child) > .rounded-rows-have-level
+            )`]: {
+              backgroundColor: 'rgb(224 240 255 / 5%)',
+              '--dashboard-row-background': 'rgb(32 47 66)',
+            },
+            [`:where(
+              & [data-drop-target]:nth-child(odd of .rounded-rows-child) > .rounded-rows-skip-level > .rounded-rows-child
+            )`]: {
+              backgroundColor: 'rgb(224 240 255 / 5%)',
+              '--dashboard-row-background': 'rgb(32 47 66)',
+            },
+          },
         },
         {
           respectPrefix: true,
