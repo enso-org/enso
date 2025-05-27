@@ -15,6 +15,8 @@ export const TEXT_STYLE = twv.tv({
       invert: 'text-invert',
       inherit: 'text-inherit',
       current: 'text-current',
+      dark: 'text-dark',
+      light: 'text-light',
     },
     font: {
       default: '',

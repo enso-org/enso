@@ -75,6 +75,8 @@ export const ICON_STYLES = tv({
       invert: 'text-invert',
       inherit: 'text-inherit',
       current: 'text-current',
+      light: 'text-light',
+      dark: 'text-dark',
     },
     size: {
       xsmall: 'h-2 w-2',

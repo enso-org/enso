@@ -177,7 +177,12 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
                     style={{ backgroundColor: lChColorToCssColor(label.color) }}
                     className={styles.label()}
                   >
-                    <Text truncate color="invert" textSelection="none">
+                    <Text
+                      truncate
+                      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                      color={label.color.lightness > 50 ? 'dark' : 'light'}
+                      textSelection="none"
+                    >
                       {label.value}
                     </Text>
                   </Tag>

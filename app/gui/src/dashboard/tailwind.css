@@ -32,6 +32,9 @@ body.theme-dark {
     var(--color-dashboard-background-rgb) /
       var(--color-dashboard-background-opacity)
   );
+
+  --color-light: var(--color-primary);
+  --color-dark: var(--color-invert);
 }
 
 :root {
@@ -60,6 +63,9 @@ body.theme-dark {
     var(--color-dashboard-background-rgb) /
       var(--color-dashboard-background-opacity)
   );
+
+  --color-light: var(--color-invert);
+  --color-dark: var(--color-primary);
 
   --top-bar-height: 3rem;
   --row-height: 2rem;

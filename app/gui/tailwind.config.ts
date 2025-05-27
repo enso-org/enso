@@ -31,6 +31,8 @@ export default {
         'dashboard-row': 'var(--dashboard-row-background)',
         accent: 'rgb(var(--color-accent-rgb) / 100%)',
         danger: 'rgb(var(--color-danger-rgb) / 100%)',
+        light: 'var(--color-light)',
+        dark: 'var(--color-dark)',
         'accent-dark': 'rgba(62, 145, 82, 1)',
         'hover-bg': 'rgb(0 0 0 / 10%)',
         frame: 'rgb(255 255 255 / 40%)',

@@ -85,7 +85,7 @@ export default function Label(props: InternalLabelProps) {
           : <Text
               truncate="1"
               className="max-w-24"
-              color={isLight ? 'primary' : 'invert'}
+              color={isLight ? 'dark' : 'light'}
               variant="body"
             >
               {childrenRaw}

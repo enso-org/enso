@@ -46,6 +46,8 @@ export const Colors: Story = {
         { color: 'success' },
         { color: 'disabled' },
         { color: 'custom', className: 'text-youtube' },
+        { color: 'dark' },
+        { color: 'light', className: 'bg-primary px-2 rounded-md' },
       ]}
     />
   ),
