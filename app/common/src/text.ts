@@ -174,6 +174,8 @@ interface PlaceholderOverrides {
     destinationCategoryName: string,
   ]
 
+  readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
+
   readonly planOverriddenToX: [planName: string]
 }
 

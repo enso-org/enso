@@ -109,7 +109,6 @@ interface EnsoTableOrColumn {
   links: string[] | undefined
   get_child_node_action: string
   get_child_node_link_name: string
-  link_value_type: string
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
@@ -692,29 +691,67 @@ function toField(
   }
 }
 
-function getAstPattern(selector?: string | number, action?: string) {
-  if (action && selector != null) {
-    return Pattern.new<Ast.Expression>((ast) =>
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
-        typeof selector === 'number' ?
-          Ast.tryNumberToEnso(selector, ast.module)!
-        : Ast.TextLiteral.new(selector, ast.module),
-      ),
-    )
-  }
+type ParsedActionTemplate = {
+  pattern: string
+  selectors: { name: string; numeric: boolean }[]
 }
 
-function createNode(
-  params: CellDoubleClickedEvent,
-  selector: string,
-  action?: string,
-  castValueTypes?: string,
-) {
-  const selectorKey = params.data[selector]
-  const castSelector =
-    castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
-  const pattern = getAstPattern(castSelector, action)
+function parseActionTemplate(input: string, defaultSelector: string): ParsedActionTemplate {
+  const regex = /{{([#@]?)(\w+)}}/g
+  const selectors: { name: string; numeric: boolean }[] = []
+  let pattern = input
+
+  pattern = pattern.replace(regex, (_, flag, key) => {
+    selectors.push({ name: key, numeric: flag === '#' })
+    return '__'
+  })
+
+  pattern = '__.' + pattern
+
+  // template didn't contain any {{}} placeholders so add a single default argument
+  if (selectors.length === 0) {
+    selectors.push({ name: defaultSelector, numeric: false })
+    pattern = pattern + ' __'
+  }
+
+  return { pattern, selectors }
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value)
+}
+
+function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSelector: string) {
+  const parsedAction = parseActionTemplate(action, defaultSelector)
+
+  return Pattern.new<Ast.Expression>((ast) => {
+    const mappedExpressions = parsedAction.selectors.map(({ name, numeric }) => {
+      const value = params.data[name]
+      const castedValue = numeric && !isNaN(Number(value)) ? Number(value) : value
+      return isNumber(castedValue) ?
+          Ast.tryNumberToEnso(castedValue, ast.module)!
+        : Ast.TextLiteral.new(castedValue, ast.module)
+    })
+
+    const templatePattern = Pattern.parseExpression(parsedAction.pattern)
+    return templatePattern.instantiateCopied([ast, ...mappedExpressions])
+  })
+}
+
+/**
+ * Creates a new node in the graph based on the given action template and data from a grid row.
+ *
+ * The action string should be of the format `at {{#fieldname}}` which will generate a Node `at 2`
+ * or `at {{@fieldname}}` which will generate a Node `at "2"`
+ * If the action contains no placeholders then the defaultSelector is used like so
+ * `action {{@defaultSelector}}`
+ * @param params - The grid cell event containing the clicked row's data.
+ * @param defaultSelector - A fallback key used when the template contains no placeholders.
+ * @param action - A template string with placeholders (e.g., `at {{@name}}`, `at {{#value}}`) used to generate the AST.
+ */
+function createNode(params: CellDoubleClickedEvent, defaultSelector: string, action: string) {
+  const pattern = getAstPattern(params, action, defaultSelector)
+
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -726,16 +763,15 @@ function createNode(
 interface LinkFieldOptions {
   tooltipValue?: string | undefined
   headerName?: string | undefined
-  getChildAction?: string | undefined
-  castValueTypes?: string | undefined
+  getChildAction: string
 }
 
-function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef {
-  const { tooltipValue, headerName, getChildAction, castValueTypes } = options
+function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
+  const { tooltipValue, headerName, getChildAction } = options
   return {
     headerName: headerName ? headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, castValueTypes),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction),
     tooltipValueGetter: (params: ITooltipParams) =>
       params.node?.rowPinned === 'top' ?
         null
@@ -766,15 +802,13 @@ watchEffect(() => {
         has_index_col: false,
         links: undefined,
         // eslint-disable-next-line camelcase
-        get_child_node_action: undefined,
+        get_child_node_action: '',
         // eslint-disable-next-line camelcase
         get_child_node_link_name: undefined,
         // eslint-disable-next-line camelcase
         child_label: undefined,
         // eslint-disable-next-line camelcase
         visualization_header: undefined,
-        // eslint-disable-next-line camelcase
-        link_value_type: undefined,
         // eslint-disable-next-line camelcase
         is_using_server_sort_and_filter: undefined,
         // eslint-disable-next-line camelcase
@@ -855,7 +889,6 @@ watchEffect(() => {
             tooltipValue: data_.child_label,
             headerName: data_.visualization_header,
             getChildAction: data_.get_child_node_action,
-            castValueTypes: data_.link_value_type,
           })
         }
         return toField(v, { index: i, valueType })
