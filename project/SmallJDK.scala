@@ -43,13 +43,13 @@ object SmallJDK {
   )
 
   /** Builds a small JDK appropriate for building native image.
-    * @param smallJdkDirectory Target directory. If non empty, will be deleted.
+    * @param targetJdkDirectory Target directory. If non empty, will be deleted.
     */
   def buildSmallJDKForNativeImage(
-    smallJdkDirectory: File
+    targetJdkDirectory: File
   ): Unit = {
-    if (smallJdkDirectory.exists()) {
-      IO.delete(smallJdkDirectory)
+    if (targetJdkDirectory.exists()) {
+      IO.delete(targetJdkDirectory)
     }
     val niModules     = (NI_BASE_MODULES ++ NI_BUILDER_MODULES).mkString(",")
     val jdkModules    = JDK_MODULES.mkString(",")
@@ -64,28 +64,28 @@ object SmallJDK {
       "--module-path",
       mp,
       "--output",
-      smallJdkDirectory.toString,
+      targetJdkDirectory.toString,
       "--add-modules",
       s"$niModules,$jdkModules,$debugModules,$pythonModules"
     )
     runJlink(jlinkArgs)
-    copyLibDirs(smallJdkDirectory)
+    copyLibDirs(targetJdkDirectory)
     assert(
-      smallJdkDirectory.exists(),
-      "Directory of small JDK " + smallJdkDirectory + " is not present"
+      targetJdkDirectory.exists(),
+      "Directory of small JDK " + targetJdkDirectory + " is not present"
     )
   }
 
   /** Builds a small JDK with `jlink` appropriate for running
     * Enso in `--jvm` mode.
-    * @param smallJdkDirectory Target directory. If not empty,
+    * @param targetJdkDirectory Target directory. If not empty,
     *                          will be deleted.
     */
   def buildSmallJDKForRelease(
-    smallJdkDirectory: File
+    targetJdkDirectory: File
   ): Unit = {
-    if (smallJdkDirectory.exists()) {
-      IO.delete(smallJdkDirectory)
+    if (targetJdkDirectory.exists()) {
+      IO.delete(targetJdkDirectory)
     }
     val mp = modulePath()
       .map(_.toAbsolutePath.toString)
@@ -97,15 +97,15 @@ object SmallJDK {
       "--module-path",
       mp,
       "--output",
-      smallJdkDirectory.toString,
+      targetJdkDirectory.toString,
       "--add-modules",
       modules.mkString(",")
     )
     runJlink(jlinkArgs)
-    copyLibDirs(smallJdkDirectory)
+    copyLibDirs(targetJdkDirectory)
     assert(
-      smallJdkDirectory.exists(),
-      "Directory of small JDK " + smallJdkDirectory +
+      targetJdkDirectory.exists(),
+      "Directory of small JDK " + targetJdkDirectory +
       " was not created."
     )
   }
