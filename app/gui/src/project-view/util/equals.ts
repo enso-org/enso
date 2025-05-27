@@ -10,12 +10,12 @@ export function defaultEquality(a: unknown, b: unknown): boolean {
  * @param eq equality function for elements. When not specified, `===` operator is used.
  * @returns true if arrays are equal.
  */
-export function arrayEquals<T>(
-  a: Array<T>,
-  b: Array<T>,
-  eq: (a: T, b: T) => boolean = defaultEquality,
+export function arrayEquals<A, B = A>(
+  a: ReadonlyArray<A>,
+  b: ReadonlyArray<B>,
+  eq: (a: A, b: B) => boolean = defaultEquality,
 ) {
-  if (a === b) return true
+  if (a === (b as unknown)) return true
   if (a.length !== b.length) return false
   for (let i = 0; i < a.length; ++i) {
     const aVal = a[i]

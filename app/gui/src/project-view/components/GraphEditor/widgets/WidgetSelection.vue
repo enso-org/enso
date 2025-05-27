@@ -22,8 +22,18 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import { type ToValue } from '@/util/reactivity'
-import type { RendererNode, VNode } from 'vue'
-import { computed, proxyRefs, ref, shallowRef, toValue, useTemplateRef, watch } from 'vue'
+import {
+  computed,
+  proxyRefs,
+  ref,
+  shallowRef,
+  toValue,
+  useTemplateRef,
+  watch,
+  type DeepReadonly,
+  type RendererNode,
+  type VNode,
+} from 'vue'
 import SelectionSubmenu from './WidgetSelection/SelectionSubmenu.vue'
 import { activityDropdownStyles } from './WidgetSelection/styles'
 import {
@@ -90,7 +100,7 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
   const config = props.input.dynamicConfig
   if (config?.kind !== 'Single_Choice' && config?.kind !== 'Multiple_Choice') return []
 
-  const choiceToTag = (choice: Choice): ExpressionTag | NestedChoiceTag => {
+  const choiceToTag = (choice: DeepReadonly<Choice>): ExpressionTag | NestedChoiceTag => {
     if (choice.value instanceof Array) {
       return new NestedChoiceTag(choice.label ?? '…', choice.value.map(choiceToTag))
     } else {
@@ -351,7 +361,9 @@ const arrowLocation = ref()
 <script lang="ts">
 const CustomDropdownItemsKey: unique symbol = Symbol.for('WidgetInput:CustomDropdownItems')
 
-function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefined): boolean {
+function isHandledByCheckboxWidget(
+  parameter: DeepReadonly<SuggestionEntryArgument> | undefined,
+): boolean {
   return (
     parameter?.tagValues != null &&
     arrayEquals(Array.from(parameter.tagValues).sort(), ['False', 'True'])

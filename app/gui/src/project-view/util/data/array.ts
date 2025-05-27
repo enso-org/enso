@@ -31,7 +31,7 @@ export function findIndexOpt<T>(
  * @see The original docs for the equivalent function in Rust: {@link https://doc.rust-lang.org/std/primitive.slice.html#method.partition_point}
  */
 export function partitionPoint<T>(
-  array: T[],
+  array: ReadonlyArray<T>,
   pred: (elem: T) => boolean,
   start = 0,
   end = array.length,

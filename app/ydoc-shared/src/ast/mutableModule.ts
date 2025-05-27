@@ -379,6 +379,7 @@ export class MutableModule implements Module {
     const metadataFields = setAll(metadata, {
       externalId: newExternalId(),
       widget: new Y.Map<unknown>(),
+      expressionUpdate: undefined,
     })
     const fields = setAll(map_, {
       id,
@@ -495,8 +496,9 @@ class UpdateBuilder {
     for (const entry of changes) {
       const [key, value] = entry
       if (key === 'metadata') {
-        assert(value instanceof Y.Map)
-        metadataChanges = new Map<string, unknown>(value.entries())
+        if (value instanceof Y.Map) {
+          metadataChanges = new Map<string, unknown>(value.entries())
+        }
       } else {
         fieldsChanged = true
       }

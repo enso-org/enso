@@ -7,7 +7,7 @@ import { arrayEquals } from '@/util/equals'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
 import { type ProjectPath } from '@/util/projectPath'
 import { clamp } from 'enso-common/src/utilities/data/math'
-import { markRaw } from 'vue'
+import { markRaw, type DeepReadonly } from 'vue'
 import type {
   ExpressionId,
   ExpressionUpdate,
@@ -18,12 +18,12 @@ import type {
 import { isSome } from 'ydoc-shared/util/data/opt'
 
 export interface ExpressionInfo {
-  typename: ProjectPath | undefined
-  hiddenTypes: ProjectPath[]
+  typename: DeepReadonly<ProjectPath> | undefined
+  hiddenTypes: DeepReadonly<ProjectPath[]>
   rawTypename: string | undefined
-  methodCall: MethodCall | undefined
-  payload: ExpressionUpdatePayload
-  profilingInfo: ProfilingInfo[]
+  methodCall: DeepReadonly<MethodCall> | undefined
+  payload: DeepReadonly<ExpressionUpdatePayload>
+  profilingInfo: DeepReadonly<ProfilingInfo[]>
   /**
    * This value is incremented when a new evaluation is reported, so that when interpreting the
    * `progress` in a `Pending` payload, we can distinguish an incremental update from a separate
@@ -36,11 +36,15 @@ export interface ExpressionInfo {
  * If the given expression is currently evaluating, returns the progress as a percentage. Otherwise,
  * returns `undefined`.
  */
-export function evaluationProgress(expressionInfo: ExpressionInfo | undefined): number | undefined {
+export function evaluationProgress(
+  expressionInfo: DeepReadonly<ExpressionInfo> | undefined,
+): number | undefined {
   return payloadProgress(expressionInfo?.payload)
 }
 
-function payloadProgress(payload: ExpressionUpdatePayload | undefined): number | undefined {
+function payloadProgress(
+  payload: DeepReadonly<ExpressionUpdatePayload> | undefined,
+): number | undefined {
   if (!payload) return
   if (payload.type !== 'Pending') return
   const rawProgress = payload.progress
@@ -55,8 +59,6 @@ class ComputedValueDb extends ReactiveDb<ExpressionId, ExpressionInfo> {
 /** This class holds the computed values that have been received from the language server. */
 export class ComputedValueRegistry {
   public db = new ComputedValueDb()
-  private _updateHandler = this.processUpdates.bind(this)
-  private executionContext: ExecutionContext | undefined
 
   private constructor(private readonly projectNames: ProjectNameStore) {
     markRaw(this)
@@ -64,13 +66,10 @@ export class ComputedValueRegistry {
 
   /** TODO: Add docs */
   static WithExecutionContext(
-    executionContext: ExecutionContext,
+    _executionContext: ExecutionContext,
     projectNames: ProjectNameStore,
   ): ComputedValueRegistry {
-    const self = new ComputedValueRegistry(projectNames)
-    self.executionContext = executionContext
-    executionContext.on('expressionUpdates', self._updateHandler)
-    return self
+    return new ComputedValueRegistry(projectNames)
   }
 
   /** TODO: Add docs */
@@ -79,7 +78,7 @@ export class ComputedValueRegistry {
   }
 
   /** TODO: Add docs */
-  processUpdates(updates: ExpressionUpdate[]) {
+  processUpdates(updates: DeepReadonly<ExpressionUpdate[]>) {
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
       if (info) updateInfo(info, update, this.projectNames)
@@ -93,16 +92,14 @@ export class ComputedValueRegistry {
   }
 
   /** TODO: Add docs */
-  dispose() {
-    this.executionContext?.off('expressionUpdates', this._updateHandler)
-  }
+  dispose() {}
 }
 
 function updateInfo(
   info: ExpressionInfo,
-  update: ExpressionUpdate,
+  update: DeepReadonly<ExpressionUpdate>,
   projectNames: ProjectNameStore,
-) {
+): void {
   const newInfo = combineInfo(info, update, projectNames)
   if (newInfo.typename !== info.typename) info.typename = newInfo.typename
   if (!arrayEquals(newInfo.hiddenTypes, info.hiddenTypes, (a, b) => a.equals(b)))
@@ -130,20 +127,20 @@ function updateInfo(
  * The qualified names are validated and stored as {@link ProjectPath}s.
  */
 export function translateMethodCall(
-  ls: LSMethodCall,
+  ls: DeepReadonly<LSMethodCall>,
   projectNames: ProjectNameStore,
 ): Result<MethodCall> {
   const methodPointer = parseMethodPointer(ls.methodPointer, projectNames)
   if (!methodPointer.ok) return methodPointer
   return Ok({
     methodPointer: methodPointer.value,
-    notAppliedArguments: ls.notAppliedArguments,
+    notAppliedArguments: [...ls.notAppliedArguments],
   })
 }
 
 function combineInfo(
-  info: ExpressionInfo | undefined,
-  update: ExpressionUpdate,
+  info: DeepReadonly<ExpressionInfo> | undefined,
+  update: DeepReadonly<ExpressionUpdate>,
   projectNames: ProjectNameStore,
 ): ExpressionInfo {
   const isPending = update.payload.type === 'Pending'
@@ -191,8 +188,8 @@ function combineInfo(
 }
 
 function updateProgressIsNewEvaluation(
-  payload0: ExpressionUpdatePayload,
-  payload1: ExpressionUpdatePayload,
+  payload0: DeepReadonly<ExpressionUpdatePayload>,
+  payload1: DeepReadonly<ExpressionUpdatePayload>,
 ) {
   const progress1 = payloadProgress(payload1)
   // Current evaluation completed.

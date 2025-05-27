@@ -1,5 +1,5 @@
 /** Describes allowed file types in the file browser. */
 export interface FileFilter {
-  name: string
-  extensions: 'all' | string[]
+  readonly name: string
+  readonly extensions: 'all' | ReadonlyArray<string>
 }

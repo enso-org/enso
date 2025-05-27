@@ -7,7 +7,7 @@ import FileBrowserWidget from '@/components/widgets/FileBrowserWidget.vue'
 import { FileType } from '@/providers/widgetRegistry/configuration'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type ToValue } from '@/util/reactivity'
-import { Component, computed, type ComputedRef, h, toValue } from 'vue'
+import { Component, computed, type ComputedRef, type DeepReadonly, h, toValue } from 'vue'
 
 const TYPES = new Map<BrowserItem, { label: string; icon?: Icon }>([
   ['directory', { label: 'Choose directory in cloud…' }],
@@ -27,7 +27,7 @@ export function useCloudBrowser({
   write: ToValue<boolean>
   currentPath: ToValue<string | undefined>
   setPath: (type: 'file' | 'secret', path: string) => void
-  fileTypes: ToValue<FileType[] | undefined>
+  fileTypes: ToValue<DeepReadonly<FileType[]> | undefined>
 }): ComputedRef<CustomDropdownItem[]> {
   function openCloudBrowser({ setActivity, close }: Actions) {
     setActivity(

@@ -10,6 +10,7 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import type { DeepReadonly } from 'vue'
 import {
   type SuggestionEntryArgument,
   type SuggestionEntryScope,
@@ -157,7 +158,9 @@ export function entryIsStatic(
 }
 
 /** Get the MethodPointer pointing to definition represented by the entry. */
-export function entryMethodPointer(entry: SuggestionEntry | undefined): MethodPointer | undefined {
+export function entryMethodPointer(
+  entry: DeepReadonly<SuggestionEntry> | undefined,
+): MethodPointer | undefined {
   if (entry == null || entry.kind !== SuggestionKind.Method) return
   return {
     module: entry.definedIn,

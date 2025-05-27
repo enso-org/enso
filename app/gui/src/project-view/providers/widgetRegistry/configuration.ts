@@ -1,3 +1,4 @@
+import { type DeepReadonly } from 'vue'
 import { z } from 'zod'
 
 /**
@@ -75,17 +76,21 @@ export type FileType = {
 }
 
 /** Whether FileType[] contains nested FileType objects. */
-export function isFileTypes(array: (FileType | string)[]): array is FileType[] {
+export function isFileTypes(
+  array: DeepReadonly<(FileType | string)[]>,
+): array is DeepReadonly<FileType[]> {
   return array.length == 0 || typeof array[0]! === 'object'
 }
 
 /** Whether FileType[] contains only string values. */
-export function isExtensions(array: (FileType | string)[]): array is string[] {
+export function isExtensions(
+  array: DeepReadonly<(FileType | string)[]>,
+): array is ReadonlyArray<string> {
   return array.length == 0 || typeof array[0]! === 'string'
 }
 
 /** Whether FileType[] contains a single '*' value, indicating that all files are allowed. */
-export function isGlobAll(array: (FileType | string)[]): boolean {
+export function isGlobAll(array: DeepReadonly<(FileType | string)[]>): boolean {
   return array.length === 1 && array[0]! === '*'
 }
 
@@ -252,9 +257,9 @@ export type ArgsWidgetConfiguration = z.infer<typeof argsWidgetConfigurationSche
  * applying those to an inherited config received from parent widget.
  */
 export function functionCallConfiguration(
-  parameters: ArgumentWidgetConfiguration[],
-  inherited?: FunctionCall,
-): FunctionCall {
+  parameters: DeepReadonly<ArgumentWidgetConfiguration[]>,
+  inherited?: DeepReadonly<FunctionCall>,
+): DeepReadonly<FunctionCall> {
   const parametersMap = new Map(inherited?.parameters)
   for (const [name, param] of parameters) {
     parametersMap.set(name, parametersMap.get(name) ?? param)
@@ -266,7 +271,7 @@ export function functionCallConfiguration(
 }
 
 /** Flatten possibly nested choice. */
-export function flattenChoice(choice: Choice): FlattenedChoice[] {
+export function flattenChoice(choice: DeepReadonly<Choice>): DeepReadonly<FlattenedChoice>[] {
   if (typeof choice.value === 'string') {
     return [choice as FlattenedChoice]
   }
@@ -274,7 +279,9 @@ export function flattenChoice(choice: Choice): FlattenedChoice[] {
 }
 
 /** A configuration for the inner widget of a single-choice selection widget. */
-export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCalls {
+export function singleChoiceConfiguration(
+  config: DeepReadonly<SingleChoice>,
+): DeepReadonly<OneOfFunctionCalls> {
   const possibleChoices = config.values.flatMap(flattenChoice)
   return {
     kind: 'OneOfFunctionCalls',
@@ -285,7 +292,9 @@ export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCa
 }
 
 /** A configuration for the inner widget of a multiple-choice selection widget. */
-export function multipleChoiceConfiguration(config: MultipleChoice): SomeOfFunctionCalls {
+export function multipleChoiceConfiguration(
+  config: DeepReadonly<MultipleChoice>,
+): DeepReadonly<SomeOfFunctionCalls> {
   const possibleChoices = config.values.flatMap(flattenChoice)
   return {
     kind: 'SomeOfFunctionCalls',

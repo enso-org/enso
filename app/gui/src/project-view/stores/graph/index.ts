@@ -42,6 +42,7 @@ import {
   toRef,
   watch,
   watchEffect,
+  type DeepReadonly,
   type Ref,
   type ShallowRef,
 } from 'vue'
@@ -51,6 +52,8 @@ import { reachable } from 'ydoc-shared/util/data/graph'
 import type { LocalUserActionOrigin, Origin, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { defaultLocalOrigin, visMetadataEquals } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
+
+const POPULATE_EU_METADATA_FROM_LS = false
 
 const FALLBACK_BINDING_PREFIX = 'node'
 
@@ -146,6 +149,18 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
         })
       },
     )
+
+    if (POPULATE_EU_METADATA_FROM_LS) {
+      proj.executionContext.on('expressionUpdates', (updates: DeepReadonly<ExpressionUpdate[]>) => {
+        if (!syncModule.value) return
+        for (const update of updates) {
+          const astId = db.idFromExternal(update.expressionId)
+          const ast = syncModule.value.tryGet(astId)
+          if (!ast) continue
+          ;(ast as any).fields.get('metadata').set('expressionUpdate', update)
+        }
+      })
+    }
 
     const immediateMethodAst = computed<Result<Ast.FunctionDef>>(() =>
       syncModule.value ? getExecutedMethodAst(syncModule.value) : Err('AST not yet initialized'),

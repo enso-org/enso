@@ -1,6 +1,7 @@
 // Declaration-merging is used to implement mixin types in this file.
 /* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
 import * as Y from 'yjs'
+import type { ExpressionUpdate } from '../languageServerTypes'
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
 import type { Result } from '../util/data/result'
 import { Err, Ok } from '../util/data/result'
@@ -111,6 +112,7 @@ export function parentId(ast: Ast): AstId | undefined {
 export interface MetadataFields {
   externalId: ExternalId
   widget: Y.Map<unknown>
+  expressionUpdate: ExpressionUpdate | undefined
 }
 export interface NodeMetadataFields {
   position?: { x: number; y: number } | undefined

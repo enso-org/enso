@@ -8,7 +8,7 @@ import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { ProjectPath, printAbsoluteProjectPath, type AbsoluteProjectPath } from '@/util/projectPath'
 import { qnJoin, type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
-import { computed, toValue, type ComputedRef } from 'vue'
+import { computed, toValue, type ComputedRef, type DeepReadonly } from 'vue'
 
 export type BrowserItem = 'file' | 'directory' | 'secret'
 
@@ -96,7 +96,7 @@ export function useBrowserTypeInfo({
   dynamicConfig,
 }: {
   reprType: ToValue<string | undefined>
-  dynamicConfig: ToValue<DynamicConfig | undefined>
+  dynamicConfig: ToValue<DeepReadonly<DynamicConfig> | undefined>
 }): ComputedRef<BrowserTypeInfo> {
   const reprTypeInfo = computed(() => {
     const type = toValue(reprType)

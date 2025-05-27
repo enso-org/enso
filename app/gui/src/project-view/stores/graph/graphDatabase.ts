@@ -46,7 +46,7 @@ import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
 
 export interface MethodCallInfo {
-  methodCall: MethodCall
+  methodCall: DeepReadonly<MethodCall>
   methodCallSource: Ast.AstId
   suggestion: CallableSuggestionEntry
 }
@@ -209,7 +209,7 @@ export class GraphDb {
   }
 
   /** TODO: Add docs */
-  getMethodCall(id: AstId): MethodCall | undefined {
+  getMethodCall(id: AstId): DeepReadonly<MethodCall> | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
     if (info.methodCall) return info.methodCall
@@ -448,6 +448,10 @@ export class GraphDb {
     if (changes.has('colorOverride')) {
       node.colorOverride = changes.get('colorOverride')
     }
+    if (changes.has('expressionUpdate')) {
+      const update = changes.get('expressionUpdate')
+      if (update) this.valuesRegistry.processUpdates([update])
+    }
   }
 
   /** TODO: Add docs */
@@ -498,7 +502,7 @@ export class GraphDb {
         value.methodCall != null &&
         methodPointerEquals(value.methodCall.methodPointer, oldMethodPointer)
       ) {
-        value.methodCall.methodPointer = newMethodPointer
+        value.methodCall = { ...value.methodCall, methodPointer: newMethodPointer }
       }
     }
 

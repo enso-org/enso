@@ -7,7 +7,7 @@ import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { Result } from '@/util/data/result'
 import type { ViteHotContext } from 'vite/types/hot.js'
-import { computed, shallowReactive, type Component, type PropType } from 'vue'
+import { computed, shallowReactive, type Component, type DeepReadonly, type PropType } from 'vue'
 import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -136,7 +136,7 @@ export interface WidgetInput {
   /** An expected type which widget should set. */
   expectedType?: Typename | undefined
   /** Configuration provided by engine. */
-  dynamicConfig?: WidgetConfiguration | undefined
+  dynamicConfig?: DeepReadonly<WidgetConfiguration> | undefined
   /** Force the widget to be a connectible port. */
   forcePort?: boolean
   editHandler?: WidgetEditHandlerParent | undefined

@@ -12,6 +12,7 @@ import {
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
+import type { DeepReadonly } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { assert } from './assert'
 
@@ -24,10 +25,10 @@ class ArgumentFactory {
   constructor(
     private callId: string,
     private kind: ApplicationKind,
-    private widgetCfg: widgetCfg.FunctionCall | undefined,
+    private widgetCfg: DeepReadonly<widgetCfg.FunctionCall> | undefined,
   ) {}
 
-  placeholder(index: number, info: SuggestionEntryArgument, insertAsNamed: boolean) {
+  placeholder(index: number, info: DeepReadonly<SuggestionEntryArgument>, insertAsNamed: boolean) {
     return new ArgumentPlaceholder(
       this.callId,
       this.kind,
@@ -41,7 +42,7 @@ class ArgumentFactory {
   argument(
     ast: Ast.Expression,
     index: number | undefined,
-    info: SuggestionEntryArgument | undefined,
+    info: DeepReadonly<SuggestionEntryArgument> | undefined,
   ) {
     return new ArgumentAst(
       this.callId,
@@ -64,9 +65,9 @@ abstract class Argument {
   protected constructor(
     public callId: string,
     public kind: ApplicationKind,
-    public dynamicConfig: DynamicConfig | undefined,
+    public dynamicConfig: DeepReadonly<DynamicConfig> | undefined,
     public index: number | undefined,
-    public argInfo: SuggestionEntryArgument | undefined,
+    public argInfo: DeepReadonly<SuggestionEntryArgument> | undefined,
   ) {}
 
   abstract get portId(): PortId
@@ -102,9 +103,9 @@ export class ArgumentPlaceholder extends Argument {
   constructor(
     callId: string,
     kind: ApplicationKind,
-    dynamicConfig: DynamicConfig | undefined,
+    dynamicConfig: DeepReadonly<DynamicConfig> | undefined,
     index: number,
-    argInfo: SuggestionEntryArgument,
+    argInfo: DeepReadonly<SuggestionEntryArgument>,
     public insertAsNamed: boolean,
   ) {
     super(callId, kind, dynamicConfig, index, argInfo)
@@ -136,9 +137,9 @@ export class ArgumentAst extends Argument {
   constructor(
     callId: string,
     kind: ApplicationKind,
-    dynamicConfig: DynamicConfig | undefined,
+    dynamicConfig: DeepReadonly<DynamicConfig> | undefined,
     index: number | undefined,
-    argInfo: SuggestionEntryArgument | undefined,
+    argInfo: DeepReadonly<SuggestionEntryArgument> | undefined,
     public ast: Ast.Expression,
   ) {
     super(callId, kind, dynamicConfig, index, argInfo)
@@ -225,11 +226,14 @@ export class ArgumentApplication {
     public target: ArgumentApplication | Ast.Expression | ArgumentPlaceholder | ArgumentAst,
     public infixOperator: Ast.Token | undefined,
     public argument: ArgumentAst | ArgumentPlaceholder,
-    public calledFunction: CallableSuggestionEntry | undefined,
+    public calledFunction: DeepReadonly<CallableSuggestionEntry> | undefined,
     public isInnermost: boolean,
   ) {}
 
-  private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
+  private static FromInterpretedInfix(
+    interpreted: InterpretedInfix,
+    callInfo: DeepReadonly<CallInfo>,
+  ) {
     const { suggestion, widgetCfg } = callInfo
 
     const makeArg = new ArgumentFactory(interpreted.appTree.id, ApplicationKind.Infix, widgetCfg)
@@ -250,7 +254,10 @@ export class ArgumentApplication {
     )
   }
 
-  private static FromInterpretedPrefix(interpreted: InterpretedPrefix, callInfo: CallInfo) {
+  private static FromInterpretedPrefix(
+    interpreted: InterpretedPrefix,
+    callInfo: DeepReadonly<CallInfo>,
+  ) {
     const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf } = callInfo
 
     const knownArguments = suggestion?.arguments
@@ -406,7 +413,7 @@ export class ArgumentApplication {
   /** TODO: Add docs */
   static FromInterpretedWithInfo(
     interpreted: InterpretedCall,
-    callInfo: CallInfo = {},
+    callInfo: DeepReadonly<CallInfo> = {},
   ): ArgumentApplication | Ast.Expression {
     if (interpreted.kind === 'infix') {
       return ArgumentApplication.FromInterpretedInfix(interpreted, callInfo)
@@ -561,7 +568,7 @@ declare module '@/providers/widgetRegistry' {
     [ArgumentApplicationKey]?: ArgumentApplication
     [ArgumentInfoKey]?: {
       appKind: ApplicationKind
-      info: SuggestionEntryArgument | undefined
+      info: DeepReadonly<SuggestionEntryArgument> | undefined
       argId: string | undefined
     }
   }

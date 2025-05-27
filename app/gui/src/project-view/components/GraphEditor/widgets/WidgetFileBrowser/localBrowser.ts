@@ -1,18 +1,18 @@
 import { type BrowserItem } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
 import { type CustomDropdownItem } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import { FileType, isExtensions, isFileTypes } from '@/providers/widgetRegistry/configuration'
+import { isExtensions, isFileTypes, type FileType } from '@/providers/widgetRegistry/configuration'
 import { assert } from '@/util/assert'
 import { FileFilter } from '@/util/fileFilter'
 import { type ToValue } from '@/util/reactivity'
-import { computed, toValue, type ComputedRef } from 'vue'
+import { computed, toValue, type ComputedRef, type DeepReadonly } from 'vue'
 
 const LABELS = new Map<BrowserItem, string>([
   ['directory', 'Choose directory…'],
   ['file', 'Choose file…'],
 ])
 
-function fileTypesToFileFilters(fileTypes: FileType[]): FileFilter[] {
-  return fileTypes.flatMap((fileType) => {
+function fileTypesToFileFilters(fileTypes: DeepReadonly<FileType[]>): DeepReadonly<FileFilter>[] {
+  return fileTypes.flatMap((fileType): DeepReadonly<FileFilter>[] => {
     const name = fileType.label
     if (fileType.extensions.length > 0) {
       if (isFileTypes(fileType.extensions)) {
@@ -37,7 +37,7 @@ export function useLocalBrowser({
   write: ToValue<boolean>
   currentPath: ToValue<string | undefined>
   setPath: (type: 'file', path: string) => void
-  fileTypes: ToValue<FileType[] | undefined>
+  fileTypes: ToValue<DeepReadonly<FileType[]> | undefined>
 }): ComputedRef<CustomDropdownItem[]> {
   async function openFileBrowser() {
     if (!window.fileBrowserApi) {
