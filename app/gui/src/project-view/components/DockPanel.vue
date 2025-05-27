@@ -114,7 +114,7 @@ const tabStyle = {
 
 .content {
   width: 100%;
-  background-color: #fff;
+  background-color: var(--color-visualization-bg);
   min-width: 0;
 }
 
@@ -135,7 +135,7 @@ const tabStyle = {
 }
 
 .activeTab {
-  background-color: #fff;
+  background-color: var(--color-visualization-bg);
 }
 
 .toggleDock {

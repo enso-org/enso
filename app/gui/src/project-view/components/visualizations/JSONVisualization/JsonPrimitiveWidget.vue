@@ -40,4 +40,10 @@ const primitive = computed(() => {
 .null {
   color: darkgreen;
 }
+.theme-dark .string,
+.theme-dark .number,
+.theme-dark .boolean,
+.theme-dark .null {
+  color: lightgreen;
+}
 </style>

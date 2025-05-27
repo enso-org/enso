@@ -108,7 +108,7 @@ const handler = documentationEditorBindings.handler({
 .DocumentationEditor {
   display: flex;
   flex-direction: column;
-  background-color: #fff;
+  background-color: var(--color-visualization-bg);
   height: 100%;
   width: 100%;
   padding-left: 16px;

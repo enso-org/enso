@@ -444,10 +444,10 @@ const listsHandler = listBindings.handler({
 <style scoped>
 .ComponentBrowser {
   --radius-default: 20px;
-  --background-color: #fff;
+  --background-color: var(--color-visualization-bg);
   --doc-panel-bottom-clip: 4px;
   width: min-content;
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--color-primary);
   font-size: 11.5px;
   display: flex;
   flex-direction: column;

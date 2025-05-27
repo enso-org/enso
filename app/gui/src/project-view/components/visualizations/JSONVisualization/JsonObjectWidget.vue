@@ -82,4 +82,7 @@ function entryTitle(key: string) {
   color: darkred;
   text-decoration: none;
 }
+.theme-dark .viewonly .key {
+  color: #e96f6f;
+}
 </style>

@@ -261,6 +261,11 @@ For some reason, Vue cannot load them there, probably because it is used also as
   }
 }
 
+.theme-dark :deep(.ag-theme-alpine) {
+  --ag-foreground-color: var(--color-text);
+  --ag-data-color: var(--color-text);
+}
+
 /* Separate, actually widget-specific styling. */
 .WidgetTableEditor:deep(.ag-root-wrapper) {
   --ag-wrapper-border-radius: var(--node-port-border-radius);

@@ -7,6 +7,14 @@
 /*************************************************
  *** semantic color variables for this project ***
  *************************************************/
+body.theme-dark {
+  --color-text: rgb(240 240 240);
+  --color-text-inversed: rgb(32 32 32);
+  --color-app-bg: rgb(22 37 56 / 0.8);
+  --color-visualization-bg: rgb(33 56 80);
+  --color-sidebar-bg: rgb(42 70 100);
+}
+
 :root {
   --color-ag-header-text: rgb(0 0 0);
   --color-text: rgb(82 82 82);
@@ -17,6 +25,7 @@
   --color-menu-entry-hover-bg: rgb(0 0 0 / 0.1);
   --color-menu-entry-selected-bg: rgb(0 0 0 / 0.05);
   --color-visualization-bg: rgb(242 242 242);
+  --color-sidebar-bg: rgb(218 218 218);
   --color-dim: rgb(0 0 0 / 0.25);
   --color-frame-bg: rgb(255 255 255 / 0.3);
   --color-frame-selected-bg: rgb(255 255 255 / 0.7);

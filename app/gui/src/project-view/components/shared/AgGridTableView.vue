@@ -428,4 +428,10 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
     );
   }
 }
+
+.theme-dark .ag-theme-alpine {
+  --ag-header-foreground-color: var(--color-text);
+  --ag-foreground-color: var(--color-text);
+  --ag-data-color: var(--color-text);
+}
 </style>

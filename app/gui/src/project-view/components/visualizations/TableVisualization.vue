@@ -1215,4 +1215,8 @@ config.setToolbar(
   justify-content: space-between;
   width: inherit;
 }
+
+.theme-dark:deep(.link) {
+  color: #b3fbff;
+}
 </style>

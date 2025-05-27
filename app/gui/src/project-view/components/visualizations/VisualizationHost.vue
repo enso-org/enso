@@ -35,6 +35,8 @@ const emit = defineEmits<{
   createNodes: [nodes: NodeCreationOptions[]]
 }>()
 
+const themeClasses = [...document.body.classList].filter((className) => /^theme-/.test(className))
+
 // =========================
 // === Visualization API ===
 // =========================
@@ -67,6 +69,7 @@ provideVisualizationConfig({
       :is="props.params.visualization"
       v-if="props.params.visualization && props.params.data"
       :data="props.params.data"
+      :class="themeClasses"
     />
     <LoadingVisualization v-else />
   </Suspense>
@@ -81,6 +84,11 @@ provideVisualizationConfig({
 
 :host([hidden]) {
   display: none;
+}
+
+.theme-dark {
+  --color-text: rgb(224 224 224);
+  color: var(--color-text);
 }
 
 /* Base style for visualizations. */
