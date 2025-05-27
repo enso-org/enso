@@ -417,56 +417,6 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     })
   }
 
-  // /** Show the Asset Panel. */
-  // showAssetPanel() {
-  //   return this.step('Show asset panel', async (page) => {
-  //     const isShown = await this.isAssetPanelShown(page)
-
-  //     if (!isShown) {
-  //       await this.toggleRightPanel()
-  //     }
-  //   })
-  // }
-
-  // /** Hide the Asset Panel. */
-  // hideAssetPanel() {
-  //   return this.step('Hide asset panel', async (page) => {
-  //     const isShown = await this.isAssetPanelShown(page)
-
-  //     if (isShown) {
-  //       await this.toggleRightPanel()
-  //     }
-  //   })
-  // }
-
-  /** Toggle the Asset Panel open or closed. */
-  // toggleRightPanel() {
-  //   return this.step('Toggle right panel', async (page) => {
-  //     page.getByLabel('Asset Panel').locator('visible=true').click()
-  //     await this.waitForAssetPanelShown(page)
-  //   })
-  // }
-
-  /**
-   * Check if the Asset Panel is shown.
-   */
-  // async isAssetPanelShown(page: Page) {
-  //   return await page
-  //     .getByTestId('asset-panel')
-  //     .isVisible({ timeout: 0 })
-  //     .then(
-  //       () => true,
-  //       () => false,
-  //     )
-  // }
-
-  /**
-   * Wait for the Asset Panel to be shown and visually stable
-   */
-  // async waitForAssetPanelShown(page: Page) {
-  //   await page.getByTestId('asset-panel').waitFor({ state: 'visible' })
-  // }
-
   /** Show the description tab of the Asset Panel. */
   toggleDescriptionAssetPanel() {
     return this.step('Toggle description asset panel', async (page) => {
