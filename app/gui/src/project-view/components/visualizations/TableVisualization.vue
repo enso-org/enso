@@ -39,10 +39,8 @@ import { TableVisualisationTooltip } from './TableVisualization/TableVisualisati
 import {
   Error,
   GenericGrid,
-  SingleColumnOfActions,
   isError,
   isGenericGrid,
-  isSingleColumnOfActions,
 } from './TableVisualization/TableVisualisationTypes'
 import {
   convertFilterModel,
@@ -71,7 +69,6 @@ type Data =
   | Matrix
   | ObjectMatrix
   | EnsoTableOrColumn
-  | SingleColumnOfActions
   | GenericGrid
 
 interface ValueType {
@@ -859,15 +856,6 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (isSingleColumnOfActions(data_)) {
-    columnDefs.value = [
-      toLinkField('Value', {
-        tooltipValue: data_.child_label,
-        headerName: data_.visualization_header,
-        getChildAction: data_.get_child_node_action,
-      }),
-    ]
-    rowData.value = data_.data.map((name) => ({ Value: name }))
   } else if (isGenericGrid(data_)) {
     columnDefs.value = data_.headers.map((header) => {
       if (header.get_child_node_action) {
