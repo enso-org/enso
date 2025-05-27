@@ -42,7 +42,7 @@ public final class AzureResourceManager {
   public record AzureSubscription(String id, String name) {}
 
   /**
-   * Creates an Azure Resource Manager client using the provided credential and environment.
+   * Lists Azure subscriptions using the provided credential and environment.  
    *
    * @param credential the Azure credential.
    * @param environment the Azure environment.

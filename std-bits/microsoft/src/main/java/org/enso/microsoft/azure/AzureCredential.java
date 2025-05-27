@@ -14,7 +14,7 @@ public sealed interface AzureCredential {
 
   /**
    * Represents an Azure credential that uses the environment variables to authenticate. The
-   * required variables are: - `AZURE_TENANT_ID` - `AZURE_CLIENT_ID` - `AZURE_CLIENT_SECRET`
+   * required variables are: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`
    */
   record Environment() implements AzureCredential {
     @Override
