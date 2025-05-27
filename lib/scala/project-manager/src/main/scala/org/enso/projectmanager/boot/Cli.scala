@@ -94,7 +94,7 @@ object Cli {
       .build()
 
     val jvmMode: cli.Option = cli.Option.builder
-      .hasArg(false)
+      .hasArg(true)
       .longOpt(JVM_MODE)
       .desc("Run in JVM mode.")
       .build()
