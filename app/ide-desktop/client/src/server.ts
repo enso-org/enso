@@ -19,7 +19,6 @@ import * as ydocServer from 'ydoc-server'
 
 import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'
-import { pathToFileURL } from 'node:url'
 
 const logger = contentConfig.logger
 
@@ -148,42 +147,7 @@ export class Server {
               logger.error(`Error creating server:`, err.http)
               reject(err)
             }
-            const server = httpsServer ?? httpServer
-            if (!IS_ELECTRON_DEV_MODE) {
-              if (server) {
-                await ydocServer.createGatewayServer(server)
-              } else {
-                logger.warn('YDocs server is not run, new GUI may not work properly!')
-              }
-            }
-            logger.log(`Server started on port ${this.config.port}.`)
-            logger.log(`Serving files from '${path.resolve(process.cwd(), this.config.dir)}'.`)
-            if (IS_ELECTRON_DEV_MODE) {
-              const vite = (await import(
-                pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
-              )) as typeof import('vite')
-              this.devServer = await vite.createServer({
-                server: {
-                  middlewareMode: true,
-                  hmr: server ? { server } : {},
-                },
-                configFile: process.env.GUI_CONFIG_PATH ?? false,
-                mode: process.env.MODE ?? 'staging',
-              })
-
-              const docServer = http.createServer()
-              docServer.on('request', (request, response) => {
-                if (request.method === 'GET' && request.url === '/_health') {
-                  response.writeHead(200, { 'Content-Type': 'text/plain; charset=UTF-8' }).end('OK')
-                }
-              })
-
-              await ydocServer.createGatewayServer(docServer)
-
-              docServer.listen(5976, 'localhost', () => {
-                console.log(`Ydoc server listening on localhost:5976`)
-              })
-            }
+            logger.warn('YDocs server is not run, new GUI may not work properly!')
             resolve()
           })()
         },

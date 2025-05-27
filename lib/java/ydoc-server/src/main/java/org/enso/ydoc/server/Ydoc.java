@@ -41,7 +41,7 @@ public final class Ydoc implements AutoCloseable {
   public static final class Builder {
 
     private static final String DEFAULT_HOSTNAME = "localhost";
-    private static final int DEFAULT_PORT = 1234;
+    private static final int DEFAULT_PORT = 5976;
 
     private ScheduledExecutorService executor;
     private ParserPolyfill parser;

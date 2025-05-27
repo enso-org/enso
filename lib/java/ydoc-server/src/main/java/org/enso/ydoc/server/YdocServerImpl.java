@@ -21,6 +21,7 @@ public final class YdocServerImpl extends YdocServerApi {
       ydoc.start();
       var now = System.currentTimeMillis();
       log.warn("Ydoc server at {}:{} started in {} ms", hostname, port, now - then);
+      System.err.printf("Ydoc server at %s:%d started in %d ms\n", hostname, port, now - then);
       return ydoc;
     } catch (ExecutionException | InterruptedException ex) {
       throw new IOException(ex);
