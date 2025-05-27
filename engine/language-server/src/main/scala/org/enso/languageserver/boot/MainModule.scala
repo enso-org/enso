@@ -508,6 +508,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )(system, materializer)
   log.trace("Created Binary WebSocket Server [{}]", binaryServer)
 
+  private val ydoc = {
+    val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
+    org.enso.runner.common.YdocServerApi.launchYdocServer(c.hostname, c.port)
+  }
+
   log.debug(
     "Main module of the Language Server initialized with config [{}]",
     languageServerConfig
@@ -517,6 +522,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     contextSupervisor.close()
+    ydoc.close()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
     MDC.remove("project.id")

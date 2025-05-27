@@ -770,6 +770,7 @@ lazy val componentModulesPaths =
     (`directory-watcher-wrapper` / Compile / exportedModuleBin).value,
     (`jna-wrapper` / Compile / exportedModuleBin).value,
     (`ydoc-polyfill` / Compile / exportedModuleBin).value,
+    (`ydoc-server` / Compile / exportedModuleBin).value,
     (`library-manager` / Compile / exportedModuleBin).value,
     (`logging-config` / Compile / exportedModuleBin).value,
     (`logging-utils` / Compile / exportedModuleBin).value,
@@ -2021,13 +2022,17 @@ lazy val `ydoc-server` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Compile / moduleDependencies ++=
-      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ logbackPkg ++ slf4jApi,
+      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ logbackPkg ++ slf4jApi ++ Seq(
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      ),
     Compile / internalModuleDependencies := Seq(
+      (`engine-runner-common` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value,
       (`syntax-rust-definition` / Compile / exportedModule).value
     ),
     libraryDependencies ++= slf4jApi ++ Seq(
       "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"           % "org-openide-util-lookup"     % netbeansApiVersion        % "provided",
       "org.graalvm.sdk"            % "nativeimage"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot"       % "inspect-community"           % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot"       % "js-community"                % graalMavenPackagesVersion % "runtime",
@@ -3876,15 +3881,18 @@ lazy val `engine-runner` = project
           .map(_.data.getAbsolutePath)
       def langServer = {
         val log = streams.value.log
-        val path = (`language-server` / Compile / fullClasspath).value
+        val langServer = (`language-server` / Compile / fullClasspath).value
           .map(_.data.getAbsolutePath)
+        val ydocServer =
+          (`ydoc-server` / Compile / fullClasspath).value
+            .map(_.data.getAbsolutePath)
         if (GraalVM.EnsoLauncher.disableLanguageServer) {
           log.info(
             s"Skipping language server in native image build as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
           )
           Seq()
         } else {
-          path
+          langServer ++ ydocServer
         }
       }
       val core = (
