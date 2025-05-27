@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -112,21 +113,25 @@ public final class ExecutionService {
     return context;
   }
 
-  public FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
+  public CompletableFuture<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
       Module module, String typeName, String methodName)
       throws TypeNotFoundException, MethodNotFoundException {
-    ModuleScope scope = module.compileScope(context);
-    Type type = scope.getType(typeName, false);
-    if (type == null) {
-      throw new TypeNotFoundException(module.getName().toString(), typeName);
-    }
-    Function function = scope.lookupMethodDefinition(type, methodName);
-    if (function == null) {
-      throw new MethodNotFoundException(module.getName().toString(), type, methodName);
-    }
-    Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
-    return new FunctionCallInstrumentationNode.FunctionCall(
-        function, State.create(context), arguments);
+    return submitExecution(
+        () -> {
+          ModuleScope scope = module.compileScope(context);
+          Type type = scope.getType(typeName, false);
+          if (type == null) {
+            throw new TypeNotFoundException(module.getName().toString(), typeName);
+          }
+          Function function = scope.lookupMethodDefinition(type, methodName);
+          if (function == null) {
+            throw new MethodNotFoundException(module.getName().toString(), type, methodName);
+          }
+          Object[] arguments =
+              MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
+          return new FunctionCallInstrumentationNode.FunctionCall(
+              function, State.create(context), arguments);
+        });
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
@@ -175,6 +180,52 @@ public final class ExecutionService {
           SourceNotFoundException,
           UnsupportedMessageException,
           UnsupportedTypeException {
+    var future =
+        executeAsync(
+            visualizationHolder,
+            module,
+            call,
+            cache,
+            methodCallsCache,
+            syncState,
+            nextExecutionItem,
+            expressionExecutionState,
+            funCallCallback,
+            onComputedCallback,
+            onCachedCallback,
+            onExecutedVisualizationCallback);
+    resultOf(future);
+  }
+
+  /**
+   * Executes a function with given arguments, represented as runtime language-level objects.
+   *
+   * @param module the module where the call is defined
+   * @param call the call metadata.
+   * @param cache the precomputed expression values.
+   * @param methodCallsCache the storage tracking the executed method calls.
+   * @param syncState the synchronization state of runtime updates.
+   * @param nextExecutionItem the next item scheduled for execution.
+   * @param expressionExecutionState the execution state for each expression.
+   * @param funCallCallback the consumer for function call events.
+   * @param onComputedCallback the consumer of the computed value events.
+   * @param onCachedCallback the consumer of the cached value events.
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
+   * @return future to track the status of the execution
+   */
+  private final CompletableFuture<?> executeAsync(
+      VisualizationHolder visualizationHolder,
+      Module module,
+      FunctionCallInstrumentationNode.FunctionCall call,
+      RuntimeCache cache,
+      MethodCallsCache methodCallsCache,
+      UpdatesSynchronizationState syncState,
+      UUID nextExecutionItem,
+      ExpressionExecutionState expressionExecutionState,
+      Consumer<ExecutionService.ExpressionCall> funCallCallback,
+      Consumer<ExecutionService.ExpressionValue> onComputedCallback,
+      Consumer<ExecutionService.ExpressionValue> onCachedCallback,
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
     var pending =
         submitExecution(
             () -> {
@@ -217,7 +268,7 @@ public final class ExecutionService {
               }
               return null;
             });
-    resultOf(pending);
+    return pending;
   }
 
   /**
@@ -259,21 +310,24 @@ public final class ExecutionService {
           UnsupportedTypeException {
     Module module =
         context.findModule(moduleName).orElseThrow(() -> new ModuleNotFoundException(moduleName));
-    FunctionCallInstrumentationNode.FunctionCall call =
-        prepareFunctionCall(module, typeName, methodName);
-    execute(
-        visualizationHolder,
-        module,
-        call,
-        cache,
-        methodCallsCache,
-        syncState,
-        nextExecutionItem,
-        expressionExecutionState,
-        funCallCallback,
-        onComputedCallback,
-        onCachedCallback,
-        onExecutedVisualizationCallback);
+    var asyncCall = prepareFunctionCall(module, typeName, methodName);
+    var asyncExec =
+        asyncCall.thenApply(
+            (call) ->
+                executeAsync(
+                    visualizationHolder,
+                    module,
+                    call,
+                    cache,
+                    methodCallsCache,
+                    syncState,
+                    nextExecutionItem,
+                    expressionExecutionState,
+                    funCallCallback,
+                    onComputedCallback,
+                    onCachedCallback,
+                    onExecutedVisualizationCallback));
+    resultOf(asyncExec);
   }
 
   /**
@@ -590,7 +644,7 @@ public final class ExecutionService {
     throw (E) ex;
   }
 
-  private <T> Future<T> submitExecution(Supplier<T> c) {
+  private <T> CompletableFuture<T> submitExecution(Supplier<T> c) {
     return context.getThreadManager().submit(c);
   }
 

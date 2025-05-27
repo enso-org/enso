@@ -369,11 +369,13 @@ object UpsertVisualizationJob {
               Api.MethodPointer(_, definedOnType, name),
               _
             ) =>
-          ctx.executionService.prepareFunctionCall(
-            expressionModule,
-            QualifiedName.fromString(definedOnType).item,
-            name
-          )
+          ctx.executionService
+            .prepareFunctionCall(
+              expressionModule,
+              QualifiedName.fromString(definedOnType).item,
+              name
+            )
+            .get()
       }
     }.toEither.left.flatMap {
       case _: ThreadInterruptedException
