@@ -38,6 +38,8 @@ run (input_stream : Input_Stream) (encoding : Encoding) (on_problems : Problem_B
         foo ~x =
             Panic.catch Any handler=hh x
         foo <|
+            IO.println "AAAAA "+decoding_problem.getClass.to_text
+        foo <|
             IO.println "AAAAA "+decoding_problem.catch.message.to_text
         foo <|
             IO.println "AAAAA "+decoding_problem.message.to_text
