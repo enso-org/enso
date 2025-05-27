@@ -115,7 +115,7 @@ function initializeLater() {
     'return',
     function (ctx, frame) {
       console.log(`[return] ctx='${JSON.stringify(ctx)}'`)
-      console.log(`[return] frame='${JSON.stringify(frame)}'`)
+      console.log(`[return] frame=${Object.getOwnPropertyNames(frame)}`)
       console.log(`[return] ctx.returnValue='${ctx.returnValue(frame)}'`)
 
       const p = project
