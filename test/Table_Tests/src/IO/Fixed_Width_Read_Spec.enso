@@ -18,13 +18,13 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 add_direct_specs suite_builder =
     data_dir = enso_project.data / "fixed-width"
-    data0 = data_dir / "fixed0.txt"
-    data1 = data_dir / "fixed1.txt"
-    data2 = data_dir / "fixed2.txt"
-    data3 = data_dir / "fixed3.txt"
-    data4 = data_dir / "fixed4.txt"
-    data5 = data_dir / "fixed5.txt"
-    data6 = data_dir / "fixed6.txt"
+    fixed_file = data_dir / "fixed.txt"
+    inconsistent_lengths = data_dir / "inconsistent_lengths.txt"
+    inconsistent_lengths2 = data_dir / "inconsistent_lengths2.txt"
+    formatted = data_dir / "formatted.txt"
+    fixed2 = data_dir / "fixed2.txt"
+    bad_chars = data_dir / "bad_chars.txt"
+    empty_fields = data_dir / "empty_fields.txt"
 
     suite_builder.group "Read fixed-width files" group_builder->
         group_builder.specify "Should make a layout from a description" <|
@@ -153,7 +153,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Width 5]
                 + [Fixed_Width_Column_Description.Width 3]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t = fixed_file.read (Fixed_Width_Format.Fixed_Width layout)
             t.at "Column 1" . to Vector . should_equal [1234, 2345]
             t.at "Column 2" . to Vector . should_equal ["a", "i"]
             t.at "Column 3" . to Vector . should_equal [567, 678]
@@ -179,7 +179,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Width 3 "y"]
             layout = Fixed_Width_Layout.from_descriptions descs
 
-            t0 = data4.read (Fixed_Width_Format.Fixed_Width layout row_limit=4)
+            t0 = fixed2.read (Fixed_Width_Format.Fixed_Width layout row_limit=4)
             t0.at "x" . to_vector . should_equal ["ab", "bc", "cd", "de"]
             t0.at "y" . to_vector . should_equal [101, 102, 103, 104]
 
@@ -200,7 +200,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Width 1 "y"]
                 + [Fixed_Width_Column_Description.Width 3 "z"]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t = fixed_file.read (Fixed_Width_Format.Fixed_Width layout)
             t.columns . map .name . should_equal ["x", "y", "z"]
 
         group_builder.specify "Should generate default column names" <|
@@ -209,7 +209,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Width 1]
                 + [Fixed_Width_Column_Description.Width 3]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t = fixed_file.read (Fixed_Width_Format.Fixed_Width layout)
             t.columns . map .name . should_equal ["Column 1", "Column 2", "Column 3"]
 
         group_builder.specify "Should be able to read a fixed-width file with sparse columns" <|
@@ -219,7 +219,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Start_And_Width 12 1]
                 + [Fixed_Width_Column_Description.Start_And_Width 18 3]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t = fixed_file.read (Fixed_Width_Format.Fixed_Width layout)
             t.at "Column 1" . to Vector . should_equal [1234, 2345]
             t.at "Column 2" . to Vector . should_equal ["bcd", "jkl"]
             t.at "Column 3" . to Vector . should_equal ["e", "m"]
@@ -246,7 +246,7 @@ add_direct_specs suite_builder =
         group_builder.specify "Should warn about different line lengths" <|
             descs = [Fixed_Width_Column_Description.Start_And_Width 0 4]
             layout = Fixed_Width_Layout.from_descriptions descs
-            Problems.expect_warning Inconsistent_Fixed_Width_Lengths (data1.read (Fixed_Width_Format.Fixed_Width layout))
+            Problems.expect_warning Inconsistent_Fixed_Width_Lengths (inconsistent_lengths.read (Fixed_Width_Format.Fixed_Width layout))
 
         group_builder.specify "Should keep short lines with Invalid_Rows.Keep_Invalid_Rows" <|
             descs = []
@@ -254,7 +254,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Start_And_Width 13 5]
                 + [Fixed_Width_Column_Description.Start_And_Width 18 3]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data1.read (Fixed_Width_Format.Fixed_Width layout)
+            t = inconsistent_lengths.read (Fixed_Width_Format.Fixed_Width layout)
             Problems.expect_warning (Invalid_Fixed_Width_Row.Error 1 1 20 21) t
             Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 3 17 21) t
             t.at "Column 1" . to Vector . should_equal [1234, 2345, 6789, 4343]
@@ -267,7 +267,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Start_And_Width 13 5]
                 + [Fixed_Width_Column_Description.Start_And_Width 18 3]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data1.read (Fixed_Width_Format.Fixed_Width layout on_invalid_rows=..Drop_Invalid_Rows)
+            t = inconsistent_lengths.read (Fixed_Width_Format.Fixed_Width layout on_invalid_rows=..Drop_Invalid_Rows)
             Problems.expect_warning (Invalid_Fixed_Width_Row.Error 1 Nothing 20 21) t
             Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 Nothing 17 21) t
             t.at "Column 1" . to Vector . should_equal [1234, 6789]
@@ -277,7 +277,7 @@ add_direct_specs suite_builder =
         group_builder.specify "Should attach an Additional_Invalid_Row row warning" <|
             descs = [Fixed_Width_Column_Description.Start_And_Width 0 4]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data2.read (Fixed_Width_Format.Fixed_Width layout)
+            t = inconsistent_lengths2.read (Fixed_Width_Format.Fixed_Width layout)
             Problems.expect_warning Additional_Invalid_Rows t
 
         group_builder.specify "Supports Data_Formatter" <|
@@ -287,7 +287,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Width 1 "y"]
                 + [Fixed_Width_Column_Description.Width 3 "z"]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data3.read (Fixed_Width_Format.Fixed_Width layout value_formatter=custom_formatter)
+            t = formatted.read (Fixed_Width_Format.Fixed_Width layout value_formatter=custom_formatter)
             t.at "x" . value_type . should_equal Value_Type.Boolean
             t.at "y" . value_type . should_equal Value_Type.Boolean
             t.at "z" . value_type . should_equal Value_Type.Char
@@ -300,7 +300,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Start_And_Width 5 3]
                 + [Fixed_Width_Column_Description.Start_And_Width 13 5]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data6.read (Fixed_Width_Format.Fixed_Width layout)
+            t = empty_fields.read (Fixed_Width_Format.Fixed_Width layout)
             t.at "Column 1" . to Vector . should_equal [Nothing, 678]
             t.at "Column 2" . to Vector . should_equal [98765, Nothing]
 
@@ -309,7 +309,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Start_And_Width 5 3]
                 + [Fixed_Width_Column_Description.Start_And_Width 13 5]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data6.read (Fixed_Width_Format.Fixed_Width layout on_empty_field=..As_Empty_String)
+            t = empty_fields.read (Fixed_Width_Format.Fixed_Width layout on_empty_field=..As_Empty_String)
             t.at "Column 1" . to Vector . should_equal ["", '678']
             t.at "Column 2" . to Vector . should_equal ['98765', ""]
 
@@ -347,7 +347,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Start_And_Width 8 3]
                 + [Fixed_Width_Column_Description.Start_And_Width 18 3]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t = data5.read (Fixed_Width_Format.Fixed_Width layout)
+            t = bad_chars.read (Fixed_Width_Format.Fixed_Width layout)
             expected = Encoding_Error.Error "Failed to decode 4 code units (at positions: character 0 row 0 column 1, character 1 row 0 column 1, character 1 row 1 column 0, ...)."
             Problems.expect_warning expected t
 
