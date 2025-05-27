@@ -23,6 +23,7 @@ final class Zlib implements ProxyExecutable {
 
   private static final String BUFFER_FROM = "buffer-from";
   private static final String BUFFER_TO_STRING = "buffer-to-string";
+  private static final String HEX = "hex";
   private static final String ENCODING_BASE64 = "base64";
   private static final String ENCODING_BASE64_URL = "base64url";
 
@@ -37,43 +38,60 @@ final class Zlib implements ProxyExecutable {
   }
 
   @Override
-  public Object execute(Value... arguments) {
-    final var command = arguments[0].asString();
+  public Object execute(Value... args) {
+    final var command = args[0].asString();
 
-    log.debug(Arguments.toString(arguments));
+    log.debug(Arguments.toString(args));
 
     return switch (command) {
       case BUFFER_FROM -> {
-        final var text = arguments[1].asString();
-        final var encoding = arguments[2].asString();
-
-        yield switch (encoding) {
-          case ENCODING_BASE64 -> {
-            final var buffer = StandardCharsets.UTF_8.encode(text);
-            yield Base64.getDecoder().decode(buffer);
-          }
-          case ENCODING_BASE64_URL -> {
-            final var buffer = StandardCharsets.UTF_8.encode(text);
-            yield Base64.getUrlDecoder().decode(buffer);
-          }
-          case null -> StandardCharsets.UTF_8.encode(text);
-          default -> {
-            Charset charset;
-            try {
-              charset = Charset.forName(encoding);
-            } catch (IllegalArgumentException e) {
-              throw new RuntimeException("Unknown encoding: " + encoding, e);
+        String text;
+        String encoding;
+        if (args[1].hasBufferElements()) {
+          var tmp = new byte[Math.toIntExact(args[1].getBufferSize())];
+          var byteOffset = args.length >= 3 && args[2].fitsInInt() ? args[2].asInt() : 0;
+          var length =
+              args.length >= 4 && args[2].fitsInInt() ? args[3].asInt() : tmp.length - byteOffset;
+          args[1].readBuffer(byteOffset, tmp, byteOffset, length);
+          yield ByteBuffer.wrap(tmp, byteOffset, length);
+        } else {
+          text = args[1].asString();
+          encoding = args[2].asString();
+          yield switch (encoding) {
+            case ENCODING_BASE64 -> {
+              final var buffer = StandardCharsets.UTF_8.encode(text);
+              yield Base64.getDecoder().decode(buffer);
             }
-            yield charset.encode(text);
-          }
-        };
+            case ENCODING_BASE64_URL -> {
+              final var buffer = StandardCharsets.UTF_8.encode(text);
+              yield Base64.getUrlDecoder().decode(buffer);
+            }
+            case null -> StandardCharsets.UTF_8.encode(text);
+            default -> {
+              Charset charset;
+              try {
+                charset = Charset.forName(encoding);
+              } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Unknown encoding: " + encoding, e);
+              }
+              yield charset.encode(text);
+            }
+          };
+        }
       }
 
       case BUFFER_TO_STRING -> {
-        final var byteSequence = arguments[1].as(ByteSequence.class);
-        final var encoding = arguments[2].asString();
+        final var byteSequence = args[1].as(ByteSequence.class);
+        final var encoding = args[2].asString();
 
         yield switch (encoding) {
+          case HEX -> {
+            var sb = new StringBuilder();
+            for (var i = 0; i < byteSequence.length(); i++) {
+              sb.append(String.format("%02x", byteSequence.byteAt(i)));
+            }
+            yield sb.toString();
+          }
           case ENCODING_BASE64 -> {
             final var arr = Base64.getEncoder().encode(byteSequence.toByteArray());
             yield new String(arr, StandardCharsets.UTF_8);
@@ -100,7 +118,7 @@ final class Zlib implements ProxyExecutable {
       }
 
       case ZLIB_DEFLATE_SYNC -> {
-        final var byteSequence = arguments[1].as(ByteSequence.class);
+        final var byteSequence = args[1].as(ByteSequence.class);
 
         final var output = new ByteArrayOutputStream();
         try (final var deflater = new DeflaterOutputStream(output)) {
@@ -113,7 +131,7 @@ final class Zlib implements ProxyExecutable {
       }
 
       case ZLIB_INFLATE_SYNC -> {
-        final var byteSequence = arguments[1].as(ByteSequence.class);
+        final var byteSequence = args[1].as(ByteSequence.class);
 
         final var output = new ByteArrayOutputStream();
         try (final var inflater = new InflaterOutputStream(output)) {
