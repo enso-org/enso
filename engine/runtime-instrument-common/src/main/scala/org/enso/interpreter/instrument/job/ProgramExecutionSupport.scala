@@ -323,8 +323,8 @@ object ProgramExecutionSupport {
         logger.trace("Execution of function {} interrupted.", itemName)
         None
       case _ =>
-        val message = s""
-        logger.trace(
+        val message = s"Internal error: ${error.getMessage}"
+        logger.warn(
           "Execution of function {} failed ({}).",
           itemName,
           reason,
