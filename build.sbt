@@ -4889,6 +4889,8 @@ val `google-api-native-libs` =
   stdLibComponentRoot("Google_Api") / "polyglot" / "lib"
 val `database-polyglot-root` =
   stdLibComponentRoot("Database") / "polyglot" / "java"
+val `database-native-libs` =
+  stdLibComponentRoot("Database") / "polyglot" / "lib"
 val `std-aws-polyglot-root` =
   stdLibComponentRoot("AWS") / "polyglot" / "java"
 val `std-snowflake-polyglot-root` =
@@ -5335,22 +5337,63 @@ lazy val `std-database` = project
       "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"       % "postgresql"              % postgresVersion
     ),
-    Compile / packageBin := {
-      val result            = (Compile / packageBin).value
+    // Extract native libraries from sqlite-jdbc-**.jar and put them under
+    // Standard/Database/polyglot/lib directory. The minimized jar will be
+    // put under Standard/Database/polyglot/java directory.
+    extractNativeLibs := Def.task {
+      val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
+      import sbt.util.CacheImplicits._
+      val prev = extractNativeLibs.previous
       StdBits
         .copyDependencies(
           `database-polyglot-root`,
           Seq("std-database.jar"),
           ignoreScalaLibrary = true,
+          ignoreDependencyIncludeTransitive =
+            Some(s"sqlite-jdbc-${sqliteVersion}"),
           libraryUpdates     = (Compile / update).value,
-          unmanagedClasspath = (Compile / unmanagedClasspath).value,
           logger             = streams.value.log,
-          cacheStoreFactory,
-          previousRun = None
+          cacheStoreFactory  = cacheStoreFactory,
+          unmanagedClasspath = (Compile / unmanagedJars).value,
+          previousRun        = prev
         )
-      result
-    }
+      StdBits
+        .extractNativeLibsFromSqlite(
+          `database-polyglot-root`,
+          `database-native-libs`,
+          sqliteVersion,
+          updateReport       = (Compile / update).value,
+          logger             = streams.value.log,
+          moduleName         = moduleName.value,
+          scalaBinaryVersion = scalaBinaryVersion.value,
+          cacheStoreFactory  = cacheStoreFactory,
+          previousRun        = prev
+        )
+    }.value,
+    cleanPolyglotRoot := Def.task {
+      import sbt.util.CacheImplicits._
+      val forceClean = extractNativeLibs.previous.isEmpty
+      val logger     = streams.value.log
+      StdBits.ensureDirExistsAndIsClean(
+        `database-polyglot-root`.toPath,
+        logger,
+        forceClean
+      )
+      StdBits.ensureDirExistsAndIsClean(
+        `database-native-libs`.toPath,
+        logger,
+        forceClean
+      )
+    }.value,
+    Compile / packageBin := Def
+      .task {
+        val result = (Compile / packageBin).value
+        extractNativeLibs.value
+        result
+      }
+      .dependsOn(cleanPolyglotRoot)
+      .value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")

@@ -413,6 +413,77 @@ object StdBits {
     )
   }
 
+  def extractNativeLibsFromSqlite(
+    databasePolyglotRoot: File,
+    databaseNativeLibs: File,
+    sqliteVersion: String,
+    updateReport: UpdateReport,
+    logger: ManagedLogger,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
+    val osName     = plainOsName()
+    val validOsExt = osExt()
+    val validArch  = arch().replace("-", "_")
+    // Make sure that the native libs in the `lib` directory complies with
+    // `org.enso.interpreter.runtime.NativeLibraryFinder`
+    def renameFunc(prefix: String)(entryName: String): Option[String] = {
+      val strippedEntryName = entryName.substring(prefix.length + 1)
+      val entryOsName = strippedEntryName
+        .split("/")
+        .head
+        .toLowerCase
+        .replace("mac", "macos")
+      val entryArch = strippedEntryName.split("/").apply(1)
+      if (
+        !strippedEntryName.endsWith(validOsExt) ||
+        // Remove native libs for different platforms
+        !(entryOsName.equals(osName)) ||
+        !validArch.equals(entryArch)
+      ) {
+        None
+      } else {
+        Some(
+          strippedEntryName.replace("x86_64", "amd64")
+        )
+      }
+    }
+
+    val sqliteJar = JPMSUtils
+      .filterModulesFromUpdate(
+        updateReport,
+        Seq("org.xerial" % "sqlite-jdbc" % sqliteVersion),
+        logger,
+        moduleName,
+        scalaBinaryVersion,
+        shouldContainAll = true
+      )
+      .head
+    val outputJar =
+      (databasePolyglotRoot / s"sqlite-jdbc-$sqliteVersion.jar").toPath
+    val extractPrefix = "org/sqlite/native"
+    val extractedLibs = JARUtils.extractFilesFromJar(
+      sqliteJar.toPath,
+      Some(extractPrefix),
+      Some(outputJar),
+      databaseNativeLibs.toPath,
+      renameFunc(extractPrefix),
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(sqliteJar))
+    )
+    AnalysisOfExtractedNativeLibs(
+      sqliteJar,
+      extractedLibs.getOrElse(Nil),
+      Some(outputJar.toFile)
+    )
+  }
+
   def ensureDirExistsAndIsClean(
     path: Path,
     logger: sbt.util.Logger,
