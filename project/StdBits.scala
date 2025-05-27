@@ -413,6 +413,9 @@ object StdBits {
     )
   }
 
+  /** Extracts all the native libraries from `sqlite-jdbc-<version>.jar`.
+    * Also, removes the `SqliteJdbcFeature` class from the JAR.
+    */
   def extractNativeLibsFromSqlite(
     databasePolyglotRoot: File,
     databaseNativeLibs: File,
@@ -476,6 +479,15 @@ object StdBits {
       logger,
       cacheStoreFactory,
       previousRun.flatMap(_.forJar(sqliteJar))
+    )
+    val sqliteFeature =
+      "META-INF/versions/9/org/sqlite/nativeimage/SqliteJdbcFeature"
+    def shouldBeDeleted(entryName: String): Boolean = {
+      entryName.startsWith(sqliteFeature)
+    }
+    JARUtils.removeEntriesFromJar(
+      outputJar,
+      shouldBeDeleted
     )
     AnalysisOfExtractedNativeLibs(
       sqliteJar,

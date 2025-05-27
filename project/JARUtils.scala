@@ -181,4 +181,46 @@ object JARUtils {
       Nil
     })
   }
+
+  /** Removes the specified list of entries from the JAR archive at `jarPath`.
+    * Changes the JAR archive in place.
+    * If some entries are not found, they are ignored.
+    * @param jarPath
+    * @param shouldBeDeleted A function that takes the entry name and returns true if the entry should be deleted.
+    */
+  def removeEntriesFromJar(
+    jarPath: Path,
+    shouldBeDeleted: String => Boolean
+  ): Unit = {
+    val jarFile     = new JarFile(jarPath.toFile)
+    val tempJarPath = Files.createTempFile("temp-", ".jar")
+    try {
+      Using(new JarOutputStream(Files.newOutputStream(tempJarPath))) {
+        outputJar =>
+          jarFile.stream().forEach { entry =>
+            if (!shouldBeDeleted(entry.getName)) {
+              outputJar.putNextEntry(new JarEntry(entry.getName))
+              Using(jarFile.getInputStream(entry)) { is =>
+                is.transferTo(outputJar)
+              }.recover({ case e: IOException =>
+                throw new RuntimeException(
+                  s"Failed to copy $entry to output JAR: ${e.getMessage}",
+                  e
+                )
+              })
+              outputJar.closeEntry()
+            }
+          }
+      }
+      IO.delete(jarPath.toFile)
+      Files.move(
+        tempJarPath,
+        jarPath,
+        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+      )
+    } finally {
+      IO.delete(tempJarPath.toFile)
+      jarFile.close()
+    }
+  }
 }
