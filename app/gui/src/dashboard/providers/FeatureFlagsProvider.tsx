@@ -13,6 +13,11 @@ import { persist } from 'zustand/middleware'
 const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
 const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
 
+const THEMES = ['light', 'dark'] as const
+export const THEME_SCHEMA = z.enum(THEMES)
+/** Possible themes for the application. */
+export type Theme = z.infer<typeof THEME_SCHEMA>
+
 /** Feature flags for internal testing. */
 export function featureFlagsForInternalTesting() {
   return {
@@ -32,6 +37,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableAdvancedProjectExecutionOptions: z.boolean(),
   enableHybridExecution: z.boolean(),
   showDeveloperIds: z.boolean(),
+  theme: THEME_SCHEMA,
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA })
@@ -61,6 +67,7 @@ const flagsStore = createStore<FeatureFlagsStore>()(
         enableAdvancedProjectExecutionOptions: false,
         enableHybridExecution: IS_DEV_MODE,
         showDeveloperIds: false,
+        theme: 'light',
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

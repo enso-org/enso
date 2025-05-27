@@ -8,6 +8,7 @@ import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import { useFeatureFlag, useSetFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { Path } from '#/services/ProjectManager'
@@ -64,6 +65,8 @@ export function Settings() {
     setLocalRootDirectory(undefined)
     localBackend?.resetRootPath()
   })
+  const theme = useFeatureFlag('theme')
+  const setFeatureFlag = useSetFeatureFlag()
 
   const isMatch = React.useMemo(() => {
     const regex = new RegExp(regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
@@ -89,6 +92,8 @@ export function Settings() {
       changePassword,
       preferredTimeZone,
       setPreferredTimeZone,
+      theme,
+      setFeatureFlag,
     }),
     [
       accessToken,
@@ -108,6 +113,8 @@ export function Settings() {
       localRootDirectory,
       preferredTimeZone,
       setPreferredTimeZone,
+      theme,
+      setFeatureFlag,
     ],
   )
 

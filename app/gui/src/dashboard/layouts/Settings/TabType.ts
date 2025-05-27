@@ -10,7 +10,7 @@ enum SettingsTabType {
   billingAndPlans = 'billing-and-plans',
   members = 'members',
   userGroups = 'user-groups',
-  // appearance = 'appearance',
+  appearance = 'appearance',
   keyboardShortcuts = 'keyboard-shortcuts',
   // dataCoPilot = 'data-co-pilot',
   // featurePreview = 'feature-preview',

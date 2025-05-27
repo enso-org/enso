@@ -64,6 +64,7 @@ import { Path } from '#/utilities/path'
 
 import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter, useText } from '$/providers/react'
@@ -235,6 +236,7 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
         <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
           <InputBindingsProvider>
             <LocalBackendPathSynchronizer />
+            <ThemeSynchronizer />
             <VersionChecker />
             {children}
           </InputBindingsProvider>
@@ -254,6 +256,20 @@ function LocalBackendPathSynchronizer() {
   } else {
     localBackend?.resetRootPath()
   }
+
+  return null
+}
+
+/** Keep `localBackend.rootPath` in sync with the saved root path state. */
+function ThemeSynchronizer() {
+  const theme = useFeatureFlag('theme')
+  const oldTheme = React.useRef(theme)
+
+  React.useEffect(() => {
+    document.body.classList.remove(`theme-${oldTheme.current}`)
+    document.body.classList.add(`theme-${theme}`)
+    oldTheme.current = theme
+  }, [theme])
 
   return null
 }

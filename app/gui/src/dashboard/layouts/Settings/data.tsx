@@ -7,13 +7,13 @@ import * as z from 'zod'
 import type { TextId } from 'enso-common/src/text'
 
 import ComputerIcon from '#/assets/computer.svg'
-import type { SvgUseIcon } from '#/components/AriaComponents'
-import { Button, ButtonGroup } from '#/components/AriaComponents'
+import { Button, ButtonGroup, Form, Switch, type SvgUseIcon } from '#/components/AriaComponents'
 import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
+import type { FeatureFlags, Theme } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import {
   EmailAddress,
@@ -408,6 +408,36 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
+  [SettingsTabType.appearance]: {
+    nameId: 'appearanceSettingsTab',
+    settingsTab: SettingsTabType.appearance,
+    icon: 'paint_palette',
+    sections: [
+      {
+        nameId: 'appearanceSettingsSection',
+        entries: [
+          {
+            type: 'custom',
+            aliasesId: 'appearanceSettingsCustomEntryAliases',
+            render: (context) => {
+              return (
+                <Form
+                  schema={z.object({ isDarkTheme: z.boolean() })}
+                  defaultValues={{ isDarkTheme: context.theme === 'dark' }}
+                  onChange={(_key, value) => {
+                    const isDarkTheme = value
+                    context.setFeatureFlag('theme', isDarkTheme ? 'dark' : 'light')
+                  }}
+                >
+                  <Switch name="isDarkTheme" label={context.getText('enableDarkTheme')} />
+                </Form>
+              )
+            },
+          },
+        ],
+      },
+    ],
+  },
   [SettingsTabType.keyboardShortcuts]: {
     nameId: 'keyboardShortcutsSettingsTab',
     settingsTab: SettingsTabType.keyboardShortcuts,
@@ -477,7 +507,10 @@ export const SETTINGS_DATA: SettingsData = [
   },
   {
     nameId: 'lookAndFeelSettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.keyboardShortcuts]],
+    tabs: [
+      SETTINGS_TAB_DATA[SettingsTabType.appearance],
+      SETTINGS_TAB_DATA[SettingsTabType.keyboardShortcuts],
+    ],
   },
   {
     nameId: 'securitySettingsTabSection',
@@ -509,6 +542,11 @@ export interface SettingsContext {
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly preferredTimeZone: string | undefined
   readonly setPreferredTimeZone: (preferredTimeZone: string | undefined) => void
+  readonly theme: Theme
+  readonly setFeatureFlag: <Key extends keyof FeatureFlags>(
+    key: Key,
+    value: FeatureFlags[Key],
+  ) => void
 }
 
 /**
