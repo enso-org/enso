@@ -346,6 +346,7 @@ impl Processor {
                 let input = Backend::resolve(self, input);
                 let repo = self.remote_repo.clone();
                 let context = self.context();
+                let small_jdk_dir = context.repo_root.target.small_jdk.path.clone();
                 async move {
                     let input = input.await?;
                     let operation = enso_build::engine::Operation::Release(
@@ -354,13 +355,12 @@ impl Processor {
                             command: enso_build::engine::ReleaseCommand::Upload,
                         },
                     );
-                    let small_jdk_dir = self.context.repo_root.target.small_jdk.path.clone();
                     let config = enso_build::engine::BuildConfigurationFlags {
                         build_engine_package: true,
                         build_launcher_bundle: true,
                         build_project_manager_bundle: true,
                         build_small_jdk: true,
-                        small_jdk_dir: Some(small_jdk_dir.clone()),
+                        small_jdk_dir: Some(small_jdk_dir),
                         verify_packages: true,
                         ..default()
                     };
