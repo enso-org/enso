@@ -31,35 +31,11 @@ const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always
     <template #default="triggerProps">
       <div class="SelectableTab" :class="orientation" @click="selected = !selected">
         <motion.div
-          v-if="selected && orientation === 'horizontal'"
+          v-if="selected"
           class="underlying"
+          :class="orientation"
           :layoutId="selectionLayoutId"
-        >
-          <!-- TODO[ao]: Selection logic copied from dashboard. Anyone is welcome to port it in 
-           their spare time -->
-          <div class="h-full w-full rounded-t-4xl bg-dashboard" />
-          <div
-            class="absolute -left-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_0%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
-          />
-          <div
-            class="absolute -right-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_100%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
-          />
-        </motion.div>
-        <motion.div
-          v-if="selected && orientation === 'vertical'"
-          class="underlying"
-          :layoutId="selectionLayoutId"
-        >
-          <!-- TODO[ao]: Selection logic copied from dashboard. Anyone is welcome to port it in 
-           their spare time -->
-          <div className="h-full w-full rounded-r-2xl bg-background-hex" />
-          <div
-            className="absolute -top-5 left-0 aspect-square w-5 [background:radial-gradient(circle_at_100%_0%,_transparent_70%,_var(--color-background-hex)_70%)]"
-          />
-          <div
-            className="absolute -bottom-5 left-0 aspect-square w-5 [background:radial-gradient(circle_at_100%_100%,_transparent_70%,_var(--color-background-hex)_70%)]"
-          />
-        </motion.div>
+        />
         <button
           role="tab"
           :aria-label="tooltip ?? label ?? ''"
@@ -83,6 +59,8 @@ const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always
 
 <style scoped>
 .SelectableTab {
+  --selection-color: var(--color-dashboard-background);
+  --border-radius: 2rem;
   position: relative;
   display: flex;
   flex-direction: row;
@@ -106,6 +84,47 @@ const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always
   width: 100%;
   height: 100%;
   z-index: -1;
+  background-color: var(--selection-color);
+
+  &:before,
+  &:after {
+    content: '';
+    position: absolute;
+    width: 1.25rem;
+    height: 1.25rem;
+    background-image: radial-gradient(circle at 0 0, transparent 70%, var(--selection-color) 70%);
+  }
+
+  &.horizontal {
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+
+    &:before {
+      left: -1.25rem;
+      bottom: 0;
+    }
+
+    &:after {
+      transform: rotate(90deg);
+      right: -1.25rem;
+      bottom: 0;
+    }
+  }
+
+  &.vertical {
+    border-top-right-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+
+    &:before {
+      transform: rotate(90deg);
+      top: -1.25rem;
+    }
+
+    &:after {
+      transform: rotate(180deg);
+      bottom: -1.25rem;
+    }
+  }
 }
 
 .tabContent {

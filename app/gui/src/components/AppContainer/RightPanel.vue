@@ -101,6 +101,11 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   padding: 16px 0;
 }
 
+.SelectableTab {
+  --selection-color: var(--color-background-hex);
+  --border-radius: 1rem;
+}
+
 .shadow {
   position: absolute;
   width: 100%;
