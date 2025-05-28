@@ -2,12 +2,13 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
-import { Button, ButtonGroup, Menu } from '#/components/AriaComponents'
+import { Button, ButtonGroup, Menu, Popover } from '#/components/AriaComponents'
 import { Breadcrumbs, type BreadcrumbItemProps, type OnDrop } from '#/components/Breadcrumbs'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetPanelToggle, useSetAssetPanelDefaultItem } from '#/layouts/AssetPanel'
+import CategorySwitcher from '#/layouts/CategorySwitcher'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
@@ -168,30 +169,16 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
               <Menu items={[...finalPath].reverse()} onAction={navigateToDirectory}>
                 {(item) => {
                   const index = finalPath.findIndex((pathItem) => pathItem.id === item.id)
-                  const isCategoryRoot = index === finalPath.length - 1
-                  const menuItem = (
+                  return (
                     <Menu.Item
                       key={item.id + index}
                       id={item.id}
                       icon={item.icon}
-                      isDisabled={item.id === currentDirectoryId && !isCategoryRoot}
+                      isDisabled={item.id === currentDirectoryId}
                     >
                       {item.label}
                     </Menu.Item>
                   )
-                  // FIXME: this doesn't work
-                  if (isCategoryRoot) {
-                    return (
-                      <Menu.Trigger>
-                        {menuItem}
-
-                        <Popover size="auto">
-                          <CategorySwitcher category={category} setCategoryId={setCategoryId} />
-                        </Popover>
-                      </Menu.Trigger>
-                    )
-                  }
-                  return menuItem
                 }}
               </Menu>
             </Menu.Trigger>
@@ -199,17 +186,51 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
 
           <Scroller orientation="horizontal">
             <Breadcrumbs onDrop={onDrop}>
-              {finalPath.map((pathItem, index) => (
-                <DriveBarBreadcrumbsItem
-                  key={pathItem.id + index}
-                  id={pathItem.id}
-                  icon={pathItem.icon}
-                  navigateToDirectory={navigateToDirectory}
-                  isDroppable={pathItem.id !== currentDirectoryId}
-                >
-                  {pathItem.label}
-                </DriveBarBreadcrumbsItem>
-              ))}
+              {finalPath.map((pathItem, index) => {
+                const isCurrent = pathItem.id === currentDirectoryId
+                const breadcrumb = (
+                  <DriveBarBreadcrumbsItem
+                    key={pathItem.id + index}
+                    id={pathItem.id}
+                    icon={pathItem.icon}
+                    navigateToDirectory={navigateToDirectory}
+                    isDroppable={!isCurrent}
+                  >
+                    {pathItem.label}
+                  </DriveBarBreadcrumbsItem>
+                )
+                if (index === 0 && isCurrent) {
+                  return (
+                    <Menu.Trigger>
+                      <Button size="custom">
+                        <DriveBarBreadcrumbsItem
+                          key={pathItem.id + index}
+                          id={pathItem.id}
+                          icon={pathItem.icon}
+                          navigateToDirectory={navigateToDirectory}
+                          isDroppable={pathItem.id !== currentDirectoryId}
+                        >
+                          {pathItem.label}
+                        </DriveBarBreadcrumbsItem>
+                      </Button>
+                      <Popover size="auto">
+                        {({ close }) => {
+                          return (
+                            <CategorySwitcher
+                              category={category}
+                              setCategoryId={(id) => {
+                                setCategoryId(id)
+                                close()
+                              }}
+                            />
+                          )
+                        }}
+                      </Popover>
+                    </Menu.Trigger>
+                  )
+                }
+                return breadcrumb
+              })}
             </Breadcrumbs>
           </Scroller>
 
