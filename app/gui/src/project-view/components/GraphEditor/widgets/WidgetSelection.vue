@@ -43,9 +43,9 @@ const projectNames = injectProjectNames()
 
 const tree = injectWidgetTree()
 
-const widgetRoot = shallowRef<HTMLElement>()
+const widgetRoot = useTemplateRef('widgetRoot')
 const submenuRef = useTemplateRef('submenuRef')
-const activityElement = ref<HTMLElement>()
+const activityElement = useTemplateRef('activityElement')
 
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
@@ -233,7 +233,7 @@ const dropDownInteraction = WidgetEditHandler.New(props, {
   pointerdown: (e) => {
     if (
       submenuRef.value?.isTargetOutside(e) &&
-      targetIsOutside(e, unrefElement(activityElement)) &&
+      (activityElement.value == null || targetIsOutside(e, unrefElement(activityElement))) &&
       targetIsOutside(e, unrefElement(widgetRoot)) &&
       targetIsOutside(e, document.getElementById('floatingLayer'))
     ) {
