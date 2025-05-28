@@ -507,43 +507,51 @@ val commons = Seq(
 )
 
 // === Helidon ================================================================
-val jakartaVersion = "2.0.1"
-val helidonVersion = "4.1.2"
-val helidon = Seq(
-  "io.helidon"                 % "helidon"                     % helidonVersion,
-  "io.helidon.builder"         % "helidon-builder-api"         % helidonVersion,
-  "io.helidon.common"          % "helidon-common"              % helidonVersion,
-  "io.helidon.common"          % "helidon-common-buffers"      % helidonVersion,
-  "io.helidon.common"          % "helidon-common-config"       % helidonVersion,
-  "io.helidon.common"          % "helidon-common-configurable" % helidonVersion,
-  "io.helidon.common"          % "helidon-common-context"      % helidonVersion,
-  "io.helidon.common"          % "helidon-common-key-util"     % helidonVersion,
-  "io.helidon.common"          % "helidon-common-mapper"       % helidonVersion,
-  "io.helidon.common"          % "helidon-common-media-type"   % helidonVersion,
-  "io.helidon.common"          % "helidon-common-parameters"   % helidonVersion,
-  "io.helidon.common"          % "helidon-common-socket"       % helidonVersion,
-  "io.helidon.common"          % "helidon-common-security"     % helidonVersion,
-  "io.helidon.common"          % "helidon-common-task"         % helidonVersion,
-  "io.helidon.common"          % "helidon-common-types"        % helidonVersion,
-  "io.helidon.common"          % "helidon-common-tls"          % helidonVersion,
-  "io.helidon.common"          % "helidon-common-uri"          % helidonVersion,
-  "io.helidon.common.features" % "helidon-common-features"     % helidonVersion,
-  "io.helidon.common.features" % "helidon-common-features-api" % helidonVersion,
-  "io.helidon.config"          % "helidon-config"              % helidonVersion,
-  "io.helidon.logging"         % "helidon-logging-common"      % helidonVersion,
-  "io.helidon.inject"          % "helidon-inject-api"          % helidonVersion,
-  "io.helidon.http"            % "helidon-http"                % helidonVersion,
-  "io.helidon.http.encoding"   % "helidon-http-encoding"       % helidonVersion,
-  "io.helidon.http.media"      % "helidon-http-media"          % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient"           % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient-api"       % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient-http1"     % helidonVersion,
-  "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion,
-  "io.helidon.webserver"       % "helidon-webserver"           % helidonVersion,
-  "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
-  "io.helidon.websocket"       % "helidon-websocket"           % helidonVersion,
-  "jakarta.inject"             % "jakarta.inject-api"          % jakartaVersion
-)
+val helidonVersion = "4.2.2"
+val helidon = {
+  val clientAndSharedDeps = Seq(
+    "io.helidon"               % "helidon"                     % helidonVersion,
+    "io.helidon.builder"       % "helidon-builder-api"         % helidonVersion,
+    "io.helidon.common"        % "helidon-common"              % helidonVersion,
+    "io.helidon.common"        % "helidon-common-buffers"      % helidonVersion,
+    "io.helidon.common"        % "helidon-common-config"       % helidonVersion,
+    "io.helidon.common"        % "helidon-common-configurable" % helidonVersion,
+    "io.helidon.common"        % "helidon-common-context"      % helidonVersion,
+    "io.helidon.common"        % "helidon-common-key-util"     % helidonVersion,
+    "io.helidon.common"        % "helidon-common-mapper"       % helidonVersion,
+    "io.helidon.common"        % "helidon-common-media-type"   % helidonVersion,
+    "io.helidon.common"        % "helidon-common-parameters"   % helidonVersion,
+    "io.helidon.common"        % "helidon-common-resumable"    % helidonVersion,
+    "io.helidon.common"        % "helidon-common-socket"       % helidonVersion,
+    "io.helidon.common"        % "helidon-common-tls"          % helidonVersion,
+    "io.helidon.common"        % "helidon-common-types"        % helidonVersion,
+    "io.helidon.common"        % "helidon-common-uri"          % helidonVersion,
+    "io.helidon.http"          % "helidon-http"                % helidonVersion,
+    "io.helidon.http.encoding" % "helidon-http-encoding"       % helidonVersion,
+    "io.helidon.http.media"    % "helidon-http-media"          % helidonVersion,
+    "io.helidon.logging"       % "helidon-logging-common"      % helidonVersion,
+    "io.helidon.metadata"      % "helidon-metadata-hson"       % helidonVersion,
+    "io.helidon.service"       % "helidon-service-metadata"    % helidonVersion,
+    "io.helidon.service"       % "helidon-service-registry"    % helidonVersion,
+    "io.helidon.webclient"     % "helidon-webclient"           % helidonVersion,
+    "io.helidon.webclient"     % "helidon-webclient-api"       % helidonVersion,
+    "io.helidon.webclient"     % "helidon-webclient-http1"     % helidonVersion,
+    "io.helidon.webclient"     % "helidon-webclient-websocket" % helidonVersion,
+    "io.helidon.websocket"     % "helidon-websocket"           % helidonVersion
+  )
+  val serverDeps = Seq(
+    "io.helidon.webserver"          % "helidon-webserver"                 % helidonVersion,
+    "io.helidon.webserver"          % "helidon-webserver-websocket"       % helidonVersion,
+    "io.helidon.config"             % "helidon-config"                    % helidonVersion,
+    "io.helidon.common"             % "helidon-common-security"           % helidonVersion,
+    "io.helidon.common.concurrency" % "helidon-common-concurrency-limits" % helidonVersion,
+    "io.helidon.common.features"    % "helidon-common-features"           % helidonVersion,
+    "io.helidon.common.features"    % "helidon-common-features-api"       % helidonVersion,
+    "io.helidon.common"             % "helidon-common-task"               % helidonVersion,
+    "io.helidon.metrics"            % "helidon-metrics-api"               % helidonVersion
+  )
+  clientAndSharedDeps ++ serverDeps
+}
 
 // === Jackson ================================================================
 
@@ -674,21 +682,6 @@ val jimFsVersion            = "1.3.0"
 // ============================================================================
 // === Utility methods =====================================================
 // ============================================================================
-
-// TODO: Remove
-lazy val componentModulesIds =
-  taskKey[Seq[ModuleID]](
-    "Gather all sbt module IDs that will be put on the module-path for the engine runner"
-  )
-(ThisBuild / componentModulesIds) := {
-  GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ logbackPkg ++ slf4jApi ++ Seq(
-    "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
-    (`runtime-language-arrow` / projectID).value,
-    (`syntax-rust-definition` / projectID).value,
-    (`ydoc-polyfill` / projectID).value,
-    (`profiling-utils` / projectID).value
-  )
-}
 
 lazy val componentModulesPaths =
   taskKey[Seq[File]](
@@ -959,7 +952,28 @@ lazy val `syntax-rust-definition` = project
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
-    Compile / compile / javacOptions ++= Seq("-source", "11", "-target", "11")
+    Compile / compile / javacOptions ++= Seq("-source", "11", "-target", "11"),
+    // Make sure the native library is not packaged in the exported `jar`.
+    assembly / assemblyMergeStrategy := {
+      case PathList(file)
+          if file.endsWith(".so") || file.endsWith(".dll") || file
+            .endsWith(".dylib") =>
+        MergeStrategy.discard
+      case _ =>
+        MergeStrategy.first
+    },
+    assembly / assemblyExcludedJars := {
+      JPMSUtils.filterModulesFromClasspath(
+        (Compile / fullClasspath).value,
+        slf4jApi,
+        streams.value.log,
+        javaModuleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+    },
+    Compile / exportedModule := assembly.value,
+    Compile / exportedModuleBin := assembly.value
   )
 
 lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
@@ -3962,66 +3976,7 @@ lazy val `engine-runner` = project
     }.value,
     buildSmallJdk := {
       val smallJdkDirectory = (target.value / "jdk").getAbsoluteFile()
-      if (smallJdkDirectory.exists()) {
-        IO.delete(smallJdkDirectory)
-      }
-      val NI_MODULES =
-        "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
-      val JDK_MODULES =
-        "java.naming,java.net.http,jdk.charsets,jdk.crypto.ec,jdk.localedata,jdk.httpserver,java.rmi"
-      val DEBUG_MODULES  = "jdk.jdwp.agent"
-      val PYTHON_MODULES = "jdk.security.auth,java.naming"
-
-      val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
-      val (jlink, modules, libDirs) = javaHome match {
-        case None =>
-          throw new RuntimeException("Missing java.home variable")
-        case Some(jh) =>
-          val exec = jh.resolve("bin").resolve("jlink")
-          val moduleJars = List(
-            "lib/svm/bin/../../graalvm/svm-driver.jar",
-            "lib/svm/bin/../builder/native-image-base.jar",
-            "lib/svm/bin/../builder/objectfile.jar",
-            "lib/svm/bin/../builder/pointsto.jar",
-            "lib/svm/bin/../builder/svm-enterprise.jar",
-            "lib/svm/bin/../builder/svm.jar",
-            "lib/svm/bin/../library-support.jar"
-          )
-          val targetLibDirs = List("graalvm", "svm", "static", "truffle")
-          (
-            exec,
-            moduleJars.map(jar => jh.resolve(jar).toString),
-            targetLibDirs.map(d => jh.resolve("lib").resolve(d))
-          )
-      }
-
-      var jlinkArgs = Seq(
-        "--module-path",
-        modules.mkString(File.pathSeparator),
-        "--output",
-        smallJdkDirectory.toString(),
-        "--add-modules",
-        s"$NI_MODULES,$JDK_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
-      )
-      val exitCode = scala.sys.process.Process(jlink.toString(), jlinkArgs).!
-      if (exitCode != 0) {
-        throw new RuntimeException(
-          s"Failed to execute $jlink ${jlinkArgs.mkString(" ")} - exit code: $exitCode"
-        )
-      }
-      libDirs.foreach(libDir =>
-        IO.copyDirectory(
-          libDir.toFile,
-          smallJdkDirectory.toPath
-            .resolve("lib")
-            .resolve(libDir.toFile.getName)
-            .toFile
-        )
-      )
-      assert(
-        smallJdkDirectory.exists(),
-        "Directory of small JDK " + smallJdkDirectory + " is not present"
-      )
+      SmallJDK.buildSmallJDKForNativeImage(smallJdkDirectory)
       smallJdkDirectory
     },
     rebuildNativeImage := Def
@@ -4157,6 +4112,17 @@ lazy val `engine-runner` = project
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
+
+/** Command for building small JDK for the release.
+  * Use as `buildSmallJdkForRelease <targetDir>`.
+  */
+ThisBuild / commands += {
+  Command.single("buildSmallJdkForRelease") { (state, targetDir) =>
+    SmallJDK.buildSmallJDKForRelease(new File(targetDir))
+    state.log.info(s"Small JDK built in: $targetDir")
+    state
+  }
+}
 
 lazy val extraNITestLibs =
   taskKey[Seq[String]](
@@ -6039,34 +6005,6 @@ buildProjectManagerDistribution := {
   val cacheFactory = streams.value.cacheStoreFactory
   DistributionPackage.createProjectManagerPackage(root, cacheFactory)
   log.info(s"Project Manager package created at $root")
-}
-
-lazy val buildGraalDistribution =
-  taskKey[Unit]("Builds the GraalVM distribution")
-buildGraalDistribution := {
-  val log      = streams.value.log
-  val distOs   = "DIST_OS"
-  val distArch = "DIST_ARCH"
-  val osName   = "os.name"
-  val archName = "os.arch"
-  val distName = sys.env.get(distOs).getOrElse {
-    val name = sys.props(osName).takeWhile(!_.isWhitespace)
-    if (sys.env.contains("CI")) {
-      log.warn(
-        s"$distOs env var is empty. Fallback to system property $osName=$name."
-      )
-    }
-    name
-  }
-  val arch = sys.env.get(distArch).orElse(sys.env.get(archName))
-  val os = DistributionPackage.OS(distName, arch).getOrElse {
-    throw new RuntimeException(s"Failed to determine OS: $distName.")
-  }
-  packageBuilder.createGraalPackage(
-    log,
-    os,
-    os.archs.head
-  )
 }
 
 lazy val updateLibraryManifests =

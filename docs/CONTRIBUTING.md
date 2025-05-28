@@ -555,20 +555,18 @@ For more details about the CI setup, you can check the
 
 #### Running IDE
 
-You can start [IDE](https://github.com/enso-org/enso/tree/develop/gui) with a
-development version of the language server. IDE executable has `--no-engine`
-flag that switches off the bundled backend. That requires you to run the project
-manager process yourself. Running development version of the IDE is also
-possible via the npm script in the root of the repository:
+Running development version of the IDE is possible via the npm script in the
+root of the repository:
 
 ```bash
 enso$ corepack pnpm i
 enso$ corepack pnpm dev:gui
 ```
 
-To assemble and run the `project-manager` one needs to launch `sbt` - one way to
-do it is to execute `./run backend sbt`. When in the _sbt prompt_ one can
-request execution of the `project-manager`:
+This requires project-manager being run manually. To assemble and run the
+`project-manager` one needs to launch `sbt` - one way to do it is to execute
+`./run backend sbt`. When in the _sbt prompt_ one can request execution of the
+`project-manager`:
 
 <!--
 
@@ -630,6 +628,10 @@ By default the `runProjectManagerDistribution` command is useful for
 development, but it differs from the binary used during production. To work with
 a system closer to production one specify `ENSO_LAUNCHER=native` environment
 variable before starting `sbt` and use the same commands as described above.
+
+If you want to test your Project Manager build with a released IDE package, set
+`--no-engine` CLI argument to the IDE executable, and run your Project Manager
+manually.
 
 #### Language Server Mode
 

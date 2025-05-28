@@ -279,27 +279,6 @@ export default class LocalBackend extends Backend {
   }
 
   /**
-   * Return a list of projects belonging to the current user.
-   * @throws An error if the JSON-RPC call fails.
-   */
-  override async listProjects(): Promise<readonly backend.ListedProject[]> {
-    const result = await this.projectManager.listProjects({})
-    return result.projects.map((project) => ({
-      name: project.name,
-      organizationId: backend.OrganizationId('organization-'),
-      projectId: newProjectId(project.id, this.projectManager.rootDirectory),
-      packageName: project.name,
-      state: {
-        type: backend.ProjectState.closed,
-        volumeId: '',
-      },
-      jsonAddress: null,
-      binaryAddress: null,
-      ydocAddress: null,
-    }))
-  }
-
-  /**
    * Create a project.
    * @throws An error if the JSON-RPC call fails.
    */
@@ -869,16 +848,6 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override listAssetVersions() {
     return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override checkResources() {
-    return this.invalidOperation()
-  }
-
-  /** Return an empty array. This function should never need to be called. */
-  override listFiles() {
-    return Promise.resolve([])
   }
 
   /** Invalid operation. */

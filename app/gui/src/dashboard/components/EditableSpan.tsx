@@ -5,7 +5,7 @@ import CrossIcon from '#/assets/cross.svg'
 import TickIcon from '#/assets/tick.svg'
 
 import { Button, Form, Input, Text, Underlay } from '#/components/AriaComponents'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { twJoin } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 
 import { useInteractOutside } from '#/components/aria'
@@ -40,11 +40,7 @@ export default function EditableSpan(props: EditableSpanProps) {
 
   if (!editable) {
     return (
-      <Text
-        className={tailwindMerge.twJoin('min-w-0', className)}
-        testId={props['data-testid']}
-        truncate="1"
-      >
+      <Text className={twJoin('min-w-0', className)} testId={props['data-testid']} truncate="1">
         {children}
       </Text>
     )
@@ -146,7 +142,7 @@ function EditForm(props: EditFormProps) {
             size="custom"
             rounded="none"
             testId={props['data-testid']}
-            className={tailwindMerge.twJoin('flex-shrink-0 flex-grow basis-0', className)}
+            className={twJoin('flex-shrink-0 flex-grow basis-0', className)}
             type="text"
             aria-label={getText('editNameShortcut')}
             // we don't want the display the default error message

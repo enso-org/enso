@@ -58,7 +58,7 @@ export default function KeyboardShortcutsSettingsSection() {
       <Scroller
         scrollbar
         orientation="vertical"
-        className="mb-[40px] min-h-0 flex-1"
+        className="min-h-0 flex-1"
         shadowStartClassName="top-8"
       >
         <table className="table-fixed border-collapse rounded-rows">
