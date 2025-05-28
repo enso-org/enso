@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation;
 
+import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -29,6 +30,20 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     this.preserveNulls = preserveNulls;
   }
 
+  protected ColumnStorage<Boolean> throwUnsupported(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+    // If all are Nothing then will return a Nothing Boolean Storage
+    return StorageIterators.buildOverStorage(
+        left,
+        BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
+        (b, index, value) -> {
+          throw new IllegalArgumentException("Unsupported right value type " + rightValue.getClass() + ".");
+        });
+  }
+
+  protected RuntimeException makeCompareError(Object left, Object right) {
+    return new CompareException(left, right);
+  }
+
   @Override
   public final ColumnStorage<Boolean> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
@@ -40,8 +55,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     }
 
     if (rightValue != null && !(rightValue instanceof Boolean)) {
-      throw new IllegalArgumentException(
-          "Unsupported right value type " + rightValue.getClass() + ".");
+      return throwUnsupported(left, rightValue, problemAggregator);
     }
 
     boolean rightIsNothing = rightValue == null;

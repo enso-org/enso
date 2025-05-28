@@ -4,10 +4,13 @@ import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.unary.NotOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.BooleanType;
 
 public final class BooleanComparators {
   public static final BinaryOperation<Boolean> EQ =
@@ -26,6 +29,15 @@ public final class BooleanComparators {
             MapOperationProblemAggregator problemAggregator) {
           return rightBoolean ? left : NotOperation.applySpecializedBoolStorage(left);
         }
+
+        @Override
+        protected ColumnStorage<Boolean> throwUnsupported(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+          // If all are Nothing then will return a Nothing Boolean Storage
+          return StorageIterators.buildOverStorage(
+              left,
+              BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
+              (b, index, value) -> b.appendBoolean(false));
+        }
       };
 
   public static final BinaryOperation<Boolean> NEQ =
@@ -43,6 +55,15 @@ public final class BooleanComparators {
             boolean rightIsNothing,
             MapOperationProblemAggregator problemAggregator) {
           return rightBoolean ? NotOperation.applySpecializedBoolStorage(left) : left;
+        }
+
+        @Override
+        protected ColumnStorage<Boolean> throwUnsupported(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+          // If all are Nothing then will return a Nothing Boolean Storage
+          return StorageIterators.buildOverStorage(
+              left,
+              BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
+              (b, index, value) -> b.appendBoolean(true));
         }
       };
 
