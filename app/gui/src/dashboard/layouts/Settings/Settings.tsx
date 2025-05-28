@@ -1,6 +1,6 @@
 /** @file Settings screen. */
-import { Heading, MenuTrigger } from '#/components/aria'
-import { Button, Popover, Text } from '#/components/AriaComponents'
+import { Heading } from '#/components/aria'
+import { Button, Menu, Popover, Text } from '#/components/AriaComponents'
 import { useStrictPortalContext } from '#/components/Portal'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -188,7 +188,7 @@ export function Settings() {
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-hidden pl-page-x pt-4">
       <Heading level={1} className="flex items-center px-heading-x">
-        <MenuTrigger>
+        <Menu.Trigger>
           <Button variant="icon" icon="3_dot_menu" className="mr-3 sm:hidden" />
           <Popover size="auto" UNSTABLE_portalContainer={root}>
             <SettingsSidebar
@@ -198,7 +198,7 @@ export function Settings() {
               setTab={setTab}
             />
           </Popover>
-        </MenuTrigger>
+        </Menu.Trigger>
 
         <Text nowrap variant="h1" className="cursor-default font-bold">
           {getText('settingsFor')}

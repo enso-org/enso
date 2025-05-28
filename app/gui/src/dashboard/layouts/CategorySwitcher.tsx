@@ -266,162 +266,156 @@ function CategorySwitcher(props: CategorySwitcherProps) {
   const { localCategory, directories, addDirectory, removeDirectory } = localCategories
 
   return (
-    <div className="flex flex-col gap-2">
-      <AnimatedBackground>
-        <ariaComponents.Text variant="subtitle" weight="semibold">
-          {getText('category')}
-        </ariaComponents.Text>
+    <AnimatedBackground>
+      <div
+        aria-label={getText('categorySwitcherMenuLabel')}
+        role="grid"
+        className="flex flex-col items-start text-primary"
+      >
+        <CategorySwitcherItem
+          {...itemProps}
+          key={cloudCategory.id}
+          category={cloudCategory}
+          icon={cloudCategory.icon}
+          label={cloudCategory.label}
+          isDisabled={isOffline}
+          buttonLabel={getText('cloudCategoryButtonLabel')}
+          dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
+          badgeContent={getText('cloudCategoryBadgeContent')}
+        />
 
-        <div
-          aria-label={getText('categorySwitcherMenuLabel')}
-          role="grid"
-          className="flex flex-col items-start"
-        >
+        {teamCategories.map((teamCategory) => (
           <CategorySwitcherItem
+            key={teamCategory.id}
             {...itemProps}
-            key={cloudCategory.id}
-            category={cloudCategory}
-            icon={cloudCategory.icon}
-            label={cloudCategory.label}
+            isNested
+            category={teamCategory}
+            icon={teamCategory.icon}
+            label={teamCategory.label}
             isDisabled={isOffline}
-            buttonLabel={getText('cloudCategoryButtonLabel')}
-            dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
-            badgeContent={getText('cloudCategoryBadgeContent')}
+            buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
+            dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
           />
+        ))}
 
-          {teamCategories.map((teamCategory) => (
+        <CategorySwitcherItem
+          {...itemProps}
+          key={recentCategory.id}
+          isNested
+          category={recentCategory}
+          icon={recentCategory.icon}
+          label={recentCategory.label}
+          isDisabled={isOffline}
+          buttonLabel={getText('recentCategoryButtonLabel')}
+          dropZoneLabel={getText('recentCategoryDropZoneLabel')}
+        />
+
+        <CategorySwitcherItem
+          {...itemProps}
+          key={trashCategory.id}
+          isNested
+          category={trashCategory}
+          icon={trashCategory.icon}
+          label={trashCategory.label}
+          isDisabled={isOffline}
+          buttonLabel={getText('trashCategoryButtonLabel')}
+          dropZoneLabel={getText('trashCategoryDropZoneLabel')}
+        />
+
+        {localCategory != null && (
+          <div className="group flex items-center gap-2 self-stretch drop-target-after">
             <CategorySwitcherItem
-              key={teamCategory.id}
               {...itemProps}
-              isNested
-              category={teamCategory}
-              icon={teamCategory.icon}
-              label={teamCategory.label}
-              isDisabled={isOffline}
-              buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
-              dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
+              category={localCategory}
+              icon={localCategory.icon}
+              label={localCategory.label}
+              isDisabled={false}
+              buttonLabel={getText('localCategoryButtonLabel')}
+              dropZoneLabel={getText('localCategoryDropZoneLabel')}
             />
-          ))}
 
-          <CategorySwitcherItem
-            {...itemProps}
-            key={recentCategory.id}
-            isNested
-            category={recentCategory}
-            icon={recentCategory.icon}
-            label={recentCategory.label}
-            isDisabled={isOffline}
-            buttonLabel={getText('recentCategoryButtonLabel')}
-            dropZoneLabel={getText('recentCategoryDropZoneLabel')}
-          />
-
-          <CategorySwitcherItem
-            {...itemProps}
-            key={trashCategory.id}
-            isNested
-            category={trashCategory}
-            icon={trashCategory.icon}
-            label={trashCategory.label}
-            isDisabled={isOffline}
-            buttonLabel={getText('trashCategoryButtonLabel')}
-            dropZoneLabel={getText('trashCategoryDropZoneLabel')}
-          />
-
-          {localCategory != null && (
-            <div className="group flex items-center gap-2 self-stretch drop-target-after">
+            <ariaComponents.Button
+              size="medium"
+              variant="icon"
+              extraClickZone="small"
+              icon="settings"
+              aria-label={getText('changeLocalRootDirectoryInSettings')}
+              className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
+              onPress={() => {
+                void router.push({
+                  query: {
+                    [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
+                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                  },
+                })
+              }}
+            />
+          </div>
+        )}
+        {directories != null &&
+          directories.map((directory) => (
+            <div key={directory.id} className="group flex items-center gap-2 self-stretch">
               <CategorySwitcherItem
                 {...itemProps}
-                category={localCategory}
-                icon={localCategory.icon}
-                label={localCategory.label}
+                isNested
+                category={directory}
+                icon={directory.icon}
+                label={directory.label}
                 isDisabled={false}
                 buttonLabel={getText('localCategoryButtonLabel')}
                 dropZoneLabel={getText('localCategoryDropZoneLabel')}
               />
 
-              <ariaComponents.Button
-                size="medium"
-                variant="icon"
-                extraClickZone="small"
-                icon="settings"
-                aria-label={getText('changeLocalRootDirectoryInSettings')}
-                className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
-                onPress={() => {
-                  void router.push({
-                    query: {
-                      [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
-                      [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
-                    },
-                  })
-                }}
-              />
-            </div>
-          )}
-          {directories != null &&
-            directories.map((directory) => (
-              <div key={directory.id} className="group flex items-center gap-2 self-stretch">
-                <CategorySwitcherItem
-                  {...itemProps}
-                  isNested
-                  category={directory}
-                  icon={directory.icon}
-                  label={directory.label}
-                  isDisabled={false}
-                  buttonLabel={getText('localCategoryButtonLabel')}
-                  dropZoneLabel={getText('localCategoryDropZoneLabel')}
+              <ariaComponents.DialogTrigger>
+                <ariaComponents.Button
+                  size="medium"
+                  variant="icon"
+                  extraClickZone={false}
+                  icon="minus"
+                  aria-label={getText('removeDirectoryFromFavorites')}
+                  showIconOnHover
                 />
 
-                <ariaComponents.DialogTrigger>
-                  <ariaComponents.Button
-                    size="medium"
-                    variant="icon"
-                    extraClickZone={false}
-                    icon="minus"
-                    aria-label={getText('removeDirectoryFromFavorites')}
-                    showIconOnHover
-                  />
-
-                  <ConfirmDeleteModal
-                    actionText={getText('removeTheLocalDirectoryXFromFavorites', directory.label)}
-                    actionButtonLabel={getText('remove')}
-                    onConfirm={() => {
-                      removeDirectory(directory.id)
-                    }}
-                  />
-                </ariaComponents.DialogTrigger>
-              </div>
-            ))}
-
-          {directories != null && window.fileBrowserApi && (
-            <div className="flex">
-              <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
-
-              <ariaComponents.Button
-                size="medium"
-                variant="icon"
-                icon="folder_add_small"
-                loaderPosition="icon"
-                onPress={async () => {
-                  const [newDirectory] =
-                    (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
-
-                  if (newDirectory != null) {
-                    const addedDirectory = directories.find(
-                      (directory) => directory.rootPath === newDirectory,
-                    )
-
-                    const newCategory = addedDirectory ?? addDirectory(newDirectory)
-                    setCategoryId(newCategory.id)
-                  }
-                }}
-              >
-                {getText('addLocalDirectory')}
-              </ariaComponents.Button>
+                <ConfirmDeleteModal
+                  actionText={getText('removeTheLocalDirectoryXFromFavorites', directory.label)}
+                  actionButtonLabel={getText('remove')}
+                  onConfirm={() => {
+                    removeDirectory(directory.id)
+                  }}
+                />
+              </ariaComponents.DialogTrigger>
             </div>
-          )}
-        </div>
-      </AnimatedBackground>
-    </div>
+          ))}
+
+        {directories != null && window.fileBrowserApi && (
+          <div className="flex">
+            <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
+
+            <ariaComponents.Button
+              size="medium"
+              variant="icon"
+              icon="folder_add_small"
+              loaderPosition="icon"
+              onPress={async () => {
+                const [newDirectory] =
+                  (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+
+                if (newDirectory != null) {
+                  const addedDirectory = directories.find(
+                    (directory) => directory.rootPath === newDirectory,
+                  )
+
+                  const newCategory = addedDirectory ?? addDirectory(newDirectory)
+                  setCategoryId(newCategory.id)
+                }
+              }}
+            >
+              {getText('addLocalDirectory')}
+            </ariaComponents.Button>
+          </div>
+        )}
+      </div>
+    </AnimatedBackground>
   )
 }
 

@@ -8,6 +8,7 @@ import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetPanelToggle, useSetAssetPanelDefaultItem } from '#/layouts/AssetPanel'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
@@ -19,11 +20,18 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
+/** Props for a {@link DriveBarNavigation}. */
+export interface DriveBarNavigationProps {
+  readonly setCategoryId: (categoryId: Category['id']) => void
+}
+
 /**
  * Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher.
  */
-export function DriveBarNavigation() {
+export function DriveBarNavigation(props: DriveBarNavigationProps) {
+  const { setCategoryId } = props
+
   const { getText } = useText()
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
@@ -160,16 +168,30 @@ export function DriveBarNavigation() {
               <Menu items={[...finalPath].reverse()} onAction={navigateToDirectory}>
                 {(item) => {
                   const index = finalPath.findIndex((pathItem) => pathItem.id === item.id)
-                  return (
+                  const isCategoryRoot = index === finalPath.length - 1
+                  const menuItem = (
                     <Menu.Item
                       key={item.id + index}
                       id={item.id}
                       icon={item.icon}
-                      isDisabled={item.id === currentDirectoryId}
+                      isDisabled={item.id === currentDirectoryId && !isCategoryRoot}
                     >
                       {item.label}
                     </Menu.Item>
                   )
+                  // FIXME: this doesn't work
+                  if (isCategoryRoot) {
+                    return (
+                      <Menu.Trigger>
+                        {menuItem}
+
+                        <Popover size="auto">
+                          <CategorySwitcher category={category} setCategoryId={setCategoryId} />
+                        </Popover>
+                      </Menu.Trigger>
+                    )
+                  }
+                  return menuItem
                 }}
               </Menu>
             </Menu.Trigger>
