@@ -156,12 +156,6 @@ function useRightPanel(
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
   const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
   const fullscreen = ref(false)
-  /**
-   * A tab displayed temporarily. It overrides the tab clicked by user.
-   *
-   * The usages include displaying asset properties when editing Datalink - once the edit stops,
-   * the tab is restored to previous state.
-   */
   const temporaryTab = ref<RightPanelTabId>()
 
   const store = useLocalStorage<RightPanelStore>('rightPanel', {
@@ -169,7 +163,6 @@ function useRightPanel(
     width: undefined,
   })
 
-  /** Tab which should be displayed (taking temporary tab into consideration). */
   const displayedTab = computed(() => temporaryTab.value ?? store.value.tab)
 
   /**
@@ -194,10 +187,6 @@ function useRightPanel(
     contextPerTab.set(tab, newCtx)
   }
 
-  /**
-   * The project being a focus of the right panel, e.g. the currently opened project tab or
-   * selected project in Drive View.
-   */
   const focusedProject = computed(() => {
     if (typeof context.value?.item === 'string') {
       return context.value.item
@@ -208,9 +197,6 @@ function useRightPanel(
     }
   })
 
-  /**
-   * The asset being a focus of the right panel, e.g. the currently selected asset in Drive View.
-   */
   const focusedAsset = computed<AnyAsset | undefined>(() => {
     const currentItem = context.value?.item ?? context.value?.defaultItem
     return typeof currentItem === 'object' ? currentItem : undefined
@@ -232,9 +218,16 @@ function useRightPanel(
   return proxyRefs({
     allTabs,
     tab: readonly(toRef(store.value, 'tab')),
+    /** Tab which should be displayed (taking temporary tab into consideration). */
     displayedTab,
     setTab,
     toggleTab,
+    /**
+     * A tab displayed temporarily. It overrides the tab clicked by user.
+     *
+     * The usages include displaying asset properties when editing Datalink - once the edit stops,
+     * the tab is restored to previous state.
+     */
     temporaryTab,
     setTemporaryTab: (tab: RightPanelTabId | undefined) => (temporaryTab.value = tab),
     width: toRef(store.value, 'width'),
@@ -242,7 +235,14 @@ function useRightPanel(
     context,
     setContext,
     updateContext,
+    /**
+     * The project being a focus of the right panel, e.g. the currently opened project tab or
+     * selected project in Drive View.
+     */
     focusedProject,
+    /**
+     * The asset being a focus of the right panel, e.g. the currently selected asset in Drive View.
+     */
     focusedAsset,
   })
 }
