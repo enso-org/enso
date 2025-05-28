@@ -1,6 +1,5 @@
 import { SetFilterValuesFuncParams } from 'ag-grid-community'
-import { ValueType } from '../TableVisualization.vue'
-import { isNumericType } from './tableVizUtils'
+import { isNumericType, ValueType } from './tableVizUtils'
 
 export const getFilterParams = (
   isSSRM: boolean,
@@ -26,7 +25,6 @@ export const getFilterParams = (
             filter: 'agTextColumnFilter',
             filterParams: {
               ...defaultFilter,
-              values: null,
             },
           },
           {
