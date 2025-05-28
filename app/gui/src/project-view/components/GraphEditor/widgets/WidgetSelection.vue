@@ -43,9 +43,9 @@ const projectNames = injectProjectNames()
 
 const tree = injectWidgetTree()
 
-const widgetRoot = useTemplateRef('widgetRoot')
+const widgetRoot = useTemplateRef<HTMLElement>('widgetRoot')
 const submenuRef = useTemplateRef('submenuRef')
-const activityElement = useTemplateRef('activityElement')
+const activityElement = useTemplateRef<HTMLElement>('activityElement')
 
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
@@ -355,6 +355,9 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   }
 }
 
+function entryIsSelected(entry: Entry) {
+  return entry.tag instanceof ExpressionTag && selectedExpressions.value.has(entry.tag.expression)
+}
 const arrowLocation = ref()
 </script>
 
@@ -427,10 +430,7 @@ declare module '@/providers/widgetRegistry' {
       :floatReference="floatReference"
       :show="dropDownInteraction.isActive() && activity == null"
       :entries="entries"
-      :isSelected="
-        (entry) =>
-          entry.tag instanceof ExpressionTag && selectedExpressions.has(entry.tag.expression)
-      "
+      :isSelected="entryIsSelected"
       :topLevel="true"
       :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"
