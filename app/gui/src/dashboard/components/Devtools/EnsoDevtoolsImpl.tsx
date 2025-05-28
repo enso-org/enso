@@ -646,7 +646,7 @@ export function EnsoDevtools() {
 
                     {metadata.isUserSpecific === true && (
                       <VisualTooltip tooltip="User specific storage item">
-                        <Icon icon="default_user" size="small" />
+                        <Icon icon="default_user" size="small" color="primary" />
                       </VisualTooltip>
                     )}
                   </div>
