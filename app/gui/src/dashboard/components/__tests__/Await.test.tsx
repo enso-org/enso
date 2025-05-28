@@ -1,4 +1,5 @@
-import { TextContext, useText } from '$/providers/react'
+import { TextContext } from '$/providers/react'
+import { useText } from '$/providers/text'
 import { act, render, screen } from '@testing-library/react'
 import { describe, vi } from 'vitest'
 import { Await } from '../Await'
