@@ -9,7 +9,7 @@ import { StoryVariants } from '#/utilities/StoryVariants'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, userEvent, within } from '@storybook/test'
 import { omit } from 'enso-common/src/utilities/data/object'
-import { Button, type BaseButtonProps } from '.'
+import { Button, type BaseButtonProps, type ButtonProps } from '.'
 import { Badge } from '../../Badge'
 
 type Story = StoryObj<BaseButtonProps<string, aria.ButtonRenderProps>>
@@ -18,13 +18,14 @@ const variants = [
   'primary',
   'accent',
   'delete',
+  'delete-outline',
   'ghost-fading',
   'ghost',
   'link',
   'submit',
   'outline',
   'icon',
-] as const
+] as const satisfies readonly ButtonProps['variant'][]
 const sizes = ['hero', 'large', 'medium', 'small', 'xsmall', 'xxsmall'] as const
 
 export default {
