@@ -974,6 +974,7 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "Google_Api",
         "Image",
         "Microsoft",
+        "Saas",
         "Snowflake",
         "Table",
         "Tableau",

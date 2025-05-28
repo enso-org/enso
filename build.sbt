@@ -187,7 +187,11 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution(
     "Tableau",
     Distribution.sbtProjects(`std-tableau`, `jna-wrapper`)
-  )
+  ),
+  makeStdLibDistribution(
+    "Saas",
+    Distribution.sbtProjects(`std-saas`)
+  ),
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -408,6 +412,7 @@ lazy val enso = (project in file("."))
     `std-snowflake`,
     `std-table`,
     `std-tableau`,
+    `std-saas`,
     `syntax-rust-definition`,
     `task-progress-notifications`,
     testkit,
@@ -2941,6 +2946,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-snowflake` / Compile / packageBin)
       .dependsOn(`std-microsoft` / Compile / packageBin)
       .dependsOn(`std-tableau` / Compile / packageBin)
+      .dependsOn(`std-saas` / Compile / packageBin)
       .value
   )
   .dependsOn(`common-polyglot-core-utils`)
@@ -3946,6 +3952,9 @@ lazy val `engine-runner` = project
             .map(_.getAbsolutePath()) ++
           `std-tableau-polyglot-root`
             .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `std-saas-polyglot-root`
+            .listFiles("*.jar")
             .map(_.getAbsolutePath())
         }
       }
@@ -4872,6 +4881,8 @@ val `std-tableau-polyglot-root` =
   stdLibComponentRoot("Tableau") / "polyglot" / "java"
 val `std-tableau-native-libs` =
   stdLibComponentRoot("Tableau") / "polyglot" / "lib"
+val `std-saas-polyglot-root` =
+  stdLibComponentRoot("Saas") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -5609,6 +5620,36 @@ lazy val `std-tableau` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
+lazy val `std-saas` = project
+  .in(file("std-bits") / "saas")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-saas-polyglot-root` / "std-saas.jar",
+    Compile / packageBin := {
+      val result            = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      StdBits
+        .copyDependencies(
+          `std-saas-polyglot-root`,
+          Seq("std-saas.jar"),
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          logger             = streams.value.log,
+          cacheStoreFactory,
+          previousRun = None
+        )
+      result
+    }
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
 lazy val fetchZipToUnmanaged =
   taskKey[Seq[Attributed[File]]](
     "Download zip file from an `unmanagedExternalZip` url and unpack jars to unmanaged libs directory"
@@ -5857,7 +5898,8 @@ val stdBitsProjects =
     "Image",
     "Microsoft",
     "Snowflake",
-    "Table"
+    "Table",
+    "Saas"
   ) ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
@@ -5936,6 +5978,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-microsoft` / Compile / packageBin).value
     case "Tableau" =>
       (`std-tableau` / Compile / packageBin).value
+    case "Saas" =>
+      (`std-saas` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -5952,6 +5996,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-snowflake` / Compile / packageBin).value
       (`std-microsoft` / Compile / packageBin).value
       (`std-tableau` / Compile / packageBin).value
+      (`std-saas` / Compile / packageBin).value
     case _ =>
   }
   val libs =

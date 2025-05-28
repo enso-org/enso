@@ -1,0 +1,16 @@
+from Standard.Base import all
+from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
+
+type Strava
+    ## PRIVATE
+    private Service
+
+    ## ICON cloud
+       Initializes the Strava instance using the given credentials file.
+
+       Arguments:
+       - credentials: a Cloud secret or a file containing Strava credentials.
+    initialize : File|Enso_Secret -> Strava
+    initialize credentials =
+        credentials_reference = as_credential_reference credentials
+        Strava.Service
