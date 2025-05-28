@@ -32,12 +32,15 @@ provideDocumentationImageUrlTransformer(toRef(props, 'transformImageUrl'))
 
 defineExpose({
   loaded: computed(() => inner.value != null),
-  putText: (text: string) => {
-    inner.value?.putText(text)
-  },
-  putTextAtCoord: (text: string, coords: Vec2) => {
-    inner.value?.putTextAtCoords(text, coords)
-  },
+  putText: (text: string) => inner.value?.putText(text),
+  putTextAtCoord: (text: string, coords: Vec2) => inner.value?.putTextAtCoords(text, coords),
+  bold: () => inner.value?.bold(),
+  italic: () => inner.value?.italic(),
+  header1: () => inner.value?.header1(),
+  header2: () => inner.value?.header2(),
+  header3: () => inner.value?.header3(),
+  paragraph: () => inner.value?.paragraph(),
+  link: () => inner.value?.link(),
 })
 </script>
 

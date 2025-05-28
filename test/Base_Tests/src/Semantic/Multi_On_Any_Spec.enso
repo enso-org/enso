@@ -41,6 +41,9 @@ add_specs suite_builder =
         group_builder.specify "hide the refinement" <|
             ((x : My_Atom|Nothing).is_nothing) . should_be_false
 
+        group_builder.specify "access field of My_Atom" <|
+            x.a . should_equal 42
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->

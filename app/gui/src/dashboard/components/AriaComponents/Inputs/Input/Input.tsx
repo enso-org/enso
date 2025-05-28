@@ -57,6 +57,7 @@ export interface InputProps<
   readonly icon?: ReactElement | string | null
   readonly variants?: ExtractFunction<typeof INPUT_STYLES> | undefined
   readonly fieldVariants?: FieldComponentProps<Schema>['variants']
+  readonly fieldClassName?: string | undefined
 }
 
 /** Basic input component. Input component is a component that is used to get user input in a text field. */
@@ -74,6 +75,7 @@ export const Input = forwardRef(function Input<
     variant,
     variants = INPUT_STYLES,
     fieldVariants,
+    fieldClassName,
     form: formRaw,
     className,
     contextualHelp,
@@ -137,6 +139,7 @@ export const Input = forwardRef(function Input<
         fullWidth: true,
         variants: fieldVariants,
         form: formInstance,
+        className: fieldClassName,
       })}
       ref={ref}
       name={name}

@@ -1,5 +1,5 @@
-from Test.Logical_Export import Api
+from Test.Logical_Export import Element
 
 main =
-    element = Api.Element.Element.create
+    element = Element.Element.create
     element.describe

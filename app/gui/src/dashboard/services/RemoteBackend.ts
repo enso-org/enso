@@ -183,11 +183,6 @@ export interface ListDirectoryResponseBody {
   readonly assets: readonly backend.AnyAsset[]
 }
 
-/** HTTP response body for the "list projects" endpoint. */
-export interface ListProjectsResponseBody {
-  readonly projects: readonly backend.ListedProjectRaw[]
-}
-
 /** HTTP response body for the "list files" endpoint. */
 export interface ListFilesResponseBody {
   readonly files: readonly backend.FileLocator[]
@@ -789,25 +784,6 @@ export default class RemoteBackend extends Backend {
   }
 
   /**
-   * Return a list of projects belonging to the current user.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async listProjects(): Promise<backend.ListedProject[]> {
-    const path = remoteBackendPaths.LIST_PROJECTS_PATH
-    const response = await this.get<ListProjectsResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'listProjectsBackendError')
-    } else {
-      return (await response.json()).projects.map((project) => ({
-        ...project,
-        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
-        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
-        ydocAddress: project.address != null ? backend.Address(`${project.address}project`) : null,
-      }))
-    }
-  }
-
-  /**
    * Create a project.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
@@ -1120,37 +1096,6 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'updateProjectBackendError', title)
     } else {
       return await response.json()
-    }
-  }
-
-  /**
-   * Return the resource usage of a project.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async checkResources(
-    projectId: backend.ProjectId,
-    title: string,
-  ): Promise<backend.ResourceUsage> {
-    const path = remoteBackendPaths.checkResourcesPath(projectId)
-    const response = await this.get<backend.ResourceUsage>(path)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'checkResourcesBackendError', title)
-    } else {
-      return await response.json()
-    }
-  }
-
-  /**
-   * Return a list of files accessible by the current user.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async listFiles(): Promise<readonly backend.FileLocator[]> {
-    const path = remoteBackendPaths.LIST_FILES_PATH
-    const response = await this.get<ListFilesResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'listFilesBackendError')
-    } else {
-      return (await response.json()).files
     }
   }
 

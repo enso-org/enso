@@ -189,11 +189,6 @@ export class ProjectManager {
     return this.sendRequest('project/close', params)
   }
 
-  /** Get the projects list, sorted by open time. */
-  async listProjects(params: ListProjectsParams): Promise<ProjectList> {
-    return this.sendRequest<ProjectList>('project/list', params)
-  }
-
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
     const result = await this.sendRequest<CreateProject>('project/create', {
