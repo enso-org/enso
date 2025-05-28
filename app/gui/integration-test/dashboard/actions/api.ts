@@ -84,8 +84,6 @@ const INITIAL_CALLS_OBJECT = {
     labels?: backend.LabelName[]
     recent_projects?: boolean
   }>(),
-  listFiles: array<object>(),
-  listProjects: array<object>(),
   listSecrets: array<object>(),
   listTags: array<object>(),
   listUsers: array<object>(),
@@ -708,14 +706,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       called('listDirectory', query)
       const json: remoteBackend.ListDirectoryResponseBody = { assets: listDirectory(query) }
       route.fulfill({ json })
-    })
-    await get(remoteBackendPaths.LIST_FILES_PATH + '*', () => {
-      called('listFiles', {})
-      return { files: [] } satisfies remoteBackend.ListFilesResponseBody
-    })
-    await get(remoteBackendPaths.LIST_PROJECTS_PATH + '*', () => {
-      called('listProjects', {})
-      return { projects: [] } satisfies remoteBackend.ListProjectsResponseBody
     })
     await get(remoteBackendPaths.LIST_SECRETS_PATH + '*', () => {
       called('listSecrets', {})
