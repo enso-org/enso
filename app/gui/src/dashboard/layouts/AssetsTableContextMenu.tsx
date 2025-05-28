@@ -34,7 +34,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useUser } from '#/providers/AuthProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useBackends, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
@@ -74,7 +74,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     doPaste,
   } = props
 
-  const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
   const { localBackend } = useBackends()

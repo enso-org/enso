@@ -9,7 +9,6 @@ import BlankIcon from '#/assets/blank.svg'
 import type * as inputBindings from '#/configurations/inputBindings'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
@@ -21,6 +20,7 @@ import FocusRing from '#/components/styled/FocusRing'
 import { Icon } from '#/components/Icon'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
+import { unsetModal } from '#/providers/ModalProvider'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 
@@ -113,8 +113,8 @@ export default function MenuEntry(props: MenuEntryProps) {
     color,
     ...variantProps
   } = props
+
   const { getText } = useText()
-  const { unsetModal } = modalProvider.useSetModal()
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]

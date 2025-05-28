@@ -1,11 +1,10 @@
 /** @file A React hook to prevent navigation. */
-import { useEffect } from 'react'
-
 import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useText } from '$/providers/react'
 import { isOnElectron } from 'enso-common/src/detect'
+import { useEffect } from 'react'
 
 let shouldClose = false
 
@@ -18,7 +17,6 @@ export interface PreventNavigationOptions {
 /** Prevent navigating away from a page. */
 export function usePreventNavigation(options: PreventNavigationOptions) {
   const { isEnabled = true, message } = options
-  const { setModal } = useSetModal()
   const messageRef = useSyncRef(message)
 
   useEffect(() => {
@@ -40,7 +38,7 @@ export function usePreventNavigation(options: PreventNavigationOptions) {
         window.removeEventListener('beforeunload', onBeforeUnload)
       }
     }
-  }, [isEnabled, messageRef, setModal])
+  }, [isEnabled, messageRef])
 }
 
 /** Props for a {@link ConfirmCloseModal}. */
@@ -53,7 +51,6 @@ interface ConfirmCloseModalProps {
 function ConfirmCloseModal(props: ConfirmCloseModalProps) {
   const { message } = props
   const { getText } = useText()
-  const { unsetModal } = useSetModal()
 
   return (
     <Dialog title={getText('closeWindowDialogTitle')} modalProps={{ defaultOpen: true }}>

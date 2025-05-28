@@ -5,7 +5,7 @@ import { isOnMacOS } from 'enso-common/src/detect'
 
 import { ButtonGroup, Dialog, DialogDismiss, Form, Text } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
-import { useSetModal } from '#/providers/ModalProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import {
   modifierFlagsForEvent,
   modifiersForModifierFlags,
@@ -43,7 +43,6 @@ export interface CaptureKeyboardShortcutModalProps {
 /** A modal for capturing an arbitrary keyboard shortcut. */
 export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShortcutModalProps) {
   const { description, existingShortcuts, onSubmit } = props
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
   const [key, setKey] = useState<string | null>(null)
   const [modifiers, setModifiers] = useState<string>('')

@@ -48,7 +48,7 @@ import * as appUtils from '#/appUtils'
 import * as authProvider from '#/providers/AuthProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
-import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
+import ModalProvider, { setModal } from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 
 import VersionChecker from '#/layouts/VersionChecker'
@@ -161,7 +161,6 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
   const navigate = router.push.bind(router)
 
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { setModal } = modalProvider.useSetModal()
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
@@ -180,7 +179,7 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
         setModal(<AboutModal />)
       })
     }
-  }, [setModal])
+  }, [])
 
   React.useEffect(() => {
     let isClick = false

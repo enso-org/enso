@@ -15,7 +15,6 @@ import {
   useSetDragTargetAssetId,
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import { useText } from '$/providers/react'
 
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -40,6 +39,7 @@ import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
 import * as drag from '#/utilities/drag'
@@ -239,7 +239,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
-  const { setModal, unsetModal } = modalProvider.useSetModal()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
