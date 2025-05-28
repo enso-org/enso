@@ -59,7 +59,7 @@ import {
 } from './TableVisualization/tableVizFilterSetUpUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
-import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import { formatText, getCellValueType, isNumericType, ValueType } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -80,11 +80,6 @@ type Data =
   | EnsoTableOrColumn
   | SingleColumnOfActions
   | GenericGrid
-
-export interface ValueType {
-  constructor: string
-  display_text: string
-}
 
 interface Matrix {
   type: 'Matrix'
