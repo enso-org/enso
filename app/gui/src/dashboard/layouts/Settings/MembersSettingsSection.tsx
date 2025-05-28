@@ -1,7 +1,7 @@
 /** @file Settings tab for viewing and editing organization members. */
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -29,17 +29,8 @@ export default function MembersSettingsSection() {
 
   const [{ data: members }, { data: invitations }] = useSuspenseQueries({
     queries: [
-      {
-        queryKey: ['listUsers'],
-        queryFn: () => backend.listUsers(),
-        staleTime: LIST_USERS_STALE_TIME_MS,
-      },
-
-      {
-        queryKey: ['listInvitations'],
-        queryFn: () => backend.listInvitations(),
-        staleTime: LIST_USERS_STALE_TIME_MS,
-      },
+      backendQueryOptions(backend, 'listUsers', [], { staleTime: LIST_USERS_STALE_TIME_MS }),
+      backendQueryOptions(backend, 'listInvitations', [], { staleTime: LIST_USERS_STALE_TIME_MS }),
     ],
   })
 
@@ -99,7 +90,7 @@ export default function MembersSettingsSection() {
           </thead>
           <tbody className="select-text">
             {members.map((member) => (
-              <tr key={member.email} className="group h-row rounded-rows-child">
+              <tr key={member.userId} className="group h-row rounded-rows-child">
                 <td className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
                   <ariaComponents.Text truncate="1" className="block">
                     {member.email}
