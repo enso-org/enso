@@ -59,7 +59,12 @@ import {
 } from './TableVisualization/tableVizFilterSetUpUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
-import { formatText, getCellValueType, isNumericType, ValueType } from './TableVisualization/tableVizUtils'
+import {
+  formatText,
+  getCellValueType,
+  isNumericType,
+  ValueType,
+} from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
