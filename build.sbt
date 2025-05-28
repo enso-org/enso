@@ -4870,6 +4870,8 @@ val `std-aws-polyglot-root` =
   stdLibComponentRoot("AWS") / "polyglot" / "java"
 val `std-snowflake-polyglot-root` =
   stdLibComponentRoot("Snowflake") / "polyglot" / "java"
+val `std-snowflake-native-libs` =
+  stdLibComponentRoot("Snowflake") / "polyglot" / "lib"
 val `std-microsoft-polyglot-root` =
   stdLibComponentRoot("Microsoft") / "polyglot" / "java"
 val `std-tableau-polyglot-root` =
@@ -5389,22 +5391,59 @@ lazy val `std-snowflake` = project
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "net.snowflake"    % "snowflake-jdbc-thin"     % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds")
     ),
-    Compile / packageBin := {
-      val result            = (Compile / packageBin).value
+    extractNativeLibs := Def.task {
+      val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
+      import sbt.util.CacheImplicits._
+      val prev = extractNativeLibs.previous
       StdBits
         .copyDependencies(
           `std-snowflake-polyglot-root`,
           Seq("std-snowflake.jar"),
-          ignoreScalaLibrary = true,
-          libraryUpdates     = (Compile / update).value,
-          unmanagedClasspath = (Compile / unmanagedClasspath).value,
-          logger             = streams.value.log,
-          cacheStoreFactory,
-          previousRun = None
+          ignoreScalaLibrary                = true,
+          ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.60.0"),
+          libraryUpdates                    = (Compile / update).value,
+          logger                            = streams.value.log,
+          cacheStoreFactory                 = cacheStoreFactory,
+          unmanagedClasspath                = (Compile / unmanagedJars).value,
+          previousRun                       = prev
         )
-      result
-    }
+      StdBits
+        .extractNativeLibsFromGrpc(
+          `std-snowflake-polyglot-root`,
+          `std-snowflake-native-libs`,
+          "1.60.0",
+          updateReport       = (Compile / update).value,
+          logger             = streams.value.log,
+          moduleName         = moduleName.value,
+          scalaBinaryVersion = scalaBinaryVersion.value,
+          cacheStoreFactory  = cacheStoreFactory,
+          previousRun        = prev
+        )
+    }.value,
+    cleanPolyglotRoot := Def.task {
+      import sbt.util.CacheImplicits._
+      val forceClean = extractNativeLibs.previous.isEmpty
+      val logger     = streams.value.log
+      StdBits.ensureDirExistsAndIsClean(
+        `std-snowflake-polyglot-root`.toPath,
+        logger,
+        forceClean
+      )
+      StdBits.ensureDirExistsAndIsClean(
+        `std-snowflake-native-libs`.toPath,
+        logger,
+        forceClean
+      )
+    }.value,
+    Compile / packageBin := Def
+      .task {
+        val result = (Compile / packageBin).value
+        extractNativeLibs.value
+        result
+      }
+      .dependsOn(cleanPolyglotRoot)
+      .value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
