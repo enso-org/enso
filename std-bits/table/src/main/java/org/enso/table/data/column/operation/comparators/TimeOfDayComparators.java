@@ -7,21 +7,28 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 
-public final class TimeOfDayComparators extends GenericComparators<LocalTime> {
-  public static final TimeOfDayComparators EQ = new TimeOfDayComparators(LocalTime::equals, false);
-  public static final TimeOfDayComparators NEQ =
-      new TimeOfDayComparators((a, b) -> !a.equals(b), false);
+public class TimeOfDayComparators extends GenericComparators<LocalTime> {
+  public static final TimeOfDayComparators EQ = new TimeOfDayComparators(LocalTime::equals) {
+    @Override
+    protected boolean onIncomparable(Object left, Object right) {
+      return false;
+    }
+  };
+
+  public static final TimeOfDayComparators NEQ = new TimeOfDayComparators((a, b) -> !a.equals(b)) {
+    @Override
+    protected boolean onIncomparable(Object left, Object right) {
+      return true;
+    }
+  };
+
   public static final TimeOfDayComparators LT = new TimeOfDayComparators(LocalTime::isBefore);
   public static final TimeOfDayComparators LTE = new TimeOfDayComparators((a, b) -> !a.isAfter(b));
   public static final TimeOfDayComparators GT = new TimeOfDayComparators(LocalTime::isAfter);
   public static final TimeOfDayComparators GTE = new TimeOfDayComparators((a, b) -> !a.isBefore(b));
 
   private TimeOfDayComparators(BiPredicate<LocalTime, LocalTime> comparator) {
-    this(comparator, true);
-  }
-
-  private TimeOfDayComparators(BiPredicate<LocalTime, LocalTime> comparator, boolean throwOnOther) {
-    super(comparator, throwOnOther);
+    super(comparator);
   }
 
   @Override

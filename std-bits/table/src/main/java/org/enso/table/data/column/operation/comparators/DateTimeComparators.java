@@ -7,23 +7,29 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 
-public final class DateTimeComparators extends GenericComparators<ZonedDateTime> {
-  public static final DateTimeComparators EQ =
-      new DateTimeComparators(ZonedDateTime::isEqual, false);
-  public static final DateTimeComparators NEQ =
-      new DateTimeComparators((a, b) -> !a.equals(b), false);
+public class DateTimeComparators extends GenericComparators<ZonedDateTime> {
+  public static final DateTimeComparators EQ = new DateTimeComparators(ZonedDateTime::isEqual) {
+    @Override
+    protected boolean onIncomparable(Object left, Object right) {
+      return false;
+    }
+  };
+
+  public static final DateTimeComparators NEQ = new DateTimeComparators((a, b) -> !a.equals(b)) {
+    @Override
+    protected boolean onIncomparable(Object left, Object right) {
+      return true;
+    }
+  };
+
   public static final DateTimeComparators LT = new DateTimeComparators(ZonedDateTime::isBefore);
   public static final DateTimeComparators LTE = new DateTimeComparators((a, b) -> !a.isAfter(b));
   public static final DateTimeComparators GT = new DateTimeComparators(ZonedDateTime::isAfter);
   public static final DateTimeComparators GTE = new DateTimeComparators((a, b) -> !a.isBefore(b));
 
-  private DateTimeComparators(BiPredicate<ZonedDateTime, ZonedDateTime> comparator) {
-    this(comparator, true);
-  }
-
   private DateTimeComparators(
-      BiPredicate<ZonedDateTime, ZonedDateTime> comparator, boolean throwOnOther) {
-    super(comparator, throwOnOther);
+      BiPredicate<ZonedDateTime, ZonedDateTime> comparator) {
+    super(comparator);
   }
 
   @Override

@@ -6,10 +6,21 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
 
-public final class StringComparators extends GenericComparators<String> {
-  public static final StringComparators EQ = new StringComparators(Text_Utils::equals, false);
-  public static final StringComparators NEQ =
-      new StringComparators((a, b) -> !Text_Utils.equals(a, b), false);
+public class StringComparators extends GenericComparators<String> {
+  public static final StringComparators EQ = new StringComparators(Text_Utils::equals) {
+    @Override
+    protected boolean onIncomparable(Object left, Object right) {
+      return false;
+    }
+  };
+
+  public static final StringComparators NEQ = new StringComparators((a, b) -> !Text_Utils.equals(a, b)) {
+    @Override
+    protected boolean onIncomparable(Object left, Object right) {
+      return true;
+    }
+  };
+
   public static final StringComparators LT =
       new StringComparators((a, b) -> Text_Utils.compare_normalized(a, b) < 0);
   public static final StringComparators LTE =
@@ -20,11 +31,7 @@ public final class StringComparators extends GenericComparators<String> {
       new StringComparators((a, b) -> Text_Utils.compare_normalized(a, b) >= 0);
 
   protected StringComparators(BiPredicate<String, String> comparator) {
-    this(comparator, true);
-  }
-
-  private StringComparators(BiPredicate<String, String> comparator, boolean throwOnOther) {
-    super(comparator, throwOnOther);
+    super(comparator);
   }
 
   @Override

@@ -22,12 +22,12 @@ public final class TextPredicates extends GenericComparators<String> {
       new TextPredicates(TextPredicates::RegexMatchPredicate);
 
   private TextPredicates(BiPredicate<String, String> predicate) {
-    super(predicate, true);
+    super(predicate);
   }
 
   @Override
-  protected RuntimeException makeCompareError(Object left, Object right) {
-    return new UnexpectedTypeException("a Text", right.toString());
+  protected boolean onIncomparable(Object left, Object right) {
+    throw new UnexpectedTypeException("a Text", right.toString());
   }
 
   @Override

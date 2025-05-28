@@ -13,19 +13,17 @@ import org.enso.table.data.column.storage.type.NullType;
 
 public abstract class GenericComparators<T> implements BinaryOperation<Boolean> {
   protected final BiPredicate<T, T> comparator;
-  protected final boolean throwOnOther;
 
-  protected GenericComparators(BiPredicate<T, T> comparator, boolean throwOnOther) {
+  protected GenericComparators(BiPredicate<T, T> comparator) {
     this.comparator = comparator;
-    this.throwOnOther = throwOnOther;
   }
 
   protected abstract T asTypedValue(Object value);
 
   protected abstract ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
 
-  protected RuntimeException makeCompareError(Object left, Object right) {
-    return new CompareException(left, right);
+  protected boolean onIncomparable(Object left, Object right) {
+    throw new CompareException(left, right);
   }
 
   @Override
@@ -49,17 +47,12 @@ public abstract class GenericComparators<T> implements BinaryOperation<Boolean> 
           typedLeft,
           builder,
           (b, index, value) -> b.appendBoolean(comparator.test(value, typedRight)));
-    } else if (throwOnOther) {
+    } else {
       // If all are Nothing then will return a Nothing Boolean Storage
       return StorageIterators.buildOverStorage(
           typedLeft,
           builder,
-          (b, index, value) -> {
-            throw makeCompareError(value, rightValue);
-          });
-    } else {
-      return StorageIterators.buildOverStorage(
-          typedLeft, builder, (b, index, value) -> b.appendBoolean(false));
+          (b, index, value) -> b.appendBoolean(onIncomparable(value, rightValue)));
     }
   }
 
@@ -88,15 +81,9 @@ public abstract class GenericComparators<T> implements BinaryOperation<Boolean> 
           true,
           (index, leftValue, rightValue) -> {
             T typedRightValue = asTypedValue(rightValue);
-            if (typedRightValue == null) {
-              if (throwOnOther) {
-                throw makeCompareError(leftValue, rightValue);
-              } else {
-                return false;
-              }
-            } else {
-              return comparator.test(leftValue, typedRightValue);
-            }
+            return typedRightValue == null
+                ? onIncomparable(leftValue, rightValue)
+                : comparator.test(leftValue, typedRightValue);
           });
     }
 
