@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.comparators;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -14,9 +16,6 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
 public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> {
   /**
@@ -33,138 +32,143 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
     abstract boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix);
   }
 
-  public static final NumericComparator EQUAL_OPERATION = new NumericComparator() {
-    @Override
-    boolean doDouble(double a, double b, long ix) {
-      return a == b;
-    }
+  public static final NumericComparator EQUAL_OPERATION =
+      new NumericComparator() {
+        @Override
+        boolean doDouble(double a, double b, long ix) {
+          return a == b;
+        }
 
-    @Override
-    boolean doLong(long a, long b, long ix) {
-      return a == b;
-    }
+        @Override
+        boolean doLong(long a, long b, long ix) {
+          return a == b;
+        }
 
-    @Override
-    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
-      return a.equals(b);
-    }
+        @Override
+        boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+          return a.equals(b);
+        }
 
-    @Override
-    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
-      return a.equals(b);
-    }
-  };
+        @Override
+        boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+          return a.equals(b);
+        }
+      };
 
-  public static final NumericComparator NOT_EQUAL_OPERATION = new NumericComparator() {
-    @Override
-    boolean doDouble(double a, double b, long ix) {
-      return a != b;
-    }
+  public static final NumericComparator NOT_EQUAL_OPERATION =
+      new NumericComparator() {
+        @Override
+        boolean doDouble(double a, double b, long ix) {
+          return a != b;
+        }
 
-    @Override
-    boolean doLong(long a, long b, long ix) {
-      return a != b;
-    }
+        @Override
+        boolean doLong(long a, long b, long ix) {
+          return a != b;
+        }
 
-    @Override
-    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
-      return !a.equals(b);
-    }
+        @Override
+        boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+          return !a.equals(b);
+        }
 
-    @Override
-    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
-      return !a.equals(b);
-    }
-  };
+        @Override
+        boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+          return !a.equals(b);
+        }
+      };
 
-  public static final NumericComparator GREATER_OPERATION = new NumericComparator() {
-    @Override
-    boolean doDouble(double a, double b, long ix) {
-      return a > b;
-    }
+  public static final NumericComparator GREATER_OPERATION =
+      new NumericComparator() {
+        @Override
+        boolean doDouble(double a, double b, long ix) {
+          return a > b;
+        }
 
-    @Override
-    boolean doLong(long a, long b, long ix) {
-      return a > b;
-    }
+        @Override
+        boolean doLong(long a, long b, long ix) {
+          return a > b;
+        }
 
-    @Override
-    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
-      return a.compareTo(b) > 0;
-    }
+        @Override
+        boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+          return a.compareTo(b) > 0;
+        }
 
-    @Override
-    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
-      return a.compareTo(b) > 0;
-    }
-  };
+        @Override
+        boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+          return a.compareTo(b) > 0;
+        }
+      };
 
-  public static final NumericComparator GREATER_OR_EQUAL_OPERATION = new NumericComparator() {
-    @Override
-    boolean doDouble(double a, double b, long ix) {
-      return a >= b;
-    }
+  public static final NumericComparator GREATER_OR_EQUAL_OPERATION =
+      new NumericComparator() {
+        @Override
+        boolean doDouble(double a, double b, long ix) {
+          return a >= b;
+        }
 
-    @Override
-    boolean doLong(long a, long b, long ix) {
-      return a >= b;
-    }
+        @Override
+        boolean doLong(long a, long b, long ix) {
+          return a >= b;
+        }
 
-    @Override
-    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
-      return a.compareTo(b) >= 0;
-    }
+        @Override
+        boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+          return a.compareTo(b) >= 0;
+        }
 
-    @Override
-    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
-      return a.compareTo(b) >= 0;
-    }
-  };
+        @Override
+        boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+          return a.compareTo(b) >= 0;
+        }
+      };
 
-  public static final NumericComparator LESS_OPERATION = new NumericComparator() {
-    @Override
-    boolean doDouble(double a, double b, long ix) {
-      return a < b;
-    }
+  public static final NumericComparator LESS_OPERATION =
+      new NumericComparator() {
+        @Override
+        boolean doDouble(double a, double b, long ix) {
+          return a < b;
+        }
 
-    @Override
-    boolean doLong(long a, long b, long ix) {
-      return a < b;
-    }
+        @Override
+        boolean doLong(long a, long b, long ix) {
+          return a < b;
+        }
 
-    @Override
-    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
-      return a.compareTo(b) < 0;
-    }
+        @Override
+        boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+          return a.compareTo(b) < 0;
+        }
 
-    @Override
-    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
-      return a.compareTo(b) < 0;
-    }
-  };
+        @Override
+        boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+          return a.compareTo(b) < 0;
+        }
+      };
 
-  public static final NumericComparator LESS_OR_EQUAL_OPERATION = new NumericComparator() {
-    @Override
-    boolean doDouble(double a, double b, long ix) {
-      return a <= b;
-    }
+  public static final NumericComparator LESS_OR_EQUAL_OPERATION =
+      new NumericComparator() {
+        @Override
+        boolean doDouble(double a, double b, long ix) {
+          return a <= b;
+        }
 
-    @Override
-    boolean doLong(long a, long b, long ix) {
-      return a <= b;
-    }
+        @Override
+        boolean doLong(long a, long b, long ix) {
+          return a <= b;
+        }
 
-    @Override
-    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
-      return a.compareTo(b) <= 0;
-    }
+        @Override
+        boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+          return a.compareTo(b) <= 0;
+        }
 
-    @Override
-    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
-      return a.compareTo(b) <= 0;
-    }
-  };
-
+        @Override
+        boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+          return a.compareTo(b) <= 0;
+        }
+      };
 
   public static BinaryOperation<Boolean> create(
       StorageType<?> leftType, Object right, NumericComparator comparator) {
@@ -184,8 +188,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
 
   protected final NumericComparator comparator;
 
-  protected NumericComparators(
-      NumericColumnAdapter<T> adapter, NumericComparator comparator) {
+  protected NumericComparators(NumericColumnAdapter<T> adapter, NumericComparator comparator) {
     super(adapter, true, BooleanType.INSTANCE);
     this.comparator = comparator;
   }
@@ -196,8 +199,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
     return BoolStorage.makeEmpty(left.getSize());
   }
 
-  private static class NumericComparatorsDouble
-      extends NumericComparators<Double> {
+  private static class NumericComparatorsDouble extends NumericComparators<Double> {
     public NumericComparatorsDouble(NumericComparator comparator) {
       super(DoubleColumnAdapter.INSTANCE, comparator);
     }
@@ -234,8 +236,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
     }
   }
 
-  private static class NumericComparatorsBigDecimal
-      extends NumericComparators<BigDecimal> {
+  private static class NumericComparatorsBigDecimal extends NumericComparators<BigDecimal> {
     public NumericComparatorsBigDecimal(NumericComparator comparator) {
       super(BigDecimalColumnAdapter.INSTANCE, comparator);
     }
@@ -246,8 +247,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
     }
   }
 
-  private static class NumericComparatorsBigInteger
-      extends NumericComparators<BigInteger> {
+  private static class NumericComparatorsBigInteger extends NumericComparators<BigInteger> {
     public NumericComparatorsBigInteger(NumericComparator comparator) {
       super(BigIntegerColumnAdapter.INSTANCE, comparator);
     }
@@ -258,8 +258,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
     }
   }
 
-  private static class NumericComparatorsLong
-      extends NumericComparators<Long> {
+  private static class NumericComparatorsLong extends NumericComparators<Long> {
     public NumericComparatorsLong(NumericComparator operation) {
       super(LongColumnAdapter.INSTANCE, operation);
     }

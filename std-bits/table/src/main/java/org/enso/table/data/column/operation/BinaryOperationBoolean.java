@@ -30,13 +30,15 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     this.preserveNulls = preserveNulls;
   }
 
-  protected ColumnStorage<Boolean> throwUnsupported(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  protected ColumnStorage<Boolean> throwUnsupported(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     // If all are Nothing then will return a Nothing Boolean Storage
     return StorageIterators.buildOverStorage(
         left,
         BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
         (b, index, value) -> {
-          throw new IllegalArgumentException("Unsupported right value type " + rightValue.getClass() + ".");
+          throw new IllegalArgumentException(
+              "Unsupported right value type " + rightValue.getClass() + ".");
         });
   }
 

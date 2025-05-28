@@ -31,7 +31,10 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnStorage<Boolean> throwUnsupported(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+        protected ColumnStorage<Boolean> throwUnsupported(
+            ColumnStorage<?> left,
+            Object rightValue,
+            MapOperationProblemAggregator problemAggregator) {
           // If all are Nothing then will return a Nothing Boolean Storage
           return StorageIterators.buildOverStorage(
               left,
@@ -58,7 +61,10 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnStorage<Boolean> throwUnsupported(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+        protected ColumnStorage<Boolean> throwUnsupported(
+            ColumnStorage<?> left,
+            Object rightValue,
+            MapOperationProblemAggregator problemAggregator) {
           // If all are Nothing then will return a Nothing Boolean Storage
           return StorageIterators.buildOverStorage(
               left,

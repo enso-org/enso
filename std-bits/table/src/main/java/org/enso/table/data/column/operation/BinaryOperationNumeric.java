@@ -34,7 +34,9 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
   protected final StorageType<R> returnType;
 
   protected BinaryOperationNumeric(
-      final NumericColumnAdapter<T> adapter, final boolean preserveNulls, final StorageType<R> returnType) {
+      final NumericColumnAdapter<T> adapter,
+      final boolean preserveNulls,
+      final StorageType<R> returnType) {
     this.adapter = adapter;
     this.preserveNulls = preserveNulls;
     this.returnType = returnType;
