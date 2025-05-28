@@ -416,7 +416,7 @@ const displayedDocs = computed(() =>
 )
 
 watchEffect(() => {
-  const projectId = projectStore.id as ProjectId
+  const projectId = projectStore.id
   rightPanel.setContext(projectId, {
     item: projectId,
     help: { item: displayedDocs.value, aiMode: aiMode.value },

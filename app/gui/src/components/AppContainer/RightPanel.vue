@@ -26,7 +26,7 @@ function tabTooltip(title: ToValue<string>, enabled: ToValue<Result<void>>) {
 
 function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
   const enabledVal = toValue(enabled)
-  return data.displayedTab === id || (enabledVal.ok && enabledVal.value)
+  return data.displayedTab === id || enabledVal.ok
 }
 
 const contentElement = ref<HTMLElement>()

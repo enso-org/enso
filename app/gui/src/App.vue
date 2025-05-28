@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ProjectId } from '#/services/Backend'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import { provideBackends } from '$/providers/backends'
 import { provideHttpClient } from '$/providers/httpClient'
@@ -108,7 +107,7 @@ onMounted(() => {
 if (projectViewOnly) {
   provideOpenedProjects()
   provideContainerData([])
-  provideRightPanelData(projectViewOnly.options.projectId as ProjectId, () => false, textStore)
+  provideRightPanelData(projectViewOnly.options.projectId, () => false, textStore)
 }
 </script>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Backend from '#/services/Backend'
+import Backend, { ProjectId } from '#/services/Backend'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { injectOpenedProjects } from '$/providers/openedProjects'
 import GraphEditor from '@/components/GraphEditor.vue'
@@ -10,20 +10,10 @@ import { type LsUrls } from '@/stores/project'
 import { provideSettings } from '@/stores/settings'
 import { type Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
-import {
-  markRaw,
-  onActivated,
-  onDeactivated,
-  onMounted,
-  onUnmounted,
-  ref,
-  toRaw,
-  toRef,
-  watch,
-} from 'vue'
+import { markRaw, onActivated, onDeactivated, onScopeDispose, ref, toRaw, toRef, watch } from 'vue'
 
 const props = defineProps<{
-  readonly projectId: string
+  readonly projectId: ProjectId
   readonly projectInitialName: string
   readonly projectDisplayedName: string
   readonly projectNamespace?: string
@@ -66,12 +56,8 @@ provideSettings()
 
 const visible = ref(false)
 provideVisibility(visible)
-onMounted(() => {
-  openedProjects.registerProject(props)
-})
-onUnmounted(() => {
-  openedProjects.projectClosed(props.projectId)
-})
+openedProjects.registerProject(props)
+onScopeDispose(() => openedProjects.projectClosed(props.projectId))
 
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))

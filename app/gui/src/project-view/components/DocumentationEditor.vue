@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Result as ResultReact } from '#/components/Result'
-import { ProjectId } from '#/services/Backend'
 import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import { injectBackends } from '$/providers/backends'
 import { injectRightPanelData } from '$/providers/rightPanel'
@@ -40,7 +39,7 @@ const fileContentsFromCloud = useQuery({
         backendForAsset.value?.type,
         {
           method: 'getFileContent',
-          projectId: projectId.value as ProjectId,
+          projectId: projectId.value,
         },
       ] as const,
   ),
@@ -109,7 +108,7 @@ watch(
               return Promise.resolve(Ok({ url: resolvedUrl.value.url.toString() }))
             } else {
               return backendForAsset.value
-                .resolveProjectAssetPath(projectId.value as ProjectId, resolvedUrl.value.path)
+                .resolveProjectAssetPath(projectId.value, resolvedUrl.value.path)
                 .then(
                   (url) => Ok({ url }),
                   (error) => {

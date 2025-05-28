@@ -1,3 +1,4 @@
+import { ProjectId } from '#/services/Backend'
 import { createContextStore } from '@/providers'
 import { WidgetRegistry } from '@/providers/widgetRegistry'
 import { createGraphStore, GraphStore } from '@/stores/graph'
@@ -23,7 +24,7 @@ export interface OpenedProject {
  * This is a subset of ProjectView props which is used to set up the store.
  */
 export interface ProjectProps {
-  projectId: string
+  projectId: ProjectId
   projectNamespace: ToValue<string | undefined>
   projectInitialName: string
   projectDisplayedName: ToValue<string>
