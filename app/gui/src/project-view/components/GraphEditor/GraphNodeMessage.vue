@@ -100,7 +100,7 @@ export const colorForMessageType: Record<MessageType, string> = {
   font-weight: 800;
   white-space: nowrap;
   border-radius: var(--radius-full);
-  color: var(--color-text-inversed);
+  color: var(--color-text-white);
   background-color: var(--background-color);
   line-height: 20px;
   z-index: -1;
@@ -131,12 +131,12 @@ export const colorForMessageType: Record<MessageType, string> = {
 
   & > .SvgButton:hover {
     background-color: color-mix(in oklab, black, transparent 90%);
-    color: color-mix(in oklab, var(--color-text-inversed), transparent 20%);
+    color: color-mix(in oklab, var(--color-text-white), transparent 20%);
   }
 
   & > .SvgButton:active {
     background-color: color-mix(in oklab, black, transparent 70%);
-    color: var(--color-text-inversed);
+    color: var(--color-text-white);
   }
 }
 </style>
