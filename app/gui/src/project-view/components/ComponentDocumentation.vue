@@ -42,7 +42,7 @@ const displayedId = computed(() => overrideDisplayed.value ?? unwrapOr(docs.valu
 .DocumentationPanel {
   --list-height: 0px;
   --radius-default: 20px;
-  --background-color: var(--color-visualization-bg);
+  --background-color: var(--color-panel-bg);
   --group-color-fallback: var(--color-dim);
 }
 

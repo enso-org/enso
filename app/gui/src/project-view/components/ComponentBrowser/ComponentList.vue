@@ -205,7 +205,7 @@ defineExpose({
   flex-grow: 0;
   padding: 9px;
   border-radius: var(--radius-default) 0 0 var(--radius-default);
-  background-color: var(--color-sidebar-bg);
+  background-color: var(--color-component-browser-sidebar-bg);
 }
 
 .groupEntry {
@@ -221,7 +221,7 @@ defineExpose({
   align-items: center;
 
   &.selected {
-    background-color: var(--color-app-bg);
+    background-color: var(--color-highlight-bg);
   }
 }
 

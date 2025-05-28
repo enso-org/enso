@@ -444,7 +444,7 @@ const listsHandler = listBindings.handler({
 <style scoped>
 .ComponentBrowser {
   --radius-default: 20px;
-  --background-color: var(--color-visualization-bg);
+  --background-color: var(--color-component-browser-bg);
   --doc-panel-bottom-clip: 4px;
   width: min-content;
   color: var(--color-primary);
