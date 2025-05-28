@@ -957,8 +957,8 @@ apply_unary_map column:Column new_name:Text function expected_result_type:Value_
         map_column = UnaryOperation.mapFunction (column:In_Memory_Column).java_column function nothing_unchanged storage_type new_name java_problem_aggregator
         In_Memory_Column.from_java_column map_column
 
-private _call_comparator left:In_Memory_Column other new_name ~comparator fallback =
-    case (Comparators.isSupported left.java_column) of
+private _call_comparator left other new_name ~comparator fallback =
+    case (Comparators.isSupported (left:In_Memory_Column).java_column) of
         True -> _call_binary_operator left other new_name comparator
         False -> run_binary_op left fallback other new_name expected_result_type=Value_Type.Boolean
 
