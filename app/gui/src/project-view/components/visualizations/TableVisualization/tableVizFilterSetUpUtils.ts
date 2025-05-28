@@ -16,6 +16,7 @@ export const getFilterParams = (
     values: isSSRM ? getFilterValues : null,
     filterOptions: filterOptions,
     buttons: filterButtons,
+    refreshValuesOnOpen: true,
   }
 
   return filterType != 'agMultiColumnFilter' ? defaultFilter : (
