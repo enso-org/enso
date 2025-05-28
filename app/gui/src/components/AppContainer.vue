@@ -12,29 +12,24 @@ import { RightPanelDataProviderForReact } from '$/providers/react'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { applyPureReactInVue } from 'veaury'
-import { reactive, toRefs, watch } from 'vue'
+import { reactive, toRef, toRefs, watch } from 'vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
 
 <script setup lang="ts">
-const {
-  initialProjectName,
-  launchedProjects,
-  closeProject,
-  closeAllProjects,
-  isFeatureUnderPaywall,
-} = defineProps<{
+const props = defineProps<{
   initialProjectName: string | null
   launchedProjects: readonly LaunchedProject[]
   closeProject(project: LaunchedProject): void
   closeAllProjects(): void
   isFeatureUnderPaywall(feature: PaywallFeatureName): boolean
+  enableScheduledExecution: boolean
 }>()
 
 provideOpenedProjects()
-const { tab, openedProjects } = toRefs(provideContainerData(() => launchedProjects))
-provideRightPanelData(tab, isFeatureUnderPaywall)
+const { tab, openedProjects } = toRefs(provideContainerData(toRef(props, 'launchedProjects')))
+provideRightPanelData(tab, props.isFeatureUnderPaywall, toRef(props, 'enableScheduledExecution'))
 
 const readyProjects = reactive(new Set<ProjectId>())
 const projectNames = reactive(new Map<ProjectId, string>())
@@ -70,7 +65,7 @@ watch(openedProjects, (openedProjectsList) => {
 
 const onSignOut = () => {
   tab.value = 'drive'
-  void closeAllProjects()
+  void props.closeAllProjects()
 }
 </script>
 <template>

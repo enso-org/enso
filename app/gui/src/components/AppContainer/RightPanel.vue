@@ -9,6 +9,7 @@ import { Rect } from '@/util/data/rect'
 import { Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ToValue } from '@/util/reactivity'
+import { filter } from 'enso-common/src/utilities/data/iter'
 import { computed, ref, toValue } from 'vue'
 import SelectableTab from './SelectableTab.vue'
 
@@ -17,6 +18,10 @@ const data = injectRightPanelData()
 const component = computed(() => {
   return data.displayedTab && data.allTabs.get(data.displayedTab)?.component
 })
+
+const visibleTabs = computed(() => [
+  ...filter(data.allTabs.entries(), ([, info]) => info.hidden?.value !== true),
+])
 
 function tabTooltip(title: ToValue<string>, enabled: ToValue<Result<void>>) {
   const enabledVal = toValue(enabled)
@@ -57,7 +62,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
       <div class="shadow" />
       <div class="tabs">
         <SelectableTab
-          v-for="[id, tabInfo] in data.allTabs.entries()"
+          v-for="[id, tabInfo] in visibleTabs"
           :key="id"
           selectionLayoutId="right-tab-highlight"
           :icon="tabInfo.icon"

@@ -107,7 +107,7 @@ onMounted(() => {
 if (projectViewOnly) {
   provideOpenedProjects()
   provideContainerData([])
-  provideRightPanelData(projectViewOnly.options.projectId, () => false, textStore)
+  provideRightPanelData(projectViewOnly.options.projectId, () => false, true, textStore)
 }
 </script>
 

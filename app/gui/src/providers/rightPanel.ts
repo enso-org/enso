@@ -48,6 +48,7 @@ interface RightPanelTabInfo {
    * disabling.
    */
   enabled: ToValue<Result<void>>
+  hidden?: ToValue<boolean>
   title: ToValue<string>
   component: Component
 }
@@ -62,6 +63,7 @@ function useRightPanelTabs(
   currentTab: ToValue<TabId>,
   rightPanelContext: Ref<RightPanelContext | undefined>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
+  enableScheduledExecution: ToValue<boolean>,
   { textRef, getText }: TextStore,
 ) {
   const isDriveView = computed(() => toValue(currentTab) === 'drive')
@@ -114,6 +116,7 @@ function useRightPanelTabs(
             return Err(getText('assetProjectExecutionsCalendar.teamPlanOnly'))
           return Ok()
         }),
+        hidden: computed(() => !toValue(enableScheduledExecution)),
         title: textRef('executionsCalendar'),
         component: ProjectExecutionsCalendar,
       },
@@ -150,11 +153,18 @@ export type RightPanelData = ReturnType<typeof useRightPanel>
 function useRightPanel(
   containerTab: ToValue<TabId>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
+  enableScheduledExecution: ToValue<boolean>,
   textStore: TextStore = injectText(),
 ) {
   const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
-  const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
+  const allTabs = useRightPanelTabs(
+    containerTab,
+    context,
+    isFeatureUnderPaywall,
+    enableScheduledExecution,
+    textStore,
+  )
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
 

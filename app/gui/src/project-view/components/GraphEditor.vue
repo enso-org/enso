@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ProjectId } from '#/services/Backend'
 import {
   useGraphStore,
   useProjectNames,

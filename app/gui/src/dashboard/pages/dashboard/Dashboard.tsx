@@ -23,6 +23,7 @@ import * as projectManager from '#/services/ProjectManager'
 import { usePaywall } from '#/hooks/billing'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -161,6 +162,7 @@ function DashboardInner() {
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const { user } = useFullUserSession()
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const enableScheduledExecution = useFeatureFlag('enableScheduledExecution')
 
   return (
     <Page hideInfoBar>
@@ -177,6 +179,7 @@ function DashboardInner() {
           closeProject={closeProject}
           closeAllProjects={closeAllProjects}
           isFeatureUnderPaywall={isFeatureUnderPaywall}
+          enableScheduledExecution={enableScheduledExecution}
         />
       </div>
     </Page>
