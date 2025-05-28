@@ -213,7 +213,7 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
       return StorageIterators.zipOverLongStorages(
           (ColumnLongStorage) left,
           (ColumnLongStorage) right,
-          s -> adapter.getValidType().makeBuilder(s, problemAggregator),
+          s -> IntegerType.INT_64.makeBuilder(s, problemAggregator),
           true,
           (index, value1, isNothing1, value2, isNothing2) -> {
             if (isNothing1 && isNothing2) {

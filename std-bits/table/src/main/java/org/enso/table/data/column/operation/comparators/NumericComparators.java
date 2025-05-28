@@ -1,0 +1,298 @@
+package org.enso.table.data.column.operation.comparators;
+
+import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.operation.BinaryOperationNumeric;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> {
+  /**
+   * An abstract class representing a numeric operation. This class defines the methods that must be
+   * implemented by any numeric operation.
+   */
+  public abstract static class NumericComparator {
+    abstract boolean doDouble(double a, double b, long ix);
+
+    abstract boolean doLong(long a, long b, long ix);
+
+    abstract boolean doBigInteger(BigInteger a, BigInteger b, long ix);
+
+    abstract boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix);
+  }
+
+  public static final NumericComparator EQUAL_OPERATION = new NumericComparator() {
+    @Override
+    boolean doDouble(double a, double b, long ix) {
+      return a == b;
+    }
+
+    @Override
+    boolean doLong(long a, long b, long ix) {
+      return a == b;
+    }
+
+    @Override
+    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+      return a.equals(b);
+    }
+
+    @Override
+    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+      return a.equals(b);
+    }
+  };
+
+  public static final NumericComparator NOT_EQUAL_OPERATION = new NumericComparator() {
+    @Override
+    boolean doDouble(double a, double b, long ix) {
+      return a != b;
+    }
+
+    @Override
+    boolean doLong(long a, long b, long ix) {
+      return a != b;
+    }
+
+    @Override
+    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+      return !a.equals(b);
+    }
+
+    @Override
+    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+      return !a.equals(b);
+    }
+  };
+
+  public static final NumericComparator GREATER_OPERATION = new NumericComparator() {
+    @Override
+    boolean doDouble(double a, double b, long ix) {
+      return a > b;
+    }
+
+    @Override
+    boolean doLong(long a, long b, long ix) {
+      return a > b;
+    }
+
+    @Override
+    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+      return a.compareTo(b) > 0;
+    }
+
+    @Override
+    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+      return a.compareTo(b) > 0;
+    }
+  };
+
+  public static final NumericComparator GREATER_OR_EQUAL_OPERATION = new NumericComparator() {
+    @Override
+    boolean doDouble(double a, double b, long ix) {
+      return a >= b;
+    }
+
+    @Override
+    boolean doLong(long a, long b, long ix) {
+      return a >= b;
+    }
+
+    @Override
+    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+      return a.compareTo(b) >= 0;
+    }
+
+    @Override
+    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+      return a.compareTo(b) >= 0;
+    }
+  };
+
+  public static final NumericComparator LESS_OPERATION = new NumericComparator() {
+    @Override
+    boolean doDouble(double a, double b, long ix) {
+      return a < b;
+    }
+
+    @Override
+    boolean doLong(long a, long b, long ix) {
+      return a < b;
+    }
+
+    @Override
+    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+      return a.compareTo(b) < 0;
+    }
+
+    @Override
+    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+      return a.compareTo(b) < 0;
+    }
+  };
+
+  public static final NumericComparator LESS_OR_EQUAL_OPERATION = new NumericComparator() {
+    @Override
+    boolean doDouble(double a, double b, long ix) {
+      return a <= b;
+    }
+
+    @Override
+    boolean doLong(long a, long b, long ix) {
+      return a <= b;
+    }
+
+    @Override
+    boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+      return a.compareTo(b) <= 0;
+    }
+
+    @Override
+    boolean doBigInteger(BigInteger a, BigInteger b, long ix) {
+      return a.compareTo(b) <= 0;
+    }
+  };
+
+
+  public static BinaryOperation<Boolean> create(
+      StorageType<?> leftType, Object right, NumericComparator comparator) {
+    var rightType = storageTypeForObject(right);
+    if (leftType instanceof FloatType || rightType instanceof FloatType) {
+      return new NumericComparatorsDouble(comparator);
+    } else if (leftType instanceof BigDecimalType || rightType instanceof BigDecimalType) {
+      return new NumericComparatorsBigDecimal(comparator);
+    } else if (leftType instanceof BigIntegerType || rightType instanceof BigIntegerType) {
+      return new NumericComparatorsBigInteger(comparator);
+    } else if (leftType instanceof IntegerType || rightType instanceof IntegerType) {
+      return new NumericComparatorsLong(comparator);
+    } else {
+      throw new IllegalArgumentException("Unsupported type: " + leftType);
+    }
+  }
+
+  protected final NumericComparator comparator;
+
+  protected NumericComparators(
+      NumericColumnAdapter<T> adapter, NumericComparator comparator) {
+    super(adapter, true, BooleanType.INSTANCE);
+    this.comparator = comparator;
+  }
+
+  @Override
+  protected ColumnStorage<Boolean> applyNullMap(
+      ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+    return BoolStorage.makeEmpty(left.getSize());
+  }
+
+  private static class NumericComparatorsDouble
+      extends NumericComparators<Double> {
+    public NumericComparatorsDouble(NumericComparator comparator) {
+      super(DoubleColumnAdapter.INSTANCE, comparator);
+    }
+
+    @Override
+    protected ColumnStorage<Boolean> innerApplyMap(
+        ColumnStorage<Double> left, Double right, MapOperationProblemAggregator problemAggregator) {
+      double rightAsDouble = right;
+      return StorageIterators.buildOverDoubleStorage(
+          (ColumnDoubleStorage) left,
+          false,
+          BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
+          (builder, index, value, isNothing) ->
+              builder.appendBoolean(comparator.doDouble(value, right, index)));
+    }
+
+    @Override
+    protected ColumnStorage<Boolean> innerApplyZip(
+        ColumnStorage<Double> left,
+        ColumnStorage<Double> right,
+        MapOperationProblemAggregator problemAggregator) {
+      return StorageIterators.zipOverDoubleStorages(
+          (ColumnDoubleStorage) left,
+          (ColumnDoubleStorage) right,
+          s -> BooleanType.INSTANCE.makeBuilder(s, problemAggregator),
+          false,
+          (index, value1, isNothing1, value2, isNothing2) ->
+              comparator.doDouble(value1, value2, index));
+    }
+
+    @Override
+    protected Boolean doSingle(Double left, Double right, long index) {
+      throw new IllegalStateException("This method should not be called directly.");
+    }
+  }
+
+  private static class NumericComparatorsBigDecimal
+      extends NumericComparators<BigDecimal> {
+    public NumericComparatorsBigDecimal(NumericComparator comparator) {
+      super(BigDecimalColumnAdapter.INSTANCE, comparator);
+    }
+
+    @Override
+    protected Boolean doSingle(BigDecimal left, BigDecimal right, long index) {
+      return comparator.doBigDecimal(left, right, index);
+    }
+  }
+
+  private static class NumericComparatorsBigInteger
+      extends NumericComparators<BigInteger> {
+    public NumericComparatorsBigInteger(NumericComparator comparator) {
+      super(BigIntegerColumnAdapter.INSTANCE, comparator);
+    }
+
+    @Override
+    protected Boolean doSingle(BigInteger left, BigInteger right, long index) {
+      return comparator.doBigInteger(left, right, index);
+    }
+  }
+
+  private static class NumericComparatorsLong
+      extends NumericComparators<Long> {
+    public NumericComparatorsLong(NumericComparator operation) {
+      super(LongColumnAdapter.INSTANCE, operation);
+    }
+
+    @Override
+    protected ColumnStorage<Boolean> innerApplyMap(
+        ColumnStorage<Long> left, Long right, MapOperationProblemAggregator problemAggregator) {
+      long rightAsLong = right;
+      return StorageIterators.buildOverLongStorage(
+          (ColumnLongStorage) left,
+          false,
+          BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
+          (builder, index, value, isNothing) ->
+              builder.appendBoolean(comparator.doLong(value, right, index)));
+    }
+
+    @Override
+    protected ColumnStorage<Boolean> innerApplyZip(
+        ColumnStorage<Long> left,
+        ColumnStorage<Long> right,
+        MapOperationProblemAggregator problemAggregator) {
+      return StorageIterators.zipOverLongStorages(
+          (ColumnLongStorage) left,
+          (ColumnLongStorage) right,
+          s -> BooleanType.INSTANCE.makeBuilder(s, problemAggregator),
+          true,
+          (index, value1, isNothing1, value2, isNothing2) ->
+              comparator.doLong(value1, value2, index));
+    }
+
+    @Override
+    protected Boolean doSingle(Long left, Long right, long index) {
+      throw new IllegalStateException("This method should not be called directly.");
+    }
+  }
+}
