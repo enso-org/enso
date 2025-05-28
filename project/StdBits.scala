@@ -443,16 +443,20 @@ object StdBits {
         .toLowerCase
         .replace("mac", "macos")
       val entryArch = strippedEntryName.split("/").apply(1)
+      val libName   = strippedEntryName.split("/").apply(2)
       if (
         !strippedEntryName.endsWith(validOsExt) ||
         // Remove native libs for different platforms
         !(entryOsName.equals(osName)) ||
-        !validArch.equals(entryArch)
+        !entryArch.equals(validArch)
       ) {
         None
       } else {
         Some(
-          strippedEntryName.replace("x86_64", "amd64")
+          entryArch.replace(
+            "x86_64",
+            "amd64"
+          ) + "/" + entryOsName + "/" + libName
         )
       }
     }
