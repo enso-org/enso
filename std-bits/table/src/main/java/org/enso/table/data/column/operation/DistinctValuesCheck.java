@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.table.Column;
