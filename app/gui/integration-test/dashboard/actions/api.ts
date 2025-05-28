@@ -203,7 +203,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   let featureFlags: Partial<FeatureFlags> = {
     enableLocalBackend: true,
     enableCloudExecution: true,
-    enableAsyncExecution: true,
+    enableScheduledExecution: true,
     enableAdvancedProjectExecutionOptions: true,
     enableAssetsTableBackgroundRefresh: false,
   }

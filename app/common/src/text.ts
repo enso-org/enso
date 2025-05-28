@@ -68,7 +68,6 @@ interface PlaceholderOverrides {
   readonly downloadFileError: [fileName: string]
   readonly downloadDatalinkError: [datalinkName: string]
   readonly deleteUserGroupError: [userGroupName: string]
-  readonly removeUserFromUserGroupError: [userName: string, userGroupName: string]
   readonly deleteUserError: [userName: string]
 
   readonly inviteUserBackendError: [userEmail: string]
@@ -173,9 +172,11 @@ interface PlaceholderOverrides {
     destinationCategoryName: string,
   ]
 
-  readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
-
+  readonly plusXUsers: [count: number]
+  readonly managingUserGroupX: [groupName: string]
   readonly planOverriddenToX: [planName: string]
+  readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
+  readonly assetsTableBackgroundRefreshIntervalOverridenToXMs: [ms: number]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

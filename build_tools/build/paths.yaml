@@ -104,6 +104,7 @@
     generated-java/:
     rust/:
     test-results/:
+    small-jdk/:
   test/:
     Benchmarks/:
   tools/:

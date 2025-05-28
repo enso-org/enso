@@ -346,6 +346,7 @@ impl Processor {
                 let input = Backend::resolve(self, input);
                 let repo = self.remote_repo.clone();
                 let context = self.context();
+                let small_jdk_dir = context.repo_root.target.small_jdk.path.clone();
                 async move {
                     let input = input.await?;
                     let operation = enso_build::engine::Operation::Release(
@@ -358,6 +359,8 @@ impl Processor {
                         build_engine_package: true,
                         build_launcher_bundle: true,
                         build_project_manager_bundle: true,
+                        build_small_jdk: true,
+                        small_jdk_dir: Some(small_jdk_dir),
                         verify_packages: true,
                         ..default()
                     };
@@ -411,11 +414,18 @@ impl Processor {
                             config.check_enso_benchmarks = TARGET_OS == OS::Linux;
                         }
                         Tests::StandardLibrary => {
+                            config.build_small_jdk = true;
+                            let small_jdk_dir =
+                                self.context.repo_root.target.small_jdk.path.clone();
+                            config.small_jdk_dir = Some(small_jdk_dir.clone());
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
                                     "Examples_Tests".to_string(),
                                 ]));
                             config.add_engine_runner_arg("--jvm");
+                            config.add_engine_runner_arg(
+                                small_jdk_dir.to_string_lossy().to_string().as_str(),
+                            );
                             config.use_native_runner = true;
                         }
                         Tests::StandardLibraryInNative => {

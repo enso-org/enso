@@ -32,12 +32,11 @@ import ActivityLogSettingsSection from './ActivityLogSettingsSection'
 import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
 import KeyboardShortcutsSettingsSection from './KeyboardShortcutsSettingsSection'
 import MembersSettingsSection from './MembersSettingsSection'
-import MembersTable from './MembersTable'
 import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
 import ProfilePictureInput from './ProfilePictureInput'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
 import SettingsTabType from './TabType'
-import UserGroupsSettingsSection from './UserGroupsSettingsSection'
+import { UserGroupsSettingsSection } from './UserGroupsSettingsSection'
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   nameId: 'noResultsSettingsSection',
@@ -367,7 +366,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'membersSettingsSection',
-        entries: [{ type: 'custom', render: () => <MembersSettingsSection /> }],
+        columnClassName: 'h-full *:flex-1 *:min-h-0',
+        entries: [{ type: 'custom', render: MembersSettingsSection }],
       },
     ],
   },
@@ -381,30 +381,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'userGroupsSettingsSection',
-        columnClassName: 'lg:h-[unset] overflow-auto h-auto',
-        entries: [
-          {
-            type: 'custom',
-            render: (context) => <UserGroupsSettingsSection backend={context.backend} />,
-          },
-        ],
-      },
-      {
-        nameId: 'userGroupsUsersSettingsSection',
-        column: 2,
-        columnClassName: 'lg:h-[unset] overflow-auto h-auto',
-        entries: [
-          {
-            type: 'custom',
-            render: (context) => (
-              <MembersTable
-                backend={context.backend}
-                draggable={context.user.isOrganizationAdmin}
-                populateWithSelf
-              />
-            ),
-          },
-        ],
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
+        entries: [{ type: 'custom', render: UserGroupsSettingsSection }],
       },
     ],
   },
