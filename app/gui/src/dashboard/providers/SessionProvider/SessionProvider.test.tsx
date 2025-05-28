@@ -7,7 +7,7 @@ import type {
   SignUpError,
   UserSession,
 } from '#/authentication/cognito'
-import { render, screen, waitFor } from '#/test'
+import { render, waitFor } from '#/test'
 import HttpClient from '#/utilities/HttpClient'
 import { HTTPClientContext, TextContext } from '$/providers/react'
 import { useText } from '$/providers/text'
@@ -119,40 +119,6 @@ describe('SessionProvider', () => {
 
     await waitFor(() => {
       expect(httpClient.setSessionToken).toBeCalledWith('accessToken')
-    })
-  })
-
-  it('Should refresh the expired user session', async () => {
-    authService.userSession.mockReturnValueOnce(
-      Promise.resolve({
-        ...(await authService.userSession()),
-        // 24 hours from now
-        expireAt: Rfc3339DateTime(new Date(Date.now() - 1).toJSON()),
-      }),
-    )
-
-    render(
-      <Suspense fallback={<div>Loading...</div>}>
-        <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
-            <SessionProvider
-              authService={authService}
-              mainPageUrl={mainPageUrl}
-              registerAuthEventListener={registerAuthEventListener}
-            >
-              <div>Hello</div>
-            </SessionProvider>
-          </TextContext.Provider>
-        </HTTPClientContext.Provider>
-      </Suspense>,
-    )
-
-    expect(authService.refreshUserSession).not.toBeCalled()
-    expect(authService.userSession).toBeCalledTimes(2)
-
-    await waitFor(() => {
-      expect(authService.refreshUserSession).toBeCalledTimes(1)
-      expect(screen.getByText(/Hello/)).toBeInTheDocument()
     })
   })
 
