@@ -146,31 +146,5 @@
     "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll",
     "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so",
     "META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib"
-  ],
-  "lib/Standard/Database/0.0.0-dev/polyglot/java/sqlite-jdbc-3.46.1.0.jar": [
-    "org/sqlite/native/Linux-Android/x86_64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Android/arm/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Android/x86/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Android/aarch64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Musl/x86_64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Musl/x86/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Musl/aarch64/libsqlitejdbc.so",
-    "org/sqlite/native/Windows/x86_64/sqlitejdbc.dll",
-    "org/sqlite/native/Windows/x86/sqlitejdbc.dll",
-    "org/sqlite/native/Windows/armv7/sqlitejdbc.dll",
-    "org/sqlite/native/Windows/aarch64/sqlitejdbc.dll",
-    "org/sqlite/native/FreeBSD/x86_64/libsqlitejdbc.so",
-    "org/sqlite/native/FreeBSD/x86/libsqlitejdbc.so",
-    "org/sqlite/native/FreeBSD/aarch64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/x86_64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/arm/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/x86/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/armv7/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/riscv64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/aarch64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/ppc64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/armv6/libsqlitejdbc.so",
-    "org/sqlite/native/Mac/x86_64/libsqlitejdbc.dylib",
-    "org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib"
   ]
 }
