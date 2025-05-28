@@ -296,7 +296,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return a list of all users in the same organization. */
-  override async listUsers(): Promise<readonly backend.User[]> {
+  override async listUsers(): Promise<readonly Omit<backend.User, 'groups'>[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
     if (response.status === STATUS_NOT_ALLOWED) {
