@@ -92,7 +92,6 @@ interface PlaceholderOverrides {
   readonly openProjectBackendError: [projectTitle: string]
   readonly openProjectMissingCredentialsBackendError: [projectTitle: string]
   readonly updateProjectBackendError: [projectTitle: string]
-  readonly checkResourcesBackendError: [projectTitle: string]
   readonly uploadFileWithNameBackendError: [fileTitle: string]
   readonly getFileDetailsBackendError: [fileTitle: string]
   readonly createDatalinkBackendError: [datalinkTitle: string]

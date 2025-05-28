@@ -318,18 +318,6 @@ export interface CreatedProject extends BaseProject {
   readonly ensoPath?: EnsoPath
 }
 
-/** A `Project` returned by the `listProjects` endpoint. */
-export interface ListedProjectRaw extends CreatedProject {
-  readonly address?: Address
-}
-
-/** A `Project` returned by `listProjects`. */
-export interface ListedProject extends CreatedProject {
-  readonly binaryAddress: Address | null
-  readonly jsonAddress: Address | null
-  readonly ydocAddress: Address | null
-}
-
 /** A `Project` returned by `updateProject`. */
 export interface UpdatedProject {
   readonly organizationId: OrganizationId
@@ -340,7 +328,8 @@ export interface UpdatedProject {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface ProjectRaw extends ListedProjectRaw {
+export interface ProjectRaw extends CreatedProject {
+  readonly address?: Address
   readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
@@ -348,7 +337,10 @@ export interface ProjectRaw extends ListedProjectRaw {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface Project extends ListedProject {
+export interface Project extends CreatedProject {
+  readonly binaryAddress: Address | null
+  readonly jsonAddress: Address | null
+  readonly ydocAddress: Address | null
   readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
@@ -605,16 +597,6 @@ export interface CheckoutSessionStatus {
   readonly paymentStatus: string
   /** Status of the checkout session. */
   readonly status: 'active' | 'trialing' | (string & NonNullable<unknown>)
-}
-
-/** Resource usage of a VM. */
-export interface ResourceUsage {
-  /** Percentage of memory used. */
-  readonly memory: number
-  /** Percentage of CPU time used since boot. */
-  readonly cpu: number
-  /** Percentage of disk space used. */
-  readonly storage: number
 }
 
 /** Metadata for a subscription. */
@@ -1946,8 +1928,6 @@ export default abstract class Backend {
   abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
-  /** Return a list of projects belonging to the current user. */
-  abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
@@ -2023,10 +2003,6 @@ export default abstract class Backend {
   ): Promise<UpdatedProject>
   /** Fetch the content of the `Main.enso` file of a project. */
   abstract getFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
-  /** Return project memory, processor and storage usage. */
-  abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
-  /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<readonly FileLocator[]>
   /** Begin uploading a large file. */
   abstract uploadFileStart(
     body: UploadFileRequestParams,

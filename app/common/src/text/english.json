@@ -149,8 +149,6 @@
   "openProjectBackendError": "Could not open project '$0'",
   "openProjectMissingCredentialsBackendError": "Could not open project '$0': Missing credentials",
   "updateProjectBackendError": "Could not update project '$0'",
-  "checkResourcesBackendError": "Could not get resource usage for project '$0'",
-  "listFilesBackendError": "Could not list files",
   "uploadFileBackendError": "Could not upload file",
   "uploadFileStartBackendError": "Could not begin uploading large file",
   "uploadFileChunkBackendError": "Could not upload chunk of large file",
