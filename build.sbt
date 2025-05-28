@@ -5447,7 +5447,7 @@ lazy val `std-microsoft` = project
     libraryDependencies ++= Seq(
       "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.microsoft.sqlserver"   % "mssql-jdbc"              % mssqlserverJDBCVersion,
-      "com.azure"                 % "azure-identity"          % azureIdentityVersion,
+      "com.azure"                 % "azure-identity"          % azureIdentityVersion exclude ("net.java.dev.jna", "jna") exclude ("net.java.dev.jna", "jna-platform"),
       "com.azure.resourcemanager" % "azure-resourcemanager"   % azureResourceVersion,
       "com.azure"                 % "azure-storage-blob"      % azureBlobStorageVersion
     ),
@@ -5461,20 +5461,14 @@ lazy val `std-microsoft` = project
           ignoreScalaLibrary = true,
           libraryUpdates     = (Compile / update).value,
           unmanagedClasspath = (Compile / unmanagedClasspath).value,
-          ignoreDependenciesByModuleID = Some(
-            Seq(
-              "net.java.dev.jna" % "jna"                              % "5.13.0",
-              "net.java.dev.jna" % "jna-platform"                     % "5.13.0",
-              "io.netty"         % "netty-resolver-dns-native-macos"  % "4.1.112.Final",
-              "io.netty"         % "netty-resolver-dns-classes-macos" % "4.1.112.Final"
-            )
-          ),
           ignoreDependencies = Some((fileName: String) => {
             val nameCheck = fileName.startsWith(
               "netty-transport-native"
             ) || fileName.startsWith("netty-tcnative-boringssl-static") ||
               fileName.startsWith("netty-resolver-dns-native")
 
+            (fileName.startsWith("netty-resolver-dns-classes-macos") && StdBits
+              .plainOsName() != "macos") ||
             nameCheck &&
             StdBits
               .allSupportedOs()
@@ -5494,7 +5488,7 @@ lazy val `std-microsoft` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
-  .dependsOn(`jna-wrapper` % "provided")
+  .dependsOn(`jna-wrapper` % "provided") // `azure-identity` requires `jna`
 
 lazy val `std-tableau` = project
   .in(file("std-bits") / "tableau")
