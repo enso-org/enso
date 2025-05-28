@@ -125,13 +125,6 @@
     "META-INF/resources/nfi-native/libnfi/darwin/aarch64/bin/libtrufflenfi.dylib",
     "META-INF/resources/nfi-native/libnfi/windows/amd64/bin/trufflenfi.dll"
   ],
-  "lib/Standard/Snowflake/0.0.0-dev/polyglot/java/grpc-netty-shaded-1.60.0.jar": [
-    "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_linux_x86_64.so",
-    "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_linux_aarch_64.so",
-    "META-INF/native/io_grpc_netty_shaded_netty_tcnative_windows_x86_64.dll",
-    "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_x86_64.so",
-    "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_aarch_64.so"
-  ],
   "lib/Standard/Snowflake/0.0.0-dev/polyglot/java/conscrypt-openjdk-uber-2.5.2.jar": [
     "META-INF/native/conscrypt_openjdk_jni-windows-x86.dll",
     "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll",
