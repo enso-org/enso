@@ -37,6 +37,7 @@ import {
 } from '#/components/AriaComponents'
 import { usePlanOverride, useSetPlanOverride } from '#/providers/AuthProvider'
 import {
+  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
   FEATURE_FLAGS_SCHEMA,
   useFeatureFlags,
   useSetFeatureFlag,
@@ -79,11 +80,26 @@ function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
 
 /** A display of current developer overrides. */
 export function EnsoDevStatus() {
+  const queryClient = useQueryClient()
   const { getText } = useText()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
-  const { showDeveloperIds, enableMultitabs, enableAdvancedProjectExecutionOptions } =
-    useFeatureFlags()
+  const animationsDisabled = useAnimationsDisabled()
+  const setAnimationsDisabled = useSetAnimationsDisabled()
+  const versionCheckerEnabled = useEnableVersionChecker() ?? false
+  const setVersionCheckerEnabled = useSetEnableVersionChecker()
+  const {
+    showDeveloperIds,
+    enableMultitabs,
+    enableAssetsTableBackgroundRefresh,
+    assetsTableBackgroundRefreshInterval,
+    enableCloudExecution,
+    enableScheduledExecution,
+    enableHybridExecution,
+    enableAdvancedProjectExecutionOptions,
+    overrideProfilePicture,
+    multiplyUserList,
+  } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
   const planName = (() => {
@@ -130,6 +146,75 @@ export function EnsoDevStatus() {
               {getText('planOverriddenToX', planName)}
             </DeveloperOverrideEntry>
           )}
+          {animationsDisabled && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setAnimationsDisabled(false)
+              }}
+            >
+              {getText('animationsDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {versionCheckerEnabled && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setVersionCheckerEnabled(false)
+              }}
+            >
+              {getText('versionCheckerEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableAssetsTableBackgroundRefresh && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableAssetsTableBackgroundRefresh', true)
+              }}
+            >
+              {getText('assetsTableBackgroundRefreshDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag(
+                  'assetsTableBackgroundRefreshInterval',
+                  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
+                )
+              }}
+            >
+              {getText(
+                'assetsTableBackgroundRefreshIntervalOverridenToXMs',
+                assetsTableBackgroundRefreshInterval,
+              )}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableCloudExecution && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableCloudExecution', true)
+              }}
+            >
+              {getText('cloudExecutionDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableScheduledExecution && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableScheduledExecution', true)
+              }}
+            >
+              {getText('scheduledExecutionDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {!enableHybridExecution && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableHybridExecution', false)
+              }}
+            >
+              {getText('hybridExecutionDisabled')}
+            </DeveloperOverrideEntry>
+          )}
           {showDeveloperIds && (
             <DeveloperOverrideEntry
               reset={() => {
@@ -137,6 +222,25 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('showingDeveloperIds')}
+            </DeveloperOverrideEntry>
+          )}
+          {overrideProfilePicture && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('overrideProfilePicture', false)
+              }}
+            >
+              {getText('overridingProfilePicture')}
+            </DeveloperOverrideEntry>
+          )}
+          {multiplyUserList && (
+            <DeveloperOverrideEntry
+              reset={async () => {
+                setFeatureFlag('multiplyUserList', false)
+                await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
+              }}
+            >
+              {getText('multiplyingUserList')}
             </DeveloperOverrideEntry>
           )}
           {enableMultitabs && (
@@ -344,6 +448,27 @@ export function EnsoDevtools() {
                   />
                   <ariaComponents.Switch
                     form={form}
+                    name="overrideProfilePicture"
+                    label={getText('ensoDevtoolsFeatureFlags.overrideProfilePicture')}
+                    description={getText(
+                      'ensoDevtoolsFeatureFlags.overrideProfilePictureDescription',
+                    )}
+                    onChange={(value) => {
+                      setFeatureFlag('overrideProfilePicture', value)
+                    }}
+                  />
+                  <ariaComponents.Switch
+                    form={form}
+                    name="multiplyUserList"
+                    label={getText('ensoDevtoolsFeatureFlags.multiplyUserList')}
+                    description={getText('ensoDevtoolsFeatureFlags.multiplyUserListDescription')}
+                    onChange={async (value) => {
+                      setFeatureFlag('multiplyUserList', value)
+                      await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
+                    }}
+                  />
+                  <ariaComponents.Switch
+                    form={form}
                     name="enableMultitabs"
                     label={getText('ensoDevtoolsFeatureFlags.enableMultitabs')}
                     description={getText('ensoDevtoolsFeatureFlags.enableMultitabsDescription')}
@@ -393,11 +518,11 @@ export function EnsoDevtools() {
                   />
                   <ariaComponents.Switch
                     form={form}
-                    name="enableAsyncExecution"
+                    name="enableScheduledExecution"
                     label="Enable Async Execution"
                     description="Enable Async Execution"
                     onChange={(value) => {
-                      setFeatureFlag('enableAsyncExecution', value)
+                      setFeatureFlag('enableScheduledExecution', value)
                     }}
                   />
                   <ariaComponents.Switch
@@ -521,7 +646,7 @@ export function EnsoDevtools() {
 
                     {metadata.isUserSpecific === true && (
                       <VisualTooltip tooltip="User specific storage item">
-                        <Icon icon="default_user" size="small" />
+                        <Icon icon="default_user" size="small" color="primary" />
                       </VisualTooltip>
                     )}
                   </div>

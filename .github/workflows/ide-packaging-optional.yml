@@ -18,7 +18,7 @@ jobs:
   enso-build-ci-gen-job-build-backend-macos-amd64:
     name: Build Backend (macos, amd64)
     runs-on:
-      - macos-13
+      - macos-15-large
     continue-on-error: true
     steps:
       - if: runner.os == 'Windows'
@@ -76,7 +76,7 @@ jobs:
   enso-build-ci-gen-job-gui-build-macos-amd64:
     name: GUI build (macos, amd64)
     runs-on:
-      - macos-13
+      - macos-15-large
     continue-on-error: true
     steps:
       - if: runner.os == 'Windows'
@@ -139,7 +139,7 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-backend-macos-amd64
     runs-on:
-      - macos-13
+      - macos-15-large
     continue-on-error: true
     steps:
       - if: runner.os == 'Windows'

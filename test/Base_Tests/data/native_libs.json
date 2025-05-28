@@ -104,9 +104,6 @@
     "META-INF/resources/windows/amd64/lib-graalpython/python-native.dll",
     "META-INF/resources/windows/amd64/lib-graalpython/pythonjni.dll"
   ],
-  "component/syntax-rust-definition.jar": [
-    "libenso_parser.so"
-  ],
   "component/jline-native-3.26.3.jar": [
     "org/jline/nativ/FreeBSD/x86/libjlinenative.so",
     "org/jline/nativ/FreeBSD/x86_64/libjlinenative.so",

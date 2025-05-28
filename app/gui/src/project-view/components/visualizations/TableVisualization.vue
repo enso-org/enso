@@ -39,16 +39,18 @@ import { TableVisualisationTooltip } from './TableVisualization/TableVisualisati
 import {
   Error,
   GenericGrid,
-  SingleColumnOfActions,
   isError,
   isGenericGrid,
   isSingleColumnOfActions,
+  SingleColumnOfActions,
 } from './TableVisualization/TableVisualisationTypes'
 import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
   createExpressionRowTemplate,
+  ValueTypeArgumentChild,
+  ValueTypes,
 } from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
@@ -392,11 +394,25 @@ const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) =
 
 async function getFilterValues(params: SetFilterValuesFuncParams) {
   const colName = params.colDef.field
+  const filters = params.api.getFilterModel()
+  const columnHeaders =
+    typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
+  const gridFilterModelList: Array<GridFilterModel> = filters ? makeFilterModelList(filters) : []
+  const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
+    gridFilterModelList,
+    columnHeaders,
+    colTypeMap.value,
+  )
   if (typeof props.data === 'object' && 'header' in props.data) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
     const server = ssrmServer.value
     if (server) {
-      const response = await server.getSetFilterValues(index)
+      const response = await server.getSetFilterValues(
+        index!,
+        filterColumnIndexList,
+        filterActions,
+        valueList,
+      )
       if (response.success) {
         params.success(response.data)
       }
@@ -408,11 +424,37 @@ const attepmtedCalls = ref(0)
 
 function createServer() {
   return {
-    getSetFilterValues: async (columnIndex?: number) => {
+    getSetFilterValues: async (
+      columnIndex: number,
+      filterColumnIndexList: string[] | string,
+      filterActions: string[] | string,
+      valueList:
+        | string
+        | (
+            | {
+                valueType: ValueTypes
+                value: string
+              }
+            | {
+                valueType: 'Mixed'
+                value: ValueTypeArgumentChild[]
+              }
+            | {
+                valueType: ValueTypes
+                value: string
+              }[]
+          )[],
+    ) => {
       const expressionFunction = createDistinctExpressionTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
         `${columnIndex}`,
+        //column indexes that require a filter
+        filterColumnIndexList as string[] | 'Nothing',
+        //column actions i.e Greater Than, Between...
+        filterActions as string[] | 'Nothing',
+        //values to filter on
+        valueList as string[] | 'Nothing',
       )
       const response = await config.executeExpression(expressionFunction)
       return {
@@ -425,8 +467,10 @@ function createServer() {
         typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
 
       const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
+      const gridFilterModelList: Array<GridFilterModel> =
+        request.filterModel ? makeFilterModelList(request.filterModel) : []
       const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
-        request,
+        gridFilterModelList,
         columnHeaders,
         colTypeMap.value,
       )
@@ -674,9 +718,10 @@ function toField(
     filter: filterType,
     filterParams: {
       maxNumConditions: 1,
-      values: getFilterValues,
+      values: isSSRM.value ? getFilterValues : null,
       filterOptions: filterOptions,
       buttons: filterButtons,
+      refreshValuesOnOpen: true,
     },
     headerComponentParams: {
       template,
