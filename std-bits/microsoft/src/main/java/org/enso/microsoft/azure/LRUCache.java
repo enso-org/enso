@@ -6,7 +6,7 @@ package org.enso.microsoft.azure;
  * @param <K> the type of keys
  * @param <V> the type of values
  */
-class LRUCache<K, V> extends java.util.LinkedHashMap<K, V> {
+final class LRUCache<K, V> extends java.util.LinkedHashMap<K, V> {
   private final int maxSize;
 
   /**
