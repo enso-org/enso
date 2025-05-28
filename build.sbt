@@ -3914,7 +3914,7 @@ lazy val `engine-runner` = project
           base
         } else {
           base ++
-           databaseCp ++
+          databaseCp ++
           `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `database-polyglot-root`
