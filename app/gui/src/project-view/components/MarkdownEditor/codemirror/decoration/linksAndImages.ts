@@ -1,5 +1,6 @@
 import DocumentationImage from '@/components/MarkdownEditor/DocumentationImage.vue'
 import { TreeViewDecorator } from '@/components/MarkdownEditor/codemirror/decoration/treeViewDecorator'
+import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/vueDecorationWidget'
 import {
   analyzeAutolink,
   analyzeLinkOrImage,
@@ -12,7 +13,6 @@ import { vueHostChanged } from '@/util/codemirror/vueHostExt'
 import { type EditorState, Extension, Prec, type Text } from '@codemirror/state'
 import { Decoration, ViewPlugin, WidgetType } from '@codemirror/view'
 import { type SyntaxNodeRef } from '@lezer/common'
-import { h, markRaw } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
 // === Links ===
@@ -131,22 +131,9 @@ export function decorateImageWithRendered(
   }
 }
 
-class ImageWidget extends WidgetType {
-  private container: HTMLElement | undefined
-  private vueHostRegistration: { unregister: () => void } | undefined
-
-  constructor(
-    private readonly props: {
-      readonly alt: string
-      readonly src: string
-    },
-    private readonly vueHost: VueHost,
-  ) {
-    super()
-  }
-
-  override get estimatedHeight() {
-    return -1
+class ImageWidget extends VueDecorationWidget<{ alt: string; src: string }> {
+  constructor(props: { alt: string; src: string }, vueHost: VueHost) {
+    super(DocumentationImage, props, vueHost, 'cm-image-rendered', 'span')
   }
 
   override eq(other: WidgetType) {
@@ -155,27 +142,6 @@ class ImageWidget extends WidgetType {
       other.props.src == this.props.src &&
       other.props.alt == this.props.alt
     )
-  }
-
-  override toDOM(): HTMLElement {
-    if (!this.container) {
-      const container = markRaw(document.createElement('span'))
-      container.className = 'cm-image-rendered'
-      this.vueHostRegistration = this.vueHost.register(
-        h(DocumentationImage, {
-          src: this.props.src,
-          alt: this.props.alt,
-        }),
-        container,
-      )
-      this.container = container
-    }
-    return this.container
-  }
-
-  override destroy() {
-    this.vueHostRegistration?.unregister()
-    this.container = undefined
   }
 }
 

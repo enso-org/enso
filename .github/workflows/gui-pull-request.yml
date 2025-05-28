@@ -64,46 +64,6 @@ jobs:
           path: |
             node_modules/.cache/prettier
 
-  message:
-    name: 📝 Message Template
-    runs-on: ubuntu-latest
-    needs: [gui-changed-files]
-    if: needs.gui-changed-files.outputs.any_changed == 'true'
-    steps:
-      - uses: actions/checkout@v4
-        name: Checkout
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-tags: false
-
-      - name: 💬 Comment on PR
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
-
-            await setMessage({
-              id: "title-message",
-              header: "## 🔄 GUI Checks in Progress",
-              context,
-              recreate: true,
-              body: `
-                The following checks are being performed:
-                - 🧹 Code formatting with Prettier
-                - 👮 Linting and type checking
-                - 🧪 Unit tests
-                - 🎭 Integration tests with Playwright
-                - 📚 Storybook deployment
-
-                Results will be updated here once completed.
-              `,
-              github,
-              repo: context.repo,
-              prNumber: context.payload.pull_request.number
-            })
-
   gui-checks:
     name: 🧰 Checks
     uses: ./.github/workflows/gui-checks.yml

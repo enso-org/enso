@@ -1456,9 +1456,8 @@ type Builder
 
     ## PRIVATE
        Save any attached warnings in self.warnings_java_builder.
-    add_warnings : Any -> Nothing
-    add_warnings self x -> Nothing =
-        warnings = Warning.get_all x . map .value
+    private add_warnings self x -> Nothing =
+        warnings = Warning.get_all x
         append_result = self.warnings_java_builder.appendTo warnings
         assert (append_result.is_error.not)
         Nothing
@@ -1562,7 +1561,7 @@ type Builder
         without_warnings = self.elements_java_builder.toArray
         if self.propagate_warnings.not then without_warnings else
             warnings_vector = self.warnings_java_builder.toArray
-            Warning.attach_multiple warnings_vector without_warnings
+            Warning.set without_warnings warnings_vector
 
 ## PRIVATE
    Describes an error attached to a value within a `Vector`. The `index` field

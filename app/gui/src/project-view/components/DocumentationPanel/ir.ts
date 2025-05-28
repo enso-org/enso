@@ -1,6 +1,7 @@
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry, SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
+import { Opt } from '@/util/data/opt'
 import type { Doc } from '@/util/docParser'
 import { type ProjectPath } from '@/util/projectPath'
 import * as iter from 'enso-common/src/utilities/data/iter'
@@ -106,6 +107,13 @@ export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
   const handle = handleDocumentation[entry.kind]
   if (!handle) return placeholder(`Entry kind ${entry.kind} was not handled.`)
   return handle(db, entry as any, id)
+}
+
+/** @returns The raw documentation for the given entry, if available. */
+export function lookupRawDocumentation(db: SuggestionDb, id: SuggestionId): Opt<string> {
+  const entry = db.get(id)
+  if (!entry || !entry.isMarkdownDocs) return undefined
+  return entry.rawDocumentation
 }
 
 function getChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): Docs[] {

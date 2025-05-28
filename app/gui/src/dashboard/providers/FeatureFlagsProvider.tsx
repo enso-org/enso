@@ -11,13 +11,13 @@ import { z } from 'zod'
 import { persist } from 'zustand/middleware'
 
 const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
-const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
+export const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
 
 /** Feature flags for internal testing. */
 export function featureFlagsForInternalTesting() {
   return {
     enableCloudExecution: true,
-    enableAsyncExecution: true,
+    enableScheduledExecution: true,
     enableAdvancedProjectExecutionOptions: false,
     enableHybridExecution: true,
   }
@@ -28,10 +28,12 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableAssetsTableBackgroundRefresh: z.boolean(),
   assetsTableBackgroundRefreshInterval: z.number().min(MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS),
   enableCloudExecution: z.boolean(),
-  enableAsyncExecution: z.boolean(),
+  enableScheduledExecution: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
   enableHybridExecution: z.boolean(),
   showDeveloperIds: z.boolean(),
+  overrideProfilePicture: z.boolean(),
+  multiplyUserList: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA })
@@ -49,7 +51,7 @@ export interface FeatureFlagsStore {
   readonly setFeatureFlags: (flags: Partial<FeatureFlags>) => void
 }
 
-const flagsStore = createStore<FeatureFlagsStore>()(
+export const flagsStore = createStore<FeatureFlagsStore>()(
   persist(
     (set) => ({
       featureFlags: {
@@ -57,10 +59,12 @@ const flagsStore = createStore<FeatureFlagsStore>()(
         enableAssetsTableBackgroundRefresh: true,
         assetsTableBackgroundRefreshInterval: DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
         enableCloudExecution: IS_DEV_MODE || isOnElectron(),
-        enableAsyncExecution: true,
+        enableScheduledExecution: true,
         enableAdvancedProjectExecutionOptions: false,
         enableHybridExecution: IS_DEV_MODE,
         showDeveloperIds: false,
+        overrideProfilePicture: false,
+        multiplyUserList: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

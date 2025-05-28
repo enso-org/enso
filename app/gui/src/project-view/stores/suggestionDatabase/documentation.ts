@@ -1,12 +1,18 @@
+import { extractMetadata } from '@/components/DocumentationPanel/metadata'
 import type { GroupInfo } from '@/stores/suggestionDatabase'
 import { findIndexOpt } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
 import { parseDocs, type Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { type DeepReadonly } from 'vue'
+import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
+import { ensoStandardMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
+import { unwrapOrWithLog } from 'ydoc-shared/util/data/result'
 
 export interface DocumentationData {
+  rawDocumentation: string
+  isMarkdownDocs: boolean
   documentation: Doc.Section[]
   docSummaryHtml: string | undefined
   aliasesAndMacros: string[]
@@ -76,53 +82,84 @@ export function documentationData(
   project: QualifiedName | undefined,
   groups: DeepReadonly<GroupInfo[]>,
 ): DocumentationData {
+  const markdown = ensoStandardMarkdownParser.parse(documentation ?? '')
+  const cursor = markdown.cursor()
+  const metadataResult = extractMetadata(documentation ?? '', cursor.node)
+  const metadata = unwrapOrWithLog(metadataResult, null, 'Invalid documentation metadata')
+
   const parsed = documentation != null ? parseDocs(documentation) : []
-  const groupName = tagValue(parsed, 'Group')
+
+  const legacy = getLegacyProperties(parsed)
+
+  const iconName = metadata?.icon ?? legacy.iconName
+  const groupName = metadata?.group ?? legacy.groupName
+  const aliases = metadata?.aliases ?? legacy.aliases
+  const macros = metadata?.macros ?? legacy.macros
+  const isPrivate = metadata?.private ?? legacy.isPrivate
+  const isUnstable = metadata?.unstable ?? legacy.isUnstable
+  const suggestedRank = metadata?.suggested ?? legacy.suggestedRank
+
   const groupIndex = groupName && project ? getGroupIndex(groupName, project, groups) : undefined
+
+  return {
+    rawDocumentation: prerenderMarkdown(documentation ?? ''),
+    documentation: parsed,
+    isMarkdownDocs: metadata != null,
+    docSummaryHtml: getDocumentationSummary(parsed),
+    iconName: iconName != null && isIconName(iconName) ? iconName : undefined,
+    groupIndex,
+    aliasesAndMacros: [...aliases, ...macros.map((macro) => macro.description)].sort(),
+    macros: macros.reduce(
+      (acc, macro) => {
+        acc[macro.description] = macro.value
+        return acc
+      },
+      {} as Record<string, string>,
+    ),
+    isPrivate: isPrivate,
+    isUnstable: isUnstable,
+    suggestedRank: suggestedRank,
+  }
+}
+
+/**
+ * These properties are extracted using legacy doc parser for old Enso-specific documentation format.
+ * To be removed when fully migrated to Markdown docs.
+ */
+function getLegacyProperties(parsed: Doc.Section[]) {
+  const groupName = tagValue(parsed, 'Group')
   const iconName = tagValue(parsed, 'Icon')
 
   const macroFilter = isTagNamed('Macro')
-  const macros = parsed.filter(macroFilter).reduce(
-    (acc, section) => {
-      const body = section.Tag.body
-      const match = body.match(/^(\S+) (.+)$/)
-      if (match) {
-        const name = match[1]
-        const description = match[2]
-        if (name && description) {
-          acc[name] = description
-        }
+  const macros = parsed.filter(macroFilter).flatMap((section) => {
+    const body = section.Tag.body
+    const match = body.match(/^(\S+) (.+)$/)
+    if (match) {
+      const description = match[1]
+      const value = match[2]
+      if (description && value) {
+        return [{ description, value }]
       }
-      return acc
-    },
-    {} as Record<string, string>,
-  )
+    }
+    return []
+  })
 
   const aliases =
     tagValue(parsed, 'Alias')
       ?.trim()
       .split(/\s*,\s*/g) ?? []
 
-  return {
-    documentation: parsed,
-    docSummaryHtml: getDocumentationSummary(parsed),
-    iconName: iconName != null ? (iconName as Icon) : undefined,
-    groupIndex,
-    aliasesAndMacros: [...aliases, ...Object.keys(macros)].sort(),
-    macros,
-    isPrivate: isSome(tagValue(parsed, 'Private')),
-    isUnstable: isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced')),
-    suggestedRank: getSuggestedRank(parsed),
-  }
-}
+  const isPrivate = isSome(tagValue(parsed, 'Private'))
+  const isUnstable = isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced'))
+  const suggestedRank = getSuggestedRank(parsed)
 
-/**
- * Get the ICON tag value from the documentation block. Only use this function
- * if all you need is icon, since the docs parsing is an expensive operation.
- * @param documentation String representation of documentation block.
- * @returns Value of icon tag within the docs.
- */
-export function getDocsIcon(documentation: Opt<string>): Opt<Icon> {
-  const parsed = documentation != null ? parseDocs(documentation) : []
-  return tagValue(parsed, 'Icon') as Opt<Icon>
+  return {
+    groupName,
+    iconName,
+    macros,
+    aliases,
+    isPrivate,
+    isUnstable,
+    suggestedRank,
+  }
 }
