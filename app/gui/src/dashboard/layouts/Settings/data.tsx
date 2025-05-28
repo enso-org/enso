@@ -13,7 +13,7 @@ import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import type { FeatureFlags, Theme } from '#/providers/FeatureFlagsProvider'
+import type { FeatureFlags } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import {
   EmailAddress,
@@ -412,6 +412,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     nameId: 'appearanceSettingsTab',
     settingsTab: SettingsTabType.appearance,
     icon: 'paint_palette',
+    visible: ({ featureFlags }) => featureFlags.enableThemeSelector,
     sections: [
       {
         nameId: 'appearanceSettingsSection',
@@ -423,7 +424,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               return (
                 <Form
                   schema={z.object({ isDarkTheme: z.boolean() })}
-                  defaultValues={{ isDarkTheme: context.theme === 'dark' }}
+                  defaultValues={{ isDarkTheme: context.featureFlags.theme === 'dark' }}
                   onChange={(_key, value) => {
                     const isDarkTheme = value
                     context.setFeatureFlag('theme', isDarkTheme ? 'dark' : 'light')
@@ -542,7 +543,7 @@ export interface SettingsContext {
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly preferredTimeZone: string | undefined
   readonly setPreferredTimeZone: (preferredTimeZone: string | undefined) => void
-  readonly theme: Theme
+  readonly featureFlags: FeatureFlags
   readonly setFeatureFlag: <Key extends keyof FeatureFlags>(
     key: Key,
     value: FeatureFlags[Key],

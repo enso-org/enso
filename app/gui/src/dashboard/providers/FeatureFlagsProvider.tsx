@@ -37,6 +37,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableAdvancedProjectExecutionOptions: z.boolean(),
   enableHybridExecution: z.boolean(),
   showDeveloperIds: z.boolean(),
+  enableThemeSelector: z.boolean(),
   theme: THEME_SCHEMA,
 })
 
@@ -67,6 +68,7 @@ const flagsStore = createStore<FeatureFlagsStore>()(
         enableAdvancedProjectExecutionOptions: false,
         enableHybridExecution: IS_DEV_MODE,
         showDeveloperIds: false,
+        enableThemeSelector: false,
         theme: 'light',
       },
       setFeatureFlag: (key, value) => {

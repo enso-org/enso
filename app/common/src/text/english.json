@@ -1140,6 +1140,7 @@
   "showingDeveloperIds": "Showing Developer Ids",
   "multitabsEnabled": "Multiple Open Projects Allowed",
   "advancedProjectExecutionOptionsEnabled": "Advanced Scheduler Options Enabled",
+  "themeSelectorEnabled": "Theme selector enabled",
   "authLogEvent": "Authenticate",
   "getOrganizationLogEvent": "Get Organization",
   "updateOrganizationLogEvent": "Update Organization",

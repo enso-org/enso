@@ -82,8 +82,12 @@ export function EnsoDevStatus() {
   const { getText } = useText()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
-  const { showDeveloperIds, enableMultitabs, enableAdvancedProjectExecutionOptions } =
-    useFeatureFlags()
+  const {
+    showDeveloperIds,
+    enableMultitabs,
+    enableAdvancedProjectExecutionOptions,
+    enableThemeSelector,
+  } = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
   const planName = (() => {
@@ -155,6 +159,15 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('advancedProjectExecutionOptionsEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {enableThemeSelector && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableThemeSelector', false)
+              }}
+            >
+              {getText('themeSelectorEnabled')}
             </DeveloperOverrideEntry>
           )}
         </div>
@@ -416,6 +429,15 @@ export function EnsoDevtools() {
                     description="Enable Hybrid Execution"
                     onChange={(value) => {
                       setFeatureFlag('enableHybridExecution', value)
+                    }}
+                  />
+                  <ariaComponents.Switch
+                    form={form}
+                    name="enableThemeSelector"
+                    label="Enable Theme Selector"
+                    description="Enable Theme Selector"
+                    onChange={(value) => {
+                      setFeatureFlag('enableThemeSelector', value)
                     }}
                   />
                 </>

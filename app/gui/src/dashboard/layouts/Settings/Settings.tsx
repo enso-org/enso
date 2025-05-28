@@ -8,7 +8,7 @@ import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useFeatureFlag, useSetFeatureFlag } from '#/providers/FeatureFlagsProvider'
+import { useFeatureFlags, useSetFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { Path } from '#/services/ProjectManager'
@@ -65,7 +65,7 @@ export function Settings() {
     setLocalRootDirectory(undefined)
     localBackend?.resetRootPath()
   })
-  const theme = useFeatureFlag('theme')
+  const featureFlags = useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
   const isMatch = React.useMemo(() => {
@@ -92,7 +92,7 @@ export function Settings() {
       changePassword,
       preferredTimeZone,
       setPreferredTimeZone,
-      theme,
+      featureFlags,
       setFeatureFlag,
     }),
     [
@@ -113,7 +113,7 @@ export function Settings() {
       localRootDirectory,
       preferredTimeZone,
       setPreferredTimeZone,
-      theme,
+      featureFlags,
       setFeatureFlag,
     ],
   )
