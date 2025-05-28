@@ -76,7 +76,7 @@ export const useWidgetRegistry = useStoreTemplate('widgetRegistry')
 </script>
 
 <script setup lang="ts">
-const { id, onlyDefined = false } = defineProps<{ id: Opt<string>; onlyDefined?: boolean }>()
+const { id } = defineProps<{ id: Opt<string> }>()
 
 const provided = provideCurrentProject(() => id).ref
 
@@ -92,7 +92,7 @@ const groupColors = computed(() => {
 
 <template>
   <div class="WithCurrentProject" :style="groupColors">
-    <slot v-if="!onlyDefined || provided != null" />
+    <slot />
   </div>
 </template>
 

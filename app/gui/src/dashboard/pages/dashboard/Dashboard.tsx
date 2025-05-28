@@ -30,8 +30,8 @@ import { vueComponent } from '#/utilities/vue'
 import { useBackends, useConfig } from '$/providers/react'
 import { usePrefetchQuery } from '@tanstack/react-query'
 
-const TabView = React.lazy(() =>
-  import('$/components/TabView.vue').then(({ default: vue }) => vueComponent(vue)),
+const AppContainer = React.lazy(() =>
+  import('$/components/AppContainer.vue').then(({ default: vue }) => vueComponent(vue)),
 )
 
 /** The component that contains the entire UI. */
@@ -171,7 +171,7 @@ function DashboardInner() {
           modalProvider.unsetModal()
         }}
       >
-        <TabView
+        <AppContainer
           initialProjectName={initialProjectName}
           launchedProjects={launchedProjects}
           closeProject={closeProject}

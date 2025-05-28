@@ -3,9 +3,9 @@ import { type PaywallFeatureName } from '#/hooks/billing'
 import UserBarReact from '#/layouts/UserBar'
 import { LaunchedProject } from '#/providers/ProjectsProvider'
 import { BackendType, ProjectId } from '#/services/Backend'
-import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
-import RightPanel from '$/components/TabView/RightPanel.vue'
-import SelectableTab from '$/components/TabView/SelectableTab.vue'
+import { Drive, Editor, Settings } from '$/components/AppContainer/reactTabs'
+import RightPanel from '$/components/AppContainer/RightPanel.vue'
+import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { RightPanelDataProviderForReact } from '$/providers/react'
@@ -54,22 +54,19 @@ function loadingProjectSpinnerPhase(project: LaunchedProject) {
     : 'loading-slow'
 }
 
-watch(
-  () => openedProjects,
-  () => {
-    const openedProjectsSet = new Set(openedProjects.value.map((proj) => proj.id))
-    for (const proj of readyProjects) {
-      if (!openedProjectsSet.has(proj)) {
-        readyProjects.delete(proj)
-      }
+watch(openedProjects, (openedProjectsList) => {
+  const openedProjectsSet = new Set(openedProjectsList.map((proj) => proj.id))
+  for (const proj of readyProjects) {
+    if (!openedProjectsSet.has(proj)) {
+      readyProjects.delete(proj)
     }
-    for (const proj of projectNames.keys()) {
-      if (!openedProjectsSet.has(proj)) {
-        projectNames.delete(proj)
-      }
+  }
+  for (const proj of projectNames.keys()) {
+    if (!openedProjectsSet.has(proj)) {
+      projectNames.delete(proj)
     }
-  },
-)
+  }
+})
 
 const onSignOut = () => {
   tab.value = 'drive'
@@ -82,7 +79,7 @@ const onSignOut = () => {
       <div class="bar">
         <div role="tablist" class="tablist">
           <SelectableTab
-            layoutId="tab-highlight"
+            selectionLayoutId="tab-highlight"
             :selected="tab === 'drive'"
             icon="drive"
             label="Data Catalog"
@@ -92,7 +89,7 @@ const onSignOut = () => {
             v-for="project in launchedProjects"
             :key="project.id"
             data-testid="editor-tab-button"
-            layoutId="tab-highlight"
+            selectionLayoutId="tab-highlight"
             :selected="tab === project.id"
             :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
             :label="projectNames.get(project.id)"
@@ -107,7 +104,7 @@ const onSignOut = () => {
           </SelectableTab>
           <SelectableTab
             v-if="tab === 'settings'"
-            layoutId="tab-highlight"
+            selectionLayoutId="tab-highlight"
             :selected="true"
             icon="settings"
             label="Settings"

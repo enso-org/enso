@@ -6,7 +6,7 @@ import {
   AssetVersions,
   ProjectExecutionsCalendar,
   ProjectSessions,
-} from '$/components/TabView/reactTabs'
+} from '$/components/AppContainer/reactTabs'
 import ComponentDocumentation from '@/components/ComponentDocumentation.vue'
 import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import { createContextStore } from '@/providers'
@@ -14,7 +14,7 @@ import { Err, Ok, Result } from '@/util/data/result'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { ToValue } from '@/util/reactivity'
 import { useLocalStorage } from '@vueuse/core'
-import { Component, computed, proxyRefs, reactive, Ref, ref, toRef, toValue } from 'vue'
+import { Component, computed, proxyRefs, reactive, readonly, Ref, ref, toRef, toValue } from 'vue'
 import { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { TabId } from './container'
 import { injectText, TextStore } from './text'
@@ -43,7 +43,11 @@ export interface RightPanelContext {
 
 interface RightPanelTabInfo {
   icon: Icon
-  enabled: ToValue<Result<boolean>>
+  /**
+   * If Err, the tab is disabled and the error message is presented to user as reason of
+   * disabling.
+   */
+  enabled: ToValue<Result<void>>
   title: ToValue<string>
   component: Component
 }
@@ -68,7 +72,7 @@ function useRightPanelTabs(
       isCloudCategory(rightPanelContext.value.category),
   )
   const enabledInCloudOnly = computed(() =>
-    isCloudDirectoryView.value ? Ok(true)
+    isCloudDirectoryView.value ? Ok()
     : isDriveView.value ? Err('Exclusive to Cloud')
     : Err('Exclusive to Cloud category in Drive'),
   )
@@ -108,7 +112,7 @@ function useRightPanelTabs(
           if (!enabledInCloudOnly.value.ok) return enabledInCloudOnly.value
           if (!isFeatureUnderPaywall('scheduler'))
             return Err(getText('assetProjectExecutionsCalendar.teamPlanOnly'))
-          return Ok(true)
+          return Ok()
         }),
         title: textRef('executionsCalendar'),
         component: ProjectExecutionsCalendar,
@@ -118,7 +122,7 @@ function useRightPanelTabs(
       'documentation',
       {
         icon: 'docs',
-        enabled: Ok(true),
+        enabled: Ok(),
         title: textRef('docs'),
         component: DocumentationEditor,
       },
@@ -129,7 +133,7 @@ function useRightPanelTabs(
         icon: 'help',
         enabled: computed(() => {
           const tab = toValue(currentTab)
-          return tab !== 'drive' && tab !== 'settings' ? Ok(true) : Err('Exclusive to Project view')
+          return tab !== 'drive' && tab !== 'settings' ? Ok() : Err('Exclusive to Project view')
         }),
         title: 'Component help',
         component: ComponentDocumentation,
@@ -152,12 +156,21 @@ function useRightPanel(
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
   const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
   const fullscreen = ref(false)
+  /**
+   * A tab displayed temporarily. It overrides the tab clicked by user.
+   *
+   * The usages include displaying asset properties when editing Datalink - once the edit stops,
+   * the tab is restored to previous state.
+   */
   const temporaryTab = ref<RightPanelTabId>()
 
   const store = useLocalStorage<RightPanelStore>('rightPanel', {
     tab: undefined,
     width: undefined,
   })
+
+  /** Tab which should be displayed (taking temporary tab into consideration). */
+  const displayedTab = computed(() => temporaryTab.value ?? store.value.tab)
 
   /**
    * Set context from given tab.
@@ -203,17 +216,24 @@ function useRightPanel(
     return typeof currentItem === 'object' ? currentItem : undefined
   })
 
+  function setTab(tab: RightPanelTabId | undefined) {
+    store.value.tab = tab
+    temporaryTab.value = undefined
+  }
+
   function toggleTab(specificTab?: RightPanelTabId | undefined) {
     if (specificTab == null || store.value.tab == specificTab) {
-      store.value.tab = undefined
+      setTab(undefined)
     } else {
-      store.value.tab = specificTab
+      setTab(specificTab)
     }
   }
 
   return proxyRefs({
     allTabs,
-    tab: toRef(store.value, 'tab'),
+    tab: readonly(toRef(store.value, 'tab')),
+    displayedTab,
+    setTab,
     toggleTab,
     temporaryTab,
     setTemporaryTab: (tab: RightPanelTabId | undefined) => (temporaryTab.value = tab),

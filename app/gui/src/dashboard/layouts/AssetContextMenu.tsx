@@ -316,14 +316,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   ctx.category = category
                   ctx.item = asset
                   switch (asset.type) {
-                    case backendModule.AssetType.secret: {
-                      ctx.spotlightOn = 'secret'
+                    case backendModule.AssetType.secret:
+                    case backendModule.AssetType.datalink:
+                      ctx.spotlightOn = asset.type
                       break
-                    }
-                    case backendModule.AssetType.datalink: {
-                      ctx.spotlightOn = 'datalink'
-                      break
-                    }
                   }
                   return ctx
                 })

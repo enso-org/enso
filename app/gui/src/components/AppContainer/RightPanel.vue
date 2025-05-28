@@ -14,26 +14,19 @@ import SelectableTab from './SelectableTab.vue'
 
 const data = injectRightPanelData()
 
-const displayedTab = computed(() => data.temporaryTab ?? data.tab)
-
 const component = computed(() => {
-  return displayedTab.value && data.allTabs.get(displayedTab.value)?.component
+  return data.displayedTab && data.allTabs.get(data.displayedTab)?.component
 })
 
-function setTab(tab: RightPanelTabId | undefined) {
-  data.tab = tab
-  data.setTemporaryTab(undefined)
-}
-
-function tabTooltip(title: ToValue<string>, enabled: ToValue<Result<boolean>>) {
+function tabTooltip(title: ToValue<string>, enabled: ToValue<Result<void>>) {
   const enabledVal = toValue(enabled)
   const titleVal = toValue(title)
   return enabledVal.ok ? titleVal : `${titleVal} - ${enabledVal.error.message('')}`
 }
 
-function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<boolean>>) {
+function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
   const enabledVal = toValue(enabled)
-  return displayedTab.value === id || (enabledVal.ok && enabledVal.value)
+  return data.displayedTab === id || (enabledVal.ok && enabledVal.value)
 }
 
 const contentElement = ref<HTMLElement>()
@@ -66,13 +59,13 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
         <SelectableTab
           v-for="[id, tabInfo] in data.allTabs.entries()"
           :key="id"
-          layoutId="right-tab-highlight"
+          selectionLayoutId="right-tab-highlight"
           :icon="tabInfo.icon"
           :tooltip="tabTooltip(tabInfo.title, tabInfo.enabled)"
           orientation="vertical"
-          :selected="displayedTab === id"
+          :selected="data.displayedTab === id"
           :enabled="tabEnabled(id, tabInfo.enabled)"
-          @update:selected="setTab($event ? id : undefined)"
+          @update:selected="data.setTab($event ? id : undefined)"
         />
       </div>
       <div class="filler" />

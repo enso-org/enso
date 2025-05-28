@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ProjectId } from '#/services/Backend'
-import RightPanel from '$/components/TabView/RightPanel.vue'
+import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import { provideBackends } from '$/providers/backends'
 import { provideHttpClient } from '$/providers/httpClient'
 import { provideOpenedProjects } from '$/providers/openedProjects'

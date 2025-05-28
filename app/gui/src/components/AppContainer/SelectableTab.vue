@@ -8,13 +8,13 @@ import CloseButton from '../CloseButton.vue'
 
 const selected = defineModel<boolean>('selected')
 const {
-  layoutId,
+  selectionLayoutId,
   label,
   tooltip,
   orientation = 'horizontal',
   enabled = true,
 } = defineProps<{
-  layoutId: string
+  selectionLayoutId: string
   icon?: Icon | undefined
   label?: string | undefined
   tooltip?: string | undefined
@@ -29,21 +29,14 @@ const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always
 <template>
   <TooltipTrigger :when="whenTooltip">
     <template #default="triggerProps">
-      <div
-        class="SelectableTab"
-        :class="{
-          vertical: orientation === 'vertical',
-          horizontal: orientation === 'horizontal',
-        }"
-        @click="selected = !selected"
-      >
+      <div class="SelectableTab" :class="orientation" @click="selected = !selected">
         <motion.div
           v-if="selected && orientation === 'horizontal'"
           class="underlying"
-          :layoutId="layoutId"
+          :layoutId="selectionLayoutId"
         >
-          <!-- TODO[ao]: Style copied from dashboard. Anyone is welcome to port it <style scoped> 
-        in their free time -->
+          <!-- TODO[ao]: Selection logic copied from dashboard. Anyone is welcome to port it in 
+           their spare time -->
           <div class="h-full w-full rounded-t-4xl bg-dashboard" />
           <div
             class="absolute -left-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_0%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
@@ -55,8 +48,10 @@ const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always
         <motion.div
           v-if="selected && orientation === 'vertical'"
           class="underlying"
-          :layoutId="layoutId"
+          :layoutId="selectionLayoutId"
         >
+          <!-- TODO[ao]: Selection logic copied from dashboard. Anyone is welcome to port it in 
+           their spare time -->
           <div className="h-full w-full rounded-r-2xl bg-background-hex" />
           <div
             className="absolute -top-5 left-0 aspect-square w-5 [background:radial-gradient(circle_at_100%_0%,_transparent_70%,_var(--color-background-hex)_70%)]"
@@ -122,17 +117,16 @@ const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always
   align-items: center;
   gap: 12px;
   transition: background-color 0.3s;
+  opacity: 0.5;
 
   &.enabled {
+    opacity: 1;
+
     &:hover,
     &:focus,
     &:active {
       background-color: var(--tab-highlight);
     }
-  }
-
-  &:not(.enabled) {
-    opacity: 0.5;
   }
 }
 

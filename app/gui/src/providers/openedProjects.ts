@@ -4,6 +4,7 @@ import { createGraphStore, GraphStore } from '@/stores/graph'
 import { createProjectStore, LsUrls, ProjectStore } from '@/stores/project'
 import { createProjectNameStore, ProjectNameStore } from '@/stores/projectNames'
 import { createSuggestionDbStore, SuggestionDbStore } from '@/stores/suggestionDatabase'
+import { assert } from '@/util/assert'
 import { ToValue } from '@/util/reactivity'
 import { EffectScope, effectScope, shallowReactive } from 'vue'
 
@@ -54,6 +55,7 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
 
     function registerProject(props: ProjectProps) {
       const { projectId } = props
+      assert(!projects.has(projectId), 'Registering already registered project')
       const storesScope = effectScope()
 
       storesScope.run(() => {

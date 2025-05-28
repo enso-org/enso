@@ -79,7 +79,12 @@ onDeactivated(() => (visible.value = false))
 
 <template>
   <div class="ProjectView">
-    <WithCurrentProject :id="projectId" onlyDefined><GraphEditor /></WithCurrentProject>
+    <WithCurrentProject :id="projectId">
+      <!-- Key property is needed because of still many usages of deprecated useXStore 
+       (see WithCurrentProject.vue). Once all those usages disappear, fully remouting GraphEditor
+       will be no longer necessary -->
+      <GraphEditor v-if="projectId" :key="projectId" />
+    </WithCurrentProject>
   </div>
 </template>
 
