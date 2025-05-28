@@ -89,8 +89,19 @@ impl BuiltEnso {
             .engine_package
             .bin
             .join(filename);
+        let small_jdk_dir = &self.paths.repo_root.target.small_jdk;
+        if !small_jdk_dir.path.exists() {
+            bail!("Small JDK directory does not exist: {}", small_jdk_dir.path.display());
+        }
+        let small_jdk_dir_absolutized = small_jdk_dir.path.absolutize()?;
+        let small_jdk_dir_path = small_jdk_dir_absolutized.as_str();
         let benchmarks = Command::new(&enso)
-            .args(["--jvm", "--run", self.paths.repo_root.test.benchmarks.as_str()])
+            .args([
+                "--jvm",
+                small_jdk_dir_path,
+                "--run",
+                self.paths.repo_root.test.benchmarks.as_str(),
+            ])
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
             .await;

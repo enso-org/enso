@@ -2,6 +2,7 @@
 import { type VariantProps } from '#/utilities/tailwindVariants'
 import { Icon } from '../Icon'
 import { PROFILE_PICTURE_STYLES } from './variants'
+
 /** Props for a {@link ProfilePicture}. */
 export interface ProfilePictureProps
   extends Omit<VariantProps<typeof PROFILE_PICTURE_STYLES>, 'default'> {
