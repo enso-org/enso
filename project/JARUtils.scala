@@ -192,9 +192,8 @@ object JARUtils {
     jarPath: Path,
     shouldBeDeleted: String => Boolean
   ): Unit = {
-    val jarFile     = new JarFile(jarPath.toFile)
     val tempJarPath = Files.createTempFile("temp-", ".jar")
-    try {
+    Using(new JarFile(jarPath.toFile)) { jarFile =>
       Using(new JarOutputStream(Files.newOutputStream(tempJarPath))) {
         outputJar =>
           jarFile.stream().forEach { entry =>
@@ -212,14 +211,12 @@ object JARUtils {
             }
           }
       }
-      Files.move(
-        tempJarPath,
-        jarPath,
-        StandardCopyOption.REPLACE_EXISTING
-      )
-    } finally {
-      IO.delete(tempJarPath.toFile)
-      jarFile.close()
     }
+    Files.move(
+      tempJarPath,
+      jarPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    IO.delete(tempJarPath.toFile)
   }
 }
