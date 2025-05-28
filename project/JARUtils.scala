@@ -3,7 +3,7 @@ import sbt.std.Streams
 import sbt.util.{CacheStoreFactory, FileInfo}
 
 import java.io.{File, IOException}
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardCopyOption}
 import java.util.jar.{JarEntry, JarFile, JarOutputStream}
 import scala.util.{Try, Using}
 
@@ -212,11 +212,10 @@ object JARUtils {
             }
           }
       }
-      IO.delete(jarPath.toFile)
       Files.move(
         tempJarPath,
         jarPath,
-        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+        StandardCopyOption.REPLACE_EXISTING
       )
     } finally {
       IO.delete(tempJarPath.toFile)
