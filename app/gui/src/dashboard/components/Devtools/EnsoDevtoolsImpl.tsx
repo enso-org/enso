@@ -84,6 +84,10 @@ export function EnsoDevStatus() {
   const { getText } = useText()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
+  const animationsDisabled = useAnimationsDisabled()
+  const setAnimationsDisabled = useSetAnimationsDisabled()
+  const versionCheckerEnabled = useEnableVersionChecker() ?? false
+  const setVersionCheckerEnabled = useSetEnableVersionChecker()
   const {
     showDeveloperIds,
     enableMultitabs,
@@ -140,6 +144,24 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('planOverriddenToX', planName)}
+            </DeveloperOverrideEntry>
+          )}
+          {animationsDisabled && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setAnimationsDisabled(false)
+              }}
+            >
+              {getText('animationsDisabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {versionCheckerEnabled && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setVersionCheckerEnabled(false)
+              }}
+            >
+              {getText('versionCheckerEnabled')}
             </DeveloperOverrideEntry>
           )}
           {!enableAssetsTableBackgroundRefresh && (
