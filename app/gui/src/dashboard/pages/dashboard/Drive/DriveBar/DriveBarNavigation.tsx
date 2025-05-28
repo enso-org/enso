@@ -2,8 +2,9 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
-import { Button, ButtonGroup, Menu } from '#/components/AriaComponents'
 import { Breadcrumbs, type BreadcrumbItemProps, type OnDrop } from '#/components/Breadcrumbs'
+import { Button } from '#/components/Button'
+import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -153,7 +154,7 @@ export function DriveBarNavigation() {
     case 'local-directory': {
       return (
         <div className="flex w-full flex-none items-center">
-          <ButtonGroup className="mr-2 w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
+          <Button.Group className="mr-2 w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
             <Menu.Trigger trigger="longPress">
               <UpButton navigateToParent={navigateToParent} isDisabled={!canNavigateUp} />
 
@@ -173,7 +174,7 @@ export function DriveBarNavigation() {
                 }}
               </Menu>
             </Menu.Trigger>
-          </ButtonGroup>
+          </Button.Group>
 
           <Scroller orientation="horizontal">
             <Breadcrumbs onDrop={onDrop}>

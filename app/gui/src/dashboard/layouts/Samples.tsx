@@ -1,5 +1,4 @@
 /** @file Renders the list of templates from which a project can be created. */
-
 import ReadAndFilterImage from '#/assets/ReadAndFilter.png'
 import AggregatingImage from '#/assets/aggregate.png'
 import BlankImage from '#/assets/blankProject.png'
@@ -13,8 +12,8 @@ import NasdaqImage from '#/assets/nasdaq.png'
 import SpreadsheetsImage from '#/assets/spreadsheets.svg'
 import VisualizeImage from '#/assets/visualize.png'
 import WeatherImage from '#/assets/weather.png'
-
-import { Button, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Text } from '#/components/Text'
 
 /** Template metadata. */
 export interface Sample {

@@ -1,13 +1,12 @@
 /** @file Settings tab for viewing and editing account information. */
-import * as React from 'react'
-
-import { getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
-import * as z from 'zod'
-
-import { Button, ComboBox, DatePicker, Form, IconDisplay, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
 import { Icon } from '#/components/Icon'
+import { IconDisplay } from '#/components/IconDisplay'
+import { ComboBox, DatePicker } from '#/components/Inputs'
 import { Scroller } from '#/components/Scroller'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
+import { Text } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import type Backend from '#/services/Backend'
@@ -16,8 +15,11 @@ import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
+import { getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { MINUTE_MS, toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import * as React from 'react'
+import * as z from 'zod'
 import {
   DEFAULT_EVENT_ICON,
   EVENT_TYPE_ICON,

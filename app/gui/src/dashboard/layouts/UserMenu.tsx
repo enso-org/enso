@@ -1,9 +1,10 @@
 /** @file A dropdown menu of user actions and settings. */
 import { LOGIN_PATH } from '#/appUtils'
-import { Popover, Text } from '#/components/AriaComponents'
 import { useToggleEnsoDevtools } from '#/components/Devtools'
+import { Popover } from '#/components/Dialog'
 import MenuEntry from '#/components/MenuEntry'
 import { ProfilePicture } from '#/components/ProfilePicture'
+import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
 import { useFullUserSession } from '#/providers/AuthProvider'

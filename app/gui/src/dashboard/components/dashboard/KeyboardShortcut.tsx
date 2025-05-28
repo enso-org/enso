@@ -1,16 +1,11 @@
 /** @file A visual representation of a keyboard shortcut. */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-import type * as text from 'enso-common/src/text'
-
 import CommandKeyIcon from '#/assets/command_key.svg'
 import CtrlKeyIcon from '#/assets/ctrl_key.svg'
 import OptionKeyIcon from '#/assets/option_key.svg'
 import ShiftKeyIcon from '#/assets/shift_key.svg'
 import WindowsKeyIcon from '#/assets/windows_key.svg'
-import { Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import {
@@ -23,6 +18,9 @@ import {
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
+import * as detect from 'enso-common/src/detect'
+import type * as text from 'enso-common/src/text'
+import * as React from 'react'
 
 /** The size (both width and height) of key icons. */
 const ICON_SIZE_PX = '1.5cap'

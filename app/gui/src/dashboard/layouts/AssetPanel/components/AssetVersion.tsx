@@ -1,30 +1,27 @@
 /** @file Displays information describing a specific version of an asset. */
-
-import type Backend from '#/services/Backend'
-import * as backendService from '#/services/Backend'
-
-import { Button, Dialog, Menu, Text } from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
+import { Menu } from '#/components/Menu'
 import { TEXT_WITH_ICON } from '#/components/patterns'
+import { Text } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
+import type Backend from '#/services/Backend'
+import * as backendService from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { AssetDiffView } from './AssetDiffView'
 
-/**
- * A version of an asset.
- */
+/** A version of an asset. */
 export interface Version extends backendService.S3ObjectVersion {
   readonly number: number
   readonly title: string
 }
 
-/**
- * Options for duplicating an asset.
- */
+/** Options for duplicating an asset. */
 export interface DuplicateOptions {
   readonly start?: boolean
 }

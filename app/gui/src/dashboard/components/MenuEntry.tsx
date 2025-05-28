@@ -1,28 +1,23 @@
 /** @file An entry in a menu. */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-import type * as text from 'enso-common/src/text'
-
 import BlankIcon from '#/assets/blank.svg'
-
-import type * as inputBindings from '#/configurations/inputBindings'
-
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import { useText } from '$/providers/react'
-
 import * as aria from '#/components/aria'
-import type { TextProps } from '#/components/AriaComponents'
-import { Text, useDialogContext, useVisualTooltip } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
-import FocusRing from '#/components/styled/FocusRing'
-
+import { useDialogContext } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
+import FocusRing from '#/components/styled/FocusRing'
+import { Text, type TextProps } from '#/components/Text'
+import { useVisualTooltip } from '#/components/VisualTooltip'
+import type * as inputBindings from '#/configurations/inputBindings'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
+import * as detect from 'enso-common/src/detect'
+import type * as text from 'enso-common/src/text'
+import * as React from 'react'
 
 const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active group-enabled:hover:bg-hover-bg',
@@ -114,7 +109,6 @@ export default function MenuEntry(props: MenuEntryProps) {
     ...variantProps
   } = props
   const { getText } = useText()
-  const { unsetModal } = modalProvider.useSetModal()
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]

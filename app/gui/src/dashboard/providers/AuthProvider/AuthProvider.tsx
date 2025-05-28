@@ -5,47 +5,40 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc.
  */
-import * as React from 'react'
-
-import * as sentry from '@sentry/vue'
-import * as reactQuery from '@tanstack/react-query'
-import * as toast from 'react-toastify'
-import invariant from 'tiny-invariant'
-
-import * as detect from 'enso-common/src/detect'
-
 import * as appUtils from '#/appUtils'
-
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as gtagHooks from '#/hooks/gtagHooks'
-
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as sessionProvider from '#/providers/SessionProvider'
-import { useText } from '$/providers/react'
-
-import * as backendModule from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
-
 import type * as cognitoModule from '#/authentication/cognito'
-import { Button, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import { EnsoDevtools } from '#/components/Devtools/EnsoDevtools'
 import Page from '#/components/Page'
 import { Result } from '#/components/Result'
+import { Text } from '#/components/Text'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import * as gtagHooks from '#/hooks/gtagHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import {
   featureFlagsForInternalTesting,
   useFeatureFlag,
   useSetFeatureFlags,
 } from '#/providers/FeatureFlagsProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as sessionProvider from '#/providers/SessionProvider'
+import * as backendModule from '#/services/Backend'
+import type RemoteBackend from '#/services/RemoteBackend'
 import { isOrganizationId } from '#/services/RemoteBackend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useBackends, useRouter } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
+import * as sentry from '@sentry/vue'
+import * as reactQuery from '@tanstack/react-query'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
 import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
+import * as toast from 'react-toastify'
+import invariant from 'tiny-invariant'
 import { usePlanOverride } from './authStore'
 import { AuthContext, useAuth } from './hooks'
 import type { AuthContextType, UserSession } from './types'

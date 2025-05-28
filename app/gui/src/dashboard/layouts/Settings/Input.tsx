@@ -1,5 +1,5 @@
 /** @file Rendering for an {@link SettingsInputData}. */
-import type { FieldPath, TSchema } from '#/components/AriaComponents'
+import type { FieldPath, TSchema } from '#/components/Form'
 import { useText } from '$/providers/react'
 import {
   SettingsAriaInput,

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { Text } from '../AriaComponents/Text'
+import { Text } from '../Text'
 import { ProfilePicture, type ProfilePictureProps } from './ProfilePicture'
 
 const meta = {
