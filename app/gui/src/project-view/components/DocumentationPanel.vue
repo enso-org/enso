@@ -24,10 +24,10 @@ import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { entryMethodPointer, suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
 import { type Opt } from '@/util/data/opt'
-import { Ok, unwrapOr } from '@/util/data/result'
+import { unwrapOr } from '@/util/data/result'
 import type { Icon as IconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
-import { qnSegments, qnSlice } from '@/util/qualifiedName'
+import { qnFromSegments, qnSegments, QualifiedName } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
 import FunctionSignatureEditor from './FunctionSignatureEditor.vue'
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
@@ -112,6 +112,7 @@ watch(
       historyStack.reset(entry)
     }
   },
+  { immediate: true },
 )
 
 // Update displayed documentation page when the user uses breadcrumbs.
@@ -132,13 +133,12 @@ const breadcrumbs = computed<Breadcrumb[]>(() => {
 
 function handleBreadcrumbClick(index: number) {
   if (name.value) {
-    const pathSlice = name.value.path ? qnSlice(name.value.path, 0, index) : Ok(undefined)
-    if (pathSlice.ok) {
-      const projectPathSlice = name.value.withPath(pathSlice.value)
-      const id = db.entries.findByProjectPath(projectPathSlice)
-      if (id != null) {
-        historyStack.record(id)
-      }
+    const pathSegments = name.value.path ? qnSegments(name.value.path).slice(0, index) : []
+    const path = pathSegments.length > 0 ? qnFromSegments(pathSegments) : ('Main' as QualifiedName)
+    const projectPathSlice = name.value.withPath(path)
+    const id = db.entries.findByProjectPath(projectPathSlice)
+    if (id != null) {
+      historyStack.record(id)
     }
   }
 }
