@@ -7,13 +7,14 @@ import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
+import { Opt } from '@/util/data/opt'
 import { computed, toRef, watch } from 'vue'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
 const props = defineProps<{
   externalId: string & ExternalId
   input: WidgetInput
-  rootElement: HTMLElement | null | undefined
+  rootElement: Opt<HTMLElement>
   primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined

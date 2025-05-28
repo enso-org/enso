@@ -42,7 +42,6 @@ export class ReconnectingWebSocketTransport extends Transport {
    * Initiate socket connection to the server.
    */
   public connect(): Promise<void> {
-    console.log('connect called')
     return new Promise((resolve, _reject) => {
       const onOpen = () => {
         this.off('open', onOpen)

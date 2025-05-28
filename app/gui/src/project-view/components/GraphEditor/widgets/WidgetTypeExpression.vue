@@ -37,11 +37,3 @@ export const widgetDefinition = defineWidget(
 <template>
   <NodeWidget :input="input" />
 </template>
-
-<style scoped>
-.EnsoWidgetTypeExpression {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-}
-</style>

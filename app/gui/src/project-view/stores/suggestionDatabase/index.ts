@@ -76,7 +76,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
 
   /** Look up an entry by its path within a project */
   findByProjectPath(projectPath: ProjectPath): SuggestionId | undefined {
-    const [id] = this.pathToId.lookup(projectPath.toString())
+    const [id] = this.pathToId.lookup(projectPath.key())
     return id
   }
 

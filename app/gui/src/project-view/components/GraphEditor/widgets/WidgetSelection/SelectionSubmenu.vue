@@ -4,13 +4,14 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
 import { targetIsOutside } from '@/util/autoBlur'
-import { computed, ComputedRef, ref, useTemplateRef, watch } from 'vue'
+import { Opt } from '@/util/data/opt'
+import { computed, ComputedRef, ref, toRef, useTemplateRef, watch } from 'vue'
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
-const props = defineProps<{
-  rootElement: HTMLElement | undefined | null
-  floatReference: HTMLElement | undefined | null
+const { extendUpwards = true, ...props } = defineProps<{
+  rootElement: Opt<HTMLElement>
+  floatReference: Opt<HTMLElement>
   show: boolean
   entries: T[]
   isSelected: (value: T) => boolean
@@ -19,6 +20,8 @@ const props = defineProps<{
   color?: string | undefined
   backgroundColor?: string | undefined
 }>()
+const floatReference = toRef(props, 'floatReference')
+const rootElement = toRef(props, 'rootElement')
 
 const emit = defineEmits<{
   clickedEntry: [T, boolean]
@@ -43,8 +46,6 @@ const submenuEntries = computed(() => submenu.value?.entries ?? [])
 const submenuRef = useTemplateRef('submenuRef')
 
 const dropdownElement = useTemplateRef('dropdownElement')
-const floatReference = computed(() => props.floatReference)
-const rootElement = computed(() => props.rootElement)
 
 const { floatingStyles } = submenuDropdownStyles(
   floatReference,
@@ -115,7 +116,7 @@ export interface SubmenuComponent {
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
-          :class="{ ExtendUpwards: props.topLevel && props.extendUpwards !== false }"
+          :class="{ ExtendUpwards: props.topLevel && extendUpwards }"
           :color="props.color ?? 'var(--color-node-text)'"
           :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
           :entries="entries"

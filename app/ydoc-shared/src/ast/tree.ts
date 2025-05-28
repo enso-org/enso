@@ -771,7 +771,7 @@ export interface MutableStatement extends BaseMutableStatement {
 }
 
 /** A base class for all {@link Expression} ASTs */
-export abstract class BaseExpression extends Ast {
+abstract class BaseExpression extends Ast {
   /** See {@link Ast.isAllowedInStatementContext}. */
   override isAllowedInStatementContext() {
     return false
@@ -2711,7 +2711,7 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
           {
             operator:
               def.type?.operator ?? unspaced(Token.new(':', TokenType.TypeAnnotationOperator)),
-            type: concreteChild(this.module, unspaced(typeExpr), this.id),
+            type: concreteChild(this.module, autospaced(typeExpr), this.id),
           }
         : undefined
       defs[index] = { ...def, type }
@@ -3654,12 +3654,10 @@ function setNode<
   map.set(key, updated as Fields[Key])
 }
 
-export function autospaced<T extends object | string>(node: T): NodeChild<T>
-export function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
+function autospaced<T extends object | string>(node: T): NodeChild<T>
+function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
 /** TODO: Add docs */
-export function autospaced<T extends object | string>(
-  node: T | undefined,
-): NodeChild<T> | undefined {
+function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined {
   if (node === undefined) return node
   return { whitespace: undefined, node }
 }

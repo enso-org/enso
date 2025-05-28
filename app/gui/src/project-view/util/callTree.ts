@@ -3,7 +3,8 @@ import { WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { DisplayMode } from '@/providers/widgetRegistry/configuration'
-import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { type GraphDb, type MethodCallInfo } from '@/stores/graph/graphDatabase'
 import {
   isRequiredArgument,
   type CallableSuggestionEntry,
