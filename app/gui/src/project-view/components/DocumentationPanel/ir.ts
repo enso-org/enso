@@ -119,7 +119,7 @@ const handleFunction: DocsHandler<
   id,
   name: entry.definitionPath,
   arguments: entry.arguments,
-  documentation: entry.rawDocumentation,
+  documentation: entry.documentation,
 })
 
 const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
@@ -130,14 +130,14 @@ const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
     kind: 'Local',
     id,
     name: entry.definitionPath,
-    documentation: entry.rawDocumentation,
+    documentation: entry.documentation,
   }),
   [SuggestionKind.Type]: (db, entry, id) => ({
     kind: 'Type',
     id,
     name: entry.definitionPath,
     arguments: entry.arguments,
-    documentation: entry.rawDocumentation,
+    documentation: entry.documentation,
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
     constructors: asFunctionDocs(getChildren(db, id, SuggestionKind.Constructor)),
   }),
@@ -145,7 +145,7 @@ const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
     kind: 'Module',
     id,
     name: entry.definitionPath,
-    documentation: entry.rawDocumentation,
+    documentation: entry.documentation,
     types: asTypeDocs(getChildren(db, id, SuggestionKind.Type)),
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
   }),

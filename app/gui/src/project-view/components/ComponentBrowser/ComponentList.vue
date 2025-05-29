@@ -178,7 +178,7 @@ defineExpose({
       <div class="documentation">
         <div class="documentationContent">
           <!-- eslint-disable-next-line vue/no-v-html -->
-          <p v-if="selectedSuggestion?.docSummaryHtml" v-html="selectedSuggestion.docSummaryHtml" />
+          <p v-if="selectedSuggestion?.documentationSummary" v-html="selectedSuggestion.documentationSummary" />
           <p v-if="selectedSuggestion" v-text="`Returns: ${selectedSuggestionReturnType}`" />
         </div>
         <ActionButton class="helpButton" action="graphEditor.showHelp" />

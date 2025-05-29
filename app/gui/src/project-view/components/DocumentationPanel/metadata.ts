@@ -4,7 +4,7 @@ import { assert } from '@/util/assert'
 import { Opt } from '@/util/data/opt'
 import { Err, Ok, Result } from '@/util/data/result'
 import { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
-import { parse } from 'yaml'
+import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 import * as z from 'zod'
 
 /** A macro definition in the `macros` array. */
@@ -74,5 +74,10 @@ export function parseMetadata(
   frontMatterContent: SyntaxNode,
 ): Result<DocumentationMetadata> {
   assert(frontMatterContent.node.name === 'YAMLContent')
-  return validateMetadata(parse(source(frontMatterContent.from, frontMatterContent.to)))
+  return validateMetadata(yamlParse(source(frontMatterContent.from, frontMatterContent.to)))
+}
+
+/** Serialize a frontmatter section for test purposes. */
+export function frontmatter(content: DocumentationMetadata): string {
+  return `---\n${yamlStringify(content)}---\n`
 }
