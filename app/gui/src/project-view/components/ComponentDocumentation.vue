@@ -30,11 +30,13 @@ const displayedId = computed({
     :aiMode="rightPanel.context?.help?.aiMode ?? false"
     @update:selectedEntry="displayedId = Ok($event)"
   />
+  <!-- Specifying `<ResultComponent ... centered /> does not work with React components
+      `="true"` must be there-->
   <ResultComponent
     v-else-if="!displayedId.ok"
     status="info"
-    :title="displayedId.error.payload"
-    centered="true"
+    :title="`${displayedId.error.payload}`"
+    :centered="true"
   />
 </template>
 

@@ -214,7 +214,14 @@ const displaySignatureEditor = computed(
         />
       </template>
     </MarkdownEditor>
-    <ResultComponent v-else status="info" :title="markdownDocs.error.message('')" centered="true" />
+    <!-- Specifying `<ResultComponent ... centered /> does not work with React components
+      `="true"` must be there-->
+    <ResultComponent
+      v-else
+      status="info"
+      :title="markdownDocs.error.message('')"
+      :centered="true"
+    />
   </div>
 </template>
 
