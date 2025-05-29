@@ -72,8 +72,9 @@ public class MiniPassTraverserTest {
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(MockExpression.class, root, miniPass);
     assertThat(
-        "child must be prepared - it has Expression as child",
-        child.isPreparedBy(miniPass),
+        "Root is prepared - this is a known violation of IR.prepare contract. "
+            + "Note that `child` should be prepared instead.",
+        root.isPreparedBy(miniPass),
         is(true));
     assertThat(expr.isTransformedBy(miniPass), is(true));
     assertThat(root.isTransformedBy(miniPass), is(true));
