@@ -255,6 +255,8 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
                       p.function.location.orNull
                     )
                   )
+                  .ascribedType(None)
+                  .defaultValue(None)
                   .build()
               )
             )
@@ -452,9 +454,11 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         Function.Lambda
           .builder()
           .arguments(List(lambdaArg))
-          .bodyReference(Reference.of(caseExpr))
-          .passData(newCaseExpr.passData().copy())
+          .bodyReference(Reference.of(newCaseExpr, true))
+          .passData(caseExpr.passData().duplicate())
           .location(caseExpr.location().orNull)
+          .diagnostics(caseExpr.diagnostics())
+          .canBeTCO(true)
           .build()
       case x =>
         caseExpr.copy(
