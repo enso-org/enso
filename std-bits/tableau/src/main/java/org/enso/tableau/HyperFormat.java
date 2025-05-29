@@ -388,7 +388,8 @@ public class HyperFormat {
       Inserter inserter = new Inserter(connection, tableDef);
       for (int row = 0; row < numberOfRows; ++row) {
         for (int col = 0; col < numberOfColumns; ++col) {
-          var storage = table.getColumns()[col].getStorage();
+          var colName = tableDef.getColumn(col).getName().toString().replaceAll("^\"|\"$", "");
+          var storage = table.getColumnByName(colName).getStorage();
           if (storage.isNothing(row)) {
             inserter.addNull();
           } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
