@@ -1,11 +1,11 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as React from 'react'
-
-import type * as text from 'enso-common/src/text'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button, CopyButton } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
+import { Text } from '#/components/Text'
 import { useBackends, useText } from '$/providers/react'
+import type * as text from 'enso-common/src/text'
+import * as React from 'react'
 
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {
@@ -33,19 +33,16 @@ export default function AboutModal() {
   )
 
   return (
-    <ariaComponents.Dialog
-      title={getText('aboutThisAppShortcut')}
-      modalProps={{ defaultOpen: true }}
-    >
+    <Dialog title={getText('aboutThisAppShortcut')} modalProps={{ defaultOpen: true }}>
       <div className="relative flex items-center gap-4">
         <Icon icon="enso_logo" className="size-16 shrink-0 self-start" />
 
         <div className="flex flex-col">
-          <ariaComponents.Text variant="subtitle">
+          <Text variant="subtitle">
             {localBackend != null ?
               getText('appNameDesktopEdition')
             : getText('appNameCloudEdition')}
-          </ariaComponents.Text>
+          </Text>
 
           <table>
             <tbody>
@@ -55,10 +52,10 @@ export default function AboutModal() {
                 return (
                   <tr key={textId}>
                     <td className="pr-cell-x align-text-top">
-                      <ariaComponents.Text nowrap>{getText(textId)}</ariaComponents.Text>
+                      <Text nowrap>{getText(textId)}</Text>
                     </td>
                     <td>
-                      <ariaComponents.Text>{version}</ariaComponents.Text>
+                      <Text>{version}</Text>
                     </td>
                   </tr>
                 )
@@ -66,13 +63,13 @@ export default function AboutModal() {
             </tbody>
           </table>
 
-          <ariaComponents.ButtonGroup className="mt-4">
-            <ariaComponents.CopyButton copyText={copyText} size="medium" variant="submit">
+          <Button.Group className="mt-4">
+            <CopyButton copyText={copyText} size="medium" variant="submit">
               {getText('copy')}
-            </ariaComponents.CopyButton>
-          </ariaComponents.ButtonGroup>
+            </CopyButton>
+          </Button.Group>
         </div>
       </div>
-    </ariaComponents.Dialog>
+    </Dialog>
   )
 }

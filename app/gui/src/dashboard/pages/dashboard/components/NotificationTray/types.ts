@@ -1,6 +1,6 @@
 /** @file Types related to the `NotificationTray`. */
-import type { SvgUseIcon } from '#/components/AriaComponents'
 import type { IconProps } from '#/components/Icon'
+import type { SvgUseIcon } from '#/components/types'
 
 /** Information required to display a notification. */
 export interface NotificationInfo {

@@ -1,13 +1,13 @@
 /** @file An label that can be applied to an asset. */
-import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
-
 import type { PressEvent } from '#/components/aria'
-import { Button, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import FocusRing from '#/components/styled/FocusRing'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Label as BackendLabel } from '#/services/Backend'
 import { lChColorToCssColor, type LChColor } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
+import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
 
 /** Props for a {@link Label}. */
 interface InternalLabelProps extends Readonly<PropsWithChildren> {

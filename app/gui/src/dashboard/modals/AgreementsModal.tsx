@@ -1,13 +1,16 @@
 /** @file Modal for accepting the terms of service. */
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import * as React from 'react'
-import * as z from 'zod'
-
-import { Button, Checkbox, Dialog, Form, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Checkbox } from '#/components/Checkbox'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Text } from '#/components/Text'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import { useText } from '$/providers/react'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import * as React from 'react'
 import { memo } from 'react'
+import * as z from 'zod'
 
 const TEN_MINUTES_MS = 600_000
 const TOS_SCHEMA = z.object({ versionHash: z.string() })

@@ -2,16 +2,16 @@
  * @file Container responsible for rendering and interactions in first half of forgot password
  * flow.
  */
-import { useState } from 'react'
-
 import { LOGIN_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
-import { Form, Input } from '#/components/AriaComponents'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useBackends, useRouter, useText } from '$/providers/react'
+import { useState } from 'react'
 import { toast } from 'react-toastify'
 
 /** A form for users to request for their password to be reset. */

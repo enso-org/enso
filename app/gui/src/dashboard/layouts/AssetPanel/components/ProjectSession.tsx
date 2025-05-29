@@ -1,6 +1,7 @@
 /** @file Displays information describing a specific version of an asset. */
 import LogsIcon from '#/assets/logs.svg'
-import { Button, DialogTrigger } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import type Backend from '#/services/Backend'
 import type { ProjectSession as BackendProjectSession, ProjectAsset } from '#/services/Backend'
@@ -30,7 +31,7 @@ export function ProjectSession(props: ProjectSessionProps) {
         </time>
       </div>
       <div className="flex items-center gap-1">
-        <DialogTrigger>
+        <Dialog.Trigger>
           <Button variant="icon" isActive icon={LogsIcon} aria-label={getText('showLogs')} />
 
           <ProjectLogsModal
@@ -38,7 +39,7 @@ export function ProjectSession(props: ProjectSessionProps) {
             projectSessionId={projectSession.projectSessionId}
             projectTitle={project.title}
           />
-        </DialogTrigger>
+        </Dialog.Trigger>
       </div>
     </div>
   )

@@ -1,0 +1,64 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+
+import project.Azure_Credential.Azure_Credential
+import project.Azure_Environment.Azure_Environment
+from project.Azure_Credential import make_subscription_selector
+from project.Internal.Azure_Helpers import handle_azure_exceptions
+
+polyglot java import org.enso.microsoft.azure.AzureBlobStorage
+polyglot java import org.enso.microsoft.azure.AzureResourceManager
+
+type Azure_Storage
+    ## Lists the storage accounts in the given subscription.
+    @subscription make_subscription_selector
+    accounts environment:Azure_Environment=..Default cred:Azure_Credential=..Default (subscription_id:Text|Nothing=Nothing) -> Vector Azure_Storage_Account = handle_azure_exceptions <|
+        java_cred = cred.to_java
+        java_env = environment.to_java
+        as_array = AzureResourceManager.storageAccounts java_cred java_env subscription_id
+        proxy = Array_Proxy.new as_array.length i-> Azure_Storage_Account.Value (as_array.get i)
+        Vector.from_polyglot_array proxy
+
+    ## Lists the Blob Containers in the given storage account.
+    @subscription make_subscription_selector
+    blob_containers account:Text=(Missing_Argument.throw "account") prefix:Text="" cred:Azure_Credential=..Default -> Vector Text = handle_azure_exceptions <|
+        java_cred = cred.to_java
+        as_array = AzureBlobStorage.containers java_cred account prefix
+        Vector.from_polyglot_array as_array
+
+    ## Lists the Blob Files in the given storage account and container.
+    @subscription make_subscription_selector
+    list_blob account:Text=(Missing_Argument.throw "account") container:Text=(Missing_Argument.throw "container") prefix:Text="" cred:Azure_Credential=..Default -> Vector Text = handle_azure_exceptions <|
+        java_cred = cred.to_java
+        as_array = AzureBlobStorage.listBlob java_cred account container prefix
+        Vector.from_polyglot_array as_array
+
+    ## Reads a Blob File
+    get_blob account:Text=(Missing_Argument.throw "account") container:Text=(Missing_Argument.throw "container") blob:Text=(Missing_Argument.throw "blob") cred:Azure_Credential=..Default -> File = handle_azure_exceptions <|
+        java_cred = cred.to_java
+        path = AzureBlobStorage.getBlob java_cred account container blob
+        File.new path
+
+## Enso representation of the Azure Storage Account
+type Azure_Storage_Account
+    private Value java_object
+
+    ## The storage account ID.
+    id self -> Text = self.java_object.id
+
+    ## The storage account name.
+    name self -> Text = self.java_object.name
+
+    ## The resource group name.
+    resource_group self -> Text = self.java_object.resourceGroup
+
+    ## The endpoints as text
+    endpoints self -> Text = self.java_object.endpoints
+
+    ## PRIVATE
+    to_text self -> Text = self.name + " (" + self.id + ")"
+
+    ## PRIVATE
+    to_display_text self -> Text = "Storage Account {" + self.name + " (" + self.id + ")}"
+

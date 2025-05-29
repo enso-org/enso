@@ -1,7 +1,8 @@
 /** @file A heading for the "Accessed data" column. */
-import { Button, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '$/providers/react'
 

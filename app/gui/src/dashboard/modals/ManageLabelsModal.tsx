@@ -1,20 +1,14 @@
 /** @file A modal to select labels for an asset. */
-
-import { useSuspenseQuery } from '@tanstack/react-query'
-
 import { AnimatedBackground } from '#/components/AnimatedBackground'
-import {
-  Button,
-  Check,
-  Dialog,
-  Form,
-  Input,
-  Popover,
-  Separator,
-  Text,
-} from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Check } from '#/components/Check'
 import ColorPicker from '#/components/ColorPicker'
+import { Dialog, Popover } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import { Scroller } from '#/components/Scroller'
+import { Separator } from '#/components/Separator'
+import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
@@ -31,6 +25,7 @@ import {
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import {
   ListBox,
   ListBoxItem,

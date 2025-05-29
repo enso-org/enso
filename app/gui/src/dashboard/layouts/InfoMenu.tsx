@@ -1,8 +1,9 @@
 /** @file A menu containing info about the app. */
 import { LOGIN_PATH } from '#/appUtils'
-import { Popover, Text } from '#/components/AriaComponents'
+import { Popover } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
 import MenuEntry from '#/components/MenuEntry'
+import { Text } from '#/components/Text'
 import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
