@@ -201,11 +201,6 @@ export interface CloseProjectParams {
   readonly projectId: UUID
 }
 
-/** Parameters for the "list projects" endpoint. */
-export interface ListProjectsParams {
-  readonly numberOfProjects?: number
-}
-
 /** Parameters for the "create project" endpoint. */
 export interface CreateProjectParams {
   readonly name: ProjectName
