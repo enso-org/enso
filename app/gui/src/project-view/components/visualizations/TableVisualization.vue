@@ -712,6 +712,7 @@ function toField(
       filterOptions: filterOptions,
       buttons: filterButtons,
       refreshValuesOnOpen: true,
+      browserDatePicker: false
     },
     headerComponentParams: {
       template,
