@@ -331,14 +331,26 @@ public class HyperFormat {
     }
   }
 
-  public static void writeTable(String path, String schemaName, String tableName, Table table) throws IOException {
+  public static void writeTable(String path, String schemaName, String tableName, Table table, boolean append) throws IOException {
     getProcess();
-    try (var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
-      var tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
-      insertData(table, tableDef, connection);
+    try (var connection = new Connection(process.getEndpoint(), path, append ? CreateMode.NONE : CreateMode.CREATE_IF_NOT_EXISTS)) {
+    TableDefinition tableDef;
+    if (append && tableExists(schemaName, tableName, connection)) {
+        tableDef = connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
+    } else {
+        tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
+    }
+    insertData(table, tableDef, connection);
+    connection.close();
     }
   }
 
+  private static boolean tableExists(String schemaName, String tableName, Connection connection) {
+      final var sn = new SchemaName(schemaName);
+      final var tn = new TableName(schemaName, tableName);
+      return connection.getCatalog().getTableNames(sn).contains(tn);
+  }
+ 
   private static TableDefinition createTable(String schemaName, String tableName, Column[] columns, Connection connection) {
       final var sn = new SchemaName(schemaName);
       if (!connection.getCatalog().getSchemaNames().contains(sn)) {
