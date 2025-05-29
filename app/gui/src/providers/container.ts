@@ -7,8 +7,8 @@ import { useRoute, useRouter } from 'vue-router'
 
 export type TabId = 'drive' | 'settings' | ProjectId
 
-export type ContainerData = ReturnType<typeof injectConainerData>
-export const [provideContainerData, injectConainerData] = createContextStore(
+export type ContainerData = ReturnType<typeof useConainerData>
+export const [provideContainerData, useConainerData] = createContextStore(
   'gui-container',
   (launchedProjectsFromReact: ToValue<readonly LaunchedProject[]>) => {
     const router = useRouter()

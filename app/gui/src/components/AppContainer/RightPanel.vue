@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
-import { injectRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
+import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
@@ -13,7 +13,7 @@ import { filter } from 'enso-common/src/utilities/data/iter'
 import { computed, ref, toValue } from 'vue'
 import SelectableTab from './SelectableTab.vue'
 
-const data = injectRightPanelData()
+const data = useRightPanelData()
 
 const component = computed(() => {
   return data.displayedTab && data.allTabs.get(data.displayedTab)?.component

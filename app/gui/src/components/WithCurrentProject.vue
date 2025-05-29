@@ -14,7 +14,7 @@ import { computed, ToRefs, toValue, watch } from 'vue'
  * tree (it's injects context and also sets proper css properties). Inside, inject will bring all
  * project-related stores. If the project is closed, all stores becomes undefined.
  */
-const [provideCurrentProject, injectCurrentProject] = createContextStore(
+const [provideCurrentProject, useCurrentProject] = createContextStore(
   'currentProject',
   (projectId: ToValue<Opt<string>>) => {
     const openedProjects = injectOpenedProjects()
@@ -39,13 +39,13 @@ const [provideCurrentProject, injectCurrentProject] = createContextStore(
   },
 )
 
-export { injectCurrentProject }
+export { useCurrentProject as injectCurrentProject }
 
 function useStoreTemplate<K extends keyof OpenedProject>(
   storeKey: K,
 ): () => NonNullable<OpenedProject[K]> {
   return () => {
-    const currentProject = injectCurrentProject().ref
+    const currentProject = useCurrentProject().ref
     const store: Opt<OpenedProject[K]> = currentProject.value?.[storeKey]
     if (store == null) {
       throw new Error('Current Project missing, probably closed.')

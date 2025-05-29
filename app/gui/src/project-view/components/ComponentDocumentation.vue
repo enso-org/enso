@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { injectConainerData } from '$/providers/container'
-import { injectRightPanelData } from '$/providers/rightPanel'
+import { useConainerData } from '$/providers/container'
+import { useRightPanelData } from '$/providers/rightPanel'
 import DocumentationPanel from '@/components/DocumentationPanel.vue'
 import { Err, Ok } from '@/util/data/result'
 import { ResultComponent } from '@/util/react'
 import { computed } from 'vue'
 
-const container = injectConainerData()
-const rightPanel = injectRightPanelData()
+const container = useConainerData()
+const rightPanel = useRightPanelData()
 const displayedId = computed({
   get: () =>
     rightPanel.context?.help != null ?

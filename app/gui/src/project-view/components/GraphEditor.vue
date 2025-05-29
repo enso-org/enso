@@ -6,7 +6,7 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
-import { injectRightPanelData } from '$/providers/rightPanel'
+import { useRightPanelData } from '$/providers/rightPanel'
 import {
   codeEditorBindings,
   documentationEditorBindings,
@@ -77,7 +77,7 @@ import {
 } from 'vue'
 
 const keyboard = injectKeyboard()
-const rightPanel = injectRightPanelData()
+const rightPanel = useRightPanelData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()

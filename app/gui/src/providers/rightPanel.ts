@@ -17,7 +17,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { Component, computed, proxyRefs, reactive, readonly, Ref, ref, toRef, toValue } from 'vue'
 import { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { TabId } from './container'
-import { injectText, TextStore } from './text'
+import { createTextStore, TextStore } from './text'
 
 /** Information about content of "Help" panel. */
 export interface DisplayedHelp {
@@ -154,7 +154,7 @@ function useRightPanel(
   containerTab: ToValue<TabId>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   enableScheduledExecution: ToValue<boolean>,
-  textStore: TextStore = injectText(),
+  textStore: TextStore = createTextStore(),
 ) {
   const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
@@ -262,7 +262,7 @@ function useRightPanel(
   })
 }
 
-export const [provideRightPanelData, injectRightPanelData] = createContextStore(
+export const [provideRightPanelData, useRightPanelData] = createContextStore(
   'rightPanel',
   useRightPanel,
 )

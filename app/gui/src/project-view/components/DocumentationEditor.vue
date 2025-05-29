@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
-import { injectBackends } from '$/providers/backends'
-import { injectRightPanelData } from '$/providers/rightPanel'
+import { useBackends } from '$/providers/backends'
+import { useRightPanelData } from '$/providers/rightPanel'
 import { documentationEditorBindings } from '@/bindings'
 import { resolveDocImageUrl, useDocumentationImages } from '@/components/DocumentationEditor/images'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
@@ -21,10 +21,10 @@ import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 
 const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
-const rightPanel = injectRightPanelData()
+const rightPanel = useRightPanelData()
 const openedProject = injectCurrentProject().ref
 const projectId = computed(() => rightPanel.focusedProject)
-const { backendForType } = injectBackends()
+const { backendForType } = useBackends()
 const backendForAsset = computed(() => {
   if (rightPanel.context?.category == null) return null
   return backendForType(rightPanel.context.category.backend)

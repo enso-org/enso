@@ -4,14 +4,14 @@ import { createContextStore } from '@/providers'
 import { MaybeRefOrGetterArray } from '@/util/reactivity'
 import { computed, proxyRefs, ref, toValue } from 'vue'
 
-export type TextStore = ReturnType<typeof useText>
+export type TextStore = ReturnType<typeof createTextStore>
 /**
  * A composable for getting localized text and setting the language.
  *
  * The composable is used in tests only; the application should use
  * `injectText` instead.
  */
-export function useText() {
+export function createTextStore() {
   const language = ref(text.resolveUserLanguage())
   const locale = computed(() => text.LANGUAGE_TO_LOCALE[language.value])
   const localizedText = computed(() => text.getDictionary(language.value))
@@ -47,4 +47,4 @@ export type GetText = <K extends text.TextId>(
   ...replacements: text.Replacements[K]
 ) => string
 
-export const [provideText, injectText] = createContextStore('text', useText)
+export const [provideText, useText] = createContextStore('text', createTextStore)

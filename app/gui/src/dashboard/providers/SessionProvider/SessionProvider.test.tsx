@@ -10,7 +10,7 @@ import type {
 import { render, screen, waitFor } from '#/test'
 import HttpClient from '#/utilities/HttpClient'
 import { HTTPClientContext, TextContext } from '$/providers/react'
-import { useText } from '$/providers/text'
+import { createTextStore } from '$/providers/text'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
@@ -75,7 +75,7 @@ describe('SessionProvider', () => {
     const { getByText } = render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
+          <TextContext.Provider value={createTextStore()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -104,7 +104,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={httpClient}>
-          <TextContext.Provider value={useText()}>
+          <TextContext.Provider value={createTextStore()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -134,7 +134,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
+          <TextContext.Provider value={createTextStore()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -169,7 +169,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
+          <TextContext.Provider value={createTextStore()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -202,7 +202,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
+          <TextContext.Provider value={createTextStore()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
