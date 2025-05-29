@@ -143,7 +143,7 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
             T rightValueTyped = adapter.getValidType().valueAsType(rightValue);
             return rightValue != null && rightValueTyped == null
                 ? onIncomparable(leftValue, rightValue)
-                : doSingle(leftValue, rightValueTyped, index);
+                : doSingle(leftValue, rightValueTyped, index, problemAggregator);
           });
     }
 
@@ -160,7 +160,7 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
         left,
         preserveNulls,
         returnType.makeBuilder(left.getSize(), problemAggregator),
-        (index, value) -> doSingle(value, right, index));
+        (index, value) -> doSingle(value, right, index, problemAggregator));
   }
 
   protected ColumnStorage<R> innerApplyZip(
@@ -172,10 +172,10 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
         right,
         size -> returnType.makeBuilder(size, problemAggregator),
         preserveNulls,
-        (index, x, y) -> doSingle(x, y, index));
+        (index, x, y) -> doSingle(x, y, index, problemAggregator));
   }
 
-  protected abstract R doSingle(T left, T right, long index);
+  protected abstract R doSingle(T left, T right, long index, MapOperationProblemAggregator problemAggregator);
 
   protected interface NumericColumnAdapter<T> {
     StorageType<T> getValidType();

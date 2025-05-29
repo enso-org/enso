@@ -258,8 +258,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     }
 
     @Override
-    protected Boolean doSingle(Double left, Double right, long index) {
-      throw new IllegalStateException("This method should not be called directly.");
+    protected Boolean doSingle(Double left, Double right, long index, MapOperationProblemAggregator problemAggregator) {
+      return comparator.doDouble(left, right, index, problemAggregator);
     }
   }
 
@@ -273,7 +273,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     }
 
     @Override
-    protected Boolean doSingle(BigDecimal left, BigDecimal right, long index) {
+    protected Boolean doSingle(BigDecimal left, BigDecimal right, long index, MapOperationProblemAggregator problemAggregator) {
       return comparator.doBigDecimal(left, right, index);
     }
   }
@@ -288,7 +288,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     }
 
     @Override
-    protected Boolean doSingle(BigInteger left, BigInteger right, long index) {
+    protected Boolean doSingle(BigInteger left, BigInteger right, long index, MapOperationProblemAggregator problemAggregator) {
       return comparator.doBigInteger(left, right, index);
     }
   }
@@ -329,8 +329,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     }
 
     @Override
-    protected Boolean doSingle(Long left, Long right, long index) {
-      throw new IllegalStateException("This method should not be called directly.");
+    protected Boolean doSingle(Long left, Long right, long index, MapOperationProblemAggregator problemAggregator) {
+      return comparator.doLong(left, right, index);
     }
   }
 }

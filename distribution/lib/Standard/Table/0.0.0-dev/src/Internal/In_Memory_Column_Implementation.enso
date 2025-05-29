@@ -960,7 +960,10 @@ apply_unary_map column:Column new_name:Text function expected_result_type:Value_
 private _call_comparator left other new_name ~comparator fallback =
     case (Comparators.isSupported (left:In_Memory_Column).java_column) of
         True -> _call_binary_operator left other new_name comparator
-        False -> run_binary_op left fallback other new_name expected_result_type=Value_Type.Boolean
+        False ->
+            Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
+                fallback_fn = fallback java_problem_aggregator
+                run_binary_op left fallback_fn other new_name skip_nulls=True expected_result_type=Value_Type.Boolean
 
 private _call_binary_operator left:In_Memory_Column other new_name ~operation =
     Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
