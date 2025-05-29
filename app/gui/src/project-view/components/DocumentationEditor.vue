@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Result as ResultReact } from '#/components/Result'
 import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import { injectBackends } from '$/providers/backends'
 import { injectRightPanelData } from '$/providers/rightPanel'
@@ -15,12 +14,11 @@ import { useProjectFiles } from '@/stores/projectFiles'
 import { MutableFunctionDef, parseModule } from '@/util/ast/abstract'
 import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
+import { ResultComponent } from '@/util/react'
 import { useQuery } from '@tanstack/vue-query'
-import { applyPureReactInVue } from 'veaury'
 import { ComponentInstance, computed, effectScope, ref, watch } from 'vue'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 
-const ResultComponent = applyPureReactInVue(ResultReact)
 const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
 const rightPanel = injectRightPanelData()

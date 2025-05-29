@@ -3,6 +3,7 @@ import { injectConainerData } from '$/providers/container'
 import { injectRightPanelData } from '$/providers/rightPanel'
 import DocumentationPanel from '@/components/DocumentationPanel.vue'
 import { Ok } from '@/util/data/result'
+import { ResultComponent } from '@/util/react'
 import { computed } from 'vue'
 
 const container = injectConainerData()
@@ -26,7 +27,12 @@ const displayedId = computed({
     :aiMode="rightPanel.context?.help?.aiMode ?? false"
     @update:selectedEntry="displayedId = Ok($event)"
   />
-  <div v-else-if="!displayedId.ok" class="help-placeholder">{{ displayedId.error.payload }}.</div>
+  <ResultComponent
+    v-else-if="!displayedId.ok"
+    status="info"
+    :title="displayedId.error.payload"
+    centered="true"
+  />
 </template>
 
 <style scoped>
@@ -35,13 +41,5 @@ const displayedId = computed({
   --radius-default: 20px;
   --background-color: #fff;
   --group-color-fallback: var(--color-dim);
-}
-
-.help-placeholder {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
 }
 </style>

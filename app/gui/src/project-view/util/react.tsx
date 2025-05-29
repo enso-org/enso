@@ -1,3 +1,4 @@
+import { Result as ResultReact } from '#/components/Result'
 import { Suspense } from '#/components/Suspense'
 import type { ReactNode } from 'react'
 import { applyPureReactInVue } from 'veaury'
@@ -24,3 +25,6 @@ export function suspendedReactComponent<Props extends object>(
     </Suspense>
   ))
 }
+
+// Common components
+export const ResultComponent = reactComponent(ResultReact)
