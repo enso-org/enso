@@ -87,8 +87,9 @@ export async function createGatewayServer(
     const { pathname, query } = parse(request.url, true)
     if (pathname == null) return callback(null, null)
     const doc = docName(pathname)
-    const lsUrl = overrideLanguageServerUrl ?? query.ls
-    const data = doc != null && typeof lsUrl === 'string' ? { lsUrl, doc, user } : null
+    const lsUrl =
+      overrideLanguageServerUrl ?? (typeof query.ls === 'string' ? (query.ls as string) : null)
+    const data = doc != null ? { lsUrl, doc, user } : null
     callback(null, data)
   }
 }

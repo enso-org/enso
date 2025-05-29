@@ -1013,6 +1013,20 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
         Warning.get_all result wrap_errors=True . map .value . should_equal expected_warnings
 
+    group_builder.specify "Warnings and each" <|
+        result = alter [Warning.attach "OKeyish" 20]
+        has_at = Warning.has_warnings (result.at 0)
+
+        # when calling ArrayList.new we strip all the warnings (currently)
+        # as such the result object backed by ArrayList has no warnings
+        if Java.is_instance result ArrayList then has_at . should_be_false else
+            has_at . should_be_true
+            result.each \e ->
+                e . should_equal 20
+                has = Warning.has_warnings e
+                has . should_be_true
+                Warning.get_all e . map .value . should_equal ["OKeyish"]
+
     group_builder.specify "map on_problems=No_Wrap does not do error wrapping" <|
         alter [10, 20, 30, 40] . map on_problems=No_Wrap.Value map_fun . catch . should_equal (My_Error.Error 30)
 

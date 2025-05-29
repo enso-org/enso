@@ -35,10 +35,12 @@
 - [Support for reading fixed-width-column data files.][12726]
 - [Added `row_limit` parameter to the `Fixed_Width` format.][12950]
 - [Add Tableau Hyper write support][12900]
+- [Initial Microsoft Azure support][13144]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
 [12900]: https://github.com/enso-org/enso/pull/12900
+[13144]: https://github.com/enso-org/enso/pull/13144
 
 #### Enso Language & Runtime
 
