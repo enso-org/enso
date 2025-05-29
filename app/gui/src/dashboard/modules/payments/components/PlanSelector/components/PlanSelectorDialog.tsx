@@ -3,29 +3,21 @@
  *
  * Dialog that shows the plan details, price, and the payment form.
  */
-
+import { Button } from '#/components/Button'
+import { Checkbox } from '#/components/Checkbox'
+import { Dialog } from '#/components/Dialog'
+import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
+import { Form } from '#/components/Form'
+import { Input, Selector } from '#/components/Inputs'
+import { Separator } from '#/components/Separator'
+import { Suspense } from '#/components/Suspense'
+import { Text } from '#/components/Text'
+import type { Plan } from '#/services/Backend'
+import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import { type GetText } from '$/providers/text'
 import type { PaymentMethod } from '@stripe/stripe-js'
 import { useQuery } from '@tanstack/react-query'
-
-import {
-  Button,
-  Checkbox,
-  Dialog,
-  Form,
-  Input,
-  Selector,
-  Separator,
-  Text,
-} from '#/components/AriaComponents'
-import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
-import { Suspense } from '#/components/Suspense'
-
-import type { Plan } from '#/services/Backend'
-
-import { twMerge } from '#/utilities/tailwindMerge'
-
 import { createSubscriptionPriceQuery, useCreatePaymentMethodMutation } from '../../../api'
 import {
   MAX_SEATS_BY_PLAN,

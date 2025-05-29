@@ -1,5 +1,6 @@
 /** @file A heading for the "Path" column. */
-import { Button, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '$/providers/react'
 import type { AssetColumnHeadingProps } from '../column'

@@ -1,14 +1,16 @@
 /** @file Modal for accepting or rejecting an invite to an organization. */
-
-import * as React from 'react'
-import * as z from 'zod'
-
 import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
-import { Alert, Button, ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackends, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
+import * as React from 'react'
+import * as z from 'zod'
 
 /** Modal for accepting the terms of service. */
 export function InvitedToOrganizationModal({ children }: React.PropsWithChildren) {
@@ -55,7 +57,7 @@ export function InvitedToOrganizationModal({ children }: React.PropsWithChildren
                     </Text>
                     <Text disableLineHeightCompensation>{getText('organizationInviteSuffix')}</Text>
                   </div>
-                  <ButtonGroup className="w-min self-end">
+                  <Button.Group className="w-min self-end">
                     <Button
                       variant="outline"
                       onPress={async () => {
@@ -66,7 +68,7 @@ export function InvitedToOrganizationModal({ children }: React.PropsWithChildren
                       {getText('decline')}
                     </Button>
                     <Form.Submit variant="accent">{getText('accept')}</Form.Submit>
-                  </ButtonGroup>
+                  </Button.Group>
                 </Form>
               )}
             </Dialog>

@@ -1,5 +1,5 @@
 /** @file Return the appropriate file icon given the file name. */
-import type { SvgUseIcon } from '#/components/AriaComponents'
+import type { SvgUseIcon } from '#/components/types'
 import { basenameAndExtension } from '#/utilities/fileInfo'
 
 /** Return the appropriate icon given the file name. */

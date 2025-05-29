@@ -1,20 +1,13 @@
-/**
- * @file
- * Toggle for opening the asset panel.
- */
+/** @file Toggle for opening the asset panel. */
 import RightPanelIcon from '#/assets/right_panel.svg'
-import { Button } from '#/components/AriaComponents'
-
+import { Button } from '#/components/Button'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '$/providers/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { memo } from 'react'
 import { useIsAssetPanelHidden, useSetIsAssetPanelHidden } from '../AssetPanelState'
 
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-
-/**
- * Props for a {@link AssetPanelToggle}.
- */
+/** Props for a {@link AssetPanelToggle}. */
 export interface AssetPanelToggleProps {
   readonly className?: string
   readonly showWhen?: 'collapsed' | 'expanded'
@@ -23,9 +16,7 @@ export interface AssetPanelToggleProps {
 
 const COLLAPSED_X_TRANSLATION = 16
 
-/**
- * Toggle for opening the asset panel.
- */
+/** Toggle for opening the asset panel. */
 export const AssetPanelToggle = memo(function AssetPanelToggle(props: AssetPanelToggleProps) {
   const {
     className,

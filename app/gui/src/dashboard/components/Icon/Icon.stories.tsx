@@ -1,4 +1,4 @@
-import { StatusBadge } from '#/components/AriaComponents'
+import { StatusBadge } from '#/components/StatusBadge'
 import { StoryVariants } from '#/utilities/StoryVariants'
 import { iconNames } from '@/util/iconMetadata/iconName'
 import type { Meta, StoryObj } from '@storybook/react'

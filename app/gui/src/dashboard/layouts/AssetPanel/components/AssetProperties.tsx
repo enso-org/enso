@@ -1,21 +1,15 @@
 /** @file Display and modify the properties of an asset. */
-import * as React from 'react'
-
 import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
-import {
-  Button,
-  ButtonGroup,
-  CopyButton,
-  Form,
-  ResizableContentEditableInput,
-  Text,
-} from '#/components/AriaComponents'
+import { Button, CopyButton } from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
+import { Form } from '#/components/Form'
+import { ResizableContentEditableInput } from '#/components/Inputs'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
+import { Text } from '#/components/Text'
 import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -44,6 +38,7 @@ import { useStore } from '#/utilities/zustand'
 import { useText } from '$/providers/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import * as React from 'react'
 import type { AssetPanelProps } from './types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
@@ -237,9 +232,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                 name="description"
                 mode="onBlur"
               />
-              <ButtonGroup>
+              <Button.Group>
                 <Form.Submit>{getText('update')}</Form.Submit>
-              </ButtonGroup>
+              </Button.Group>
             </Form>
           }
         </div>
@@ -485,10 +480,10 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   />
 
                   {canEditThisAsset && form.formState.isDirty && (
-                    <ButtonGroup>
+                    <Button.Group>
                       <Form.Submit>{getText('update')}</Form.Submit>
                       <Form.Reset />
-                    </ButtonGroup>
+                    </Button.Group>
                   )}
 
                   <Form.FormError />

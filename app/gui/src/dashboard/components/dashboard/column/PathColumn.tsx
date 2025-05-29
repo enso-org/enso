@@ -1,8 +1,10 @@
 /** @file A column displaying the path of the asset. */
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
-import { Button, Popover, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Popover } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCategories, useCategoriesAPI, type AnyCloudCategory } from '#/layouts/Drive/Categories'
 import { useUser } from '#/providers/AuthProvider'

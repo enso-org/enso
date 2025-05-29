@@ -15,30 +15,6 @@ export function isError(data: unknown): data is Error {
   )
 }
 
-/** Table Viz for a single column of clickable items. */
-export interface SingleColumnOfActions {
-  type: 'Single_Column_Of_Actions'
-  column_count: number
-  all_rows_count: number
-  data: string[]
-  json: unknown[][]
-  get_child_node_action: string
-  child_label: string
-  visualization_header: string
-}
-
-/** Is this a Table Viz for a single column of clickable items? */
-export function isSingleColumnOfActions(data: unknown): data is SingleColumnOfActions {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'type' in data &&
-    (data as any).type === 'Single_Column_Of_Actions' &&
-    'data' in data &&
-    Array.isArray((data as any).data)
-  )
-}
-
 export interface GenericGrid {
   type: 'Generic_Grid'
   headers: Header[]
