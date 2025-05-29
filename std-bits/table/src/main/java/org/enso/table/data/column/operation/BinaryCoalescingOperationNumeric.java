@@ -154,7 +154,8 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
     }
 
     @Override
-    protected Double doSingle(Double left, Double right, long index, MapOperationProblemAggregator problemAggregator) {
+    protected Double doSingle(
+        Double left, Double right, long index, MapOperationProblemAggregator problemAggregator) {
       if (left == null) {
         return right;
       } else if (right == null) {
@@ -172,7 +173,11 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
     }
 
     @Override
-    protected BigDecimal doSingle(BigDecimal left, BigDecimal right, long index, MapOperationProblemAggregator problemAggregator) {
+    protected BigDecimal doSingle(
+        BigDecimal left,
+        BigDecimal right,
+        long index,
+        MapOperationProblemAggregator problemAggregator) {
       return left == null
           ? right
           : (right == null ? left : operation.doBigDecimal(left, right, index));
@@ -186,7 +191,11 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
     }
 
     @Override
-    protected BigInteger doSingle(BigInteger left, BigInteger right, long index, MapOperationProblemAggregator problemAggregator) {
+    protected BigInteger doSingle(
+        BigInteger left,
+        BigInteger right,
+        long index,
+        MapOperationProblemAggregator problemAggregator) {
       return left == null
           ? right
           : (right == null ? left : operation.doBigInteger(left, right, index));
@@ -235,7 +244,8 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
     }
 
     @Override
-    protected Long doSingle(Long left, Long right, long index, MapOperationProblemAggregator problemAggregator) {
+    protected Long doSingle(
+        Long left, Long right, long index, MapOperationProblemAggregator problemAggregator) {
       if (left == null) {
         return right;
       } else if (right == null) {

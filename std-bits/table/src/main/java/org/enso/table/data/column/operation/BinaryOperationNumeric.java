@@ -2,9 +2,7 @@ package org.enso.table.data.column.operation;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.enso.base.CompareException;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -175,7 +173,8 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
         (index, x, y) -> doSingle(x, y, index, problemAggregator));
   }
 
-  protected abstract R doSingle(T left, T right, long index, MapOperationProblemAggregator problemAggregator);
+  protected abstract R doSingle(
+      T left, T right, long index, MapOperationProblemAggregator problemAggregator);
 
   protected interface NumericColumnAdapter<T> {
     StorageType<T> getValidType();

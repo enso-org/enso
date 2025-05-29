@@ -23,7 +23,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
    * implemented by any numeric operation.
    */
   public abstract static class NumericComparator {
-    abstract boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
+    abstract boolean doDouble(
+        double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
 
     abstract boolean doLong(long a, long b, long ix);
 
@@ -35,8 +36,9 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
   public static final NumericComparator EQUAL_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
-          problemAggregator.reportFloatingPointEquality((int)ix);
+        boolean doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          problemAggregator.reportFloatingPointEquality((int) ix);
           return a == b;
         }
 
@@ -59,8 +61,9 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
   public static final NumericComparator NOT_EQUAL_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
-          problemAggregator.reportFloatingPointEquality((int)ix);
+        boolean doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          problemAggregator.reportFloatingPointEquality((int) ix);
           return a != b;
         }
 
@@ -83,7 +86,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
   public static final NumericComparator GREATER_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+        boolean doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a > b;
         }
 
@@ -106,7 +110,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
   public static final NumericComparator GREATER_OR_EQUAL_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+        boolean doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a >= b;
         }
 
@@ -129,7 +134,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
   public static final NumericComparator LESS_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+        boolean doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a < b;
         }
 
@@ -152,7 +158,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
   public static final NumericComparator LESS_OR_EQUAL_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+        boolean doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a <= b;
         }
 
@@ -211,7 +218,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     this.comparator = comparator;
   }
 
-  protected NumericComparators(NumericColumnAdapter<T> adapter, NumericComparator comparator, boolean valueOnOther) {
+  protected NumericComparators(
+      NumericColumnAdapter<T> adapter, NumericComparator comparator, boolean valueOnOther) {
     super(adapter, true, BooleanType.INSTANCE, valueOnOther);
     this.comparator = comparator;
   }
@@ -240,7 +248,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
           true,
           BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
           (builder, index, value, isNothing) ->
-              builder.appendBoolean(comparator.doDouble(value, rightAsDouble, index, problemAggregator)));
+              builder.appendBoolean(
+                  comparator.doDouble(value, rightAsDouble, index, problemAggregator)));
     }
 
     @Override
@@ -258,7 +267,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     }
 
     @Override
-    protected Boolean doSingle(Double left, Double right, long index, MapOperationProblemAggregator problemAggregator) {
+    protected Boolean doSingle(
+        Double left, Double right, long index, MapOperationProblemAggregator problemAggregator) {
       return comparator.doDouble(left, right, index, problemAggregator);
     }
   }
@@ -273,7 +283,11 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     }
 
     @Override
-    protected Boolean doSingle(BigDecimal left, BigDecimal right, long index, MapOperationProblemAggregator problemAggregator) {
+    protected Boolean doSingle(
+        BigDecimal left,
+        BigDecimal right,
+        long index,
+        MapOperationProblemAggregator problemAggregator) {
       return comparator.doBigDecimal(left, right, index);
     }
   }
@@ -288,7 +302,11 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     }
 
     @Override
-    protected Boolean doSingle(BigInteger left, BigInteger right, long index, MapOperationProblemAggregator problemAggregator) {
+    protected Boolean doSingle(
+        BigInteger left,
+        BigInteger right,
+        long index,
+        MapOperationProblemAggregator problemAggregator) {
       return comparator.doBigInteger(left, right, index);
     }
   }
@@ -329,7 +347,8 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     }
 
     @Override
-    protected Boolean doSingle(Long left, Long right, long index, MapOperationProblemAggregator problemAggregator) {
+    protected Boolean doSingle(
+        Long left, Long right, long index, MapOperationProblemAggregator problemAggregator) {
       return comparator.doLong(left, right, index);
     }
   }
