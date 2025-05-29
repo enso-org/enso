@@ -2,14 +2,17 @@
 import { injectConainerData } from '$/providers/container'
 import { injectRightPanelData } from '$/providers/rightPanel'
 import DocumentationPanel from '@/components/DocumentationPanel.vue'
-import { Ok } from '@/util/data/result'
+import { Err, Ok } from '@/util/data/result'
 import { ResultComponent } from '@/util/react'
 import { computed } from 'vue'
 
 const container = injectConainerData()
 const rightPanel = injectRightPanelData()
 const displayedId = computed({
-  get: () => (rightPanel.context?.help != null ? rightPanel.context.help.item : Ok(undefined)),
+  get: () =>
+    rightPanel.context?.help != null ?
+      rightPanel.context.help.item
+    : Err('Component help is available in Project View.'),
   set: (newSelection) => {
     rightPanel.updateContext(container.tab, (ctx) => {
       if (ctx.help == null) ctx.help = { item: newSelection, aiMode: false }

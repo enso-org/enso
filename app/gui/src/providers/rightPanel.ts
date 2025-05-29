@@ -173,7 +173,12 @@ function useRightPanel(
     width: undefined,
   })
 
-  const displayedTab = computed(() => temporaryTab.value ?? store.value.tab)
+  const displayedTab = computed(() => {
+    const markedTab = temporaryTab.value ?? store.value.tab
+    if (markedTab == null) return undefined
+    if (!toValue(allTabs.get(markedTab)?.enabled)?.ok) return undefined
+    return markedTab
+  })
 
   /**
    * Set context from given tab.

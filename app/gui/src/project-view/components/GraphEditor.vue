@@ -711,7 +711,6 @@ const contextMenuActions: ActionName[] = [
             actionHandlers['graph.toggleDocumentationEditor'].toggled
           "
           :zoomLevel="100.0 * graphNavigator.targetScale"
-          :class="{ extraRightSpace: !rightPanel.tab }"
           :menuActions="contextMenuActions"
           @contextmenu.stop.prevent
         />
