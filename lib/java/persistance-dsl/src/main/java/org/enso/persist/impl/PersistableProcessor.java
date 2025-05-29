@@ -93,7 +93,7 @@ public class PersistableProcessor extends AbstractProcessor {
             w.append("package " + entry.getKey() + ";\n");
             w.append("import org.enso.persist.Persistance;\n");
             w.append("public final class Persistables extends Persistance.Pool {\n");
-            w.append("  public static final Persistables POOL = new Persistables();\n");
+            w.append("  public static final Persistance.Pool POOL = new Persistables();\n");
             w.append("  private Persistables() {\n");
             w.append("    super(\"").append(entry.getKey()).append("\",");
             var lineEnding = "\n";

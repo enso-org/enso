@@ -9,12 +9,12 @@ import java.nio.ByteBuffer;
 import java.util.function.Function;
 
 /**
- * Central persistance class. Use {@link Pool#write write} method to turn a graph of JVM objects
- * into a {@code byte[]}. <br>
+ * Central persistance class. Use {@link Pool#write(java.lang.Object, java.util.function.Function)
+ * write} method to turn a graph of JVM objects into a {@code byte[]}. <br>
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
  *
- * <p>Use sibling {@link Pool#read read} method to read the byte buffer back into their memory
- * representation. <br>
+ * <p>Use sibling {@link Persistance.Pool#read read} method to read the byte buffer back into their
+ * memory representation. <br>
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
  *
  * <h2>Manual Persistance</h2>
@@ -38,9 +38,10 @@ public abstract class Persistance<T> implements Cloneable {
    * Constructor for subclasses to register persistance for certain {@code clazz}. Sample
    * registration: <br>
    * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"} <br>
-   * Each persistance requires unique ID. A stream created by {@link #write(Object, Function<Object,
-   * Object>)} and read by {@link #read(byte[], Function<Object, Object>)} contains a header derived
-   * from the all the IDs present in the system. When versioning the protocol and implementation:
+   * Each persistance requires unique ID. A stream created by {@link Pool#write(Object,
+   * Function<Object, Object>)} and read by {@link Pool#read(byte[], Function<Object, Object>)}
+   * contains a header derived from the all the IDs present in the system. When versioning the
+   * protocol and implementation:
    *
    * <ul>
    *   <li>when you change something really core in the Persitance itself - change the header
@@ -208,8 +209,7 @@ public abstract class Persistance<T> implements Cloneable {
      * @return the read object
      * @throws java.io.IOException when an I/O problem happens
      */
-    public static Reference<?> read(byte[] arr, Function<Object, Object> readResolve)
-        throws IOException {
+    public Reference<?> read(byte[] arr, Function<Object, Object> readResolve) throws IOException {
       return read(ByteBuffer.wrap(arr), readResolve);
     }
 
@@ -222,7 +222,7 @@ public abstract class Persistance<T> implements Cloneable {
      * @return the read object
      * @throws java.io.IOException when an I/O problem happens
      */
-    public static Reference<?> read(ByteBuffer buf, Function<Object, Object> readResolve)
+    public Reference<?> read(ByteBuffer buf, Function<Object, Object> readResolve)
         throws IOException {
       return PerInputImpl.readObject(buf, readResolve);
     }
@@ -237,8 +237,7 @@ public abstract class Persistance<T> implements Cloneable {
      * @return the array of bytes
      * @throws IOException when an I/O problem happens
      */
-    public static byte[] write(Object obj, Function<Object, Object> writeReplace)
-        throws IOException {
+    public byte[] write(Object obj, Function<Object, Object> writeReplace) throws IOException {
       return PerGenerator.writeObject(obj, writeReplace);
     }
   }
