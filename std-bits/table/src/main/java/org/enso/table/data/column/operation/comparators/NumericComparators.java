@@ -237,7 +237,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
       double rightAsDouble = right;
       return StorageIterators.buildOverDoubleStorage(
           (ColumnDoubleStorage) left,
-          false,
+          true,
           BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
           (builder, index, value, isNothing) ->
               builder.appendBoolean(comparator.doDouble(value, rightAsDouble, index, problemAggregator)));
@@ -252,7 +252,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
           (ColumnDoubleStorage) left,
           (ColumnDoubleStorage) right,
           s -> BooleanType.INSTANCE.makeBuilder(s, problemAggregator),
-          false,
+          true,
           (index, value1, isNothing1, value2, isNothing2) ->
               comparator.doDouble(value1, value2, index, problemAggregator));
     }
@@ -308,7 +308,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
       long rightAsLong = right;
       return StorageIterators.buildOverLongStorage(
           (ColumnLongStorage) left,
-          false,
+          true,
           BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
           (builder, index, value, isNothing) ->
               builder.appendBoolean(comparator.doLong(value, right, index)));
