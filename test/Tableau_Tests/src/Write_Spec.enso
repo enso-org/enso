@@ -230,3 +230,25 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         backup_file.exists.should_equal False
 
         written_file.delete
+
+    group_builder.specify "additional columns is an error" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']], ['Col1', ['a']]]
+        r = t2.write written_file on_existing_file=..Append
+
+        ## Data is still t1 as we didn't append
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
