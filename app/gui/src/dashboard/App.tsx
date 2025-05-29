@@ -68,6 +68,10 @@ import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter, useText } from '$/providers/react'
 
+window.menuApi?.setShowAboutModalHandler(() => {
+  setModal(<AboutModal />)
+})
+
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
@@ -172,14 +176,6 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
   const authService = useInitAuthService(props)
 
   const registerAuthEventListener = authService.registerAuthEventListener
-
-  React.useEffect(() => {
-    if ('menuApi' in window) {
-      window.menuApi.setShowAboutModalHandler(() => {
-        setModal(<AboutModal />)
-      })
-    }
-  }, [])
 
   React.useEffect(() => {
     let isClick = false
