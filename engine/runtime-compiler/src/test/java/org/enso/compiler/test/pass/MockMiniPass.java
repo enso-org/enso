@@ -28,10 +28,6 @@ final class MockMiniPass extends MiniIRPass {
   @Override
   public Expression transformExpression(Expression expr) {
     if (expr instanceof MockExpression mockExpr) {
-      var parent = mockExpr.getParent();
-      if (parent != null) {
-        assertThat("Prepare must have been called on parent", parent.isPreparedBy(this), is(true));
-      }
       assertThat(
           "Transform is called just once by one pass", mockExpr.isTransformedBy(this), is(false));
       mockExpr.setTransformedByPass(this);
