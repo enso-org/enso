@@ -58,7 +58,6 @@ public abstract class Persistance<T> implements Cloneable {
     this.clazz = clazz;
     this.includingSubclasses = includingSubclasses;
     this.id = id;
-    PerMap.registerPersistance(this);
   }
 
   final Persistance<?> newClone() {
@@ -175,6 +174,8 @@ public abstract class Persistance<T> implements Cloneable {
    * @see #merge
    */
   public abstract static class Pool {
+    private final PerMap map;
+
     /**
      * Constructor for subclasses to creates a new pool with provided persistance instances. The IDs
      * of those instances must be unique, otherwise an exception is throw.
@@ -184,7 +185,9 @@ public abstract class Persistance<T> implements Cloneable {
      * @exception IllegalArgumentException if there is a clash in IDs of persistance instances
      */
     @SafeVarargs
-    protected Pool(String displayName, Persistance... instances) {}
+    protected Pool(String displayName, Persistance... instances) {
+      this.map = new PerMap(instances);
+    }
 
     /**
      * Merges instances in various pools into a single combined one.
@@ -224,7 +227,7 @@ public abstract class Persistance<T> implements Cloneable {
      */
     public Reference<?> read(ByteBuffer buf, Function<Object, Object> readResolve)
         throws IOException {
-      return PerInputImpl.readObject(buf, readResolve);
+      return PerInputImpl.readObject(map, buf, readResolve);
     }
 
     /**
@@ -238,7 +241,7 @@ public abstract class Persistance<T> implements Cloneable {
      * @throws IOException when an I/O problem happens
      */
     public byte[] write(Object obj, Function<Object, Object> writeReplace) throws IOException {
-      return PerGenerator.writeObject(obj, writeReplace);
+      return PerGenerator.writeObject(map, obj, writeReplace);
     }
   }
 
