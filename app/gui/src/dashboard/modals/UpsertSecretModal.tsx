@@ -1,5 +1,8 @@
 /** @file A modal for creating and editing a secret. */
-import { Button, ButtonGroup, Dialog, Form, Input } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import { type SecretId } from '#/services/Backend'
 import { useText } from '$/providers/react'
 
@@ -64,7 +67,7 @@ export function UpsertSecretForm(props: UpsertSecretFormProps) {
         }
       />
 
-      <ButtonGroup className="mt-2">
+      <Button.Group className="mt-2">
         <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
         {doCancel === 'reset' ?
           <Form.Reset>{getText('cancel')}</Form.Reset>
@@ -73,7 +76,7 @@ export function UpsertSecretForm(props: UpsertSecretFormProps) {
         : doCancel ?
           <Button onPress={doCancel}>{getText('cancel')}</Button>
         : null}
-      </ButtonGroup>
+      </Button.Group>
 
       <Form.FormError />
     </Form>

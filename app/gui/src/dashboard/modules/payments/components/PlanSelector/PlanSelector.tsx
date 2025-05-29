@@ -1,7 +1,7 @@
 /** @file Plan selector component. */
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
+import { DIALOG_BACKGROUND } from '#/components/Dialog/variants'
 import { usePaywall } from '#/hooks/billing'
 import { useAuth } from '#/providers/AuthProvider'
 import { Plan, PLANS } from '#/services/Backend'

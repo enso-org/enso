@@ -671,6 +671,9 @@ val httpComponentsVersion   = "4.4.1"
 val apacheArrowVersion      = "14.0.1"
 val snowflakeJDBCVersion    = "3.15.0"
 val mssqlserverJDBCVersion  = "12.6.2.jre11"
+val azureIdentityVersion    = "1.16.1"
+val azureResourceVersion    = "2.50.0"
+val azureBlobStorageVersion = "12.30.0"
 val jsoniterVersion         = "2.28.5"
 val jnaVersion              = "5.14.0"
 val googleProtobufVersion   = "3.25.1"
@@ -952,7 +955,28 @@ lazy val `syntax-rust-definition` = project
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
-    Compile / compile / javacOptions ++= Seq("-source", "11", "-target", "11")
+    Compile / compile / javacOptions ++= Seq("-source", "11", "-target", "11"),
+    // Make sure the native library is not packaged in the exported `jar`.
+    assembly / assemblyMergeStrategy := {
+      case PathList(file)
+          if file.endsWith(".so") || file.endsWith(".dll") || file
+            .endsWith(".dylib") =>
+        MergeStrategy.discard
+      case _ =>
+        MergeStrategy.first
+    },
+    assembly / assemblyExcludedJars := {
+      JPMSUtils.filterModulesFromClasspath(
+        (Compile / fullClasspath).value,
+        slf4jApi,
+        streams.value.log,
+        javaModuleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+    },
+    Compile / exportedModule := assembly.value,
+    Compile / exportedModuleBin := assembly.value
   )
 
 lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
@@ -4024,6 +4048,7 @@ lazy val `engine-runner` = project
               "com.sun.imageio",
               "com.sun.jna",
               "com.microsoft",
+              "com.azure",
               "akka.http",
               "org.enso.base",
               "org.enso.image",
@@ -5058,7 +5083,7 @@ lazy val `std-table` = project
           ignoreScalaLibrary = true,
           libraryUpdates     = (Compile / update).value,
           unmanagedClasspath = (Compile / unmanagedJars).value,
-          ignoreDependencies = Some(
+          ignoreDependenciesByModuleID = Some(
             Seq(
               "org.apache.poi" % "poi"            % poiOoxmlVersion,
               "org.apache.poi" % "poi-ooxml"      % poiOoxmlVersion,
@@ -5111,7 +5136,7 @@ lazy val `std-image` = project
           `image-polyglot-root`,
           Seq("std-image.jar", "opencv.jar"),
           ignoreScalaLibrary = true,
-          ignoreDependencies =
+          ignoreDependenciesByModuleID =
             Some(Seq("org.openpnp" % "opencv" % opencvVersion)),
           libraryUpdates     = (Compile / update).value,
           logger             = logger,
@@ -5395,9 +5420,17 @@ lazy val `std-microsoft` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-microsoft-polyglot-root` / "std-microsoft.jar",
+    Compile / unmanagedJars := {
+      Seq(
+        Attributed.blank((`jna-wrapper` / assembly).value)
+      )
+    },
     libraryDependencies ++= Seq(
-      "org.netbeans.api"        % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
+      "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.microsoft.sqlserver"   % "mssql-jdbc"              % mssqlserverJDBCVersion,
+      "com.azure"                 % "azure-identity"          % azureIdentityVersion exclude ("net.java.dev.jna", "jna") exclude ("net.java.dev.jna", "jna-platform"),
+      "com.azure.resourcemanager" % "azure-resourcemanager"   % azureResourceVersion,
+      "com.azure"                 % "azure-storage-blob"      % azureBlobStorageVersion
     ),
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
@@ -5409,9 +5442,26 @@ lazy val `std-microsoft` = project
           ignoreScalaLibrary = true,
           libraryUpdates     = (Compile / update).value,
           unmanagedClasspath = (Compile / unmanagedClasspath).value,
-          logger             = streams.value.log,
-          cacheStoreFactory,
-          previousRun = None
+          ignoreDependencies = Some((fileName: String) => {
+            val nameCheck = fileName.startsWith(
+              "netty-transport-native"
+            ) || fileName.startsWith("netty-tcnative-boringssl-static") ||
+              fileName.startsWith("netty-resolver-dns-native")
+
+            (fileName.startsWith("netty-resolver-dns-classes-macos") && StdBits
+              .plainOsName() != "macos") ||
+            nameCheck &&
+            StdBits
+              .allSupportedOs()
+              .exists(osName => fileName.contains(osName)) && {
+              val sanitizedName = fileName.replaceAll("aarch_64", "aarch64")
+              val thisPlatform  = StdBits.currentPlatformSuffix()
+              !sanitizedName.contains(thisPlatform)
+            }
+          }),
+          logger            = streams.value.log,
+          cacheStoreFactory = cacheStoreFactory,
+          previousRun       = None
         )
       result
     }
@@ -5419,6 +5469,7 @@ lazy val `std-microsoft` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-database` % "provided")
+  .dependsOn(`jna-wrapper` % "provided") // `azure-identity` requires `jna`
 
 lazy val `std-tableau` = project
   .in(file("std-bits") / "tableau")

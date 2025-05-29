@@ -296,7 +296,6 @@ export default {
         'close-icon': 'var(--close-icon-margin)',
         'date-input-gap': 'var(--date-input-gap)',
         'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
-        'separator-y': 'var(--separator-margin-y)',
         'sidebar-section-heading-b': 'var(--sidebar-section-heading-margin-b)',
         'context-menu-entry-px': 'var(--context-menu-entry-padding-x)',
         'text-link-px': 'var(--text-link-padding-x)',

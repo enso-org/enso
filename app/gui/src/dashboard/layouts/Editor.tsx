@@ -1,5 +1,5 @@
 /** @file The container that launches the IDE. */
-import { Button } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import * as suspense from '#/components/Suspense'

@@ -1,19 +1,16 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import { Cell, Column, Row, Table, TableBody, TableHeader } from '#/components/aria'
-import {
-  Button,
-  ComboBox,
-  Dialog,
-  Form,
-  Menu,
-  Popover,
-  Text,
-  VisualTooltip,
-} from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog, Popover } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { ComboBox } from '#/components/Inputs'
+import { Menu } from '#/components/Menu'
 import { PaywallDialogButton } from '#/components/Paywall'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import { Scroller } from '#/components/Scroller'
+import { Text } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
+import { VisualTooltip } from '#/components/VisualTooltip'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'

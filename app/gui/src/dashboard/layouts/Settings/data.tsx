@@ -1,15 +1,8 @@
 /** @file Metadata for rendering each settings section. */
-import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
-
-import type { QueryClient } from '@tanstack/react-query'
-import * as z from 'zod'
-
-import type { TextId } from 'enso-common/src/text'
-
 import ComputerIcon from '#/assets/computer.svg'
-import type { SvgUseIcon } from '#/components/AriaComponents'
-import { Button, ButtonGroup } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
+import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
@@ -28,6 +21,10 @@ import { normalizePath } from '#/utilities/fileInfo'
 import { pick, unsafeEntries } from '#/utilities/object'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import type { GetText } from '$/providers/text'
+import type { QueryClient } from '@tanstack/react-query'
+import type { TextId } from 'enso-common/src/text'
+import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
+import * as z from 'zod'
 import ActivityLogSettingsSection from './ActivityLogSettingsSection'
 import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
 import KeyboardShortcutsSettingsSection from './KeyboardShortcutsSettingsSection'
@@ -297,7 +294,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: 'custom',
             aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
             render: (context) => (
-              <ButtonGroup>
+              <Button.Group>
                 {window.fileBrowserApi && (
                   <Button
                     size="small"
@@ -321,7 +318,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 >
                   {context.getText('resetLocalRootDirectory')}
                 </Button>
-              </ButtonGroup>
+              </Button.Group>
             ),
           },
         ],

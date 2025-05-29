@@ -1,4 +1,11 @@
 /** @file A select menu with a dropdown. */
+import CloseIcon from '#/assets/cross.svg'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
+import FocusRing from '#/components/styled/FocusRing'
+import { Text } from '#/components/Text'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import {
   useMemo,
   useRef,
@@ -7,11 +14,6 @@ import {
   type KeyboardEvent,
   type MutableRefObject,
 } from 'react'
-
-import CloseIcon from '#/assets/cross.svg'
-import { Button, Form, Input, Text } from '#/components/AriaComponents'
-import FocusRing from '#/components/styled/FocusRing'
-import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 
 /** A zero-width space. Useful to make a `div` take up at least one line. */
 const ZWSP = '\u200b'
