@@ -1,17 +1,18 @@
 /** @file A text `<span>` which turns into an `input` when desired. */
-import * as React from 'react'
-
 import CrossIcon from '#/assets/cross.svg'
 import TickIcon from '#/assets/tick.svg'
-
-import { Button, Form, Input, Text, Underlay } from '#/components/AriaComponents'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { useText } from '$/providers/react'
-
 import { useInteractOutside } from '#/components/aria'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
+import { Text } from '#/components/Text'
+import { Underlay } from '#/components/Underlay'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useMeasure } from '#/hooks/measureHooks'
+import { twJoin } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import { AnimatePresence, motion, type Variants } from 'framer-motion'
+import * as React from 'react'
 import { useLayoutEffect } from 'react'
 import type { z } from 'zod'
 
@@ -40,11 +41,7 @@ export default function EditableSpan(props: EditableSpanProps) {
 
   if (!editable) {
     return (
-      <Text
-        className={tailwindMerge.twJoin('min-w-0', className)}
-        testId={props['data-testid']}
-        truncate="1"
-      >
+      <Text className={twJoin('min-w-0', className)} testId={props['data-testid']} truncate="1">
         {children}
       </Text>
     )
@@ -146,7 +143,7 @@ function EditForm(props: EditFormProps) {
             size="custom"
             rounded="none"
             testId={props['data-testid']}
-            className={tailwindMerge.twJoin('flex-shrink-0 flex-grow basis-0', className)}
+            className={twJoin('flex-shrink-0 flex-grow basis-0', className)}
             type="text"
             aria-label={getText('editNameShortcut')}
             // we don't want the display the default error message

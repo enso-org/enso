@@ -1,30 +1,7 @@
 /** @file Table displaying a list of projects. */
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  memo,
-  startTransition,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type DragEvent,
-  type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
-  type ReactNode,
-  type RefObject,
-  type SetStateAction,
-} from 'react'
-
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { toast } from 'react-toastify'
-import * as z from 'zod'
-
 import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
-import { Button, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import type { AssetRowInnerProps } from '#/components/dashboard/AssetRow'
 import { AssetRow } from '#/components/dashboard/AssetRow'
 import { INITIAL_ROW_STATE } from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -44,6 +21,7 @@ import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
@@ -114,7 +92,28 @@ import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  memo,
+  startTransition,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type DragEvent,
+  type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+} from 'react'
+import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
+import * as z from 'zod'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
   SUGGESTIONS_FOR_HAS,

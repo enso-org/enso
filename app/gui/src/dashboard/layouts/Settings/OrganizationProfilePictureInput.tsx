@@ -1,17 +1,14 @@
 /** @file The input for viewing and changing the organization's profile picture. */
-import { useMutation, useQuery } from '@tanstack/react-query'
-
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-
-import { useText } from '$/providers/react'
-
 import * as aria from '#/components/aria'
-import FocusRing from '#/components/styled/FocusRing'
-
-import { Form, HiddenFile } from '#/components/AriaComponents'
+import { Form } from '#/components/Form'
+import { HiddenFile } from '#/components/Inputs'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
+import FocusRing from '#/components/styled/FocusRing'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import type Backend from '#/services/Backend'
+import { useText } from '$/providers/react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 /** Props for a {@link OrganizationProfilePictureInput}. */
 export interface OrganizationProfilePictureInputProps {

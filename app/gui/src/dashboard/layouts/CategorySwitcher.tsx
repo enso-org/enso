@@ -1,12 +1,14 @@
 /** @file Switcher to choose the currently visible assets table category. */
-import * as React from 'react'
-
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
+import { Button, BUTTON_STYLES } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Text } from '#/components/Text'
+import type { SvgUseIcon } from '#/components/types'
 import * as mimeTypes from '#/data/mimeTypes'
+import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import {
@@ -17,22 +19,21 @@ import {
   useTransferBetweenCategories,
   type Category,
 } from '#/layouts/Drive/Categories'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
-import { tv } from '#/utilities/tailwindVariants'
-import { useBackends, useRouter, useText } from '$/providers/react'
-import { twJoin } from 'tailwind-merge'
-
-import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { tv } from '#/utilities/tailwindVariants'
+import { useBackends, useRouter, useText } from '$/providers/react'
+import * as React from 'react'
+import { twJoin } from 'tailwind-merge'
 
 /** Metadata for a category. */
 interface CategoryMetadata {
   readonly isNested?: boolean
   readonly category: Category
-  readonly icon: ariaComponents.SvgUseIcon | (string & {})
+  readonly icon: SvgUseIcon | (string & {})
   readonly label: string
   readonly buttonLabel: string
   readonly dropZoneLabel: string
@@ -49,7 +50,7 @@ interface InternalCategorySwitcherItemProps extends CategoryMetadata {
 }
 
 const CATEGORY_SWITCHER_VARIANTS = tv({
-  extend: ariaComponents.BUTTON_STYLES,
+  extend: BUTTON_STYLES,
   base: 'group opacity-50 transition-opacity group-hover:opacity-100 w-auto max-w-full',
   slots: {
     wrapper: 'w-full',
@@ -198,7 +199,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         className="w-auto max-w-full"
         animationClassName="bg-invert rounded-full"
       >
-        <ariaComponents.Button
+        <Button
           size="medium"
           variant="custom"
           tooltip={tooltip}
@@ -220,15 +221,10 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
             )
           }
         >
-          <ariaComponents.Text
-            disableLineHeightCompensation
-            weight="semibold"
-            color="current"
-            truncate="1"
-          >
+          <Text disableLineHeightCompensation weight="semibold" color="current" truncate="1">
             {label}
-          </ariaComponents.Text>
-        </ariaComponents.Button>
+          </Text>
+        </Button>
       </AnimatedBackground.Item>
       <div className="absolute left-full ml-2 hidden group-focus-visible:block">
         {getText('drop')}
@@ -334,7 +330,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
               dropZoneLabel={getText('localCategoryDropZoneLabel')}
             />
 
-            <ariaComponents.Button
+            <Button
               size="medium"
               variant="icon"
               extraClickZone="small"
@@ -366,8 +362,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 dropZoneLabel={getText('localCategoryDropZoneLabel')}
               />
 
-              <ariaComponents.DialogTrigger>
-                <ariaComponents.Button
+              <Dialog.Trigger>
+                <Button
                   size="medium"
                   variant="icon"
                   extraClickZone={false}
@@ -383,7 +379,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                     removeDirectory(directory.id)
                   }}
                 />
-              </ariaComponents.DialogTrigger>
+              </Dialog.Trigger>
             </div>
           ))}
 
@@ -391,7 +387,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
           <div className="flex">
             <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
 
-            <ariaComponents.Button
+            <Button
               size="medium"
               variant="icon"
               icon="folder_add_small"
@@ -411,7 +407,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
               }}
             >
               {getText('addLocalDirectory')}
-            </ariaComponents.Button>
+            </Button>
           </div>
         )}
       </div>

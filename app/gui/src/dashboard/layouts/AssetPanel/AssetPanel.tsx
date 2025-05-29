@@ -126,7 +126,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()
 
-  const enableAsyncExecution = useFeatureFlag('enableAsyncExecution')
+  const enableScheduledExecution = useFeatureFlag('enableScheduledExecution')
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const isSchedulerDisabled = isFeatureUnderPaywall('scheduler')
 
@@ -257,7 +257,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal || isSchedulerDisabled}
-            isHidden={!enableAsyncExecution}
+            isHidden={!enableScheduledExecution}
           />
           <AssetPanelTabs.Tab
             id="docs"

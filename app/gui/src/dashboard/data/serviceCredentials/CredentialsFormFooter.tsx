@@ -1,5 +1,7 @@
 /** @file Submit and cancel buttons, and form error for the credentials form. */
-import { ButtonGroup, DialogDismiss, Form } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
 import { useText } from '$/providers/react'
 
 /** Props for a {@link CredentialsFormFooter}. */
@@ -17,11 +19,11 @@ export function CredentialsFormFooter(props: CredentialsFormFooterProps) {
 
   return (
     <>
-      <ButtonGroup className="mt-2">
+      <Button.Group className="mt-2">
         <Form.Submit>{isCreating ? getText('create') : getText('update')}</Form.Submit>
-        {canCancel && <DialogDismiss />}
+        {canCancel && <Dialog.Dismiss />}
         {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
-      </ButtonGroup>
+      </Button.Group>
 
       <Form.FormError />
     </>

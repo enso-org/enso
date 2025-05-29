@@ -1,9 +1,5 @@
-/**
- * @file
- *
- * Scroller is a component that
- */
-
+/** @file A component that adds scroll shadows to a container. */
+import type { TestIdProps } from '#/components/types'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
@@ -17,7 +13,6 @@ import {
   type HTMLAttributes,
   type PropsWithChildren,
 } from 'react'
-import type { TestIdProps } from '../AriaComponents'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const SCROLLER_STYLES = tv({
@@ -140,9 +135,7 @@ export const SCROLLER_STYLES = tv({
   },
 })
 
-/**
- * Props for {@link Scroller}.
- */
+/** Props for {@link Scroller}. */
 export interface ScrollerProps
   extends HTMLAttributes<HTMLDivElement>,
     PropsWithChildren,
@@ -151,9 +144,7 @@ export interface ScrollerProps
   readonly shadowStartClassName?: string
 }
 
-/**
- * A component that adds scroll shadows to a container.
- */
+/** A component that adds scroll shadows to a container. */
 export function Scroller(props: ScrollerProps) {
   const {
     className,

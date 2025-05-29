@@ -1,10 +1,10 @@
 /** @file A modal for adding a payment method. */
-import { CardElement } from '@stripe/react-stripe-js'
-import type { PaymentMethod, Stripe, StripeCardElement, StripeElements } from '@stripe/stripe-js'
-
-import { Form, useDialogContext, type FormInstance, type schema } from '#/components/AriaComponents'
+import { useDialogContext } from '#/components/Dialog'
+import { Form, type FormInstance, type schema } from '#/components/Form'
 import { useText } from '$/providers/react'
 import { type GetText } from '$/providers/text'
+import { CardElement } from '@stripe/react-stripe-js'
+import type { PaymentMethod, Stripe, StripeCardElement, StripeElements } from '@stripe/stripe-js'
 import { useCreatePaymentMethodMutation } from '../api/createPaymentMethod'
 
 /** Props for an {@link AddPaymentMethodForm}. */

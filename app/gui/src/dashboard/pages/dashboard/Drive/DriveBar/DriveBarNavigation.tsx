@@ -3,8 +3,10 @@
  * the current directory and some configuration options.
  */
 import RecentIcon from '#/assets/recent.svg'
-import { Button, ButtonGroup, Menu, Popover } from '#/components/AriaComponents'
 import { Breadcrumbs, type BreadcrumbItemProps, type OnDrop } from '#/components/Breadcrumbs'
+import { Button } from '#/components/Button'
+import { Popover } from '#/components/Dialog'
+import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -249,7 +251,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
     case 'local-directory': {
       return (
         <div className="flex w-full flex-none items-center">
-          <ButtonGroup className="mr-2 w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
+          <Button.Group className="mr-2 w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
             <Menu.Trigger trigger="longPress">
               <UpButton navigateToParent={navigateToParent} isDisabled={!canNavigateUp} />
 
@@ -269,7 +271,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
                 }}
               </Menu>
             </Menu.Trigger>
-          </ButtonGroup>
+          </Button.Group>
 
           {breadcrumbs}
 
