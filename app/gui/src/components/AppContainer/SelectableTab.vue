@@ -23,11 +23,12 @@ const {
   onClose?: (() => void) | undefined
 }>()
 
+const tooltipPlacement = computed(() => (orientation === 'horizontal' ? 'top' : 'left'))
 const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always'))
 </script>
 
 <template>
-  <TooltipTrigger :when="whenTooltip">
+  <TooltipTrigger :placement="tooltipPlacement" :when="whenTooltip">
     <template #default="triggerProps">
       <div class="SelectableTab" :class="orientation" @click="selected = !selected">
         <motion.div

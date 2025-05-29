@@ -52,7 +52,9 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
       <div v-if="component != null" ref="contentElement" class="content" :style="style">
         <WithFullscreenMode :fullscreen="data.fullscreen">
           <WithCurrentProject :id="data.focusedProject">
-            <component :is="component" />
+            <div class="contentInner">
+              <component :is="component" />
+            </div>
           </WithCurrentProject>
         </WithFullscreenMode>
         <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
@@ -92,6 +94,14 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   display: flex;
   justify-content: stretch;
   width: 400px;
+}
+
+/* React panels rely on being inside columned flex. */
+.contentInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .rightBar {

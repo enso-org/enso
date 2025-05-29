@@ -13,14 +13,14 @@ import { htmlToMarkdown } from '@/components/MarkdownEditor/htmlToMarkdown'
 import SvgButton from '@/components/SvgButton.vue'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { MutableFunctionDef, parseModule } from '@/util/ast/abstract'
-import { Err, mapOk, Ok, Result, unwrapOr } from '@/util/data/result'
+import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
 import { useQuery } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
 import { ComponentInstance, computed, effectScope, ref, watch } from 'vue'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 
-const Result = applyPureReactInVue(ResultReact)
+const ResultComponent = applyPureReactInVue(ResultReact)
 const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
 const rightPanel = injectRightPanelData()
@@ -211,7 +211,7 @@ const displaySignatureEditor = computed(
         />
       </template>
     </MarkdownEditor>
-    <Result v-else status="info" :title="markdownDocs.error.message('')" centered />
+    <ResultComponent v-else status="info" :title="markdownDocs.error.message('')" centered="true" />
   </div>
 </template>
 
