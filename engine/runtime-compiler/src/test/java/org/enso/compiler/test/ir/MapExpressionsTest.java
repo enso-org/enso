@@ -8,7 +8,6 @@ import static org.enso.scala.wrapper.ScalaConversions.asScala;
 import static org.enso.scala.wrapper.ScalaConversions.nil;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -107,8 +106,7 @@ public class MapExpressionsTest {
             .build();
     var collected = mapExpressions(lambda);
     assertThat("Only body is collected", collected.size(), is(1));
-    assertThat(
-        "Body of Lambda is collected", collected, contains(body));
+    assertThat("Body of Lambda is collected", collected, contains(body));
   }
 
   @Test
