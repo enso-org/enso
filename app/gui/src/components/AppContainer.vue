@@ -11,8 +11,9 @@ import { provideOpenedProjects } from '$/providers/openedProjects'
 import { RightPanelDataProviderForReact } from '$/providers/react'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
+import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { applyPureReactInVue } from 'veaury'
-import { reactive, toRef, toRefs, watch } from 'vue'
+import { reactive, toRef, toRefs, useTemplateRef, watch } from 'vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
@@ -27,9 +28,12 @@ const props = defineProps<{
   enableScheduledExecution: boolean
 }>()
 
+const fullscreenRoot = useTemplateRef('fullscreenRoot')
+
 provideOpenedProjects()
 const { tab, openedProjects } = toRefs(provideContainerData(toRef(props, 'launchedProjects')))
 provideRightPanelData(tab, props.isFeatureUnderPaywall, toRef(props, 'enableScheduledExecution'))
+provideFullscreenRoot(fullscreenRoot)
 
 const readyProjects = reactive(new Set<ProjectId>())
 const projectNames = reactive(new Map<ProjectId, string>())
@@ -108,7 +112,7 @@ const onSignOut = () => {
         <div class="filler" />
         <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
       </div>
-      <div id="appContainerMainView" class="mainView">
+      <div ref="fullscreenRoot" class="mainView">
         <div class="panel">
           <KeepAlive>
             <Drive v-if="tab === 'drive'" :initialProjectName="initialProjectName" />

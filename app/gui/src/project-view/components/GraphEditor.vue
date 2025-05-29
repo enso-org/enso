@@ -662,7 +662,6 @@ const contextMenuActions: ActionName[] = [
 
 <template>
   <div
-    id="graphEditorRoot"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     @dragover.prevent
