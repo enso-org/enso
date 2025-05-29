@@ -96,7 +96,7 @@ public class MapExpressionsTest {
    * Expression.
    */
   @Test
-  public void functionLambda_ArgumentName_IsCollected() {
+  public void functionLambda_ArgumentName_IsNotCollected() {
     var body = emptyIr();
     var self = literal("self");
     var selfArg = defArg(self);
@@ -106,8 +106,9 @@ public class MapExpressionsTest {
             .arguments(asScala(List.of(selfArg)))
             .build();
     var collected = mapExpressions(lambda);
+    assertThat("Only body is collected", collected.size(), is(1));
     assertThat(
-        "Both body and name of Lambda are collected", collected, containsInAnyOrder(body, self));
+        "Body of Lambda is collected", collected, contains(body));
   }
 
   @Test

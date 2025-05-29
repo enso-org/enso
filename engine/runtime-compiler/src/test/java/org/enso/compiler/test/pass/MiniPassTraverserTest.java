@@ -206,7 +206,7 @@ public class MiniPassTraverserTest {
     var miniPass = MockMiniPass.builder().build();
     MiniIRPass.compile(Expression.class, lambda, miniPass);
     var visited = miniPass.getTransformedExpressions();
-    assertThat(visited, containsInAnyOrder(lambda, self, body));
+    assertThat(visited, containsInAnyOrder(lambda, body));
   }
 
   private static <T> scala.collection.immutable.List<T> scalaList(T elem) {
