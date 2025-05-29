@@ -96,7 +96,7 @@ export class WSSharedDoc {
  */
 export function setupGatewayClient(ws: WS, lsUrl: string | undefined | null, docName: string) {
   let lsSession: LanguageServerSession
-  console.log(`setupGwC: ${lsUrl} and name: ${docName}`)
+  console.log(`setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName})`)
   if (lsUrl) {
     lsSession = LanguageServerSession.get(lsUrl)
   } else {
@@ -109,7 +109,6 @@ export function setupGatewayClient(ws: WS, lsUrl: string | undefined | null, doc
   }
 
   const wsDoc = lsSession.getYDoc(docName)
-  console.log(`lsSession: ${lsSession} wsDoc: ${wsDoc}`)
   if (wsDoc == null) {
     console.error(`Document '${docName}' not found in language server session '${lsUrl}'.`)
     ws.close()
