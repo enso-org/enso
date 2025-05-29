@@ -112,7 +112,7 @@ function useRightPanelTabs(
         icon: 'schedule',
         enabled: computed(() => {
           if (!enabledInCloudOnly.value.ok) return enabledInCloudOnly.value
-          if (!isFeatureUnderPaywall('scheduler'))
+          if (isFeatureUnderPaywall('scheduler'))
             return Err(getText('assetProjectExecutionsCalendar.teamPlanOnly'))
           return Ok()
         }),
