@@ -116,7 +116,7 @@ public class BuilderMethodGenerator {
               this.${name} = Option.apply(
                 obj.${name}()
                   .get()
-                  .map(ch -> ch.duplicate(true, true, true, false))
+                  .map(ch -> ch.duplicate(true, true, true, true))
               );
             } else {
               this.${name} = Option.empty();
@@ -125,13 +125,13 @@ public class BuilderMethodGenerator {
             .replace("${name}", userField.getName());
         case ListField listField -> """
             this.${name} =
-              obj.${name}().map(ch -> ch.duplicate(true, true, true, false));
+              obj.${name}().map(ch -> ch.duplicate(true, true, true, true));
             """
             .replace("${name}", userField.getName());
         case OptionField optionField -> """
             if (obj.${name}().isDefined()) {
               this.${name} = Option.apply(
-                obj.${name}().get().duplicate(true, true, true, false)
+                obj.${name}().get().duplicate(true, true, true, true)
               );
             } else {
               this.${name} = Option.empty();
@@ -147,14 +147,14 @@ public class BuilderMethodGenerator {
             .replace("${type}", refField.getTypeParameter().getSimpleName());
         case Field field when field.isNullable() -> """
             if (obj.${name}() != null) {
-              this.${name} = obj.${name}().duplicate(true, true, true, false);
+              this.${name} = obj.${name}().duplicate(true, true, true, true);
             } else {
               this.${name} = null;
             }
             """
             .replace("${name}", userField.getName());
         case Field childField when childField.isChild() -> """
-            this.${name} = obj.${name}().duplicate(true, true, true, false);
+            this.${name} = obj.${name}().duplicate(true, true, true, true);
             """
             .replace("${name}", userField.getName());
         default -> """
