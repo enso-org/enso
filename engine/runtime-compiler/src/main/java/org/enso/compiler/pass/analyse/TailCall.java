@@ -349,6 +349,7 @@ public final class TailCall implements MiniPassFactory {
             expr.branches()
                 .foreach(
                     b -> {
+                      tailCandidates.put(b, true);
                       tailCandidates.put(b.expression(), true);
                       return null;
                     });
