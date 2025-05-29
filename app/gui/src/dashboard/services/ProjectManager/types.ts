@@ -130,11 +130,6 @@ export interface IpWithSocket {
   readonly port: number
 }
 
-/** The return value of the "list projects" endpoint. */
-export interface ProjectList {
-  readonly projects: ProjectMetadata[]
-}
-
 /** The return value of the "create project" endpoint. */
 export interface CreateProject {
   readonly projectId: UUID
