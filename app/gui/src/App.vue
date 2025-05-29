@@ -113,7 +113,7 @@ if (projectViewOnly) {
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <div v-if="projectViewOnly" id="appContainerMainView" class="mainView">
+    <div v-if="projectViewOnly" class="mainView">
       <ProjectView v-bind="projectViewOnly.options" />
       <RightPanel />
     </div>

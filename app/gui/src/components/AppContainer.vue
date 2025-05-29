@@ -13,7 +13,7 @@ import { provideRightPanelData } from '$/providers/rightPanel'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { applyPureReactInVue } from 'veaury'
-import { reactive, toRef, toRefs, useTemplateRef, watch } from 'vue'
+import { reactive, shallowRef, toRef, toRefs, watch } from 'vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
@@ -28,7 +28,9 @@ const props = defineProps<{
   enableScheduledExecution: boolean
 }>()
 
-const fullscreenRoot = useTemplateRef('fullscreenRoot')
+// NOTE: This cannot be `useTemplateRef`, because that creates a **readonly** ref, and it interferes
+// with veaury's ref assignment implementation that runs during parent React component lifecycle.
+const fullscreenRoot = shallowRef<HTMLElement>()
 
 provideOpenedProjects()
 const { tab, openedProjects } = toRefs(provideContainerData(toRef(props, 'launchedProjects')))
