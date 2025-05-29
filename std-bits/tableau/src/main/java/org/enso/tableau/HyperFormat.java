@@ -33,6 +33,7 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -386,9 +387,8 @@ public class HyperFormat {
       return tableDef;
   }
 
-  private static void insertData(Table table, TableDefinition tableDef, Connection connection) {
+private static void insertData(Table table, TableDefinition tableDef, Connection connection) {
     int numberOfRows = table.rowCount();
-    int numberOfColumns = table.getColumns().length;
 
     String[] existingColumnNames = tableDef.getColumns().stream()
         .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
@@ -397,13 +397,17 @@ public class HyperFormat {
     validateNoExtraColumns(table, existingColumnNames);
 
     ColumnStorage[] columnStorages = Arrays.stream(existingColumnNames)
-        .map(name -> table.getColumnByName(name).getStorage())
+        .map(name -> Arrays.stream(table.getColumns())
+            .filter(col -> col.getName().equals(name))
+            .findFirst()
+            .map(Column::getStorage)
+            .orElseGet(() -> new NullStorage(numberOfRows)))
         .toArray(ColumnStorage[]::new);
 
     try (Inserter inserter = new Inserter(connection, tableDef)) {
         for (int row = 0; row < numberOfRows; ++row) {
-            for (int col = 0; col < numberOfColumns; ++col) {
-                addValueToInserter(inserter, columnStorages[col], row);
+            for (ColumnStorage storage : columnStorages) {
+                addValueToInserter(inserter, storage, row);
             }
             inserter.endRow();
         }
