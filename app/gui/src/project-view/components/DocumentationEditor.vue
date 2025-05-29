@@ -81,6 +81,10 @@ const markdownDocs = computed(() => {
   }
 })
 
+const isEditable = computed(
+  () => currentMethodAst.value.ok && !currentMethodAst.value.value.readOnly,
+)
+
 const docImagesHandlers = ref<ReturnType<typeof useDocumentationImages>>()
 
 watch(
@@ -196,6 +200,7 @@ const displaySignatureEditor = computed(
       </template>
       <template #toolbarRight>
         <SvgButton
+          v-if="isEditable"
           name="image"
           title="Insert image"
           @activate="docImagesHandlers?.tryUploadImageFile()"

@@ -148,7 +148,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
   return (
     <Form
       form={form}
-      className="pointer-events-auto flex w-full flex-col items-center gap-2 self-start overflow-y-auto overflow-x-hidden"
+      className="pointer-events-auto flex w-full flex-col items-center gap-2 self-start overflow-y-auto overflow-x-hidden px-4 py-5"
     >
       <Form.Controller
         control={form.control}

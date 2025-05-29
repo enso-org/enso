@@ -93,6 +93,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   min-width: 0;
   display: flex;
   justify-content: stretch;
+  min-width: 312px;
   width: 400px;
 }
 

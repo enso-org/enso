@@ -49,7 +49,7 @@ function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) 
 
   return projectSessionsQuery.data.length === 0 ?
       <Result status="info" centered title={getText('assetProjectSessions.noSessions')} />
-    : <div className="flex w-full flex-col justify-start">
+    : <div className="flex w-full flex-col justify-start px-4 py-5">
         {projectSessionsQuery.data.map((session, i) => (
           <ProjectSession
             key={session.projectSessionId}
