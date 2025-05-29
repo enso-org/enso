@@ -2,6 +2,8 @@ package org.enso.table.data.column.operation;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+
+import org.enso.base.CompareException;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -10,6 +12,7 @@ import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.numeric.DoubleStorageFacade;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -31,6 +34,8 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
 
   protected final NumericColumnAdapter<T> adapter;
   private final boolean preserveNulls;
+  protected final boolean throwOnOther;
+  protected final R valueOnOther;
   protected final StorageType<R> returnType;
 
   protected BinaryOperationNumeric(
@@ -40,6 +45,27 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
     this.adapter = adapter;
     this.preserveNulls = preserveNulls;
     this.returnType = returnType;
+    this.throwOnOther = true;
+    this.valueOnOther = null;
+  }
+
+  protected BinaryOperationNumeric(
+      final NumericColumnAdapter<T> adapter,
+      final boolean preserveNulls,
+      final StorageType<R> returnType,
+      final R valueOnOther) {
+    this.adapter = adapter;
+    this.preserveNulls = preserveNulls;
+    this.returnType = returnType;
+    this.throwOnOther = false;
+    this.valueOnOther = valueOnOther;
+  }
+
+  protected R onIncomparable(Object left, Object right) {
+    if (throwOnOther) {
+      throw new CompareException(left, right);
+    }
+    return valueOnOther;
   }
 
   @Override
@@ -60,7 +86,22 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
 
   @Override
   public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-    return canApplyMap(left, null) && canApplyMap(right, null);
+    if (!canApplyMap(left, null)) {
+      return false;
+    }
+
+    // If not throwing on other types, we can apply the operation
+    // Otherwise, we allow Any and Null types on the right or support type.
+    if (!throwOnOther) {
+      return true;
+    }
+
+    var rightType = right.getType();
+    return switch (rightType) {
+      case NullType nt -> true;
+      case BooleanType bt -> true;
+      default -> canApplyMap(right, null);
+    };
   }
 
   @Override

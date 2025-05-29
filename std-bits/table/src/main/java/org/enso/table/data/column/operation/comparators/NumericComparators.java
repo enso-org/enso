@@ -23,7 +23,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
    * implemented by any numeric operation.
    */
   public abstract static class NumericComparator {
-    abstract boolean doDouble(double a, double b, long ix);
+    abstract boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
 
     abstract boolean doLong(long a, long b, long ix);
 
@@ -35,7 +35,8 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
   public static final NumericComparator EQUAL_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix) {
+        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          problemAggregator.reportFloatingPointEquality((int)ix);
           return a == b;
         }
 
@@ -58,7 +59,8 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
   public static final NumericComparator NOT_EQUAL_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix) {
+        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          problemAggregator.reportFloatingPointEquality((int)ix);
           return a != b;
         }
 
@@ -81,7 +83,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
   public static final NumericComparator GREATER_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix) {
+        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a > b;
         }
 
@@ -104,7 +106,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
   public static final NumericComparator GREATER_OR_EQUAL_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix) {
+        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a >= b;
         }
 
@@ -127,7 +129,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
   public static final NumericComparator LESS_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix) {
+        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a < b;
         }
 
@@ -150,7 +152,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
   public static final NumericComparator LESS_OR_EQUAL_OPERATION =
       new NumericComparator() {
         @Override
-        boolean doDouble(double a, double b, long ix) {
+        boolean doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a <= b;
         }
 
@@ -182,7 +184,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
     } else if (leftType instanceof IntegerType || rightType instanceof IntegerType) {
       return new NumericComparatorsLong(comparator);
     } else {
-      throw new IllegalArgumentException("Unsupported type: " + leftType);
+      throw new IllegalArgumentException("Unsupported type: " + leftType + " or " + rightType);
     }
   }
 
@@ -213,7 +215,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
           false,
           BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
           (builder, index, value, isNothing) ->
-              builder.appendBoolean(comparator.doDouble(value, right, index)));
+              builder.appendBoolean(comparator.doDouble(value, rightAsDouble, index, problemAggregator)));
     }
 
     @Override
@@ -227,7 +229,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
           s -> BooleanType.INSTANCE.makeBuilder(s, problemAggregator),
           false,
           (index, value1, isNothing1, value2, isNothing2) ->
-              comparator.doDouble(value1, value2, index));
+              comparator.doDouble(value1, value2, index, problemAggregator));
     }
 
     @Override
