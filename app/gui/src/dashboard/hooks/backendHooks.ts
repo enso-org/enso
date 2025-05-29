@@ -2,7 +2,6 @@
 import {
   queryOptions,
   useMutationState,
-  useQuery,
   useQueryClient,
   type DefaultError,
   type Mutation,
@@ -12,7 +11,6 @@ import {
   type UnusedSkipTokenOptions,
   type UseMutationOptions,
   type UseQueryOptions,
-  type UseQueryResult,
 } from '@tanstack/react-query'
 
 import {
@@ -28,7 +26,7 @@ import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHo
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
+import { flagsStore, useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -42,8 +40,6 @@ import {
   type UserGroupInfo,
 } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
-import { useMemo } from 'react'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
@@ -83,8 +79,50 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
   return queryOptions<Awaited<ReturnType<Backend[Method]>>>({
     ...options,
     ...backendQueryOptionsBase(backend, method, args, options?.queryKey),
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    queryFn: () => (backend?.[method] as any)?.(...args),
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+      let result = await (backend?.[method] as any)?.(...args)
+      // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+      switch (method) {
+        case 'listUsers': {
+          const { multiplyUserList } = flagsStore.getState().featureFlags
+          if (multiplyUserList) {
+            // eslint-disable-next-line no-restricted-syntax
+            const typedResult = result as readonly Omit<User, 'groups'>[]
+            const user = typedResult[0]
+            result = [
+              ...(user != null ?
+                [
+                  {
+                    email: backendModule.EmailAddress('test@example.com'),
+                    isEnabled: true,
+                    isEnsoTeamMember: false,
+                    isOrganizationAdmin: false,
+                    name: 'Test User',
+                    organizationId: user.organizationId,
+                    plan: backendModule.Plan.free,
+                    rootDirectoryId: user.rootDirectoryId,
+                    userId: user.userId,
+                    userGroups: [
+                      ...new Set(typedResult.flatMap((otherUser) => otherUser.userGroups ?? [])),
+                    ],
+                  } satisfies Omit<User, 'groups'>,
+                ]
+              : []),
+              // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment
+              ...Array.from({ length: 10 }).flatMap(() => result),
+            ]
+          }
+          break
+        }
+        default: {
+          // No action needed.
+          break
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return result
+    },
   })
 }
 
@@ -164,118 +202,6 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
 /** A user group, as well as the users that are a part of the user group. */
 export interface UserGroupInfoWithUsers extends UserGroupInfo {
   readonly users: readonly User[]
-}
-
-/** Create a list of {@link UserGroupInfoWithUsers} given user groups and users. */
-function createUserGroupsWithUsers(
-  userGroups: readonly backendModule.UserGroupInfo[],
-  users: readonly backendModule.User[],
-): readonly UserGroupInfoWithUsers[] {
-  return userGroups.map((userGroup) => {
-    const usersInGroup: readonly User[] = users.filter(
-      (user) => user.userGroups?.includes(userGroup.id) ?? false,
-    )
-    return { ...userGroup, users: usersInGroup }
-  })
-}
-
-/** The return value of {@link useListUserGroupsWithUsers}. */
-export type ListUserGroupsWithUsersQueryResult = Omit<
-  UseQueryResult<readonly UserGroupInfoWithUsers[]>,
-  'refetch'
->
-
-/** A list of user groups, taking into account optimistic state. */
-export function useListUserGroupsWithUsers(backend: Backend): ListUserGroupsWithUsersQueryResult {
-  const listUserGroupsQuery = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
-  const listUsersQuery = useQuery(backendQueryOptions(backend, 'listUsers', []))
-
-  const promise: Promise<readonly UserGroupInfoWithUsers[]> = useMemo(
-    () =>
-      Promise.all([listUsersQuery.promise, listUserGroupsQuery.promise]).then(
-        ([users, userGroups]) => createUserGroupsWithUsers(userGroups, users),
-      ),
-    [listUserGroupsQuery.promise, listUsersQuery.promise],
-  )
-
-  const error = listUserGroupsQuery.error ?? listUsersQuery.error
-  const isStale = listUsersQuery.isStale || listUserGroupsQuery.isStale
-  const failureCount = listUsersQuery.failureCount + listUserGroupsQuery.failureCount
-  const failureReason = listUserGroupsQuery.failureReason ?? listUsersQuery.failureReason
-  const dataUpdatedAt = Math.max(listUsersQuery.dataUpdatedAt, listUserGroupsQuery.dataUpdatedAt)
-  const errorUpdatedAt = Math.max(listUsersQuery.errorUpdatedAt, listUserGroupsQuery.errorUpdatedAt)
-  const errorUpdateCount = listUsersQuery.errorUpdateCount + listUserGroupsQuery.errorUpdateCount
-  const isFetched = listUsersQuery.isFetched && listUserGroupsQuery.isFetched
-  const isFetching = listUsersQuery.isFetching || listUserGroupsQuery.isFetching
-  const isPaused = listUsersQuery.isPaused || listUserGroupsQuery.isPaused
-  const isInitialLoading = listUsersQuery.isInitialLoading || listUserGroupsQuery.isInitialLoading
-  const isFetchedAfterMount =
-    listUsersQuery.isFetchedAfterMount || listUserGroupsQuery.isFetchedAfterMount
-  const isPlaceholderData =
-    listUsersQuery.isPlaceholderData || listUserGroupsQuery.isPlaceholderData
-  const isRefetching = listUsersQuery.isRefetching || listUserGroupsQuery.isRefetching
-  const fetchStatus = (() => {
-    if (listUsersQuery.isPaused || listUserGroupsQuery.isPaused) {
-      return 'paused'
-    }
-    if (listUsersQuery.isFetching || listUserGroupsQuery.isFetching) {
-      return 'fetching'
-    }
-    return 'idle'
-  })()
-  const status = (() => {
-    if (listUsersQuery.isSuccess && listUserGroupsQuery.isSuccess) {
-      return 'success'
-    }
-    if (listUsersQuery.isError || listUserGroupsQuery.isError) {
-      return 'error'
-    }
-    return 'pending'
-  })()
-  const shared = {
-    promise,
-    error,
-    isStale,
-    failureCount,
-    failureReason,
-    dataUpdatedAt,
-    errorUpdatedAt,
-    errorUpdateCount,
-    isFetched,
-    isFetching,
-    isPaused,
-    isInitialLoading,
-    isFetchedAfterMount,
-    isPlaceholderData,
-    isRefetching,
-    fetchStatus,
-    status,
-  } satisfies Partial<MergeValuesOfObjectUnion<ListUserGroupsWithUsersQueryResult>>
-
-  if (listUsersQuery.isSuccess && listUserGroupsQuery.isSuccess) {
-    const data = createUserGroupsWithUsers(listUserGroupsQuery.data, listUsersQuery.data)
-    const rest = {
-      data,
-      isSuccess: true,
-      isError: false,
-      isPending: false,
-      isLoading: false,
-      isLoadingError: false,
-      isRefetchError: false,
-      status: 'success',
-      error: null,
-    } satisfies Partial<ListUserGroupsWithUsersQueryResult>
-    return {
-      // This is UNSAFE. Care must be taken to ensure that states are merged correctly in `shared`.
-      // eslint-disable-next-line no-restricted-syntax
-      ...(shared as Omit<ListUserGroupsWithUsersQueryResult, keyof typeof rest>),
-      ...rest,
-    }
-  } else {
-    // This is UNSAFE. Care must be taken to ensure that states are merged correctly in `shared`.
-    // eslint-disable-next-line no-restricted-syntax
-    return shared as ListUserGroupsWithUsersQueryResult
-  }
 }
 
 /** Return the refetch interval for listing directories based on feature flag state. */

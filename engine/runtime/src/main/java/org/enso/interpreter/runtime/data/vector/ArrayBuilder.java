@@ -212,7 +212,9 @@ final class ArrayBuilder extends EnsoObject {
         yield get(index, iop);
       }
       case "getSize" -> getSize();
-      case "toArray" -> asVector(false);
+      case "toArray" -> {
+        yield asVector(false);
+      }
       default -> throw UnknownIdentifierException.create(name);
     };
   }
@@ -243,7 +245,7 @@ final class ArrayBuilder extends EnsoObject {
     return "Array_Builder";
   }
 
-  Object asVector(boolean mustBeExact) {
+  final Object asVector(boolean mustBeExact) {
     var res = toArray(mustBeExact);
     if (res instanceof long[] longs) {
       return Vector.fromLongArray(longs);
@@ -252,7 +254,8 @@ final class ArrayBuilder extends EnsoObject {
       return Vector.fromDoubleArray(doubles);
     }
     if (nonTrivialEnsoValue) {
-      return Vector.fromInteropArray(Array.wrap((Object[]) res));
+      var arr = Array.wrap((Object[]) res);
+      return Vector.fromInteropArray(arr);
     } else {
       return Vector.fromEnsoOnlyArray((Object[]) res);
     }

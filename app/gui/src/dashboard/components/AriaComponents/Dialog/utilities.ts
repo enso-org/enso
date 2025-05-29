@@ -32,7 +32,7 @@ export function shouldIgnoreInteractOutside(element: HTMLElement) {
 export interface UseInteractOutsideProps {
   readonly ref: React.RefObject<HTMLElement>
   readonly id: string
-  readonly onInteractOutside?: (() => void) | null
+  readonly onInteractOutside?: ((e: PointerEvent) => void) | null
   readonly isDisabled?: boolean
 }
 
@@ -47,9 +47,9 @@ export function useInteractOutside(props: UseInteractOutsideProps) {
     // eslint-disable-next-line no-restricted-syntax
     shouldCloseOnInteractOutsideRef.current = !shouldIgnoreInteractOutside(e.target as HTMLElement)
   })
-  const onInteractOutsideCb = eventCallback.useEventCallback(() => {
+  const onInteractOutsideCb = eventCallback.useEventCallback((e: PointerEvent) => {
     if (shouldCloseOnInteractOutsideRef.current) {
-      onInteractOutside?.()
+      onInteractOutside?.(e)
       shouldCloseOnInteractOutsideRef.current = false
     }
   })

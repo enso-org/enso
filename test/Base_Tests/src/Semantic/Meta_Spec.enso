@@ -681,6 +681,11 @@ add_specs suite_builder =
             fqn =  p.to Meta.Type . qualified_name
             fqn . should_equal "Standard.Base.Data.Pair.Pair"
 
+    suite_builder.group "Meta.meta" group_builder->
+        group_builder.specify "should report private error on synthetic module" <|
+            meta_type = Meta.meta Standard.Base.Network
+            meta_type.catch . should_equal (Private_Access.Error Nothing Nothing 'meta' 'No Meta.meta for private objects')
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

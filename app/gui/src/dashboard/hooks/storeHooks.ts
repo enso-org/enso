@@ -3,12 +3,11 @@
  *
  * This file contains hooks for using Zustand store with tearing transitions.
  */
+import { objectEquality, refEquality, shallowEquality } from '#/utilities/equalities'
 import type { DispatchWithoutAction, Reducer, RefObject } from 'react'
 import { useEffect, useReducer, useRef } from 'react'
 import { type StoreApi } from 'zustand'
 import { useStoreWithEqualityFn } from 'zustand/traditional'
-
-import { objectEquality, refEquality, shallowEquality } from '../utilities/equalities'
 
 /**
  * A type that allows to choose between different equality functions.

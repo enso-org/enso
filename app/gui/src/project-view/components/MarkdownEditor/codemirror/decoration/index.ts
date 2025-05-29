@@ -11,13 +11,19 @@ import { treeStateDecorator } from '@/components/MarkdownEditor/codemirror/decor
 import { linkDecoratorStateExt } from '@/util/codemirror/links'
 import { vueHostExt } from '@/util/codemirror/vueHostExt'
 import { type Extension } from '@codemirror/state'
+import { decorateFrontMatter } from './frontmatter'
 
 /** Extension applying decorators for Markdown. */
 export function markdownDecorators(): Extension {
   return [
     linkDecoratorStateExt,
     vueHostExt,
-    treeStateDecorator([decorateImageWithClass, decorateImageWithRendered, decorateTable]),
+    treeStateDecorator([
+      decorateImageWithClass,
+      decorateImageWithRendered,
+      decorateTable,
+      decorateFrontMatter,
+    ]),
     linkDecoratorExt(),
     listDecoratorExt(),
     cursorDecoratorExt(),
