@@ -899,20 +899,24 @@ list_descendants file =
    the parts, allowing the data link logic to kick in.
 resolve_local_file (path : Text) = handle_invalid_path path <|
     local_file = get_file path
+    is_home = path.match "^~([\\/].*|$)"
+    is_absolute = local_file.is_absolute
+
     resolved_local_file =
         parts = Path_Helpers.split_path path
+
         # Special case - if there are no parts, it means path was "", so we use that as base.
         base_part = parts.get 0 if_missing=""
 
         # Handle special case when starts with ~
-        base = if base_part != '~' then get_file base_part else
+        base = if is_home.not then get_file base_part else
             if Enso_File.cloud_project_parent_directory == Nothing then File.home else Enso_File.home
 
         rest = parts.drop 1
         rest.fold base acc-> part-> acc.resolve_single_part part
 
     # Absolute files always resolve to themselves.
-    if local_file.is_absolute then resolved_local_file else
+    if is_absolute || is_home then resolved_local_file else
         case Enso_File.cloud_project_parent_directory of
             Nothing -> resolved_local_file
             base_cloud_directory -> base_cloud_directory / path

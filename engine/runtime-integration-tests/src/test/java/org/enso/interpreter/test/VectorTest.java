@@ -2,16 +2,20 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.URI;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.Consumer;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyArray;
+import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class VectorTest {
@@ -137,6 +141,90 @@ public class VectorTest {
 
     var hundred = callback.execute((Object) new String[100]);
     assertEquals("Hundred elements", 100, hundred.asInt());
+  }
+
+  @Test
+  public void vectorWithWarningViaForEach() throws Exception {
+    warningsInContainer(1, 1);
+  }
+
+  @Test
+  public void arrayWithWarningViaForEach() throws Exception {
+    warningsInContainer(2, 1);
+  }
+
+  @Test
+  public void vectorToArrayToVectorWithWarningViaForEach() throws Exception {
+    warningsInContainer(3, 1);
+  }
+
+  @Test
+  public void insertSelfWithWarningViaForEach() throws Exception {
+    warningsInContainer(4, 1);
+  }
+
+  @Test
+  @Ignore // calling vector.slice drops warnings from element values
+  public void insertArgWithWarningViaForEach() throws Exception {
+    warningsInContainer(5, 1);
+  }
+
+  @Test
+  public void vectorWithWarningViaMap() throws Exception {
+    warningsInContainer(1, 2);
+  }
+
+  @Test
+  public void arrayWithWarningViaMap() throws Exception {
+    warningsInContainer(2, 2);
+  }
+
+  @Test
+  public void vectorToArrayToVectorWithWarningViaMap() throws Exception {
+    warningsInContainer(3, 2);
+  }
+
+  private void warningsInContainer(int type, int callType) throws Exception {
+    final URI srcUri = new URI("memory://warning.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Warning
+
+    cb f type call_type =
+      v = [Warning.attach "OKeyish" 20]
+      container = case type of
+        1 -> v
+        2 -> v.to_array
+        3 -> v.to_array.to_vector
+        4 -> (v+[42]).slice 0 1
+        5 -> ([42]+v).slice 1 2
+
+      case call_type of
+        1 -> container.each f
+        2 -> container.map f
+    """,
+                "warning.enso")
+            .uri(srcUri)
+            .buildLiteral();
+
+    var module = ctxRule.eval(src);
+    var cb = module.invokeMember("eval_expression", "cb");
+
+    var cnt = new int[1];
+    ProxyExecutable callback =
+        (arg) -> {
+          if (ctxRule.unwrapValue(arg[0]) instanceof WithWarnings) {
+            cnt[0]++;
+            return null;
+          }
+          fail("Unexpected value " + arg[0]);
+          return null;
+        };
+
+    cb.execute(callback, type, callType);
+    assertEquals("One callback", 1, cnt[0]);
   }
 
   private static final BitSet QUERIED = new BitSet();

@@ -66,6 +66,13 @@ function handlePaste(raw: boolean) {
 const handler = documentationEditorBindings.handler({
   paste: () => handlePaste(false),
   pasteRaw: () => handlePaste(true),
+  bold: () => markdownEditor.value?.bold(),
+  italic: () => markdownEditor.value?.italic(),
+  header1: () => markdownEditor.value?.header1(),
+  header2: () => markdownEditor.value?.header2(),
+  header3: () => markdownEditor.value?.header3(),
+  paragraph: () => markdownEditor.value?.paragraph(),
+  link: () => markdownEditor.value?.link(),
 })
 </script>
 
@@ -87,7 +94,7 @@ const handler = documentationEditorBindings.handler({
           <FullscreenButton v-model="fullscreen" />
         </template>
         <template #toolbarRight>
-          <SvgButton name="image" title="Insert image" @click.stop="tryUploadImageFile()" />
+          <SvgButton name="image" title="Insert image" @activate="tryUploadImageFile()" />
         </template>
         <template #belowToolbar>
           <slot name="belowToolbar" />
@@ -104,7 +111,11 @@ const handler = documentationEditorBindings.handler({
   background-color: #fff;
   height: 100%;
   width: 100%;
-  padding-left: 16px;
-  padding-right: 2px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.FullscreenButton {
+  margin-left: 4px;
 }
 </style>

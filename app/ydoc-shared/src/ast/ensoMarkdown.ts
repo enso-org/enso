@@ -4,7 +4,10 @@
  * achieve via the public interface are implemented by modifying our implementation of the package.
  */
 import {
+  BlockContext,
   parser as commonmarkParser,
+  Line,
+  MarkdownConfig,
   Strikethrough,
   Table,
   type BlockParser,
@@ -24,9 +27,54 @@ const newlineEndsBlock: BlockParser = {
     !(line.text.startsWith('|') && line.text.length > 2 && line.text.endsWith('|')),
 }
 
+function isFirstLine(ctx: BlockContext): boolean {
+  return ctx.prevLineEnd() === -1
+}
+
+/**
+ * A parser for ‘metadata’ section of the Markdown docs.
+ * A format similar to https://jekyllrb.com/docs/front-matter/.
+ */
+const YAMLFrontMatter: MarkdownConfig = {
+  defineNodes: ['YAMLFrontMatter', 'YAMLMarker', 'YAMLContent'],
+  parseBlock: [
+    {
+      name: 'YAMLFrontMatter',
+      parse(ctx: BlockContext, line: Line) {
+        if (!isFirstLine(ctx)) {
+          return false
+        }
+        const regex = /^\s*---\s*$/
+        const start = ctx.lineStart
+        if (regex.test(line.text)) {
+          const contentStart = ctx.lineStart + line.text.length
+          const startMarker = ctx.elt('YAMLMarker', ctx.lineStart, contentStart)
+          while (ctx.nextLine()) {
+            if (regex.test(line.text)) {
+              const content = ctx.elt('YAMLContent', contentStart, ctx.lineStart)
+              const end = ctx.lineStart + line.text.length
+              const endMarker = ctx.elt('YAMLMarker', ctx.lineStart, end)
+              ctx.addElement(
+                ctx.elt('YAMLFrontMatter', start, end, [startMarker, content, endMarker]),
+              )
+              ctx.nextLine()
+              return true
+            }
+          }
+          return true
+        } else {
+          return false
+        }
+      },
+      before: 'LinkReference',
+    },
+  ],
+}
+
 const ensoMarkdownDialect = [
   Table,
   Strikethrough,
+  YAMLFrontMatter,
   /**
    * When starting a bulleted list, the `SetextHeading` parser can match when a `-` has been typed
    * and a following space hasn't been entered yet; the resulting style changes are distracting. To

@@ -97,10 +97,9 @@ class EnsoLint(
       engineDistributionRoot,
       Seq(
         "--new",
-        name
+        path.getPath()
       ),
-      log,
-      workingDirectory = Some(parentPath)
+      log
     )
 
     if (!result) {

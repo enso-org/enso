@@ -1,14 +1,8 @@
 /** @file Types and constants related to `Column`s. */
-import type * as text from 'enso-common/src/text'
-
-import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
-import AccessedDataIcon from '#/assets/accessed_data.svg'
-import BlankIcon from '#/assets/blank.svg'
-import TagIcon from '#/assets/tag.svg'
-
-import type { SvgUseIcon } from '#/components/AriaComponents'
+import type { SvgUseIcon } from '#/components/types'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
+import type * as text from 'enso-common/src/text'
 
 /** Column type. */
 export enum Column {
@@ -35,12 +29,12 @@ export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
 export const COLUMN_ICONS: Readonly<Record<Column, SvgUseIcon | (string & {})>> = {
   /* The file column does not have an icon, however this does not matter as it is not
    * collapsible. */
-  [Column.name]: BlankIcon,
+  [Column.name]: 'ghost',
   [Column.modified]: 'time',
   [Column.sharedWith]: 'people',
-  [Column.labels]: TagIcon,
-  [Column.accessedByProjects]: AccessedByProjectsIcon,
-  [Column.accessedData]: AccessedDataIcon,
+  [Column.labels]: 'tag',
+  [Column.accessedByProjects]: 'accessed_by_projects',
+  [Column.accessedData]: 'accessed_data',
   [Column.path]: 'folder',
 }
 
@@ -55,12 +49,12 @@ export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {
 } satisfies { [C in Column]: `${C}ColumnShow` }
 
 const COLUMN_CSS_CLASSES =
-  'max-w-96 text-left bg-clip-padding last:border-r-0 last:rounded-r-full last:w-full'
-const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py ${COLUMN_CSS_CLASSES}`
+  'text-left bg-clip-padding last:border-r-0 last:rounded-r-full last:w-full'
+const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py max-w-96 ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */
 export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
-  [Column.name]: `z-10 sticky left-1 bg-dashboard rounded-rows-skip-level min-w-96 h-full p-0 border-l-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:border-r-[1.5px] after:border-primary/5 ${COLUMN_CSS_CLASSES}`,
+  [Column.name]: `z-10 sticky left-1 bg-dashboard rounded-rows-skip-level min-w-80 max-w-80 h-full p-0 border-l-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:border-r-[1.5px] after:border-primary/5 ${COLUMN_CSS_CLASSES}`,
   [Column.modified]: `min-w-drive-modified-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.sharedWith]: `min-w-drive-shared-with-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.labels]: `min-w-drive-labels-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,

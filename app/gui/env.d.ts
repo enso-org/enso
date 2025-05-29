@@ -6,6 +6,7 @@
 /// <reference types="vite/client" />
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
+import type { FileFilter } from './src/project-view/util/fileFilter'
 
 /** Nested configuration options with `string` values. */
 interface StringConfig {
@@ -118,6 +119,7 @@ interface FileBrowserApi {
   readonly openFileBrowser: (
     kind: 'default' | 'directory' | 'file' | 'filePath',
     defaultPath?: string,
+    fileTypes?: FileFilter[],
   ) => Promise<string[] | undefined>
 }
 

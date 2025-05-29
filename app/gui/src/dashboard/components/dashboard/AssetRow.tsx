@@ -1,14 +1,26 @@
 /** @file A table row for an arbitrary asset. */
-import * as React from 'react'
-
-import { useStore } from '#/utilities/zustand'
-import invariant from 'tiny-invariant'
-
 import BlankIcon from '#/assets/blank.svg'
-
+import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
+import * as columnModule from '#/components/dashboard/column'
+import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import { IndefiniteSpinner } from '#/components/Spinner'
+import { Text } from '#/components/Text'
+import {
+  useDeleteAssetsMutationState,
+  useMoveAssetsMutationState,
+  useRestoreAssetsMutationState,
+} from '#/hooks/backendBatchedHooks'
+import { useBackendMutationState } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
+import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-
+import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
+import AssetContextMenu from '#/layouts/AssetContextMenu'
+import type * as assetsTable from '#/layouts/AssetsTable'
+import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
+import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import {
   useDriveStore,
   useSetCurrentDirectoryId,
@@ -16,32 +28,9 @@ import {
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
-import * as columnModule from '#/components/dashboard/column'
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import AssetContextMenu from '#/layouts/AssetContextMenu'
-import type * as assetsTable from '#/layouts/AssetsTable'
-import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
-
-import * as backendModule from '#/services/Backend'
-
-import { Text } from '#/components/AriaComponents'
-import { IndefiniteSpinner } from '#/components/Spinner'
-import {
-  useDeleteAssetsMutationState,
-  useMoveAssetsMutationState,
-  useRestoreAssetsMutationState,
-} from '#/hooks/backendBatchedHooks'
-import { useBackendMutationState } from '#/hooks/backendHooks'
-import { useDragDelayAction } from '#/hooks/dragDelayHooks'
-import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
-import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
@@ -52,7 +41,11 @@ import {
 } from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
+import { useStore } from '#/utilities/zustand'
+import { useText } from '$/providers/react'
+import * as React from 'react'
 import { useTransition } from 'react'
+import invariant from 'tiny-invariant'
 
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
@@ -129,7 +122,7 @@ export interface AssetSpecialRowProps {
 const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
   const { type, columnsLength } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   switch (type) {
     case backendModule.AssetType.specialUp: {
@@ -327,7 +320,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
     item.type === backendModule.AssetType.directory ?
       () => {
         startNavigation(() => {
-          setDirectoryId({ current: item.id, parent: item.parentId })
+          setDirectoryId(item.id)
         })
       }
     : undefined,
@@ -392,10 +385,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             onDoubleClick={() => {
               if (item.type === backendModule.AssetType.directory) {
                 startNavigation(() => {
-                  setCurrentDirectoryId({
-                    current: item.id,
-                    parent: parentId,
-                  })
+                  setCurrentDirectoryId(item.id)
                 })
               }
             }}
@@ -408,7 +398,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               }
             }}
             className={tailwindMerge.twMerge(
-              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child [contain-intrinsic-size:44px] [content-visibility:auto]',
+              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
               visibility,
               (isDraggedOver || isSelected) && 'selected',
             )}

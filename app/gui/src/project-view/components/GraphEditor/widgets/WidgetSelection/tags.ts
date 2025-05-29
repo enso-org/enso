@@ -1,7 +1,7 @@
 import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { RequiredImport, requiredImports } from '@/stores/graph/imports'
+import { printRequiredImport, RequiredImport, requiredImports } from '@/stores/graph/imports'
 import { ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDbStore } from '@/stores/suggestionDatabase'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,
@@ -15,6 +15,7 @@ import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
 import { VNode } from 'vue'
+import { SubmenuEntry } from './submenuEntry'
 
 /**
  * The most basic dropdown item. When you click on it, the expression is inserted.
@@ -39,12 +40,12 @@ export class ExpressionTag {
    * Create a new {@link ExpressionTag} from qualified path to a suggestion entry.
    */
   static FromProjectPath(
-    suggestions: SuggestionDbStore,
+    suggestionDb: SuggestionDb,
     path: ProjectPath,
     label?: Opt<string>,
   ): ExpressionTag | null {
-    const entry = suggestions.entries.getEntryByProjectPath(path)
-    if (entry) return ExpressionTag.FromEntry(suggestions, entry, label)
+    const entry = suggestionDb.getEntryByProjectPath(path)
+    if (entry) return ExpressionTag.FromEntry(suggestionDb, entry, label)
     else return null
   }
 
@@ -52,7 +53,7 @@ export class ExpressionTag {
    * Create a new {@link ExpressionTag} from a string expression.
    */
   static FromExpression(
-    suggestions: SuggestionDbStore,
+    suggestionDb: SuggestionDb,
     projectNames: ProjectNameStore,
     expression: string,
     label?: Opt<string>,
@@ -62,7 +63,7 @@ export class ExpressionTag {
     if (qn.ok) {
       const projectPath = projectNames.parseProjectPath(qn.value)
       if (projectPath.ok) {
-        const fromProjPath = ExpressionTag.FromProjectPath(suggestions, projectPath.value, label)
+        const fromProjPath = ExpressionTag.FromProjectPath(suggestionDb, projectPath.value, label)
         if (fromProjPath) return fromProjPath
       }
       return new ExpressionTag(
@@ -82,7 +83,7 @@ export class ExpressionTag {
    * Create a new {@link ExpressionTag} from a suggestion entry.
    */
   static FromEntry(
-    suggestions: SuggestionDbStore,
+    suggestionDb: SuggestionDb,
     entry: SuggestionEntry,
     label?: Opt<string>,
   ): ExpressionTag {
@@ -94,7 +95,7 @@ export class ExpressionTag {
       expression,
       label ?? entry.name,
       undefined,
-      requiredImports(suggestions.entries, entry),
+      requiredImports(suggestionDb, entry),
     )
   }
 
@@ -120,6 +121,13 @@ export class ExpressionTag {
       this.cachedExpressionAst = Ast.parseExpression(this.expression)
     }
     return this.cachedExpressionAst
+  }
+
+  /**
+   * Create a non user-facing string representation of expression tag. Meant for key generation and debugging.
+   */
+  toString() {
+    return `${this.label}[${this.requiredImports?.map(printRequiredImport).join(',')}]`
   }
 }
 
@@ -188,7 +196,7 @@ export interface CustomDropdownItem {
   /** Displayed label. */
   label: string
   /** Displayed icon. */
-  icon?: Icon
+  icon?: Icon | undefined
   /** Action to perform when clicked. */
   onClick: (dropdownActions: Actions) => void
 }
@@ -209,7 +217,7 @@ export interface Actions {
 }
 
 /** A helper type for all possible dropdown entries. */
-export interface Entry extends DropdownEntry {
+export interface Entry extends SubmenuEntry<Entry> {
   tag: ExpressionTag | NestedChoiceTag | ActionTag
 }
 

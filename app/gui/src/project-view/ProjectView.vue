@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import Backend from '#/services/Backend'
 import GraphEditor from '@/components/GraphEditor.vue'
-import { provideProjectBackend } from '@/providers/backend'
 import { provideEventLogger } from '@/providers/eventLogging'
+import { provideProjectBackend } from '@/providers/projectBackend'
 import { provideVisibility } from '@/providers/visibility'
 import { type LsUrls, provideProjectStore } from '@/stores/project'
 import { provideProjectNames } from '@/stores/projectNames'
@@ -84,12 +84,6 @@ onDeactivated(() => (visible.value = false))
   -moz-osx-font-smoothing: grayscale;
   pointer-events: all;
   cursor: default;
-}
-
-:deep(*),
-:deep(*)::before,
-:deep(*)::after {
-  box-sizing: border-box;
 }
 
 :deep(.icon) {

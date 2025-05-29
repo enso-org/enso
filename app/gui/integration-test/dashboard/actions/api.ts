@@ -13,7 +13,11 @@ import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 import * as actions from '.'
 
 import type { FeatureFlags } from '#/providers/FeatureFlagsProvider'
-import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
+import {
+  organizationIdToDirectoryId,
+  userGroupIdToDirectoryId,
+  userIdToDirectoryId,
+} from '#/services/RemoteBackend'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -73,14 +77,13 @@ function array<T>(): Readonly<T>[] {
 
 const INITIAL_CALLS_OBJECT = {
   changePassword: array<{ oldPassword: string; newPassword: string }>(),
+  getAssetDetails: array<{ assetId: backend.AssetId }>(),
   listDirectory: array<{
     parent_id?: string
     filter_by?: backend.FilterBy
     labels?: backend.LabelName[]
     recent_projects?: boolean
   }>(),
-  listFiles: array<object>(),
-  listProjects: array<object>(),
   listSecrets: array<object>(),
   listTags: array<object>(),
   listUsers: array<object>(),
@@ -143,6 +146,14 @@ export interface MockParams {
   readonly setupAPI?: SetupAPI | null | undefined
 }
 
+/** The type for the search query for the "list directory" endpoint. */
+interface ListDirectoryQuery {
+  readonly parent_id?: string
+  readonly filter_by?: backend.FilterBy
+  readonly labels?: backend.LabelName[]
+  readonly recent_projects?: boolean
+}
+
 /**
  * Setup function for the mock API.
  * use it to setup the mock API with custom handlers.
@@ -176,7 +187,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     plan: backend.Plan.solo,
     isOrganizationAdmin: true,
     isEnsoTeamMember: true,
+    groups: [],
   }
+
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
     name: defaultOrganizationName,
@@ -189,7 +202,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   let featureFlags: Partial<FeatureFlags> = {
     enableCloudExecution: true,
-    enableAsyncExecution: true,
+    enableScheduledExecution: true,
     enableAdvancedProjectExecutionOptions: true,
     enableAssetsTableBackgroundRefresh: false,
   }
@@ -295,6 +308,43 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
   }
 
+  function listDirectory(query: ListDirectoryQuery) {
+    called('listDirectory', query)
+    const parentId = query.parent_id ?? defaultDirectoryId
+    let filteredAssets = assets.filter((asset) => asset.parentId === parentId)
+
+    switch (query.filter_by) {
+      case backend.FilterBy.active: {
+        filteredAssets = filteredAssets.filter((asset) => !deletedAssets.has(asset.id))
+        break
+      }
+      case backend.FilterBy.trashed: {
+        filteredAssets = assets.filter((asset) => deletedAssets.has(asset.id))
+        break
+      }
+      case backend.FilterBy.recent: {
+        filteredAssets = assets.filter((asset) => !deletedAssets.has(asset.id)).slice(0, 10)
+        break
+      }
+      case backend.FilterBy.all:
+      case null: {
+        // do nothing
+        break
+      }
+      case undefined: {
+        // do nothing
+        break
+      }
+    }
+    return filteredAssets.sort(
+      (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type],
+    )
+  }
+
+  function listRootDirectory() {
+    return listDirectory({})
+  }
+
   const addAsset = <T extends backend.AnyAsset>(asset: T) => {
     assetMap.set(asset.id, asset)
     assets = Array.from(assetMap.values())
@@ -354,7 +404,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     )
 
   const createUserGroupPermission = (
-    userGroup: backend.UserGroup,
+    userGroup: backend.UserGroupInfo,
     permission: permissions.PermissionAction = permissions.PermissionAction.own,
     rest: Partial<backend.UserGroupPermission> = {},
   ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
@@ -650,58 +700,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     // === Endpoints returning arrays ===
 
     await get(remoteBackendPaths.LIST_DIRECTORY_PATH + '*', (route, request) => {
-      /** The type for the search query for this endpoint. */
-      interface Query {
-        readonly parent_id?: string
-        readonly filter_by?: backend.FilterBy
-        readonly labels?: backend.LabelName[]
-        readonly recent_projects?: boolean
-      }
       const query = Object.fromEntries(
         new URL(request.url()).searchParams.entries(),
-      ) as unknown as Query
+      ) as unknown as ListDirectoryQuery
       called('listDirectory', query)
-      const parentId = query.parent_id ?? defaultDirectoryId
-      let filteredAssets = assets.filter((asset) => asset.parentId === parentId)
-
-      // This lint rule is broken; there is clearly a case for `undefined` below.
-      switch (query.filter_by) {
-        case backend.FilterBy.active: {
-          filteredAssets = filteredAssets.filter((asset) => !deletedAssets.has(asset.id))
-          break
-        }
-        case backend.FilterBy.trashed: {
-          filteredAssets = assets.filter((asset) => deletedAssets.has(asset.id))
-          break
-        }
-        case backend.FilterBy.recent: {
-          filteredAssets = assets.filter((asset) => !deletedAssets.has(asset.id)).slice(0, 10)
-          break
-        }
-        case backend.FilterBy.all:
-        case null: {
-          // do nothing
-          break
-        }
-        case undefined: {
-          // do nothing
-          break
-        }
-      }
-      filteredAssets.sort(
-        (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type],
-      )
-      const json: remoteBackend.ListDirectoryResponseBody = { assets: filteredAssets }
-
+      const json: remoteBackend.ListDirectoryResponseBody = { assets: listDirectory(query) }
       route.fulfill({ json })
-    })
-    await get(remoteBackendPaths.LIST_FILES_PATH + '*', () => {
-      called('listFiles', {})
-      return { files: [] } satisfies remoteBackend.ListFilesResponseBody
-    })
-    await get(remoteBackendPaths.LIST_PROJECTS_PATH + '*', () => {
-      called('listProjects', {})
-      return { projects: [] } satisfies remoteBackend.ListProjectsResponseBody
     })
     await get(remoteBackendPaths.LIST_SECRETS_PATH + '*', () => {
       called('listSecrets', {})
@@ -755,15 +759,59 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         name: 'example project name',
         state: project.projectState,
         packageName: 'Project_root',
-        // eslint-disable-next-line camelcase
-        ide_version: null,
-        // eslint-disable-next-line camelcase
-        engine_version: {
-          value: '2023.2.1-nightly.2023.9.29',
-          lifecycle: backend.VersionLifecycle.development,
-        },
         address: backend.Address('ws://localhost/'),
       } satisfies backend.ProjectRaw
+    })
+
+    await get(remoteBackendPaths.getAssetDetailsPath(GLOB_ASSET_ID), (route, request) => {
+      const maybeId = request.url().match(/[/]assets[/]([^?/]+)/)?.[1]
+      if (!maybeId) return
+      const assetId = maybeId != null ? (decodeURIComponent(maybeId) as backend.AssetId) : null
+
+      if (assetId == null) {
+        return route.fulfill({
+          status: HTTP_STATUS_BAD_REQUEST,
+          json: { message: 'Invalid Asset ID' },
+        })
+      }
+
+      called('getAssetDetails', { assetId })
+
+      const idIsDirectory = backend.isDirectoryId(assetId)
+
+      if (idIsDirectory) {
+        const isOrganizationDirectory =
+          currentUser?.organizationId != null &&
+          organizationIdToDirectoryId(currentUser.organizationId) === assetId
+        if (isOrganizationDirectory) {
+          return null
+        }
+
+        const isUserDirectory =
+          currentUser?.userId != null && userIdToDirectoryId(currentUser.userId) === assetId
+        if (isUserDirectory) {
+          return null
+        }
+
+        const isUserGroupDirectory =
+          currentUser?.groups != null &&
+          currentUser.groups.some((group) => userGroupIdToDirectoryId(group.id) === assetId)
+
+        if (isUserGroupDirectory) {
+          return null
+        }
+      }
+
+      const asset = assetMap.get(assetId)
+
+      if (asset == null) {
+        return route.fulfill({
+          status: HTTP_STATUS_NOT_FOUND,
+          json: { message: 'Asset does not exist' },
+        })
+      }
+
+      return asset
     })
 
     // === Endpoints returning `void` ===
@@ -1338,6 +1386,8 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       currentOrganization = organization
     },
     currentOrganizationProfilePicture: () => currentOrganizationProfilePicture,
+    listDirectory,
+    listRootDirectory,
     addAsset,
     deleteAsset,
     editAsset,

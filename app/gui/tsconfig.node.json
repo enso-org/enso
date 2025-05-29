@@ -10,6 +10,11 @@
     "tailwind.config.ts",
     "integration-test/**/*",
     "src/dashboard/modules/payments/constants.ts",
+    "src/dashboard/providers/FeatureFlagsProvider.tsx",
+    "src/dashboard/utilities/equalities.ts",
+    "src/dashboard/utilities/write.ts",
+    "src/dashboard/utilities/zustand.ts",
+    "src/dashboard/hooks/storeHooks.ts",
     "node.env.d.ts"
   ],
   "compilerOptions": {

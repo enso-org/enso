@@ -1,8 +1,7 @@
 /** @file The categories available in the category switcher. */
-import invariant from 'tiny-invariant'
-
-import type { Resolution } from '#/components/AriaComponents'
-import { Alert, AlertDialog, ask, Text } from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { AlertDialog, ask, type Resolution } from '#/components/AlertDialog'
+import { Text } from '#/components/Text'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -13,12 +12,14 @@ import {
 import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useUser } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
-import { useText, type GetText } from '#/providers/TextProvider'
 import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackends, useText } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import type { DropOperation } from '@react-types/shared'
+import { toast } from 'react-toastify'
+import invariant from 'tiny-invariant'
 import { z } from 'zod'
 import {
   CATEGORY_SCHEMA,
@@ -63,9 +64,8 @@ export type TransferrableAsset = z.infer<typeof TRANSFERRABLE_ASSET_SCHEMA>
 
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {
-  const localBackend = useLocalBackend()
-  const remoteBackend = useRemoteBackend()
-  const backend = useBackend(currentCategory)
+  const { localBackend, remoteBackend, backendForType } = useBackends()
+  const backend = backendForType(currentCategory.backend)
 
   const { rootDirectoryId } = useUser()
 
@@ -112,23 +112,35 @@ export function useTransferBetweenCategories(currentCategory: Category) {
       const targetDirectoryId = newParentId ?? to.homeDirectoryId
 
       switch (from.type) {
-        case 'team': {
+        case 'team':
+        case 'cloud':
+        case 'user': {
           if (to.type === 'trash') {
-            return deleteAssetsMutation([keysArray, false])
+            await deleteAssetsMutation([keysArray, false])
+            return
           }
 
           if (isLocalCategory(to)) {
-            if (method === 'move') {
-              return askToCopyInstead(getText, getText('copyInsteadOfMoving', from.label))
+            if (from.type === 'team' && method === 'move') {
+              await askToCopyInstead(getText, getText('copyInsteadOfMoving', from.label))
+              return
             }
 
-            return downloadAssetsMutation({
-              ids: assetsArray,
-              targetDirectoryId,
-            })
+            await toast.promise(
+              downloadAssetsMutation({
+                ids: assetsArray,
+                targetDirectoryId,
+              }),
+              {
+                pending: getText('downloadingProjectToLocal'),
+                success: getText('downloadProjectToLocalSuccess'),
+                error: getText('downloadProjectToLocalError'),
+              },
+            )
+            return
           }
 
-          if (to.type === 'cloud' || to.type === 'user') {
+          if (from.type === 'team' && (to.type === 'cloud' || to.type === 'user')) {
             let resolution: Resolution = 'confirm'
 
             if (method === 'move') {
@@ -139,23 +151,9 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             }
 
             if (resolution === 'confirm') {
-              return copyAssetsMutation([keysArray, targetDirectoryId])
+              await copyAssetsMutation([keysArray, targetDirectoryId])
+              return
             }
-          }
-
-          return mutationByOperation[method](keysArray, targetDirectoryId)
-        }
-        case 'cloud':
-        case 'user': {
-          if (to.type === 'trash') {
-            return deleteAssetsMutation([keysArray, false])
-          }
-
-          if (isLocalCategory(to)) {
-            return downloadAssetsMutation({
-              ids: assetsArray,
-              targetDirectoryId: newParentId ?? to.homeDirectoryId,
-            })
           }
 
           return mutationByOperation[method](keysArray, targetDirectoryId)
@@ -164,7 +162,6 @@ export function useTransferBetweenCategories(currentCategory: Category) {
           if (to.type === 'trash') {
             return
           }
-
           if (isLocalCategory(to)) {
             return
           }

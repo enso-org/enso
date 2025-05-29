@@ -1,4 +1,4 @@
-import { textEditorsBindings, textEditorsMultilineBindings } from '@/bindings'
+import { textEditorsBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
@@ -7,39 +7,40 @@ import {
   contentFocusedExt,
   setContentFocused,
 } from '@/util/codemirror/contentFocusedExt'
-import { baseKeymap, handlerToKeyBinding, verticalMovementKeymap } from '@/util/codemirror/keymap'
+import { CmEventExt, extendCmEvent, keyBindings } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
 import { type ToValue } from '@/util/reactivity'
-import { insertNewlineKeepIndent } from '@codemirror/commands'
 import {
   Compartment,
   EditorState,
   type Extension,
-  Prec,
   type SelectionRange,
   type StateEffect,
   type StateEffectType,
   Text,
   Transaction,
+  TransactionSpec,
 } from '@codemirror/state'
-import { EditorView, type KeyBinding, keymap, placeholder } from '@codemirror/view'
+import { EditorView, placeholder } from '@codemirror/view'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
+import { createDebouncer } from 'lib0/eventloop.js'
 import {
   type ComponentInstance,
   computed,
   isRef,
   onUnmounted,
   toValue,
-  watchEffect,
+  watch,
   type WatchSource,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
 import * as Y from 'yjs'
+import { AnyHandlerEvent } from '../shortcuts'
 
 function disableEditContextApi() {
   ;(EditorView as any).EDIT_CONTEXT = false
@@ -48,7 +49,25 @@ function disableEditContextApi() {
 /* Disable EditContext API because of https://github.com/codemirror/dev/issues/1458. */
 disableEditContextApi()
 
+export type LineMode = 'single' | 'multi' | 'auto' | 'autoMulti'
+
 export type Getter<T> = () => T
+
+interface CodeMirrorOptions {
+  /** If a value is provided, the editor state will be synchronized with it. */
+  content?: ToValue<string | Y.Text>
+  placeholder?: ToValue<string>
+  /** CodeMirror {@link Extension}s to include in the editor's initial state. */
+  extensions?: Extension
+  /**
+   * If a value is provided, it will be made available to extensions that render Vue components.
+   */
+  vueHost?: WatchSource<VueHost | undefined>
+  /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
+  contentTestId?: string | undefined
+  readonly?: boolean
+  lineMode: ToValue<LineMode>
+}
 
 /** Creates a CodeMirror editor instance, and sets its initial state. */
 export function useCodeMirror(
@@ -61,46 +80,31 @@ export function useCodeMirror(
     contentTestId,
     readonly: isReadonly,
     lineMode,
-  }: {
-    /** If a value is provided, the editor state will be synchronized with it. */
-    content?: ToValue<string | Y.Text>
-    placeholder?: ToValue<string>
-    /** CodeMirror {@link Extension}s to include in the editor's initial state. */
-    extensions?: Extension
-    /**
-     * If a value is provided, it will be made available to extensions that render Vue components.
-     */
-    vueHost?: WatchSource<VueHost | undefined>
-    /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
-    contentTestId?: string | undefined
-    readonly?: boolean
-    lineMode?: ToValue<'single' | 'multi' | 'auto'>
-  },
+  }: CodeMirrorOptions,
 ) {
-  const view = new EditorView()
-  onUnmounted(view.destroy.bind(view))
-  if (contentTestId != null) view.contentDOM.dataset['testid'] = contentTestId
+  const dispatch = { dispatch: (...specs: TransactionSpec[]) => view.dispatch(...specs) }
   const readonly = computed(
     () => isReadonly ?? (!!content && !isRef(content) && typeof toValue(content) === 'string'),
   )
-  const readonlyExt = useCompartment(view, () =>
+  const readonlyExt = useCompartment(dispatch, () =>
     toValue(readonly) ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [],
   )
   const placeholderExt =
-    placeholderText ? useCompartment(view, () => placeholder(toValue(placeholderText))) : []
-  const { bindingsExt } = useBindings(view)
+    placeholderText ? useCompartment(dispatch, () => placeholder(toValue(placeholderText))) : []
+  const { bindingsExt } = useBindings()
   const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
-  const bindingsCompartment = useCompartment(view, () =>
-    keyBindings(view, { lineMode: toValue(lineMode) }),
-  )
+  const bindingsCompartment = useCompartment(dispatch, () => keyBindings(toValue(lineMode)))
   const singleLineState = computed(() => {
     const mode = toValue(lineMode)
-    return mode && mode !== 'multi'
+    return mode !== 'multi' && mode !== 'autoMulti'
   })
-  const themeCompartment = useCompartment(view, () => theme({ singleLine: singleLineState.value }))
-  view.setState(
-    EditorState.create({
+  const themeCompartment = useCompartment(dispatch, () =>
+    theme({ singleLine: singleLineState.value }),
+  )
+
+  const view = new EditorView({
+    state: EditorState.create({
       extensions: [
         readonlyExt,
         bindingsExt,
@@ -112,14 +116,20 @@ export function useCodeMirror(
         extensions ?? [],
       ],
     }),
+  })
+  watch(
+    () => toValue(editorRoot),
+    (editorRootValue) => {
+      if (editorRootValue) editorRootValue.$el.prepend(view.dom)
+    },
+    { immediate: true },
   )
+
+  if (contentTestId != null) view.contentDOM.dataset['testid'] = contentTestId
+  onUnmounted(view.destroy.bind(view))
+
   if (vueHost) useStateEffect(view, setVueHost, vueHost)
   sync?.connectSync(view)
-
-  watchEffect(() => {
-    const editorRootValue = toValue(editorRoot)
-    if (editorRootValue) editorRootValue.$el.prepend(view.dom)
-  })
 
   /**
    * Replace text in given document range with `text`, putting text cursor after inserted text.
@@ -131,6 +141,8 @@ export function useCodeMirror(
       selection: { anchor: from + insert.length },
     })
   }
+
+  const extraExtsDebouncer = createDebouncer(0)
 
   return {
     /** The {@link EditorView}, connecting the current state with the DOM. */
@@ -152,12 +164,13 @@ export function useCodeMirror(
      * state while handling the event that removed it; and, while adding an extension, it doesn't
      * handle the event that caused its installation before it is ready.
      */
-    setExtraExtensions: (extensions: Extension | undefined) =>
-      setTimeout(() =>
+    setExtraExtensions: (extensions: Extension | undefined) => {
+      extraExtsDebouncer(() =>
         view.dispatch({
           effects: extrasCompartment.reconfigure(extensions ?? []),
         }),
-      ),
+      )
+    },
     /**
      * When `useCodeMirror` is configured to set up synchronization by passing the `content`
      * argument, this value tracks whether the content synchronized with the document is writable.
@@ -169,17 +182,17 @@ export function useCodeMirror(
   }
 }
 
-function useBindings(view: EditorView) {
+function useBindings() {
   const keyboard = injectKeyboard(true)
 
-  function openLink(event: Event) {
+  function openLink(event: CmEventExt<AnyHandlerEvent>) {
     let element: HTMLAnchorElement | undefined = undefined
     for (const el of elementHierarchy(event.target)) {
       if (el instanceof HTMLAnchorElement) {
         element = el
         break
       }
-      if (el === view.contentDOM) break
+      if (el === event.codemirrorView.contentDOM) break
     }
     if (!element) return false
     event.preventDefault()
@@ -193,8 +206,11 @@ function useBindings(view: EditorView) {
   })
   return {
     bindingsExt: EditorView.domEventHandlers({
-      keydown: (event) => bindingsHandler(event),
-      click: (event) => bindingsHandler(event) || (view.state.readOnly && openLink(event)),
+      keydown: (event, view) => bindingsHandler(extendCmEvent(view, event)),
+      click: (event, view) => {
+        const cmEvent = extendCmEvent(view, event)
+        return bindingsHandler(cmEvent) || (view.state.readOnly && openLink(cmEvent))
+      },
       pointerdown: (event) => {
         keyboard?.updateState(event)
         if (keyboard?.mod) event.preventDefault()
@@ -313,51 +329,6 @@ function lastEffect<T>(
     const effect = effects[i]!
     if (effect.is(effectType)) return effect.value
   }
-}
-
-const stopEvent = (event: Event) => {
-  event.stopImmediatePropagation()
-  return false
-}
-function bindStandardBindings(view: EditorView) {
-  const autoOrMultiHandlers = handlerToKeyBinding(
-    textEditorsMultilineBindings.handler({
-      newline: (e) => {
-        e.stopImmediatePropagation()
-        return insertNewlineKeepIndent(view)
-      },
-    }),
-  )
-  return {
-    multiline: [autoOrMultiHandlers, ...verticalMovementKeymap(view)] satisfies KeyBinding[],
-    singleline: [],
-    autoline: [autoOrMultiHandlers] satisfies KeyBinding[],
-  }
-}
-
-function keyBindings(
-  view: EditorView,
-  { lineMode }: { lineMode?: 'single' | 'multi' | 'auto' | undefined } = {},
-): Extension {
-  const mode = lineMode ?? 'multi'
-  const standardBindings = bindStandardBindings(view)
-  return [
-    Prec.lowest(keymap.of(baseKeymap(view))),
-    Prec.low(
-      keymap.of(
-        mode === 'multi' ? standardBindings.multiline
-        : mode === 'auto' ? standardBindings.autoline
-        : standardBindings.singleline,
-      ),
-    ),
-    ...(mode === 'multi' ?
-      [
-        EditorView.domEventHandlers({
-          wheel: stopEvent,
-        }),
-      ]
-    : []),
-  ]
 }
 
 const baseTheme = EditorView.theme({

@@ -1,33 +1,26 @@
 /** @file The directory header bar and directory item listing. */
-import * as React from 'react'
-
 import * as appUtils from '#/appUtils'
 import Offline from '#/assets/offline_filled.svg'
-
+import { Button } from '#/components/Button'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
+import * as result from '#/components/Result'
+import SvgMask from '#/components/SvgMask'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
 import { AssetPanel } from '#/layouts/AssetPanel'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import * as result from '#/components/Result'
-
-import { ErrorBoundary } from '#/components/ErrorBoundary'
-import SvgMask from '#/components/SvgMask'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import * as authProvider from '#/providers/AuthProvider'
 import { DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
+import { useBackends, useText } from '$/providers/react'
+import * as React from 'react'
 import { useDeferredValue } from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
@@ -43,8 +36,8 @@ function Drive(props: DriveProps) {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
-  const { getText } = textProvider.useText()
+  const { localBackend } = useBackends()
+  const { getText } = useText()
   const categoriesAPI = useCategoriesAPI()
   const { category, resetCategory, setCategory } = categoriesAPI
 
@@ -66,13 +59,13 @@ function Drive(props: DriveProps) {
           testId="not-enabled-stub"
           subtitle={`${getText('notEnabledSubtitle')}${localBackend == null ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
         >
-          <ariaComponents.ButtonGroup align="center">
-            <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
+          <Button.Group align="center">
+            <Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
               {getText('upgrade')}
-            </ariaComponents.Button>
+            </Button>
 
             {!supportLocalBackend && (
-              <ariaComponents.Button
+              <Button
                 data-testid="download-free-edition"
                 size="medium"
                 variant="accent"
@@ -86,9 +79,9 @@ function Drive(props: DriveProps) {
                 }}
               >
                 {getText('downloadFreeEdition')}
-              </ariaComponents.Button>
+              </Button>
             )}
-          </ariaComponents.ButtonGroup>
+          </Button.Group>
         </result.Result>
       )
     }
@@ -134,9 +127,7 @@ interface DriveAssetsViewProps extends DriveProps {
   readonly setCategory: (categoryId: Category['id']) => void
 }
 
-/**
- * The assets view of the Drive.
- */
+/** The assets view of the Drive. */
 function DriveAssetsView(props: DriveAssetsViewProps) {
   const { category, setCategory, initialProjectName } = props
 
@@ -144,8 +135,8 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
 
   const { isOffline } = offlineHooks.useOffline()
   const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
-  const backend = backendProvider.useBackend(category)
+  const { localBackend, backendForType } = useBackends()
+  const backend = backendForType(category.backend)
 
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
 
@@ -208,7 +199,7 @@ interface OfflineMessageProps {
  */
 function OfflineMessage(props: OfflineMessageProps) {
   const { supportLocalBackend, setCategory } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
     <result.Result
@@ -219,7 +210,7 @@ function OfflineMessage(props: OfflineMessageProps) {
       subtitle={`${getText('cloudUnavailableOfflineDescription')} ${supportLocalBackend ? getText('cloudUnavailableOfflineDescriptionOfferLocal') : ''}`}
     >
       {supportLocalBackend && (
-        <ariaComponents.Button
+        <Button
           variant="primary"
           className="mx-auto"
           onPress={() => {
@@ -227,7 +218,7 @@ function OfflineMessage(props: OfflineMessageProps) {
           }}
         >
           {getText('switchToLocal')}
-        </ariaComponents.Button>
+        </Button>
       )}
     </result.Result>
   )

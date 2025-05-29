@@ -1,18 +1,12 @@
 /** @file A color picker to select from a predetermined list of colors. */
 import * as React from 'react'
 
-import * as focusHooks from '#/hooks/focusHooks'
-
-import * as focusClassProvider from '#/providers/FocusClassProvider'
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
-
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import RadioGroup from '#/components/styled/RadioGroup'
 
 import * as backend from '#/services/Backend'
 
-import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link ColorPickerItem}. */
@@ -23,23 +17,16 @@ export interface InternalColorPickerItemProps {
 /** An input in a {@link ColorPicker}. */
 function ColorPickerItem(props: InternalColorPickerItemProps) {
   const { color } = props
-  const { focusChildClass } = focusClassProvider.useFocusClasses()
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
   const cssColor = backend.lChColorToCssColor(color)
 
   return (
     <FocusRing within>
       <aria.Radio
-        ref={(element) => {
-          element?.querySelector('input')?.classList.add(focusChildClass)
-        }}
         value={cssColor}
-        className="group flex size-radio-button cursor-pointer rounded-full p-radio-button-dot"
+        className="group flex h-6 w-6 cursor-pointer items-center justify-center rounded-full"
         style={{ backgroundColor: cssColor }}
-        onKeyDown={handleFocusMove}
       >
-        <div className="hidden size-radio-button-dot rounded-full bg-selected-frame group-selected:block" />
+        <div className="hidden aspect-square h-3 w-3 rounded-full bg-selected-frame group-selected:block" />
       </aria.Radio>
     </FocusRing>
   )
@@ -54,7 +41,7 @@ export interface ColorPickerProps extends Readonly<Omit<aria.RadioGroupProps, 'c
 }
 
 /** A color picker to select from a predetermined list of colors. */
-export default forwardRef(ColorPicker)
+export default React.forwardRef(ColorPicker)
 
 /** A color picker to select from a predetermined list of colors. */
 function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivElement>) {

@@ -1,18 +1,14 @@
 /** @file The input for viewing and changing the user's profile picture. */
-import { useMutation, useQuery } from '@tanstack/react-query'
-
 import DefaultUserIcon from '#/assets/default_user.svg'
-
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-
-import * as textProvider from '#/providers/TextProvider'
-
 import * as aria from '#/components/aria'
-import FocusRing from '#/components/styled/FocusRing'
-
-import { Form, HiddenFile } from '#/components/AriaComponents'
+import { Form } from '#/components/Form'
+import { HiddenFile } from '#/components/Inputs'
 import { ProfilePicture } from '#/components/ProfilePicture/ProfilePicture'
+import FocusRing from '#/components/styled/FocusRing'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import type Backend from '#/services/Backend'
+import { useText } from '$/providers/react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { StatelessSpinner } from '../../components/StatelessSpinner'
 
 /** Props for a {@link ProfilePictureInput}. */
@@ -24,7 +20,7 @@ export interface ProfilePictureInputProps {
 export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { backend } = props
   const { data: user } = useQuery(backendQueryOptions(backend, 'usersMe', []))
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const uploadUserPicture = useMutation(backendMutationOptions(backend, 'uploadUserPicture'))
 
@@ -42,7 +38,7 @@ export default function ProfilePictureInput(props: ProfilePictureInputProps) {
         >
           {uploadUserPicture.isPending && (
             <StatelessSpinner
-              state="loading-medium"
+              phase="loading-medium"
               className="absolute -inset-1"
               thickness={0.5}
             />

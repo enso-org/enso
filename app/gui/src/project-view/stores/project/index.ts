@@ -19,7 +19,6 @@ import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
 import { isIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computedAsync } from '@vueuse/core'
-import * as random from 'lib0/random'
 import {
   computed,
   markRaw,
@@ -117,7 +116,7 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
     const doc = new Y.Doc()
     const awareness = new Awareness(doc)
 
-    const clientId = random.uuidv4() as Uuid
+    const clientId = crypto.randomUUID() as Uuid
     const lsRpcConnection = createLsRpcConnection(clientId, props.engine.rpcUrl, abort)
     const projectRootId = lsRpcConnection.contentRoots.then(
       (roots) => roots.find((root) => root.type === 'Project')?.id,
@@ -225,7 +224,7 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
     })
 
     function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
-      const newId = () => random.uuidv4() as Uuid
+      const newId = () => crypto.randomUUID() as Uuid
       const visId = ref(newId())
       // Regenerate the visualization ID when the preprocessor changes.
       watch(configuration, (a, b) => {
@@ -293,7 +292,7 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
       expression: string,
     ): Promise<Result<any> | null> {
       return new Promise((resolve) => {
-        const visualizationId = random.uuidv4() as Uuid
+        const visualizationId = crypto.randomUUID() as Uuid
         const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
           if (uuid === visualizationId) {
             dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)

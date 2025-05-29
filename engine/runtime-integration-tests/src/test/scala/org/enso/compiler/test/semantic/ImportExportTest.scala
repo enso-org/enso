@@ -691,10 +691,10 @@ class ImportExportTest
   "Import resolution from another library from micro-distribution honor Main" should {
     "resolve Api from Main" in {
       val mainIr = """
-                     |from Test.Logical_Export import Api
+                     |from Test.Logical_Export import Element
                      |
                      |main =
-                     |    element = Api.Element.Element.create
+                     |    element = Element.Element.create
                      |    element.describe
                      |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
@@ -705,7 +705,7 @@ class ImportExportTest
         .asInstanceOf[Import.Module]
 
       in.name.name should include("Test.Logical_Export.Main")
-      in.onlyNames.get.map(_.name) shouldEqual List("Api")
+      in.onlyNames.get.map(_.name) shouldEqual List("Element")
 
       val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
       errors.size shouldEqual 0

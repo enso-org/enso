@@ -7,16 +7,20 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { Icon } from '@/util/iconMetadata/iconName'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
   CellDoubleClickedEvent,
   ColDef,
   ColumnVisibleEvent,
+  GetContextMenuItems,
+  GetContextMenuItemsParams,
   ICellRendererParams,
   IServerSideDatasource,
   IServerSideGetRowsRequest,
   ITooltipParams,
+  MenuItemDef,
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
@@ -33,10 +37,18 @@ import {
 import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
+  Error,
+  GenericGrid,
+  isError,
+  isGenericGrid,
+} from './TableVisualization/TableVisualisationTypes'
+import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
   createExpressionRowTemplate,
+  ValueTypeArgumentChild,
+  ValueTypes,
 } from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
@@ -52,13 +64,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
-
-interface Error {
-  type: undefined
-  error: string
-  all_rows_count?: undefined
-}
+type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | GenericGrid
 
 interface ValueType {
   constructor: string
@@ -76,17 +82,6 @@ interface Matrix {
   visualization_header: string
 }
 
-interface Excel_Workbook {
-  type: 'Excel_Workbook'
-  column_count: number
-  all_rows_count: number
-  sheet_names: string[]
-  json: unknown[][]
-  get_child_node_action: string
-  child_label: string
-  visualization_header: string
-}
-
 interface ObjectMatrix {
   type: 'Object_Matrix'
   column_count: number
@@ -98,11 +93,8 @@ interface ObjectMatrix {
   visualization_header: string
 }
 
-interface UnknownTable {
-  // This is INCORRECT. It is actually a string, however we do not need to access this.
-  // Setting it to `string` breaks the discriminated union detection that is being used to
-  // distinguish `Matrix` and `ObjectMatrix`.
-  type: undefined
+interface EnsoTableOrColumn {
+  type: 'EnsoTableOrColumn'
   json: unknown
   all_rows_count?: number
   header: string[] | undefined
@@ -112,11 +104,12 @@ interface UnknownTable {
   links: string[] | undefined
   get_child_node_action: string
   get_child_node_link_name: string
-  link_value_type: string
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
+  use_bottom_status_bar: boolean
+  enable_create_node: boolean
   requires_number_format: boolean[]
   table_version_hash?: string
 }
@@ -134,11 +127,6 @@ const props = defineProps<{ data: Data }>()
 const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
-const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
-const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
-const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
-const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
-const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -159,12 +147,6 @@ const defaultColDef: Ref<ColDef> = ref({
   cellRenderer: cellRenderer,
   cellClass: cellClass,
   cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
-  contextMenuItems: [
-    commonContextMenuActions.copy,
-    commonContextMenuActions.copyWithHeaders,
-    'separator',
-    'export',
-  ],
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
@@ -172,6 +154,85 @@ const nodeType = ref<string | undefined>(undefined)
 const grid = ref<
   ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
 >()
+
+const getSvgTemplate = (icon: Icon) =>
+  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+
+const getContextMenuItems = (
+  params: GetContextMenuItemsParams,
+): (MenuItemDef | string)[] | GetContextMenuItems => {
+  const colId = params.column ? params.column.getColId() : null
+  const { rowIndex } = params.node ?? {}
+
+  const actions = [
+    { name: 'Get Column', action: 'at', colId, icon: 'select_column' },
+    { name: 'Get Row', action: 'get_row', rowIndex, icon: 'select_row' },
+    { name: 'Get Value', action: 'get_value', colId, rowIndex, icon: 'local_scope4' },
+  ]
+
+  const createMenuItem = ({ name, action, colId, rowIndex, icon }: (typeof actions)[number]) => ({
+    name,
+    action: () => createValueNode(colId, rowIndex, action),
+    icon: getSvgTemplate(icon as Icon),
+  })
+
+  return [
+    commonContextMenuActions.copy,
+    commonContextMenuActions.copyWithHeaders,
+    'separator',
+    'export',
+    ...actions.map(createMenuItem),
+  ]
+}
+
+function getAstValuePattern(value?: string | number, action?: string) {
+  if (action && value != null) {
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        typeof value === 'number' ?
+          Ast.tryNumberToEnso(value, ast.module)!
+        : Ast.TextLiteral.new(value, ast.module),
+      ),
+    )
+  }
+}
+
+function getAstGetValuePattern(columnId?: string, rowIndex?: number, action?: string) {
+  if (action && columnId && rowIndex != undefined) {
+    const pattern = Pattern.parseExpression('__ __')
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('get_value')!),
+        pattern.instantiateCopied([
+          Ast.TextLiteral.new(columnId as string, ast.module),
+          Ast.tryNumberToEnso(rowIndex as number, ast.module)!,
+        ]),
+      ),
+    )
+  }
+}
+
+function createValueNode(columnId?: string | null, rowIndex?: number | null, action?: string) {
+  let pattern
+  if (action === 'at' && columnId != null) {
+    pattern = getAstValuePattern(columnId, action)
+  }
+  if (action === 'get_row' && rowIndex != null) {
+    pattern = getAstValuePattern(rowIndex, action)
+  }
+  if (action === 'get_value' && columnId != null && rowIndex != null) {
+    pattern = getAstGetValuePattern(columnId, rowIndex, action)
+  }
+
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
@@ -189,6 +250,20 @@ const isSSRM = computed(
     props.data.is_using_server_sort_and_filter,
 )
 
+const useBottomStatusBar = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'use_bottom_status_bar' in props.data &&
+    props.data.use_bottom_status_bar,
+)
+
+const isCreateNewNodeEnabled = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'enable_create_node' in props.data &&
+    props.data.enable_create_node,
+)
+
 const ssrmServer = computed(() => {
   return isSSRM.value && createServer()
 })
@@ -199,24 +274,20 @@ const ssrmDatasource = computed(() => {
   return isSSRM.value && createServerSideDatasource()
 })
 
-const statusBar = computed(() =>
-  allRowCount.value ?
-    {
-      statusPanels:
-        config.nodeType === TABLE_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE ?
-          [
-            {
-              statusPanel: TableVizStatusBar,
-              statusPanelParams: {
-                total: allRowCount.value,
-                filtered: isSSRM.value ? filteredRowCount.value : null,
-              },
-            },
-          ]
-        : [],
-    }
-  : null,
-)
+const statusBar = computed(() => ({
+  statusPanels:
+    useBottomStatusBar.value ?
+      [
+        {
+          statusPanel: TableVizStatusBar,
+          statusPanelParams: {
+            total: allRowCount.value,
+            filtered: isSSRM.value ? filteredRowCount.value : null,
+          },
+        },
+      ]
+    : [],
+}))
 
 const isCreateNodeButtonEnabled = computed(
   () =>
@@ -241,7 +312,7 @@ watchEffect(() => {
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
-const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+const isRowCountSelectorVisible = computed(() => rowCount.value > 1000)
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 
 const selectableRowLimits = computed(() => {
@@ -271,19 +342,15 @@ watchEffect(() =>
   ),
 )
 
-const isCreateNewNodeEnabled = computed(
-  () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
-)
-
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
-  maximumFractionDigits: 12,
+  maximumSignificantDigits: 16,
   useGrouping: true,
 })
 
 const numberFormat = new Intl.NumberFormat(undefined, {
   style: 'decimal',
-  maximumFractionDigits: 12,
+  maximumSignificantDigits: 16,
   useGrouping: false,
 })
 
@@ -309,10 +376,7 @@ const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) =
   return Array.from({ length: rows }, (_, i) => {
     return Object.fromEntries(
       columnDefs.value.map((h, j) => {
-        return [
-          h.field,
-          h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : toRender(data?.[j - shift]?.[i]),
-        ]
+        return [h.field, h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : data?.[j - shift]?.[i]]
       }),
     )
   })
@@ -320,11 +384,25 @@ const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) =
 
 async function getFilterValues(params: SetFilterValuesFuncParams) {
   const colName = params.colDef.field
+  const filters = params.api.getFilterModel()
+  const columnHeaders =
+    typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
+  const gridFilterModelList: Array<GridFilterModel> = filters ? makeFilterModelList(filters) : []
+  const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
+    gridFilterModelList,
+    columnHeaders,
+    colTypeMap.value,
+  )
   if (typeof props.data === 'object' && 'header' in props.data) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
     const server = ssrmServer.value
     if (server) {
-      const response = await server.getSetFilterValues(index)
+      const response = await server.getSetFilterValues(
+        index!,
+        filterColumnIndexList,
+        filterActions,
+        valueList,
+      )
       if (response.success) {
         params.success(response.data)
       }
@@ -336,11 +414,37 @@ const attepmtedCalls = ref(0)
 
 function createServer() {
   return {
-    getSetFilterValues: async (columnIndex?: number) => {
+    getSetFilterValues: async (
+      columnIndex: number,
+      filterColumnIndexList: string[] | string,
+      filterActions: string[] | string,
+      valueList:
+        | string
+        | (
+            | {
+                valueType: ValueTypes
+                value: string
+              }
+            | {
+                valueType: 'Mixed'
+                value: ValueTypeArgumentChild[]
+              }
+            | {
+                valueType: ValueTypes
+                value: string
+              }[]
+          )[],
+    ) => {
       const expressionFunction = createDistinctExpressionTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
         `${columnIndex}`,
+        //column indexes that require a filter
+        filterColumnIndexList as string[] | 'Nothing',
+        //column actions i.e Greater Than, Between...
+        filterActions as string[] | 'Nothing',
+        //values to filter on
+        valueList as string[] | 'Nothing',
       )
       const response = await config.executeExpression(expressionFunction)
       return {
@@ -353,8 +457,10 @@ function createServer() {
         typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
 
       const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
+      const gridFilterModelList: Array<GridFilterModel> =
+        request.filterModel ? makeFilterModelList(request.filterModel) : []
       const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
-        request,
+        gridFilterModelList,
         columnHeaders,
         colTypeMap.value,
       )
@@ -579,8 +685,6 @@ function toField(
   const showDataQuality =
     dataQualityMetrics.filter((obj) => (Object.values(obj)[0] as number) > 0).length > 0
 
-  const getSvgTemplate = (icon: string) =>
-    `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
   const svgTemplateWarning = showDataQuality ? getSvgTemplate('warning') : ''
   const menu = `<span data-ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
   const filterButton = `<span data-ref="eFilterButton" class="ag-header-icon ag-header-cell-filter-button" aria-hidden="true"></span>`
@@ -604,9 +708,10 @@ function toField(
     filter: filterType,
     filterParams: {
       maxNumConditions: 1,
-      values: getFilterValues,
+      values: isSSRM.value ? getFilterValues : null,
       filterOptions: filterOptions,
       buttons: filterButtons,
+      refreshValuesOnOpen: true,
     },
     headerComponentParams: {
       template,
@@ -624,38 +729,67 @@ function toField(
   }
 }
 
-function toRowField(name: string, index: number, valueType?: ValueType | null | undefined) {
-  return {
-    ...toField(name, { index, valueType }),
-    cellDataType: false,
-  }
+type ParsedActionTemplate = {
+  pattern: string
+  selectors: { name: string; numeric: boolean }[]
 }
 
-function getAstPattern(selector?: string | number, action?: string) {
-  if (action && selector != null) {
-    return Pattern.new<Ast.Expression>((ast) =>
-      Ast.App.positional(
-        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
-        typeof selector === 'number' ?
-          Ast.tryNumberToEnso(selector, ast.module)!
-        : Ast.TextLiteral.new(selector, ast.module),
-      ),
-    )
+function parseActionTemplate(input: string, defaultSelector: string): ParsedActionTemplate {
+  const regex = /{{([#@]?)(\w+)}}/g
+  const selectors: { name: string; numeric: boolean }[] = []
+  let pattern = input
+
+  pattern = pattern.replace(regex, (_, flag, key) => {
+    selectors.push({ name: key, numeric: flag === '#' })
+    return '__'
+  })
+
+  pattern = '__.' + pattern
+
+  // template didn't contain any {{}} placeholders so add a single default argument
+  if (selectors.length === 0) {
+    selectors.push({ name: defaultSelector, numeric: false })
+    pattern = pattern + ' __'
   }
+
+  return { pattern, selectors }
 }
 
-function createNode(
-  params: CellDoubleClickedEvent,
-  selector: string,
-  action?: string,
-  castValueTypes?: string,
-) {
-  const selectorKey = params.data[selector]
-  const castSelector =
-    castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
-  const identifierAction =
-    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
-  const pattern = getAstPattern(castSelector, identifierAction)
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value)
+}
+
+function getAstPattern(params: CellDoubleClickedEvent, action: string, defaultSelector: string) {
+  const parsedAction = parseActionTemplate(action, defaultSelector)
+
+  return Pattern.new<Ast.Expression>((ast) => {
+    const mappedExpressions = parsedAction.selectors.map(({ name, numeric }) => {
+      const value = params.data[name]
+      const castedValue = numeric && !isNaN(Number(value)) ? Number(value) : value
+      return isNumber(castedValue) ?
+          Ast.tryNumberToEnso(castedValue, ast.module)!
+        : Ast.TextLiteral.new(castedValue, ast.module)
+    })
+
+    const templatePattern = Pattern.parseExpression(parsedAction.pattern)
+    return templatePattern.instantiateCopied([ast, ...mappedExpressions])
+  })
+}
+
+/**
+ * Creates a new node in the graph based on the given action template and data from a grid row.
+ *
+ * The action string should be of the format `at {{#fieldname}}` which will generate a Node `at 2`
+ * or `at {{@fieldname}}` which will generate a Node `at "2"`
+ * If the action contains no placeholders then the defaultSelector is used like so
+ * `action {{@defaultSelector}}`
+ * @param params - The grid cell event containing the clicked row's data.
+ * @param defaultSelector - A fallback key used when the template contains no placeholders.
+ * @param action - A template string with placeholders (e.g., `at {{@name}}`, `at {{#value}}`) used to generate the AST.
+ */
+function createNode(params: CellDoubleClickedEvent, defaultSelector: string, action: string) {
+  const pattern = getAstPattern(params, action, defaultSelector)
+
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -667,16 +801,15 @@ function createNode(
 interface LinkFieldOptions {
   tooltipValue?: string | undefined
   headerName?: string | undefined
-  getChildAction?: string | undefined
-  castValueTypes?: string | undefined
+  getChildAction: string
 }
 
-function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef {
-  const { tooltipValue, headerName, getChildAction, castValueTypes } = options
+function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
+  const { tooltipValue, headerName, getChildAction } = options
   return {
     headerName: headerName ? headerName : fieldName,
     field: fieldName,
-    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction, castValueTypes),
+    onCellDoubleClicked: (params) => createNode(params, fieldName, getChildAction),
     tooltipValueGetter: (params: ITooltipParams) =>
       params.node?.rowPinned === 'top' ?
         null
@@ -687,11 +820,6 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       : null,
     filter: fieldName != INDEX_FIELD_NAME,
   }
-}
-
-/** Return a human-readable representation of an object. */
-function toRender(content: unknown) {
-  return content
 }
 
 watchEffect(() => {
@@ -712,7 +840,7 @@ watchEffect(() => {
         has_index_col: false,
         links: undefined,
         // eslint-disable-next-line camelcase
-        get_child_node_action: undefined,
+        get_child_node_action: '',
         // eslint-disable-next-line camelcase
         get_child_node_link_name: undefined,
         // eslint-disable-next-line camelcase
@@ -720,13 +848,11 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         visualization_header: undefined,
         // eslint-disable-next-line camelcase
-        link_value_type: undefined,
-        // eslint-disable-next-line camelcase
         is_using_server_sort_and_filter: undefined,
         // eslint-disable-next-line camelcase
         requires_number_format: undefined,
       }
-  if ('error' in data_) {
+  if (isError(data_)) {
     columnDefs.value = [
       {
         field: 'Error',
@@ -768,15 +894,19 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (data_.type === 'Excel_Workbook') {
-    columnDefs.value = [
-      toLinkField('Value', {
-        tooltipValue: data_.child_label,
-        headerName: data_.visualization_header,
-        getChildAction: data_.get_child_node_action,
-      }),
-    ]
-    rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
+  } else if (isGenericGrid(data_)) {
+    columnDefs.value = data_.headers.map((header) => {
+      if (header.get_child_node_action) {
+        return toLinkField(header.visualization_header, {
+          tooltipValue: header.child_label,
+          headerName: header.visualization_header,
+          getChildAction: header.get_child_node_action,
+        })
+      } else {
+        return toField(header.visualization_header)
+      }
+    })
+    rowData.value = createRowsForTable(data_.data, 0, false)
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -786,25 +916,12 @@ watchEffect(() => {
       }),
       toField('Value'),
     ]
-    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
+    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: row }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs.value =
-      data_.links ?
-        [
-          toLinkField('Value', {
-            tooltipValue: data_.child_label,
-            headerName: data_.visualization_header,
-            getChildAction: data_.get_child_node_action,
-          }),
-        ]
-      : [toField('Value')]
-    rowData.value =
-      data_.links ?
-        data_.links.map((link) => ({
-          Value: link,
-        }))
-      : [{ Value: toRender(data_.json) }]
+    // single values like Integer or Text
+    columnDefs.value = [toField('Value')]
+    rowData.value = [{ Value: data_.json }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
@@ -814,11 +931,7 @@ watchEffect(() => {
             tooltipValue: data_.child_label,
             headerName: data_.visualization_header,
             getChildAction: data_.get_child_node_action,
-            castValueTypes: data_.link_value_type,
           })
-        }
-        if (config.nodeType === ROW_NODE_TYPE) {
-          return toRowField(v, i, valueType)
         }
         return toField(v, { index: i, valueType })
       }) ?? []
@@ -836,15 +949,8 @@ watchEffect(() => {
       : dataHeader
 
     if (!data_.is_using_server_sort_and_filter) {
-      const hasIndexRow =
-        config.nodeType === TABLE_NODE_TYPE ||
-        config.nodeType === COLUMN_NODE_TYPE ||
-        config.nodeType === DB_TABLE_NODE_TYPE
-      const shift = hasIndexRow ? 1 : 0
-      rowData.value =
-        data_.data ?
-          createRowsForTable(data_.data, shift, data_.is_using_server_sort_and_filter)
-        : []
+      const shift = data_.type === 'EnsoTableOrColumn' ? 1 : 0
+      rowData.value = data_.data ? createRowsForTable(data_.data, shift, false) : []
     }
   }
   const headerGroupingMap = new Map()
@@ -886,7 +992,7 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-  showRowCount.value = !(data_.all_rows_count == null) && config.nodeType != TABLE_NODE_TYPE
+  showRowCount.value = !(data_.all_rows_count == null)
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
@@ -929,10 +1035,17 @@ const getColumnValueToEnso = (columnName: string) => {
     return (item: string, module: Ast.MutableModule) =>
       createDateTimeValue('Date_Time.parse (__)', item, module)
   }
-  if (columnType == 'Mixed') {
+  if (columnType === 'Mixed') {
     return (item: string, module: Ast.MutableModule) => {
       const parsedCellType = getCellValueType(item)
       return getFormattedValueForCell(item, module, parsedCellType)
+    }
+  }
+  if (columnType === 'Boolean') {
+    return (item: string, module: Ast.MutableModule) => {
+      return item === 'false' ?
+          Ast.Ident.new(module, Ast.identifier('False')!)
+        : Ast.Ident.new(module, Ast.identifier('True')!)
     }
   }
   return (item: string) => Ast.TextLiteral.new(item)
@@ -1048,7 +1161,7 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <template v-if="!isSSRM">
+    <template v-if="!useBottomStatusBar">
       <div class="table-visualization-status-bar">
         <select
           v-if="isRowCountSelectorVisible"
@@ -1087,6 +1200,7 @@ config.setToolbar(
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
         :gridIdHash="tableVersionHash"
+        :getContextMenuItems="getContextMenuItems"
         @sortOrFilterUpdated="checkSortAndFilter"
         @columnStateChanged="onColumnStateChange"
       />

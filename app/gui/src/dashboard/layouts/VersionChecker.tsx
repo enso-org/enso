@@ -1,23 +1,18 @@
 /** @file Check the version. */
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-
-import DownloadIcon from '#/assets/download.svg'
 import NewTabIcon from '#/assets/new_tab.svg'
 import SnoozeIcon from '#/assets/snooze.svg'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
-
-import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-
+import { Button } from '#/components/Button'
 import { useEnableVersionChecker, useSetEnableVersionChecker } from '#/components/Devtools'
-import { useLocalBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
-
-import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
-
+import { Dialog } from '#/components/Dialog'
 import { Stepper } from '#/components/Stepper'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { download } from '#/utilities/download'
 import { getDownloadUrl, getLatestRelease } from '#/utilities/github'
+import { useBackends, useText } from '$/providers/react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { startTransition, useState } from 'react'
 
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -36,7 +31,7 @@ export default function VersionChecker() {
 
   const { getText, locale } = useText()
   const toastAndLog = useToastAndLog()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
 
   const supportsLocalBackend = localBackend != null
   const overrideValue = useEnableVersionChecker()
@@ -198,7 +193,7 @@ export default function VersionChecker() {
                 </Text.Group>
               </div>
 
-              <ButtonGroup className="justify-center">
+              <Button.Group className="justify-center">
                 <Button
                   size="medium"
                   variant="outline"
@@ -214,12 +209,12 @@ export default function VersionChecker() {
                   fullWidth
                   variant="primary"
                   onPress={onDownload}
-                  icon={DownloadIcon}
+                  icon="data_download"
                   iconPosition="end"
                 >
                   {getText('download')}
                 </Button>
-              </ButtonGroup>
+              </Button.Group>
             </div>
           </Stepper.StepContent>
 

@@ -1,14 +1,10 @@
 /** @file Displays a few details of an asset. */
 import BreadcrumbArrowIcon from '#/assets/breadcrumb_arrow.svg'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import { Text } from '#/components/AriaComponents'
 import AssetIcon from '#/components/dashboard/AssetIcon'
-
+import { Text } from '#/components/Text'
 import type * as backend from '#/services/Backend'
-
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import { Badge } from '../Badge'
 import { Icon } from '../Icon'
@@ -25,7 +21,7 @@ export interface AssetSummaryProps {
 export default function AssetSummary(props: AssetSummaryProps) {
   const { asset, new: isNew = false, newName, className } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
     <div

@@ -102,7 +102,7 @@ function onMouseRightClick(event: MouseEvent) {
     name="add"
     title="Add new column"
     :disabled="!(columnParams.enabled ?? true)"
-    @click.stop="columnParams.newColumnRequested()"
+    @activate="columnParams.newColumnRequested()"
   />
   <div
     v-else

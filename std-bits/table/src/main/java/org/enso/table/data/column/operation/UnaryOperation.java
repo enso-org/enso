@@ -42,7 +42,7 @@ public interface UnaryOperation {
       return null;
     }
 
-    var result = operation.apply(column.getStorage(), problemAggregator);
+    var result = operation.apply(storage, problemAggregator);
     return new Column(newColumnName, (Storage<?>) result);
   }
 

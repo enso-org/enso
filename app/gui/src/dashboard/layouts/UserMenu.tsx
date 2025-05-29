@@ -1,20 +1,18 @@
 /** @file A dropdown menu of user actions and settings. */
 import { LOGIN_PATH } from '#/appUtils'
-import { Popover, Text } from '#/components/AriaComponents'
 import { useToggleEnsoDevtools } from '#/components/Devtools'
+import { Popover } from '#/components/Dialog'
 import MenuEntry from '#/components/MenuEntry'
 import { ProfilePicture } from '#/components/ProfilePicture'
-import FocusArea from '#/components/styled/FocusArea'
+import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
-import { useRouterInReact } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 /** Props for a {@link UserMenu}. */
@@ -29,8 +27,8 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, goToSettingsPage, onSignOut } = props
 
-  const { router } = useRouterInReact()
-  const localBackend = useLocalBackend()
+  const { router } = useRouter()
+  const { localBackend } = useBackends()
   const { signOut } = useSessionAPI()
   const { user } = useFullUserSession()
   const { setModal, unsetModal } = useSetModal()
@@ -94,13 +92,7 @@ export default function UserMenu(props: UserMenuProps) {
             <Text disableLineHeightCompensation>{getText(user.plan)}</Text>
           </div>
         </div>
-        <FocusArea direction="vertical">
-          {(innerProps) => (
-            <div className="flex flex-col overflow-hidden" {...innerProps}>
-              {entries}
-            </div>
-          )}
-        </FocusArea>
+        <div className="flex flex-col overflow-hidden">{entries}</div>
       </Popover>
     )
 }

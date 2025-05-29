@@ -11,7 +11,7 @@ import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 
 import * as safeJsonParse from '#/utilities/safeJsonParse'
-import { useRouterInReact } from '$/providers/react'
+import { useRouter } from '$/providers/react'
 import { useCallback } from 'react'
 import { type RouteLocationOptions } from 'vue-router'
 
@@ -40,7 +40,12 @@ export function useSearchParamsState<T = unknown>(
   defaultValue: T | (() => T),
   predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
-  const { router, searchParams: searchParamsRaw } = useRouterInReact()
+  const { router, searchParams: searchParamsRaw } = useRouter()
+  // TODO[ao] deferred value fixes issue for user, but is not clean, and makes unnecessary
+  // rendering for some reason. Should be investigated, replaced with something
+  // transition-friendly, or contents should be prefetched in vue-router beforeGuards.
+  //
+  // Devising a proper fix is tracked by https://github.com/enso-org/enso/issues/13039
   const searchParams = React.useDeferredValue(searchParamsRaw)
 
   const setSearchParams = useCallback(
@@ -61,9 +66,11 @@ export function useSearchParamsState<T = unknown>(
       // TODO[ao]: router.push/router.replace are asynchronous, but we want window.location.href
       // to be updated immediately, so any subsequent query changes won't override this one.
       //
-      // This keeps the old way of doing (before #12803), but I think the more elegant solution
-      // would be keeping the "intermediate" state by ourselves and leave window.location.search
-      // management to router.
+      // This keeps the old way of doing (before #12803), but should be rather replaced with
+      // keeping the "intermediate" state by ourselves (in some class) and leave
+      // window.location.search management to router.
+      //
+      // Tracked by https://github.com/enso-org/enso/issues/13039
       if (options.replace ?? false) {
         window.history.replaceState(null, '', `?${nextSearchParams.toString()}`)
       } else {

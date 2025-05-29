@@ -9,7 +9,6 @@ import * as detect from 'enso-common/src/detect'
 import type * as text from 'enso-common/src/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
-import type * as textProvider from '#/providers/TextProvider'
 
 import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
@@ -18,7 +17,9 @@ import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
+import type { GetText } from '$/providers/text'
 import invariant from 'tiny-invariant'
+import { markRaw } from 'vue'
 import { z } from 'zod'
 import { extractTypeAndId } from './LocalBackend'
 
@@ -182,11 +183,6 @@ export interface ListDirectoryResponseBody {
   readonly assets: readonly backend.AnyAsset[]
 }
 
-/** HTTP response body for the "list projects" endpoint. */
-export interface ListProjectsResponseBody {
-  readonly projects: readonly backend.ListedProjectRaw[]
-}
-
 /** HTTP response body for the "list files" endpoint. */
 export interface ListFilesResponseBody {
   readonly files: readonly backend.FileLocator[]
@@ -201,12 +197,6 @@ export interface ListSecretsResponseBody {
 export interface ListTagsResponseBody {
   readonly tags: readonly backend.Label[]
 }
-
-/**
- * A function that turns a text ID (and a list of replacements, if required) to
- * human-readable text.
- */
-type GetText = ReturnType<typeof textProvider.useText>['getText']
 
 /** Options for {@link RemoteBackend.post} private method. */
 interface RemoteBackendPostOptions {
@@ -227,7 +217,7 @@ export default class RemoteBackend extends Backend {
   constructor(
     private readonly client: HttpClient,
     private readonly logger: loggerProvider.Logger,
-    private getText: ReturnType<typeof textProvider.useText>['getText'],
+    private getText: GetText,
   ) {
     super()
   }
@@ -306,7 +296,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return a list of all users in the same organization. */
-  override async listUsers(): Promise<readonly backend.User[]> {
+  override async listUsers(): Promise<readonly Omit<backend.User, 'groups'>[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
     if (response.status === STATUS_NOT_ALLOWED) {
@@ -619,8 +609,7 @@ export default class RemoteBackend extends Backend {
       const ret = (await response.json()).assets
         .map((asset) =>
           object.merge(asset, {
-            // eslint-disable-next-line no-restricted-syntax
-            type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
+            type: backend.getAssetTypeFromId(asset.id),
             // `Users` and `Teams` folders are virtual, so their children incorrectly have
             // the organization root id as their parent id.
             parentId: query.parentId ?? asset.parentId,
@@ -792,25 +781,6 @@ export default class RemoteBackend extends Backend {
     }
 
     return await response.json()
-  }
-
-  /**
-   * Return a list of projects belonging to the current user.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async listProjects(): Promise<backend.ListedProject[]> {
-    const path = remoteBackendPaths.LIST_PROJECTS_PATH
-    const response = await this.get<ListProjectsResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'listProjectsBackendError')
-    } else {
-      return (await response.json()).projects.map((project) => ({
-        ...project,
-        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
-        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
-        ydocAddress: project.address != null ? backend.Address(`${project.address}project`) : null,
-      }))
-    }
   }
 
   /**
@@ -1027,6 +997,38 @@ export default class RemoteBackend extends Backend {
   }
 
   /**
+   * Return asset details.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   * @throws An {@link AssetDoesNotExistError} if the asset does not exist.
+   * @throws An {@link DirectoryDoesNotExistError} if the asset is a directory and does not exist.
+   * @returns The asset details. Returns `null` if the asset is a root directory.
+   */
+  override async getAssetDetails<
+    Id extends backend.RealAssetId,
+    Type extends backend.RealAssetTypeId<Id>,
+    ReturnType extends Id extends backend.DirectoryId ?
+      backend.Asset<backend.AssetType.directory> | null
+    : backend.Asset<Type>,
+  >(assetId: Id): Promise<ReturnType> {
+    const path = remoteBackendPaths.getAssetDetailsPath(assetId)
+    const response = await this.get<backend.Asset<Type> | null>(path)
+
+    if (!responseIsSuccessful(response)) {
+      if (response.status === STATUS_NOT_FOUND) {
+        if (backend.isDirectoryId(assetId)) {
+          throw new backend.DirectoryDoesNotExistError()
+        }
+
+        throw new backend.AssetDoesNotExistError()
+      }
+
+      return await this.throw(response, 'getAssetDetailsBackendError')
+    }
+
+    // eslint-disable-next-line no-restricted-syntax
+    return (await response.json()) as ReturnType
+  }
+  /**
    * Return Language Server logs for a project session.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
@@ -1094,37 +1096,6 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'updateProjectBackendError', title)
     } else {
       return await response.json()
-    }
-  }
-
-  /**
-   * Return the resource usage of a project.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async checkResources(
-    projectId: backend.ProjectId,
-    title: string,
-  ): Promise<backend.ResourceUsage> {
-    const path = remoteBackendPaths.checkResourcesPath(projectId)
-    const response = await this.get<backend.ResourceUsage>(path)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'checkResourcesBackendError', title)
-    } else {
-      return await response.json()
-    }
-  }
-
-  /**
-   * Return a list of files accessible by the current user.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async listFiles(): Promise<readonly backend.FileLocator[]> {
-    const path = remoteBackendPaths.LIST_FILES_PATH
-    const response = await this.get<ListFilesResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'listFilesBackendError')
-    } else {
-      return (await response.json()).files
     }
   }
 
@@ -1481,6 +1452,7 @@ export default class RemoteBackend extends Backend {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention, camelcase */
       ...(params.userEmail != null ? { user_email: params.userEmail } : {}),
+      ...(params.lambdaKind != null ? { lambda_kind: params.lambdaKind } : {}),
       ...(params.startDate != null ? { start_date: params.startDate } : {}),
       ...(params.endDate != null ? { end_date: params.endDate } : {}),
       ...(params.from != null ? { from: String(params.from) } : {}),
@@ -1762,6 +1734,8 @@ export default class RemoteBackend extends Backend {
     return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
   }
 }
+
+markRaw(RemoteBackend.prototype)
 
 /** The schema that checks if the error is a duplicate asset error. */
 const DUPLICATE_ASSET_ERROR_SCHEMA = z.object({

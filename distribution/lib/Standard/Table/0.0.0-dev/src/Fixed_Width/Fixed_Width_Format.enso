@@ -140,13 +140,16 @@ type Fixed_Width_Column_Description
 ## PRIVATE
    Specifies a fixed-width column as a start and a width.
 type Fixed_Width_Layout_Entry
+    ## PRIVATE
     Value (start:Integer) (width:Integer) (name:Text)
 
 ## PRIVATE
    Specifies a set of fixed-width columns.
 type Fixed_Width_Layout
+    ## PRIVATE
     private Value (internal_entries : Vector Fixed_Width_Layout_Entry)
 
+    ## Create a new `Fixed_Width_Layout` from a vector of column descriptions.
     from_descriptions (descs : Vector Fixed_Width_Column_Description) -> Fixed_Width_Layout =
         if descs.is_empty then
             Error.throw (Illegal_Argument.Error "A fixed-width layout must have at least one column.")
@@ -176,6 +179,7 @@ type Fixed_Width_Layout
     ## PRIVATE
     entries self -> Vector = self.internal_entries
 
+## PRIVATE
 Fixed_Width_Layout.from (that:Table) =
     num_cols = that.columns.length
     if num_cols != 2 && num_cols != 3 then
@@ -192,6 +196,7 @@ Fixed_Width_Layout.from (that:Table) =
             Fixed_Width_Column_Description.Start_And_Width start width name
     Fixed_Width_Layout.from_descriptions descriptions
 
+## PRIVATE
 Fixed_Width_Layout.from (that : Function) =
     is_unapplied_table_input = (that.to_text.starts_with "Table.type.new") || (that.to_text.starts_with "Table.type.input")
     if is_unapplied_table_input then

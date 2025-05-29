@@ -10,9 +10,10 @@ import java.nio.file.Path
 object EnsoProjects {
   case class Project(namespace: Option[String], name: String, path: Path) {
     def usesPrivateAccess: Boolean =
-      path.getParent.getFileName.toString == "test" && name.contains(
-        "_Internal_"
-      ) && name.endsWith("_Tests")
+      path.getParent != null && path.getParent.getFileName.toString == "test" && name
+        .contains(
+          "_Internal_"
+        ) && name.endsWith("_Tests")
   }
 
   def ofPath(path: Path): Project =

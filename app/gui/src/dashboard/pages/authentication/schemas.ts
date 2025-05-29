@@ -3,8 +3,8 @@
  *
  * This file contains common schemas for authentication.
  */
-import type { GetText } from '#/providers/TextProvider'
 import { PASSWORD_REGEX } from '#/utilities/validation'
+import type { GetText } from '$/providers/text'
 import { z } from 'zod'
 
 /** A schema for validating passwords. */

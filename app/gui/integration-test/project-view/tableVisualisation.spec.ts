@@ -27,7 +27,7 @@ test('Load Table Visualisation', async ({ page }) => {
   await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
-  await expect(tableVisualization).toContainText('Total Row Count: 10')
+  await expect(tableVisualization).toContainText('10 rows.')
   await expect(tableVisualization).toContainText('0,0')
   await expect(tableVisualization).toContainText('1,0')
   await expect(tableVisualization).toContainText('2,0')
@@ -43,7 +43,7 @@ test('Column size can be set and is retained', async ({ page }) => {
   await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
-  await expect(tableVisualization).toContainText('Total Row Count: 10')
+  await expect(tableVisualization).toContainText('10 rows.')
 
   const col = tableVisualization.getByRole('columnheader', { name: /^0/ })
   const colManualSize = await resizeCol(col)
@@ -166,3 +166,214 @@ async function expectTableInputContent(page: Page, node: Locator) {
     '',
   ])
 }
+
+test('Single Column Of Actions Table Visualisation Test', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    /* eslint-disable camelcase */
+    {
+      type: 'Generic_Grid',
+      headers: [
+        { visualization_header: 'table', child_label: 'table', get_child_node_action: 'read' },
+      ],
+      data: [['Sheet1', 'Sheet2', 'Sheet3']],
+    },
+    /* eslint-enable camelcase */
+  )
+  await expect(tableVisualization).toContainText('table')
+  await expect(tableVisualization).toContainText('Sheet1')
+  await expect(tableVisualization).toContainText('Sheet2')
+  await expect(tableVisualization).toContainText('Sheet3')
+  const sheet2 = tableVisualization.getByText('Sheet2')
+  await sheet2.dblclick()
+  const newNode = graphNodeByBinding(page, 'node1')
+  await expect(newNode).toContainText('read')
+  await expect(newNode).toContainText('Sheet2')
+})
+
+test('Error Visualisation Test', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    {
+      type: 'Error',
+      error: 'This is an error message.',
+    },
+  )
+  await expect(tableVisualization).toContainText('This is an error message.')
+})
+
+test('get_child_node_action temmplate Test as number', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    /* eslint-disable camelcase */
+    {
+      type: 'Generic_Grid',
+      headers: [
+        {
+          visualization_header: 'table',
+          child_label: 'table',
+          get_child_node_action: 'read {{#table}}',
+        },
+      ],
+      data: [['1', '2', '3']],
+    },
+    /* eslint-enable camelcase */
+  )
+  await expect(tableVisualization).toContainText('table')
+  await expect(tableVisualization).toContainText('1')
+  await expect(tableVisualization).toContainText('2')
+  await expect(tableVisualization).toContainText('3')
+  const value2 = tableVisualization.getByText('2')
+  await value2.dblclick()
+  const newNode = graphNodeByBinding(page, 'node1')
+  await expect(newNode).toContainText('read')
+  const numberWidget = newNode.locator('.WidgetNumber')
+  await expect(numberWidget).toBeVisible()
+  await expect(numberWidget).toHaveValue('2')
+})
+
+test('get_child_node_action temmplate Test as text', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    /* eslint-disable camelcase */
+    {
+      type: 'Generic_Grid',
+      headers: [
+        {
+          visualization_header: 'table',
+          child_label: 'table',
+          get_child_node_action: 'read {{@table}}',
+        },
+      ],
+      data: [['1', '2', '3']],
+    },
+    /* eslint-enable camelcase */
+  )
+  await expect(tableVisualization).toContainText('table')
+  await expect(tableVisualization).toContainText('1')
+  await expect(tableVisualization).toContainText('2')
+  await expect(tableVisualization).toContainText('3')
+  const value2 = tableVisualization.getByText('2')
+  await value2.dblclick()
+  const newNode = graphNodeByBinding(page, 'node1')
+  const textWidget = newNode.locator('.WidgetText')
+  await expect(textWidget).toBeVisible()
+  await expect(textWidget.getByTestId('widget-text-content')).toHaveText('2')
+})
+
+test('GenericGrid Table Visualisation Test - single column - no links', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    /* eslint-disable camelcase */
+    {
+      type: 'Generic_Grid',
+      headers: [{ visualization_header: 'table' }],
+      data: [['Sheet1', 'Sheet2', 'Sheet3']],
+    },
+    /* eslint-enable camelcase */
+  )
+  await expect(tableVisualization).toContainText('table')
+  await expect(tableVisualization).toContainText('Sheet1')
+  await expect(tableVisualization).toContainText('Sheet2')
+  await expect(tableVisualization).toContainText('Sheet3')
+})
+
+test('GenericGrid Table Visualisation Test - two column - link on second', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    /* eslint-disable camelcase */
+    {
+      type: 'Generic_Grid',
+      headers: [
+        { visualization_header: 'table' },
+        { visualization_header: 'number', get_child_node_action: 'read {{#number}} {{@table}}' },
+      ],
+      data: [
+        ['SheetA', 'SheetB', 'SheetC'],
+        ['1', '2', '3'],
+      ],
+    },
+    /* eslint-enable camelcase */
+  )
+  await expect(tableVisualization).toContainText('table')
+  await expect(tableVisualization).toContainText('SheetA')
+  await expect(tableVisualization).toContainText('SheetB')
+  await expect(tableVisualization).toContainText('SheetC')
+  await expect(tableVisualization).toContainText('number')
+  await expect(tableVisualization).toContainText('1')
+  await expect(tableVisualization).toContainText('2')
+  await expect(tableVisualization).toContainText('3')
+  const value2 = tableVisualization.getByText('2')
+  await value2.dblclick()
+  const newNode = graphNodeByBinding(page, 'node1')
+
+  await expect(newNode).toContainText('read')
+
+  const textWidget = newNode.locator('.WidgetText')
+  await expect(textWidget).toBeVisible()
+  await expect(textWidget.getByTestId('widget-text-content')).toHaveText('SheetB')
+
+  const numberWidget = newNode.locator('.WidgetNumber')
+  await expect(numberWidget).toBeVisible()
+  await expect(numberWidget).toHaveValue('2')
+})

@@ -38,12 +38,8 @@ export const LIST_DIRECTORY_PATH = 'directories'
 export const CREATE_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
 export const UNDO_DELETE_ASSET_PATH = 'assets'
-/** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
-export const LIST_PROJECTS_PATH = 'projects'
 /** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
 export const CREATE_PROJECT_PATH = 'projects'
-/** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
-export const LIST_FILES_PATH = 'files'
 /** Relative HTTP path to the "upload file start" endpoint of the Cloud backend API. */
 export const UPLOAD_FILE_START_PATH = 'files/upload/start'
 /** Relative HTTP path to the "upload file end" endpoint of the Cloud backend API. */
@@ -110,6 +106,16 @@ export function getProjectContentPath(
 /** Relative HTTP path to the "get project asset" endpoint of the Cloud backend API. */
 export function getProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
   return `projects/${projectId}/files/${relativePath.replace('./', '')}`
+}
+/**
+ * Relative HTTP path to the "get asset details" endpoint of the Cloud backend API.
+ */
+export function getAssetDetailsPath(assetId: backend.AssetId) {
+  return `assets/${assetId}` as const
+}
+/** Relative HTTP path to the upload project endpoint of the Cloud backend API. */
+export function getProjectUploadPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/upload`
 }
 
 /** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
@@ -183,10 +189,6 @@ export function deleteProjectExecutionPath(executionId: backend.ProjectExecution
 /** Relative HTTP path to the "get file details" endpoint of the Cloud backend API. */
 export function getFileDetailsPath(fileId: backend.FileId) {
   return `files/${fileId}`
-}
-/** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
-export function checkResourcesPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/resources`
 }
 /** Relative HTTP path to the "update secret" endpoint of the Cloud backend API. */
 export function updateSecretPath(secretId: backend.SecretId) {

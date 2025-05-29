@@ -5,8 +5,7 @@ import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
@@ -14,7 +13,6 @@ import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import type * as assetRow from '#/components/dashboard/AssetRow'
-import Separator from '#/components/styled/Separator'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -22,6 +20,7 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import * as backendModule from '#/services/Backend'
 
 import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
+import { Separator } from '#/components/Separator'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -37,9 +36,14 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { isUploadableAsset, useUploadFileToCloudMutation } from '../hooks/backendUploadFilesHooks'
+import { useBackends } from '$/providers/react'
+import {
+  isUploadableAsset,
+  useUploadFileToCloudMutation,
+  useUploadFileToLocal,
+} from '../hooks/backendUploadFilesHooks'
 import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
-import { useCategoriesAPI } from './Drive/Categories'
+import { useCategories } from './Drive/Categories'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
@@ -66,13 +70,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const isCloud = categoryModule.isCloudCategory(category)
 
-  const { localCategories } = useCategoriesAPI()
+  const { localCategories } = useCategories()
 
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
-  const { getText } = textProvider.useText()
+  const { localBackend } = useBackends()
+  const { getText } = useText()
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
   const openProjectNatively = projectHooks.useOpenProjectNatively()
@@ -86,6 +90,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToLocal = useUploadFileToLocal(category)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
@@ -276,12 +281,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isUnderPaywall={!canUploadToCloud}
             feature="uploadToCloud"
             action="uploadToCloud"
-            doAction={async () => {
-              await uploadFileToCloudMutation(localBackend, {
+            doAction={() =>
+              uploadFileToCloudMutation(localBackend, {
                 assets: [asset],
                 targetDirectoryId: user.rootDirectoryId,
               })
-            }}
+            }
+          />
+        )}
+        {isUploadableAsset(asset) && isCloud && localBackend != null && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="downloadToLocal"
+            doAction={() => uploadFileToLocal([asset])}
           />
         )}
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
@@ -337,35 +349,24 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="delete"
             label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
             doAction={() => {
-              if (isCloud) {
-                if (asset.type === backendModule.AssetType.directory) {
-                  setModal(
-                    <ConfirmDeleteModal
-                      defaultOpen
-                      actionText={getText('trashTheAssetTypeTitle', asset.type, asset.title)}
-                      onConfirm={async () => {
-                        await deleteAssetsMutation([[asset.id], false])
-                      }}
-                    />,
-                  )
-                } else {
-                  void deleteAssetsMutation([[asset.id], false])
-                }
-              } else {
-                setModal(
-                  <ConfirmDeleteModal
-                    defaultOpen
-                    actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
-                    onConfirm={async () => {
-                      await deleteAssetsMutation([[asset.id], false])
-                    }}
-                  />,
-                )
-              }
+              const textId = isCloud ? 'trashTheAssetTypeTitle' : 'deleteTheAssetTypeTitle'
+              setModal(
+                <ConfirmDeleteModal
+                  defaultOpen
+                  actionText={getText(
+                    textId,
+                    getText(backendModule.ASSET_TYPE_TO_TEXT_ID[asset.type]),
+                    asset.title,
+                  )}
+                  onConfirm={async () => {
+                    await deleteAssetsMutation([[asset.id], false])
+                  }}
+                />,
+              )
             }}
           />
         )}
-        {isCloud && <Separator hidden={hidden} />}
+        {isCloud && !hidden && <Separator className="my-0.5" />}
 
         {isCloud && (
           <ContextMenuEntry
@@ -376,7 +377,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && managesThisAsset && self != null && <Separator hidden={hidden} />}
+        {isCloud && managesThisAsset && self != null && !hidden && <Separator className="my-0.5" />}
         {asset.type === backendModule.AssetType.project && (
           <ContextMenuEntry
             hidden={hidden}
@@ -415,7 +416,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {pasteMenuEntry}
-        {canAddToThisDirectory && <Separator hidden={hidden} />}
+        {canAddToThisDirectory && !hidden && <Separator className="my-0.5" />}
         {canAddToThisDirectory && (
           <GlobalContextMenu
             noWrapper

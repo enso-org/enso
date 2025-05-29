@@ -75,11 +75,12 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public void appendNulls(int count) {
+  public InferredBuilder appendNulls(int count) {
     if (currentBuilder != null) {
       currentBuilder.appendNulls(count);
     }
     currentSize += count;
+    return this;
   }
 
   @Override

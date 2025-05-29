@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useCssModule } from 'vue'
 
-defineExpose({ highlightClasses: useCssModule() })
+const highlightClasses = useCssModule()
+defineExpose({ highlightClasses })
 </script>
 
 <template>
@@ -11,11 +12,18 @@ defineExpose({ highlightClasses: useCssModule() })
 </template>
 
 <style scoped>
-.CodeMirrorRoot {
-  display: contents;
-  & :deep(.cm-content) {
-    cursor: text;
-  }
+.CodeMirrorRoot :deep(.cm-content) {
+  cursor: text;
+}
+
+/*
+ * Change the looks of codemirror placeholder nodes to look the same as placeholder widgets.
+ * This is visible when a `placeholder` property is used in the `useCodeMirror` composable,
+ * and the edited text value at the same time happen to be empty.
+ */
+.CodeMirrorRoot :deep(.cm-placeholder) {
+  color: inherit;
+  opacity: 0.6;
 }
 </style>
 
@@ -65,5 +73,30 @@ defineExpose({ highlightClasses: useCssModule() })
 
 .invalid {
   color: #f00;
+}
+
+:global(.define-node-colors:not(.selected)) {
+  .comment,
+  .lineComment,
+  .blockComment,
+  .docComment,
+  .name,
+  .variableName,
+  .definition-variableName,
+  .literal,
+  .string,
+  .escape,
+  .number,
+  .keyword,
+  .moduleKeyword,
+  .modifier,
+  .punctuation,
+  .paren,
+  .operator,
+  .definitionOperator,
+  .invalid {
+    color: var(--color-node-text);
+    transition: color 0.2s ease;
+  }
 }
 </style>

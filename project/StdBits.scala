@@ -26,7 +26,8 @@ object StdBits {
     * @param unmanagedClasspath classpath of unmanaged jars, if any
     * @param logger SBT's logger
     * @param cacheStoreFactory SBT's cache sotre factory
-    * @param ignoreDependency A dependency that should be ignored - not copied to the destination
+    * @param ignoreDependenciesByModuleID Depedencies that should be ignored - not copied to the destination
+    * @param ignoreDependencies Depedencies that should be ignored based on a plain file name filter
     * @param ignoreDependencyIncludeTransitive An optional filter to indicate that a direct dependency should be ignored except for its (transitive) dependencies
     * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
     *
@@ -40,10 +41,11 @@ object StdBits {
     unmanagedClasspath: Classpath,
     logger: ManagedLogger,
     cacheStoreFactory: sbt.util.CacheStoreFactory,
-    ignoreDependency: Option[ModuleID]                 = None,
-    ignoreDependencyIncludeTransitive: Option[String]  = None,
-    ignoreUnmanagedDependency: Option[File => Boolean] = None,
-    previousRun: Option[AnalysisOfExtractedNativeLibs] = None
+    ignoreDependenciesByModuleID: Option[Seq[ModuleID]] = None,
+    ignoreDependencies: Option[String => Boolean]       = None,
+    ignoreDependencyIncludeTransitive: Option[String]   = None,
+    ignoreUnmanagedDependency: Option[File => Boolean]  = None,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]  = None
   ): Unit = {
 
     val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
@@ -63,16 +65,16 @@ object StdBits {
     val graalModuleFilter = DependencyFilter.moduleFilter(
       organization = new SimpleFilter(!graalVmOrgs.contains(_))
     )
-    val moduleFilter = ignoreDependency match {
+    val moduleFilter = ignoreDependenciesByModuleID match {
       case None => graalModuleFilter
-      case Some(ignoreDepID) =>
+      case Some(ignoreDepIDs) =>
         DependencyFilter.moduleFilter(
           organization = new SimpleFilter(orgName =>
             !graalVmOrgs.contains(
               orgName
-            ) && orgName != ignoreDepID.organization
+            )
           ),
-          name = new SimpleFilter(_ != ignoreDepID.name)
+          name = new SimpleFilter(name => !ignoreDepIDs.exists(_.name == name))
         )
     }
     val unmanagedFiles0 = unmanagedClasspath.map(_.data)
@@ -86,10 +88,14 @@ object StdBits {
           module        = moduleFilter,
           artifact      = DependencyFilter.artifactFilter()
         ) ++ unmanagedFiles
-    val relevantFiles =
+    val relevantFiles1 =
       ignoreDependencyIncludeTransitive
         .map(filter => relevantFiles0.filterNot(_.getName.contains(filter)))
         .getOrElse(relevantFiles0)
+    val relevantFiles =
+      ignoreDependencies
+        .map(filter => relevantFiles1.filterNot(f => filter(f.getName)))
+        .getOrElse(relevantFiles1)
     val dependencyStore =
       cacheStoreFactory.make("std-bits-dependencies")
     Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
@@ -247,6 +253,7 @@ object StdBits {
     tableauNativeLibs: File,
     tableauVersion: String,
     jnaVersion: String,
+    jnaJar: File,
     logger: ManagedLogger,
     updateReport: UpdateReport,
     unmanagedClasspath: Classpath,
@@ -310,16 +317,6 @@ object StdBits {
     )
 
     // Extract native library from jna's jar
-    val jnaJar = JPMSUtils
-      .filterModulesFromUpdate(
-        updateReport,
-        Seq("net.java.dev.jna" % "jna" % jnaVersion),
-        logger,
-        moduleName,
-        scalaBinaryVersion,
-        shouldContainAll = true
-      )
-      .head
     val outputJnaJarPath =
       (tableauPolyglotRoot / s"jna-${validOsName}-$jnaVersion.jar").toPath
     val outputJnaJar  = outputJnaJarPath.toFile
@@ -463,6 +460,14 @@ object StdBits {
     } else {
       throw new IllegalStateException(s"Unsupported OS: $osName")
     }
+  }
+
+  // A list of support OS names
+  def allSupportedOs(): List[String] = List("linux", "osx", "windows")
+
+  // ${os-name}-${arch} plaftorm name
+  def currentPlatformSuffix(): String = {
+    osName() + "-" + arch()
   }
 
   // Human-accepted name of OS. One of many at least.

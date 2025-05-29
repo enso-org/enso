@@ -31,7 +31,7 @@ fn collect_source_paths(repo_root: &RepoRoot) -> Result<Vec<PathBuf>> {
     Ok(glob_paths.into_iter().flatten().collect::<std::result::Result<_, _>>()?)
 }
 
-pub async fn lint_all(repo_root: RepoRoot) -> Result<()> {
+pub async fn check_syntax(repo_root: RepoRoot) -> Result<()> {
     let sources = collect_source_paths(&repo_root)?;
     cargo_run_linter_cmd(&repo_root)?.arg("--").args(sources).run_ok().await?;
     Ok(())

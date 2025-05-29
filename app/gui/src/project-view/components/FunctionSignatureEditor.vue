@@ -6,8 +6,10 @@ import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
 import { colorFromString } from '@/util/colors'
+import { Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
-import { computed, ref, watchEffect } from 'vue'
+import { useFocusWithin } from '@vueuse/core'
+import { computed, ref, useTemplateRef, watchEffect } from 'vue'
 import { FunctionDef } from 'ydoc-shared/ast'
 import type * as Y from 'yjs'
 import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
@@ -48,14 +50,14 @@ const treeRootInput = computed((): WidgetInput => {
   return input
 })
 
-const rootElement = ref<HTMLElement>()
+const rootElement = useTemplateRef('rootElement')
+const { focused } = useFocusWithin(rootElement)
 
 const graph = useGraphStore()
 
 function handleWidgetUpdates(update: WidgetUpdate) {
   applyWidgetUpdates(update, graph)
-  // This handler is guaranteed to be the last handler in the chain.
-  return true
+  return Ok()
 }
 
 const groupBasedColor = computed(() => {
@@ -84,8 +86,14 @@ const primaryApplication = emptyPrimaryApplication()
 </script>
 
 <template>
-  <div ref="rootElement" :style="rootStyle" class="FunctionSignatureEditor define-node-colors">
+  <div
+    ref="rootElement"
+    :style="rootStyle"
+    class="FunctionSignatureEditor define-node-colors"
+    :class="{ selected: focused }"
+  >
     <WidgetTreeRoot
+      :selected="focused"
       :externalId="functionAst.externalId"
       :input="treeRootInput"
       :primaryApplication="primaryApplication"
@@ -98,7 +106,6 @@ const primaryApplication = emptyPrimaryApplication()
 
 <style scoped>
 .FunctionSignatureEditor {
-  margin: 4px 8px;
   padding: 4px;
 
   /*
@@ -109,6 +116,5 @@ const primaryApplication = emptyPrimaryApplication()
   border-radius: var(--node-border-radius);
   transition: background-color 0.2s ease;
   background-color: var(--color-node-background);
-  box-sizing: border-box;
 }
 </style>

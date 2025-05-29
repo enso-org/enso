@@ -56,12 +56,16 @@ type Vector_Builder
     build : Vector Any
     build self =
         Vector.build initial_capacity=self.length vec_builder->
-            go elem = case elem of
-                Leaf vec -> vec_builder.append_vector_range vec
-                Append l r _ ->
-                    go l
-                    go r
-            go self
+            go stack = case stack of
+                List.Nil -> Nothing
+                List.Cons elem rest ->
+                    case elem of
+                        Leaf vec ->
+                            vec_builder.append_vector_range vec
+                            @Tail_Call go rest
+                        Append l r _ ->
+                            @Tail_Call go (List.Cons l (List.Cons r rest))
+            go (List.Cons self List.Nil)
 
     ## PRIVATE
 
@@ -94,4 +98,3 @@ type Vector_Builder
        - vec: The vector to create a vector builder from.
     from_vector : Vector Any -> Vector_Builder Any
     from_vector vec = Leaf vec
-

@@ -58,7 +58,7 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
         class="toolbar"
         :class="{ invisible: hideVisualizationButton === 'invisible' }"
       >
-        <SvgButton name="eye" title="Hide visualization" @click.stop="emit('hide')" />
+        <SvgButton name="eye" title="Hide visualization" @activate="emit('hide')" />
       </div>
       <div class="toolbar">
         <FullscreenButton v-if="isFullscreenAllowed" v-model="isFullscreen" />
@@ -71,9 +71,9 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
               v-if="isActionButton(item)"
               :name="item.icon"
               :title="item.title"
-              :onClick="item.onClick"
               :disabled="item.disabled != null ? toValue(item.disabled) : false"
               :data-testid="item.dataTestid"
+              @activate="item.onClick"
             />
             <ToggleIcon
               v-else-if="isToggleButton(item)"

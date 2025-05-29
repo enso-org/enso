@@ -70,7 +70,7 @@ export const Loader = memo(function Loader(props: LoaderProps) {
 
   return (
     <div className={STYLES({ minHeight, className, color, height })}>
-      <StatelessSpinner size={size} state={state} className="text-current" />
+      <StatelessSpinner size={size} phase={state} className="text-current" />
     </div>
   )
 })

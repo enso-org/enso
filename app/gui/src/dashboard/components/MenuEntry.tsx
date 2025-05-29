@@ -1,30 +1,23 @@
 /** @file An entry in a menu. */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-import type * as text from 'enso-common/src/text'
-
 import BlankIcon from '#/assets/blank.svg'
-
-import type * as inputBindings from '#/configurations/inputBindings'
-
-import * as focusHooks from '#/hooks/focusHooks'
-
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
 import * as aria from '#/components/aria'
-import type { TextProps } from '#/components/AriaComponents'
-import { Text, useDialogContext, useVisualTooltip } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
+import { useDialogContext } from '#/components/Dialog'
+import { Icon } from '#/components/Icon'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
-
+import { Text, type TextProps } from '#/components/Text'
+import { useVisualTooltip } from '#/components/VisualTooltip'
+import type * as inputBindings from '#/configurations/inputBindings'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
+import * as detect from 'enso-common/src/detect'
+import type * as text from 'enso-common/src/text'
+import * as React from 'react'
 
 const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active group-enabled:hover:bg-hover-bg',
@@ -49,6 +42,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   run: 'runShortcut',
   close: 'closeShortcut',
   uploadToCloud: 'uploadToCloudShortcut',
+  downloadToLocal: 'downloadToLocalShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
   snapshot: 'snapshotShortcut',
@@ -71,7 +65,6 @@ export const ACTION_TO_TEXT_ID: Readonly<
   useInNewProject: 'useInNewProjectShortcut',
   closeModal: 'closeModalShortcut',
   cancelEditName: 'cancelEditNameShortcut',
-  signIn: 'signInShortcut',
   signOut: 'signOutShortcut',
   downloadApp: 'downloadAppShortcut',
   cancelCut: 'cancelCutShortcut',
@@ -115,11 +108,9 @@ export default function MenuEntry(props: MenuEntryProps) {
     color,
     ...variantProps
   } = props
-  const { getText } = textProvider.useText()
-  const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = useText()
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const focusChildProps = focusHooks.useFocusChild()
   const info = inputBindings.metadata[action]
   const buttonRef = React.useRef<HTMLButtonElement>(null)
   const isDisabledRef = useSyncRef(isDisabled)
@@ -168,26 +159,27 @@ export default function MenuEntry(props: MenuEntryProps) {
       <FocusRing>
         <aria.Button
           ref={buttonRef}
-          {...aria.mergeProps<aria.ButtonProps>()(focusChildProps, {
-            isDisabled,
-            className: 'group flex w-full rounded-menu-entry',
-            onPress: () => {
-              if (dialogContext) {
-                // Closing a dialog takes precedence over unsetting the modal.
-                dialogContext.close()
-              } else {
-                unsetModal()
-              }
-              doAction()
-            },
-          })}
+          isDisabled={isDisabled}
+          className="group flex w-full rounded-menu-entry"
+          onPress={() => {
+            if (dialogContext) {
+              // Closing a dialog takes precedence over unsetting the modal.
+              dialogContext.close()
+            } else {
+              unsetModal()
+            }
+            doAction()
+          }}
         >
           <div className={MENU_ENTRY_VARIANTS(variantProps)} {...targetProps}>
-            <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-              <SvgMask
-                src={icon ?? info.icon ?? BlankIcon}
-                color={info.color}
-                className="size-4 text-primary"
+            <div
+              title={title}
+              className="flex items-center gap-menu-entry whitespace-nowrap"
+              style={{ color: info.color }}
+            >
+              <Icon
+                icon={icon ?? info.icon ?? BlankIcon}
+                className={info.color != null ? undefined : 'text-primary'}
               />
               <Text color={color} slot="label">
                 {label ?? getText(labelTextId)}

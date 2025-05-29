@@ -2,20 +2,20 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
-import { Button, ButtonGroup, Menu } from '#/components/AriaComponents'
 import { Breadcrumbs, type BreadcrumbItemProps, type OnDrop } from '#/components/Breadcrumbs'
+import { Button } from '#/components/Button'
+import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
-import { listDirectoryQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetPanelToggle, useSetAssetPanelDefaultItem } from '#/layouts/AssetPanel'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { useText } from '#/providers/TextProvider'
-import { isDirectoryId } from '#/services/Backend'
+import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
@@ -29,8 +29,9 @@ export function DriveBarNavigation() {
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
 
-  const { rootDirectoryId, currentDirectoryId, parentDirectoryId, setCurrentDirectoryId } =
-    useDirectoryIds({ category })
+  const { rootDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
+    category,
+  })
 
   const setAssetPanelDefaultItem = useSetAssetPanelDefaultItem()
 
@@ -51,44 +52,45 @@ export function DriveBarNavigation() {
     },
   })
 
-  const parentDirectoryQueryOptions = listDirectoryQueryOptions({
-    backend: associatedBackend,
-    parentId: parentDirectoryId,
-    category,
-    refetchInterval: null,
-  })
-
   const { data: directoryData } = useSuspenseQuery({
-    ...parentDirectoryQueryOptions,
-    select: (data) => {
-      if (parentDirectoryId === currentDirectoryId) {
-        return null
+    queryKey: [associatedBackend.type, 'getAssetDetails', { id: currentDirectoryId }],
+    queryFn: () => associatedBackend.getAssetDetails(currentDirectoryId),
+    meta: { persist: false },
+    retry: (count, error) => {
+      if (error instanceof AssetDoesNotExistError) {
+        setCurrentDirectoryId(null)
+        return false
       }
 
-      const directory = data.find((item) => item.id === currentDirectoryId)
-
-      if (directory == null) {
+      return count < 3
+    },
+    select: (data) => {
+      if (data == null) {
         return null
       }
 
       const virtualParentsPath = () => {
-        if (directory.virtualParentsPath.length === 0) {
-          return directory.title
+        if (data.virtualParentsPath.length === 0) {
+          return data.title
         }
 
-        return directory.virtualParentsPath + '/' + directory.title
+        return data.virtualParentsPath + '/' + data.title
       }
 
       return {
-        parentsPath: directory.parentsPath + '/' + directory.id,
+        asset: data,
+        parentsPath: data.parentsPath + '/' + data.id,
         virtualParentsPath: virtualParentsPath(),
-        asset: directory,
+        parentId: data.parentId,
       }
     },
   })
 
   useEffect(() => {
-    setAssetPanelDefaultItem(directoryData?.asset ?? null)
+    if (directoryData?.asset != null) {
+      // We need to start a transition to avoid displaying a loading state
+      setAssetPanelDefaultItem(directoryData.asset)
+    }
   }, [directoryData?.asset, setAssetPanelDefaultItem])
 
   const { finalPath } = parseDirectoriesPath({
@@ -102,18 +104,11 @@ export function DriveBarNavigation() {
   const canNavigateUp = parentId >= 0
 
   const setDirectoryId = useEventCallback((id: React.Key) => {
-    const parentIdToNewId = finalPath.findIndex((item) => item.id === id) - 1
-
     if (!isDirectoryId(id)) {
       return
     }
 
-    setCurrentDirectoryId({
-      current: id,
-      // This is safe, because we know the index presents in the array.
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      parent: parentIdToNewId < 0 ? null : finalPath[parentIdToNewId]!.id,
-    })
+    setCurrentDirectoryId(id)
   })
 
   const navigateToDirectory = useEventCallback((id: React.Key) => {
@@ -135,7 +130,11 @@ export function DriveBarNavigation() {
   })
 
   const navigateToParent = useEventCallback(() => {
-    navigateToDirectory(parentDirectoryId)
+    if (directoryData == null) {
+      return
+    }
+
+    navigateToDirectory(directoryData.parentId)
   })
 
   switch (category.type) {
@@ -155,7 +154,7 @@ export function DriveBarNavigation() {
     case 'local-directory': {
       return (
         <div className="flex w-full flex-none items-center">
-          <ButtonGroup className="mr-2 w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
+          <Button.Group className="mr-2 w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
             <Menu.Trigger trigger="longPress">
               <UpButton navigateToParent={navigateToParent} isDisabled={!canNavigateUp} />
 
@@ -175,7 +174,7 @@ export function DriveBarNavigation() {
                 }}
               </Menu>
             </Menu.Trigger>
-          </ButtonGroup>
+          </Button.Group>
 
           <Scroller orientation="horizontal">
             <Breadcrumbs onDrop={onDrop}>

@@ -1,14 +1,13 @@
 /** @file An label that can be applied to an asset. */
-import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
-
 import type { PressEvent } from '#/components/aria'
-import { Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import FocusRing from '#/components/styled/FocusRing'
-import { useHandleFocusMove } from '#/hooks/focusHooks'
-import { useFocusDirection } from '#/providers/FocusDirectionProvider'
+import { Text } from '#/components/Text'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Label as BackendLabel } from '#/services/Backend'
 import { lChColorToCssColor, type LChColor } from '#/services/Backend'
-import { twMerge } from '#/utilities/tailwindMerge'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
+import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
 
 /** Props for a {@link Label}. */
 interface InternalLabelProps extends Readonly<PropsWithChildren> {
@@ -30,6 +29,7 @@ interface InternalLabelProps extends Readonly<PropsWithChildren> {
     event: MouseEvent<HTMLButtonElement> | PressEvent,
     label?: BackendLabel,
   ) => void
+  readonly onDelete?: () => Promise<void> | void
   readonly onContextMenu?: (event: MouseEvent<HTMLElement>) => void
   readonly onDragStart?: (event: DragEvent<HTMLElement>) => void
 }
@@ -37,12 +37,21 @@ interface InternalLabelProps extends Readonly<PropsWithChildren> {
 /** An label that can be applied to an asset. */
 export default function Label(props: InternalLabelProps) {
   const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
-  const { onPress, onDragStart, onContextMenu, label } = props
+  const { onPress, onDragStart, onContextMenu, label, onDelete } = props
   const { children: childrenRaw } = props
-  const focusDirection = useFocusDirection()
-  const handleFocusMove = useHandleFocusMove(focusDirection)
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   const isLight = color.lightness > 50
+
+  const handleDelete = useEventCallback(onDelete)
+  const onClick = useEventCallback((e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    onPress?.(e, label)
+  })
+
+  const onDragStartStableCallback = useEventCallback((e: DragEvent<HTMLElement>) => {
+    e.stopPropagation()
+    onDragStart?.(e)
+  })
 
   return (
     <FocusRing within placement="after">
@@ -61,20 +70,15 @@ export default function Label(props: InternalLabelProps) {
           title={title}
           disabled={isDisabled}
           className={twMerge(
-            'focus-child relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-50 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
+            'relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-50 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
+            onPress == null && 'cursor-default',
             active && 'active',
             negated && 'after:border-2 after:border-delete',
           )}
           style={{ backgroundColor: lChColorToCssColor(color) }}
-          onClick={(event) => {
-            event.stopPropagation()
-            onPress?.(event, label)
-          }}
-          onDragStart={(e) => {
-            onDragStart?.(e)
-          }}
+          onClick={onClick}
+          onDragStart={onDragStartStableCallback}
           onContextMenu={onContextMenu}
-          onKeyDown={handleFocusMove}
         >
           {typeof childrenRaw !== 'string' ?
             childrenRaw
@@ -87,6 +91,16 @@ export default function Label(props: InternalLabelProps) {
               {childrenRaw}
             </Text>
           }
+
+          {onDelete && (
+            <Button
+              icon="tab_close"
+              variant="icon"
+              size="small"
+              onPress={handleDelete}
+              className={twJoin('ml-2', !isLight && 'text-white')}
+            />
+          )}
         </button>
       </div>
     </FocusRing>

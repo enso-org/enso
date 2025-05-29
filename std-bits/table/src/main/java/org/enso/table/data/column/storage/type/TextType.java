@@ -96,6 +96,22 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
     return fixedLength(Text_Utils.grapheme_length(value));
   }
 
+  public static TextType maxType(StorageType<?> left, StorageType<?> right) {
+    if (left == null && right == null) {
+      return VARIABLE_LENGTH;
+    } else if (left instanceof TextType leftText) {
+      if (right instanceof TextType rightText) {
+        return maxType(leftText, rightText);
+      }
+      return leftText;
+    } else if (right instanceof TextType rightText) {
+      return rightText;
+    } else {
+      throw new IllegalArgumentException(
+          "Cannot compute max type for non-text types: " + left + ", " + right);
+    }
+  }
+
   public static TextType maxType(TextType type1, TextType type2) {
     if (type1.maxLength < 0 || type2.maxLength < 0) {
       return VARIABLE_LENGTH;

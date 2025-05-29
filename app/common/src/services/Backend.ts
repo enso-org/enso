@@ -231,7 +231,7 @@ export interface User extends UserInfo {
   readonly isEnsoTeamMember: boolean
 }
 
-/** A user related to the current user. */
+/** A user group related to the current user. */
 export interface UserGroup {
   readonly id: UserGroupId
   readonly name: string
@@ -318,18 +318,6 @@ export interface CreatedProject extends BaseProject {
   readonly ensoPath?: EnsoPath
 }
 
-/** A `Project` returned by the `listProjects` endpoint. */
-export interface ListedProjectRaw extends CreatedProject {
-  readonly address?: Address
-}
-
-/** A `Project` returned by `listProjects`. */
-export interface ListedProject extends CreatedProject {
-  readonly binaryAddress: Address | null
-  readonly jsonAddress: Address | null
-  readonly ydocAddress: Address | null
-}
-
 /** A `Project` returned by `updateProject`. */
 export interface UpdatedProject {
   readonly organizationId: OrganizationId
@@ -340,7 +328,8 @@ export interface UpdatedProject {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface ProjectRaw extends ListedProjectRaw {
+export interface ProjectRaw extends CreatedProject {
+  readonly address?: Address
   readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
@@ -348,7 +337,10 @@ export interface ProjectRaw extends ListedProjectRaw {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface Project extends ListedProject {
+export interface Project extends CreatedProject {
+  readonly binaryAddress: Address | null
+  readonly jsonAddress: Address | null
+  readonly ydocAddress: Address | null
   readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
@@ -607,16 +599,6 @@ export interface CheckoutSessionStatus {
   readonly status: 'active' | 'trialing' | (string & NonNullable<unknown>)
 }
 
-/** Resource usage of a VM. */
-export interface ResourceUsage {
-  /** Percentage of memory used. */
-  readonly memory: number
-  /** Percentage of CPU time used since boot. */
-  readonly cpu: number
-  /** Percentage of disk space used. */
-  readonly storage: number
-}
-
 /** Metadata for a subscription. */
 export interface Subscription {
   readonly id?: SubscriptionId
@@ -651,7 +633,7 @@ export interface UserPermission {
 
 /** User permission for a specific user group. */
 export interface UserGroupPermission {
-  readonly userGroup: UserGroup
+  readonly userGroup: UserGroupInfo
   readonly permission: permissions.PermissionAction
 }
 
@@ -707,7 +689,7 @@ export function isUserGroupPermissionAnd(predicate: (permission: UserGroupPermis
 
 /** Get the property representing the name on an arbitrary variant of {@link UserPermission}. */
 export function getAssetPermissionName(permission: AssetPermission) {
-  return isUserPermission(permission) ? permission.user.name : permission.userGroup.name
+  return isUserPermission(permission) ? permission.user.name : permission.userGroup.groupName
 }
 
 /** Get the property representing the id on an arbitrary variant of {@link UserPermission}. */
@@ -850,6 +832,15 @@ export const COLORS = [
   { lightness: 22, chroma: 13, hue: 252 },
 ] as const satisfies LChColor[]
 
+export const FALLBACK_COLOR = COLORS[0]
+
+/** Returns true if the two colors are equal. */
+export function colorsAreEqual(a: LChColor, b: LChColor) {
+  return (
+    a.lightness === b.lightness && a.chroma === b.chroma && a.hue === b.hue && a.alpha === b.alpha
+  )
+}
+
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
   const alpha = 'alpha' in color ? ` / ${color.alpha}` : ''
@@ -900,6 +891,18 @@ export enum AssetType {
   specialUp = 'specialUp',
 }
 
+export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
+  [AssetType.directory]: 'directoryAssetType',
+  [AssetType.project]: 'projectAssetType',
+  [AssetType.file]: 'fileAssetType',
+  [AssetType.secret]: 'secretAssetType',
+  [AssetType.specialEmpty]: 'specialEmptyAssetType',
+  [AssetType.specialError]: 'specialErrorAssetType',
+  [AssetType.specialLoading]: 'specialLoadingAssetType',
+  [AssetType.specialUp]: 'specialUpAssetType',
+  [AssetType.datalink]: 'datalinkAssetType',
+} satisfies { [Type in AssetType]: `${Type}AssetType` }
+
 export enum ReplaceableAssetType {
   project = 'project',
   file = 'file',
@@ -907,9 +910,16 @@ export enum ReplaceableAssetType {
   secret = 'secret',
 }
 
+/** The types of assets that can be retrieved from the backend. */
+export type RealAssetType =
+  | AssetType.project
+  | AssetType.file
+  | AssetType.datalink
+  | AssetType.secret
+  | AssetType.directory
+
 /** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType extends RealAssetIdType, SpecialAssetIdType {}
-
 export type RealAssetId = ProjectId | FileId | DatalinkId | SecretId | DirectoryId
 export interface RealAssetIdType {
   readonly [AssetType.project]: ProjectId
@@ -919,7 +929,13 @@ export interface RealAssetIdType {
   readonly [AssetType.directory]: DirectoryId
 }
 
-export type SpecialAssetId = LoadingAssetId | EmptyAssetId | ErrorAssetId
+export type RealAssetTypeId<Id extends RealAssetId> =
+  Id extends ProjectId ? AssetType.project
+  : Id extends FileId ? AssetType.file
+  : Id extends DatalinkId ? AssetType.datalink
+  : Id extends SecretId ? AssetType.secret
+  : AssetType.directory
+
 export interface SpecialAssetIdType {
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
@@ -1208,6 +1224,11 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
 /** Whether a given {@link string} is an {@link ErrorAssetId}. */
 export function isErrorAssetId(id: string): id is ErrorAssetId {
   return id.startsWith(`${AssetType.specialError}-`)
+}
+
+/** Whether a given {@link string} is a special frontend-only asset id. */
+export function isSpecialAssetId(id: string) {
+  return isLoadingAssetId(id) || isEmptyAssetId(id) || isErrorAssetId(id)
 }
 
 /** Any object with a `type` field matching the given `AssetType`. */
@@ -1549,6 +1570,7 @@ export interface CreateCheckoutSessionRequestBody {
 /** URL query string parameters for the "get log events" endpoint. */
 export interface GetLogEventsRequestParams {
   readonly userEmail?: EmailAddress | null | undefined
+  readonly lambdaKind?: string | null | undefined
   readonly startDate?: dateTime.Rfc3339DateTime | null | undefined
   readonly endDate?: dateTime.Rfc3339DateTime | null | undefined
   /** Pagination offset */
@@ -1638,6 +1660,11 @@ export function detectVersionLifecycle(version: string) {
   } else {
     return VersionLifecycle.stable
   }
+}
+
+/** Get the {@link AssetType} of an asset by its id. */
+export function getAssetTypeFromId(id: AssetId) {
+  return id.match(/^(.+?)-/)?.[1] as AssetType
 }
 
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
@@ -1831,7 +1858,7 @@ export default abstract class Backend {
     localRootDirectory: Path | null | undefined,
   ): DirectoryId | null
   /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<readonly User[]>
+  abstract listUsers(): Promise<readonly Omit<User, 'groups'>[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
@@ -1901,8 +1928,6 @@ export default abstract class Backend {
   abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
-  /** Return a list of projects belonging to the current user. */
-  abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
@@ -1948,8 +1973,17 @@ export default abstract class Backend {
     versionId: S3ObjectVersionId,
     title: string,
   ): Promise<CreatedProject>
-  /** Return project details. */
+  /**
+   * Return project details.
+   */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
+  /** Return asset details. */
+  abstract getAssetDetails<
+    Id extends RealAssetId,
+    ReturnType extends Id extends DirectoryId ? Asset<AssetType.directory> | null
+    : Asset<RealAssetTypeId<Id>>,
+  >(assetId: Id): Promise<ReturnType>
+
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
@@ -1969,10 +2003,6 @@ export default abstract class Backend {
   ): Promise<UpdatedProject>
   /** Fetch the content of the `Main.enso` file of a project. */
   abstract getFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
-  /** Return project memory, processor and storage usage. */
-  abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
-  /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<readonly FileLocator[]>
   /** Begin uploading a large file. */
   abstract uploadFileStart(
     body: UploadFileRequestParams,
@@ -2059,24 +2089,34 @@ export default abstract class Backend {
   abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
 }
 
-/** Error thrown when a directory does not exist. */
-export class DirectoryDoesNotExistError extends Error {
+/**
+ * Error thrown when an asset does not exist.
+ */
+export class AssetDoesNotExistError extends Error {
   /**
-   * Create a new instance of the {@link DirectoryDoesNotExistError} class.
+   * Create a new instance of the {@link AssetDoesNotExistError} class.
    */
-  constructor() {
-    super('Directory does not exist.')
+  constructor(message: string = 'Asset could not be found.') {
+    super(message)
   }
 }
 
-/**
- * Error thrown when a duplicate asset is found.
- */
+/** More specific error thrown when a directory does not exist. */
+export class DirectoryDoesNotExistError extends AssetDoesNotExistError {
+  /**
+   * Create a new instance of the {@link DirectoryDoesNotExistError} class.
+   */
+  constructor(message: string = 'Directory does not exist.') {
+    super(message)
+  }
+}
+
+/** Error thrown when an asset already exists. */
 export class DuplicateAssetError extends Error {
   /**
    * Create a new instance of the {@link DuplicateAssetError} class.
    */
-  constructor(message: string) {
+  constructor(message: string = 'Asset already exists.') {
     super(message)
   }
 }

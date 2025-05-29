@@ -109,7 +109,7 @@ interface Attributes {
 }
 
 /** Metadata for an arbitrary file system entry. */
-type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+export type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
 
 /** The discriminator value for {@link FileSystemEntry}. */
 export enum FileSystemEntryType {
@@ -407,11 +407,6 @@ export default class ProjectManager {
   async closeProject(params: CloseProjectParams): Promise<void> {
     this.internalProjects.delete(params.projectId)
     return this.sendRequest('project/close', params)
-  }
-
-  /** Get the projects list, sorted by open time. */
-  async listProjects(params: ListProjectsParams): Promise<ProjectList> {
-    return this.sendRequest<ProjectList>('project/list', params)
   }
 
   /** Create a new project. */

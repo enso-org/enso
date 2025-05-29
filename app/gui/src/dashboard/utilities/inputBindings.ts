@@ -2,12 +2,12 @@
  * @file Exports `defineKeybinds`, a function to define a namespace containing keyboard and mouse
  * shortcuts.
  */
-import * as detect from 'enso-common/src/detect'
-
+import type { SvgUseIcon } from '#/components/types'
 import * as eventModule from '#/utilities/event'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
+import * as detect from 'enso-common/src/detect'
 
 /** A keyboard key obtained from `KeyboardEvent.key`. */
 type KeyName = newtype.Newtype<string, 'keyboard key'>
@@ -340,7 +340,6 @@ type AutocompleteKeybinds<T extends readonly string[]> = {
 
 /** A list of keybinds, with metadata describing its purpose. */
 export interface KeybindsWithMetadata {
-  readonly name: string
   readonly bindings: readonly [] | readonly string[]
   readonly description?: string
   readonly icon?: string
@@ -357,10 +356,9 @@ export interface KeybindsWithMetadata {
  * errors.
  */
 export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata> {
-  readonly name: string
   readonly bindings: AutocompleteKeybinds<T['bindings']>
   readonly description?: string
-  readonly icon?: string
+  readonly icon?: SvgUseIcon
   readonly color?: string
   /** Defaults to `true`. */
   readonly rebindable?: boolean

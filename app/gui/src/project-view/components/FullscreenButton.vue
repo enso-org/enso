@@ -8,8 +8,9 @@ const fullscreen = defineModel<boolean>({ required: true })
 
 <template>
   <SvgButton
+    class="FullscreenButton"
     :name="fullscreen ? 'exit_fullscreen' : 'fullscreen'"
     :title="fullscreen ? 'Exit Fullscreen' : 'Fullscreen'"
-    @click.stop="fullscreen = !fullscreen"
+    @activate="fullscreen = !fullscreen"
   />
 </template>
