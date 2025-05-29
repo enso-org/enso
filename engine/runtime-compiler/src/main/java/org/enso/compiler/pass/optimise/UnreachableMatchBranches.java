@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.stream.Stream;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
-import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Pattern;

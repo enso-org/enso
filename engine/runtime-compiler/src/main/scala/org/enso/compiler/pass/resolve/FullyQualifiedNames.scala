@@ -405,7 +405,7 @@ case object FullyQualifiedNames extends IRPass {
       case None => false
       case Some(aliasMeta) =>
         val aliasInfo = aliasMeta.unsafeAs[AliasInfo.Occurrence]
-        val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
+        val defLink   = aliasInfo.graph.defLinkFor(aliasInfo.id)
         defLink.isDefined
     }
   }
