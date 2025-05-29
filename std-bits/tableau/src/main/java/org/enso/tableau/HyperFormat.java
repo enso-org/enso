@@ -382,36 +382,42 @@ public class HyperFormat {
       return tableDef;
   }
 
-  private static void insertData(Table table, TableDefinition tableDef, Connection connection){
-      int numberOfRows = table.rowCount();
-      int numberOfColumns = table.getColumns().length;
-      Inserter inserter = new Inserter(connection, tableDef);
-      for (int row = 0; row < numberOfRows; ++row) {
-        for (int col = 0; col < numberOfColumns; ++col) {
-          var colName = tableDef.getColumn(col).getName().toString().replaceAll("^\"|\"$", "");
-          var storage = table.getColumnByName(colName).getStorage();
-          if (storage.isNothing(row)) {
-            inserter.addNull();
-          } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-            inserter.add(doubleStorage.getItemAsDouble(row));
-          } else if (storage instanceof ColumnLongStorage longStorage) {
-            inserter.add(longStorage.getItemAsLong(row));
-          } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-            inserter.add(boolStorage.getItemAsBoolean(row));
-          } else {
-            Object value = storage.getItemBoxed(row);
-            switch (value) {
-              case String s -> inserter.add(s);
-              case LocalDate ld -> inserter.add(ld);
-              case LocalTime lt -> inserter.add(lt);
-              case ZonedDateTime zdt -> inserter.add(zdt);
-              case BigDecimal bd -> inserter.add(bd);
-              default -> throw new HyperUnsupportedTypeError(value.toString());
+  private static void insertData(Table table, TableDefinition tableDef, Connection connection) {
+    int numberOfRows = table.rowCount();
+    int numberOfColumns = table.getColumns().length;
+
+    String[] existingColumnNames = tableDef.getColumns().stream()
+        .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
+        .toArray(String[]::new);
+
+    try (Inserter inserter = new Inserter(connection, tableDef)) {
+        for (int row = 0; row < numberOfRows; ++row) {
+            for (int col = 0; col < numberOfColumns; ++col) {
+                var storage = table.getColumnByName(existingColumnNames[col]).getStorage();
+                if (storage.isNothing(row)) {
+                    inserter.addNull();
+                } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
+                    inserter.add(doubleStorage.getItemAsDouble(row));
+                } else if (storage instanceof ColumnLongStorage longStorage) {
+                    inserter.add(longStorage.getItemAsLong(row));
+                } else if (storage instanceof ColumnBooleanStorage boolStorage) {
+                    inserter.add(boolStorage.getItemAsBoolean(row));
+                } else {
+                    Object value = storage.getItemBoxed(row);
+                    switch (value) {
+                        case String s -> inserter.add(s);
+                        case LocalDate ld -> inserter.add(ld);
+                        case LocalTime lt -> inserter.add(lt);
+                        case ZonedDateTime zdt -> inserter.add(zdt);
+                        case BigDecimal bd -> inserter.add(bd);
+                        default -> throw new HyperUnsupportedTypeError(value.toString());
+                    }
+                }
             }
-          }
+            inserter.endRow();
         }
-        inserter.endRow();
-      }
-      inserter.execute();
-  }
+        inserter.execute();
+    }
+}
+
 }
