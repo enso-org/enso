@@ -1,11 +1,13 @@
 package org.enso.table.data.column.operation;
 
 import org.enso.base.CompareException;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -20,6 +22,8 @@ import org.enso.table.problems.ProblemAggregator;
  */
 public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean> {
   private final boolean preserveNulls;
+  protected final boolean throwOnOther;
+  protected final boolean valueOnOther;
 
   public BinaryOperationBoolean() {
     this(true, false);
@@ -28,22 +32,23 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
   protected BinaryOperationBoolean(boolean preserveNulls, boolean allowNullType) {
     super(BooleanType.INSTANCE, allowNullType);
     this.preserveNulls = preserveNulls;
+    this.throwOnOther = true;
+    this.valueOnOther = false;
   }
 
-  protected ColumnStorage<Boolean> throwUnsupported(
-      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-    // If all are Nothing then will return a Nothing Boolean Storage
-    return StorageIterators.buildOverStorage(
-        left,
-        BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
-        (b, index, value) -> {
-          throw new IllegalArgumentException(
-              "Unsupported right value type " + rightValue.getClass() + ".");
-        });
+  protected BinaryOperationBoolean(
+      boolean preserveNulls, boolean allowNullType, boolean valueOnOther) {
+    super(BooleanType.INSTANCE, allowNullType);
+    this.preserveNulls = preserveNulls;
+    this.throwOnOther = false;
+    this.valueOnOther = valueOnOther;
   }
 
-  protected RuntimeException makeCompareError(Object left, Object right) {
-    return new CompareException(left, right);
+  protected boolean onIncomparable(Object left, Object right) {
+    if (throwOnOther) {
+      throw new CompareException(left, right);
+    }
+    return valueOnOther;
   }
 
   @Override
@@ -57,7 +62,11 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     }
 
     if (rightValue != null && !(rightValue instanceof Boolean)) {
-      return throwUnsupported(left, rightValue, problemAggregator);
+      // If all are Nothing then will return a Nothing Boolean Storage
+      return StorageIterators.buildOverStorage(
+          left,
+          BooleanType.INSTANCE.makeBuilder(left.getSize(), problemAggregator),
+          (b, index, value) -> b.appendBoolean(onIncomparable(value, rightValue)));
     }
 
     boolean rightIsNothing = rightValue == null;
@@ -92,6 +101,27 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
   }
 
   @Override
+  public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
+    if (!canApplyMap(left, right)) {
+      return false;
+    }
+
+    // If not throwing on other types, we can apply the operation
+    // Otherwise, we allow Any, Boolean, and Null types on the right
+    if (!throwOnOther) {
+      return true;
+    }
+
+    var rightType = right.getType();
+    return switch (rightType) {
+      case NullType nt -> true;
+      case BooleanType bt -> true;
+      case AnyObjectType ay -> true;
+      default -> false;
+    };
+  }
+
+  @Override
   public final ColumnStorage<Boolean> applyZip(
       ColumnStorage<?> left,
       ColumnStorage<?> right,
@@ -113,6 +143,23 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
       if (result != null) {
         return result;
       }
+    }
+
+    if (!BooleanType.INSTANCE.isOfType(right.getType())) {
+      // Have a mismatch in types (could be AnyObjectType)
+      return StorageIterators.zipOverStorages(
+          BooleanType.INSTANCE.asTypedStorage(left),
+          right,
+          Builder::getForBoolean,
+          preserveNulls,
+          (index, leftValue, rightValue) -> {
+            boolean leftBoolean = leftValue != null && (boolean) leftValue;
+            Boolean typedRightValue = BooleanType.INSTANCE.valueAsType(rightValue);
+            boolean rightBoolean = typedRightValue != null && typedRightValue;
+            return rightValue != null && typedRightValue == null
+                ? onIncomparable(leftValue, rightValue)
+                : applySingle(leftBoolean, leftValue == null, rightBoolean, rightValue == null);
+          });
     }
 
     return StorageIterators.zipOverBooleanStorages(
