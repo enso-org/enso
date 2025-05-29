@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { enclosingTopLevelArgument } from '@/components/GraphEditor/widgets/WidgetTopLevelArgument.vue'
+import OptionallyKeepAlive from '@/components/OptionallyKeepAlive.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { unrefElement } from '@/composables/events'
@@ -42,9 +43,9 @@ const projectNames = injectProjectNames()
 
 const tree = injectWidgetTree()
 
-const widgetRoot = shallowRef<HTMLElement>()
+const widgetRoot = useTemplateRef<HTMLElement>('widgetRoot')
 const submenuRef = useTemplateRef('submenuRef')
-const activityElement = ref<HTMLElement>()
+const activityElement = useTemplateRef<HTMLElement>('activityElement')
 
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
@@ -67,15 +68,17 @@ const { floatingStyles: activityStyles } = activityDropdownStyles(
 type ExpressionFilter = (tag: ExpressionTag) => boolean
 function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | undefined {
   const editedAst = typeof pattern === 'string' ? Ast.parseExpression(pattern) : pattern
-  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedAst instanceof Ast.TextLiteral) {
     return (tag: ExpressionTag) =>
       (tag.expressionAst instanceof Ast.TextLiteral &&
         tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)) ||
       (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedAst.rawTextContent))
   }
+  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedCode) {
-    return (tag: ExpressionTag) => tag.expression.startsWith(editedCode)
+    return (tag: ExpressionTag) =>
+      tag.expression.startsWith(editedCode) ||
+      (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedCode))
   }
   return undefined
 }
@@ -83,7 +86,8 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
 const staticTags = computed<ExpressionTag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
-  return tags.map((t) => ExpressionTag.FromExpression(suggestions, projectNames, t))
+  const suggestionDb = suggestions.entries
+  return tags.map((t) => ExpressionTag.FromExpression(suggestionDb, projectNames, t))
 })
 
 const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
@@ -95,7 +99,7 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
       return new NestedChoiceTag(choice.label ?? '…', choice.value.map(choiceToTag))
     } else {
       return ExpressionTag.FromExpression(
-        suggestions,
+        suggestions.entries,
         projectNames,
         choice.value,
         choice.label,
@@ -107,20 +111,25 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
   return config.values.map(choiceToTag)
 })
 
+const allowExtendingUpwards = computed(() => ArgumentInfoKey in props.input)
+
 const filteredTags = computed(() => {
   const expressionTags = dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value
+  const customTags =
+    props.input[CustomDropdownItemsKey]?.map((entry) =>
+      entry instanceof ExpressionTag ? entry : ActionTag.FromItem(entry),
+    ) ?? []
   const expressionFilter =
     !isMulti.value && editedValue.value && makeExpressionFilter(editedValue.value)
   if (expressionFilter) {
     const flattened = expressionTags.flatMap((tag) =>
       tag instanceof NestedChoiceTag ? tag.flatten() : [tag],
     )
-    return flattened.filter(expressionFilter)
+    const filteredCustomTags = customTags.filter(
+      (tag) => tag instanceof ExpressionTag && expressionFilter(tag),
+    )
+    return [...filteredCustomTags, ...flattened.filter(expressionFilter)]
   } else {
-    const customTags =
-      props.input[CustomDropdownItemsKey]?.map((entry) =>
-        entry instanceof ExpressionTag ? entry : ActionTag.FromItem(entry),
-      ) ?? []
     return [...customTags, ...expressionTags]
   }
 })
@@ -130,6 +139,7 @@ const entries = computed<Entry[]>(() => filteredTags.value.map(tagToEntry))
 function tagToEntry(tag: ExpressionTag | NestedChoiceTag | ActionTag): Entry {
   return {
     value: tag.label,
+    key: tag instanceof ExpressionTag ? tag.toString() : undefined,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
     icon: tag instanceof ExpressionTag || tag instanceof ActionTag ? tag.icon : undefined,
     tag,
@@ -223,7 +233,7 @@ const dropDownInteraction = WidgetEditHandler.New(props, {
   pointerdown: (e) => {
     if (
       submenuRef.value?.isTargetOutside(e) &&
-      targetIsOutside(e, unrefElement(activityElement)) &&
+      (activityElement.value == null || targetIsOutside(e, unrefElement(activityElement))) &&
       targetIsOutside(e, unrefElement(widgetRoot)) &&
       targetIsOutside(e, document.getElementById('floatingLayer'))
     ) {
@@ -345,11 +355,23 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   }
 }
 
+function entryIsSelected(entry: Entry) {
+  return entry.tag instanceof ExpressionTag && selectedExpressions.value.has(entry.tag.expression)
+}
 const arrowLocation = ref()
 </script>
 
 <script lang="ts">
+/** An entry that can be added to a dropdown list by other parent widgets. */
+export type DropdownItem = CustomDropdownItem | ExpressionTag
 const CustomDropdownItemsKey: unique symbol = Symbol.for('WidgetInput:CustomDropdownItems')
+
+/** Add extra dropdown items to a widget input. */
+// eslint-disable-next-line jsdoc/require-jsdoc
+export function withDropdownItems(input: WidgetInput, items: Iterable<DropdownItem>): WidgetInput {
+  const existingItems = input[CustomDropdownItemsKey] ?? []
+  return { ...input, [CustomDropdownItemsKey]: [...existingItems, ...items] }
+}
 
 function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefined): boolean {
   return (
@@ -380,7 +402,7 @@ export const widgetDefinition = defineWidget(
 export { CustomDropdownItemsKey }
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [CustomDropdownItemsKey]?: readonly (CustomDropdownItem | ExpressionTag)[]
+    [CustomDropdownItemsKey]?: readonly DropdownItem[]
   }
 }
 </script>
@@ -408,32 +430,25 @@ declare module '@/providers/widgetRegistry' {
       :floatReference="floatReference"
       :show="dropDownInteraction.isActive() && activity == null"
       :entries="entries"
-      :isSelected="
-        (entry) =>
-          entry.tag instanceof ExpressionTag && selectedExpressions.has(entry.tag.expression)
-      "
+      :isSelected="entryIsSelected"
       :topLevel="true"
+      :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"
     />
-    <Teleport v-if="tree.rootElement" :to="tree.rootElement">
-      <div
-        ref="activityElement"
-        class="activityElement widgetOutOfLayout floatingElement"
-        :style="activityStyles"
-      >
-        <SizeTransition height :duration="100">
-          <KeepAlive include="KeepAlive">
-            <KeepAlive v-if="keepActivityAlive">
-              <component :is="dropDownInteraction.isActive() && activity && toValue(activity)" />
-            </KeepAlive>
-            <component
-              :is="dropDownInteraction.isActive() && activity && toValue(activity)"
-              v-else
-            />
-          </KeepAlive>
-        </SizeTransition>
-      </div>
-    </Teleport>
+
+    <OptionallyKeepAlive :when="keepActivityAlive">
+      <Teleport v-if="dropDownInteraction.isActive() && activity" :to="tree.rootElement">
+        <div
+          ref="activityElement"
+          class="activityElement widgetOutOfLayout floatingElement"
+          :style="activityStyles"
+        >
+          <SizeTransition height :duration="100">
+            <component :is="toValue(activity)" />
+          </SizeTransition>
+        </div>
+      </Teleport>
+    </OptionallyKeepAlive>
   </div>
 </template>
 

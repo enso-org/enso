@@ -1,5 +1,5 @@
 /** @file Display multiple variants of a component, labeled by their props. */
-import { Text } from '#/components/AriaComponents'
+import { Text } from '#/components/Text'
 import { identity } from '#/utilities/functions'
 import { stringifyJsx } from '#/utilities/jsx'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'

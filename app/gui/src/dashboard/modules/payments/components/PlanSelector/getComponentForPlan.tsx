@@ -3,20 +3,14 @@
  *
  * This file contains the logic to get the component for a given plan.
  */
-import * as React from 'react'
-
-import invariant from 'tiny-invariant'
-
-import type * as text from 'enso-common/src/text'
-
 import OpenInNewTabIcon from '#/assets/open.svg'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
+import { Button } from '#/components/Button'
 import * as backendModule from '#/services/Backend'
-
 import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
+import type * as text from 'enso-common/src/text'
+import * as React from 'react'
+import invariant from 'tiny-invariant'
 import * as constants from '../../constants'
 import { SubscribeButton, type SubscribeButtonProps } from './components'
 
@@ -64,7 +58,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = useText()
 
       return (
-        <ariaComponents.Button
+        <Button
           variant="link"
           href="https://enso.org/pricing"
           target="_blank"
@@ -73,7 +67,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
           size="medium"
         >
           {getText('learnMore')}
-        </ariaComponents.Button>
+        </Button>
       )
     },
     pricing: 'soloPlanPricing',
@@ -89,7 +83,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = useText()
 
       return (
-        <ariaComponents.Button
+        <Button
           variant="link"
           href="https://enso.org/pricing"
           target="_blank"
@@ -98,7 +92,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
           size="medium"
         >
           {getText('learnMore')}
-        </ariaComponents.Button>
+        </Button>
       )
     },
     pricing: 'teamPlanPricing',
@@ -115,7 +109,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = useText()
 
       return (
-        <ariaComponents.Button
+        <Button
           variant="link"
           href="https://enso.org/pricing"
           target="_blank"
@@ -124,7 +118,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
           size="medium"
         >
           {getText('learnMore')}
-        </ariaComponents.Button>
+        </Button>
       )
     },
     pricing: 'enterprisePlanPricing',
@@ -137,9 +131,9 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = useText()
 
       return (
-        <ariaComponents.Button fullWidth isDisabled variant="outline" size="medium" rounded="full">
+        <Button fullWidth isDisabled variant="outline" size="medium" rounded="full">
           {getText('comingSoon')}
-        </ariaComponents.Button>
+        </Button>
       )
     },
   },

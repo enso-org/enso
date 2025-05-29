@@ -1,4 +1,6 @@
 /** @file A breadcrumb nagivation component. */
+import { Button } from '#/components/Button'
+import type { IconProp, TestIdProps } from '#/components/types'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
@@ -11,7 +13,6 @@ import {
 } from 'react'
 import flattenChildren from 'react-keyed-flatten-children'
 import { useBreadcrumbs, type AriaBreadcrumbsProps, type DropEvent } from '../aria'
-import { Button, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon } from '../Icon'
 import { BreadcrumbItem, BreadcrumbItemProvider } from './BreadcrumbItem'
 

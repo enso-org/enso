@@ -4,6 +4,7 @@ import ArgumentRow from '@/components/GraphEditor/widgets/WidgetFunctionDef/Argu
 import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
+import { syntheticPortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
@@ -29,7 +30,7 @@ function doEdit(editFn: (ast: Ast.MutableFunctionDef, edit: Ast.MutableModule) =
 function handleAddItem() {
   if (input.editHandler?.addItem()) return
   doEdit((ast) => {
-    ast.pushArgumentDefinitions(
+    ast.pushArgumentDefinition(
       newArgumentDefinition(generateUniqueArgName(currentArgNames(ast), (i) => `arg${i}`)),
     )
   })
@@ -53,6 +54,10 @@ function generateUniqueArgName(
 
 function handleRemove(index: number) {
   doEdit((ast) => ast.spliceArgumentDefinitions(index, 1))
+}
+
+function handleUpdateType(index: number, typeExpr: Ast.Owned<Ast.MutableExpression>) {
+  doEdit((ast) => ast.setArgumentType(index, typeExpr))
 }
 
 function handleReorder(oldIndex: number, newIndex: number) {
@@ -106,9 +111,11 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
     >
       <template #default="{ item, index }">
         <ArgumentRow
+          :portIdBase="syntheticPortId(input.portId, `argRow:${index}`)"
           :definition="item"
           :onUpdate="onUpdate"
           @rename="handleRename(index, $event)"
+          @updateType="handleUpdateType(index, $event)"
         />
       </template>
     </DraggableList>

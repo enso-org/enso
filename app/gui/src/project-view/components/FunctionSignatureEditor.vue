@@ -9,7 +9,7 @@ import { colorFromString } from '@/util/colors'
 import { Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { useFocusWithin } from '@vueuse/core'
-import { computed, ref, watchEffect } from 'vue'
+import { computed, ref, useTemplateRef, watchEffect } from 'vue'
 import { FunctionDef } from 'ydoc-shared/ast'
 import type * as Y from 'yjs'
 import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
@@ -50,7 +50,7 @@ const treeRootInput = computed((): WidgetInput => {
   return input
 })
 
-const rootElement = ref<HTMLElement>()
+const rootElement = useTemplateRef('rootElement')
 const { focused } = useFocusWithin(rootElement)
 
 const graph = useGraphStore()
@@ -106,7 +106,6 @@ const primaryApplication = emptyPrimaryApplication()
 
 <style scoped>
 .FunctionSignatureEditor {
-  margin: 4px 8px;
   padding: 4px;
 
   /*
@@ -117,6 +116,5 @@ const primaryApplication = emptyPrimaryApplication()
   border-radius: var(--node-border-radius);
   transition: background-color 0.2s ease;
   background-color: var(--color-node-background);
-  box-sizing: border-box;
 }
 </style>
