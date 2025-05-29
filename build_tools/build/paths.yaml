@@ -37,7 +37,6 @@
       client/:
       common/:
       icons/:
-    ydoc-server-nodejs/:
   build/:
     prettier/:
   built-distribution/:
