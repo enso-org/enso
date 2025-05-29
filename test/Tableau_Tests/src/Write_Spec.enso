@@ -4,9 +4,9 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Errors.Common.Dry_Run_Operation
 
 from Standard.Table import all
+from Standard.Table.Errors import all
 from Standard.Tableau import Hyper_File
-import Standard.Tableau.Hyper_Errors.Hyper_Table_Not_Found
-import Standard.Tableau.Hyper_Errors.Hyper_Unsupported_Type
+from Standard.Tableau.Hyper_Errors import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
@@ -242,6 +242,8 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         t2 = Table.input [['Col2', ['b']], ['Col1', ['a']]]
         r = t2.write written_file on_existing_file=..Append
+        r.should_fail_with Hyper_Unmatched_Columns
+        r.catch.should_equal (Hyper_Unmatched_Columns.Error ["Col2"])
 
         ## Data is still t1 as we didn't append
         written_table_in_hyper = Hyper_File.new written_file . tables . first

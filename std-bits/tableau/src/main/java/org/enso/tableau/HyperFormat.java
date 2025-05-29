@@ -1,6 +1,7 @@
 package org.enso.tableau;
 
 import com.tableau.hyperapi.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -22,13 +23,16 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -390,33 +394,55 @@ public class HyperFormat {
         .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
         .toArray(String[]::new);
 
+    validateNoExtraColumns(table, existingColumnNames);
+
+    ColumnStorage[] columnStorages = Arrays.stream(existingColumnNames)
+        .map(name -> table.getColumnByName(name).getStorage())
+        .toArray(ColumnStorage[]::new);
+
     try (Inserter inserter = new Inserter(connection, tableDef)) {
         for (int row = 0; row < numberOfRows; ++row) {
             for (int col = 0; col < numberOfColumns; ++col) {
-                var storage = table.getColumnByName(existingColumnNames[col]).getStorage();
-                if (storage.isNothing(row)) {
-                    inserter.addNull();
-                } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-                    inserter.add(doubleStorage.getItemAsDouble(row));
-                } else if (storage instanceof ColumnLongStorage longStorage) {
-                    inserter.add(longStorage.getItemAsLong(row));
-                } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-                    inserter.add(boolStorage.getItemAsBoolean(row));
-                } else {
-                    Object value = storage.getItemBoxed(row);
-                    switch (value) {
-                        case String s -> inserter.add(s);
-                        case LocalDate ld -> inserter.add(ld);
-                        case LocalTime lt -> inserter.add(lt);
-                        case ZonedDateTime zdt -> inserter.add(zdt);
-                        case BigDecimal bd -> inserter.add(bd);
-                        default -> throw new HyperUnsupportedTypeError(value.toString());
-                    }
-                }
+                addValueToInserter(inserter, columnStorages[col], row);
             }
             inserter.endRow();
         }
         inserter.execute();
+    }
+}
+
+private static void addValueToInserter(Inserter inserter, ColumnStorage storage, int row) {
+    if (storage.isNothing(row)) {
+        inserter.addNull();
+    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
+        inserter.add(doubleStorage.getItemAsDouble(row));
+    } else if (storage instanceof ColumnLongStorage longStorage) {
+        inserter.add(longStorage.getItemAsLong(row));
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
+        inserter.add(boolStorage.getItemAsBoolean(row));
+    } else {
+        Object value = storage.getItemBoxed(row);
+        switch (value) {
+            case String s -> inserter.add(s);
+            case LocalDate ld -> inserter.add(ld);
+            case LocalTime lt -> inserter.add(lt);
+            case ZonedDateTime zdt -> inserter.add(zdt);
+            case BigDecimal bd -> inserter.add(bd);
+            default -> throw new HyperUnsupportedTypeError(value.toString());
+        }
+    }
+}
+
+private static void validateNoExtraColumns(Table table, String[] allowedColumnNames) {
+    Set<String> allowed = Set.of(allowedColumnNames);
+
+String[] extraColumns = Arrays.stream(table.getColumns())
+    .map(Column::getName)
+    .filter(name -> !allowed.contains(name))
+    .toArray(String[]::new);
+
+if (extraColumns.length > 0) {
+    throw new HyperUnmatchedColumns(extraColumns);
     }
 }
 
