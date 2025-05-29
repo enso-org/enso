@@ -9,12 +9,12 @@ import java.nio.ByteBuffer;
 import java.util.function.Function;
 
 /**
- * Central persistance class. Use static {@link Persistance#write write} method to turn a graph of
- * JVM objects into a {@code byte[]}. <br>
+ * Central persistance class. Use {@link Pool#write write} method to turn a graph of JVM objects
+ * into a {@code byte[]}. <br>
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
  *
- * <p>Use sibling static {@link Persistance#read readO} method to read the byte buffer back into
- * their memory representation. <br>
+ * <p>Use sibling {@link Pool#read read} method to read the byte buffer back into their memory
+ * representation. <br>
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
  *
  * <h2>Manual Persistance</h2>
@@ -167,47 +167,80 @@ public abstract class Persistance<T> implements Cloneable {
   }
 
   /**
-   * Read object written down by {@link #write} from an array. <br>
-   * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"} <br>
-   * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
+   * A collection of {@link Persistance} instances able to serde an object graph of certain class
+   * types. Use {@link Persistable} annotation to generate instances of this class - no need to
+   * write them manually.
    *
-   * @param arr the stored bytes
-   * @param readResolve either {@code null} or function to call for each object being stored to
-   *     provide a replacement
-   * @return the read object
-   * @throws java.io.IOException when an I/O problem happens
+   * @see #merge
    */
-  public static Reference<?> read(byte[] arr, Function<Object, Object> readResolve)
-      throws IOException {
-    return read(ByteBuffer.wrap(arr), readResolve);
-  }
+  public abstract static class Pool {
+    /**
+     * Constructor for subclasses to creates a new pool with provided persistance instances. The IDs
+     * of those instances must be unique, otherwise an exception is throw.
+     *
+     * @param displayName human friendly display name
+     * @param instances the instances to register in this pool
+     * @exception IllegalArgumentException if there is a clash in IDs of persistance instances
+     */
+    @SafeVarargs
+    protected Pool(String displayName, Persistance... instances) {}
 
-  /**
-   * Read object written down by {@link #write} from a byte buffer.
-   *
-   * @param buf the stored bytes
-   * @param readResolve either {@code null} or function to call for each object being stored to
-   *     provide a replacement
-   * @return the read object
-   * @throws java.io.IOException when an I/O problem happens
-   */
-  public static Reference<?> read(ByteBuffer buf, Function<Object, Object> readResolve)
-      throws IOException {
-    return PerInputImpl.readObject(buf, readResolve);
-  }
+    /**
+     * Merges instances in various pools into a single combined one.
+     *
+     * @param pools array of pools to merge together
+     * @return pool with all the provided instances
+     * @exception IllegalArgumentException if IDs of {@link Persistance} instances in the pools
+     *     collide
+     */
+    public static Pool merge(Pool... pools) {
+      return new Pool("merge of " + pools) {};
+    }
 
-  /**
-   * Writes down an object into an array of bytes. Use {@link #read} method to convert the array
-   * back to object.
-   *
-   * @param obj the object to persist
-   * @param writeReplace {@code null} or a function that allows to convert each object before
-   *     storing it down
-   * @return the array of bytes
-   * @throws IOException when an I/O problem happens
-   */
-  public static byte[] write(Object obj, Function<Object, Object> writeReplace) throws IOException {
-    return PerGenerator.writeObject(obj, writeReplace);
+    /**
+     * Read object written down by {@link #write} from an array. <br>
+     * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"} <br>
+     * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
+     *
+     * @param arr the stored bytes
+     * @param readResolve either {@code null} or function to call for each object being stored to
+     *     provide a replacement
+     * @return the read object
+     * @throws java.io.IOException when an I/O problem happens
+     */
+    public static Reference<?> read(byte[] arr, Function<Object, Object> readResolve)
+        throws IOException {
+      return read(ByteBuffer.wrap(arr), readResolve);
+    }
+
+    /**
+     * Read object written down by {@link #write} from a byte buffer.
+     *
+     * @param buf the stored bytes
+     * @param readResolve either {@code null} or function to call for each object being stored to
+     *     provide a replacement
+     * @return the read object
+     * @throws java.io.IOException when an I/O problem happens
+     */
+    public static Reference<?> read(ByteBuffer buf, Function<Object, Object> readResolve)
+        throws IOException {
+      return PerInputImpl.readObject(buf, readResolve);
+    }
+
+    /**
+     * Writes down an object into an array of bytes. Use {@link #read} method to convert the array
+     * back to object.
+     *
+     * @param obj the object to persist
+     * @param writeReplace {@code null} or a function that allows to convert each object before
+     *     storing it down
+     * @return the array of bytes
+     * @throws IOException when an I/O problem happens
+     */
+    public static byte[] write(Object obj, Function<Object, Object> writeReplace)
+        throws IOException {
+      return PerGenerator.writeObject(obj, writeReplace);
+    }
   }
 
   /**
