@@ -19,6 +19,10 @@ public final class MapExpressionsMethodGenerator {
   private final GeneratedClassContext ctx;
   private static final String METHOD_NAME = "mapExpressions";
 
+  private static final String DEF_ARG_CLASS =
+      "org.enso.compiler.core.ir.DefinitionArgument.Specified";
+  private static final String CALL_ARG_CLASS = "org.enso.compiler.core.ir.CallArgument.Specified";
+
   /**
    * @param mapExpressionsMethod Reference to {@code mapExpressions} method in the interface for
    *     which the class is generated.
@@ -214,20 +218,56 @@ public final class MapExpressionsMethodGenerator {
     return sb.toString();
   }
 
+  private boolean isProcessingDefinitionArgument() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(DEF_ARG_CLASS);
+  }
+
+  private boolean isProcessingCallArgument() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(CALL_ARG_CLASS);
+  }
+
   private String doMapExprCode() {
+    var specialHandling = new StringBuilder();
+    if (isProcessingDefinitionArgument()) {
+      specialHandling.append(
+          """
+          // Special case - name of DefinitionArgument is not applied.
+          // This means no `fn.apply` call on it.
+          assert this instanceof ${defArgClass};
+          if (ir == this.name()) {
+            return (T) ir.mapExpressions(fn);
+          }
+        """
+              .replace("${defArgClass}", DEF_ARG_CLASS));
+    }
+    if (isProcessingCallArgument()) {
+      specialHandling.append(
+          """
+          // Special case - name of CallArgument is not applied.
+          // This means no `fn.apply` call on it.
+          assert this instanceof ${callArgClass};
+          if (this.name().isDefined()
+              && ir == this.name().get()) {
+            return (T) ir.mapExpressions(fn);
+          }
+        """
+              .replace("${callArgClass}", CALL_ARG_CLASS));
+    }
     var code =
         """
       @SuppressWarnings("unchecked")
       private <T extends IR> T doMapExpr(
           T ir,
           java.util.function.Function<Expression, Expression> fn) {
+        ${specialHandling}
         // Either recurse to `mapExpression` or call `fn.apply` on the expression.
         return switch(ir) {
           case Expression expr -> (T) fn.apply(expr);
           default -> (T) ir.mapExpressions(fn);
         };
       }
-      """;
+      """
+            .replace("${specialHandling}", specialHandling.toString());
     return code;
   }
 
