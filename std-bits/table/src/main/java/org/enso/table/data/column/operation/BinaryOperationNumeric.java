@@ -4,19 +4,14 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import org.enso.base.CompareException;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageFacade;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.numeric.DoubleStorageFacade;
-import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 
 public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R> {
@@ -99,7 +94,7 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
     var rightType = right.getType();
     return switch (rightType) {
       case NullType nt -> true;
-      case BooleanType bt -> true;
+      case AnyObjectType at -> true;
       default -> canApplyMap(right, null);
     };
   }
@@ -107,14 +102,19 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
   @Override
   public ColumnStorage<R> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+    assert canApplyMap(left, rightValue);
+
     if (rightValue == null) {
       return applyNullMap(left, problemAggregator);
     }
 
     T rightValueTyped = adapter.getValidType().valueAsType(rightValue);
     if (rightValueTyped == null) {
-      throw new IllegalArgumentException(
-          "Unsupported right value type " + rightValue.getClass() + ".");
+      // If all are Nothing then will return a Nothing Boolean Storage
+      return StorageIterators.buildOverStorage(
+          left,
+          returnType.makeBuilder(left.getSize(), problemAggregator),
+          (b, index, value) -> b.append(onIncomparable(value, rightValue)));
     }
 
     return innerApplyMap(adapter.asTypedStorage(left), rightValueTyped, problemAggregator);
@@ -125,8 +125,26 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
       ColumnStorage<?> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
+    assert canApplyZip(left, right);
+
     if (NullType.INSTANCE.isOfType(right.getType())) {
       return applyNullMap(left, problemAggregator);
+    }
+
+    // Handle the case where right is Any or another type
+    if (!adapter.getValidType().isOfType(right.getType())) {
+      // Have a mismatch in types (could be AnyObjectType)
+      return StorageIterators.zipOverStorages(
+          adapter.asTypedStorage(left),
+          right,
+          size -> returnType.makeBuilder(size, problemAggregator),
+          preserveNulls,
+          (index, leftValue, rightValue) -> {
+            T rightValueTyped = adapter.getValidType().valueAsType(rightValue);
+            return rightValue != null && rightValueTyped == null
+                ? onIncomparable(leftValue, rightValue)
+                : doSingle(leftValue, rightValueTyped, index);
+          });
     }
 
     return innerApplyZip(

@@ -38,7 +38,7 @@ public final class Comparators {
       case TextType tt -> StringComparators.EQ;
       case BooleanType bt -> BooleanComparators.EQ;
       case NumericType nt -> NumericComparators.create(
-          leftStorage.getType(), right, NumericComparators.EQUAL_OPERATION);
+          leftStorage.getType(), right, NumericComparators.EQUAL_OPERATION, false);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
@@ -53,7 +53,7 @@ public final class Comparators {
       case TextType tt -> StringComparators.NEQ;
       case BooleanType bt -> BooleanComparators.NEQ;
       case NumericType nt -> NumericComparators.create(
-          leftStorage.getType(), right, NumericComparators.NOT_EQUAL_OPERATION);
+          leftStorage.getType(), right, NumericComparators.NOT_EQUAL_OPERATION, true);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
@@ -103,7 +103,7 @@ public final class Comparators {
     };
   }
 
-  public static BinaryOperation greaterThanEq(Column left, Object right) {
+  public static BinaryOperation<Boolean> greaterThanEq(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;

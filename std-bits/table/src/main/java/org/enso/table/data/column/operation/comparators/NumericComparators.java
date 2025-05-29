@@ -17,7 +17,7 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> {
+abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> {
   /**
    * An abstract class representing a numeric operation. This class defines the methods that must be
    * implemented by any numeric operation.
@@ -172,7 +172,7 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
         }
       };
 
-  public static BinaryOperation<Boolean> create(
+  static BinaryOperation<Boolean> create(
       StorageType<?> leftType, Object right, NumericComparator comparator) {
     var rightType = storageTypeForObject(right);
     if (leftType instanceof FloatType || rightType instanceof FloatType) {
@@ -188,10 +188,31 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
     }
   }
 
+  static BinaryOperation<Boolean> create(
+      StorageType<?> leftType, Object right, NumericComparator comparator, boolean valueOnOther) {
+    var rightType = storageTypeForObject(right);
+    if (leftType instanceof FloatType || rightType instanceof FloatType) {
+      return new NumericComparatorsDouble(comparator, valueOnOther);
+    } else if (leftType instanceof BigDecimalType || rightType instanceof BigDecimalType) {
+      return new NumericComparatorsBigDecimal(comparator, valueOnOther);
+    } else if (leftType instanceof BigIntegerType || rightType instanceof BigIntegerType) {
+      return new NumericComparatorsBigInteger(comparator, valueOnOther);
+    } else if (leftType instanceof IntegerType || rightType instanceof IntegerType) {
+      return new NumericComparatorsLong(comparator, valueOnOther);
+    } else {
+      throw new IllegalArgumentException("Unsupported type: " + leftType + " or " + rightType);
+    }
+  }
+
   protected final NumericComparator comparator;
 
   protected NumericComparators(NumericColumnAdapter<T> adapter, NumericComparator comparator) {
     super(adapter, true, BooleanType.INSTANCE);
+    this.comparator = comparator;
+  }
+
+  protected NumericComparators(NumericColumnAdapter<T> adapter, NumericComparator comparator, boolean valueOnOther) {
+    super(adapter, true, BooleanType.INSTANCE, valueOnOther);
     this.comparator = comparator;
   }
 
@@ -204,6 +225,10 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
   private static class NumericComparatorsDouble extends NumericComparators<Double> {
     public NumericComparatorsDouble(NumericComparator comparator) {
       super(DoubleColumnAdapter.INSTANCE, comparator);
+    }
+
+    public NumericComparatorsDouble(NumericComparator comparator, boolean valueOnOther) {
+      super(DoubleColumnAdapter.INSTANCE, comparator, valueOnOther);
     }
 
     @Override
@@ -243,6 +268,10 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
       super(BigDecimalColumnAdapter.INSTANCE, comparator);
     }
 
+    public NumericComparatorsBigDecimal(NumericComparator comparator, boolean valueOnOther) {
+      super(BigDecimalColumnAdapter.INSTANCE, comparator, valueOnOther);
+    }
+
     @Override
     protected Boolean doSingle(BigDecimal left, BigDecimal right, long index) {
       return comparator.doBigDecimal(left, right, index);
@@ -254,6 +283,10 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
       super(BigIntegerColumnAdapter.INSTANCE, comparator);
     }
 
+    public NumericComparatorsBigInteger(NumericComparator comparator, boolean valueOnOther) {
+      super(BigIntegerColumnAdapter.INSTANCE, comparator, valueOnOther);
+    }
+
     @Override
     protected Boolean doSingle(BigInteger left, BigInteger right, long index) {
       return comparator.doBigInteger(left, right, index);
@@ -263,6 +296,10 @@ public abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Bo
   private static class NumericComparatorsLong extends NumericComparators<Long> {
     public NumericComparatorsLong(NumericComparator operation) {
       super(LongColumnAdapter.INSTANCE, operation);
+    }
+
+    public NumericComparatorsLong(NumericComparator operation, boolean valueOnOther) {
+      super(LongColumnAdapter.INSTANCE, operation, valueOnOther);
     }
 
     @Override

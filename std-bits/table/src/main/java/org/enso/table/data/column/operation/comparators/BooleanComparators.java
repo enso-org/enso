@@ -9,7 +9,7 @@ import org.enso.table.data.column.operation.unary.NotOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 
-public final class BooleanComparators {
+final class BooleanComparators {
   public static final BinaryOperation<Boolean> EQ =
       new BinaryOperationBoolean(true, false, false) {
         @Override

@@ -4,7 +4,7 @@ import java.time.ZonedDateTime;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.storage.type.DateTimeType;
 
-public final class DateTimeComparators {
+final class DateTimeComparators {
   public static final BinaryOperation<Boolean> EQ =
       new GenericComparators<>(DateTimeType.INSTANCE, ZonedDateTime::isEqual, false);
   public static final BinaryOperation<Boolean> NEQ =

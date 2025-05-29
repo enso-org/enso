@@ -4,7 +4,7 @@ import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.storage.type.TextType;
 
-public final class StringComparators {
+final class StringComparators {
   public static final BinaryOperation<Boolean> EQ =
       new GenericComparators<>(TextType.VARIABLE_LENGTH, Text_Utils::equals, false);
   public static final BinaryOperation<Boolean> NEQ =

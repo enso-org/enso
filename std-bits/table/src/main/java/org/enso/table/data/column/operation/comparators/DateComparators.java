@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.storage.type.DateType;
 
-public final class DateComparators {
+final class DateComparators {
   public static final BinaryOperation<Boolean> EQ =
       new GenericComparators<>(DateType.INSTANCE, LocalDate::isEqual, false);
   public static final BinaryOperation<Boolean> NEQ =
