@@ -106,6 +106,10 @@ export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
 export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
 export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
 
+/** Unique identifier for a task to archive some assets to a `.zip`. */
+export type ZipJobId = newtype.Newtype<string, 'ZipJobId'>
+export const ZipJobId = newtype.newtypeConstructor<ZipJobId>()
+
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
 export const LabelName = newtype.newtypeConstructor<LabelName>()

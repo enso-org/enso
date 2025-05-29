@@ -15,6 +15,7 @@ import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
 import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
+import { getFileName } from '#/utilities/fileInfo'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import type { GetText } from '$/providers/text'
@@ -1702,7 +1703,7 @@ export default class RemoteBackend extends Backend {
 
   /** Set state of the project running in Hybrid mode as open in progress. */
   async setHybridOpenInProgress(id: backend.ProjectId, title: string): Promise<void> {
-    const path = remoteBackendPaths.getHybridSetOpenInProgress(id)
+    const path = remoteBackendPaths.getHybridSetOpenInProgressPath(id)
     const response = await this.post(path, {})
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'openProjectBackendError', title)
@@ -1713,7 +1714,7 @@ export default class RemoteBackend extends Backend {
 
   /** Set state of the project running in Hybrid mode as opened. */
   async setHybridOpened(id: backend.ProjectId, title: string): Promise<void> {
-    const path = remoteBackendPaths.getHybridSetOpened(id)
+    const path = remoteBackendPaths.getHybridSetOpenedPath(id)
     const response = await this.post(path, {})
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'openProjectBackendError', title)
@@ -1724,7 +1725,7 @@ export default class RemoteBackend extends Backend {
 
   /** Send ping notifying the backend that the project is running. */
   async ping(id: backend.ProjectId): Promise<void> {
-    const path = remoteBackendPaths.getHybridProjectPing(id)
+    const path = remoteBackendPaths.getHybridProjectPingPath(id)
     await this.post(path, {})
   }
 
@@ -1742,8 +1743,19 @@ export default class RemoteBackend extends Backend {
    * Export multiple files and pack into an archive.
    * @throws {Error} always.
    */
-  override exportArchive(_params: backend.ExportArchiveParams): Promise<backend.ExportedArchive> {
-    throw new Error('`exportArchive` is not implemented on the Remote Backend.')
+  override async exportArchive(
+    params: backend.ExportArchiveParams,
+  ): Promise<backend.ExportedArchive> {
+    const { assetIds, filePath } = params
+    const path = remoteBackendPaths.EXPORT_ARCHIVE_PATH
+    const response = await this.post(path, { assetIds })
+    const url = ''
+    await download.download({
+      url,
+      name: filePath != null ? getFileName(filePath) : undefined,
+      electronOptions: { path: filePath },
+    })
+    return { filePath }
   }
 
   /**

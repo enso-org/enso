@@ -1,6 +1,5 @@
 /** @file Paths used by the `RemoteBackend`. */
 import * as backend from '#/services/Backend'
-import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
 
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
 export const LIST_USERS_PATH = 'users'
@@ -233,22 +232,24 @@ export function getOauthCallbackPath(service: backend.CredentialInput['type']) {
 }
 
 /** Relative HTTP path to the "hybrid set open in progress" endpoint of the Cloud backend API. */
-export function getHybridSetOpenInProgress(projectId: backend.ProjectId) {
+export function getHybridSetOpenInProgressPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/hybrid_set_open_in_progress`
 }
 /** Relative HTTP path to the "hybrid set opened" endpoint of the Cloud backend API. */
-export function getHybridSetOpened(projectId: backend.ProjectId) {
+export function getHybridSetOpenedPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/hybrid_set_opened`
 }
 /** Relative HTTP path to the "hybrid ping" endpoint of the Cloud backend API. */
-export function getHybridProjectPing(projectId: backend.ProjectId) {
+export function getHybridProjectPingPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/hybrid_ping`
 }
 
-/** Unique identifier for a directory. */
-type DirectoryId = Newtype<string, 'DirectoryId'>
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-const DirectoryId = newtypeConstructor<DirectoryId>()
+export const EXPORT_ARCHIVE_PATH = 'assets/zip'
+/** Relative HTTP path to the "export archive job status" endpoint of the Cloud backend API. */
+export function getExportArchiveJobStatusPath(jobId: backend.ZipJobId) {
+  return `assets/zip/${jobId}`
+}
+
 /** The ID of the directory containing the home directories of all users. */
 export const USERS_DIRECTORY_ID = backend.DirectoryId('directory-0000000000000000000000users')
 /** The ID of the directory containing home directories of all teams. */
