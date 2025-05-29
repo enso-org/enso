@@ -41,8 +41,6 @@ import {
   GenericGrid,
   isError,
   isGenericGrid,
-  isSingleColumnOfActions,
-  SingleColumnOfActions,
 } from './TableVisualization/TableVisualisationTypes'
 import {
   convertFilterModel,
@@ -66,15 +64,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data =
-  | number
-  | string
-  | Error
-  | Matrix
-  | ObjectMatrix
-  | EnsoTableOrColumn
-  | SingleColumnOfActions
-  | GenericGrid
+type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | GenericGrid
 
 interface ValueType {
   constructor: string
@@ -904,15 +894,6 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (isSingleColumnOfActions(data_)) {
-    columnDefs.value = [
-      toLinkField('Value', {
-        tooltipValue: data_.child_label,
-        headerName: data_.visualization_header,
-        getChildAction: data_.get_child_node_action,
-      }),
-    ]
-    rowData.value = data_.data.map((name) => ({ Value: name }))
   } else if (isGenericGrid(data_)) {
     columnDefs.value = data_.headers.map((header) => {
       if (header.get_child_node_action) {

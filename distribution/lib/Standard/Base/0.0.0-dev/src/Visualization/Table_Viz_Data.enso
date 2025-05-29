@@ -14,9 +14,6 @@ type Table_Viz_Data
     ## Table Viz for errors
     Error error_display_text
 
-    ## Table Viz for a single column of clickable items
-    SingleColumnOfActions js_value data title tooltip child_node_action
-
     ## Table Viz for a generic grid
     GenericGrid headers data
 
@@ -25,7 +22,6 @@ type Table_Viz_Data
         case self of    
             Table_Viz_Data.Value _ -> self.json
             Table_Viz_Data.Error _ -> _make_json_for_error self.error_display_text
-            Table_Viz_Data.SingleColumnOfActions _ _ _ _ _ -> _make_json_for_single_column_of_actions self.js_value self.data self.title self.tooltip self.child_node_action
             Table_Viz_Data.GenericGrid _ _ -> _make_json_for_generic_grid self.headers self.data
 
 type Table_Viz_Header
@@ -38,9 +34,6 @@ private _make_json_for_generic_grid headers data =
 private _make_json_for_header header = case header of
     Table_Viz_Header.Label _ -> JS_Object.from_pairs [["visualization_header", header.name]]
     Table_Viz_Header.Link _ _ _ -> JS_Object.from_pairs [["visualization_header", header.name], ["child_label", header.tooltip], ["get_child_node_action", header.action]]
-
-private _make_json_for_single_column_of_actions js_value data title tooltip child_node_action =
-    JS_Object.from_pairs [["type", "Single_Column_Of_Actions"], ["json", js_value], ["data", data], ["visualization_header", title], ["child_label", tooltip], ["get_child_node_action", child_node_action]]
 
 private _make_json_for_error error_display_text =
     pairs = [["type", "Error"], ["error", error_display_text]]
