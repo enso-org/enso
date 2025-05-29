@@ -1,7 +1,9 @@
 /** @file A user display with a popover for more information. */
-import { Button, CopyButton, Popover, Text } from '#/components/AriaComponents'
+import { Button, CopyButton } from '#/components/Button'
+import { Popover } from '#/components/Dialog'
 import { TEXT_WITH_ICON } from '#/components/patterns'
 import { ProfilePicture } from '#/components/ProfilePicture'
+import { Text } from '#/components/Text'
 import type { OtherUser } from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { twMerge } from 'tailwind-merge'

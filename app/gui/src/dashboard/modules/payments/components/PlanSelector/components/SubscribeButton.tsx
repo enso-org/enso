@@ -1,6 +1,8 @@
 /** @file A button to subscribe to a plan. */
 import { getSalesEmail } from '#/appUtils'
-import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
 import { PLAN_TO_UPGRADE_LABEL_ID, TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
@@ -79,7 +81,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
       )}
 
       {!isDowngrade && (
-        <DialogTrigger
+        <Dialog.Trigger
           {...(disabled ? { defaultOpen: false }
           : defaultOpen == null ? {}
           : { defaultOpen })}
@@ -103,7 +105,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
             isTrialing={canTrial}
             title={getText('upgradeTo', getText(plan))}
           />
-        </DialogTrigger>
+        </Dialog.Trigger>
       )}
     </div>
   )

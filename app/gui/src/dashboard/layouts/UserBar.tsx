@@ -2,9 +2,12 @@
 import { SUBSCRIBE_PATH } from '#/appUtils'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
-import { Button, DialogTrigger, Menu, Popover, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog, Popover } from '#/components/Dialog'
+import { Menu } from '#/components/Menu'
 import { PaywallDialogButton } from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json' }
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
@@ -110,13 +113,13 @@ export default function UserBar(props: UserBarProps) {
         )}
 
         {shouldShowInviteButton && (
-          <DialogTrigger>
+          <Dialog.Trigger>
             <Button size="medium" variant="accent">
               {getText('invite')}
             </Button>
 
             <InviteUsersModal />
-          </DialogTrigger>
+          </Dialog.Trigger>
         )}
 
         {shouldShowUpgradeButton && (

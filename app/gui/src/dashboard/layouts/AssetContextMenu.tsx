@@ -13,7 +13,6 @@ import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import type * as assetRow from '#/components/dashboard/AssetRow'
-import Separator from '#/components/styled/Separator'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -21,6 +20,7 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import * as backendModule from '#/services/Backend'
 
 import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
+import { Separator } from '#/components/Separator'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -366,7 +366,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && <Separator hidden={hidden} />}
+        {isCloud && !hidden && <Separator className="my-0.5" />}
 
         {isCloud && (
           <ContextMenuEntry
@@ -377,7 +377,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && managesThisAsset && self != null && <Separator hidden={hidden} />}
+        {isCloud && managesThisAsset && self != null && !hidden && <Separator className="my-0.5" />}
         {asset.type === backendModule.AssetType.project && (
           <ContextMenuEntry
             hidden={hidden}
@@ -416,7 +416,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {pasteMenuEntry}
-        {canAddToThisDirectory && <Separator hidden={hidden} />}
+        {canAddToThisDirectory && !hidden && <Separator className="my-0.5" />}
         {canAddToThisDirectory && (
           <GlobalContextMenu
             noWrapper

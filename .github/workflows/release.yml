@@ -350,7 +350,7 @@ jobs:
     needs:
       - enso-build-ci-gen-draft-release-linux-amd64
     runs-on:
-      - macos-15-large
+      - macos-13
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
@@ -677,7 +677,7 @@ jobs:
       - enso-build-ci-gen-draft-release-linux-amd64
       - enso-build-ci-gen-job-upload-backend-macos-amd64
     runs-on:
-      - macos-15-large
+      - macos-13
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment

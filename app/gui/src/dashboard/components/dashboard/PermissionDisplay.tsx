@@ -1,11 +1,10 @@
 /** @file Colored border around icons and text indicating permissions. */
-import * as React from 'react'
-
 import type * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-
+import { Button } from '#/components/Button'
+import { Text } from '#/components/Text'
 import * as permissionsModule from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import * as React from 'react'
 
 /** Props for a {@link PermissionDisplay}. */
 export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren> {
@@ -21,9 +20,9 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
 
   const children =
     typeof childrenRaw !== 'string' ? childrenRaw : (
-      <ariaComponents.Text truncate="1" className="max-w-24 text-inherit">
+      <Text truncate="1" className="max-w-24 text-inherit">
         {childrenRaw}
-      </ariaComponents.Text>
+      </Text>
     )
 
   switch (permission.type) {
@@ -31,7 +30,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.admin:
     case permissionsModule.Permission.edit: {
       return (
-        <ariaComponents.Button
+        <Button
           size="custom"
           variant="custom"
           isDisabled={!onPress}
@@ -43,13 +42,13 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           onPress={onPress ?? (() => {})}
         >
           {children}
-        </ariaComponents.Button>
+        </Button>
       )
     }
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       return (
-        <ariaComponents.Button
+        <Button
           size="custom"
           variant="custom"
           className={tailwindMerge.twMerge(
@@ -73,7 +72,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           >
             {children}
           </div>
-        </ariaComponents.Button>
+        </Button>
       )
     }
   }

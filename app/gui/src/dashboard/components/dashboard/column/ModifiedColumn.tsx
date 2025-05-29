@@ -1,6 +1,6 @@
 /** @file A column displaying the time at which the asset was last modified. */
-import { Text } from '#/components/AriaComponents'
 import type { AssetColumnProps } from '#/components/dashboard/column'
+import { Text } from '#/components/Text'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 /** A column displaying the time at which the asset was last modified. */
