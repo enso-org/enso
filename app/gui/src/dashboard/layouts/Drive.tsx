@@ -5,6 +5,7 @@ import { Button } from '#/components/Button'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import * as result from '#/components/Result'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import { AssetPanel } from '#/layouts/AssetPanel'
@@ -158,9 +159,9 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
         <div className="grid flex-1 gap-3 overflow-hidden sm:grid-cols-[180px_minmax(0,1fr)]">
           <div className="grid-col-1 hidden flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1 sm:flex">
             <div className="flex flex-col gap-2">
-              <ariaComponents.Text variant="subtitle" weight="semibold">
+              <Text variant="subtitle" weight="semibold">
                 {getText('category')}
-              </ariaComponents.Text>
+              </Text>
               <CategorySwitcher category={category} setCategoryId={setCategory} />
             </div>
 
