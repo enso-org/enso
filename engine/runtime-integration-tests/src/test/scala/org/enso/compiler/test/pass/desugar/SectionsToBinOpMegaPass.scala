@@ -146,12 +146,14 @@ case object SectionsToBinOpMegaPass extends IRPass {
             .builder()
             .arguments(List(rightDefArg))
             .bodyReference(Reference.of(opCall))
+            .canBeTCO(true)
             .build()
           Function.Lambda
             .builder()
             .arguments(List(leftDefArg))
             .bodyReference(Reference.of(rightLam))
             .location(loc)
+            .canBeTCO(true)
             .build()
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
@@ -194,6 +196,8 @@ case object SectionsToBinOpMegaPass extends IRPass {
           .builder()
           .name(rightArgName.duplicate())
           .suspended(false)
+          .ascribedType(None)
+          .defaultValue(None)
           .build()
 
         val opCall = Application.Prefix
@@ -209,6 +213,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
           .builder()
           .arguments(List(rightDefArg))
           .bodyReference(Reference.of(opCall))
+          .canBeTCO(true)
           .build()
 
         Function.Lambda
@@ -216,6 +221,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
           .arguments(List(leftDefArg))
           .bodyReference(Reference.of(rightLambda))
           .location(loc)
+          .canBeTCO(true)
           .build()
 
       /* Note [Blanks in Sections]
@@ -283,6 +289,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
             .builder()
             .arguments(List(leftDefArg))
             .bodyReference(Reference.of(opCall))
+            .canBeTCO(true)
             .build()
 
           Function.Lambda
@@ -290,6 +297,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
             .arguments(List(rightDefArg))
             .bodyReference(Reference.of(leftLam))
             .location(loc)
+            .canBeTCO(true)
             .build()
         } else {
           val newArg = arg.mapExpressions(runExpression(_, inlineContext))
@@ -308,6 +316,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
             .arguments(List(leftDefArg))
             .bodyReference(Reference.of(opCall))
             .location(loc)
+            .canBeTCO(true)
             .build()
         }
     }
