@@ -136,21 +136,15 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
     ['lib/Standard/Microsoft/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
     [
       'lib/Standard/Microsoft/*/polyglot/java/netty-resolver-dns-native-macos-*.jar',
-      [
-        'META-INF/native/libnetty_resolver_dns_native_macos_*.jnilib'
-      ]
+      ['META-INF/native/libnetty_resolver_dns_native_macos_*.jnilib'],
     ],
     [
       'lib/Standard/Microsoft/*/polyglot/java/netty-tcnative-boringssl-static-*.jar',
-      [
-        'META-INF/native/libnetty_tcnative_osx_*.jnilib'
-      ]
+      ['META-INF/native/libnetty_tcnative_osx_*.jnilib'],
     ],
     [
       'lib/Standard/Microsoft/*/polyglot/java/netty-transport-native-kqueue-*.jar',
-      [
-        'META-INF/native/libnetty_transport_native_kqueue_*.jnilib'
-      ]
+      ['META-INF/native/libnetty_transport_native_kqueue_*.jnilib'],
     ],
     ['lib/Standard/Tableau/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
   ]
