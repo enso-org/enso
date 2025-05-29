@@ -1,8 +1,6 @@
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry, SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
-import { Opt } from '@/util/data/opt'
-import type { Doc } from '@/util/docParser'
 import { type ProjectPath } from '@/util/projectPath'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import type { SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
@@ -23,7 +21,7 @@ export interface FunctionDocs {
   id: SuggestionId
   name: ProjectPath
   arguments: SuggestionEntryArgument[]
-  sections: Sections
+  documentation: string
 }
 
 export interface TypeDocs {
@@ -31,7 +29,7 @@ export interface TypeDocs {
   id: SuggestionId
   name: ProjectPath
   arguments: SuggestionEntryArgument[]
-  sections: Sections
+  documentation: string
   methods: FunctionDocs[]
   constructors: FunctionDocs[]
 }
@@ -40,7 +38,7 @@ export interface ModuleDocs {
   kind: 'Module'
   id: SuggestionId
   name: ProjectPath
-  sections: Sections
+  documentation: string
   types: TypeDocs[]
   methods: FunctionDocs[]
 }
@@ -49,50 +47,14 @@ export interface LocalDocs {
   kind: 'Local'
   id: SuggestionId
   name: ProjectPath
-  sections: Sections
+  documentation: string
 }
 
 // === Sections ===
 
-export interface Example {
-  header?: string
-  body: Doc.HtmlString
-}
-
 /** Placeholder constructor. */
 export function placeholder(text: string): Placeholder {
   return { kind: 'Placeholder', text }
-}
-
-/**
- * Documentation sections split into three categories.
- *
- * These categories of sections are present in almost every documentation page.
- */
-export interface Sections {
-  tags: Doc.Section.Tag[]
-  synopsis: Doc.Section[]
-  examples: Example[]
-}
-
-// Split doc sections into categories.
-function filterSections(sections: Iterable<Doc.Section>): Sections {
-  const tags = []
-  const synopsis = []
-  const examples = []
-
-  for (const section of sections) {
-    const isTag = 'Tag' in section
-    const isExample = 'Marked' in section && section.Marked.mark === 'Example'
-    if (isTag) {
-      tags.push(section.Tag)
-    } else if (isExample) {
-      examples.push({ ...section.Marked } as Example)
-    } else {
-      synopsis.push(section)
-    }
-  }
-  return { tags, synopsis, examples }
 }
 
 // === Lookup ===
@@ -107,15 +69,6 @@ export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
   const handle = handleDocumentation[entry.kind]
   if (!handle) return placeholder(`Entry kind ${entry.kind} was not handled.`)
   return handle(db, entry as any, id)
-}
-
-/** @returns The raw documentation for the given entry, if available. */
-export function lookupRawDocumentation(db: SuggestionDb, id: SuggestionId): Opt<string> {
-  const entry = db.get(id)
-  // FIXME: revert
-  // if (!entry || !entry.isMarkdownDocs) return undefined
-  if (!entry) return undefined
-  return entry.rawDocumentation
 }
 
 function getChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): Docs[] {
@@ -166,7 +119,7 @@ const handleFunction: DocsHandler<
   id,
   name: entry.definitionPath,
   arguments: entry.arguments,
-  sections: filterSections(entry.documentation),
+  documentation: entry.rawDocumentation,
 })
 
 const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
@@ -177,14 +130,14 @@ const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
     kind: 'Local',
     id,
     name: entry.definitionPath,
-    sections: filterSections(entry.documentation),
+    documentation: entry.rawDocumentation,
   }),
   [SuggestionKind.Type]: (db, entry, id) => ({
     kind: 'Type',
     id,
     name: entry.definitionPath,
     arguments: entry.arguments,
-    sections: filterSections(entry.documentation),
+    documentation: entry.rawDocumentation,
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
     constructors: asFunctionDocs(getChildren(db, id, SuggestionKind.Constructor)),
   }),
@@ -192,7 +145,7 @@ const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
     kind: 'Module',
     id,
     name: entry.definitionPath,
-    sections: filterSections(entry.documentation),
+    documentation: entry.rawDocumentation,
     types: asTypeDocs(getChildren(db, id, SuggestionKind.Type)),
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
   }),

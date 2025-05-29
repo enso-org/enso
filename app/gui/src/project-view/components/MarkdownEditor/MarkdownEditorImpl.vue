@@ -300,7 +300,7 @@ defineExpose({
     list-style-position: outside;
     text-indent: -0.3em;
     /*noinspection CssUnresolvedCustomProperty*/
-    margin-left: calc(var(--cm-list-depth) * 0.57em + 1em);
+    margin-left: calc(var(--cm-list-depth) * 0.57em + 1.1em);
   }
 
   :global(.cm-OrderedList-item) {

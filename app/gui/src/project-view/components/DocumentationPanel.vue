@@ -2,18 +2,11 @@
 import Breadcrumbs, {
   type Item as Breadcrumb,
 } from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
-import DocsExamples from '@/components/DocumentationPanel/DocsExamples.vue'
 import DocsHeader from '@/components/DocumentationPanel/DocsHeader.vue'
 import DocsList from '@/components/DocumentationPanel/DocsList.vue'
-import DocsSynopsis from '@/components/DocumentationPanel/DocsSynopsis.vue'
-import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
 import { HistoryStack } from '@/components/DocumentationPanel/history'
-import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
-import {
-  lookupDocumentation,
-  lookupRawDocumentation,
-  placeholder,
-} from '@/components/DocumentationPanel/ir'
+import type { Docs, FunctionDocs, TypeDocs } from '@/components/DocumentationPanel/ir'
+import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
@@ -40,17 +33,6 @@ const documentation = computed<Docs>(() => {
     return placeholder('AI assistant mode: write query in natural language and press Enter.')
   const entry = props.selectedEntry
   return entry ? lookupDocumentation(db.entries, entry) : placeholder('No suggestion selected.')
-})
-
-const rawDocumentation = computed(() => {
-  const entry = props.selectedEntry
-  return entry ? lookupRawDocumentation(db.entries, entry) : undefined
-})
-
-const sections = computed<Sections>(() => {
-  const docs: Docs = documentation.value
-  const fallback = { tags: [], synopsis: [], examples: [] }
-  return docs.kind === 'Placeholder' ? fallback : docs.sections
 })
 
 const methods = computed<FunctionDocs[]>(() => {
@@ -175,20 +157,13 @@ function openDocs(url: string) {
       :methodPointer="methodPointer"
       :markdownDocs="markdownDocs"
     ></FunctionSignatureEditor>
-    <div v-if="rawDocumentation" class="markdownDocs">
-      <MarkdownEditor :content="rawDocumentation" :toolbar="false" />
-    </div>
+    <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
     <template v-else>
-      <DocsTags
-        v-if="sections.tags.length > 0"
-        class="tags"
-        :tags="sections.tags"
-        :groupColor="color"
-      />
+      <div class="markdownDocs">
+        <span v-if="documentation.documentation.length == 0">No documentation available.</span>
+        <MarkdownEditor v-else :content="documentation.documentation" :toolbar="false" />
+      </div>
       <div class="sections">
-        <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
-        <span v-if="sections.synopsis.length == 0">No documentation available.</span>
-        <DocsSynopsis :sections="sections.synopsis" />
         <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
         <DocsList
           :items="{ kind: 'Types', items: types }"
@@ -204,8 +179,6 @@ function openDocs(url: string) {
           :items="{ kind: 'Methods', items: methods }"
           @linkClicked="historyStack.record($event)"
         />
-        <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
-        <DocsExamples :examples="sections.examples" />
       </div>
     </template>
   </div>
@@ -217,16 +190,10 @@ function openDocs(url: string) {
   --enso-docs-methods-header-color: #1f71d3;
   --enso-docs-method-name-color: #1f71d3;
   --enso-docs-types-header-color: #1f71d3;
-  --enso-docs-examples-header-color: #6da85e;
-  --enso-docs-important-background-color: #edefe7;
-  --enso-docs-info-background-color: #e6f1f8;
-  --enso-docs-example-background-color: #e6f1f8;
   --enso-docs-background-color: var(--background-color);
   --enso-docs-text-color: rbga(0, 0, 0, 0.6);
-  --enso-docs-tag-background-color: #dcd8d8;
-  --enso-docs-code-background-color: #dddcde;
   font-family: var(--font-sans);
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 160%;
   color: var(--enso-docs-text-color);
   background-color: var(--enso-docs-background-color);

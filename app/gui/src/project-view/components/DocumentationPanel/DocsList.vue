@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { FunctionDocs, TypeDocs } from '@/components/DocumentationPanel/ir'
-import type { Doc } from '@/util/docParser'
 import { qnSplit } from '@/util/qualifiedName'
 import { computed } from 'vue'
+import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 import type {
   SuggestionEntryArgument,
   SuggestionId,
@@ -28,9 +28,12 @@ interface Types {
 
 type ListItems = Methods | Constructors | Types
 
-function firstParagraph(synopsis: Doc.Section[]): string | undefined {
-  if (synopsis[0] && 'Paragraph' in synopsis[0]) {
-    return synopsis[0].Paragraph.body
+function firstParagraph(docs: string): string | undefined {
+  const parsed = ensoMarkdownParser.parse(docs)
+  const cursor = parsed.cursor()
+  const firstParagraph = cursor.node.getChild('Paragraph')
+  if (firstParagraph && firstParagraph.type.name === 'Paragraph') {
+    return docs.slice(firstParagraph.from, firstParagraph.to)
   }
 }
 
@@ -44,7 +47,7 @@ function argumentsList(args: SuggestionEntryArgument[]): string {
 }
 
 const annotations = computed<Array<string | undefined>>(() => {
-  return props.items.items.map((item) => firstParagraph(item.sections.synopsis))
+  return props.items.items.map((item) => firstParagraph(item.documentation))
 })
 </script>
 
