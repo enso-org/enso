@@ -333,7 +333,7 @@ public class HyperFormat {
 
   public static void writeTable(String path, String schemaName, String tableName, Table table, boolean append) throws IOException {
     getProcess();
-    try (var connection = new Connection(process.getEndpoint(), path, append ? CreateMode.NONE : CreateMode.CREATE_IF_NOT_EXISTS)) {
+    try (var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
     TableDefinition tableDef;
     if (append && tableExists(schemaName, tableName, connection)) {
         tableDef = connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
