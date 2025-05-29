@@ -22,6 +22,7 @@ export interface FunctionDocs {
   name: ProjectPath
   arguments: SuggestionEntryArgument[]
   documentation: string
+  documentationSummary: string | undefined
 }
 
 export interface TypeDocs {
@@ -30,6 +31,7 @@ export interface TypeDocs {
   name: ProjectPath
   arguments: SuggestionEntryArgument[]
   documentation: string
+  documentationSummary: string | undefined
   methods: FunctionDocs[]
   constructors: FunctionDocs[]
 }
@@ -39,6 +41,7 @@ export interface ModuleDocs {
   id: SuggestionId
   name: ProjectPath
   documentation: string
+  documentationSummary: string | undefined
   types: TypeDocs[]
   methods: FunctionDocs[]
 }
@@ -120,6 +123,7 @@ const handleFunction: DocsHandler<
   name: entry.definitionPath,
   arguments: entry.arguments,
   documentation: entry.documentation,
+  documentationSummary: entry.documentationSummary,
 })
 
 const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
@@ -131,6 +135,7 @@ const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
     id,
     name: entry.definitionPath,
     documentation: entry.documentation,
+    documentationSummary: entry.documentationSummary,
   }),
   [SuggestionKind.Type]: (db, entry, id) => ({
     kind: 'Type',
@@ -140,6 +145,7 @@ const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
     documentation: entry.documentation,
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
     constructors: asFunctionDocs(getChildren(db, id, SuggestionKind.Constructor)),
+    documentationSummary: entry.documentationSummary,
   }),
   [SuggestionKind.Module]: (db, entry, id) => ({
     kind: 'Module',
@@ -148,5 +154,6 @@ const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
     documentation: entry.documentation,
     types: asTypeDocs(getChildren(db, id, SuggestionKind.Type)),
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
+    documentationSummary: entry.documentationSummary,
   }),
 }
