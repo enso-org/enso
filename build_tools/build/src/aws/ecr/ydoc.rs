@@ -31,21 +31,6 @@ pub async fn build_ydoc_polyglot_image(
     Ok(id)
 }
 
-/// Build the Node.js Ydoc Docker image.
-#[instrument(fields(%docker_context, %app_ydoc_server_nodejs))]
-pub async fn build_ydoc_nodejs_image(
-    docker_context: &generated::RepoRootToolsCiDockerYdocServerNodejs,
-    app_ydoc_server_nodejs: &generated::RepoRootAppYdocServerNodejs,
-    tag: String,
-) -> Result<ImageId> {
-    let mut opts = BuildOptions::new(app_ydoc_server_nodejs);
-    opts.file = Some(docker_context.dockerfile.to_path_buf());
-    opts.tags.push(tag);
-    opts.add_build_context_local("docker-tools", docker_context);
-    let id = Docker.build(opts).await?;
-    Ok(id)
-}
-
 #[cfg(test)]
 mod tests {
     use crate::repo::deduce_repository_path;

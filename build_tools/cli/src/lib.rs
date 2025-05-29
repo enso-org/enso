@@ -799,16 +799,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
 
                 enso_build::release::deploy_ydoc_polyglot_to_ecr(&ctx, args.ecr_repository).await?;
             }
-            Action::DeployYdocNodejs(args) => {
-                enso_build::web::install(&ctx.repo_root).await?;
-                Pnpm.cmd()?
-                    .with_current_dir(&ctx.repo_root)
-                    .run("-r")
-                    .arg("compile")
-                    .run_ok()
-                    .await?;
-                enso_build::release::deploy_ydoc_nodejs_to_ecr(&ctx, args.ecr_repository).await?;
-            }
             Action::DispatchBuildImage => {
                 if !(&ctx.triple.versions.version.pre.to_string().starts_with("nightly")) {
                     enso_build::repo::cloud::build_image_workflow_dispatch_input(

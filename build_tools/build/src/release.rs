@@ -257,19 +257,6 @@ pub async fn generate_ydoc_polyglot_image(
     .await
 }
 
-/// Build Node.js Ydoc Docker image.
-pub async fn generate_ydoc_nodejs_image(
-    context: &BuildContext,
-    tag: impl Into<String>,
-) -> Result<ide_ci::programs::docker::ImageId> {
-    crate::aws::ecr::ydoc::build_ydoc_nodejs_image(
-        &context.repo_root.tools.ci.docker.ydoc_server_nodejs,
-        &context.repo_root.app.ydoc_server_nodejs,
-        tag.into(),
-    )
-    .await
-}
-
 /// Perform deploy of the backend to the ECR.
 ///
 /// Downloads the Engine package from the release, builds the runtime image from it and pushes it
@@ -294,20 +281,6 @@ pub async fn deploy_ydoc_polyglot_to_ecr(context: &BuildContext, repository: Str
     let tag = format!("{}:{}", repository_uri, context.triple.versions.version);
     // We don't care about the image ID, we will refer to it by the tag.
     let _image_id = generate_ydoc_polyglot_image(context, &tag).await?;
-    let credentials = crate::aws::ecr::get_credentials(&client).await?;
-    Docker.while_logged_in(credentials, || async move { Docker.push(&tag).await }).await?;
-    Ok(())
-}
-
-/// Perform deploy of the Node.js Ydoc to the ECR.
-///
-/// Builds the Node.js Ydoc image and pushes it to our ECR.
-pub async fn deploy_ydoc_nodejs_to_ecr(context: &BuildContext, repository: String) -> Result {
-    let client = crate::aws::ecr::client_from_env().await;
-    let repository_uri = crate::aws::ecr::get_repository_uri(&client, &repository).await?;
-    let tag = format!("{}:{}", repository_uri, context.triple.versions.version);
-    // We don't care about the image ID, we will refer to it by the tag.
-    let _image_id = generate_ydoc_nodejs_image(context, &tag).await?;
     let credentials = crate::aws::ecr::get_credentials(&client).await?;
     Docker.while_logged_in(credentials, || async move { Docker.push(&tag).await }).await?;
     Ok(())

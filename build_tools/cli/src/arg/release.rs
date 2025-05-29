@@ -39,8 +39,6 @@ pub enum Action {
     DeployRuntime(DeployRuntime),
     /// Build the polyglot Ydoc image and push it to ECR.
     DeployYdocPolyglot(DeployYdocPolyglot),
-    /// Build the Node.js Ydoc image and push it to ECR.
-    DeployYdocNodejs(DeployYdocNodejs),
     /// Dispatches the Cloud build-image workflow.
     DispatchBuildImage,
     Publish,
