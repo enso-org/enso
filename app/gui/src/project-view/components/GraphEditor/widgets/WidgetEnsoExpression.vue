@@ -15,7 +15,10 @@ import { BodyBlock, MutableModule } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const astCode = computed(() => WidgetInput.valueRepr(props.input) ?? '')
+const astCode = computed(() => {
+  if (WidgetInput.isPlaceholder(props.input)) return '' // We display the value as placeholder.
+  return WidgetInput.valueRepr(props.input) ?? ''
+})
 
 function acceptValue(value: string): HandledUpdate {
   return props.onUpdate({
@@ -26,6 +29,11 @@ function acceptValue(value: string): HandledUpdate {
     directInteraction: true,
   })
 }
+
+const placeholder = computed(() => {
+  const input = props.input
+  return WidgetInput.isPlaceholder(input) ? (input.value ?? '') : ''
+})
 
 const moduleRoot = ref(BodyBlock.new([], MutableModule.Transient()))
 const extensions = [
@@ -45,7 +53,7 @@ declare module '@/providers/widgetRegistry' {
 export const widgetDefinition = defineWidget(
   EnsoExpression,
   {
-    priority: 1002,
+    priority: 150,
     score: Score.Perfect,
   },
   import.meta.hot,
@@ -58,6 +66,7 @@ export const widgetDefinition = defineWidget(
       v-model="astCode"
       :widgetTypeId="widgetTypeId"
       :input="input"
+      :placeholder="placeholder"
       :extensions="extensions"
       lineMode="single"
       :onAccepted="acceptValue"

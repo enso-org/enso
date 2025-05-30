@@ -10,7 +10,7 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
 import { useCloudBrowser } from '@/components/GraphEditor/widgets/WidgetFileBrowser/cloudBrowser'
 import { useLocalBrowser } from '@/components/GraphEditor/widgets/WidgetFileBrowser/localBrowser'
-import { CustomDropdownItemsKey } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
+import { withDropdownItems } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import {
   type CustomDropdownItem,
   ExpressionTag,
@@ -90,13 +90,7 @@ const items = computed((): (CustomDropdownItem | ExpressionTag)[] => [
   ...textSecretsItems.value,
 ])
 
-const innerWidgetInput = computed(() => {
-  const existingItems = props.input[CustomDropdownItemsKey] ?? []
-  return {
-    ...props.input,
-    [CustomDropdownItemsKey]: [...existingItems, ...items.value],
-  }
-})
+const innerWidgetInput = computed(() => withDropdownItems(props.input, items.value))
 </script>
 
 <script lang="ts">

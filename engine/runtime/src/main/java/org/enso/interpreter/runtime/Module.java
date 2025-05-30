@@ -245,7 +245,7 @@ public final class Module extends EnsoObject {
    * @return true iff this module is private (project-private).
    */
   public boolean isPrivate() {
-    return ir.isPrivate();
+    return ir == null || isSynthetic() || ir.isPrivate();
   }
 
   /**

@@ -1,22 +1,15 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-
-import { unsafeWriteValue } from '#/utilities/write'
-
-import * as modalProvider from '#/providers/ModalProvider'
-import { useText } from '$/providers/react'
-
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import Label from '#/components/dashboard/Label'
-import FocusRing from '#/components/styled/FocusRing'
-
+import { DIALOG_BACKGROUND } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
+import FocusRing from '#/components/styled/FocusRing'
+import { Text } from '#/components/Text'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
+import * as modalProvider from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import type { Label as BackendLabel } from '#/services/Backend'
 import * as array from '#/utilities/array'
@@ -24,9 +17,13 @@ import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { unsafeWriteValue } from '#/utilities/write'
 import { createStore, useStore } from '#/utilities/zustand'
+import { useText } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
+import * as detect from 'enso-common/src/detect'
 import { AnimatePresence, motion } from 'framer-motion'
+import * as React from 'react'
 
 /** The reason behind a new query. */
 enum QuerySource {
@@ -111,7 +108,7 @@ function Tags(props: InternalTagsProps) {
             []
           : [
               <FocusRing key={key}>
-                <ariaComponents.Button
+                <Button
                   variant="outline"
                   size="xsmall"
                   className="min-w-12"
@@ -121,7 +118,7 @@ function Tags(props: InternalTagsProps) {
                   }}
                 >
                   {tag + ':'}
-                </ariaComponents.Button>
+                </Button>
               </FocusRing>,
             ]
       })}
@@ -479,7 +476,7 @@ const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className={ariaComponents.DIALOG_BACKGROUND({
+            className={DIALOG_BACKGROUND({
               className:
                 'absolute left-0 right-0 top-0 z-1 grid w-full overflow-hidden rounded-default border-0.5 border-primary/20 -outline-offset-1 outline-primary',
             })}
@@ -596,9 +593,9 @@ const SuggestionRenderer = React.memo(function SuggestionRenderer(props: Suggest
         }
       }}
     >
-      <ariaComponents.Text variant="body" truncate="1" className="w-full">
+      <Text variant="body" truncate="1" className="w-full">
         {suggestion.render()}
-      </ariaComponents.Text>
+      </Text>
     </aria.Button>
   )
 })

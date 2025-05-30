@@ -1,15 +1,31 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as z from 'zod'
-
-import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
-import { useMutation } from '@tanstack/react-query'
-
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import {
+  ComboBox,
+  DatePicker,
+  FormDropdown,
+  Input,
+  MultiSelector,
+  Selector,
+} from '#/components/Inputs'
+import { Text } from '#/components/Text'
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useGetOrdinal } from '#/hooks/ordinalHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
+import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type Backend from '#/services/Backend'
 import type {
   ProjectExecutionInfo,
   ProjectExecutionRepeatInfo,
   ProjectId,
 } from '#/services/Backend'
+import { useText } from '$/providers/react'
+import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
+import { useMutation } from '@tanstack/react-query'
 import {
   PARALLEL_MODE_TO_DESCRIPTION_ID,
   PARALLEL_MODE_TO_TEXT_ID,
@@ -17,28 +33,6 @@ import {
   PROJECT_PARALLEL_MODES,
   type ProjectAsset,
 } from 'enso-common/src/services/Backend'
-
-import {
-  Button,
-  ButtonGroup,
-  ComboBox,
-  DatePicker,
-  Dialog,
-  DialogDismiss,
-  Form,
-  FormDropdown,
-  Input,
-  MultiSelector,
-  Selector,
-  Text,
-} from '#/components/AriaComponents'
-import { backendMutationOptions } from '#/hooks/backendHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useGetOrdinal } from '#/hooks/ordinalHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '$/providers/react'
 import {
   firstProjectExecutionOnOrAfter,
   nextProjectExecutionDate,
@@ -62,6 +56,7 @@ import {
   zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
 import { useEffect, useRef, useState } from 'react'
+import * as z from 'zod'
 
 // This is a SAFE upcast.
 // eslint-disable-next-line no-restricted-syntax
@@ -417,15 +412,15 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         </details>
       )}
 
-      <ButtonGroup>
+      <Button.Group>
         <Form.Submit />
 
         {onCancel ?
           <Button variant="outline" onPress={onCancel}>
             {getText('cancel')}
           </Button>
-        : <DialogDismiss />}
-      </ButtonGroup>
+        : <Dialog.Dismiss />}
+      </Button.Group>
 
       <Form.FormError />
     </Form>

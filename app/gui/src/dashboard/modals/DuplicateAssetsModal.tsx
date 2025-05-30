@@ -1,37 +1,29 @@
 /** @file A modal opened when uploaded assets. */
-import * as React from 'react'
-
-import { useText } from '$/providers/react'
-
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import AssetSummary from '#/components/dashboard/AssetSummary'
-import Modal from '#/components/Modal'
-
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-
-import {
-  Button,
-  Dialog,
-  Form,
-  Input,
-  Menu,
-  Popover,
-  Separator,
-  Text,
-} from '#/components/AriaComponents'
+import { Dialog, Popover } from '#/components/Dialog'
+import { Form } from '#/components/Form'
 import { Icon } from '#/components/Icon'
+import { Input } from '#/components/Inputs'
+import { Menu } from '#/components/Menu'
+import Modal from '#/components/Modal'
+import { Separator } from '#/components/Separator'
+import { Text } from '#/components/Text'
 import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/hooks/backendHooks'
 import { useMount } from '#/hooks/mountHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategory } from '#/layouts/Drive/Categories'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import { FilterBy } from '#/services/Backend'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
 import { regexEscape } from '#/utilities/string'
+import { useText } from '$/providers/react'
 import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query'
+import * as React from 'react'
 import { Fragment } from 'react'
 import invariant from 'tiny-invariant'
 
@@ -197,7 +189,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   : getText('projectsWithoutConflicts', nonConflictingFileCount)}
                 </aria.Text>
               )}
-              <ariaComponents.Button
+              <Button
                 variant="outline"
                 isDisabled={didUploadNonConflicting}
                 onPress={async () => {
@@ -206,7 +198,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 }}
               >
                 {didUploadNonConflicting ? getText('uploaded') : getText('upload')}
-              </ariaComponents.Button>
+              </Button>
             </div>
           ))}
         {firstConflict && (
@@ -225,8 +217,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               />
             </div>
             {count > 1 && (
-              <ariaComponents.ButtonGroup>
-                <ariaComponents.Button
+              <Button.Group>
+                <Button
                   variant="outline"
                   onPress={async () => {
                     switch (firstConflict.new.type) {
@@ -243,9 +235,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   }}
                 >
                   {getText('update')}
-                </ariaComponents.Button>
+                </Button>
 
-                <ariaComponents.Button
+                <Button
                   variant="outline"
                   onPress={() => {
                     doRename([firstConflict])
@@ -264,8 +256,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   {firstConflict.new.type === backendModule.AssetType.file ?
                     getText('renameNewFile')
                   : getText('renameNewProject')}
-                </ariaComponents.Button>
-              </ariaComponents.ButtonGroup>
+                </Button>
+              </Button.Group>
             )}
           </>
         )}
@@ -284,8 +276,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           </aria.Text>
         )}
 
-        <ariaComponents.ButtonGroup className="relative">
-          <ariaComponents.Button
+        <Button.Group className="relative">
+          <Button
             variant="submit"
             loading={isLoading}
             onPress={async () => {
@@ -300,9 +292,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             }}
           >
             {count === 1 ? getText('update') : getText('updateAll')}
-          </ariaComponents.Button>
+          </Button>
 
-          <ariaComponents.Button
+          <Button
             variant="accent"
             loading={isLoading}
             onPress={async () => {
@@ -321,11 +313,11 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             : firstConflict?.new.type === backendModule.AssetType.file ?
               getText('renameNewFiles')
             : getText('renameNewProjects')}
-          </ariaComponents.Button>
-          <ariaComponents.Button variant="outline" loading={isLoading} onPress={unsetModal}>
+          </Button>
+          <Button variant="outline" loading={isLoading} onPress={unsetModal}>
             {getText('cancel')}
-          </ariaComponents.Button>
-        </ariaComponents.ButtonGroup>
+          </Button>
+        </Button.Group>
       </form>
     </Modal>
   )

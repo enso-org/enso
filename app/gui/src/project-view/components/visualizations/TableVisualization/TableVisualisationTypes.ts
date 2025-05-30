@@ -15,26 +15,26 @@ export function isError(data: unknown): data is Error {
   )
 }
 
-/** Table Viz for a single column of clickable items. */
-export interface SingleColumnOfActions {
-  type: 'Single_Column_Of_Actions'
-  column_count: number
+export interface GenericGrid {
+  type: 'Generic_Grid'
+  headers: Header[]
+  data: unknown[][]
+
+  // TODO: Remove all_rows_count – not used, but we need to fix the type logic
   all_rows_count: number
-  data: string[]
-  json: unknown[][]
-  get_child_node_action: string
-  child_label: string
+}
+export interface Header {
   visualization_header: string
+  get_child_node_action?: string
+  child_label?: string
 }
 
-/** Is this a Table Viz for a single column of clickable items? */
-export function isSingleColumnOfActions(data: unknown): data is SingleColumnOfActions {
+/** Is this a Table Viz for a generic grid? */
+export function isGenericGrid(data: unknown): data is GenericGrid {
   return (
     typeof data === 'object' &&
     data !== null &&
     'type' in data &&
-    (data as any).type === 'Single_Column_Of_Actions' &&
-    'data' in data &&
-    Array.isArray((data as any).data)
+    (data as any).type === 'Generic_Grid'
   )
 }

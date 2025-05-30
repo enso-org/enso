@@ -153,6 +153,11 @@ pub struct BuildConfigurationFlags {
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
     pub build_benchmarks: bool,
+    /// Whether the small JDK should be build with `jlink` before running
+    /// any tests.
+    pub build_small_jdk: bool,
+    /// If `build_small_jdk` is true, this is the directory where the small JDK will be placed.
+    pub small_jdk_dir: Option<PathBuf>,
     /// Whether the Enso-written benchmarks should be checked whether they compile.
     ///
     /// Note that this does not run benchmark, only ensures that they are buildable.
@@ -299,6 +304,8 @@ impl Default for BuildConfigurationFlags {
             test_jvm: false,
             test_standard_library: None,
             extra_engine_runner_args: None,
+            build_small_jdk: false,
+            small_jdk_dir: None,
             build_benchmarks: false,
             check_enso_benchmarks: false,
             execute_benchmarks: default(),

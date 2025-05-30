@@ -1,20 +1,6 @@
 /** @file A calendar showing executions of a project. */
 import { useState } from 'react'
 
-import {
-  CalendarDate,
-  getLocalTimeZone,
-  now,
-  startOfMonth,
-  toCalendarDate,
-  today,
-  toZoned,
-  type ZonedDateTime,
-} from '@internationalized/date'
-import { useSuspenseQuery } from '@tanstack/react-query'
-
-import { getProjectExecutionRepetitionsForDateRange } from 'enso-common/src/services/Backend/projectExecution'
-
 import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
@@ -26,7 +12,10 @@ import {
   CalendarHeaderCell,
   Heading,
 } from '#/components/aria'
-import { Button, DialogTrigger, Form, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Text } from '#/components/Text'
 import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
@@ -40,6 +29,18 @@ import {
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
+import {
+  CalendarDate,
+  getLocalTimeZone,
+  now,
+  startOfMonth,
+  toCalendarDate,
+  today,
+  toZoned,
+  type ZonedDateTime,
+} from '@internationalized/date'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { getProjectExecutionRepetitionsForDateRange } from 'enso-common/src/services/Backend/projectExecution'
 import { useAssetPanelCurrentItem } from '../AssetPanelState'
 import type { AssetPanelProps } from './types'
 
@@ -214,14 +215,14 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
           </Calendar>
         )}
       />
-      <DialogTrigger>
+      <Dialog.Trigger>
         <Button variant="outline">{getText('newProjectExecution')}</Button>
         <NewProjectExecutionModal
           backend={backend}
           item={item}
           defaultDate={toZoned(selectedDate, timeZone).set({ hour: now(timeZone).hour })}
         />
-      </DialogTrigger>
+      </Dialog.Trigger>
       <Text>{getText('projectSessionsOnX', selectedDate.toString())}</Text>
       {projectExecutionsForToday.length === 0 ?
         <Text color="disabled">{getText('noProjectExecutions')}</Text>

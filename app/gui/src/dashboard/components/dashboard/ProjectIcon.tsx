@@ -1,26 +1,19 @@
 /** @file An interactive button indicating the status of a project. */
-
 import PlayIcon from '#/assets/play.svg'
 import StopIcon from '#/assets/stop.svg'
-
-import * as projectHooks from '#/hooks/projectHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import { useText } from '$/providers/react'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
-
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-
+import { Button } from '#/components/Button'
 import { Spinner } from '#/components/Spinner'
+import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import * as projectHooks from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
+import * as authProvider from '#/providers/AuthProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import { projectsStore } from '#/providers/ProjectsProvider/hooks'
+import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
@@ -161,7 +154,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.IS_OPENING[state]:
       return (
         <div className="relative flex">
-          <ariaComponents.Button
+          <Button
             size="large"
             variant="icon"
             extraClickZone="xsmall"
@@ -186,7 +179,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       return (
         <div className="flex flex-row gap-0.5">
           <div className="relative flex">
-            <ariaComponents.Button
+            <Button
               size="large"
               variant="icon"
               extraClickZone="xsmall"
@@ -210,7 +203,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       )
     default:
       return (
-        <ariaComponents.Button
+        <Button
           size="large"
           variant="icon"
           icon={PlayIcon}

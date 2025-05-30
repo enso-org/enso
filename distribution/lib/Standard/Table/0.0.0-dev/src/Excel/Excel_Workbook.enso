@@ -16,7 +16,7 @@ from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
-from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data
+from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 import project.Column.Column
 import project.Columns_To_Keep.Columns_To_Keep
@@ -475,4 +475,4 @@ Read_Many_As_Merged_Table_Strategy.from (that:Excel_Workbook) =
 
 ## PRIVATE
 Table_Viz_Data.from (that:Excel_Workbook) = 
-    Table_Viz_Data.SingleColumnOfActions that.to_js_object that.sheet_names "worksheets" "worksheet" "read"
+    Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "worksheets" "worksheet" "read"] [that.sheet_names]

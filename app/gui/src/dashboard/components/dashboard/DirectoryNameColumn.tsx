@@ -1,5 +1,5 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
-import { Button } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'

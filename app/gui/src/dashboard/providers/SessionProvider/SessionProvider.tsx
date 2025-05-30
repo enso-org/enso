@@ -2,17 +2,10 @@
  * @file Provider for the {@link SessionContextType}, which contains information about the
  * currently authenticated user's session.
  */
-import * as React from 'react'
-
-import * as sentry from '@sentry/vue'
-import * as reactQuery from '@tanstack/react-query'
-
-import * as errorModule from '#/utilities/error'
-
 import type * as cognito from '#/authentication/cognito'
 import { CognitoErrorType, type CognitoUser, type ISessionProvider } from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
-import { Dialog } from '#/components/AriaComponents'
+import { Dialog } from '#/components/Dialog'
 import { Result } from '#/components/Result'
 import { useThrottledAsyncCallback } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -20,9 +13,13 @@ import * as gtag from '#/hooks/gtagHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { unsetModal } from '#/providers/ModalProvider'
 import { NotAuthorizedError } from '#/services/Backend'
+import { UnreachableCaseError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useHttpClient, useText } from '$/providers/react'
+import * as sentry from '@sentry/vue'
+import * as reactQuery from '@tanstack/react-query'
+import * as React from 'react'
 import { toast } from 'react-toastify'
 import { SessionContext } from './hooks'
 import type { SessionContextType, SessionProviderProps } from './types'
@@ -129,7 +126,7 @@ export function SessionProvider(props: SessionProviderProps) {
           return
         }
         default: {
-          throw new errorModule.UnreachableCaseError(result.val.type)
+          throw new UnreachableCaseError(result.val.type)
         }
       }
     }
@@ -238,7 +235,7 @@ export function SessionProvider(props: SessionProviderProps) {
             break
           }
           default: {
-            throw new errorModule.UnreachableCaseError(event)
+            throw new UnreachableCaseError(event)
           }
         }
       }),

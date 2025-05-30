@@ -1,8 +1,11 @@
 /** @file A tray for displaying notifications. */
 import InboxIcon from '#/assets/inbox.svg'
-import { Button, Popover, StatusBadge, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Popover } from '#/components/Dialog'
 import { Result } from '#/components/Result'
+import { StatusBadge } from '#/components/StatusBadge'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import { DialogTrigger, GridList, GridListItem } from '#/components/aria'
 import { useText } from '$/providers/react'
 import { useState } from 'react'
