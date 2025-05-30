@@ -34,6 +34,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
 import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
+import { NameColumn } from '#/pages/dashboard/components/column'
 import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import {
   Column,
@@ -43,7 +44,6 @@ import {
   DEFAULT_ENABLED_COLUMNS,
   getColumnList,
 } from '#/pages/dashboard/components/column/columnUtils'
-import NameColumn from '#/pages/dashboard/components/column/NameColumn'
 import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
 import Label from '#/pages/dashboard/components/Label'
 import { useFullUserSession } from '#/providers/AuthProvider'
