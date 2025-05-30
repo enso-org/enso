@@ -408,7 +408,7 @@ private static void insertData(Table table, TableDefinition tableDef, Connection
                 .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
                 .toArray(String[]::new);
 
-            validateNoExtraColumns(table, existingColumnNames);
+            validateNoExtraColumnsByName(table, existingColumnNames);
             return Arrays.stream(existingColumnNames)
                     .map(name -> Arrays.stream(table.getColumns())
                             .filter(col -> col.getName().equals(name))
@@ -417,6 +417,7 @@ private static void insertData(Table table, TableDefinition tableDef, Connection
                             .orElseGet(() -> new NullStorage(numberOfRows)))
                     .toArray(ColumnStorage[]::new);
         } else { // match by position
+        validateNoExtraColumnsByPosition(table, tableDef);
         Column[] sourceColumns = table.getColumns();
         int defColumnCount = tableDef.getColumns().size();
 
@@ -450,7 +451,7 @@ private static void addValueToInserter(Inserter inserter, ColumnStorage storage,
     }
 }
 
-private static void validateNoExtraColumns(Table table, String[] allowedColumnNames) {
+private static void validateNoExtraColumnsByName(Table table, String[] allowedColumnNames) {
     Set<String> allowed = Set.of(allowedColumnNames);
 
 String[] extraColumns = Arrays.stream(table.getColumns())
@@ -460,6 +461,19 @@ String[] extraColumns = Arrays.stream(table.getColumns())
 
 if (extraColumns.length > 0) {
     throw new HyperUnmatchedColumns(extraColumns);
+    }
+}
+
+private static void validateNoExtraColumnsByPosition(Table table, TableDefinition tableDef) {
+    int tableColumnCount = table.getColumns().length;
+    int defColumnCount = tableDef.getColumns().size();
+
+    if (tableColumnCount > defColumnCount) {
+        String[] extraColumnNames = IntStream.range(defColumnCount, tableColumnCount)
+            .mapToObj(i -> table.getColumns()[i].getName())
+            .toArray(String[]::new);
+
+        throw new HyperUnmatchedColumns(extraColumnNames);
     }
 }
 
