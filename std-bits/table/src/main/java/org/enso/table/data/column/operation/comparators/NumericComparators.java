@@ -49,7 +49,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
 
         @Override
         boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
-          return a.equals(b);
+          return a.compareTo(b) == 0;
         }
 
         @Override
@@ -74,7 +74,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
 
         @Override
         boolean doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
-          return !a.equals(b);
+          return a.compareTo(b) != 0;
         }
 
         @Override

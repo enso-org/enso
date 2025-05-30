@@ -958,7 +958,8 @@ apply_unary_map column:Column new_name:Text function expected_result_type:Value_
         In_Memory_Column.from_java_column map_column
 
 private _java_other other =
-    if other.is_a Column then (other:In_Memory_Column).java_column else other
+    if other.is_a Column then (other:In_Memory_Column).java_column else
+        enso_to_java other
 
 private _call_comparator left other new_name ~comparator fallback =
     case (Comparators.isSupported (left:In_Memory_Column).java_column) of
