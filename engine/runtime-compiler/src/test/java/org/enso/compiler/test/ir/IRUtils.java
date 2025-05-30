@@ -15,6 +15,10 @@ public final class IRUtils {
     return new Name.Literal(lit, false, null, Option.empty(), new MetadataStorage());
   }
 
+  public static Name.Literal literal(String lit, MetadataStorage passData) {
+    return new Name.Literal(lit, false, null, Option.empty(), passData);
+  }
+
   public static Empty emptyIr() {
     return Empty.builder().build();
   }
