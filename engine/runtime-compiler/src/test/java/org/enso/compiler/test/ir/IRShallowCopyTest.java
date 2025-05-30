@@ -45,7 +45,7 @@ import scala.Option;
  * boolean) IR.duplicate}.
  */
 @RunWith(Parameterized.class)
-public class IRCopyTest {
+public class IRShallowCopyTest {
 
   @Parameters(name = "{0}")
   public static List<TestInput> parameters() {
@@ -141,7 +141,7 @@ public class IRCopyTest {
 
   private final TestInput testInput;
 
-  public IRCopyTest(TestInput testInput) {
+  public IRShallowCopyTest(TestInput testInput) {
     this.testInput = testInput;
   }
 
