@@ -12,7 +12,7 @@ import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import type * as assetRow from '#/components/dashboard/AssetRow'
+import type * as assetRow from '#/pages/dashboard/components/AssetRow'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'

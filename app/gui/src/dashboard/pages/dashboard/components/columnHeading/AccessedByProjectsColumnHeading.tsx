@@ -1,9 +1,9 @@
 /** @file A heading for the "Accessed by projects" column. */
 import { Button } from '#/components/Button'
-import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
-import { Column } from '#/components/dashboard/column/columnUtils'
 import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import type { AssetColumnHeadingProps } from '#/pages/dashboard/components/column'
+import { Column } from '#/pages/dashboard/components/column/columnUtils'
 import { useText } from '$/providers/react'
 
 /** A heading for the "Accessed by projects" column. */

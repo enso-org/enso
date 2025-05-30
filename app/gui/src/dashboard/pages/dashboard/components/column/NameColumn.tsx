@@ -1,10 +1,10 @@
 /** @file The icon and name of an {@link backendModule.Asset}. */
-import type { AssetColumnProps } from '#/components/dashboard/column'
-import DatalinkNameColumn from '#/components/dashboard/DatalinkNameColumn'
-import DirectoryNameColumn from '#/components/dashboard/DirectoryNameColumn'
-import FileNameColumn from '#/components/dashboard/FileNameColumn'
-import ProjectNameColumn from '#/components/dashboard/ProjectNameColumn'
-import SecretNameColumn from '#/components/dashboard/SecretNameColumn'
+import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import DatalinkNameColumn from '#/pages/dashboard/components/DatalinkNameColumn'
+import DirectoryNameColumn from '#/pages/dashboard/components/DirectoryNameColumn'
+import FileNameColumn from '#/pages/dashboard/components/FileNameColumn'
+import ProjectNameColumn from '#/pages/dashboard/components/ProjectNameColumn'
+import SecretNameColumn from '#/pages/dashboard/components/SecretNameColumn'
 
 import * as backendModule from '#/services/Backend'
 

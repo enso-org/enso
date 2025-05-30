@@ -1,8 +1,8 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
 import { Button } from '#/components/Button'
-import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'

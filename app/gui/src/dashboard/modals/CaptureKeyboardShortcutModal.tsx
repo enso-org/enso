@@ -1,9 +1,9 @@
 /** @file A modal for capturing an arbitrary keyboard shortcut. */
 import { Button } from '#/components/Button'
-import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
 import { Text } from '#/components/Text'
+import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import { unsetModal } from '#/providers/ModalProvider'
 import {
   modifierFlagsForEvent,
