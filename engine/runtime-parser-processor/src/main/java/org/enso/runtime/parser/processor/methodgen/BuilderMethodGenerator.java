@@ -3,11 +3,6 @@ package org.enso.runtime.parser.processor.methodgen;
 import java.util.stream.Collectors;
 import org.enso.runtime.parser.processor.ClassField;
 import org.enso.runtime.parser.processor.GeneratedClassContext;
-import org.enso.runtime.parser.processor.field.Field;
-import org.enso.runtime.parser.processor.field.ListField;
-import org.enso.runtime.parser.processor.field.OptionField;
-import org.enso.runtime.parser.processor.field.OptionListField;
-import org.enso.runtime.parser.processor.field.PersistanceReferenceField;
 import org.enso.runtime.parser.processor.utils.Utils;
 
 /**
@@ -93,81 +88,44 @@ public class BuilderMethodGenerator {
 
   private String copyConstructor() {
     var sb = new StringBuilder();
+    var docs =
+        """
+        /**
+         * Copy builder. Creates a <i>shallow</i> copy of the given object.
+         *
+         * <p>Using this copy builder is equivalent to calling {@code copy} method,
+         * with appropriate parameters set to different values.
+         *
+         * <p>For more information about the copy semantics, see
+         * {@link org.enso.compiler.core.IR}.
+         *
+         * @param obj the object from which the <emph>shallow</emph> copy is made.
+         */
+        """;
+    sb.append(docs);
     sb.append("Builder(")
         .append(generatedClassContext.getProcessedClass().getClazz().getSimpleName())
         .append(" obj) {")
         .append(System.lineSeparator());
-    var metaFieldsCopyCode = """
-        this.diagnostics = obj.diagnosticsCopy();
-        this.passData = obj.passData.copy();
-        if (obj.location != null) {
-          this.location = new IdentifiedLocation(obj.location.start(), obj.location.end(), obj.location.uuid());
-        } else {
-          this.location = null;
-        }
-        this.id = obj.id;
-        """;
-    sb.append(Utils.indent(metaFieldsCopyCode));
-    sb.append(System.lineSeparator());
+    // Meta fields are accessed directly.
+    for (var metaField : generatedClassContext.getMetaFields()) {
+      sb.append("  ")
+          .append("this.")
+          .append(metaField.name())
+          .append(" = obj.")
+          .append(metaField.name())
+          .append(";")
+          .append(System.lineSeparator());
+    }
+    // Most user fields are accessed via getters
     for (var userField : generatedClassContext.getUserFields()) {
-      var code = switch (userField) {
-        case OptionListField optionListField -> """
-            if (obj.${name}().isDefined()) {
-              this.${name} = Option.apply(
-                obj.${name}()
-                  .get()
-                  .map(ch -> ch.duplicate(true, true, true, true))
-              );
-            } else {
-              this.${name} = Option.empty();
-            }
-            """
-            .replace("${name}", userField.getName());
-        case ListField listField -> """
-            this.${name} =
-              obj.${name}().map(ch -> ch.duplicate(true, true, true, true));
-            """
-            .replace("${name}", userField.getName());
-        case OptionField optionField -> """
-            if (obj.${name}().isDefined()) {
-              this.${name} = Option.apply(
-                obj.${name}().get().duplicate(true, true, true, true)
-              );
-            } else {
-              this.${name} = Option.empty();
-            }
-            """
-            .replace("${name}", userField.getName());
-        case PersistanceReferenceField refField -> """
-            this.${name} = Reference.of(
-              obj.${name}().get(${type}.class)
-            );
-            """
-            .replace("${name}", userField.getName())
-            .replace("${type}", refField.getTypeParameter().getSimpleName());
-        case Field field when field.isNullable() -> """
-            if (obj.${name}() != null) {
-              this.${name} = obj.${name}().duplicate(true, true, true, true);
-            } else {
-              this.${name} = null;
-            }
-            """
-            .replace("${name}", userField.getName());
-        case Field childField when childField.isChild() -> """
-            this.${name} = obj.${name}().duplicate(true, true, true, true);
-            """
-            .replace("${name}", userField.getName());
-        default -> """
-            this.${name} = obj.${name}();
-            """
-            .replace("${name}", userField.getName());
-      };
-      sb.append("  // Copy of '")
-        .append(userField.getName())
-        .append("' field")
-        .append(System.lineSeparator());
-      sb.append(Utils.indent(code));
-      sb.append(System.lineSeparator());
+      sb.append("  ")
+          .append("this.")
+          .append(userField.getName())
+          .append(" = obj.")
+          .append(userField.getName())
+          .append("();")
+          .append(System.lineSeparator());
     }
     sb.append("}");
     return sb.toString();
