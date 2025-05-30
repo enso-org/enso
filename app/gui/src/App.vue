@@ -13,6 +13,7 @@ import { useEvent } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
 import { initializeActions } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
+import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
@@ -23,7 +24,7 @@ import { reactComponent } from '@/util/react'
 import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 import { provideContainerData } from './providers/container'
 import { provideRightPanelData } from './providers/rightPanel'
@@ -101,6 +102,7 @@ onMounted(() => {
     document.body.classList.add('vibrancy')
   }
 })
+const fullscreenRoot = shallowRef<HTMLElement>()
 
 // Mock external context in Project View integration tests. Once both test projects will be merged,
 // this should be removed
@@ -108,12 +110,13 @@ if (projectViewOnly) {
   provideOpenedProjects()
   provideContainerData([])
   provideRightPanelData(projectViewOnly.options.projectId, () => false, true, textStore)
+  provideFullscreenRoot(fullscreenRoot)
 }
 </script>
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <div v-if="projectViewOnly" class="mainView">
+    <div v-if="projectViewOnly" ref="fullscreenRoot" class="mainView">
       <ProjectView v-bind="projectViewOnly.options" />
       <RightPanel />
     </div>
