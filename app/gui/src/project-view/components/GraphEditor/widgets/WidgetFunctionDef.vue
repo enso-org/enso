@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ArgumentRow from '@/components/GraphEditor/widgets/WidgetFunctionDef/ArgumentRow.vue'
 import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
@@ -6,7 +7,6 @@ import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
 import { syntheticPortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
 import { type MethodPointer } from '@/util/methodPointer'

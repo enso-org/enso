@@ -1,9 +1,10 @@
+import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
 import { useAI } from '@/components/ComponentBrowser/ai'
 import type { Filter, SelfArg } from '@/components/ComponentBrowser/filtering'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { type NodeId } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
-import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
+import { type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayOwner,
   entryDisplayPath,

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import Breadcrumbs, {
   type Item as Breadcrumb,
 } from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
@@ -17,9 +18,6 @@ import {
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
-import { useGraphStore } from '@/stores/graph'
-import { injectProjectNames } from '@/stores/projectNames'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { entryMethodPointer, suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
@@ -30,21 +28,24 @@ import { ProjectPath } from '@/util/projectPath'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
 import FunctionSignatureEditor from './FunctionSignatureEditor.vue'
+
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
-const db = useSuggestionDbStore()
-const graph = useGraphStore(true)
+
+const { graph, suggestionDb: db, names: projectNames } = injectCurrentProject().storesRefs
 
 const documentation = computed<Docs>(() => {
   if (props.aiMode)
     return placeholder('AI assistant mode: write query in natural language and press Enter.')
   const entry = props.selectedEntry
-  return entry ? lookupDocumentation(db.entries, entry) : placeholder('No suggestion selected.')
+  return entry && db.value ?
+      lookupDocumentation(db.value.entries, entry)
+    : placeholder('No suggestion selected.')
 })
 
 const rawDocumentation = computed(() => {
   const entry = props.selectedEntry
-  return entry ? lookupRawDocumentation(db.entries, entry) : undefined
+  return entry && db.value ? lookupRawDocumentation(db.value.entries, entry) : undefined
 })
 
 const sections = computed<Sections>(() => {
@@ -70,8 +71,6 @@ const types = computed<TypeDocs[]>(() => {
 
 const isPlaceholder = computed(() => documentation.value.kind === 'Placeholder')
 
-const projectNames = injectProjectNames()
-
 const name = computed<Opt<ProjectPath>>(() => {
   const docs = documentation.value
   return docs.kind === 'Placeholder' ? null : docs.name
@@ -80,10 +79,12 @@ const name = computed<Opt<ProjectPath>>(() => {
 // === Breadcrumbs ===
 
 const suggestion = computed(() =>
-  props.selectedEntry != null ? db.entries.get(props.selectedEntry) : undefined,
+  props.selectedEntry != null && db.value ? db.value.entries.get(props.selectedEntry) : undefined,
 )
 
-const color = computed(() => groupColorStyle(tryGetIndex(db.groups, suggestion.value?.groupIndex)))
+const color = computed(() =>
+  groupColorStyle(db.value && tryGetIndex(db.value.groups, suggestion.value?.groupIndex)),
+)
 
 const style = computed(() => ({
   '--enso-docs-group-color': color.value,
@@ -97,8 +98,8 @@ const documentationUrl = computed(
 
 const methodPointer = computed(() => entryMethodPointer(suggestion.value))
 const signatureAst = computed(() => {
-  if (graph == null || methodPointer.value == null) return
-  return unwrapOr(graph.getMethodAst(methodPointer.value), undefined)
+  if (graph.value == null || methodPointer.value == null) return
+  return unwrapOr(graph.value.getMethodAst(methodPointer.value), undefined)
 })
 const markdownDocs = computed(() => signatureAst.value?.mutableDocumentationMarkdown())
 
@@ -122,8 +123,8 @@ watch(historyStack.current, (current) => {
 })
 
 const breadcrumbs = computed<Breadcrumb[]>(() => {
-  if (name.value) {
-    const segments = [...qnSegments(projectNames.printProjectPath(name.value))]
+  if (name.value && projectNames.value) {
+    const segments = [...qnSegments(projectNames.value.printProjectPath(name.value))]
     return segments.slice(1).map((s) => ({ label: s.toLowerCase() }))
   } else {
     return []
@@ -135,7 +136,7 @@ function handleBreadcrumbClick(index: number) {
     const pathSlice = name.value.path ? qnSlice(name.value.path, 0, index) : Ok(undefined)
     if (pathSlice.ok) {
       const projectPathSlice = name.value.withPath(pathSlice.value)
-      const id = db.entries.findByProjectPath(projectPathSlice)
+      const id = db.value?.entries.findByProjectPath(projectPathSlice)
       if (id != null) {
         historyStack.record(id)
       }

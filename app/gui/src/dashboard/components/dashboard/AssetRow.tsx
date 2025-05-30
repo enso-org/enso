@@ -42,7 +42,7 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import { useText } from '$/providers/react'
+import { useRightPanelData, useText } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -212,6 +212,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const [isNavigating, startNavigation] = useTransition()
 
   const driveStore = useDriveStore()
+  const rightPanel = useRightPanelData()
   const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
   const getAsset = useGetAsset()
@@ -444,6 +445,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
                   doCopy={doCopy}
                   doCut={doCut}
                   doPaste={doPaste}
+                  rightPanel={rightPanel}
                 />,
               )
             }}
@@ -533,6 +535,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               doCopy={doCopy}
               doCut={doCut}
               doPaste={doPaste}
+              rightPanel={rightPanel}
             />
           )}
         </>

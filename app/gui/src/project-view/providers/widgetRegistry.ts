@@ -1,4 +1,3 @@
-import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { GraphStore } from '@/stores/graph'
@@ -426,7 +425,8 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
     widgetTypeId: crypto.randomUUID() as WidgetTypeId,
   }
 
-  if (import.meta.hot && hmr) {
+  // Checking hmr.data, as it is undefined in unit test enviroment
+  if (import.meta.hot && hmr && hmr.data) {
     if (hmr.data.widgetDefinition) {
       const widgetTypeId = hmr.data.widgetDefinition.widgetTypeId
       Object.assign(hmr.data.widgetDefinition, resolved, { widgetTypeId })
@@ -453,11 +453,6 @@ function makeInputMatcher<T extends WidgetInput>(
     throw new Error('Invalid widget input matcher definiton: ' + matcher)
   }
 }
-
-export const [provideWidgetRegistry, injectWidgetRegistry] = createContextStore(
-  'Widget registry',
-  (db: GraphDb) => new WidgetRegistry(db),
-)
 
 /** TODO: Add docs */
 export class WidgetRegistry {

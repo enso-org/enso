@@ -1,5 +1,4 @@
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import { createContextStore } from '@/providers'
 import { type ProjectStore } from '@/stores/project'
 import { type ProjectNameStore } from '@/stores/projectNames'
 import {
@@ -240,39 +239,42 @@ async function loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown
 }
 
 /** {@link useSuggestionDbStore} composable object */
-export type SuggestionDbStore = ReturnType<typeof useSuggestionDbStore>
-export const [provideSuggestionDbStore, useSuggestionDbStore] = createContextStore(
-  'suggestionDatabase',
-  (projectStore: ProjectStore, projectNames: ProjectNameStore) => {
-    const entries = new SuggestionDb()
-    const groups = ref<GroupInfo[]>([])
+export type SuggestionDbStore = ReturnType<typeof createSuggestionDbStore>
+/**
+ * A store maintaining suggestions database.
+ */
+export function createSuggestionDbStore(
+  projectStore: ProjectStore,
+  projectNames: ProjectNameStore,
+) {
+  const entries = new SuggestionDb()
+  const groups = ref<GroupInfo[]>([])
 
-    const updateProcessor = loadGroups(
-      projectStore.lsRpcConnection,
-      projectStore.firstExecution,
-    ).then((loadedGroups) => {
-      groups.value = loadedGroups
-      return new SuggestionUpdateProcessor(loadedGroups, projectNames)
-    })
+  const updateProcessor = loadGroups(
+    projectStore.lsRpcConnection,
+    projectStore.firstExecution,
+  ).then((loadedGroups) => {
+    groups.value = loadedGroups
+    return new SuggestionUpdateProcessor(loadedGroups, projectNames)
+  })
 
-    /** Add an entry to the suggestion database. */
-    function mockSuggestion(entry: lsTypes.SuggestionEntry) {
-      const id = Math.max(...entries.keys()) + 1
-      new SuggestionUpdateProcessor([], projectNames).applyUpdates(entries, [
-        {
-          type: 'Add',
-          id,
-          suggestion: entry,
-        },
-      ])
-    }
+  /** Add an entry to the suggestion database. */
+  function mockSuggestion(entry: lsTypes.SuggestionEntry) {
+    const id = Math.max(...entries.keys()) + 1
+    new SuggestionUpdateProcessor([], projectNames).applyUpdates(entries, [
+      {
+        type: 'Add',
+        id,
+        suggestion: entry,
+      },
+    ])
+  }
 
-    const _synchronizer = new Synchronizer(projectStore, entries, updateProcessor)
-    return proxyRefs({
-      entries: markRaw(entries),
-      groups: readonly(groups),
-      _synchronizer,
-      mockSuggestion,
-    })
-  },
-)
+  const _synchronizer = new Synchronizer(projectStore, entries, updateProcessor)
+  return proxyRefs({
+    entries: markRaw(entries),
+    groups: readonly(groups),
+    _synchronizer,
+    mockSuggestion,
+  })
+}

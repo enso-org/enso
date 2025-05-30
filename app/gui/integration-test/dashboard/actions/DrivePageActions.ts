@@ -67,9 +67,9 @@ function locateSecretValueInput(page: Page) {
 }
 
 /** Find an asset panel. */
-function locateAssetPanel(page: Page) {
+function locateRightPanel(page: Page) {
   // This has no identifying features.
-  return page.getByTestId('asset-panel').locator('visible=true')
+  return page.getByTestId('right-panel').locator('visible=true')
 }
 
 /** Actions for the "drive" page. */
@@ -417,69 +417,17 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     })
   }
 
-  /** Show the Asset Panel. */
-  showAssetPanel() {
-    return this.step('Show asset panel', async (page) => {
-      const isShown = await this.isAssetPanelShown(page)
-
-      if (!isShown) {
-        await this.toggleAssetPanel()
-      }
-    })
-  }
-
-  /** Hide the Asset Panel. */
-  hideAssetPanel() {
-    return this.step('Hide asset panel', async (page) => {
-      const isShown = await this.isAssetPanelShown(page)
-
-      if (isShown) {
-        await this.toggleAssetPanel()
-      }
-    })
-  }
-
-  /** Toggle the Asset Panel open or closed. */
-  toggleAssetPanel() {
-    return this.step('Toggle asset panel', async (page) => {
-      page.getByLabel('Asset Panel').locator('visible=true').click()
-      await this.waitForAssetPanelShown(page)
-    })
-  }
-
-  /**
-   * Check if the Asset Panel is shown.
-   */
-  async isAssetPanelShown(page: Page) {
-    return await page
-      .getByTestId('asset-panel')
-      .isVisible({ timeout: 0 })
-      .then(
-        () => true,
-        () => false,
-      )
-  }
-
-  /**
-   * Wait for the Asset Panel to be shown and visually stable
-   */
-  async waitForAssetPanelShown(page: Page) {
-    await page.getByTestId('asset-panel').waitFor({ state: 'visible' })
-  }
-
   /** Show the description tab of the Asset Panel. */
   toggleDescriptionAssetPanel() {
     return this.step('Toggle description asset panel', async (page) => {
-      await this.showAssetPanel()
-      await page.getByTestId('asset-panel-tab-settings').click()
+      await page.getByRole('tab', { name: 'Properties' }).click()
     })
   }
 
   /** Show the Docs tab of the Asset Panel. */
   toggleDocsAssetPanel() {
     return this.step('Toggle docs asset panel', async (page) => {
-      await this.showAssetPanel()
-      await page.getByTestId('asset-panel-tab-docs').click()
+      await page.getByRole('tab', { name: 'Documentation' }).click()
     })
   }
 
@@ -493,9 +441,9 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   }
 
   /** Interact with the Asset Panel. */
-  withAssetPanel(callback: LocatorCallback<Context>) {
-    return this.step('Interact with asset panel', async (page, context) => {
-      await callback(locateAssetPanel(page), context)
+  withRightPanel(callback: LocatorCallback<Context>) {
+    return this.step('Interact with right panel', async (page, context) => {
+      await callback(locateRightPanel(page), context)
     })
   }
 

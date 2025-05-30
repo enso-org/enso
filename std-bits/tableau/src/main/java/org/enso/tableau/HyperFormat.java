@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -15,7 +16,6 @@ import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -25,17 +25,16 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
-
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -331,74 +330,79 @@ public class HyperFormat {
     }
   }
 
-  public static void writeTable(String path, String schemaName, String tableName, Table table) throws IOException {
+  public static void writeTable(String path, String schemaName, String tableName, Table table)
+      throws IOException {
     getProcess();
-    try (var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
+    try (var connection =
+        new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
       var tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
       insertData(table, tableDef, connection);
     }
   }
 
-  private static TableDefinition createTable(String schemaName, String tableName, Column[] columns, Connection connection) {
-      final var sn = new SchemaName(schemaName);
-      if (!connection.getCatalog().getSchemaNames().contains(sn)) {
-          connection.getCatalog().createSchema(sn);
-      }
-      
-      var tableDef = new TableDefinition(new TableName(schemaName, tableName));
-      for (var col : columns) {
-        String columnName = col.getName();
-        var storage = col.getStorage();
-        switch (storage.getType()) {
-          case TextType _ -> tableDef.addColumn(columnName, SqlType.text());
-          case IntegerType _ -> tableDef.addColumn(columnName, SqlType.bigInt());
-          case FloatType _ -> tableDef.addColumn(columnName, SqlType.doublePrecision());
-          case BooleanType _ -> tableDef.addColumn(columnName, SqlType.bool());
-          case DateType _ -> tableDef.addColumn(columnName, SqlType.date());
-          case TimeOfDayType _ -> tableDef.addColumn(columnName, SqlType.time());
-          case DateTimeType _ -> tableDef.addColumn(columnName, SqlType.timestampTz());
+  private static TableDefinition createTable(
+      String schemaName, String tableName, Column[] columns, Connection connection) {
+    final var sn = new SchemaName(schemaName);
+    if (!connection.getCatalog().getSchemaNames().contains(sn)) {
+      connection.getCatalog().createSchema(sn);
+    }
+
+    var tableDef = new TableDefinition(new TableName(schemaName, tableName));
+    for (var col : columns) {
+      String columnName = col.getName();
+      var storage = col.getStorage();
+      switch (storage.getType()) {
+        case TextType t -> tableDef.addColumn(columnName, SqlType.text());
+        case IntegerType t -> tableDef.addColumn(columnName, SqlType.bigInt());
+        case FloatType t -> tableDef.addColumn(columnName, SqlType.doublePrecision());
+        case BooleanType t -> tableDef.addColumn(columnName, SqlType.bool());
+        case DateType t -> tableDef.addColumn(columnName, SqlType.date());
+        case TimeOfDayType t -> tableDef.addColumn(columnName, SqlType.time());
+        case DateTimeType t -> tableDef.addColumn(columnName, SqlType.timestampTz());
           // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
-          // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric values is 
-          // often slower than processing 64-bit values, so it is advisable to use a sensible precision for 
+          // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
+          // values is
+          // often slower than processing 64-bit values, so it is advisable to use a sensible
+          // precision for
           // the use case at hand instead of always using the maximum precision by default.
-          case BigDecimalType _ -> tableDef.addColumn(columnName, SqlType.numeric(18, 9));
-          default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
-        }
+        case BigDecimalType t -> tableDef.addColumn(columnName, SqlType.numeric(18, 9));
+        default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
       }
-      connection.executeCommand("DROP TABLE IF EXISTS \""+schemaName+"\".\""+tableName+"\"");
-      connection.getCatalog().createTable(tableDef);
-      return tableDef;
+    }
+    connection.executeCommand("DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"");
+    connection.getCatalog().createTable(tableDef);
+    return tableDef;
   }
 
-  private static void insertData(Table table, TableDefinition tableDef, Connection connection){
-      int numberOfRows = table.rowCount();
-      int numberOfColumns = table.getColumns().length;
-      Inserter inserter = new Inserter(connection, tableDef);
-      for (int row = 0; row < numberOfRows; ++row) {
-        for (int col = 0; col < numberOfColumns; ++col) {
-          var storage = table.getColumns()[col].getStorage();
-          if (storage.isNothing(row)) {
-            inserter.addNull();
-          } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-            inserter.add(doubleStorage.getItemAsDouble(row));
-          } else if (storage instanceof ColumnLongStorage longStorage) {
-            inserter.add(longStorage.getItemAsLong(row));
-          } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-            inserter.add(boolStorage.getItemAsBoolean(row));
-          } else {
-            Object value = storage.getItemBoxed(row);
-            switch (value) {
-              case String s -> inserter.add(s);
-              case LocalDate ld -> inserter.add(ld);
-              case LocalTime lt -> inserter.add(lt);
-              case ZonedDateTime zdt -> inserter.add(zdt);
-              case BigDecimal bd -> inserter.add(bd);
-              default -> throw new HyperUnsupportedTypeError(value.toString());
-            }
+  private static void insertData(Table table, TableDefinition tableDef, Connection connection) {
+    int numberOfRows = table.rowCount();
+    int numberOfColumns = table.getColumns().length;
+    Inserter inserter = new Inserter(connection, tableDef);
+    for (int row = 0; row < numberOfRows; ++row) {
+      for (int col = 0; col < numberOfColumns; ++col) {
+        var storage = table.getColumns()[col].getStorage();
+        if (storage.isNothing(row)) {
+          inserter.addNull();
+        } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
+          inserter.add(doubleStorage.getItemAsDouble(row));
+        } else if (storage instanceof ColumnLongStorage longStorage) {
+          inserter.add(longStorage.getItemAsLong(row));
+        } else if (storage instanceof ColumnBooleanStorage boolStorage) {
+          inserter.add(boolStorage.getItemAsBoolean(row));
+        } else {
+          Object value = storage.getItemBoxed(row);
+          switch (value) {
+            case String s -> inserter.add(s);
+            case LocalDate ld -> inserter.add(ld);
+            case LocalTime lt -> inserter.add(lt);
+            case ZonedDateTime zdt -> inserter.add(zdt);
+            case BigDecimal bd -> inserter.add(bd);
+            default -> throw new HyperUnsupportedTypeError(value.toString());
           }
         }
-        inserter.endRow();
       }
-      inserter.execute();
+      inserter.endRow();
+    }
+    inserter.execute();
   }
 }

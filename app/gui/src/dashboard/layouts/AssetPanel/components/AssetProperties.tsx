@@ -14,14 +14,11 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import {
-  assetPanelStore,
-  useAssetPanelCurrentItem,
-  useSetAssetPanelProps,
-} from '#/layouts/AssetPanel/'
+import { type Category } from '#/layouts/Drive/Categories'
 import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
+import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -34,12 +31,10 @@ import {
 } from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
-import { useStore } from '#/utilities/zustand'
-import { useText } from '$/providers/react'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
-import type { AssetPanelProps } from './types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -48,43 +43,37 @@ const ASSET_PROPERTIES_VARIANTS = tv({
   },
 })
 
-/** Possible elements in this screen to spotlight on. */
-export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
-
-/** Props for an {@link AssetPropertiesProps}. */
-export interface AssetPropertiesProps extends AssetPanelProps {
-  readonly isReadonly?: boolean
-}
-
 /** Display and modify the properties of an asset. */
-export function AssetProperties(props: AssetPropertiesProps) {
-  const { isReadonly = false, backend, category } = props
-
-  const item = useAssetPanelCurrentItem()
-
+export function AssetProperties() {
+  const { remoteBackend } = useBackends()
+  const rightPanel = useRightPanelData()
   const { getText } = useText()
+  const isReadonly = rightPanel.context?.category?.type === 'trash'
 
-  if (backend.type === BackendType.local) {
+  if (rightPanel.context?.category?.backend !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (item == null) {
+  if (rightPanel.focusedAsset == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
-      key={item.id}
-      backend={backend}
-      item={item}
+      key={rightPanel.focusedAsset.id}
+      backend={remoteBackend}
+      item={rightPanel.focusedAsset}
       isReadonly={isReadonly}
-      category={category}
+      category={rightPanel.context.category}
     />
   )
 }
 
 /** Props for an {@link AssetPropertiesInternal}. */
-export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
+export interface AssetPropertiesInternalProps {
+  readonly backend: Backend
+  readonly category: Category
+  readonly isReadonly: boolean
   readonly item: AnyAsset
 }
 
@@ -92,22 +81,20 @@ export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
-
-  const spotlightOn = useStore(assetPanelStore, (state) => state.assetPanelProps.spotlightOn, {
-    unsafeEnableTransition: true,
-  })
-
-  const setAssetPanelProps = useSetAssetPanelProps()
+  const rightPanel = useRightPanelData()
 
   const closeSpotlight = useEventCallback(() => {
-    const assetPanelProps = assetPanelStore.getState().assetPanelProps
-    setAssetPanelProps({ ...assetPanelProps, spotlightOn: null })
+    rightPanel.updateContext('drive', (ctx) => {
+      ctx.spotlightOn = undefined
+      return ctx
+    })
   })
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
-  const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
+  const isEditingDescription =
+    isEditingDescriptionRaw || rightPanel.context?.spotlightOn === 'description'
   const setIsEditingDescription = useEventCallback(
     (valueOrUpdater: React.SetStateAction<boolean>) => {
       setIsEditingDescriptionRaw((currentValue) => {
@@ -137,15 +124,15 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     ),
   )
   const descriptionSpotlight = useSpotlight({
-    enabled: spotlightOn === 'description',
+    enabled: rightPanel.context?.spotlightOn === 'description',
     close: closeSpotlight,
   })
   const secretSpotlight = useSpotlight({
-    enabled: spotlightOn === 'secret',
+    enabled: rightPanel.context?.spotlightOn === 'secret',
     close: closeSpotlight,
   })
   const datalinkSpotlight = useSpotlight({
-    enabled: spotlightOn === 'datalink',
+    enabled: rightPanel.context?.spotlightOn === 'datalink',
     close: closeSpotlight,
   })
 
