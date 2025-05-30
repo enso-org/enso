@@ -35,98 +35,126 @@ from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 
 import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    The dialect for Redshift connections.
 redshift : Redshift_Dialect
 redshift =
     Redshift_Dialect.Value Postgres_Dialect.make_dialect_operations
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    The dialect for Redshift connections.
 type Redshift_Dialect
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        The dialect for Redshift connections.
     Value dialect_operations
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Name of the dialect.
     name : Text
     name self = "redshift"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self = "Redshift_Dialect"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Generates SQL to truncate a table.
     generate_truncate_table_sql : Text -> SQL_Builder
     generate_truncate_table_sql self table_name =
         Base_Generator.truncate_table_delete_from_style self table_name
 
-    ## PRIVATE
-       Generates SQL modifier for limiting the number of rows and its position in the query
+    ## ---
+       private: true
+       ---
+       Generates SQL modifier for limiting the number of rows and its position in
+       the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
         case limit of
             Nothing -> ""
             _ : Integer -> SQL_Builder.code (" LIMIT " + limit.to_text)
         
-    ## PRIVATE
-       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
+    ## ---
+       private: true
+       ---
+       Returns an ordering of SQL_Part's that determine what order each part gets
+       written in for the final SQL output If you add extensions using
+       SQL_IR_Source_Extension you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         Base_Generator.default_get_part_order part
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Wraps and possibly escapes the identifier so that it can be used in a
-       generated query regardless of what characters it contains.
-       The quotes used will depend on the dialect.
+       generated query regardless of what characters it contains. The quotes used
+       will depend on the dialect.
     wrap_identifier : Text -> SQL_Builder
     wrap_identifier self identifier =
         Base_Generator.wrap_in_quotes identifier
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Generates a SQL expression for a table literal.
     make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
     make_table_literal self vecs column_names as_name =
         Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Prepares an ordering descriptor.
-
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
 
-       Arguments:
-       - internal_column: the column to order by.
-       - sort_direction: the direction of the ordering.
-       - text_ordering: If provided, specifies that the column should be treated
-         as text values according to the provided ordering. For non-text types,
-         it should be set to `Nothing`.
+       ## Arguments
+        - `internal_column`: the column to order by.
+        - `sort_direction`: the direction of the ordering.
+        - `text_ordering`: If provided, specifies that the column should be
+          treated as text values according to the provided ordering. For non-text
+          types, it should be set to `Nothing`.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self = Postgres_Type_Mapping
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_statement_setter : Statement_Setter
     get_statement_setter self = Statement_Setter.default
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
         mapping = self.get_type_mapping
@@ -135,63 +163,81 @@ type Redshift_Dialect
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
     needs_execute_query_for_type_inference self statement =
         _ = statement
         False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Specifies how the database creates temp tables.
     temp_table_style : Temp_Table_Style
     temp_table_style self = Temp_Table_Style.Temporary_Table
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]
         column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Add an extra cast to adjust the output type of certain operations with
        certain arguments.
-
        It is used when the normal type inference provided by the database engine
        needs to be adjusted.
-
-       In most cases this method will just return the expression unchanged, it
-       is used only to override the type in cases where the default one that the
+       In most cases this method will just return the expression unchanged, it is
+       used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
         _ = [op_kind, args]
         expression
 
-    ## PRIVATE
-       Add an extra cast to adjust the output type of aggregate operations.
-       Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
+    ## ---
+       private: true
+       ---
+       Add an extra cast to adjust the output type of aggregate operations. Some
+       DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
         self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->c.expression))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Base_Generator.default_fetch_types_query self expression context
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     generate_collate self collation_name:Text -> Text = Base_Generator.default_generate_collate collation_name     
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
         _ = aggregate
         True
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
         self.dialect_operations.is_operation_supported operation
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
@@ -199,7 +245,9 @@ type Redshift_Dialect
             Feature.Generate_Rows -> False
             _ -> True
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks a dialect flag
     flagged self flag:Dialect_Flag -> Boolean =
         case flag of
@@ -238,43 +286,56 @@ type Redshift_Dialect
             Dialect_Flag.Supports_Date_Time_Without_Timezone -> False
             Dialect_Flag.Supports_Regex_Match -> False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The default table types to use when listing tables.
     default_table_types : Vector Text
     default_table_types self =
         ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW", "FOREIGN TABLE", "PARTITIONED TABLE"]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_error_mapper : Error_Mapper
     get_error_mapper self = Redshift_Error_Mapper
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The dialect-dependent strategy to get the Primary Key for a given table.
-
        Returns `Nothing` if the key is not defined.
     fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name =
         Dialect.default_fetch_primary_key connection table_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column =
         ## TODO special behaviour for big integer columns should be added here, once we start testing this dialect again
            See: https://docs.aws.amazon.com/redshift/latest/dg/r_Numeric_types201.html#r_Numeric_types201-decimal-or-numeric-type
         column.value_type
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     needs_literal_table_cast : Value_Type -> Boolean
     needs_literal_table_cast self value_type =
         _ = value_type
         False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = for_select
         base_gen.generate_expression self expr
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
         jdbc.ensure_query_has_no_holes raw_sql

@@ -7,16 +7,16 @@ import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCategories, useCategoriesAPI, type AnyCloudCategory } from '#/layouts/Drive/Categories'
+import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { useUser } from '#/providers/AuthProvider'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import type { DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { Fragment, useTransition } from 'react'
 import invariant from 'tiny-invariant'
-import type { AssetColumnProps } from '../column'
 
 /** A column displaying the path of the asset. */
-export default function PathColumn(props: AssetColumnProps) {
+export function PathColumn(props: AssetColumnProps) {
   const { item, state } = props
 
   const { virtualParentsPath, parentsPath } = item

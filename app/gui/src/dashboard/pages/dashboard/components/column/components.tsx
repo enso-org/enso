@@ -1,25 +1,40 @@
-/** @file A column listing the labels on this asset. */
+/** @file Components for column cells. */
 import DotsIcon from '#/assets/dots.svg'
 import { Button } from '#/components/Button'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import type * as column from '#/components/dashboard/column'
-import Label from '#/components/dashboard/Label'
 import { Dialog, Popover } from '#/components/Dialog'
+import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
+import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import DatalinkNameColumn from '#/pages/dashboard/components/column/DatalinkNameColumn'
+import DirectoryNameColumn from '#/pages/dashboard/components/column/DirectoryNameColumn'
+import FileNameColumn from '#/pages/dashboard/components/column/FileNameColumn'
+import ProjectNameColumn from '#/pages/dashboard/components/column/ProjectNameColumn'
+import SecretNameColumn from '#/pages/dashboard/components/column/SecretNameColumn'
+import Label from '#/pages/dashboard/components/Label'
+import PermissionDisplay from '#/pages/dashboard/components/PermissionDisplay'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import { FALLBACK_COLOR } from '#/services/Backend'
+import {
+  AssetType,
+  FALLBACK_COLOR,
+  getAssetPermissionId,
+  getAssetPermissionName,
+} from '#/services/Backend'
 import { mergeRefs } from '#/utilities/mergeRefs'
+import { PermissionAction } from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { useRef, useState } from 'react'
+export { PathColumn } from './PathColumn'
 
 /** A column listing the labels on this asset. */
-export default function LabelsColumn(props: column.AssetColumnProps) {
+export function LabelsColumn(props: AssetColumnProps) {
   const { item, state, labels } = props
 
   const { backend } = state
@@ -144,6 +159,98 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <ManageLabelsModal backend={backend} item={item} />
         </Dialog.Trigger>
       </div>
+    </div>
+  )
+}
+
+/** A column displaying the time at which the asset was last modified. */
+export function ModifiedColumn(props: AssetColumnProps) {
+  const { item } = props
+
+  return <Text nowrap>{toReadableIsoString(new Date(item.modifiedAt))}</Text>
+}
+
+/** The icon and name of an {@link backendModule.Asset}. */
+export function NameColumn(props: AssetColumnProps) {
+  const { item } = props
+
+  switch (item.type) {
+    case AssetType.directory: {
+      return <DirectoryNameColumn {...props} item={item} />
+    }
+    case AssetType.project: {
+      return <ProjectNameColumn {...props} item={item} />
+    }
+    case AssetType.file: {
+      return <FileNameColumn {...props} item={item} />
+    }
+    case AssetType.datalink: {
+      return <DatalinkNameColumn {...props} item={item} />
+    }
+    case AssetType.secret: {
+      return <SecretNameColumn {...props} item={item} />
+    }
+    case AssetType.specialUp:
+    case AssetType.specialLoading:
+    case AssetType.specialEmpty:
+    case AssetType.specialError: {
+      // Special rows do not display columns at all.
+      return <></>
+    }
+  }
+}
+
+/** A placeholder component for columns which do not yet have corresponding data to display. */
+export function PlaceholderColumn() {
+  return <></>
+}
+
+/** The type of the `state` prop of a {@link SharedWithColumn}. */
+interface SharedWithColumnStateProp
+  extends Pick<AssetColumnProps['state'], 'backend' | 'category'> {
+  readonly setQuery: AssetColumnProps['state']['setQuery'] | null
+}
+
+/** Props for a {@link SharedWithColumn}. */
+interface SharedWithColumnPropsInternal extends Pick<AssetColumnProps, 'item'> {
+  readonly isReadonly?: boolean
+  readonly state: SharedWithColumnStateProp
+}
+
+/** A column listing the users with which this asset is shared. */
+export function SharedWithColumn(props: SharedWithColumnPropsInternal) {
+  const { item, state } = props
+  const { category, setQuery } = state
+
+  const assetPermissions = item.permissions ?? []
+
+  return (
+    <div className="group flex items-center gap-1">
+      {(category.type === 'trash' ?
+        assetPermissions.filter((permission) => permission.permission === PermissionAction.own)
+      : assetPermissions
+      ).map((other, idx) => (
+        <PermissionDisplay
+          key={getAssetPermissionId(other) + idx}
+          action={other.permission}
+          onPress={
+            setQuery == null ? null : (
+              (event) => {
+                setQuery((oldQuery) =>
+                  oldQuery.withToggled(
+                    'owners',
+                    'negativeOwners',
+                    getAssetPermissionName(other),
+                    event.shiftKey,
+                  ),
+                )
+              }
+            )
+          }
+        >
+          {getAssetPermissionName(other)}
+        </PermissionDisplay>
+      ))}
     </div>
   )
 }

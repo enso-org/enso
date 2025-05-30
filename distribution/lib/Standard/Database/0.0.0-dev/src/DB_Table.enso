@@ -662,8 +662,6 @@ type DB_Table
                         Panic.throw (Integrity_Error.Error "DB_Column "+column.name)
 
     ## ALIAS where
-       GROUP Standard.Base.Selections
-       ICON preparation
        MACRO equals filter=..Equal
        MACRO not_equals filter=..Not_Equal
        MACRO not_nothing filter=..Not_Nothing
@@ -677,6 +675,8 @@ type DB_Table
        MACRO ends_with filter=..Ends_With
        MACRO like filter=..Like
        MACRO regex_match filter=..Regex_Match
+       GROUP Standard.Base.Selections
+       ICON preparation
 
        Selects only the rows of this table that correspond to `True` values of
        `filter`.
@@ -2095,11 +2095,11 @@ type DB_Table
                         DB_Table.new union_alias self.connection new_columns new_ctx
 
     ## ALIAS average, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, summarize, variance
-       GROUP Standard.Base.Calculations
-       ICON transform4
        MACRO sum columns=[..Sum]
        MACRO count columns=[..Count]
        MACRO count_distinct columns=[..Count_Distinct]
+       GROUP Standard.Base.Calculations
+       ICON transform4
 
        Aggregates the rows in a table using `group_by` columns.
        The columns argument specifies which additional aggregations to perform

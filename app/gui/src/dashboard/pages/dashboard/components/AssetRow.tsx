@@ -1,8 +1,5 @@
 /** @file A table row for an arbitrary asset. */
 import BlankIcon from '#/assets/blank.svg'
-import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
-import * as columnModule from '#/components/dashboard/column'
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import { IndefiniteSpinner } from '#/components/Spinner'
 import { Text } from '#/components/Text'
 import {
@@ -20,6 +17,9 @@ import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUtils'
+import * as columnModule from '#/pages/dashboard/components/column'
+import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import {
   useDriveStore,

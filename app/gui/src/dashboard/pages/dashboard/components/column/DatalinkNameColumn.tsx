@@ -1,12 +1,12 @@
 /** @file The icon and name of a {@link SecretAsset}. */
-import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
+import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { titleSchema, type DatalinkAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { useRightPanelData } from '$/providers/react'
-import { useGetAssetChildren } from '../../layouts/Drive/assetsTableItemsHooks'
+import { useGetAssetChildren } from '../../../../layouts/Drive/assetsTableItemsHooks'
 
 /** Props for a {@link DatalinkNameColumn}. */
 export interface DatalinkNameColumnProps extends AssetColumnProps {

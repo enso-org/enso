@@ -21,10 +21,10 @@ from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
 import project.Column.Column
-import project.In_Memory_Column.In_Memory_Column
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
 import project.Fill_With.Fill_With
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Cast_Helpers
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Column_Ops
@@ -46,8 +46,8 @@ from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
 polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
+polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.CountNothing
@@ -639,7 +639,6 @@ type In_Memory_Column_Implementation
     drop this_column (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
         drop_helper this_column.length (this_column.at _) this_column.slice (slice_ranges this_column) range
 
-    slice : Integer -> Integer -> Column
     slice this_column start end =
         length = this_column.length
         offset = (start.min length).max 0
@@ -669,8 +668,9 @@ type In_Memory_Column_Implementation
 
     ## PRIVATE
        This is a shortcut for API compatibility.
-    naming_helper : Column_Naming_Helper
-    naming_helper _ = naming_helper
+    naming_helper this_column =
+        _ = this_column
+        naming_helper
 
     compute this_column statistic:Statistic=..Count -> Any =
         Statistic.compute_bulk this_column.to_vector [statistic] . first
