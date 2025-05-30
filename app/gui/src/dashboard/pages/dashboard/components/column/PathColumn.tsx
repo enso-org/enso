@@ -16,7 +16,7 @@ import { Fragment, useTransition } from 'react'
 import invariant from 'tiny-invariant'
 
 /** A column displaying the path of the asset. */
-export default function PathColumn(props: AssetColumnProps) {
+export function PathColumn(props: AssetColumnProps) {
   const { item, state } = props
 
   const { virtualParentsPath, parentsPath } = item

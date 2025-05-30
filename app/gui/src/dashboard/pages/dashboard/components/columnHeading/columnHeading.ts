@@ -2,13 +2,15 @@
 import { memo } from 'react'
 import type * as column from '../column'
 import { Column } from '../column/columnUtils'
-import AccessedByProjectsColumnHeading from './AccessedByProjectsColumnHeading'
-import AccessedDataColumnHeading from './AccessedDataColumnHeading'
-import LabelsColumnHeading from './LabelsColumnHeading'
-import ModifiedColumnHeading from './ModifiedColumnHeading'
-import NameColumnHeading from './NameColumnHeading'
-import PathColumnHeading from './PathColumnHeading'
-import SharedWithColumnHeading from './SharedWithColumnHeading'
+import {
+  AccessedByProjectsColumnHeading,
+  AccessedDataColumnHeading,
+  LabelsColumnHeading,
+  ModifiedColumnHeading,
+  NameColumnHeading,
+  PathColumnHeading,
+  SharedWithColumnHeading,
+} from './components'
 
 export const COLUMN_HEADING: Readonly<
   Record<

@@ -6,7 +6,7 @@ import { titleSchema, type DatalinkAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { useRightPanelData } from '$/providers/react'
-import { useGetAssetChildren } from '../../../layouts/Drive/assetsTableItemsHooks'
+import { useGetAssetChildren } from '../../../../layouts/Drive/assetsTableItemsHooks'
 
 /** Props for a {@link DatalinkNameColumn}. */
 export interface DatalinkNameColumnProps extends AssetColumnProps {

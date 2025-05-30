@@ -3,17 +3,19 @@ import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  LabelsColumn,
+  ModifiedColumn,
+  NameColumn,
+  PathColumn,
+  PlaceholderColumn,
+  SharedWithColumn,
+} from '#/pages/dashboard/components/column/components'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { AnyAsset, AssetId, BackendType, Label, ProjectId } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { SortableColumn } from './columnUtils'
 import { Column } from './columnUtils'
-import LabelsColumn from './LabelsColumn'
-import ModifiedColumn from './ModifiedColumn'
-import NameColumn from './NameColumn'
-import PathColumn from './PathColumn'
-import PlaceholderColumn from './PlaceholderColumn'
-import SharedWithColumn from './SharedWithColumn'
 
 /** Props for an arbitrary variant of {@link Asset}. */
 export interface AssetColumnProps {
