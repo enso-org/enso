@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
 import { Icon } from '@/util/iconMetadata/iconName'
-import { motion } from 'motion-v'
+import { AnimatePresence, motion } from 'motion-v'
 import { computed } from 'vue'
 import CloseButton from '../CloseButton.vue'
 
@@ -25,18 +25,29 @@ const {
 
 const tooltipPlacement = computed(() => (orientation === 'horizontal' ? 'top' : 'left'))
 const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always'))
+
+const VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+}
 </script>
 
 <template>
   <TooltipTrigger :placement="tooltipPlacement" :when="whenTooltip">
     <template #default="triggerProps">
       <div class="SelectableTab" :class="orientation" @click="selected = !selected">
-        <motion.div
-          v-if="selected"
-          class="underlying"
-          :class="orientation"
-          :layoutId="selectionLayoutId"
-        />
+        <AnimatePresence :initial="selected != null">
+          <motion.div
+            v-if="selected"
+            class="underlying"
+            :class="orientation"
+            :layoutId="selectionLayoutId"
+            :variants="VARIANTS"
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+          />
+        </AnimatePresence>
         <button
           role="tab"
           :aria-label="tooltip ?? label ?? ''"
@@ -143,7 +154,6 @@ const whenTooltip = computed(() => (label && !tooltip ? 'whenOverflow' : 'always
     opacity: 1;
 
     &:hover,
-    &:focus,
     &:active {
       background-color: var(--tab-highlight);
     }

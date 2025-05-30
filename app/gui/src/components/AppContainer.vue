@@ -180,6 +180,7 @@ const onSignOut = () => {
   min-height: 0;
   display: flex;
   flex-direction: row;
+  position: relative;
 }
 
 .panel {
