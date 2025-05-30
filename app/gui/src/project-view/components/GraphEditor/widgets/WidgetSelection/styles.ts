@@ -68,7 +68,7 @@ function middleware(isTopLevel: boolean, limitWidth: boolean, rootElement: Ref<O
 export function activityDropdownStyles(
   floatReference: Ref<Opt<HTMLElement>>,
   dropdownElement: Ref<Opt<HTMLElement>>,
-  rootElement: Ref<HTMLElement | undefined>,
+  rootElement: Ref<Opt<HTMLElement>>,
 ) {
   return useFloating(floatReference, dropdownElement, {
     placement: 'bottom-start',

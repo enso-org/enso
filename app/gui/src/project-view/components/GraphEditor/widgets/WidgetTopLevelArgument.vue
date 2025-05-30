@@ -2,6 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
+import { Opt } from '@/util/data/opt'
 
 const props = defineProps(widgetProps(widgetDefinition))
 </script>
@@ -21,8 +22,8 @@ export const widgetDefinition = defineWidget(
 
 /** If the element is the recursively-first-child of a top-level argument, return the top-level argument element. */
 export function enclosingTopLevelArgument(
-  element: HTMLElement | undefined,
-  rootElement: HTMLElement | undefined,
+  element: Opt<HTMLElement>,
+  rootElement: Opt<HTMLElement>,
 ): HTMLElement | undefined {
   return (
     element?.dataset.topLevelArgument !== undefined ? element

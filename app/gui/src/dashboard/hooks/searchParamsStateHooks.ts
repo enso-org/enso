@@ -40,7 +40,13 @@ export function useSearchParamsState<T = unknown>(
   defaultValue: T | (() => T),
   predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
-  const { router, searchParams } = useRouter()
+  const { router, searchParams: searchParamsRaw } = useRouter()
+  // TODO[ao] deferred value fixes issue for user, but is not clean, and makes unnecessary
+  // rendering for some reason. Should be investigated, replaced with something
+  // transition-friendly, or contents should be prefetched in vue-router beforeGuards.
+  //
+  // Devising a proper fix is tracked by https://github.com/enso-org/enso/issues/13039
+  const searchParams = React.useDeferredValue(searchParamsRaw)
 
   const setSearchParams = useCallback(
     (
@@ -49,16 +55,30 @@ export function useSearchParamsState<T = unknown>(
         | ((currentSearchParams: URLSearchParams) => URLSearchParams),
       options: RouteLocationOptions,
     ) => {
-      const params = searchParams
+      // We get window.location.search, because we ensure it's up-to-date. See comment below.
+      const params = new URLSearchParams(window.location.search)
 
       if (nextSearchParams instanceof Function) {
         nextSearchParams = nextSearchParams(params)
       }
 
       const query = Object.fromEntries(nextSearchParams.entries())
-      void router.push({ query, ...options })
+      // TODO[ao]: router.push/router.replace are asynchronous, but we want window.location.href
+      // to be updated immediately, so any subsequent query changes won't override this one.
+      //
+      // This keeps the old way of doing (before #12803), but should be rather replaced with
+      // keeping the "intermediate" state by ourselves (in some class) and leave
+      // window.location.search management to router.
+      //
+      // Tracked by https://github.com/enso-org/enso/issues/13039
+      if (options.replace ?? false) {
+        window.history.replaceState(null, '', `?${nextSearchParams.toString()}`)
+      } else {
+        window.history.pushState(null, '', `?${nextSearchParams.toString()}`)
+      }
+      void router.replace({ query, ...options })
     },
-    [router, searchParams],
+    [router],
   )
 
   const prefixedKey = `${appUtils.SEARCH_PARAMS_PREFIX}${key}`

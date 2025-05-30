@@ -27,7 +27,7 @@ import {
   useSetDragTargetAssetId,
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
-import * as modalProvider from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -42,7 +42,7 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import { useText } from '$/providers/react'
+import { useRightPanelData, useText } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -212,6 +212,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const [isNavigating, startNavigation] = useTransition()
 
   const driveStore = useDriveStore()
+  const rightPanel = useRightPanelData()
   const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
   const getAsset = useGetAsset()
@@ -232,7 +233,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
-  const { setModal, unsetModal } = modalProvider.useSetModal()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
@@ -445,6 +445,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
                   doCopy={doCopy}
                   doCut={doCut}
                   doPaste={doPaste}
+                  rightPanel={rightPanel}
                 />,
               )
             }}
@@ -534,6 +535,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               doCopy={doCopy}
               doCut={doCut}
               doPaste={doPaste}
+              rightPanel={rightPanel}
             />
           )}
         </>

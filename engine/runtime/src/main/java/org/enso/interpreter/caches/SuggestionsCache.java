@@ -15,7 +15,6 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.caches.SuggestionsCache.CachedSuggestions;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.persist.Persistable;
-import org.enso.persist.Persistance;
 import org.enso.polyglot.Suggestion;
 import org.enso.version.BuildVersion;
 
@@ -71,14 +70,15 @@ public final class SuggestionsCache
 
   @Override
   public byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
-    return Persistance.write(entry, CacheUtils.writeReplace(context.getCompiler().context(), true));
+    return PersistUtils.POOL.write(
+        entry, CacheUtils.writeReplace(context.getCompiler().context(), true));
   }
 
   @Override
   public CachedSuggestions deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws IOException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var ref = PersistUtils.POOL.read(data, CacheUtils.readResolve(context.getCompiler().context()));
     var cachedSuggestions = ref.get(CachedSuggestions.class);
     return cachedSuggestions;
   }

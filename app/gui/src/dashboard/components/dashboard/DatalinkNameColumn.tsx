@@ -2,10 +2,10 @@
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
-import { useSetIsAssetPanelTemporarilyVisible } from '#/layouts/AssetPanel'
 import { titleSchema, type DatalinkAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
+import { useRightPanelData } from '$/providers/react'
 import { useGetAssetChildren } from '../../layouts/Drive/assetsTableItemsHooks'
 
 /** Props for a {@link DatalinkNameColumn}. */
@@ -23,7 +23,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
 
   const getAssetChildren = useGetAssetChildren()
 
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
+  const rightPanel = useRightPanelData()
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -47,7 +47,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
       onClick={(event) => {
         if (isDoubleClick(event)) {
           event.stopPropagation()
-          setIsAssetPanelTemporarilyVisible(true)
+          rightPanel.setTemporaryTab('settings')
         }
       }}
     >

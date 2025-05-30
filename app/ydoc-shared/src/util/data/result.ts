@@ -137,7 +137,7 @@ export class ResultError<E = unknown> {
   message(preamble: string = 'error') {
     const ctx =
       this.context.length > 0 ? `\n${Array.from(this.context, (ctx) => ctx()).join('\n')}` : ''
-    return `${preamble}: ${this.payload}${ctx}`
+    return `${preamble}${preamble ? ': ' : ''}${this.payload}${ctx}`
   }
 }
 

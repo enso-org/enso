@@ -7,12 +7,13 @@ import { CognitoErrorType, type CognitoUser, type ISessionProvider } from '#/aut
 import * as listen from '#/authentication/listen'
 import { Dialog } from '#/components/Dialog'
 import { Result } from '#/components/Result'
+import { useThrottledAsyncCallback } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtag from '#/hooks/gtagHooks'
-import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { unsetModal } from '#/providers/ModalProvider'
-import * as errorModule from '#/utilities/error'
+import { NotAuthorizedError } from '#/services/Backend'
+import { UnreachableCaseError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useHttpClient, useText } from '$/providers/react'
@@ -52,7 +53,7 @@ export function SessionProvider(props: SessionProviderProps) {
 
   const session = reactQuery.useSuspenseQuery(sessionQueryOptions)
 
-  const refreshUserSessionMutation = useMutationCallback({
+  const refreshUserSessionMutationRaw = useMutationCallback({
     mutationKey: ['refreshUserSession', { expireAt: session.data?.expireAt }],
     mutationFn: async () => authService.refreshUserSession(),
     onSuccess: (data) => {
@@ -68,6 +69,7 @@ export function SessionProvider(props: SessionProviderProps) {
       return logoutMutation()
     },
   })
+  const refreshUserSessionMutation = useThrottledAsyncCallback(refreshUserSessionMutationRaw)
 
   const logoutMutation = useMutationCallback({
     mutationKey: ['session', 'logout', session.data?.clientId] as const,
@@ -124,7 +126,7 @@ export function SessionProvider(props: SessionProviderProps) {
           return
         }
         default: {
-          throw new errorModule.UnreachableCaseError(result.val.type)
+          throw new UnreachableCaseError(result.val.type)
         }
       }
     }
@@ -233,7 +235,7 @@ export function SessionProvider(props: SessionProviderProps) {
             break
           }
           default: {
-            throw new errorModule.UnreachableCaseError(event)
+            throw new UnreachableCaseError(event)
           }
         }
       }),
@@ -284,6 +286,21 @@ export function SessionProvider(props: SessionProviderProps) {
     }
   }, [session.data, saveAccessTokenEventCallback])
 
+  React.useEffect(() => {
+    queryClient.getQueryCache().config.onError = (error, query) => {
+      if (error instanceof NotAuthorizedError) {
+        void refreshUserSessionMutation().then(() =>
+          queryClient.refetchQueries({ queryKey: query.queryKey }),
+        )
+      }
+    }
+    queryClient.getMutationCache().config.onError = (error, variables, _context, mutation) => {
+      if (error instanceof NotAuthorizedError) {
+        void refreshUserSessionMutation().then(() => mutation.execute(variables))
+      }
+    }
+  }, [queryClient, refreshUserSessionMutation])
+
   const sessionContextValue = {
     signUp,
     session: session.data,
@@ -307,10 +324,6 @@ export function SessionProvider(props: SessionProviderProps) {
     <SessionContext.Provider value={sessionContextValue}>
       {typeof children === 'function' ? children(sessionContextValue) : children}
 
-      {session.data && (
-        <SessionRefresher session={session.data} refreshUserSession={refreshUserSessionMutation} />
-      )}
-
       <Dialog
         aria-label={getText('loggingOut')}
         isDismissable={false}
@@ -322,49 +335,4 @@ export function SessionProvider(props: SessionProviderProps) {
       </Dialog>
     </SessionContext.Provider>
   )
-}
-
-/** Props for a {@link SessionRefresher}. */
-interface SessionRefresherProps {
-  readonly session: cognito.UserSession
-  readonly refreshUserSession: () => Promise<cognito.UserSession | null>
-}
-
-const TEN_SECONDS_MS = 10_000
-const SIX_HOURS_MS = 21_600_000
-
-/**
- * A component that will refresh the user's session at a given interval.
- */
-function SessionRefresher(props: SessionRefresherProps) {
-  const { refreshUserSession, session } = props
-
-  const { isOffline } = useOffline()
-
-  reactQuery.useQuery({
-    queryKey: ['refreshUserSession', { refreshToken: session.refreshToken }] as const,
-    queryFn: () => refreshUserSession(),
-    meta: { persist: false },
-    networkMode: 'online',
-    initialData: session,
-    initialDataUpdatedAt: Date.now(),
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: 'always',
-    refetchOnReconnect: 'always',
-    refetchOnMount: 'always',
-    enabled: !isOffline,
-    refetchInterval: () => {
-      const expireAt = session.expireAt
-
-      const timeUntilRefresh =
-        // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
-        // We use 1 second to ensure that we refresh even if the time is very close to expiring
-        // and value won't be less than 0.
-        Math.max(new Date(expireAt).getTime() - Date.now() - TEN_SECONDS_MS, TEN_SECONDS_MS)
-
-      return timeUntilRefresh < SIX_HOURS_MS ? timeUntilRefresh : SIX_HOURS_MS
-    },
-  })
-
-  return null
 }

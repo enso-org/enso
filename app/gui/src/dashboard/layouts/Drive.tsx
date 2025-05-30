@@ -7,7 +7,6 @@ import * as result from '#/components/Result'
 import SvgMask from '#/components/SvgMask'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import { AssetPanel } from '#/layouts/AssetPanel'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
@@ -149,7 +148,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
     : 'ok'
 
   return (
-    <div className="relative flex grow">
+    <div className="relative flex h-full w-full">
       <div
         data-testid="drive-view"
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
@@ -180,8 +179,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
           </div>
         </div>
       </div>
-
-      <AssetPanel backendType={backend.type} category={deferredCategory} />
     </div>
   )
 }

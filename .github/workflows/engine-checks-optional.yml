@@ -79,7 +79,6 @@ jobs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
       - macos-13
-    continue-on-error: true
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
@@ -153,7 +152,6 @@ jobs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
       - macos-13
-    continue-on-error: true
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
@@ -230,7 +228,6 @@ jobs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
       - macos-13
-    continue-on-error: true
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment

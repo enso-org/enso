@@ -5,6 +5,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.operation.CountUntrimmed;
+import org.enso.table.data.column.operation.DistinctValuesCheck;
 import org.enso.table.data.column.operation.SampleOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
@@ -18,6 +19,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
 
   private CachedPropertyCheck<DataQualityMetrics> dataQualityMetricsValues;
+  private CachedPropertyCheck<Boolean> distinctValuesCheck;
 
   /**
    * @param data the underlying data
@@ -28,6 +30,9 @@ public final class StringStorage extends SpecializedStorage<String> {
 
     dataQualityMetricsValues =
         new CachedPropertyCheck<>(() -> createDataQualityMetricsWitDefaultSize(), null);
+
+    distinctValuesCheck =
+        new CachedPropertyCheck<>(() -> DistinctValuesCheck.compute(this, null), null);
   }
 
   public static StringStorage makeEmpty(TextType type, long size) {
@@ -75,6 +80,15 @@ public final class StringStorage extends SpecializedStorage<String> {
    */
   public Long cachedWhitespaceCount() throws InterruptedException {
     return dataQualityMetricsValues.get().whitespaceCount.longValue();
+  }
+
+  /**
+   * Checks the number of distinct values
+   *
+   * @return true if there are less than 100 distinct values
+   */
+  public Boolean cachedDistinctValueCheck() throws InterruptedException {
+    return distinctValuesCheck.get();
   }
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {

@@ -8,20 +8,20 @@ import { PermissionAction } from '#/utilities/permissions'
 import { mockAllAndLogin, TEXT } from './actions'
 
 /** Find an asset panel. */
-function locateAssetPanel(page: Page) {
+function locateRightPanel(page: Page) {
   // This has no identifying features.
-  return page.getByTestId('asset-panel').locator('visible=true')
+  return page.getByTestId('right-panel').locator('visible=true')
 }
 
 /** Find an asset description in an asset panel. */
-function locateAssetPanelDescription(page: Page) {
+function locateRightPanelDescription(page: Page) {
   // This has no identifying features.
-  return locateAssetPanel(page).getByTestId('asset-panel-description')
+  return locateRightPanel(page).getByTestId('asset-panel-description')
 }
 
 /** Find the contents of the Markdown editor within the given {@link Locator}. */
 function locateMarkdownContent(locator: Locator) {
-  return locator.getByTestId('cmContent')
+  return locator.getByTestId('documentation-editor-content')
 }
 
 /** An example description for the asset selected in the asset panel. */
@@ -30,16 +30,6 @@ const DESCRIPTION = 'foo bar'
 const USERNAME = 'baz quux'
 /** An example owner email for the asset selected in the asset panel. */
 const EMAIL = 'baz.quux@email.com'
-
-test('open and close asset panel', ({ page }) =>
-  mockAllAndLogin({ page })
-    .withAssetPanel(async (assetPanel) => {
-      await expect(assetPanel).toBeVisible()
-    })
-    .toggleAssetPanel()
-    .withAssetPanel(async (assetPanel) => {
-      await expect(assetPanel).not.toBeVisible()
-    }))
 
 test('asset panel contents', ({ page }) =>
   mockAllAndLogin({
@@ -66,10 +56,14 @@ test('asset panel contents', ({ page }) =>
     .driveTable.clickRow(0)
     .toggleDescriptionAssetPanel()
     .do(async () => {
-      await expect(locateAssetPanelDescription(page)).toHaveText(DESCRIPTION)
+      await expect(locateRightPanelDescription(page)).toHaveText(DESCRIPTION)
       // `getByText` is required so that this assertion works if there are multiple permissions.
       // This is not visible; "Shared with" should only be visible on the Enterprise plan.
       // await expect(locateAssetPanelPermissions(page).getByText(USERNAME)).toBeVisible()
+    })
+    .toggleDescriptionAssetPanel()
+    .do(async () => {
+      await expect(locateRightPanelDescription(page)).not.toBeVisible()
     }))
 
 test('Asset Panel documentation view', ({ page }) =>
@@ -81,13 +75,10 @@ test('Asset Panel documentation view', ({ page }) =>
   })
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
-    .withAssetPanel(async (assetPanel) => {
-      await expect(assetPanel.getByTestId('asset-docs')).toBeVisible()
-      await expect(locateMarkdownContent(assetPanel.getByTestId('asset-docs'))).toBeVisible()
-      await expect(locateMarkdownContent(assetPanel.getByTestId('asset-docs'))).toHaveText(
-        /Project Goal/,
-      )
-      await expect(assetPanel.getByText(TEXT.arbitraryFetchImageError)).not.toBeVisible()
+    .withRightPanel(async (rightPanel) => {
+      await expect(locateMarkdownContent(rightPanel)).toBeVisible()
+      await expect(locateMarkdownContent(rightPanel)).toHaveText(/Project Goal/)
+      await expect(rightPanel.getByText(TEXT.arbitraryFetchImageError)).not.toBeVisible()
     }))
 
 test('Assets Panel docs images', ({ page }) => {
@@ -100,10 +91,11 @@ test('Assets Panel docs images', ({ page }) => {
     .do(() => {})
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
-    .withAssetPanel(async (assetPanel) => {
-      await expect(locateMarkdownContent(assetPanel.getByTestId('asset-docs'))).toBeVisible()
+    .withRightPanel(async (assetPanel) => {
+      const content = locateMarkdownContent(assetPanel)
+      await expect(content).toBeVisible()
 
-      for (const image of await assetPanel.getByRole('img').all()) {
+      for (const image of await content.getByRole('img').all()) {
         await expect(image).toBeVisible()
         await expect(image).toHaveJSProperty('complete', true)
       }

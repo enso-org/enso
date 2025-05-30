@@ -1,4 +1,4 @@
-import { createContextStore } from '@/providers'
+import { ProjectId } from '#/services/Backend'
 import { Awareness } from '@/stores/awareness'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import {
@@ -87,7 +87,7 @@ function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope
   return connection
 }
 
-export type ProjectStore = ReturnType<typeof useProjectStore>
+export type ProjectStore = ReturnType<typeof createProjectStore>
 
 /**
  * Properties of the project.
@@ -105,307 +105,306 @@ export interface ProjectProps {
  * performed using a CRDT data types from Yjs. Once the data is synchronized with a "LS bridge"
  * client, it is submitted to the language server as a document update.
  */
-export const [provideProjectStore, useProjectStore] = createContextStore(
-  'project',
-  (props: ProjectProps, projectNames: ProjectNameStore) => {
-    const { projectId, renameProject: renameProjectBackend } = props
-    const abort = useAbortScope()
+export function createProjectStore(
+  props: {
+    projectId: ProjectId
+    renameProject: (newName: string) => void
+    engine: LsUrls
+  },
+  projectNames: ProjectNameStore,
+) {
+  const { projectId, renameProject: renameProjectBackend } = props
+  const abort = useAbortScope()
 
-    const observedFileName = ref<string>()
+  const observedFileName = ref<string>()
 
-    const doc = new Y.Doc()
-    const awareness = new Awareness(doc)
+  const doc = new Y.Doc()
+  const awareness = new Awareness(doc)
 
-    const clientId = crypto.randomUUID() as Uuid
-    const lsRpcConnection = createLsRpcConnection(clientId, props.engine.rpcUrl, abort)
-    const projectRootId = lsRpcConnection.contentRoots.then(
-      (roots) => roots.find((root) => root.type === 'Project')?.id,
+  const clientId = crypto.randomUUID() as Uuid
+  const lsRpcConnection = createLsRpcConnection(clientId, props.engine.rpcUrl, abort)
+  const projectRootId = lsRpcConnection.contentRoots.then(
+    (roots) => roots.find((root) => root.type === 'Project')?.id,
+  )
+
+  const dataConnection = initializeDataConnection(clientId, props.engine.dataUrl, abort)
+  const rpcUrl = new URL(props.engine.rpcUrl)
+  const isOnLocalBackend =
+    rpcUrl.protocol === 'mock:' ||
+    rpcUrl.hostname === 'localhost' ||
+    rpcUrl.hostname === '127.0.0.1' ||
+    rpcUrl.hostname === '[::1]' ||
+    rpcUrl.hostname === '0:0:0:0:0:0:0:1'
+
+  const moduleProjectPath = computed((): Result<ProjectPath> | undefined => {
+    const filePath = observedFileName.value
+    if (filePath == null) return undefined
+    const withoutFileExt = filePath.replace(/\.enso$/, '')
+    const withDotSeparators = withoutFileExt.replace(/\//g, '.')
+    const qn = tryQualifiedName(withDotSeparators)
+    if (!qn.ok) return qn
+    return Ok(ProjectPath.create(undefined, qn.value))
+  })
+
+  const ydocUrl = resolveYDocUrl(props.engine.rpcUrl, props.engine.ydocUrl)
+  let yDocsProvider: ReturnType<typeof attachProvider> | undefined
+  watchEffect((onCleanup) => {
+    yDocsProvider = attachProvider(
+      ydocUrl.href,
+      'index',
+      { ls: props.engine.rpcUrl },
+      doc,
+      awareness.internal,
     )
+    onCleanup(disposeYDocsProvider)
+  })
 
-    const dataConnection = initializeDataConnection(clientId, props.engine.dataUrl, abort)
-    const rpcUrl = new URL(props.engine.rpcUrl)
-    const isOnLocalBackend =
-      rpcUrl.protocol === 'mock:' ||
-      rpcUrl.hostname === 'localhost' ||
-      rpcUrl.hostname === '127.0.0.1' ||
-      rpcUrl.hostname === '[::1]' ||
-      rpcUrl.hostname === '0:0:0:0:0:0:0:1'
+  const projectModel = new DistributedProject(doc)
+  const moduleDocGuid = ref<string>()
 
-    const moduleProjectPath = computed((): Result<ProjectPath> | undefined => {
-      const filePath = observedFileName.value
-      if (filePath == null) return undefined
-      const withoutFileExt = filePath.replace(/\.enso$/, '')
-      const withDotSeparators = withoutFileExt.replace(/\//g, '.')
-      const qn = tryQualifiedName(withDotSeparators)
-      if (!qn.ok) return qn
-      return Ok(ProjectPath.create(undefined, qn.value))
-    })
+  function currentDocGuid() {
+    const name = observedFileName.value
+    if (name == null) return
+    return projectModel.modules.get(name)?.guid
+  }
+  function tryReadDocGuid() {
+    const guid = currentDocGuid()
+    if (guid === moduleDocGuid.value) return
+    moduleDocGuid.value = guid
+  }
 
-    const ydocUrl = resolveYDocUrl(props.engine.rpcUrl, props.engine.ydocUrl)
-    let yDocsProvider: ReturnType<typeof attachProvider> | undefined
-    watchEffect((onCleanup) => {
-      yDocsProvider = attachProvider(
-        ydocUrl.href,
-        'index',
-        { ls: props.engine.rpcUrl },
-        doc,
-        awareness.internal,
-      )
-      onCleanup(disposeYDocsProvider)
-    })
+  projectModel.modules.observe(tryReadDocGuid)
+  watchEffect(tryReadDocGuid)
 
-    const projectModel = new DistributedProject(doc)
-    const moduleDocGuid = ref<string>()
+  const module = computedAsync(
+    async () => {
+      const guid = moduleDocGuid.value
+      if (guid == null) return null
+      const moduleName = projectModel.findModuleByDocId(guid)
+      if (moduleName == null) return null
+      const mod = await projectModel.openModule(moduleName)
+      for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
+      return mod
+    },
+    undefined,
+    { onError: console.error },
+  )
 
-    function currentDocGuid() {
-      const name = observedFileName.value
-      if (name == null) return
-      return projectModel.modules.get(name)?.guid
-    }
-    function tryReadDocGuid() {
-      const guid = currentDocGuid()
-      if (guid === moduleDocGuid.value) return
-      moduleDocGuid.value = guid
-    }
+  const entryPoint = computed<MethodPointer>(() => {
+    const mainModule = ProjectPath.create(undefined, 'Main' as Identifier)
+    return { module: mainModule, definedOnType: mainModule, name: 'main' as Identifier }
+  })
 
-    projectModel.modules.observe(tryReadDocGuid)
-    watchEffect(tryReadDocGuid)
-
-    const module = computedAsync(
-      async () => {
-        const guid = moduleDocGuid.value
-        if (guid == null) return null
-        const moduleName = projectModel.findModuleByDocId(guid)
-        if (moduleName == null) return null
-        const mod = await projectModel.openModule(moduleName)
-        for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
-        return mod
+  function createExecutionContextForMain(): ExecutionContext {
+    return new ExecutionContext(
+      lsRpcConnection,
+      {
+        methodPointer: entryPoint.value,
+        positionalArgumentsExpressions: [],
       },
-      undefined,
-      { onError: console.error },
-    )
-
-    const entryPoint = computed<MethodPointer>(() => {
-      const mainModule = ProjectPath.create(undefined, 'Main' as Identifier)
-      return { module: mainModule, definedOnType: mainModule, name: 'main' as Identifier }
-    })
-
-    function createExecutionContextForMain(): ExecutionContext {
-      return new ExecutionContext(
-        lsRpcConnection,
-        {
-          methodPointer: entryPoint.value,
-          positionalArgumentsExpressions: [],
-        },
-        abort,
-        projectNames,
-      )
-    }
-
-    const firstExecution = nextEvent(lsRpcConnection, 'executionContext/executionComplete').catch(
-      (error) => {
-        console.error('First execution failed:', error)
-        throw error
-      },
-    )
-    const executionContext = createExecutionContextForMain()
-    const visualizationDataRegistry = new VisualizationDataRegistry(
-      executionContext,
-      dataConnection,
-    )
-    const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(
-      executionContext,
+      abort,
       projectNames,
     )
+  }
 
-    const diagnostics = shallowRef<Diagnostic[]>([])
-    executionContext.on('executionStatus', (newDiagnostics) => {
-      diagnostics.value = newDiagnostics
+  const firstExecution = nextEvent(lsRpcConnection, 'executionContext/executionComplete').catch(
+    (error) => {
+      console.error('First execution failed:', error)
+      throw error
+    },
+  )
+  const executionContext = createExecutionContextForMain()
+  const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
+  const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(
+    executionContext,
+    projectNames,
+  )
+
+  const diagnostics = shallowRef<Diagnostic[]>([])
+  executionContext.on('executionStatus', (newDiagnostics) => {
+    diagnostics.value = newDiagnostics
+  })
+
+  function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
+    const newId = () => crypto.randomUUID() as Uuid
+    const visId = ref(newId())
+    // Regenerate the visualization ID when the preprocessor changes.
+    watch(configuration, (a, b) => {
+      if (a != null && b != null && !visualizationConfigPreprocessorEqual(a, b))
+        visId.value = newId()
     })
 
-    function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
-      const newId = () => crypto.randomUUID() as Uuid
-      const visId = ref(newId())
-      // Regenerate the visualization ID when the preprocessor changes.
-      watch(configuration, (a, b) => {
-        if (a != null && b != null && !visualizationConfigPreprocessorEqual(a, b))
-          visId.value = newId()
-      })
+    watch(
+      [configuration, visId],
+      ([config, id], _, onCleanup) => {
+        executionContext.setVisualization(id, config)
+        onCleanup(() => executionContext.setVisualization(id, null))
+      },
+      // Make sure to flush this watch in 'post', otherwise it might cause operations on stale
+      // ASTs just before the widget tree renders and cleans up the associated widget instances.
+      { immediate: true, flush: 'post' },
+    )
 
-      watch(
-        [configuration, visId],
-        ([config, id], _, onCleanup) => {
-          executionContext.setVisualization(id, config)
-          onCleanup(() => executionContext.setVisualization(id, null))
-        },
-        // Make sure to flush this watch in 'post', otherwise it might cause operations on stale
-        // ASTs just before the widget tree renders and cleans up the associated widget instances.
-        { immediate: true, flush: 'post' },
-      )
+    return computed(() => parseVisualizationData(visualizationDataRegistry.getRawData(visId.value)))
+  }
 
-      return computed(() =>
-        parseVisualizationData(visualizationDataRegistry.getRawData(visId.value)),
-      )
-    }
-
-    const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
-      const config = computed(() =>
-        info.payload.type === 'DataflowError' ?
-          {
-            expressionId: id,
-            visualizationModule: 'Standard.Visualization.Preprocessor',
-            expression: {
-              module: VISUALIZATION_PREPROCESSOR_PATH,
-              definedOnType: VISUALIZATION_PREPROCESSOR_PATH,
-              name: 'error_preprocessor' as Identifier,
-            },
-          }
-        : null,
-      )
-      const data = useVisualizationData(config)
-      return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
-        const visResult = data.value
-        if (!visResult) return
-        if (!visResult.ok) {
-          visResult.error.log('Dataflow Error visualization evaluation failed')
-          return undefined
-        } else if ('message' in visResult.value && typeof visResult.value.message === 'string') {
-          if ('kind' in visResult.value && visResult.value.kind === 'Dataflow')
-            return { kind: visResult.value.kind, message: visResult.value.message }
-          // Other kinds of error are not handled here
-          else return undefined
-        } else {
-          console.error('Invalid dataflow error payload:', visResult.value)
-          return undefined
+  const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
+    const config = computed(() =>
+      info.payload.type === 'DataflowError' ?
+        {
+          expressionId: id,
+          visualizationModule: 'Standard.Visualization.Preprocessor',
+          expression: {
+            module: VISUALIZATION_PREPROCESSOR_PATH,
+            definedOnType: VISUALIZATION_PREPROCESSOR_PATH,
+            name: 'error_preprocessor' as Identifier,
+          },
         }
-      })
-    })
-
-    const isRecordingEnabled = computed(() => executionMode.value === 'live')
-
-    function stopCapturingUndo() {
-      module.value?.undoManager.stopCapturing()
-    }
-
-    function executeExpression(
-      expressionId: ExternalId,
-      expression: string,
-    ): Promise<Result<any> | null> {
-      return new Promise((resolve) => {
-        const visualizationId = crypto.randomUUID() as Uuid
-        const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
-          if (uuid === visualizationId) {
-            dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-            executionContext.off('visualizationEvaluationFailed', errorHandler)
-            const dataStr = Ok(visData.dataString())
-            resolve(parseVisualizationData(dataStr))
-          }
-        }
-        const errorHandler = (
-          uuid: Uuid,
-          _expressionId: ExpressionId,
-          message: string,
-          _diagnostic: Diagnostic | undefined,
-        ) => {
-          if (uuid == visualizationId) {
-            resolve(Err(message))
-            dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-            executionContext.off('visualizationEvaluationFailed', errorHandler)
-          }
-        }
-        dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-        executionContext.on('visualizationEvaluationFailed', errorHandler)
-        return lsRpcConnection.executeExpression(
-          executionContext.id,
-          visualizationId,
-          expressionId,
-          expression,
-        )
-      })
-    }
-
-    function parseVisualizationData(data: Result<string | null> | null): Result<any> | null {
-      if (!data?.ok) return data
-      if (data.value == null) return null
-      try {
-        return Ok(markRaw(JSON.parse(data.value)))
-      } catch (error) {
-        if (error instanceof SyntaxError)
-          return Err(`Parsing visualization result failed: ${error.message}`)
-        else throw error
+      : null,
+    )
+    const data = useVisualizationData(config)
+    return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
+      const visResult = data.value
+      if (!visResult) return
+      if (!visResult.ok) {
+        visResult.error.log('Dataflow Error visualization evaluation failed')
+        return undefined
+      } else if ('message' in visResult.value && typeof visResult.value.message === 'string') {
+        if ('kind' in visResult.value && visResult.value.kind === 'Dataflow')
+          return { kind: visResult.value.kind, message: visResult.value.message }
+        // Other kinds of error are not handled here
+        else return undefined
+      } else {
+        console.error('Invalid dataflow error payload:', visResult.value)
+        return undefined
       }
-    }
-
-    const { executionMode } = setupSettings(projectModel)
-
-    function disposeYDocsProvider() {
-      yDocsProvider?.dispose()
-      yDocsProvider = undefined
-    }
-
-    const recordMode = computed({
-      get() {
-        return executionMode.value === 'live'
-      },
-      set(value) {
-        executionMode.value = value ? 'live' : 'design'
-      },
     })
+  })
 
-    watch(executionMode, (modeValue) => {
-      executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
-    })
+  const isRecordingEnabled = computed(() => executionMode.value === 'live')
 
-    function renameProject(newDisplayedName: string) {
-      try {
-        renameProjectBackend(newDisplayedName)
-        if (isIdentifier(newDisplayedName)) {
-          projectNames.onProjectRenameRequested(newDisplayedName)
-        } else {
-          console.error(`Renaming project: Not a valid identifier: ${newDisplayedName}`)
+  function stopCapturingUndo() {
+    module.value?.undoManager.stopCapturing()
+  }
+
+  function executeExpression(
+    expressionId: ExternalId,
+    expression: string,
+  ): Promise<Result<any> | null> {
+    return new Promise((resolve) => {
+      const visualizationId = crypto.randomUUID() as Uuid
+      const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
+        if (uuid === visualizationId) {
+          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+          executionContext.off('visualizationEvaluationFailed', errorHandler)
+          const dataStr = Ok(visData.dataString())
+          resolve(parseVisualizationData(dataStr))
         }
-        return Ok()
-      } catch (err) {
-        return Err(err)
       }
-    }
-    lsRpcConnection.on('refactoring/projectRenamed', ({ oldNormalizedName, newNormalizedName }) => {
-      projectNames.onProjectRenamed(oldNormalizedName, newNormalizedName)
+      const errorHandler = (
+        uuid: Uuid,
+        _expressionId: ExpressionId,
+        message: string,
+        _diagnostic: Diagnostic | undefined,
+      ) => {
+        if (uuid == visualizationId) {
+          resolve(Err(message))
+          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+          executionContext.off('visualizationEvaluationFailed', errorHandler)
+        }
+      }
+      dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+      executionContext.on('visualizationEvaluationFailed', errorHandler)
+      return lsRpcConnection.executeExpression(
+        executionContext.id,
+        visualizationId,
+        expressionId,
+        expression,
+      )
     })
+  }
 
-    return proxyRefs({
-      setObservedFileName(name: string) {
-        observedFileName.value = name
-      },
-      get observedFileName() {
-        return observedFileName.value
-      },
-      id: projectId,
-      isOnLocalBackend,
-      executionContext,
-      firstExecution,
-      diagnostics,
-      module,
-      moduleProjectPath,
-      entryPoint,
-      projectModel,
-      projectRootId,
-      awareness: markRaw(awareness),
-      computedValueRegistry: markRaw(computedValueRegistry),
-      lsRpcConnection: markRaw(lsRpcConnection),
-      dataConnection: markRaw(dataConnection),
-      useVisualizationData,
-      isRecordingEnabled,
-      stopCapturingUndo,
-      executionMode,
-      recordMode,
-      dataflowErrors,
-      executeExpression,
-      disposeYDocsProvider,
-      renameProject,
-    })
-  },
-)
+  function parseVisualizationData(data: Result<string | null> | null): Result<any> | null {
+    if (!data?.ok) return data
+    if (data.value == null) return null
+    try {
+      return Ok(markRaw(JSON.parse(data.value)))
+    } catch (error) {
+      if (error instanceof SyntaxError)
+        return Err(`Parsing visualization result failed: ${error.message}`)
+      else throw error
+    }
+  }
+
+  const { executionMode } = setupSettings(projectModel)
+
+  function disposeYDocsProvider() {
+    yDocsProvider?.dispose()
+    yDocsProvider = undefined
+  }
+
+  const recordMode = computed({
+    get() {
+      return executionMode.value === 'live'
+    },
+    set(value) {
+      executionMode.value = value ? 'live' : 'design'
+    },
+  })
+
+  watch(executionMode, (modeValue) => {
+    executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
+  })
+
+  function renameProject(newDisplayedName: string) {
+    try {
+      renameProjectBackend(newDisplayedName)
+      if (isIdentifier(newDisplayedName)) {
+        projectNames.onProjectRenameRequested(newDisplayedName)
+      } else {
+        console.error(`Renaming project: Not a valid identifier: ${newDisplayedName}`)
+      }
+      return Ok()
+    } catch (err) {
+      return Err(err)
+    }
+  }
+  lsRpcConnection.on('refactoring/projectRenamed', ({ oldNormalizedName, newNormalizedName }) => {
+    projectNames.onProjectRenamed(oldNormalizedName, newNormalizedName)
+  })
+
+  return proxyRefs({
+    setObservedFileName(name: string) {
+      observedFileName.value = name
+    },
+    get observedFileName() {
+      return observedFileName.value
+    },
+    id: projectId,
+    isOnLocalBackend,
+    executionContext,
+    firstExecution,
+    diagnostics,
+    module,
+    moduleProjectPath,
+    entryPoint,
+    projectModel,
+    projectRootId,
+    awareness: markRaw(awareness),
+    computedValueRegistry: markRaw(computedValueRegistry),
+    lsRpcConnection: markRaw(lsRpcConnection),
+    dataConnection: markRaw(dataConnection),
+    useVisualizationData,
+    isRecordingEnabled,
+    stopCapturingUndo,
+    executionMode,
+    recordMode,
+    dataflowErrors,
+    executeExpression,
+    disposeYDocsProvider,
+    renameProject,
+  })
+}
 
 type ExecutionMode = 'live' | 'design'
 type Settings = { executionMode: WritableComputedRef<ExecutionMode> }

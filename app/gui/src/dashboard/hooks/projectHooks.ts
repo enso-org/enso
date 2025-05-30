@@ -11,7 +11,6 @@ import {
   useAddLaunchedProject,
   useProjectsStore,
   useRemoveLaunchedProject,
-  useSetPage,
   useUpdateLaunchedProjects,
   type LaunchedProject,
   type LaunchedProjectId,
@@ -590,21 +589,11 @@ export function useOpenProjectLocally() {
   )
 }
 
-/** A function to open the editor. */
-export function useOpenEditor() {
-  const setPage = useSetPage()
-  return eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
-    setPage(projectId)
-  })
-}
-
 /** A function to close a project. */
 export function useCloseProject() {
   const client = reactQuery.useQueryClient()
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = useRemoveLaunchedProject()
-  const setPage = useSetPage()
-  const projectsStore = useProjectsStore()
 
   return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
     client
@@ -633,10 +622,6 @@ export function useCloseProject() {
       })
 
     removeLaunchedProject(project.id)
-
-    if (projectsStore.getState().page === project.id) {
-      setPage('drive')
-    }
 
     await promise
   })

@@ -3,7 +3,7 @@ import sbt.std.Streams
 import sbt.util.{CacheStoreFactory, FileInfo}
 
 import java.io.{File, IOException}
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardCopyOption}
 import java.util.jar.{JarEntry, JarFile, JarOutputStream}
 import scala.util.{Try, Using}
 
@@ -180,5 +180,43 @@ object JARUtils {
       e.printStackTrace(System.err)
       Nil
     })
+  }
+
+  /** Removes the specified list of entries from the JAR archive at `jarPath`.
+    * Changes the JAR archive in place.
+    * If some entries are not found, they are ignored.
+    * @param jarPath
+    * @param shouldBeDeleted A function that takes the entry name and returns true if the entry should be deleted.
+    */
+  def removeEntriesFromJar(
+    jarPath: Path,
+    shouldBeDeleted: String => Boolean
+  ): Unit = {
+    val tempJarPath = Files.createTempFile("temp-", ".jar")
+    Using(new JarFile(jarPath.toFile)) { jarFile =>
+      Using(new JarOutputStream(Files.newOutputStream(tempJarPath))) {
+        outputJar =>
+          jarFile.stream().forEach { entry =>
+            if (!shouldBeDeleted(entry.getName)) {
+              outputJar.putNextEntry(new JarEntry(entry.getName))
+              Using(jarFile.getInputStream(entry)) { is =>
+                is.transferTo(outputJar)
+              }.recover({ case e: IOException =>
+                throw new RuntimeException(
+                  s"Failed to copy $entry to output JAR: ${e.getMessage}",
+                  e
+                )
+              })
+              outputJar.closeEntry()
+            }
+          }
+      }
+    }
+    Files.move(
+      tempJarPath,
+      jarPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    IO.delete(tempJarPath.toFile)
   }
 }
