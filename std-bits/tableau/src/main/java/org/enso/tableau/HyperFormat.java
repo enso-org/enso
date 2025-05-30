@@ -336,7 +336,7 @@ public class HyperFormat {
     }
   }
 
-  public static void writeTable(String path, String schemaName, String tableName, Table table, boolean append) throws IOException {
+  public static void writeTable(String path, String schemaName, String tableName, Table table, boolean append, boolean matchColumnsByName) throws IOException {
     getProcess();
     try (var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
     TableDefinition tableDef;
@@ -345,7 +345,7 @@ public class HyperFormat {
     } else {
         tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
     }
-    insertData(table, tableDef, connection);
+    insertData(table, tableDef, connection, matchColumnsByName);
     connection.close();
     }
   }
@@ -387,25 +387,11 @@ public class HyperFormat {
       return tableDef;
   }
 
-private static void insertData(Table table, TableDefinition tableDef, Connection connection) {
-    int numberOfRows = table.rowCount();
-
-    String[] existingColumnNames = tableDef.getColumns().stream()
-        .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
-        .toArray(String[]::new);
-
-    validateNoExtraColumns(table, existingColumnNames);
-
-    ColumnStorage[] columnStorages = Arrays.stream(existingColumnNames)
-        .map(name -> Arrays.stream(table.getColumns())
-            .filter(col -> col.getName().equals(name))
-            .findFirst()
-            .map(Column::getStorage)
-            .orElseGet(() -> new NullStorage(numberOfRows)))
-        .toArray(ColumnStorage[]::new);
+private static void insertData(Table table, TableDefinition tableDef, Connection connection, boolean matchColumnsByName) {
+    ColumnStorage[] columnStorages = getOrderedStorages(table, tableDef, matchColumnsByName);
 
     try (Inserter inserter = new Inserter(connection, tableDef)) {
-        for (int row = 0; row < numberOfRows; ++row) {
+        for (int row = 0; row < table.rowCount(); ++row) {
             for (ColumnStorage storage : columnStorages) {
                 addValueToInserter(inserter, storage, row);
             }
@@ -414,6 +400,33 @@ private static void insertData(Table table, TableDefinition tableDef, Connection
         inserter.execute();
     }
 }
+
+    private static ColumnStorage[] getOrderedStorages(Table table, TableDefinition tableDef, boolean matchColumnsByName) {
+        int numberOfRows = table.rowCount();
+        if (matchColumnsByName ) {
+            String[] existingColumnNames = tableDef.getColumns().stream()
+                .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
+                .toArray(String[]::new);
+
+            validateNoExtraColumns(table, existingColumnNames);
+            return Arrays.stream(existingColumnNames)
+                    .map(name -> Arrays.stream(table.getColumns())
+                            .filter(col -> col.getName().equals(name))
+                            .findFirst()
+                            .map(Column::getStorage)
+                            .orElseGet(() -> new NullStorage(numberOfRows)))
+                    .toArray(ColumnStorage[]::new);
+        } else { // match by position
+        Column[] sourceColumns = table.getColumns();
+        int defColumnCount = tableDef.getColumns().size();
+
+        return IntStream.range(0, defColumnCount)
+            .mapToObj(i -> i < sourceColumns.length
+                ? sourceColumns[i].getStorage()
+                : new NullStorage(numberOfRows))
+            .toArray(ColumnStorage[]::new);
+    }
+    }
 
 private static void addValueToInserter(Inserter inserter, ColumnStorage storage, int row) {
     if (storage.isNothing(row)) {

@@ -92,7 +92,7 @@ type Tableau_Format
        ADVANCED
        Implements the `Table.write` for this `File_Format`.
     write_table self file:Writable_File table:Table on_existing_file match_columns:Match_Columns on_problems:Problem_Behavior =
-        _ = [match_columns, on_problems]
+        _ = [on_problems]
         _check_supported_types table
         if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
             is_dry_run = Context.Output.is_enabled.not
@@ -110,7 +110,7 @@ type Tableau_Format
                 Tableau_Format.Hyper_File _ -> "Extract"
                 Tableau_Format.Hyper_Table _ t -> t
             Hyper_Errors.handle_java_exceptions <|
-                HyperFormat.writeTable resolved_file resolved_schema resolved_table (to_java_table table) (on_existing_file == Existing_File_Behavior.Append)
+                HyperFormat.writeTable resolved_file resolved_schema resolved_table (to_java_table table) (on_existing_file == Existing_File_Behavior.Append) (match_columns == Match_Columns.By_Name)
             File.new resolved_file
 
 private _check_supported_types table:Table =
