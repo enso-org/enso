@@ -390,3 +390,49 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         backup_file.exists.should_equal False
 
         written_file.delete
+
+    group_builder.specify "not enough columns can be escalated to error (By_Position)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Position on_problems=..Report_Error
+        r.should_fail_with Hyper_Unmatched_Columns
+        r.catch.should_equal (Hyper_Unmatched_Columns.Error ["Col2"])
+
+        ## Data is still t1 as we didn't append
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "not enough columns warning can be ignored (By_Position)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Position on_problems=..Ignore
+        Problems.assume_no_problems r
+
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal (Table.input [['Col1', ['a', 'b']], ['Col2', ['b', Nothing]]])
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete

@@ -336,7 +336,7 @@ public class HyperFormat {
     }
   }
 
-  public static String[] writeTable(String path, String schemaName, String tableName, Table table, boolean append, boolean matchColumnsByName) throws IOException {
+  public static String[] writeTable(String path, String schemaName, String tableName, Table table, boolean append, boolean matchColumnsByName, boolean throwDontWarn) throws IOException {
     List<String> warningUnmatchedColumns = new ArrayList<>();
     getProcess();
     try (var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
@@ -346,7 +346,7 @@ public class HyperFormat {
     } else {
         tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
     }
-    insertData(table, tableDef, connection, matchColumnsByName, warningUnmatchedColumns);
+    insertData(table, tableDef, connection, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
     connection.close();
     }
     return warningUnmatchedColumns.toArray(new String[0]);
@@ -389,8 +389,8 @@ public class HyperFormat {
       return tableDef;
   }
 
-private static void insertData(Table table, TableDefinition tableDef, Connection connection, boolean matchColumnsByName, List<String> warningUnmatchedColumns) {
-    ColumnStorage[] columnStorages = getOrderedStorages(table, tableDef, matchColumnsByName, warningUnmatchedColumns);
+private static void insertData(Table table, TableDefinition tableDef, Connection connection, boolean matchColumnsByName, List<String> warningUnmatchedColumns, boolean throwDontWarn) {
+    ColumnStorage[] columnStorages = getOrderedStorages(table, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
 
     try (Inserter inserter = new Inserter(connection, tableDef)) {
         for (int row = 0; row < table.rowCount(); ++row) {
@@ -403,14 +403,14 @@ private static void insertData(Table table, TableDefinition tableDef, Connection
     }
 }
 
-    private static ColumnStorage[] getOrderedStorages(Table table, TableDefinition tableDef, boolean matchColumnsByName, List<String> warningUnmatchedColumns) {
+    private static ColumnStorage[] getOrderedStorages(Table table, TableDefinition tableDef, boolean matchColumnsByName, List<String> warningUnmatchedColumns, boolean throwDontWarn) {
         int numberOfRows = table.rowCount();
         if (matchColumnsByName ) {
             String[] existingColumnNames = tableDef.getColumns().stream()
                 .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
                 .toArray(String[]::new);
 
-            validateNoExtraColumnsByName(table, existingColumnNames, warningUnmatchedColumns);
+            validateNoExtraColumnsByName(table, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
             return Arrays.stream(existingColumnNames)
                     .map(name -> Arrays.stream(table.getColumns())
                             .filter(col -> col.getName().equals(name))
@@ -419,7 +419,7 @@ private static void insertData(Table table, TableDefinition tableDef, Connection
                             .orElseGet(() -> new NullStorage(numberOfRows)))
                     .toArray(ColumnStorage[]::new);
         } else { // match by position
-        validateNoExtraColumnsByPosition(table, tableDef, warningUnmatchedColumns);
+        validateNoExtraColumnsByPosition(table, tableDef, warningUnmatchedColumns, throwDontWarn);
         Column[] sourceColumns = table.getColumns();
         int defColumnCount = tableDef.getColumns().size();
 
@@ -453,7 +453,7 @@ private static void addValueToInserter(Inserter inserter, ColumnStorage storage,
     }
 }
 
-private static void validateNoExtraColumnsByName(Table table, String[] allowedColumnNames, List<String> warningUnmatchedColumns) {
+private static void validateNoExtraColumnsByName(Table table, String[] allowedColumnNames, List<String> warningUnmatchedColumns, boolean throwDontWarn) {
     Set<String> allowed = Set.of(allowedColumnNames);
     Set<String> tableColumnNames = Arrays.stream(table.getColumns())
         .map(Column::getName)
@@ -468,13 +468,21 @@ private static void validateNoExtraColumnsByName(Table table, String[] allowedCo
         throw new HyperUnmatchedColumns(extraColumns);
     }
 
-    // Check for missing expected columns (allowed but not present — warn)
-    allowed.stream()
+    // Check for missing columns: warn or error depending on flag
+    List<String> missingColumns = Arrays.stream(allowedColumnNames)
         .filter(name -> !tableColumnNames.contains(name))
-        .forEach(warningUnmatchedColumns::add);
+        .toList();
+
+    if (!missingColumns.isEmpty()) {
+        if (throwDontWarn) {
+            throw new HyperUnmatchedColumns(missingColumns.toArray(new String[0]));
+        } else {
+            warningUnmatchedColumns.addAll(missingColumns);
+        }
+    }
 }
 
-private static void validateNoExtraColumnsByPosition(Table table, TableDefinition tableDef, List<String> warningUnmatchedColumns) {
+private static void validateNoExtraColumnsByPosition(Table table, TableDefinition tableDef, List<String> warningUnmatchedColumns, boolean throwDontWarn) {
  int tableColumnCount = table.getColumns().length;
     int defColumnCount = tableDef.getColumns().size();
 
@@ -487,11 +495,17 @@ private static void validateNoExtraColumnsByPosition(Table table, TableDefinitio
         throw new HyperUnmatchedColumns(extraColumnNames);
     }
 
-    // Warn if the table has fewer columns than the definition
+    // Missing columns: warn or throw based on flag
     if (tableColumnCount < defColumnCount) {
-        IntStream.range(tableColumnCount, defColumnCount)
+        String[] missingColumnNames = IntStream.range(tableColumnCount, defColumnCount)
             .mapToObj(i -> tableDef.getColumns().get(i).getName().toString().replaceAll("^\"|\"$", ""))
-            .forEach(warningUnmatchedColumns::add);
+            .toArray(String[]::new);
+
+        if (throwDontWarn) {
+            throw new HyperUnmatchedColumns(missingColumnNames);
+        } else {
+            warningUnmatchedColumns.addAll(List.of(missingColumnNames));
+        }
     }
 }
 
