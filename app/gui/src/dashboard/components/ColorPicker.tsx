@@ -23,10 +23,10 @@ function ColorPickerItem(props: InternalColorPickerItemProps) {
     <FocusRing within>
       <aria.Radio
         value={cssColor}
-        className="group flex size-radio-button cursor-pointer rounded-full p-radio-button-dot"
+        className="group flex h-6 w-6 cursor-pointer items-center justify-center rounded-full"
         style={{ backgroundColor: cssColor }}
       >
-        <div className="hidden size-radio-button-dot rounded-full bg-selected-frame group-selected:block" />
+        <div className="hidden aspect-square h-3 w-3 rounded-full bg-selected-frame group-selected:block" />
       </aria.Radio>
     </FocusRing>
   )

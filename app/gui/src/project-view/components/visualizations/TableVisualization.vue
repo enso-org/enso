@@ -38,19 +38,31 @@ import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
   Error,
-  SingleColumnOfActions,
+  GenericGrid,
   isError,
-  isSingleColumnOfActions,
+  isGenericGrid,
 } from './TableVisualization/TableVisualisationTypes'
 import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
   createExpressionRowTemplate,
+  ValueTypeArgumentChild,
+  ValueTypes,
 } from './TableVisualization/TableVizDataSourceUtils'
+import {
+  getCellDataType,
+  getFilterParams,
+  getFilterType,
+} from './TableVisualization/tableVizFilterSetUpUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
-import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import {
+  formatText,
+  getCellValueType,
+  isNumericType,
+  ValueType,
+} from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -62,19 +74,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data =
-  | number
-  | string
-  | Error
-  | Matrix
-  | ObjectMatrix
-  | EnsoTableOrColumn
-  | SingleColumnOfActions
-
-interface ValueType {
-  constructor: string
-  display_text: string
-}
+type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | GenericGrid
 
 interface Matrix {
   type: 'Matrix'
@@ -116,6 +116,7 @@ interface EnsoTableOrColumn {
   use_bottom_status_bar: boolean
   enable_create_node: boolean
   requires_number_format: boolean[]
+  is_using_multi_filter: boolean[]
   table_version_hash?: string
 }
 
@@ -389,11 +390,25 @@ const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) =
 
 async function getFilterValues(params: SetFilterValuesFuncParams) {
   const colName = params.colDef.field
+  const filters = params.api.getFilterModel()
+  const columnHeaders =
+    typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
+  const gridFilterModelList: Array<GridFilterModel> = filters ? makeFilterModelList(filters) : []
+  const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
+    gridFilterModelList,
+    columnHeaders,
+    colTypeMap.value,
+  )
   if (typeof props.data === 'object' && 'header' in props.data) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
     const server = ssrmServer.value
     if (server) {
-      const response = await server.getSetFilterValues(index)
+      const response = await server.getSetFilterValues(
+        index!,
+        filterColumnIndexList,
+        filterActions,
+        valueList,
+      )
       if (response.success) {
         params.success(response.data)
       }
@@ -405,11 +420,37 @@ const attepmtedCalls = ref(0)
 
 function createServer() {
   return {
-    getSetFilterValues: async (columnIndex?: number) => {
+    getSetFilterValues: async (
+      columnIndex: number,
+      filterColumnIndexList: string[] | string,
+      filterActions: string[] | string,
+      valueList:
+        | string
+        | (
+            | {
+                valueType: ValueTypes
+                value: string
+              }
+            | {
+                valueType: 'Mixed'
+                value: ValueTypeArgumentChild[]
+              }
+            | {
+                valueType: ValueTypes
+                value: string
+              }[]
+          )[],
+    ) => {
       const expressionFunction = createDistinctExpressionTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
         `${columnIndex}`,
+        //column indexes that require a filter
+        filterColumnIndexList as string[] | 'Nothing',
+        //column actions i.e Greater Than, Between...
+        filterActions as string[] | 'Nothing',
+        //values to filter on
+        valueList as string[] | 'Nothing',
       )
       const response = await config.executeExpression(expressionFunction)
       return {
@@ -422,8 +463,10 @@ function createServer() {
         typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
 
       const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
+      const gridFilterModelList: Array<GridFilterModel> =
+        request.filterModel ? makeFilterModelList(request.filterModel) : []
       const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
-        request,
+        gridFilterModelList,
         columnHeaders,
         colTypeMap.value,
       )
@@ -560,61 +603,6 @@ function getValueTypeIcon(valueType: string) {
   }
 }
 
-function getFilterType(valueType: string) {
-  if (valueType === 'Date') {
-    return 'agDateColumnFilter'
-  } else if (isNumericType(valueType)) {
-    return 'agNumberColumnFilter'
-  } else if (valueType === 'Char') {
-    return 'agTextColumnFilter'
-  } else {
-    return 'agSetColumnFilter'
-  }
-}
-
-function getFilterOptions(valueType: string) {
-  if (valueType === 'Date') {
-    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
-  } else if (isNumericType(valueType)) {
-    return [
-      'equals',
-      'notEqual',
-      'greaterThan',
-      'greaterThanOrEqual',
-      'lessThan',
-      'lessThanOrEqual',
-      'inRange',
-      'blank',
-      'notBlank',
-    ]
-  } else if (valueType === 'Char') {
-    return ['equals', 'notEqual', 'contains', 'startsWith', 'endsWith', 'blank', 'notBlank']
-  } else {
-    return null
-  }
-}
-function getFilterButtons(valueType: string) {
-  if (valueType === 'Date') {
-    return ['apply', 'clear']
-  } else {
-    return ['clear']
-  }
-}
-
-function getCellDataType(valueType: string) {
-  if (valueType === 'Date') {
-    return 'date'
-  } else if (isNumericType(valueType)) {
-    return 'number'
-  } else if (valueType === 'Char') {
-    return 'text'
-  } else if (valueType === 'Boolean') {
-    return 'boolean'
-  } else {
-    return false
-  }
-}
-
 /**
  * Generates the column definition for the table vizulization, including displaying the data value type and
  * data quality indicators.
@@ -633,10 +621,17 @@ function toField(
 
   const displayValue = valueType ? valueType.display_text : null
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
-  const filterType = valueType ? getFilterType(valueType.constructor) : null
-  const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
-  const filterButtons = valueType ? getFilterButtons(valueType.constructor) : null
   const cellValueType = valueType ? getCellDataType(valueType.constructor) : false
+
+  const usingMultiFilterLists =
+    typeof props.data === 'object' && 'is_using_multi_filter' in props.data ?
+      props.data.is_using_multi_filter
+    : []
+  const isUsingMultiFilter = usingMultiFilterLists[index!] ?? false
+
+  const filterType = valueType ? getFilterType(valueType.constructor, isUsingMultiFilter) : null
+
+  const filterParams = getFilterParams(isSSRM.value, valueType, filterType, getFilterValues)
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
@@ -669,12 +664,7 @@ function toField(
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
     filter: filterType,
-    filterParams: {
-      maxNumConditions: 1,
-      values: getFilterValues,
-      filterOptions: filterOptions,
-      buttons: filterButtons,
-    },
+    filterParams: filterParams,
     headerComponentParams: {
       template,
       setAriaSort: () => {},
@@ -856,15 +846,19 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (isSingleColumnOfActions(data_)) {
-    columnDefs.value = [
-      toLinkField('Value', {
-        tooltipValue: data_.child_label,
-        headerName: data_.visualization_header,
-        getChildAction: data_.get_child_node_action,
-      }),
-    ]
-    rowData.value = data_.data.map((name) => ({ Value: name }))
+  } else if (isGenericGrid(data_)) {
+    columnDefs.value = data_.headers.map((header) => {
+      if (header.get_child_node_action) {
+        return toLinkField(header.visualization_header, {
+          tooltipValue: header.child_label,
+          headerName: header.visualization_header,
+          getChildAction: header.get_child_node_action,
+        })
+      } else {
+        return toField(header.visualization_header)
+      }
+    })
+    rowData.value = createRowsForTable(data_.data, 0, false)
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {

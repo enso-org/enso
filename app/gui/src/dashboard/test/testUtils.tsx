@@ -6,7 +6,7 @@
  */
 /// <reference types="@testing-library/jest-dom" />
 
-import { Form, type FormInstance, type FormProps, type TSchema } from '#/components/AriaComponents'
+import { Form, type FormInstance, type FormProps, type TSchema } from '#/components/Form'
 import UIProviders from '#/components/UIProviders'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import {

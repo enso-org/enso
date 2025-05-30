@@ -1,0 +1,127 @@
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
+from Standard.Test import all
+
+polyglot java import java.util.jar.JarFile
+polyglot java import java.util.jar.JarEntry
+polyglot java import java.nio.file.Path as JPath
+polyglot java import java.util.Enumeration
+
+only_on_linux = if System.os == "linux" then Nothing else "Test runs only on Linux"
+
+add_specs suite_builder = suite_builder.group "Embedded native libraries" group_builder->
+    group_builder.specify "Embedded native libraries in all JARs should be the same as in native_libs.json" pending=only_on_linux <|
+        expected_native_libs = (enso_project.data / "native_libs.json") . read JSON_Format
+        Test.with_clue "native_libs.json is present in the data dir" <|
+            expected_native_libs.is_error . should_be_false
+        stdlib_jars = collect_jars_with_native_libs libs_root_dir "**/*.jar"
+        component_jars = collect_jars_with_native_libs components_dir "*.jar"
+        all_jars_with_native_libs = dicts_to_json stdlib_jars component_jars
+        expect_same_js_objects expected_native_libs all_jars_with_native_libs
+
+
+expect_same_js_objects expected:JS_Object actual:JS_Object =
+    expected_fields = expected.field_names.sort
+    actual_fields = actual.field_names.sort
+    Test.with_clue "field names should equal: "  <|
+        expected_fields.should_equal actual_fields
+    expected_fields.each \field_name ->
+        expected_value = expected.at field_name . sort
+        actual_value = actual.at field_name . sort
+        Test.with_clue "values in field '"+field_name+"' should equal: " <|
+            expected_value.should_equal actual_value
+
+
+## Trasnforms absolute path of the JAR by removing the `built_distribution_root` prefix,
+   and replacing any version specific subdir by "0.0.0-dev".
+transform_path path:Text -> Text =
+    file = File.new path
+    file.exists . should_be_true
+    file.is_descendant_of built_distribution_root . should_be_true
+    relative = built_distribution_root.relativize file . to_text
+    regex = "\d+\.\d+\.\d+-dev".to_regex
+    new_path_items = relative.split "/" . map \path_item ->
+        path_item.replace regex "0.0.0-dev"
+    new_path_items.join "/"
+
+
+## Join two dictionaries collected by `collect_jars_with_native_libs`
+   Converts to JS_Object
+dicts_to_json dict1:Dictionary dict2:Dictionary -> JS_Object =
+    vec = dict1.to_vector + dict2.to_vector
+    JS_Object.from_pairs vec
+
+
+## Collects all the native libraries from JAR archives, recursively found in the
+   given `root_dir`.
+   Returns dictionary where key is path to the JAR archive and value is a,
+   possibly empty, vector of native library entry names.
+collect_jars_with_native_libs root_dir:File jar_files_filter:Text -> Dictionary Text (Vector Text) =
+    root_dir.exists . should_be_true
+    all_jars = root_dir.list name_filter=jar_files_filter recursive=True
+    all_jars.is_empty . should_be_false
+
+    should_include_entry entry_name =
+        entry_name.ends_with ".so" || entry_name.ends_with ".dll" || entry_name.ends_with ".dylib"
+
+    # Maps Jar paths to list of invalid entries
+    dict = all_jars.fold Dictionary.empty \acc jar ->
+        invalid_entries = traverse_jar jar should_include_entry
+        acc.insert jar.path invalid_entries
+
+    jars_with_native_libs_vect = dict.to_vector.filter \entry ->
+        entry.at 1 . is_empty . not
+    jars_with_transformed_paths = jars_with_native_libs_vect.map \item ->
+        path = item.at 0
+        value = item.at 1
+        transformed_path = transform_path path
+        [transformed_path, value]
+    Dictionary.from_vector jars_with_transformed_paths
+
+
+built_distribution_root -> File =
+    find_prefix dir prefix =
+        vec = dir.list name_filter=prefix+"*"
+        if vec.length == 1 then vec.at 0 else
+            msg = "Cannot find " + prefix + "* in " + dir.to_text + '\n'
+            err = dir.list.fold msg t-> f->
+                t + f.to_text + '\n'
+            Panic.throw err
+
+    project_root = File.new enso_project.root.to_text
+    repository_root = project_root . parent . parent
+    built_distribution = find_prefix repository_root "built-distribution"
+    enso_engine = find_prefix built_distribution "enso-engine-"
+    enso = find_prefix enso_engine "enso-"
+    enso
+
+
+libs_root_dir -> File =
+    built_distribution_root / "lib" / "Standard"
+
+
+components_dir -> File =
+    built_distribution_root / "component"
+
+
+traverse_jar jar:File should_include_entry:(Text -> Boolean) -> Vector Text =
+    jar_file = JarFile.new jar.path
+    jar_entries = jar_file.entries
+    has_more_elements = Ref.new jar_entries.hasMoreElements
+
+    while_has_more_elements collected_entries =
+        if has_more_elements.get.not then collected_entries else
+            entry = jar_entries.nextElement
+            new_entries = case (should_include_entry entry.getName) of
+                True -> collected_entries + [entry.getName]
+                False -> collected_entries
+            has_more_elements.put jar_entries.hasMoreElements
+            @Tail_Call while_has_more_elements new_entries
+
+    while_has_more_elements []
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

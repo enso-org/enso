@@ -10,6 +10,7 @@ import type * as accessToken from 'enso-common/src/accessToken'
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
 import type * as projectManagement from '@/projectManagement'
+import { FileFilter } from './fileBrowser'
 
 // Even though this is already built as an mjs module, we are "faking" cjs format on preload script
 // due to missing module support. Since this is the only module that's treated as external by
@@ -127,8 +128,11 @@ exposeInMainWorld(AUTHENTICATION_API_KEY, {
 })
 
 exposeInMainWorld(FILE_BROWSER_API_KEY, {
-  openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
-    electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
+  openFileBrowser: (
+    kind: 'any' | 'directory' | 'file' | 'filePath',
+    defaultPath?: string,
+    filters?: FileFilter[],
+  ) => electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath, filters),
 })
 
 /** A callback when a project is opened by opening a fileusing the system's default method. */

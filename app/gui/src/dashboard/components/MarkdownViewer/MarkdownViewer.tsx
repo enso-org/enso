@@ -1,12 +1,11 @@
 /** @file A Markdown viewer component. */
-import * as React from 'react'
-
+import type { TestIdProps } from '#/components/types'
 import { useLogger } from '#/providers/LoggerProvider'
 import { useText } from '$/providers/react'
 import { resolveDocImageUrl } from '@/components/DocumentationEditor/images'
 import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
 import { Err, Ok } from '@/util/data/result'
-import { type TestIdProps } from '../AriaComponents'
+import * as React from 'react'
 
 /** Props for a {@link MarkdownViewer}. */
 export interface MarkdownViewerProps extends TestIdProps {

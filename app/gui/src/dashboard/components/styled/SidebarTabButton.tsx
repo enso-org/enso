@@ -1,5 +1,5 @@
 /** @file A styled button representing a tab on a sidebar. */
-import { Button, type ButtonProps } from '#/components/AriaComponents'
+import { Button, type ButtonProps } from '#/components/Button'
 import { tv } from '#/utilities/tailwindVariants'
 
 const SIDEBAR_TAB_BUTTON_STYLES = tv({

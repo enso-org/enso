@@ -8,6 +8,7 @@ import { Ast } from '@/util/ast'
 import { Result } from '@/util/data/result'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
+import { Class } from 'ydoc-shared/util/types'
 import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -33,6 +34,19 @@ export namespace WidgetInput {
     }
   }
 
+  /** Returns widget-input data for the given AST tree or a placeholder in case a value is missing. */
+  export function FromAstOrPlaceholder<A extends Ast.Ast | Ast.Token | string | undefined>(
+    ast: A,
+    portIdFallback: () => PortId,
+  ): WidgetInput & { value: A } {
+    return ast instanceof Ast.Ast || ast instanceof Ast.Token ?
+        WidgetInput.FromAst(ast)
+      : {
+          portId: portIdFallback(),
+          value: ast,
+        }
+  }
+
   /** Returns the input marked to be a port. */
   export function WithPort<T extends WidgetInput>(input: T): T {
     return {
@@ -55,13 +69,13 @@ export namespace WidgetInput {
   }
 
   /** Match input against a specific AST node type. */
-  export function astMatcher<T extends Ast.Ast>(nodeType: new (...args: any[]) => T) {
+  export function astMatcher<T extends Ast.Ast>(nodeType: Class<T>) {
     return (input: WidgetInput): input is WidgetInput & { value: T } =>
       input.value instanceof nodeType
   }
 
   /** Match input against a placeholder or specific AST node type. */
-  export function placeholderOrAstMatcher<T extends Ast.Ast>(nodeType: new (...args: any[]) => T) {
+  export function placeholderOrAstMatcher<T extends Ast.Ast>(nodeType: Class<T>) {
     return (input: WidgetInput): input is WidgetInput & { value: T | string | undefined } =>
       isPlaceholder(input) || input.value instanceof nodeType
   }
@@ -190,6 +204,44 @@ export interface WidgetUpdate {
    * An example if _nondirect_ interaction is an update of a port connected to a removed node).
    */
   directInteraction: boolean
+}
+
+/**
+ * Handle a direct child widget port value update in a special way, while letting any direct edit updates
+ * through unaffected.
+ */
+export async function rewritePortValueUpdate(
+  update: WidgetUpdate,
+  parentOnUpdate: UpdateHandler,
+  originPredicate: PortId | ((origin: PortId) => boolean) | undefined,
+  valueHandler: (
+    value: Ast.Owned<Ast.MutableExpression> | string | undefined,
+  ) => UpdateResult | Promise<UpdateResult>,
+) {
+  if (
+    update.portUpdate &&
+    'value' in update.portUpdate &&
+    originMatches(update.portUpdate.origin, originPredicate)
+  ) {
+    const { portUpdate, ...remainingUpdate } = update
+    let result = valueHandler(portUpdate.value)
+    if (result instanceof Promise) result = await result
+    if (!result.ok) return result
+    return parentOnUpdate(remainingUpdate)
+  } else {
+    return parentOnUpdate(update)
+  }
+}
+
+function originMatches(
+  origin: PortId,
+  predicate: PortId | ((origin: PortId) => boolean) | undefined,
+) {
+  return (
+    predicate === undefined ||
+    origin === predicate ||
+    (typeof predicate === 'function' && predicate(origin))
+  )
 }
 
 /**

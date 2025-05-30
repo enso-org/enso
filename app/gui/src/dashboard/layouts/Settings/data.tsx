@@ -1,15 +1,8 @@
 /** @file Metadata for rendering each settings section. */
-import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
-
-import type { QueryClient } from '@tanstack/react-query'
-import * as z from 'zod'
-
-import type { TextId } from 'enso-common/src/text'
-
 import ComputerIcon from '#/assets/computer.svg'
-import type { SvgUseIcon } from '#/components/AriaComponents'
-import { Button, ButtonGroup } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
+import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
@@ -30,16 +23,19 @@ import { normalizePath } from '#/utilities/fileInfo'
 import { pick, unsafeEntries } from '#/utilities/object'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import type { GetText } from '$/providers/text'
+import type { QueryClient } from '@tanstack/react-query'
+import type { TextId } from 'enso-common/src/text'
+import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'
+import * as z from 'zod'
 import ActivityLogSettingsSection from './ActivityLogSettingsSection'
 import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
 import KeyboardShortcutsSettingsSection from './KeyboardShortcutsSettingsSection'
 import MembersSettingsSection from './MembersSettingsSection'
-import MembersTable from './MembersTable'
 import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
 import ProfilePictureInput from './ProfilePictureInput'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
 import SettingsTabType from './TabType'
-import UserGroupsSettingsSection from './UserGroupsSettingsSection'
+import { UserGroupsSettingsSection } from './UserGroupsSettingsSection'
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   nameId: 'noResultsSettingsSection',
@@ -302,7 +298,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: 'custom',
             aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
             render: (context) => (
-              <ButtonGroup className="grow-0">
+              <Button.Group className="grow-0">
                 {window.fileBrowserApi && (
                   <Button
                     size="small"
@@ -328,7 +324,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 >
                   {context.getText('resetLocalRootDirectory')}
                 </Button>
-              </ButtonGroup>
+              </Button.Group>
             ),
           },
           settingsFormEntryData({
@@ -348,7 +344,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             type: 'custom',
             aliasesId: 'downloadDirectoryButtonSettingsCustomEntryAliases',
             render: (context) => (
-              <ButtonGroup className="grow-0">
+              <Button.Group className="grow-0">
                 {window.fileBrowserApi && (
                   <Button
                     size="small"
@@ -374,7 +370,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 >
                   {context.getText('resetDownloadDirectory')}
                 </Button>
-              </ButtonGroup>
+              </Button.Group>
             ),
           },
         ],
@@ -419,7 +415,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'membersSettingsSection',
-        entries: [{ type: 'custom', render: () => <MembersSettingsSection /> }],
+        columnClassName: 'h-full *:flex-1 *:min-h-0',
+        entries: [{ type: 'custom', render: MembersSettingsSection }],
       },
     ],
   },
@@ -433,30 +430,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'userGroupsSettingsSection',
-        columnClassName: 'lg:h-[unset] overflow-auto h-auto',
-        entries: [
-          {
-            type: 'custom',
-            render: (context) => <UserGroupsSettingsSection backend={context.backend} />,
-          },
-        ],
-      },
-      {
-        nameId: 'userGroupsUsersSettingsSection',
-        column: 2,
-        columnClassName: 'lg:h-[unset] overflow-auto h-auto',
-        entries: [
-          {
-            type: 'custom',
-            render: (context) => (
-              <MembersTable
-                backend={context.backend}
-                draggable={context.user.isOrganizationAdmin}
-                populateWithSelf
-              />
-            ),
-          },
-        ],
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
+        entries: [{ type: 'custom', render: UserGroupsSettingsSection }],
       },
     ],
   },

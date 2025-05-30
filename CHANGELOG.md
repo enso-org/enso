@@ -14,7 +14,9 @@
 - [Add ability to inspect column, row and value from right click on table
   viz][12986]
 - [Add option to browse cloud for folders][13117]
+- [File Browser Widget: Add ability to filter files by extension][13048]
 - [Add keyboard shortcuts for formatting documentation][13134]
+- [Allow selecting expected types for arguments of grouped components.][13161]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -26,17 +28,21 @@
 [13014]: https://github.com/enso-org/enso/pull/13014
 [12986]: https://github.com/enso-org/enso/pull/12986
 [13117]: https://github.com/enso-org/enso/pull/13117
+[13048]: https://github.com/enso-org/enso/pull/13048
 [13134]: https://github.com/enso-org/enso/pull/13134
+[13161]: https://github.com/enso-org/enso/pull/13161
 
 #### Enso Standard Library
 
 - [Support for reading fixed-width-column data files.][12726]
 - [Added `row_limit` parameter to the `Fixed_Width` format.][12950]
 - [Add Tableau Hyper write support][12900]
+- [Initial Microsoft Azure support][13144]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
 [12900]: https://github.com/enso-org/enso/pull/12900
+[13144]: https://github.com/enso-org/enso/pull/13144
 
 #### Enso Language & Runtime
 

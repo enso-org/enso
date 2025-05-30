@@ -4,6 +4,8 @@
  * monkeypatching on `window` and generated code.
  */
 
+import type { FileFilter } from './fileBrowser'
+
 // =============
 // === Types ===
 // =============
@@ -115,6 +117,7 @@ interface FileBrowserApi {
   readonly openFileBrowser: (
     kind: 'any' | 'directory' | 'file' | 'filePath',
     defaultPath?: string,
+    filters?: FileFilter[],
   ) => Promise<unknown>
 }
 

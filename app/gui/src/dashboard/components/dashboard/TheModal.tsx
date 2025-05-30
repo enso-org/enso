@@ -1,6 +1,6 @@
 /** @file A component that renders the modal instance from the modal React Context. */
 import { Pressable } from '#/components/aria'
-import { DialogTrigger } from '#/components/AriaComponents'
+import { Dialog } from '#/components/Dialog'
 import * as modalProvider from '#/providers/ModalProvider'
 import { AnimatePresence, motion } from 'framer-motion'
 
@@ -18,14 +18,14 @@ export default function TheModal() {
           // eslint-disable-next-line @typescript-eslint/no-magic-numbers
           transition={{ duration: 0.2 }}
         >
-          <DialogTrigger key={key} defaultOpen>
+          <Dialog.Trigger key={key} defaultOpen>
             {/* This component suppresses the warning about the target not being pressable element. */}
             <Pressable>
               <></>
             </Pressable>
 
             {modal}
-          </DialogTrigger>
+          </Dialog.Trigger>
         </motion.div>
       )}
     </AnimatePresence>

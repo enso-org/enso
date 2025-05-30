@@ -1,7 +1,7 @@
 /** @file Utility methods for ydoc server authentication. */
 
 export type ConnectionData = {
-  lsUrl: string
+  lsUrl: string | null
   doc: string
   user: string
 }

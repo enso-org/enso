@@ -1,7 +1,9 @@
 /** @file Settings screen. */
 import { Heading, MenuTrigger } from '#/components/aria'
-import { Button, Popover, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Popover } from '#/components/Dialog'
 import { useStrictPortalContext } from '#/components/Portal'
+import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'

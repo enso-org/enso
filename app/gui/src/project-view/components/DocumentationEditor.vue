@@ -111,7 +111,11 @@ const handler = documentationEditorBindings.handler({
   background-color: #fff;
   height: 100%;
   width: 100%;
-  padding-left: 16px;
-  padding-right: 2px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.FullscreenButton {
+  margin-left: 4px;
 }
 </style>
