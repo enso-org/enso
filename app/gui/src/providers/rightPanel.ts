@@ -1,20 +1,12 @@
 import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import { AnyAsset, AssetType, ProjectId } from '#/services/Backend'
-import {
-  AssetProperties,
-  AssetVersions,
-  ProjectExecutionsCalendar,
-  ProjectSessions,
-} from '$/components/AppContainer/reactTabs'
-import ComponentDocumentation from '@/components/ComponentDocumentation.vue'
-import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import { createContextStore } from '@/providers'
 import { Err, Ok, Result } from '@/util/data/result'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { ToValue } from '@/util/reactivity'
 import { useLocalStorage } from '@vueuse/core'
-import { Component, computed, proxyRefs, reactive, readonly, Ref, ref, toRef, toValue } from 'vue'
+import { computed, proxyRefs, reactive, readonly, Ref, ref, toRef, toValue } from 'vue'
 import { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { TabId } from './container'
 import { createTextStore, TextStore } from './text'
@@ -50,7 +42,6 @@ interface RightPanelTabInfo {
   enabled: ToValue<Result<void>>
   hidden?: ToValue<boolean>
   title: ToValue<string>
-  component: Component
 }
 
 /** Right Panel Data kept in local storage. */
@@ -85,7 +76,6 @@ function useRightPanelTabs(
         icon: 'properties',
         enabled: enabledInCloudOnly,
         title: textRef('properties'),
-        component: AssetProperties,
       },
     ],
     [
@@ -94,7 +84,6 @@ function useRightPanelTabs(
         icon: 'versions',
         enabled: enabledInCloudOnly,
         title: textRef('versions'),
-        component: AssetVersions,
       },
     ],
     [
@@ -103,7 +92,6 @@ function useRightPanelTabs(
         icon: 'sessions',
         enabled: enabledInCloudOnly,
         title: textRef('projectSessions'),
-        component: ProjectSessions,
       },
     ],
     [
@@ -118,7 +106,6 @@ function useRightPanelTabs(
         }),
         hidden: computed(() => !toValue(enableScheduledExecution)),
         title: textRef('executionsCalendar'),
-        component: ProjectExecutionsCalendar,
       },
     ],
     [
@@ -127,7 +114,6 @@ function useRightPanelTabs(
         icon: 'docs',
         enabled: Ok(),
         title: textRef('docs'),
-        component: DocumentationEditor,
       },
     ],
     [
@@ -139,7 +125,6 @@ function useRightPanelTabs(
           return tab !== 'drive' && tab !== 'settings' ? Ok() : Err('Exclusive to Project view')
         }),
         title: 'Component help',
-        component: ComponentDocumentation,
       },
     ],
   ] as const satisfies [string, RightPanelTabInfo][])

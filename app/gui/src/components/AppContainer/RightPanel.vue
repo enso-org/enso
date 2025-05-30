@@ -1,6 +1,14 @@
 <script setup lang="ts">
+import {
+  AssetProperties,
+  AssetVersions,
+  ProjectExecutionsCalendar,
+  ProjectSessions,
+} from '$/components/AppContainer/reactTabs'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
+import ComponentDocumentation from '@/components/ComponentDocumentation.vue'
+import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
@@ -15,8 +23,24 @@ import SelectableTab from './SelectableTab.vue'
 
 const data = useRightPanelData()
 
+// Not a  part of RightPanelTabInfo, because it would create cyclic imports.
 const component = computed(() => {
-  return data.displayedTab && data.allTabs.get(data.displayedTab)?.component
+  switch (data.displayedTab) {
+    case 'settings':
+      return AssetProperties
+    case 'versions':
+      return AssetVersions
+    case 'sessions':
+      return ProjectSessions
+    case 'executionsCalendar':
+      return ProjectExecutionsCalendar
+    case 'documentation':
+      return DocumentationEditor
+    case 'help':
+      return ComponentDocumentation
+    default:
+      return undefined
+  }
 })
 
 const visibleTabs = computed(() => [
