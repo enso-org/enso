@@ -48,7 +48,7 @@ import * as appUtils from '#/appUtils'
 import * as authProvider from '#/providers/AuthProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
-import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
+import ModalProvider, { setModal } from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 
 import VersionChecker from '#/layouts/VersionChecker'
@@ -67,6 +67,10 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter, useText } from '$/providers/react'
+
+window.menuApi?.setShowAboutModalHandler(() => {
+  setModal(<AboutModal />)
+})
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -161,7 +165,6 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
   const navigate = router.push.bind(router)
 
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { setModal } = modalProvider.useSetModal()
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
@@ -173,14 +176,6 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
   const authService = useInitAuthService(props)
 
   const registerAuthEventListener = authService.registerAuthEventListener
-
-  React.useEffect(() => {
-    if ('menuApi' in window) {
-      window.menuApi.setShowAboutModalHandler(() => {
-        setModal(<AboutModal />)
-      })
-    }
-  }, [setModal])
 
   React.useEffect(() => {
     let isClick = false

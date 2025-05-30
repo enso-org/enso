@@ -1842,6 +1842,7 @@ export class NetworkError extends Error {
     super(message)
   }
 }
+
 /** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
 
