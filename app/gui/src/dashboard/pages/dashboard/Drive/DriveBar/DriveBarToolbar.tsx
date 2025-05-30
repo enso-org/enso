@@ -79,9 +79,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { isOffline } = useOffline()
   const { localBackend = null } = useBackends()
   const canDownload = useCanDownload()
-  const canExport = useStore(driveStore, ({ selectedIds }) =>
-    isCloud ? false : selectedIds.size !== 0,
-  )
+  const canExport = useStore(driveStore, ({ selectedIds }) => selectedIds.size !== 0)
 
   const { currentDirectoryId } = useDirectoryIds({ category })
 
@@ -341,7 +339,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 variant="icon"
                 size="medium"
                 icon="data_download"
-                aria-label={isCloud ? getText('exportArchive.localOnly') : getText('exportArchive')}
+                aria-label={getText('exportArchive')}
                 onPress={exportArchive}
                 isDisabled={!canExport}
               />
