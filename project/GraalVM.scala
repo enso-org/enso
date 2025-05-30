@@ -102,7 +102,7 @@ object GraalVM {
     private val windowsX64Release = NativeImageSize(200, 440)
     private val linuxX64Release   = NativeImageSize(200, 465)
     private val macX64Release     = NativeImageSize(200, 426)
-    private val macARM64Release   = NativeImageSize(200, 423)
+    private val macARM64Release   = NativeImageSize(200, 473)
     private val testNISize        = NativeImageSize(100, 562)
   }
 

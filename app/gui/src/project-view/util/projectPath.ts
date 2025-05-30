@@ -102,7 +102,21 @@ export class ProjectPath {
   toJSON(): object {
     return { project: this.project || null, path: this.path || null }
   }
+
+  /**
+   * Create a string representation of project path that is suitable for usage as a hashmap key.
+   */
+  key() {
+    const projectKey = this.project ?? '$'
+    return this.path ? `${projectKey}.${this.path}` : projectKey
+  }
 }
+
+/** A hardcoded path to Main module of Enso standard library. */
+export const standardBaseMainPath: AbsoluteProjectPath = ProjectPath.create(
+  'Standard.Base' as QualifiedName,
+  'Main' as QualifiedName,
+)
 
 /** A project path with a literal project name. */
 export interface AbsoluteProjectPath extends ProjectPath {

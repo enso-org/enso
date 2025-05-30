@@ -31,6 +31,7 @@ import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/co
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { ActionName, registerHandlers, toggledAction } from '@/providers/action'
+import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -83,6 +84,9 @@ const suggestionDb = provideSuggestionDbStore(projectStore, projectNames)
 const graphStore = provideGraphStore(projectStore, suggestionDb, projectNames)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
+
+const fullscreenRoot = useTemplateRef('fullscreenRoot')
+provideFullscreenRoot(fullscreenRoot)
 
 const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
@@ -656,7 +660,7 @@ const contextMenuActions: ActionName[] = [
 
 <template>
   <div
-    id="graphEditorRoot"
+    ref="fullscreenRoot"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"

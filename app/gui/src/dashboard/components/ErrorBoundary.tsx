@@ -1,30 +1,23 @@
 /** @file Catches errors in child components. */
 import Offline from '#/assets/offline_filled.svg'
-import * as React from 'react'
-
-import * as sentry from '@sentry/vue'
-import * as reactQuery from '@tanstack/react-query'
-import * as errorBoundary from 'react-error-boundary'
-
-import * as detect from 'enso-common/src/detect'
-
-import { useText } from '$/providers/react'
-
-// We cannot import from `AriaComponents`, because it's reexports `Dialog` which imports this module.
-import { Alert } from '#/components/AriaComponents/Alert'
-import { Button, ButtonGroup } from '#/components/AriaComponents/Button'
-import { Separator } from '#/components/AriaComponents/Separator'
-import { Text } from '#/components/AriaComponents/Text'
-
-import * as result from '#/components/Result'
-
-import { type SvgUseIcon } from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { Button, ButtonGroup } from '#/components/Button'
+import { Icon } from '#/components/Icon'
+import { Result, type ResultProps } from '#/components/Result'
+import { Separator } from '#/components/Separator'
+import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
+import type { SvgUseIcon } from '#/components/types'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as errorUtils from '#/utilities/error'
 import { OfflineError } from '#/utilities/HttpClient'
+import { useText } from '$/providers/react'
+import * as sentry from '@sentry/vue'
+import * as reactQuery from '@tanstack/react-query'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
 import type { FallbackProps } from 'react-error-boundary'
-import { Icon } from './Icon'
-import SvgMask from './SvgMask'
+import * as errorBoundary from 'react-error-boundary'
 
 /** Arguments for the {@link ErrorBoundaryProps.onBeforeFallbackShown} callback. */
 export interface OnBeforeFallbackShownArgs {
@@ -110,7 +103,7 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 
 /** Props for a {@link ErrorDisplay}. */
 export interface ErrorDisplayProps extends errorBoundary.FallbackProps {
-  readonly status?: result.ResultProps['status']
+  readonly status?: ResultProps['status']
   readonly onBeforeFallbackShown?: (args: OnBeforeFallbackShownArgs) => React.ReactNode | undefined
   readonly resetQueries?: () => void
   readonly title?: string | null | undefined
@@ -151,7 +144,7 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
     status ?? (isOfflineError ? <SvgMask src={Offline} className="aspect-square w-6" /> : 'error')
 
   const defaultRender = (
-    <result.Result
+    <Result
       className="h-full"
       status={finalStatus}
       title={finalTitle}
@@ -192,7 +185,7 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
           </Alert>
         </div>
       )}
-    </result.Result>
+    </Result>
   )
 
   return <>{render ?? defaultRender}</>

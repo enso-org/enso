@@ -1,18 +1,14 @@
 /** @file The input for viewing and changing the user's profile picture. */
-import { useMutation, useQuery } from '@tanstack/react-query'
-
 import DefaultUserIcon from '#/assets/default_user.svg'
-
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-
-import { useText } from '$/providers/react'
-
 import * as aria from '#/components/aria'
-import FocusRing from '#/components/styled/FocusRing'
-
-import { Form, HiddenFile } from '#/components/AriaComponents'
+import { Form } from '#/components/Form'
+import { HiddenFile } from '#/components/Inputs'
 import { ProfilePicture } from '#/components/ProfilePicture/ProfilePicture'
+import FocusRing from '#/components/styled/FocusRing'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import type Backend from '#/services/Backend'
+import { useText } from '$/providers/react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { StatelessSpinner } from '../../components/StatelessSpinner'
 
 /** Props for a {@link ProfilePictureInput}. */

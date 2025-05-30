@@ -1,21 +1,17 @@
 /** @file Settings tab for viewing and editing organization members. */
-import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
-
+import { Button, CopyButton } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import * as paywall from '#/components/Paywall'
+import { Scroller } from '#/components/Scroller'
+import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
-
-import * as authProvider from '#/providers/AuthProvider'
-import { useText } from '$/providers/react'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import * as paywall from '#/components/Paywall'
-
 import InviteUsersModal from '#/modals/InviteUsersModal'
-
-import { Scroller } from '#/components/Scroller'
+import * as authProvider from '#/providers/AuthProvider'
 import type * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
-import { useBackends } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
+import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 
 const LIST_USERS_STALE_TIME_MS = 60_000
 
@@ -44,22 +40,22 @@ export default function MembersSettingsSection() {
   return (
     <>
       {isAdmin && (
-        <ariaComponents.ButtonGroup className="flex-initial" verticalAlign="center">
-          <ariaComponents.DialogTrigger>
-            <ariaComponents.Button variant="outline" rounded="full" size="medium">
+        <Button.Group className="flex-initial" verticalAlign="center">
+          <Dialog.Trigger>
+            <Button variant="outline" rounded="full" size="medium">
               {getText('inviteMembers')}
-            </ariaComponents.Button>
+            </Button>
 
             <InviteUsersModal />
-          </ariaComponents.DialogTrigger>
+          </Dialog.Trigger>
 
           {seatsLeft != null && (
             <div className="flex items-center gap-1">
-              <ariaComponents.Text>
+              <Text>
                 {seatsLeft <= 0 ?
                   getText('noSeatsLeft')
                 : getText('seatsLeft', seatsLeft, seatsTotal)}
-              </ariaComponents.Text>
+              </Text>
 
               <paywall.PaywallDialogButton
                 feature="inviteUserFull"
@@ -68,7 +64,7 @@ export default function MembersSettingsSection() {
               />
             </div>
           )}
-        </ariaComponents.ButtonGroup>
+        </Button.Group>
       )}
 
       <Scroller
@@ -92,20 +88,20 @@ export default function MembersSettingsSection() {
             {members.map((member) => (
               <tr key={member.userId} className="group h-row rounded-rows-child">
                 <td className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
-                  <ariaComponents.Text truncate="1" className="block">
+                  <Text truncate="1" className="block">
                     {member.email}
-                  </ariaComponents.Text>
-                  <ariaComponents.Text truncate="1" className="block text-2xs text-primary/40">
+                  </Text>
+                  <Text truncate="1" className="block text-2xs text-primary/40">
                     {member.name}
-                  </ariaComponents.Text>
+                  </Text>
                 </td>
                 <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                   <div className="flex flex-col">
                     {getText('active')}
                     {member.email !== user.email && isAdmin && (
-                      <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
+                      <Button.Group gap="small" className="mt-0.5">
                         <RemoveMemberButton backend={backend} userId={member.userId} />
-                      </ariaComponents.ButtonGroup>
+                      </Button.Group>
                     )}
                   </div>
                 </td>
@@ -120,8 +116,8 @@ export default function MembersSettingsSection() {
                   <div className="flex flex-col">
                     {getText('pendingInvitation')}
                     {isAdmin && (
-                      <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
-                        <ariaComponents.CopyButton
+                      <Button.Group gap="small" className="mt-0.5">
+                        <CopyButton
                           size="custom"
                           // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
                           copyText={`enso://auth/registration?=${new URLSearchParams({ organization_id: invitation.organizationId }).toString()}`}
@@ -129,12 +125,12 @@ export default function MembersSettingsSection() {
                           copyIcon={false}
                         >
                           {getText('copyInviteLink')}
-                        </ariaComponents.CopyButton>
+                        </CopyButton>
 
                         <ResendInvitationButton invitation={invitation} backend={backend} />
 
                         <RemoveInvitationButton backend={backend} email={invitation.userEmail} />
-                      </ariaComponents.ButtonGroup>
+                      </Button.Group>
                     )}
                   </div>
                 </td>
@@ -165,7 +161,7 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
   )
 
   return (
-    <ariaComponents.Button
+    <Button
       variant="icon"
       size="custom"
       loading={resendMutation.isPending}
@@ -174,7 +170,7 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
       }}
     >
       {getText('resend')}
-    </ariaComponents.Button>
+    </Button>
   )
 }
 
@@ -197,13 +193,9 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
   )
 
   return (
-    <ariaComponents.Button
-      variant="icon"
-      size="custom"
-      onPress={() => removeMutation.mutateAsync([userId])}
-    >
+    <Button variant="icon" size="custom" onPress={() => removeMutation.mutateAsync([userId])}>
       {getText('remove')}
-    </ariaComponents.Button>
+    </Button>
   )
 }
 
@@ -227,13 +219,13 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
   )
 
   return (
-    <ariaComponents.Button
+    <Button
       variant="icon"
       size="custom"
       loading={removeMutation.isPending}
       onPress={() => removeMutation.mutateAsync([email])}
     >
       {getText('remove')}
-    </ariaComponents.Button>
+    </Button>
   )
 }

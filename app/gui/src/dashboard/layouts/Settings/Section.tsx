@@ -1,5 +1,5 @@
 /** @file Rendering for a settings section. */
-import { Text } from '#/components/AriaComponents'
+import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
 import { memo } from 'react'
 import type { SettingsContext, SettingsSectionData } from './data'

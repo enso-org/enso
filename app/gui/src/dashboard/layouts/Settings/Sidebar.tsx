@@ -1,10 +1,10 @@
 /** @file A panel to switch between settings tabs. */
-import { memo, type Dispatch, type SetStateAction } from 'react'
-
 import { Header } from '#/components/aria'
-import { ButtonGroup, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
+import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
+import { memo, type Dispatch, type SetStateAction } from 'react'
 import { SETTINGS_DATA, type SettingsContext } from './data'
 import type SettingsTabType from './TabType'
 
@@ -46,7 +46,7 @@ function SettingsSidebar(props: SettingsSidebarProps) {
                 <Text.Heading variant="subtitle">{name}</Text.Heading>
               </Header>
 
-              <ButtonGroup gap="xxsmall" direction="column" align="start">
+              <Button.Group gap="xxsmall" direction="column" align="start">
                 {visibleTabData.map((tabData) => (
                   <SidebarTabButton
                     key={tabData.settingsTab}
@@ -68,7 +68,7 @@ function SettingsSidebar(props: SettingsSidebarProps) {
                     }
                   />
                 ))}
-              </ButtonGroup>
+              </Button.Group>
             </div>
       })}
     </div>

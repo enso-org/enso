@@ -3,8 +3,9 @@
  * Dialog for a Snowflake credential.
  * Remember to ensure this component is added to `CREDENTIAL_INFOS` in `constants.ts`.
  */
-
-import { Button, Form, Input } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'

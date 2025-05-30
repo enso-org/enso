@@ -1,29 +1,28 @@
+import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { createContextStore } from '@/providers'
 import { type ProjectStore } from '@/stores/project'
 import { type ProjectNameStore } from '@/stores/projectNames'
 import {
   entryIsCallable,
+  isUserSelectableType,
   SuggestionKind,
   type CallableSuggestionEntry,
   type SuggestionEntry,
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
+import { assert } from '@/util/assert'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { type MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
 import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
-import { markRaw, proxyRefs, readonly, ref } from 'vue'
+import { filter } from 'enso-common/src/utilities/data/iter'
+import { computed, markRaw, proxyRefs, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
-
-function pathKey({ project, path }: ProjectPath): string {
-  const projectKey = project ?? '$'
-  return path ? `${projectKey}.${path}` : projectKey
-}
 
 /**
  * Suggestion Database.
@@ -36,27 +35,48 @@ function pathKey({ project, path }: ProjectPath): string {
  */
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   private readonly pathToId = new ReactiveIndex(this, (id, entry) => [
-    [pathKey(entry.definitionPath), id],
+    [entry.definitionPath.key(), id],
   ])
   readonly childIdToParentId = new ReactiveIndex(this, (id, entry) => {
     const parentAndChild = entry.definitionPath.splitAtName()
     if (parentAndChild) {
       const [parentPath] = parentAndChild
-      const parents = this.pathToId.lookup(pathKey(parentPath))
+      const parents = this.pathToId.lookup(parentPath.key())
       return Array.from(parents, (p) => [id, p])
     }
     return []
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
+  readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
 
   /** Constructor. */
   constructor() {
     super()
   }
 
+  /**
+   * Retreive all suggestions of given kind stored in the suggestion database.
+   */
+  *getAllEntriesOfKind<K extends SuggestionKind>(
+    kind: K,
+  ): IterableIterator<SuggestionEntry & { kind: K }> {
+    const ids = this.suggestionsByKind.lookup(kind)
+    for (const id of ids) {
+      const entry = this.get(id)
+      assert(entry?.kind === kind)
+      yield entry as SuggestionEntry & { kind: K }
+    }
+  }
+
+  dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
+    const allTypeEntries = this.getAllEntriesOfKind(SuggestionKind.Type)
+    const filteredTypes = filter(allTypeEntries, isUserSelectableType)
+    return Array.from(filteredTypes, (ty) => ExpressionTag.FromEntry(this, ty))
+  })
+
   /** Look up an entry by its path within a project */
   findByProjectPath(projectPath: ProjectPath): SuggestionId | undefined {
-    const [id] = this.pathToId.lookup(pathKey(projectPath))
+    const [id] = this.pathToId.lookup(projectPath.key())
     return id
   }
 

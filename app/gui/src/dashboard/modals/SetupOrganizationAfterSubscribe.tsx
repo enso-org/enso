@@ -1,22 +1,18 @@
 /** @file Modal for setting the organization name. */
-import * as React from 'react'
-
-import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
-
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import { useText } from '$/providers/react'
-import type { GetText } from '$/providers/text'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
 import { ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
-import { Button } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
+import * as authProvider from '#/providers/AuthProvider'
 import * as backendModule from '#/services/Backend'
-import { useBackends } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
+import type { GetText } from '$/providers/text'
+import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
+import * as React from 'react'
 import type RemoteBackend from '../services/RemoteBackend'
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
@@ -146,7 +142,7 @@ function SetupOrganizationAfterSubscribeInternal(
 
   return (
     <>
-      <ariaComponents.Dialog
+      <Dialog
         title={getText('setupOrganization')}
         isDismissable={false}
         isKeyboardDismissDisabled
@@ -163,7 +159,7 @@ function SetupOrganizationAfterSubscribeInternal(
         >
           {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
         </Stepper>
-      </ariaComponents.Dialog>
+      </Dialog>
 
       {children}
     </>
@@ -177,8 +173,8 @@ export interface SetOrganizationNameFormProps {
 
 // eslint-disable-next-line no-restricted-syntax, react-refresh/only-export-components
 export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
-  ariaComponents.Form.schema.object({
-    name: ariaComponents.Form.schema
+  Form.schema.object({
+    name: Form.schema
       .string()
       .min(1, getText('arbitraryFieldRequired'))
       .max(ORGANIZATION_NAME_MAX_LENGTH, getText('arbitraryFieldTooLong')),
@@ -190,14 +186,14 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
   const { getText } = useText()
 
   return (
-    <ariaComponents.Form
+    <Form
       gap="medium"
       className="max-w-96"
       defaultValues={{ name: '' }}
       schema={SET_ORGANIZATION_NAME_FORM_SCHEMA(getText)}
       onSubmit={({ name }) => onSubmit(name)}
     >
-      <ariaComponents.Input
+      <Input
         name="name"
         autoFocus
         inputMode="text"
@@ -209,10 +205,10 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
         )}
       />
 
-      <ariaComponents.Form.Submit />
+      <Form.Submit />
 
-      <ariaComponents.Form.FormError />
-    </ariaComponents.Form>
+      <Form.FormError />
+    </Form>
   )
 }
 
@@ -229,23 +225,23 @@ export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
   const defaultUserGroupMaxLength = 64
 
   return (
-    <ariaComponents.Form
+    <Form
       schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
       gap="medium"
       className="max-w-96"
       defaultValues={{ groupName: '' }}
       onSubmit={({ groupName }) => onSubmit(groupName)}
     >
-      <ariaComponents.Input
+      <Input
         name="groupName"
         autoComplete="off"
         label={getText('groupNameSettingsInput')}
         description={getText('groupNameSettingsInputDescription', defaultUserGroupMaxLength)}
       />
 
-      <ariaComponents.Form.Submit />
+      <Form.Submit />
 
-      <ariaComponents.Form.FormError />
-    </ariaComponents.Form>
+      <Form.FormError />
+    </Form>
   )
 }
