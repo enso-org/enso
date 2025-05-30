@@ -117,7 +117,7 @@ public class HyperFormat {
         var classLoader = new TableauClassLoader();
         var jnaPath = classLoader.getResource("jnidispatch");
         Thread.currentThread().setContextClassLoader(classLoader);
-        LOGGER.log(Level.INFO, "Starting Hyper process: " + HYPER_PATH + ".");
+        LOGGER.log(Level.INFO, "Starting Hyper process: {0}.", HYPER_PATH);
         try {
           if (jnaPath != null) {
             System.setProperty("jna.boot.library.path", new File(jnaPath.getFile()).getParent());
@@ -155,8 +155,7 @@ public class HyperFormat {
         try {
           if (found == null || found.asString() == null) {
             LOGGER.log(
-                Level.WARNING,
-                "Failed to find library `" + libName + "`. Retrying with a fallback");
+                Level.WARNING, "Failed to find library `{0}`. Retrying with a fallback", libName);
             return super.getResource(name);
           } else {
             return new File(found.asString()).toURI().toURL();
@@ -184,8 +183,7 @@ public class HyperFormat {
         try {
           if (found == null || found.asString() == null) {
             LOGGER.log(
-                Level.WARNING,
-                "Failed to find library `" + libName + "`. Retrying with a fallback");
+                Level.WARNING, "Failed to find library `{0}`. Retrying with a fallback", libName);
             return super.getResourceAsStream(name);
           } else {
             return new FileInputStream(found.asString());
@@ -205,7 +203,7 @@ public class HyperFormat {
           InvalidPathException,
           UnsupportedOperationException,
           SecurityException {
-    LOGGER.log(Level.INFO, "Downloading Hyper from: " + uri);
+    LOGGER.log(Level.INFO, "Downloading Hyper from: {0}", uri);
     var hyperdFile = HYPER_PATH.resolve(fileName).toFile();
     var url = new URI(uri);
     var readChannel = Channels.newChannel(url.toURL().openStream());
@@ -357,7 +355,7 @@ public class HyperFormat {
           table, tableDef, connection, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
       connection.close();
     }
-    return warningUnmatchedColumns.toArray(new String[0]);
+    return warningUnmatchedColumns.toArray(String[]::new);
   }
 
   private static boolean tableExists(String schemaName, String tableName, Connection connection) {
@@ -506,7 +504,7 @@ public class HyperFormat {
 
     if (!missingColumns.isEmpty()) {
       if (throwDontWarn) {
-        throw new HyperUnmatchedColumns(missingColumns.toArray(new String[0]));
+        throw new HyperUnmatchedColumns(missingColumns.toArray(String[]::new));
       } else {
         warningUnmatchedColumns.addAll(missingColumns);
       }
