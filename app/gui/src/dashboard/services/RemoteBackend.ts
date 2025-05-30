@@ -14,6 +14,7 @@ import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
 import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
+import { delay } from '#/utilities/async'
 import * as download from '#/utilities/download'
 import { getFileName } from '#/utilities/fileInfo'
 import type HttpClient from '#/utilities/HttpClient'
@@ -36,6 +37,9 @@ const STATUS_SERVER_ERROR = 500
 const STATUS_NOT_AUTHORIZED = 401
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
+
+/** The interval between checks for the export status. */
+const EXPORT_STATUS_INTERVAL_MS = 5_000
 
 /** The format of all errors returned by the backend. */
 interface RemoteBackendError {
@@ -1739,23 +1743,29 @@ export default class RemoteBackend extends Backend {
     throw new Error('`importArchive` is not implemented on the Remote Backend.')
   }
 
-  /**
-   * Export multiple files and pack into an archive.
-   * @throws {Error} always.
-   */
+  /** Export multiple files and pack into an archive. */
   override async exportArchive(
     params: backend.ExportArchiveParams,
   ): Promise<backend.ExportedArchive> {
     const { assetIds, filePath } = params
     const path = remoteBackendPaths.EXPORT_ARCHIVE_PATH
-    const response = await this.post(path, { assetIds })
-    const url = ''
-    await download.download({
-      url,
-      name: filePath != null ? getFileName(filePath) : undefined,
-      electronOptions: { path: filePath },
-    })
-    return { filePath }
+    const response = await this.post<{ readonly jobId: backend.ZipAssetsJobId }>(path, { assetIds })
+    const { jobId } = await response.json()
+    const statusPath = remoteBackendPaths.getExportArchiveJobStatusPath(jobId)
+    while (true) {
+      const statusResponse = await this.get<{ readonly url: backend.HttpsUrl | null }>(statusPath)
+      const { url } = await statusResponse.json()
+      if (url == null) {
+        await delay(EXPORT_STATUS_INTERVAL_MS)
+        continue
+      }
+      await download.download({
+        url,
+        name: filePath != null ? getFileName(filePath) : undefined,
+        electronOptions: { path: filePath },
+      })
+      return { filePath }
+    }
   }
 
   /**

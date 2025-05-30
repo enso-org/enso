@@ -107,8 +107,8 @@ export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
 export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
 
 /** Unique identifier for a task to archive some assets to a `.zip`. */
-export type ZipJobId = newtype.Newtype<string, 'ZipJobId'>
-export const ZipJobId = newtype.newtypeConstructor<ZipJobId>()
+export type ZipAssetsJobId = newtype.Newtype<string, 'ZipAssetsJobId'>
+export const ZipAssetsJobId = newtype.newtypeConstructor<ZipAssetsJobId>()
 
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
@@ -1685,7 +1685,11 @@ export interface ExportArchiveParams {
 }
 
 export interface ExportedArchive {
-  readonly filePath: Path
+  /**
+   * `null` when there is not enough information to figure out the path.
+   * This happens, for example, when downloding in the browser.
+   */
+  readonly filePath: Path | null
 }
 
 /** Extract the {@link VersionLifecycle} from a version string. */

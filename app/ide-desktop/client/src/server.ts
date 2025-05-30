@@ -558,9 +558,7 @@ async function apiDownloadArchive(
     filePath = generatedFilePath
   }
   await archive.archive(filePath)
-  const result: ExportedArchive = {
-    filePath: Path(filePath),
-  }
+  const result: ExportedArchive = { filePath: Path(filePath) }
   const content = JSON.stringify(result)
   response
     .writeHead(HTTP_STATUS_OK, [
