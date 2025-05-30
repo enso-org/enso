@@ -7,12 +7,14 @@ import {
   WidgetInput,
   WidgetUpdate,
 } from '@/providers/widgetRegistry'
+import { injectProjectNames } from '@/stores/projectNames'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
-import { isSome, mapOrUndefined } from '@/util/data/opt'
+import { mapOrUndefined } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'
 import { computed } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
-import { ArgumentDefinition, ConcreteRefs, TokenType } from 'ydoc-shared/ast'
+import { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
 import { EnsoExpression } from '../WidgetEnsoExpression.vue'
 import { EnsoTypeExpression } from '../WidgetTypeExpression.vue'
 
@@ -24,9 +26,11 @@ const { definition, onUpdate, portIdBase } = defineProps<{
 const emit = defineEmits<{
   rename: [value: Ast.Owned<Ast.MutableExpression>]
   updateType: [value: Ast.Owned<Ast.MutableExpression>]
+  updateDefault: [value: Ast.Owned<Ast.MutableExpression>]
 }>()
-
 type WidgetProps = ComponentProps<typeof NodeWidget>
+const suggestionDb = useSuggestionDbStore()
+const projectNames = injectProjectNames()
 
 function defaultWidget(ast: Ast.Token | Ast.Ast): WidgetProps {
   return { input: WidgetInput.FromAst(ast) }
@@ -52,7 +56,17 @@ function patternWidget(pattern: Ast.Expression): WidgetProps {
   }
 }
 
-function typeWidget(ty: Ast.Ast | undefined): WidgetProps {
+function mkWidget<T extends Ast.Ast | Ast.Token>(
+  child: () => Ast.NodeChild<T> | undefined,
+  toProps: (ast: T) => WidgetProps = defaultWidget,
+) {
+  return computed(() => mapOrUndefined(child()?.node, toProps))
+}
+
+const nodeSuspension = mkWidget(() => definition.suspension)
+const nodePattern = mkWidget(() => definition.pattern, patternWidget)
+const nodeType = computed((): WidgetProps => {
+  const ty = definition.type?.type?.node
   const syntheticId = syntheticPortId(portIdBase, 'type')
   return {
     input: {
@@ -71,44 +85,55 @@ function typeWidget(ty: Ast.Ast | undefined): WidgetProps {
       })
     },
   }
+})
+
+function resolveType(typeExpr: Ast.Ast) {
+  const tyCode = typeExpr.code()
+  // Hack: We have to resolve the fully qualified type name ourselves based on present imports.
+  // To avoid implementing that for now, we only look up types selectable from dropdown.
+  const matchingTypeEntry = suggestionDb.entries.selectableTypes.value.find(
+    (ty) => ty.name === tyCode,
+  )
+  return matchingTypeEntry ?
+      projectNames.printProjectPath(matchingTypeEntry.definitionPath)
+    : undefined
 }
 
-function mkWidget<T extends Ast.Ast | Ast.Token>(
-  child: () => Ast.NodeChild<T> | undefined,
-  toProps: (ast: T) => WidgetProps = defaultWidget,
-) {
-  return computed(() => mapOrUndefined(child()?.node, toProps))
-}
-
-const allWidgetsComputed = [
-  mkWidget(() => definition.open),
-  mkWidget(() => definition.open2),
-  mkWidget(() => definition.suspension),
-  mkWidget(() => definition.pattern, patternWidget),
-  mkWidget(
-    () =>
-      definition.type?.operator ?? {
-        whitespace: undefined,
-        node: Ast.Token.new(':', TokenType.TypeAnnotationOperator),
+const nodeDefault = computed((): WidgetProps => {
+  const expr = definition.defaultValue?.expression?.node
+  const syntheticId = syntheticPortId(portIdBase, 'default')
+  const expectedType = mapOrUndefined(definition.type?.type?.node, resolveType)
+  return {
+    input: {
+      ...WidgetInput.FromAstOrPlaceholder(expr, () => syntheticId),
+      expectedType,
+      [EnsoExpression]: {
+        weakMatch: true,
       },
-  ),
-  computed(() => typeWidget(definition.type?.type?.node)),
-  mkWidget(() => definition.close2),
-  mkWidget(() => definition.defaultValue?.equals),
-  mkWidget(() => definition.defaultValue?.expression),
-  mkWidget(() => definition.close),
-]
-
-const allWidgets = computed(() =>
-  allWidgetsComputed
-    .map((c) => c.value)
-    .flatMap((v, key) => (isSome(v) ? ([[key, v]] as const) : [])),
-)
+    },
+    onUpdate(update: WidgetUpdate) {
+      return rewritePortValueUpdate(update, onUpdate, syntheticId, (rawValue) => {
+        const value = typeof rawValue === 'string' ? Ast.parseExpression(rawValue) : rawValue
+        if (value instanceof Ast.Ast && value.isExpression()) {
+          emit('updateDefault', value)
+          return Ok()
+        } else {
+          return Err('Argument default value must be a valid expression.')
+        }
+      })
+    },
+  }
+})
 </script>
 
 <template>
   <div class="ArgumentRow">
-    <NodeWidget v-for="[key, props] of allWidgets" :key="key" v-bind="props" />
+    <NodeWidget v-if="nodeSuspension" v-bind="nodeSuspension" />
+    <NodeWidget v-if="nodePattern" v-bind="nodePattern" />
+    <span class="token"> : </span>
+    <NodeWidget v-bind="nodeType" />
+    <span class="token"> = </span>
+    <NodeWidget v-bind="nodeDefault" />
   </div>
 </template>
 
