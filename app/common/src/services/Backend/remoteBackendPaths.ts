@@ -1,5 +1,5 @@
 /** @file Paths used by the `RemoteBackend`. */
-import * as backend from '#/services/Backend'
+import * as backend from '../Backend'
 
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
 export const LIST_USERS_PATH = 'users'
@@ -237,8 +237,9 @@ export function getHybridProjectPingPath(projectId: backend.ProjectId) {
 }
 
 export const EXPORT_ARCHIVE_PATH = 'assets/zip'
+export const IMPORT_ARCHIVE_PATH = 'assets/unzip'
 /** Relative HTTP path to the "export archive job status" endpoint of the Cloud backend API. */
-export function getExportArchiveJobStatusPath(jobId: backend.ZipJobId) {
+export function getExportArchiveJobStatusPath(jobId: backend.ZipAssetsJobId) {
   return `assets/zip/${jobId}`
 }
 

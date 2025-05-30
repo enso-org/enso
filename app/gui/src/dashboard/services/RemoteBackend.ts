@@ -11,7 +11,7 @@ import type * as text from 'enso-common/src/text'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
 import Backend, * as backend from '#/services/Backend'
-import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
 
 import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import { delay } from '#/utilities/async'

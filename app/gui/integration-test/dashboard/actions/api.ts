@@ -3,7 +3,7 @@ import * as test from '@playwright/test'
 
 import * as backend from '#/services/Backend'
 import type * as remoteBackend from '#/services/RemoteBackend'
-import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
 
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'

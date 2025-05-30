@@ -32,11 +32,14 @@ import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
 import { setModal } from '#/providers/ModalProvider'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/react'
+import {
+  TEAMS_DIRECTORY_ID,
+  USERS_DIRECTORY_ID,
+} from 'enso-common/src/services/Backend/remoteBackendPaths'
 import {
   isUploadableAsset,
   useUploadFileToCloudMutation,

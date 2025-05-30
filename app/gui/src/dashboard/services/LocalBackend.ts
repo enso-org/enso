@@ -11,11 +11,18 @@ import * as projectManager from '#/services/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
+import HttpClient from '#/utilities/HttpClient'
 import { omit, unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
+import {
+  EXPORT_ARCHIVE_PATH,
+  IMPORT_ARCHIVE_PATH,
+} from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
+
+const LOCAL_API_URL = '/api'
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
@@ -119,7 +126,10 @@ export default class LocalBackend extends Backend {
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(projectManagerInstance: ProjectManager) {
+  constructor(
+    projectManagerInstance: ProjectManager,
+    private readonly client = new HttpClient(),
+  ) {
     super()
 
     this.projectManager = projectManagerInstance
@@ -847,11 +857,10 @@ export default class LocalBackend extends Backend {
   ): Promise<readonly backend.AnyAsset[]> {
     const rest = 'archive' in params ? omit(params, 'archive') : params
     const searchParams = new URLSearchParams(rest).toString()
-    const response = await fetch(`/api/files/upload-archive?${searchParams}`, {
-      method: 'POST',
-      body: 'archive' in params ? params.archive : null,
-    })
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    const path = `${IMPORT_ARCHIVE_PATH}?${searchParams}`
+    const response = await ('archive' in params ?
+      this.postBinary<readonly backend.AnyAsset[]>(path, params.archive)
+    : this.post<readonly backend.AnyAsset[]>(path, {}))
     return await response.json()
   }
 
@@ -865,8 +874,8 @@ export default class LocalBackend extends Backend {
       : [],
     )
     const searchParams = new URLSearchParams(entries).toString()
-    const response = await fetch(`/api/files/download-archive?${searchParams}`, { method: 'POST' })
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    const path = `${EXPORT_ARCHIVE_PATH}?${searchParams}`
+    const response = await this.post<backend.ExportedArchive>(path, {})
     return await response.json()
   }
 
@@ -1069,6 +1078,41 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override createCustomerPortalSession() {
     return this.invalidOperation()
+  }
+
+  /** Send an HTTP GET request to the given path. */
+  private get<T = void>(path: string) {
+    return this.client.get<T>(`${LOCAL_API_URL}/${path}`)
+  }
+
+  /** Send a JSON HTTP POST request to the given path. */
+  private post<T = void>(path: string, payload: object) {
+    return this.client.post<T>(`${LOCAL_API_URL}/${path}`, payload)
+  }
+
+  /** Send a binary HTTP POST request to the given path. */
+  private postBinary<T = void>(path: string, payload: Blob) {
+    return this.client.postBinary<T>(`${LOCAL_API_URL}/${path}`, payload)
+  }
+
+  /** Send a JSON HTTP PATCH request to the given path. */
+  private patch<T = void>(path: string, payload: object) {
+    return this.client.patch<T>(`${LOCAL_API_URL}/${path}`, payload)
+  }
+
+  /** Send a JSON HTTP PUT request to the given path. */
+  private put<T = void>(path: string, payload: object) {
+    return this.client.put<T>(`${LOCAL_API_URL}/${path}`, payload)
+  }
+
+  /** Send a binary HTTP PUT request to the given path. */
+  private putBinary<T = void>(path: string, payload: Blob) {
+    return this.client.putBinary<T>(`${LOCAL_API_URL}/${path}`, payload)
+  }
+
+  /** Send an HTTP DELETE request to the given path. */
+  private delete<T = void>(path: string, payload?: Record<string, unknown>) {
+    return this.client.delete<T>(`${LOCAL_API_URL}/${path}`, payload)
   }
 }
 

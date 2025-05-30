@@ -34,6 +34,10 @@ import {
   ProjectState,
   VirtualParentsPath,
 } from 'enso-common/src/services/Backend'
+import {
+  EXPORT_ARCHIVE_PATH,
+  IMPORT_ARCHIVE_PATH,
+} from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { basenameAndExtension, getFileName, getFolderPath } from 'enso-common/src/utilities/file'
 import { createWriteStream } from 'node:fs'
@@ -285,11 +289,11 @@ export class Server {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       const params = route.searchParams
       switch (route.pathname) {
-        case '/files/download-archive': {
+        case `/${EXPORT_ARCHIVE_PATH}`: {
           await apiDownloadArchive(request, response, params)
           break
         }
-        case '/files/upload-archive': {
+        case `/${IMPORT_ARCHIVE_PATH}`: {
           await apiUploadArchive(request, response, params, this)
           break
         }

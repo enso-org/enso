@@ -401,7 +401,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   ) {
     return this.step(`Upload file '${name}'`, async (page) => {
       const fileChooserPromise = page.waitForEvent('filechooser')
-      await page.getByRole('button', { name: TEXT.uploadFiles }).click()
+      await page.getByRole('button', { name: TEXT.uploadFiles, exact: true }).click()
       const fileChooser = await fileChooserPromise
       await fileChooser.setFiles([{ name, buffer: Buffer.from(contents), mimeType }])
     })
