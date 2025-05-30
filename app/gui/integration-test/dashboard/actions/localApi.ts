@@ -31,6 +31,8 @@ function array<T>(): Readonly<T>[] {
 const ROOT_PATH = Path('/home/user/enso/enso-projects')
 
 const INITIAL_CALLS_OBJECT = {
+  getRootDirectory: array<object>(),
+  downloadProject: array<{ uuid: UUID; projectsDirectory: Path }>(),
   getFileContent: array<{ path: string }>(),
   createProject: array<CreateProjectParams>(),
   openProject: array<OpenProjectParams>(),
@@ -343,6 +345,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
     })
 
     await page.route('/api/root-directory', async (route, request) => {
+      called('getRootDirectory', {})
       if (request.method() !== 'GET') {
         return route.fulfill({ status: 400 })
       }
@@ -365,6 +368,26 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       removeEntry(filePath)
       addFile({ path: filePath, content: request.postData() ?? '' })
       return route.fulfill({ body: filePath, contentType: 'text/plain' })
+    })
+
+    await page.route('/api/project-manager/projects/**', async (route, request) => {
+      const url = new URL(request.url())
+      const { uuid: uuidRaw } =
+        url.pathname.match(/^\/api\/project-manager\/projects\/(?<uuid>[^/]+)\/enso-project$/)
+          ?.groups ?? {}
+      const params = url.searchParams
+      const projectsDirectoryRaw = params.get('projectsDirectory')
+      if (request.method() !== 'GET' || uuidRaw == null || projectsDirectoryRaw == null) {
+        return route.fulfill({ status: 400 })
+      }
+      const uuid = UUID(uuidRaw)
+      const projectsDirectory = Path(projectsDirectoryRaw)
+      called('downloadProject', { uuid, projectsDirectory })
+      const response = `mock project body uuid='${uuid}' directory='${projectsDirectory}'`
+      return route.fulfill({
+        contentType: 'text/plain',
+        body: JSON.stringify(response),
+      })
     })
 
     await page.route('/api/run-project-manager-command?*', async (route, request) => {
