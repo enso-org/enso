@@ -363,6 +363,43 @@ class TailCallTest extends MiniPassTest {
         }
       )
     }
+
+    "no warning when annotated in tail branch" in {
+      val code =
+        """
+          |func x =
+          |    case x of
+          |        Cons_1 -> x
+          |        Cons_2 -> @Tail_Call func x
+          |""".stripMargin
+
+      assertInlineCompilation(
+        code,
+        () => mkTailContext,
+        ir => {
+          val caseExpr = ir
+            .asInstanceOf[Expression.Binding]
+            .expression
+            .asInstanceOf[Function.Lambda]
+            .body()
+            .asInstanceOf[Expression.Block]
+            .returnValue
+            .asInstanceOf[Expression.Block]
+            .returnValue
+            .asInstanceOf[Case.Expr]
+          val caseBranch = caseExpr.branches.apply(1)
+          val branchExpression =
+            caseBranch.expression.asInstanceOf[Application.Prefix]
+
+          branchExpression.getMetadata(TailCall.INSTANCE) shouldEqual Some(
+            TailPosition.Tail
+          )
+          branchExpression.function.diagnosticsList
+            .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
+        },
+        compareIR = true
+      )
+    }
   }
 
   "Tail call analysis on function calls" should {
