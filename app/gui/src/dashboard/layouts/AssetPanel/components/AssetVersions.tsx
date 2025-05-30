@@ -120,7 +120,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   }
 
   return (
-    <div className="flex w-full flex-col px-4 py-5">
+    <div className="flex w-full flex-col ">
       {versions.map((version, index) => (
         <div key={version.versionId}>
           <AssetVersion

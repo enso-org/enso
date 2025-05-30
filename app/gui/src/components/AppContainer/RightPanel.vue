@@ -114,11 +114,11 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 
 .content {
   background-color: rgb(254, 253, 252);
-  min-width: 0;
   display: flex;
   justify-content: stretch;
   min-width: 312px;
   width: 400px;
+  padding: 1.25rem 1rem;
 }
 
 /* React panels rely on being inside columned flex. */
