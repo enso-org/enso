@@ -23,7 +23,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useUser } from '#/providers/AuthProvider'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
@@ -66,7 +66,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     doPaste,
   } = props
 
-  const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
   const { localBackend } = useBackends()

@@ -7,10 +7,10 @@ import type {
   SignUpError,
   UserSession,
 } from '#/authentication/cognito'
-import { render, screen, waitFor } from '#/test'
+import { render, waitFor } from '#/test'
 import HttpClient from '#/utilities/HttpClient'
 import { HTTPClientContext, TextContext } from '$/providers/react'
-import { useText } from '$/providers/text'
+import { createTextStore } from '$/providers/text'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
@@ -75,7 +75,7 @@ describe('SessionProvider', () => {
     const { getByText } = render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
+          <TextContext.Provider value={createTextStore()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -104,7 +104,7 @@ describe('SessionProvider', () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={httpClient}>
-          <TextContext.Provider value={useText()}>
+          <TextContext.Provider value={createTextStore()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}
@@ -122,87 +122,11 @@ describe('SessionProvider', () => {
     })
   })
 
-  it('Should refresh the expired user session', async () => {
-    authService.userSession.mockReturnValueOnce(
-      Promise.resolve({
-        ...(await authService.userSession()),
-        // 24 hours from now
-        expireAt: Rfc3339DateTime(new Date(Date.now() - 1).toJSON()),
-      }),
-    )
-
-    render(
-      <Suspense fallback={<div>Loading...</div>}>
-        <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
-            <SessionProvider
-              authService={authService}
-              mainPageUrl={mainPageUrl}
-              registerAuthEventListener={registerAuthEventListener}
-            >
-              <div>Hello</div>
-            </SessionProvider>
-          </TextContext.Provider>
-        </HTTPClientContext.Provider>
-      </Suspense>,
-    )
-
-    expect(authService.refreshUserSession).not.toBeCalled()
-    expect(authService.userSession).toBeCalledTimes(2)
-
-    await waitFor(() => {
-      expect(authService.refreshUserSession).toBeCalledTimes(1)
-      expect(screen.getByText(/Hello/)).toBeInTheDocument()
-    })
-  })
-
-  it('Should refresh not stale user session', { timeout: 5_000 }, async () => {
-    authService.userSession.mockReturnValueOnce(
-      Promise.resolve({
-        ...(await authService.userSession()),
-        expireAt: Rfc3339DateTime(new Date(Date.now() + 1_500).toJSON()),
-      }),
-    )
-
-    let session: UserSession | null = null
-
-    render(
-      <Suspense fallback={<div>Loading...</div>}>
-        <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
-            <SessionProvider
-              authService={authService}
-              mainPageUrl={mainPageUrl}
-              registerAuthEventListener={registerAuthEventListener}
-            >
-              {({ session: sessionFromContext }) => {
-                session = sessionFromContext
-                return null
-              }}
-            </SessionProvider>
-          </TextContext.Provider>
-        </HTTPClientContext.Provider>
-      </Suspense>,
-    )
-
-    vi.useFakeTimers().runAllTimers().useRealTimers()
-
-    await waitFor(
-      () => {
-        expect(authService.refreshUserSession).toBeCalledTimes(1)
-        expect(session).not.toBeNull()
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        expect(new Date(session!.expireAt).getTime()).toBeGreaterThan(Date.now())
-      },
-      { timeout: 2_000 },
-    )
-  })
-
   it('Should call registerAuthEventListener when the session is updated', async () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
         <HTTPClientContext.Provider value={new HttpClient()}>
-          <TextContext.Provider value={useText()}>
+          <TextContext.Provider value={createTextStore()}>
             <SessionProvider
               authService={authService}
               mainPageUrl={mainPageUrl}

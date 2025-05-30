@@ -6,7 +6,7 @@ import MenuEntry from '#/components/MenuEntry'
 import { Text } from '#/components/Text'
 import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useRouter, useText } from '$/providers/react'
 import { PRODUCT_NAME } from 'enso-common'
@@ -23,7 +23,6 @@ export default function InfoMenu(props: InfoMenuProps) {
   const { router } = useRouter()
   const { signOut } = useSessionAPI()
   const { session } = useAuth()
-  const { setModal } = useSetModal()
   const { getText } = useText()
 
   return (

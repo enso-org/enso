@@ -1,5 +1,3 @@
-import type { FilterModel } from 'ag-grid-enterprise'
-
 export type FilterType = 'number' | 'date' | 'set' | 'text'
 
 /**
@@ -67,16 +65,33 @@ export const getFilterValue = (filterModel: GridFilterModel) => {
   return value
 }
 
-export const makeFilterModelList = (gridFilterModel: FilterModel) =>
-  Object.entries(gridFilterModel).map(([key, value]) => {
-    return {
-      columnName: key,
-      filterType: value.filterType,
-      filterAction: value.type,
-      filter: value.filter,
-      filterTo: value.filterTo,
-      dateFrom: value.dateFrom,
-      dateTo: value.dateTo,
-      values: value.values,
+interface FilterOption {
+  filterType?: string
+  type?: string
+  filter?: string
+  filterTo?: string
+  dateFrom?: string
+  dateTo?: string
+  values?: string
+}
+
+const createFilterModel = (key: string, filter: FilterOption) => ({
+  columnName: key,
+  filterType: filter.filterType,
+  filterAction: filter.type,
+  filter: filter.filter,
+  filterTo: filter.filterTo,
+  dateFrom: filter.dateFrom,
+  dateTo: filter.dateTo,
+  values: filter.values,
+})
+
+export const makeFilterModelList = (gridFilterModel: Record<string, any>) =>
+  Object.entries(gridFilterModel).flatMap(([key, value]) => {
+    if (value.filterType === 'multi' && Array.isArray(value.filterModels)) {
+      return value.filterModels
+        .filter((filter: FilterOption) => filter != null)
+        .map((filter: FilterOption) => createFilterModel(key, filter))
     }
+    return [createFilterModel(key, value)]
   })

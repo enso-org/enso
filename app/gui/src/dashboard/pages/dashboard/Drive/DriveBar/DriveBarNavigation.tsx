@@ -10,7 +10,6 @@ import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AssetPanelToggle, useSetAssetPanelDefaultItem } from '#/layouts/AssetPanel'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
@@ -20,7 +19,7 @@ import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
 import type { PathItem } from '#/services/utilities'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
+import { useRightPanelData, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
@@ -45,7 +44,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
     category,
   })
 
-  const setAssetPanelDefaultItem = useSetAssetPanelDefaultItem()
+  const rightPanel = useRightPanelData()
 
   const driveStore = useDriveStore()
 
@@ -100,10 +99,12 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
 
   useEffect(() => {
     if (directoryData?.asset != null) {
-      // We need to start a transition to avoid displaying a loading state
-      setAssetPanelDefaultItem(directoryData.asset)
+      rightPanel.updateContext('drive', (ctx) => {
+        ctx.defaultItem = directoryData.asset
+        return ctx
+      })
     }
-  }, [directoryData?.asset, setAssetPanelDefaultItem])
+  }, [directoryData?.asset, rightPanel])
 
   const { finalPath: finalPathRaw } = parseDirectoriesPath({
     parentsPath: directoryData?.parentsPath ?? '',
@@ -274,10 +275,6 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
           </Button.Group>
 
           {breadcrumbs}
-
-          <div className="ml-auto">
-            <AssetPanelToggle showWhen="collapsed" className="my-auto" />
-          </div>
         </div>
       )
     }

@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import CreateNodeFromPortButton from '@/components/GraphEditor/CreateNodeFromPortButton.vue'
 import { useApproach } from '@/composables/animation'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphEditorState } from '@/providers/graphEditorState'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { NodeId } from '@/stores/graph'
 import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
 import {

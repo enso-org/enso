@@ -1,13 +1,14 @@
 import HttpClient from '#/utilities/HttpClient'
-import { BackendsStore, injectBackends } from '$/providers/backends'
+import { useBackends as useBackendsVue, type BackendsStore } from '$/providers/backends'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { assert } from '@/util/assert'
 import * as react from 'react'
-import { applyPureReactInVue } from 'veaury'
-import { computed } from 'vue'
+import { applyPureReactInVue, createCrossingProviderForPureReactInVue } from 'veaury'
+import { computed, toRefs } from 'vue'
 import { Router, useRoute, useRouter as useRouterVue } from 'vue-router'
-import { injectHttpClient } from './httpClient'
-import { injectText, type TextStore } from './text'
+import { useHttpClient as useHttpClientVue } from './httpClient'
+import { RightPanelData, useRightPanelData as useRightPanelDataVue } from './rightPanel'
+import { createTextStore as useTextVue, type TextStore } from './text'
 
 function useInReactFunction<T>(context: react.Context<T | null>) {
   return () => {
@@ -34,7 +35,7 @@ export const useText = useInReactFunction(TextContext)
 export const HTTPClientContext = react.createContext<HttpClient | null>(null)
 export const useHttpClient = useInReactFunction(HTTPClientContext)
 
-const BackendsContext = react.createContext<ReturnType<typeof injectBackends> | null>(null)
+const BackendsContext = react.createContext<BackendsStore | null>(null)
 export const useBackends = useInReactFunction(BackendsContext)
 
 interface ContextsForReactProviderProps {
@@ -46,7 +47,7 @@ interface ContextsForReactProviderProps {
 }
 
 /**
- * A provider for all contexts set in vue and read by react.
+ * A provider for all global contexts set in vue and read by react.
  *
  * The default "crossing providers" from veaury has some downsides, for example
  * nesting two in a row does not work.
@@ -89,10 +90,16 @@ export const ContextsForReactProvider = applyPureReactInVue(
           }
         }),
         config: injectGuiConfig(),
-        text: injectText(),
-        httpClient: injectHttpClient(),
-        backends: injectBackends(),
+        text: useTextVue(),
+        httpClient: useHttpClientVue(),
+        backends: useBackendsVue(),
       }
     },
   },
 )
+
+const [useRightPanelDataUntyped, RightPanelDataProviderForReact] =
+  createCrossingProviderForPureReactInVue(() => toRefs(useRightPanelDataVue()))
+
+export { RightPanelDataProviderForReact }
+export const useRightPanelData = useRightPanelDataUntyped as () => RightPanelData

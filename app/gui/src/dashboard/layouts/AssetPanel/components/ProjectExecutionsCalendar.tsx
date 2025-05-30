@@ -21,6 +21,7 @@ import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPane
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -28,7 +29,7 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
-import { useText } from '$/providers/react'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
 import {
   CalendarDate,
   getLocalTimeZone,
@@ -41,8 +42,6 @@ import {
 } from '@internationalized/date'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { getProjectExecutionRepetitionsForDateRange } from 'enso-common/src/services/Backend/projectExecution'
-import { useAssetPanelCurrentItem } from '../AssetPanelState'
-import type { AssetPanelProps } from './types'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
   base: '',
@@ -59,32 +58,31 @@ const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
   },
 })
 
-/** Props for a {@link ProjectExecutionsCalendar}. */
-export interface ProjectExecutionsCalendarProps extends AssetPanelProps {}
-
 /** A calendar showing executions of a project. */
-export function ProjectExecutionsCalendar(props: ProjectExecutionsCalendarProps) {
-  const { backend } = props
+export function ProjectExecutionsCalendar() {
   const { getText } = useText()
+  const { remoteBackend } = useBackends()
+  const rightPanel = useRightPanelData()
 
-  const item = useAssetPanelCurrentItem()
-
-  if (backend.type === BackendType.local) {
+  if (rightPanel.context?.category?.backend !== BackendType.remote) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />
   }
-  if (item == null) {
+  if (rightPanel.focusedAsset == null) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notSelected')} />
   }
-  if (item.type !== AssetType.project) {
+  if (rightPanel.focusedAsset.type !== AssetType.project) {
     return (
       <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notProjectAsset')} />
     )
   }
-  return <ProjectExecutionsCalendarInternal {...props} item={item} />
+  return (
+    <ProjectExecutionsCalendarInternal backend={remoteBackend} item={rightPanel.focusedAsset} />
+  )
 }
 
 /** Props for a {@link ProjectExecutionsCalendarInternal}. */
-interface ProjectExecutionsCalendarInternalProps extends ProjectExecutionsCalendarProps {
+interface ProjectExecutionsCalendarInternalProps {
+  readonly backend: Backend
   readonly item: ProjectAsset
 }
 

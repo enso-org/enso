@@ -108,6 +108,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     color,
     ...variantProps
   } = props
+
   const { getText } = useText()
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()

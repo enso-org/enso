@@ -11,7 +11,7 @@ import invariant from 'tiny-invariant'
 
 import '#/tailwind.css'
 import { TextContext } from '$/providers/react'
-import { useText } from '$/providers/text'
+import { createTextStore } from '$/providers/text'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createQueryClient } from 'enso-common/src/queryClient'
 import { MotionGlobalConfig } from 'framer-motion'
@@ -93,7 +93,7 @@ const reactPreview: ReactPreview = {
 
     (Story, context) => {
       return (
-        <TextContext.Provider value={useText()}>
+        <TextContext.Provider value={createTextStore()}>
           <Story {...context} />
         </TextContext.Provider>
       )

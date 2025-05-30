@@ -85,25 +85,25 @@ public class PersistableProcessor extends AbstractProcessor {
           }
           var src = processingEnv.getFiler().createSourceFile(cn);
           try (var w = src.openWriter()) {
-            w.append("package " + entry.getKey() + ";\n");
-            w.append("public final class Persistables {\n");
-            w.append("  private Persistables() {}\n");
-            w.append("  public static void initialize() {\n");
-            w.append("  }\n");
-
             // values from processor take preceedence
             for (var idName : entry.getValue().entrySet()) {
               props.setProperty("" + idName.getKey(), idName.getValue());
             }
 
+            w.append("package " + entry.getKey() + ";\n");
+            w.append("import org.enso.persist.Persistance;\n");
+            w.append("public final class Persistables extends Persistance.Pool {\n");
+            w.append("  public static final Persistance.Pool POOL = new Persistables();\n");
+            w.append("  private Persistables() {\n");
+            w.append("    super(\"").append(entry.getKey()).append("\",");
+            var lineEnding = "\n";
             for (var idName : props.entrySet()) {
-              w.append(
-                  "  private static final org.enso.persist.Persistance PERSIST_"
-                      + idName.getKey()
-                      + " = new "
-                      + idName.getValue()
-                      + "();\n");
+              w.append(lineEnding);
+              w.append("      new " + idName.getValue() + "()");
+              lineEnding = ",\n";
             }
+            w.append("\n    );\n");
+            w.append("  }\n");
             w.append("}\n");
           }
           var out = processingEnv.getFiler().createResource(propsWhere, propsPkg, propsName);

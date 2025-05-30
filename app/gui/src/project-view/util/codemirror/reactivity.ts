@@ -30,11 +30,7 @@ export function useStateEffect<T>(
 export function useCompartment({ dispatch }: HasDispatch, extension: WatchSource<Extension>) {
   const compartment = new Compartment()
   const compartmentInstance = compartment.of(toValue(extension))
-  watch(extension, (extension) =>
-    dispatch({
-      effects: compartment.reconfigure(extension),
-    }),
-  )
+  watch(extension, (extension) => dispatch({ effects: compartment.reconfigure(extension) }))
   return compartmentInstance
 }
 

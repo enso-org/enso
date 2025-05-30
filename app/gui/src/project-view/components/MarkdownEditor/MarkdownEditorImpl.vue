@@ -168,10 +168,11 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   width: 100%;
+  gap: 8px;
 }
 
 .toolbar {
-  height: 48px;
+  height: 26px;
   flex-shrink: 0;
   display: flex;
   align-items: center;

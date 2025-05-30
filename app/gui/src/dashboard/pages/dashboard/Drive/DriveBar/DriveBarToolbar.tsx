@@ -22,7 +22,6 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import {
@@ -37,7 +36,7 @@ import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import { type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
@@ -64,7 +63,6 @@ export interface DriveBarToolbarProps {
 export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { backend, query, setQuery, category } = props
 
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
   const driveStore = useDriveStore()
   const inputBindings = useInputBindings()
@@ -179,14 +177,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
   )
 
-  const assetPanelToggle = (
-    <>
-      {/* Spacing. */}
-      <div className="ml-auto" />
-      <AssetPanelToggle showWhen="collapsed" className="my-auto" />
-    </>
-  )
-
   const pasteDataStatus = effectivePasteData && (
     <div className="flex items-center">
       <VisualTooltip
@@ -210,7 +200,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
         <Button.Group className="grow-0">
           {pasteDataStatus}
           {searchBar}
-          {assetPanelToggle}
         </Button.Group>
       )
     }
@@ -224,7 +213,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
           >
             {pasteDataStatus}
             {searchBar}
-            {assetPanelToggle}
           </TrashFolderToolbar>
         </ErrorBoundary>
       )

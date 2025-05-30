@@ -1,16 +1,17 @@
 import * as text from 'enso-common/src/text'
 
 import { createContextStore } from '@/providers'
-import { computed, proxyRefs, ref } from 'vue'
+import { MaybeRefOrGetterArray } from '@/util/reactivity'
+import { computed, proxyRefs, ref, toValue } from 'vue'
 
-export type TextStore = ReturnType<typeof useText>
+export type TextStore = ReturnType<typeof createTextStore>
 /**
  * A composable for getting localized text and setting the language.
  *
  * The composable is used in tests only; the application should use
  * `injectText` instead.
  */
-export function useText() {
+export function createTextStore() {
   const language = ref(text.resolveUserLanguage())
   const locale = computed(() => text.LANGUAGE_TO_LOCALE[language.value])
   const localizedText = computed(() => text.getDictionary(language.value))
@@ -18,11 +19,20 @@ export function useText() {
   const getText: GetText = (key, ...replacements) =>
     text.getText(localizedText.value, key, ...replacements)
 
+  function textRef<K extends text.TextId>(
+    key: K,
+    ...replacements: MaybeRefOrGetterArray<text.Replacements[K]>
+  ) {
+    return computed(() =>
+      getText(toValue(key), ...(replacements.map((x) => toValue(x)) as text.Replacements[K])),
+    )
+  }
+
   function setLanguage(lang: text.Language) {
     language.value = lang
   }
 
-  return proxyRefs({ language, locale, getText, setLanguage })
+  return proxyRefs({ language, locale, getText, textRef, setLanguage })
 }
 
 /**
@@ -37,4 +47,4 @@ export type GetText = <K extends text.TextId>(
   ...replacements: text.Replacements[K]
 ) => string
 
-export const [provideText, injectText] = createContextStore('text', useText)
+export const [provideText, useText] = createContextStore('text', createTextStore)
