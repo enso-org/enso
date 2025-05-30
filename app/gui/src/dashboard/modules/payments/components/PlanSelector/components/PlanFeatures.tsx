@@ -4,9 +4,8 @@
  * Features list for a plan, rendered as a list of checkmarks with text
  */
 import Check from '#/assets/check_mark.svg'
-
-import { Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 
 /** Props for the PlanFeatures component */
 export interface PlanFeaturesProps {

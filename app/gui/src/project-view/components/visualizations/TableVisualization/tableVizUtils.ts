@@ -1,6 +1,11 @@
 import { LINKABLE_URL_REGEX } from '@/util/link'
 import { TextFormatOptions } from '../TableVisualization.vue'
 
+export interface ValueType {
+  constructor: string
+  display_text: string
+}
+
 export const getCellValueType = (item: string) => {
   switch (true) {
     case isInteger(item):

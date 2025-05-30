@@ -1,7 +1,9 @@
 /** @file Settings screen. */
 import { Heading, MenuTrigger } from '#/components/aria'
-import { Button, Popover, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Popover } from '#/components/Dialog'
 import { useStrictPortalContext } from '#/components/Portal'
+import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
@@ -186,7 +188,7 @@ export function Settings() {
   })
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-hidden pl-page-x pt-4">
+    <div className="flex h-full w-full flex-col gap-4 overflow-hidden pl-page-x pt-4">
       <Heading level={1} className="flex items-center px-heading-x">
         <MenuTrigger>
           <Button variant="icon" icon="3_dot_menu" className="mr-3 sm:hidden" />

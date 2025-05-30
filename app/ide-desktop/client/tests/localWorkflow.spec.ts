@@ -73,6 +73,7 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'collapsed'])
 
   // Rename collapsed function
+  await page.getByRole('tab', { name: 'Documentation' }).click()
   await page
     .locator('.FunctionSignatureEditor')
     .getByTestId('widget-function-name-content')
@@ -136,8 +137,8 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
     clipboard.writeImage(image)
   })
 
-  // Open docpanel and paste an image.
-  await page.getByRole('button', { name: 'Documentation Panel' }).click()
+  // Paste an image in documentation.
+  // (the panel is opened in previous steps)
   await page.locator('.DocumentationEditor').click()
   await page.keyboard.press(`${CONTROL_KEY}+V`)
   const docImageElement = page.locator('.DocumentationEditor').getByAltText('Image')

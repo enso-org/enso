@@ -1,13 +1,14 @@
 /** @file A dropdown menu of user actions and settings. */
 import { LOGIN_PATH } from '#/appUtils'
-import { Popover, Text } from '#/components/AriaComponents'
 import { useToggleEnsoDevtools } from '#/components/Devtools'
+import { Popover } from '#/components/Dialog'
 import MenuEntry from '#/components/MenuEntry'
 import { ProfilePicture } from '#/components/ProfilePicture'
+import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
@@ -30,7 +31,6 @@ export default function UserMenu(props: UserMenuProps) {
   const { localBackend } = useBackends()
   const { signOut } = useSessionAPI()
   const { user } = useFullUserSession()
-  const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const toggleEnsoDevtools = useToggleEnsoDevtools()

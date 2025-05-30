@@ -1,13 +1,11 @@
 /** @file A column listing the labels on this asset. */
-import { useText } from '$/providers/react'
-
 import DotsIcon from '#/assets/dots.svg'
+import { Button } from '#/components/Button'
 import ContextMenu from '#/components/ContextMenu'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
-
-import { Button, DialogTrigger, Popover } from '#/components/AriaComponents'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { Dialog, Popover } from '#/components/Dialog'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
@@ -17,6 +15,7 @@ import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FALLBACK_COLOR } from '#/services/Backend'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
 import { useRef, useState } from 'react'
 
 /** A column listing the labels on this asset. */
@@ -120,7 +119,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               <div className="flex flex-wrap items-center gap-1">
                 {labelsList}
 
-                <DialogTrigger>
+                <Dialog.Trigger>
                   <Button
                     variant="icon"
                     tooltip={getText('manageLabels')}
@@ -128,13 +127,13 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                     icon="edit"
                   />
                   <ManageLabelsModal backend={backend} item={item} />
-                </DialogTrigger>
+                </Dialog.Trigger>
               </div>
             </Popover>
           </Popover.Trigger>
         )}
 
-        <DialogTrigger>
+        <Dialog.Trigger>
           <Button
             variant="icon"
             showIconOnHover
@@ -143,7 +142,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             icon="edit"
           />
           <ManageLabelsModal backend={backend} item={item} />
-        </DialogTrigger>
+        </Dialog.Trigger>
       </div>
     </div>
   )

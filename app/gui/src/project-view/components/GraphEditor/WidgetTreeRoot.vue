@@ -7,13 +7,14 @@ import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
+import { Opt } from '@/util/data/opt'
 import { computed, toRef, watch } from 'vue'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
 const props = defineProps<{
   externalId: string & ExternalId
   input: WidgetInput
-  rootElement: HTMLElement | undefined
+  rootElement: Opt<HTMLElement>
   primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
@@ -114,10 +115,10 @@ export const ICON_WIDTH = 16
    * children of a widget. That way, only the innermost left/right deep child of a rounded widget will
    * receive the propagated paddings.
    */
-  *:not(:nth-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
+  *:nth-child(n + 2 of :not(.widgetOutOfLayout, [data-transitioning='leave'])) {
     --widget-token-pad-left: 0px;
   }
-  *:not(:nth-last-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
+  *:nth-last-child(n + 2 of :not(.widgetOutOfLayout, [data-transitioning='leave'])) {
     --widget-token-pad-right: 0px;
   }
 
@@ -158,10 +159,10 @@ export const ICON_WIDTH = 16
       outline: none;
       background-color: var(--color-widget-focus);
     }
+  }
 
-    ::selection {
-      background: var(--color-widget-selection);
-    }
+  &::selection {
+    background: var(--color-widget-selection);
   }
 }
 </style>

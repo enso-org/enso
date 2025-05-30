@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
-import { useTemplateRef, watch, type ComponentInstance } from 'vue'
+import { useTemplateRef, watch } from 'vue'
 
 const model = defineModel<string>({ required: true })
 const { active, editing } = defineProps<{ active: boolean; editing: boolean }>()
 
-const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
+const editorRoot = useTemplateRef('editorRoot')
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView } = useCodeMirror(editorRoot, {

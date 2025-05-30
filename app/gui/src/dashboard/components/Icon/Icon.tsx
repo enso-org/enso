@@ -6,16 +6,16 @@
 import icons from '@/assets/icons.svg'
 import { isIconName, type Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
 
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { memo } from 'react'
 import type {
   AvailableIconReturn,
-  IconProp as IconType,
-  IconPropSvgUse as IconTypeSvgUse,
+  IconProp,
+  IconPropSvgUse,
   LegacyAvailableIconReturn,
-  LegacyIconProp as LegacyIconPropType,
+  LegacyIconProp,
   TestIdProps,
-} from '../AriaComponents'
+} from '#/components/types'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { memo } from 'react'
 import SvgMask from '../SvgMask'
 
 /**
@@ -38,12 +38,12 @@ interface BaseIconProps<Render = never> extends VariantProps<typeof ICON_STYLES>
  */
 export interface LegacyIconProps<Icon extends string, Render = never>
   extends BaseIconProps<Render> {
-  readonly icon: LegacyIconPropType<Icon, Render>
+  readonly icon: LegacyIconProp<Icon, Render>
 }
 
 /** Generic type for icons imported from Figma. */
 export interface SvgUseIconProps<Render = never> {
-  readonly icon: IconTypeSvgUse<Render>
+  readonly icon: IconPropSvgUse<Render>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -115,7 +115,7 @@ export const Icon = memo(function Icon<Render = never>(props: IconProps<Render>)
 /** Props for {@link IconInternal}. */
 interface IconInternalProps<Render = never> extends TestIdProps {
   readonly className?: string | undefined
-  readonly icon: IconType<string, Render>
+  readonly icon: IconProp<string, Render>
   readonly renderProps?: Render | undefined
   readonly alt?: string | undefined
 }
@@ -191,7 +191,7 @@ export function SvgUse(props: SvgUseProps) {
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function renderIcon<Icon extends string, Render>(
-  icon: IconType<Icon, Render>,
+  icon: IconProp<Icon, Render>,
   renderProps: Render,
 ): AvailableIconReturn | LegacyAvailableIconReturn<Icon> {
   return typeof icon === 'function' ? icon(renderProps) : icon

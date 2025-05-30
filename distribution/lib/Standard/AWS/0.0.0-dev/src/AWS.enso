@@ -16,27 +16,28 @@ polyglot java import org.enso.aws.ClientBuilder
 
 ## Methods for interacting with AWS services.
 type AWS
-    ## ALIAS download, http get
-       ICON data_input
+    ## ---
+       aliases: [download, http get]
+       icon: data_input
+       ---
        Fetches from an AWS URI signing the request with the necessary headers,
        and returns the response, parsing the body if the content-type is
        recognised. Returns an error if the status code does not represent a
        successful response.
 
-       Arguments:
-       - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
-         `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
-         Defaults to `HTTP_Method.Get`.
-       - headers: The headers to send with the request. Defaults to an empty
-         vector.
-       - format: The format to use for interpreting the response.
-         Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the
-         format cannot be determined automatically, a raw HTTP `Response` will
-         be returned.
-       - credentials: The credentials to use for signing the request. Defaults
-         to the default AWS credentials.
-       - region_service: The region and service to use for signing the request.
-         Defaults to the region and service parsed from the URI.
+       ## Arguments
+        - `method`: The HTTP method to use. Must be one of `HTTP_Method.Get`,
+          `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
+          Defaults to `HTTP_Method.Get`.
+        - `headers`: The headers to send with the request. Defaults to an empty
+          vector.
+        - `format`: The format to use for interpreting the response. Defaults to
+          `Auto_Detect`. If `Raw_Response` is selected or if the format cannot be
+          determined automatically, a raw HTTP `Response` will be returned.
+        - `credentials`: The credentials to use for signing the request. Defaults
+          to the default AWS credentials.
+        - `region_service`: The region and service to use for signing the
+          request. Defaults to the region and service parsed from the URI.
     @uri (Text_Input display=..Always)
     @method HTTP_Method.default_fetch_widget
     @headers Header.default_widget
@@ -49,28 +50,63 @@ type AWS
         raw_response = http.request request
         raw_response.decode format=format if_unsupported=raw_response.with_materialized_body
 
-    ## ALIAS http post, upload
-       ICON data_upload
+    ## ---
+       aliases: [http post, upload]
+       macros:
+        - put: method=..Put
+       icon: data_upload
+       ---
        Writes the provided data to the provided AWS URI signing the request with
        the necessary headers. Returns the response, parsing the body if the
        content-type is recognised. Returns an error if the status code does not
        represent a successful response.
 
-       Arguments:
-       - uri: The URI to fetch.
-       - body: The data to write. See `Supported Body Types` below.
-       - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
-         `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
-       - headers: The headers to send with the request. Defaults to an empty
-         vector.
-       - response_format: The format to use for interpreting the response.
-         Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the
-         format cannot be determined automatically, a raw HTTP `Response` will
-         be returned.
-       - credentials: The credentials to use for signing the request. Defaults
-         to the default AWS credentials.
-       - region_service: The region and service to use for signing the request.
-         Defaults to the region and service parsed from the URI.
+       ## Arguments
+        - `uri`: The URI to fetch.
+        - `body`: The data to write. See `Supported Body Types` below.
+        - `method`: The HTTP method to use. Must be one of `HTTP_Method.Post`,
+          `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
+        - `headers`: The headers to send with the request. Defaults to an empty
+          vector.
+        - `response_format`: The format to use for interpreting the response.
+          Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the
+          format cannot be determined automatically, a raw HTTP `Response` will
+          be returned.
+        - `credentials`: The credentials to use for signing the request. Defaults
+          to the default AWS credentials.
+        - `region_service`: The region and service to use for signing the
+          request. Defaults to the region and service parsed from the URI.
+
+       ## Returns
+       - A new table with the group_by columns as well as any aggregate columns.
+
+       ## Examples
+       ### Count all the rows
+
+       ```
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             grouped = table.aggregate columns=[Aggregate_Column.Count]
+       ```
+
+       Returns a Table
+
+                | Count |
+                |-------|
+                | 2     |
+
+       ### Group by the Key column, count the rows
+
+       ```
+             table = Table.from_rows ["Name","Location"] [["John", "Massachusetts"],["Paul","London"]]
+             grouped = table.aggregate ["Name"] [Aggregate_Column.Count]
+       ```
+
+       Returns a Table
+
+                | Name | Count |
+                |------|-------|
+                | John | 1     |
+                | Paul | 1     |
     @uri (Text_Input display=..Always)
     @method HTTP_Method.default_post_widget
     @headers Header.default_widget
@@ -83,20 +119,21 @@ type AWS
         raw_response = http.request request
         raw_response.decode format=response_format if_unsupported=raw_response.with_materialized_body
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Hash a Vector of bytes using SHA256 (as used by AWS).
     hash_bytes : Vector Integer -> Text
     hash_bytes bytes:Vector = ClientBuilder.getSHA256 bytes
 
-    ## Resolve the region and service from an AWS based URI.
-       Splits a standard form AWS URI into the region and service.
-
+    ## Resolve the region and service from an AWS based URI. Splits a standard
+       form AWS URI into the region and service.
        The URI must be in the forms:
        - `https://(*.)<service>.<region>.amazonaws.com`.
        - `https://(*.)<region>.<service>.amazonaws.com`.
 
-       Arguments:
-         - uri: The URI to resolve.
+       ## Arguments
+        - uri: The URI to resolve.
     @uri (Text_Input display=..Always)
     resolve_region_and_service : URI -> AWS_Region_Service
     resolve_region_and_service (uri:URI=(Missing_Argument.throw "uri")) =

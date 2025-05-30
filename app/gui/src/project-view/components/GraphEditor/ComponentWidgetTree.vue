@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { applyWidgetUpdates, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { type NodeId } from '@/stores/graph'
 import { type NodeType, type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
+import { Opt } from '@/util/data/opt'
 import { iconOfNode, useDisplayedIcon } from '@/util/getIconName'
 import { computed, toRef } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
@@ -14,7 +16,7 @@ import { Ok } from 'ydoc-shared/util/data/result'
 const props = defineProps<{
   ast: Ast.Expression
   nodeId: NodeId
-  rootElement: HTMLElement | undefined
+  rootElement: Opt<HTMLElement>
   nodeType: NodeType
   primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */

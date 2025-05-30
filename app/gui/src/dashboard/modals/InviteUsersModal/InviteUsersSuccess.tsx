@@ -1,5 +1,6 @@
 /** @file Success screen for the "invite users" modal. */
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { CopyBlock } from '#/components/CopyBlock'
 import * as result from '#/components/Result'
 import { useRouter, useText } from '$/providers/react'
 import * as React from 'react'
@@ -48,16 +49,16 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
         : getText('inviteSuccess', emailListFormatter.format(emails))
       }
     >
-      <ariaComponents.CopyBlock
+      <CopyBlock
         copyText={invitationLink}
         className="mb-6 mt-1"
         title={getText('copyInviteLink')}
       />
 
       {onClose && (
-        <ariaComponents.ButtonGroup gap="medium" align={isUserOnMembersPage ? 'center' : 'end'}>
+        <Button.Group gap="medium" align={isUserOnMembersPage ? 'center' : 'end'}>
           {!isUserOnMembersPage && (
-            <ariaComponents.Button
+            <Button
               variant="outline"
               icon="arrow_right"
               size="medium"
@@ -70,13 +71,13 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
               }}
             >
               {getText('goToMembersPage')}
-            </ariaComponents.Button>
+            </Button>
           )}
 
-          <ariaComponents.Button variant="primary" size="medium" onPress={onClose}>
+          <Button variant="primary" size="medium" onPress={onClose}>
             {getText('closeModalShortcut')}
-          </ariaComponents.Button>
-        </ariaComponents.ButtonGroup>
+          </Button>
+        </Button.Group>
       )}
     </result.Result>
   )

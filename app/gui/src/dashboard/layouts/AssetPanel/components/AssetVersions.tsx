@@ -12,12 +12,10 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
 import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
-import { useText } from '$/providers/react'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
 import { includes } from 'enso-common/src/utilities/data/array'
-import { useAssetPanelCurrentItem } from '../AssetPanelState'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
-import type { AssetPanelProps } from './types'
 
 /** Variables for the "add new version" mutation. */
 interface AddNewVersionVariables {
@@ -25,17 +23,13 @@ interface AddNewVersionVariables {
   readonly placeholderId: S3ObjectVersionId
 }
 
-/** Props for an {@link AssetVersions}. */
-export interface AssetVersionsProps extends AssetPanelProps {}
-
 /** Display a list of previous versions of an asset. */
-export function AssetVersions(props: AssetVersionsProps) {
-  const { backend } = props
+export function AssetVersions() {
+  const { remoteBackend } = useBackends()
   const { getText } = useText()
+  const rightPanel = useRightPanelData()
 
-  const item = useAssetPanelCurrentItem()
-
-  if (backend.type === BackendType.local) {
+  if (rightPanel.context?.category?.backend !== BackendType.remote) {
     return (
       <Result
         status="info"
@@ -45,21 +39,19 @@ export function AssetVersions(props: AssetVersionsProps) {
     )
   }
 
-  if (item == null) {
+  if (rightPanel.focusedAsset == null) {
     return <Result status="info" centered title={getText('assetVersions.notSelected')} />
   }
 
-  if (!isAllowedAssetType(item)) {
+  if (!isAllowedAssetType(rightPanel.focusedAsset)) {
     return <Result status="info" centered title={getText('assetVersions.invalidAssetType')} />
   }
 
-  // This is SAFE because we know that the backend is a RemoteBackend.
-  // eslint-disable-next-line no-restricted-syntax
-  return <AssetVersionsInternal {...props} backend={backend as RemoteBackend} item={item} />
+  return <AssetVersionsInternal backend={remoteBackend} item={rightPanel.focusedAsset} />
 }
 
 /** Props for an {@link AssetVersionsInternal}. */
-interface AssetVersionsInternalProps extends AssetVersionsProps {
+interface AssetVersionsInternalProps {
   readonly item: DatalinkAsset | FileAsset | ProjectAsset
   readonly backend: RemoteBackend
 }
@@ -128,7 +120,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   }
 
   return (
-    <div className="flex w-full flex-col">
+    <div className="flex w-full flex-col ">
       {versions.map((version, index) => (
         <div key={version.versionId}>
           <AssetVersion

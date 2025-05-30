@@ -50,9 +50,19 @@ import {
   ValueTypeArgumentChild,
   ValueTypes,
 } from './TableVisualization/TableVizDataSourceUtils'
+import {
+  getCellDataType,
+  getFilterParams,
+  getFilterType,
+} from './TableVisualization/tableVizFilterSetUpUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
-import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import {
+  formatText,
+  getCellValueType,
+  isNumericType,
+  ValueType,
+} from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -65,11 +75,6 @@ export const defaultPreprocessor = [
 ] as const
 
 type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | GenericGrid
-
-interface ValueType {
-  constructor: string
-  display_text: string
-}
 
 interface Matrix {
   type: 'Matrix'
@@ -111,6 +116,7 @@ interface EnsoTableOrColumn {
   use_bottom_status_bar: boolean
   enable_create_node: boolean
   requires_number_format: boolean[]
+  is_using_multi_filter: boolean[]
   table_version_hash?: string
 }
 
@@ -597,61 +603,6 @@ function getValueTypeIcon(valueType: string) {
   }
 }
 
-function getFilterType(valueType: string) {
-  if (valueType === 'Date') {
-    return 'agDateColumnFilter'
-  } else if (isNumericType(valueType)) {
-    return 'agNumberColumnFilter'
-  } else if (valueType === 'Char') {
-    return 'agTextColumnFilter'
-  } else {
-    return 'agSetColumnFilter'
-  }
-}
-
-function getFilterOptions(valueType: string) {
-  if (valueType === 'Date') {
-    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
-  } else if (isNumericType(valueType)) {
-    return [
-      'equals',
-      'notEqual',
-      'greaterThan',
-      'greaterThanOrEqual',
-      'lessThan',
-      'lessThanOrEqual',
-      'inRange',
-      'blank',
-      'notBlank',
-    ]
-  } else if (valueType === 'Char') {
-    return ['equals', 'notEqual', 'contains', 'startsWith', 'endsWith', 'blank', 'notBlank']
-  } else {
-    return null
-  }
-}
-function getFilterButtons(valueType: string) {
-  if (valueType === 'Date') {
-    return ['apply', 'clear']
-  } else {
-    return ['clear']
-  }
-}
-
-function getCellDataType(valueType: string) {
-  if (valueType === 'Date') {
-    return 'date'
-  } else if (isNumericType(valueType)) {
-    return 'number'
-  } else if (valueType === 'Char') {
-    return 'text'
-  } else if (valueType === 'Boolean') {
-    return 'boolean'
-  } else {
-    return false
-  }
-}
-
 /**
  * Generates the column definition for the table vizulization, including displaying the data value type and
  * data quality indicators.
@@ -670,10 +621,17 @@ function toField(
 
   const displayValue = valueType ? valueType.display_text : null
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
-  const filterType = valueType ? getFilterType(valueType.constructor) : null
-  const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
-  const filterButtons = valueType ? getFilterButtons(valueType.constructor) : null
   const cellValueType = valueType ? getCellDataType(valueType.constructor) : false
+
+  const usingMultiFilterLists =
+    typeof props.data === 'object' && 'is_using_multi_filter' in props.data ?
+      props.data.is_using_multi_filter
+    : []
+  const isUsingMultiFilter = usingMultiFilterLists[index!] ?? false
+
+  const filterType = valueType ? getFilterType(valueType.constructor, isUsingMultiFilter) : null
+
+  const filterParams = getFilterParams(isSSRM.value, valueType, filterType, getFilterValues)
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
@@ -706,13 +664,7 @@ function toField(
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
     filter: filterType,
-    filterParams: {
-      maxNumConditions: 1,
-      values: isSSRM.value ? getFilterValues : null,
-      filterOptions: filterOptions,
-      buttons: filterButtons,
-      refreshValuesOnOpen: true,
-    },
+    filterParams: filterParams,
     headerComponentParams: {
       template,
       setAriaSort: () => {},

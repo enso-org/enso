@@ -50,7 +50,7 @@ const label = computed(() => {
           />
         </template>
         <template #tooltip>
-          <div style="display: flex; flex-direction: column">
+          <div class="flex flex-col">
             <span v-for="type in additionalTypes.types" :key="type" v-text="type" />
           </div>
         </template>

@@ -1,9 +1,8 @@
+import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
-import { useGraphStore } from '@/stores/graph'
 import { NodeId } from '@/stores/graph/graphDatabase'
-import { useProjectStore } from '@/stores/project'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
