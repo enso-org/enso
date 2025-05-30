@@ -31,12 +31,12 @@ final class JVMPeer {
   }
 
   @Persistable(id = 432001)
-  public static final class ExecuteMainClass extends JVM.Message<ExecuteMainClass> {
+  public static final class ExecuteMainClass extends JVM.Message<Void> {
     private final String mainClassWithSlashes;
     private final List<String> args;
 
     public ExecuteMainClass(String mainClassWithSlashes, List<String> args) {
-      super(ExecuteMainClass.class);
+      super(Void.class);
       this.mainClassWithSlashes = mainClassWithSlashes;
       this.args = args;
     }
@@ -50,12 +50,12 @@ final class JVMPeer {
     }
 
     @Override
-    protected final ExecuteMainClass evaluate() throws Exception {
+    protected final Void evaluate() throws Exception {
       var clazz = Class.forName(mainClassWithSlashes.replace('/', '.'));
       var method = clazz.getDeclaredMethod("main", String[].class);
       method.setAccessible(true);
       method.invoke(null, (Object) args.toArray(new String[args.size()]));
-      return this;
+      return null;
     }
   }
 
