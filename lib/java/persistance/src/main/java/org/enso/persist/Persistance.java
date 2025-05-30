@@ -6,6 +6,8 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -174,19 +176,22 @@ public abstract class Persistance<T> implements Cloneable {
    * @see #merge
    */
   public abstract static class Pool {
-    private final PerMap map;
+    private final String name;
+    private final Persistance[] all;
 
     /**
-     * Constructor for subclasses to creates a new pool with provided persistance instances. The IDs
+     * Constructor for subclasses to create a new pool with provided persistance instances. The IDs
      * of those instances must be unique, otherwise an exception is throw.
      *
      * @param displayName human friendly display name
      * @param instances the instances to register in this pool
-     * @exception IllegalArgumentException if there is a clash in IDs of persistance instances
+     * @exception IllegalStateException may be thrown at any moment when a clash in IDs of
+     *     persistance instances is detected
      */
     @SafeVarargs
     protected Pool(String displayName, Persistance... instances) {
-      this.map = new PerMap(instances);
+      this.name = displayName;
+      this.all = instances;
     }
 
     /**
@@ -194,11 +199,20 @@ public abstract class Persistance<T> implements Cloneable {
      *
      * @param pools array of pools to merge together
      * @return pool with all the provided instances
-     * @exception IllegalArgumentException if IDs of {@link Persistance} instances in the pools
-     *     collide
+     * @exception IllegalStateException may be thrown at any moment when a clash in IDs of
+     *     persistance instances is detected
      */
     public static Pool merge(Pool... pools) {
-      return new Pool("merge of " + pools) {};
+      var sb = new StringBuilder();
+      var all = new ArrayList<Persistance>();
+      for (var p : pools) {
+        if (!sb.isEmpty()) {
+          sb.append("+");
+        }
+        sb.append(p.name);
+        all.addAll(List.of(p.all));
+      }
+      return new Pool(sb.toString(), all.toArray(new Persistance[0])) {};
     }
 
     /**
@@ -227,6 +241,7 @@ public abstract class Persistance<T> implements Cloneable {
      */
     public Reference<?> read(ByteBuffer buf, Function<Object, Object> readResolve)
         throws IOException {
+      var map = new PerMap(all);
       return PerInputImpl.readObject(map, buf, readResolve);
     }
 
@@ -241,6 +256,7 @@ public abstract class Persistance<T> implements Cloneable {
      * @throws IOException when an I/O problem happens
      */
     public byte[] write(Object obj, Function<Object, Object> writeReplace) throws IOException {
+      var map = new PerMap(all);
       return PerGenerator.writeObject(map, obj, writeReplace);
     }
   }
