@@ -27,8 +27,8 @@
  * <h2 id="pool">The {@link Persistance.Pool}</h2>
  *
  * <p>For each package where {@link Persistable} annotation is used a class called {@code
- * Peristables} with a field {@code POOL} is generated. All the annoated {@link Persistable} classes
- * are registered into associated package pool and and can then be used when calling {@link
+ * Persistables} with a field {@code POOL} is generated. All the annoated {@link Persistable}
+ * classes are registered into associated package pool and and can then be used when calling {@link
  * Persistance.Pool#read Persistables.POOL.read} and {@link Persistance.Pool#write
  * Persistables.POOL.write} methods.
  *
