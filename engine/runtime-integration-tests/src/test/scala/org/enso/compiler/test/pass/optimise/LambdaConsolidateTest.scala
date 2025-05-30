@@ -242,6 +242,8 @@ class LambdaConsolidateTest extends CompilerTest {
                   .Literal("a", isMethod = false, identifiedLocation = null)
               )
               .suspended(false)
+              .ascribedType(None)
+              .defaultValue(None)
               .build(),
             DefinitionArgument.Specified
               .builder()
@@ -250,6 +252,8 @@ class LambdaConsolidateTest extends CompilerTest {
                   .Literal("b", isMethod = false, identifiedLocation = null)
               )
               .suspended(false)
+              .ascribedType(None)
+              .defaultValue(None)
               .build()
           )
         )
@@ -270,6 +274,8 @@ class LambdaConsolidateTest extends CompilerTest {
                         )
                     )
                     .suspended(false)
+                    .ascribedType(None)
+                    .defaultValue(None)
                     .build()
                 )
               )
