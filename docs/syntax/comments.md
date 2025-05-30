@@ -99,118 +99,56 @@ The tool that generates this documentation aims to be fairly robust, and tries
 to assign produce sensible results even if the user makes a mistake. Such
 mistakes will be highlighted to the user.
 
-The documentation syntax is broken down into the following elements.
+The documentation is using
+[Markdown](https://www.markdownguide.org/basic-syntax/) syntax with some
+additional features, outlined below.
 
-### Tags
+### YAML frontmatter
 
-Tags allow users to annotate their construct with information about its usage
-state. Tags may only appear _once_ in a documentation block unless otherwise
-noted. The documentation syntax supports the following tags:
+Documentation can start with an optional YAML frontmatter section, containing
+entry metadata. This section is delimited by `---` lines, as follows:
 
-- `ADDED`: Used to describe when a given construct was added to the library.
-- `ADVANCED`: Items that are _not_ private, but are for power users.
-- `ALIAS`: A name under which the documented entity will display in the
-  searcher. This tag may occur _multiple times_ to provide multiple aliases.
-- `GROUP`: Used to group constructs together in the searcher and documentation.
-- `ICON`: Used to provide an icon for the construct in the searcher and nodes.
-- `DEPRECATED`: Used for constructs that should no longer be used and that may
-  be removed in the future.
-- `MODIFIED`: Used for constructs that have had their behaviour change after a
-  certain version of the library.
-- `PRIVATE`: Used to describe constructs that are private in the language.
-- `REMOVED`: Used to describe constructs that have been removed and are no
-  longer functional.
-- `UNSTABLE`: Used for items that are not yet considered stable.
-- `UPCOMING`: Used to describe constructs that will be added in future versions
-  of the library.
-
-Tags are added at the _top_ of the documentation block, and may also be
-accompanied by a description. This description directly follows the tag
-declaration with one space.
-
-```ruby
-## DEPRECATED Use `seeFoo` instead
+```
+## ---
+   icon: data_input
+   suggested: 1
+   macros:
+    - equals: filter=..Equal
+   ---
+   Documentation continues here in Markdown format.
 ```
 
-If the user provides an unknown tag the documentation will contain that tag, but
-it will be undefined.
+The following keys are supported:
 
-### Sections
+- `added` (string): Used to describe when a given construct was added to the
+  library.
+- `advanced` (boolean): Items that are _not_ private, but are for power users.
+- `aliases` (array of strings): A name or names under which the documented
+  entity will display in the searcher.
+- `group` (string): Used to group constructs together in the searcher and
+  documentation.
+- `icon` (string): Used to provide an icon for the construct in the searcher and
+  nodes.
+- `deprecated` (boolean): Used for constructs that should no longer be used and
+  that may be removed in the future.
+- `modified` (string): Used for constructs that have had their behaviour change
+  after a certain version of the library.
+- `private` (boolean): Used to describe constructs that are private in the
+  language.
+- `removed` (string): Used to describe constructs that have been removed and are
+  no longer functional.
+- `unstable` (boolean): Used for items that are not yet considered stable.
+- `upcoming` (string): Used to describe constructs that will be added in future
+  versions of the library.
+- `macros` (array of key-value pairs): Used to define macros for automatic
+  expansion when the entry is selected in the component browser. Each macro
+  consists of a key (name) and a value (expansion).
+- `suggested` (number): Used to suggest a priority for the entry in the
+  component browser. Lower the number, higher the priority.
 
-Documentation comments can be broken up into sections, with each section
-delineated by significant whitespace.
+Each key in the metadata is optional.
 
-The first section that the user writes will be attributed to the 'synopsis' part
-of the documentation, and the second section becomes the 'body'. They should be
-used as follows:
+### Tables
 
-- **Synopsis:** A brief summary of the function's behaviour.
-- **Body:** More in-depth documentation where details of usage can be provided.
-
-Sections may also have a title. If the whitespace before the section is _three_
-newlines instead of _two_, then the first line of the section will be understood
-to be a title.
-
-The body can be broken down into multiple sections, with support for four
-different types of section:
-
-- **Raw:** A block of text, delineated purely by two blank lines before it.
-- **Important:** A block of text describing important details about the
-  functionality of the construct. To create an important section, prefix the
-  title with `!`.
-- **Info:** An information section that should be used to provide non-crucial
-  details about the construct's usage. To create an info section, prefix the
-  title with `?`.
-- **Example:** For providing usage examples to the user. To create an example
-  section, prefix the title with `>`.
-
-### Links
-
-Users are able to embed links and images into their documentation. These links
-can serve to provide access to external resources or demonstrations, and also
-link between various program constructs.
-
-- **URLs:** `[Link title](URI)`
-- **Images:** `![Image name](URI)`
-
-Linked images are rendered in the generated documentation, and URLs will be
-displayed like standard hyperlinks.
-
-> The actionables for this section are:
->
-> - We probably want a construct that lets you reference other API constructs.
-
-### Lists
-
-The Enso documentation syntax also supports ordered and unordered lists. These
-can be nested, and the nesting may swap the types. Both list types must be
-intended some multiple of 2 spaces from the left margin of the documentation
-comment.
-
-- **Unordered:** List items are indicated by the `-` character.
-- **Ordered:** List items are indicated by the `*` character.
-
-To nest a list inside another list, add another 2-character indent to the nested
-list.
-
-### Code
-
-The Enso documentation syntax allows users to write code that will be displayed
-as code rather than prose. It supports two types of code.
-
-- **Inline Code:** Text enclosed in `` ` `` will be formatted as inline code.
-- **Multi-Line Code:** A block that is indented from the baseline of the current
-  section will be formatted as a code block.
-
-### Text Formatting
-
-Enso's documentation syntax also supports some basic syntax for adding rich text
-formatting to the documentation.
-
-- **Italics:** Enclosing text in `_` (e.g. `_Italics_`).
-- **Bold:** Enclosing text in `*` (e.g. `*Bold*`).
-- **Strikethrough:** Enclosing text in `~` (e.g. `~Strikethrough~`).
-
-These syntaxes may be combined, and the order of opening need not equal the
-order of closing. However, if the formatting syntaxes are not closed, this will
-result in an error.
+Documentation supports tables, with the syntax described
+[here](https://www.markdownguide.org/extended-syntax/#tables).
