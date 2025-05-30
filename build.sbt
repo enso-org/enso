@@ -4313,6 +4313,7 @@ lazy val `os-environment` =
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`engine-common` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value,
         (`logging-utils` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value
       ),
@@ -4331,6 +4332,7 @@ lazy val `os-environment` =
           additionalOptions = Seq(
             "-ea",
             "--features=org.enso.os.environment.TestCollectorFeature",
+            "-H:+ForeignAPISupport",
             "-R:-InstallSegfaultHandler"
           )
         )
@@ -4352,6 +4354,8 @@ lazy val `os-environment` =
         .value,
       Test / fork := true
     )
+    .dependsOn(`persistance`)
+    .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`engine-common`)
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
