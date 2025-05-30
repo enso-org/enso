@@ -336,7 +336,8 @@ public class HyperFormat {
     }
   }
 
-  public static void writeTable(String path, String schemaName, String tableName, Table table, boolean append, boolean matchColumnsByName) throws IOException {
+  public static String[] writeTable(String path, String schemaName, String tableName, Table table, boolean append, boolean matchColumnsByName) throws IOException {
+    List<String> warningUnmatchedColumns = new ArrayList<>();
     getProcess();
     try (var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
     TableDefinition tableDef;
@@ -345,9 +346,10 @@ public class HyperFormat {
     } else {
         tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
     }
-    insertData(table, tableDef, connection, matchColumnsByName);
+    insertData(table, tableDef, connection, matchColumnsByName, warningUnmatchedColumns);
     connection.close();
     }
+    return warningUnmatchedColumns.toArray(new String[0]);
   }
 
   private static boolean tableExists(String schemaName, String tableName, Connection connection) {
@@ -387,8 +389,8 @@ public class HyperFormat {
       return tableDef;
   }
 
-private static void insertData(Table table, TableDefinition tableDef, Connection connection, boolean matchColumnsByName) {
-    ColumnStorage[] columnStorages = getOrderedStorages(table, tableDef, matchColumnsByName);
+private static void insertData(Table table, TableDefinition tableDef, Connection connection, boolean matchColumnsByName, List<String> warningUnmatchedColumns) {
+    ColumnStorage[] columnStorages = getOrderedStorages(table, tableDef, matchColumnsByName, warningUnmatchedColumns);
 
     try (Inserter inserter = new Inserter(connection, tableDef)) {
         for (int row = 0; row < table.rowCount(); ++row) {
@@ -401,14 +403,14 @@ private static void insertData(Table table, TableDefinition tableDef, Connection
     }
 }
 
-    private static ColumnStorage[] getOrderedStorages(Table table, TableDefinition tableDef, boolean matchColumnsByName) {
+    private static ColumnStorage[] getOrderedStorages(Table table, TableDefinition tableDef, boolean matchColumnsByName, List<String> warningUnmatchedColumns) {
         int numberOfRows = table.rowCount();
         if (matchColumnsByName ) {
             String[] existingColumnNames = tableDef.getColumns().stream()
                 .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
                 .toArray(String[]::new);
 
-            validateNoExtraColumnsByName(table, existingColumnNames);
+            validateNoExtraColumnsByName(table, existingColumnNames, warningUnmatchedColumns);
             return Arrays.stream(existingColumnNames)
                     .map(name -> Arrays.stream(table.getColumns())
                             .filter(col -> col.getName().equals(name))
@@ -417,7 +419,7 @@ private static void insertData(Table table, TableDefinition tableDef, Connection
                             .orElseGet(() -> new NullStorage(numberOfRows)))
                     .toArray(ColumnStorage[]::new);
         } else { // match by position
-        validateNoExtraColumnsByPosition(table, tableDef);
+        validateNoExtraColumnsByPosition(table, tableDef, warningUnmatchedColumns);
         Column[] sourceColumns = table.getColumns();
         int defColumnCount = tableDef.getColumns().size();
 
@@ -451,29 +453,45 @@ private static void addValueToInserter(Inserter inserter, ColumnStorage storage,
     }
 }
 
-private static void validateNoExtraColumnsByName(Table table, String[] allowedColumnNames) {
+private static void validateNoExtraColumnsByName(Table table, String[] allowedColumnNames, List<String> warningUnmatchedColumns) {
     Set<String> allowed = Set.of(allowedColumnNames);
+    Set<String> tableColumnNames = Arrays.stream(table.getColumns())
+        .map(Column::getName)
+        .collect(Collectors.toSet());
 
-String[] extraColumns = Arrays.stream(table.getColumns())
-    .map(Column::getName)
-    .filter(name -> !allowed.contains(name))
-    .toArray(String[]::new);
+    // Check for extra columns in the table (not allowed — throw)
+    String[] extraColumns = tableColumnNames.stream()
+        .filter(name -> !allowed.contains(name))
+        .toArray(String[]::new);
 
-if (extraColumns.length > 0) {
-    throw new HyperUnmatchedColumns(extraColumns);
+    if (extraColumns.length > 0) {
+        throw new HyperUnmatchedColumns(extraColumns);
     }
+
+    // Check for missing expected columns (allowed but not present — warn)
+    allowed.stream()
+        .filter(name -> !tableColumnNames.contains(name))
+        .forEach(warningUnmatchedColumns::add);
 }
 
-private static void validateNoExtraColumnsByPosition(Table table, TableDefinition tableDef) {
-    int tableColumnCount = table.getColumns().length;
+private static void validateNoExtraColumnsByPosition(Table table, TableDefinition tableDef, List<String> warningUnmatchedColumns) {
+ int tableColumnCount = table.getColumns().length;
     int defColumnCount = tableDef.getColumns().size();
 
+    // Throw if the table has more columns than the definition
     if (tableColumnCount > defColumnCount) {
         String[] extraColumnNames = IntStream.range(defColumnCount, tableColumnCount)
             .mapToObj(i -> table.getColumns()[i].getName())
             .toArray(String[]::new);
 
         throw new HyperUnmatchedColumns(extraColumnNames);
+    }
+
+    // Warn if the table has fewer columns than the definition
+    if (tableColumnCount < defColumnCount) {
+        IntStream.range(tableColumnCount, defColumnCount)
+            .mapToObj(i -> tableDef.getColumns().get(i).getName().toString().replaceAll("^\"|\"$", ""))
+            .forEach(warningUnmatchedColumns::add);
     }
 }
 
