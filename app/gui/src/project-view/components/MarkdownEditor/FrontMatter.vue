@@ -98,7 +98,7 @@ const hasOverflow = computed(() => {
   align-items: start;
   gap: 2px;
   position: relative;
-  transition: max-height ease-in-out 100ms;
+  transition: max-height ease-in-out 0.2s;
 
   &.showAll {
     flex-wrap: wrap;
