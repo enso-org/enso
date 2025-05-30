@@ -17,6 +17,8 @@
 - [File Browser Widget: Add ability to filter files by extension][13048]
 - [Add keyboard shortcuts for formatting documentation][13134]
 - [Allow selecting expected types for arguments of grouped components.][13161]
+- [Component documentation now uses Markdown instead of a custom Markdown-like
+  format][13148][13203]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -31,6 +33,8 @@
 [13048]: https://github.com/enso-org/enso/pull/13048
 [13134]: https://github.com/enso-org/enso/pull/13134
 [13161]: https://github.com/enso-org/enso/pull/13161
+[13148]: https://github.com/enso-org/enso/pull/13148
+[13203]: https://github.com/enso-org/enso/pull/13203
 
 #### Enso Standard Library
 
