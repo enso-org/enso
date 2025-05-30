@@ -19,7 +19,7 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R>
     }
 
     if (right instanceof Column rightColumn) {
-      return rightColumn.getStorage().getType();
+      return BinaryOperation.getInferredStorage(rightColumn).getType();
     }
 
     return StorageType.forBoxedItem(right, PreciseTypeOptions.DEFAULT);

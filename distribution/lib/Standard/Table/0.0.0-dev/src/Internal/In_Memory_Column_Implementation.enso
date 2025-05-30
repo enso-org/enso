@@ -82,7 +82,7 @@ type In_Memory_Column_Implementation
             if (a.is_a Float) || (b.is_a Float) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
-        _call_comparator this_column other new_name (Comparators.eq (this_column:In_Memory_Column).java_column other) fallback
+        _call_comparator this_column other new_name (Comparators.eq (this_column:In_Memory_Column).java_column (_java_other other)) fallback
 
     equals_ignore_case this_column (other : Column | Any) locale:Locale=Locale.default -> Column =
         ## TODO currently this always runs the fallback which is slow due to the
@@ -103,35 +103,35 @@ type In_Memory_Column_Implementation
             if (a.is_a Float) || (b.is_a Float) then
                 problem_builder.reportFloatingPointEquality -1
             a != b
-        _call_comparator this_column other new_name (Comparators.notEq (this_column:In_Memory_Column).java_column other) fallback
+        _call_comparator this_column other new_name (Comparators.notEq (this_column:In_Memory_Column).java_column (_java_other other)) fallback
 
     greater_than_eq this_column (other : Column | Any) -> Column = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name ">=" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             a >= b
-        _call_comparator this_column other new_name (Comparators.greaterThanEq (this_column:In_Memory_Column).java_column other) fallback
+        _call_comparator this_column other new_name (Comparators.greaterThanEq (this_column:In_Memory_Column).java_column (_java_other other)) fallback
 
     less_than_eq this_column (other : Column | Any) -> Column = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<=" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             a <= b
-        _call_comparator this_column other new_name (Comparators.lessThanEq (this_column:In_Memory_Column).java_column other) fallback
+        _call_comparator this_column other new_name (Comparators.lessThanEq (this_column:In_Memory_Column).java_column (_java_other other)) fallback
 
     greater_than this_column (other : Column | Any) -> Column = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name ">" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             a > b
-        _call_comparator this_column other new_name (Comparators.greaterThan (this_column:In_Memory_Column).java_column other) fallback
+        _call_comparator this_column other new_name (Comparators.greaterThan (this_column:In_Memory_Column).java_column (_java_other other)) fallback
 
     less_than this_column (other : Column | Any) -> Column = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<" this_column other
         fallback problem_builder a b =
             _ = problem_builder
             a < b
-        _call_comparator this_column other new_name (Comparators.lessThan (this_column:In_Memory_Column).java_column other) fallback
+        _call_comparator this_column other new_name (Comparators.lessThan (this_column:In_Memory_Column).java_column (_java_other other)) fallback
 
     between this_column (lower : Column | Any) (upper : Column | Any) -> Column = Value_Type.expect_comparable this_column lower <| Value_Type.expect_comparable this_column upper <|
         new_name = naming_helper.concat <|
@@ -957,6 +957,9 @@ apply_unary_map column:Column new_name:Text function expected_result_type:Value_
         map_column = UnaryOperation.mapFunction (column:In_Memory_Column).java_column function nothing_unchanged storage_type new_name java_problem_aggregator
         In_Memory_Column.from_java_column map_column
 
+private _java_other other =
+    if other.is_a Column then (other:In_Memory_Column).java_column else other
+
 private _call_comparator left other new_name ~comparator fallback =
     case (Comparators.isSupported (left:In_Memory_Column).java_column) of
         True -> _call_binary_operator left other new_name comparator
@@ -967,7 +970,7 @@ private _call_comparator left other new_name ~comparator fallback =
 
 private _call_binary_operator left:In_Memory_Column other new_name ~operation =
     Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
-        java_column = operation.apply left.java_column (if other.is_a Column then (other:In_Memory_Column).java_column else other) new_name java_problem_aggregator
+        java_column = operation.apply left.java_column (_java_other other) new_name java_problem_aggregator
         In_Memory_Column.from_java_column java_column
 
 ## PRIVATE
