@@ -74,6 +74,20 @@ const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
 const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
+// ==================
+// === fileExists ===
+// ==================
+
+/** Return whether a file exists. */
+async function fileExists(path: string) {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
 // ==============
 // === Config ===
 // ==============
@@ -122,16 +136,6 @@ export class Config {
  */
 async function findPort(port: number): Promise<number> {
   return await portfinder.getPortPromise({ port, startPort: port, stopPort: port + 4 })
-}
-
-/** Return whether a file exists. */
-async function exists(path: string) {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
 }
 
 // ==============
@@ -517,7 +521,7 @@ async function apiDownloadArchive(
       }
       case AssetType.file: {
         const filePath = asset.replace(/^file-/, '')
-        if (!(await exists(filePath))) {
+        if (!(await fileExists(filePath))) {
           notFound(asset)
           return
         }
@@ -526,7 +530,7 @@ async function apiDownloadArchive(
       }
       case AssetType.directory: {
         const directoryPath = asset.replace(/^directory-/, '')
-        if (!(await exists(directoryPath))) {
+        if (!(await fileExists(directoryPath))) {
           notFound(asset)
           return
         }
@@ -558,7 +562,7 @@ async function apiDownloadArchive(
         folderPath,
         `${PRODUCT_NAME} archive ${dateString}${suffix}.zip`,
       )
-    } while (await exists(generatedFilePath))
+    } while (await fileExists(generatedFilePath))
     filePath = generatedFilePath
   }
   await archive.archive(filePath)
