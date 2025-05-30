@@ -2734,7 +2734,7 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = {
       frgaalSourceLevel
     ) ++
     (if (Integer.parseInt(targetJdk) <= 21) {
-       Seq("--enable-preview")
+       Seq()
      } else {
        Seq("-target", "21")
      })
@@ -2747,8 +2747,7 @@ lazy val instrumentationSettings =
     commands += WithDebugCommand.withDebug,
     Compile / javacOptions --= Seq(
       "-source",
-      frgaalSourceLevel,
-      "--enable-preview"
+      frgaalSourceLevel
     ),
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
@@ -3194,8 +3193,7 @@ lazy val `runtime-benchmarks` =
         Some("org.enso.interpreter.bench.benchmarks.RuntimeBenchmarksRunner"),
       javacOptions --= Seq(
         "-source",
-        frgaalSourceLevel,
-        "--enable-preview"
+        frgaalSourceLevel
       ),
       parallelExecution := false,
       Compile / moduleDependencies ++= {
