@@ -12,11 +12,6 @@ import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
-import org.enso.table.data.column.operation.map.numeric.comparisons.EqualsComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -151,11 +146,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
         .add(new ModOp<>())
         .add(new PowerOp<>())
         .add(new LongRoundOp(Maps.ROUND))
-        .add(new LessComparison<>())
-        .add(new LessOrEqualComparison<>())
-        .add(new EqualsComparison<>())
-        .add(new GreaterOrEqualComparison<>())
-        .add(new GreaterComparison<>())
         .add(new LongIsInOp());
     return ops;
   }

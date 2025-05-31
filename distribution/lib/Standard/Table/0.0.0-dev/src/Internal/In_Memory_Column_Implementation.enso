@@ -760,7 +760,6 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
                 In_Memory_Column.from_storage effective_new_name rs
 
 ## PRIVATE
-
    Executes a vectorized ternary operation over the provided column.
 
    Arguments:

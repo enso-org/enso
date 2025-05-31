@@ -12,11 +12,6 @@ import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
-import org.enso.table.data.column.operation.map.numeric.comparisons.EqualsComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 
@@ -48,12 +43,7 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal>
         .add(new BigDecimalDivideOp<>())
         .add(new BigDecimalRoundOp())
         .add(new PowerOp<>())
-        .add(new ModOp<>())
-        .add(new LessComparison<>())
-        .add(new LessOrEqualComparison<>())
-        .add(new EqualsComparison<>())
-        .add(new GreaterOrEqualComparison<>())
-        .add(new GreaterComparison<>());
+        .add(new ModOp<>());
   }
 
   @Override
