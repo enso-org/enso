@@ -68,19 +68,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public abstract Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemAggregator problemAggregator);
 
-  /* Specifies if the given ternary operation has a vectorized implementation available for this storage.*/
-  public boolean isTernaryOpVectorized(String name) {
-    return false;
-  }
-
-  /** Runs a vectorized operation on this storage, taking two scalar arguments. */
-  public Storage<?> runVectorizedTernaryMap(
-      String name,
-      Object argument0,
-      Object argument1,
-      MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalArgumentException("Unsupported ternary operation: " + name);
-  }
 
   /**
    * Runs a vectorized operation on this storage, taking a storage as the right argument -
@@ -189,34 +176,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     } else {
       checkFallback(fallback, expectedResultType, name);
       return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
-    }
-  }
-
-  /**
-   * Runs a ternary operation with two scalar arguments.
-   *
-   * <p>Does not take a fallback function.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param argument0 the first argument to pass to each run of the function
-   * @param argument1 the second argument to pass to each run of the function
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedTernaryMap(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      Object argument0,
-      Object argument1,
-      boolean skipNulls,
-      StorageType<?> expectedResultType) {
-    if (isTernaryOpVectorized(name)) {
-      return runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
-    } else {
-      throw new IllegalArgumentException("Unsupported ternary operation: " + name);
     }
   }
 

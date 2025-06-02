@@ -5,7 +5,6 @@ import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
@@ -62,20 +61,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemAggregator problemAggregator) {
     return ops.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  public boolean isTernaryOpVectorized(String op) {
-    return ops.isSupportedTernary(op);
-  }
-
-  @Override
-  public Storage<?> runVectorizedTernaryMap(
-      String name,
-      Object argument0,
-      Object argument1,
-      MapOperationProblemAggregator problemAggregator) {
-    return ops.runTernaryMap(name, this, argument0, argument1, problemAggregator);
   }
 
   @Override
@@ -145,7 +130,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
         .add(new DivideOp<>())
         .add(new ModOp<>())
         .add(new PowerOp<>())
-        .add(new LongRoundOp(Maps.ROUND))
         .add(new LongIsInOp());
     return ops;
   }

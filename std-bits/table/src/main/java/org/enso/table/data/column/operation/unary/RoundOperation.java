@@ -2,9 +2,7 @@ package org.enso.table.data.column.operation.unary;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.function.DoubleFunction;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import org.enso.base.numeric.Decimal_Utils;
 import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -21,36 +19,88 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 
-public final class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
-  private static LongFunction<Long> roundLong(long decimalPlaces, boolean useBankers) {
-    return value -> Core_Math_Utils.roundLong(value, (int) decimalPlaces, useBankers);
+public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
+  /** Minimum value for the `n` parameter to `roundLong`. */
+  private static final long ROUND_MIN_LONG = -99999999999999L;
+
+  /** Minimum value for the `n` parameter to `roundLong`. */
+  private static final long ROUND_MAX_LONG = 99999999999999L;
+
+  /** Error message for out-of-range values in `roundLong`. */
+  private static final String ROUND_LONG_ERROR =
+      "Error: `round` can only accept values between "
+          + ROUND_MIN_LONG
+          + " and "
+          + ROUND_MAX_LONG
+          + " (inclusive), but was ";
+
+  @FunctionalInterface
+  private interface LongRoundingFunction {
+    Long apply(long index, long value, MapOperationProblemAggregator problemAggregator);
   }
 
-  private static DoubleFunction<Double> roundDouble(long decimalPlaces, boolean useBankers) {
-    return value -> Core_Math_Utils.roundDouble(value, (int) decimalPlaces, useBankers);
+  private static LongRoundingFunction roundLong(int decimalPlaces, boolean useBankers) {
+    return (index, value, problemAggregator) -> {
+      if (value < ROUND_MIN_LONG || value > ROUND_MAX_LONG) {
+        String message = ROUND_LONG_ERROR + value + ".";
+        problemAggregator.reportIllegalArgumentError(message, (int) index);
+        return null;
+      }
+
+      return Core_Math_Utils.roundLong(value, decimalPlaces, useBankers);
+    };
   }
 
-  private static DoubleFunction<Long> roundDoubleToLong(long decimalPlaces, boolean useBankers) {
-    return value -> (long) Core_Math_Utils.roundDouble(value, (int) decimalPlaces, useBankers);
+  @FunctionalInterface
+  private interface DoubleRoundingFunction<R> {
+    R apply(long index, double value, MapOperationProblemAggregator problemAggregator);
+  }
+
+  private static DoubleRoundingFunction<Double> roundDouble(int decimalPlaces, boolean useBankers) {
+    return (index, value, problemAggregator) -> {
+      boolean special = Double.isNaN(value) || Double.isInfinite(value);
+      if (special) {
+        String message = "Value is " + value;
+        problemAggregator.reportArithmeticError(message, (int) index);
+        return null;
+      }
+
+      return Core_Math_Utils.roundDouble(value, decimalPlaces, useBankers);
+    };
+  }
+
+  private static DoubleRoundingFunction<Long> roundDoubleToLong(
+      int decimalPlaces, boolean useBankers) {
+    return (index, value, problemAggregator) -> {
+      boolean special = Double.isNaN(value) || Double.isInfinite(value);
+      if (special) {
+        String message = "Value is " + value;
+        problemAggregator.reportArithmeticError(message, (int) index);
+        return null;
+      }
+
+      return (long) Core_Math_Utils.roundDouble(value, decimalPlaces, useBankers);
+    };
   }
 
   private static Function<BigDecimal, BigDecimal> roundBigDecimal(
-      long decimalPlaces, boolean useBankers) {
-    return value -> Decimal_Utils.round(value, (int) decimalPlaces, useBankers);
+      int decimalPlaces, boolean useBankers) {
+    return value -> Decimal_Utils.round(value, decimalPlaces, useBankers);
   }
 
   private static Function<BigDecimal, BigInteger> roundBigDecimalToBigInteger(
-      long decimalPlaces, boolean useBankers) {
-    return value -> Decimal_Utils.round(value, (int) decimalPlaces, useBankers).toBigInteger();
+      int decimalPlaces, boolean useBankers) {
+    return value -> Decimal_Utils.round(value, decimalPlaces, useBankers).toBigInteger();
   }
 
   private static Function<BigInteger, BigInteger> roundBigInteger(
-      long decimalPlaces, boolean useBankers) {
+      int decimalPlaces, boolean useBankers) {
     return value ->
-        Decimal_Utils.round(new BigDecimal(value), (int) decimalPlaces, useBankers).toBigInteger();
+        Decimal_Utils.round(new BigDecimal(value), decimalPlaces, useBankers).toBigInteger();
   }
 
-  public static UnaryOperation create(Column left, long decimalPlaces, boolean useBankers) {
+  public static UnaryOperation create(Column left, long decimalPlacesLong, boolean useBankers) {
+    int decimalPlaces = Math.toIntExact(decimalPlacesLong);
     var storage = BinaryOperation.getInferredStorage(left);
     return switch (storage.getType()) {
       case NullType nt -> decimalPlaces <= 0
@@ -92,44 +142,50 @@ public final class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
     };
   }
 
-  private static <R> RoundOperation<Long, R> createForLong(
-      StorageType<R> returnType, LongFunction<R> longFunction) {
-    Function<Long, R> function = value -> (value == null ? null : longFunction.apply(value));
-    SpecializedLongConsumer<R> consumer =
-        (builder, index, value, isNothing, problemAggregator) -> {
-          if (isNothing) {
-            builder.appendNulls(1);
-          } else {
-            builder.append(longFunction.apply(value));
-          }
-        };
-    var initialOperation =
-        new RoundOperation<>(NumericColumnAdapter.LongColumnAdapter.INSTANCE, returnType, function);
-    initialOperation.specializedLongConsumer = consumer;
-    return initialOperation;
+  private static RoundOperation<Long, Long> createForLong(
+      StorageType<Long> returnType, LongRoundingFunction longFunction) {
+    return new RoundOperation<>(NumericColumnAdapter.LongColumnAdapter.INSTANCE, returnType, null) {
+      @Override
+      protected Long doSingle(
+          long index, Long value, MapOperationProblemAggregator problemAggregator) {
+        return longFunction.apply(index, value, problemAggregator);
+      }
+
+      @Override
+      protected void doSingleSpecializedLong(
+          BuilderForType<Long> builder,
+          long index,
+          long value,
+          boolean isNothing,
+          MapOperationProblemAggregator problemAggregator) {
+        builder.append(longFunction.apply(index, value, problemAggregator));
+      }
+    };
   }
 
   private static <R> RoundOperation<Double, R> createForDouble(
-      StorageType<R> returnType, DoubleFunction<R> doubleFunction) {
-    Function<Double, R> function = value -> (value == null ? null : doubleFunction.apply(value));
-    SpecializedDoubleConsumer<R> consumer =
-        (builder, index, value, isNothing, problemAggregator) -> {
-          if (isNothing) {
-            builder.appendNulls(1);
-          } else {
-            builder.append(doubleFunction.apply(value));
-          }
-        };
-    var initialOperation =
-        new RoundOperation<>(
-            NumericColumnAdapter.DoubleColumnAdapter.INSTANCE, returnType, function);
-    initialOperation.specializedDoubleConsumer = consumer;
-    return initialOperation;
+      StorageType<R> returnType, DoubleRoundingFunction<R> doubleFunction) {
+    return new RoundOperation<>(
+        NumericColumnAdapter.DoubleColumnAdapter.INSTANCE, returnType, null) {
+      @Override
+      protected R doSingle(
+          long index, Double value, MapOperationProblemAggregator problemAggregator) {
+        return doubleFunction.apply(index, value, problemAggregator);
+      }
+
+      @Override
+      protected void doSingleSpecializedDouble(
+          BuilderForType<R> builder,
+          long index,
+          double value,
+          boolean isNothing,
+          MapOperationProblemAggregator problemAggregator) {
+        builder.append(doubleFunction.apply(index, value, problemAggregator));
+      }
+    };
   }
 
   private final Function<T, R> roundingFunction;
-  private SpecializedLongConsumer<R> specializedLongConsumer = null;
-  private SpecializedDoubleConsumer<R> specializedDoubleConsumer = null;
 
   private RoundOperation(
       NumericColumnAdapter<T> adapter, StorageType<R> returnType, Function<T, R> roundingFunction) {
@@ -157,13 +213,8 @@ public final class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
       double value,
       boolean isNothing,
       MapOperationProblemAggregator problemAggregator) {
-    // Nulls preserved so don't need to check for isNothing
-    if (specializedDoubleConsumer != null) {
-      specializedDoubleConsumer.accept(builder, index, value, isNothing, problemAggregator);
-    } else {
-      throw new IllegalStateException(
-          "No specialized double consumer defined. This is likely a bug.");
-    }
+    throw new IllegalStateException(
+        "No specialized double consumer defined. This is likely a bug.");
   }
 
   @Override
@@ -173,13 +224,7 @@ public final class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
       long value,
       boolean isNothing,
       MapOperationProblemAggregator problemAggregator) {
-    // Nulls preserved so don't need to check for isNothing
-    if (specializedLongConsumer != null) {
-      specializedLongConsumer.accept(builder, index, value, isNothing, problemAggregator);
-    } else {
-      throw new IllegalStateException(
-          "No specialized long consumer defined. This is likely a bug.");
-    }
+    throw new IllegalStateException("No specialized long consumer defined. This is likely a bug.");
   }
 
   @Override

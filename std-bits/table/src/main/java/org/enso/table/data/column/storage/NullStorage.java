@@ -85,20 +85,6 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public boolean isTernaryOpVectorized(String name) {
-    return ops.isSupportedTernary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedTernaryMap(
-      String name,
-      Object argument0,
-      Object argument1,
-      MapOperationProblemAggregator problemAggregator) {
-    return ops.runTernaryMap(name, this, argument0, argument1, problemAggregator);
-  }
-
-  @Override
   public Storage<Void> applyFilter(BitSet filterMask, int newLength) {
     return new NullStorage(newLength);
   }
