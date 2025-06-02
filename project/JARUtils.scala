@@ -18,7 +18,7 @@ object JARUtils {
     * @param outputJarPath     Optional path to the output JAR. Input JAR will be copied here without the files
     *                          starting with `extractPrefix`.
     * @param extractedFilesDir Destination directory for the extracted files. The prefix from the
-    *                          extracted files is tripped.
+    *                          extracted files is stripped.
     * @param renameFunc        Function that renames the extracted files. The extracted file name is taken
     *                          from the jar entry, and thus may contain slashes. If None is returned, the
     *                          file is ignored and not extracted.
