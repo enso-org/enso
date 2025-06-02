@@ -8,6 +8,7 @@ import java.lang.invoke.MethodHandle;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
+import org.enso.os.environment.jni.JVM.Channel;
 import org.enso.persist.Persistable;
 
 final class TestMain {
@@ -77,7 +78,7 @@ final class TestMain {
     }
 
     @Override
-    protected Void evaluate() throws Throwable {
+    protected Void evaluate(Channel otherVM) throws Throwable {
       var vm = System.getProperty("java.vm.name");
       assert "Substrate VM".equals(vm) : "Running in SVM again: " + vm;
       CORRECT_RESULTS.put(key, value);

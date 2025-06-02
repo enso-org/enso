@@ -5,6 +5,7 @@ import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.enso.os.environment.jni.JVM.Channel;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 
@@ -19,7 +20,7 @@ final class JVMPeer {
       var buf = seg.asByteBuffer();
       var ref = POOL.read(buf, null);
       var msg = ref.get(JVM.Message.class);
-      var res = msg.evaluate();
+      var res = msg.evaluate(null);
       var bytes = Persistables.POOL.write(res, null);
       seg.copyFrom(MemorySegment.ofArray(bytes));
       return bytes.length;
@@ -50,7 +51,7 @@ final class JVMPeer {
     }
 
     @Override
-    protected final Void evaluate() throws Exception {
+    protected final Void evaluate(Channel notNeeded) throws Exception {
       var clazz = Class.forName(mainClassWithSlashes.replace('/', '.'));
       var method = clazz.getDeclaredMethod("main", String[].class);
       method.setAccessible(true);
