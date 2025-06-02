@@ -443,8 +443,8 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         t1.write written_file
         t2 = Table.input [['Col1', [2]]]
         r = t2.write written_file on_existing_file=..Append match_columns=..By_Name 
-        r.should_fail_with File_Error
-        r.catch.should_be_a File_Error.Already_Exists
+        r.should_fail_with Hyper_Type_Mismatch
+        r.catch.should_be_a Hyper_Type_Mismatch.Error
 
         ## Data is still t1 as we didn't overwrite
         written_table_in_hyper = Hyper_File.new written_file . tables . first

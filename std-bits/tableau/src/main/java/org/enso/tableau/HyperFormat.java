@@ -1,6 +1,7 @@
 package org.enso.tableau;
 
 import com.tableau.hyperapi.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -27,6 +28,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
@@ -38,6 +40,7 @@ import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
@@ -374,29 +377,34 @@ public class HyperFormat {
     var tableDef = new TableDefinition(new TableName(schemaName, tableName));
     for (var col : columns) {
       String columnName = col.getName();
-      var storage = col.getStorage();
-      switch (storage.getType()) {
-        case TextType t -> tableDef.addColumn(columnName, SqlType.text());
-        case IntegerType t -> tableDef.addColumn(columnName, SqlType.bigInt());
-        case FloatType t -> tableDef.addColumn(columnName, SqlType.doublePrecision());
-        case BooleanType t -> tableDef.addColumn(columnName, SqlType.bool());
-        case DateType t -> tableDef.addColumn(columnName, SqlType.date());
-        case TimeOfDayType t -> tableDef.addColumn(columnName, SqlType.time());
-        case DateTimeType t -> tableDef.addColumn(columnName, SqlType.timestampTz());
-          // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
+      var sqlType = mapEnsoTypeToSqlType(col.getStorage().getType());
+      tableDef.addColumn(columnName, sqlType);
+      }
+
+    connection.executeCommand("DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"");
+    connection.getCatalog().createTable(tableDef);
+    return tableDef;
+  }
+
+  private static SqlType mapEnsoTypeToSqlType(StorageType<?> type) {
+  return switch (type) {
+    case TextType t -> SqlType.text();
+    case IntegerType t -> SqlType.bigInt();
+    case FloatType t -> SqlType.doublePrecision();
+    case BooleanType t -> SqlType.bool();
+    case DateType t -> SqlType.date();
+    case TimeOfDayType t -> SqlType.time();
+    case DateTimeType t -> SqlType.timestampTz();
+       // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
           // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
           // values is
           // often slower than processing 64-bit values, so it is advisable to use a sensible
           // precision for
           // the use case at hand instead of always using the maximum precision by default.
-        case BigDecimalType t -> tableDef.addColumn(columnName, SqlType.numeric(18, 9));
-        default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
-      }
-    }
-    connection.executeCommand("DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"");
-    connection.getCatalog().createTable(tableDef);
-    return tableDef;
-  }
+    case BigDecimalType t -> SqlType.numeric(18, 9);
+    default -> throw new HyperUnsupportedTypeError(type.toString());
+  };
+}
 
   private static void insertData(
       Table table,
@@ -408,6 +416,8 @@ public class HyperFormat {
     ColumnStorage[] columnStorages =
         getOrderedStorages(
             table, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
+
+    validateTypesMatch(columnStorages, tableDef);
 
     try (Inserter inserter = new Inserter(connection, tableDef)) {
       for (int row = 0; row < table.rowCount(); ++row) {
@@ -544,4 +554,23 @@ public class HyperFormat {
       }
     }
   }
+
+  private static void validateTypesMatch(
+    ColumnStorage[] storages,
+    TableDefinition tableDef) {
+  for (int i = 0; i < storages.length; i++) {
+    ColumnStorage actualStorage = storages[i];
+    if (actualStorage instanceof NullStorage) {
+      continue; // Allow NULLs for missing values
+    }
+
+    var actualSqlType = mapEnsoTypeToSqlType(actualStorage.getType());
+    var expectedSqlType = tableDef.getColumns().get(i).getType();
+
+    if (!expectedSqlType.equals(actualSqlType)) {
+      String colName = tableDef.getColumns().get(i).getName().toString();
+      throw new HyperTypeMismatch(colName, expectedSqlType.toString(), actualSqlType.toString());
+    }
+  }
+}
 }
