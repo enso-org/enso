@@ -7,11 +7,17 @@ import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import org.enso.common.Platform;
 import org.enso.persist.Persistance;
+import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.UnmanagedMemory;
+import org.graalvm.nativeimage.c.function.CEntryPoint;
+import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
+import org.graalvm.nativeimage.c.function.CFunctionPointer;
 import org.graalvm.nativeimage.c.struct.SizeOf;
+import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.WordFactory;
 
@@ -77,11 +83,19 @@ public final class JVM {
    *     this method
    */
   public final <R> R execute(Message<R> msg) {
+    return executeImpl(
+        pool,
+        msg,
+        (memory) -> executeMessageBytes("org/enso/os/environment/jni/JVMPeer", "handle", memory));
+  }
+
+  static <R> R executeImpl(
+      Persistance.Pool pool, Message<R> msg, Function<MemorySegment, Long> send) {
     try (var arena = Arena.ofConfined()) {
       var bytes = pool.write(msg, null);
       var memory = arena.allocate(Math.max(bytes.length, 4096));
       memory.copyFrom(MemorySegment.ofArray(bytes));
-      long len = executeMessageBytes("org/enso/os/environment/jni/JVMPeer", "handle", memory);
+      long len = send.apply(memory);
       assert len >= 0;
       var reply = memory.asByteBuffer();
       reply.position(0);
@@ -113,6 +127,21 @@ public final class JVM {
       return replySize;
     }
   }
+
+  @CEntryPoint
+  private static long acceptRequestFromHotSpotJvm(
+      IsolateThread threadId, CCharPointer data, long size) {
+    var len = JVMPeer.handle(data.rawValue(), size);
+    return len;
+  }
+
+  static final CEntryPointLiteral<CFunctionPointer> CALLBACK_FN =
+      CEntryPointLiteral.create(
+          JVM.class,
+          "acceptRequestFromHotSpotJvm",
+          IsolateThread.class,
+          CCharPointer.class,
+          long.class);
 
   /**
    * Subclasses of message denote a computational task to be performed in the "other JVM".
