@@ -6,7 +6,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.NullType;
 
-public final class NullComparators implements BinaryOperation<Boolean> {
+final class NullComparators implements BinaryOperation<Boolean> {
   public static final NullComparators INSTANCE = new NullComparators();
 
   private NullComparators() {}

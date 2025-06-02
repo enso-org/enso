@@ -6,14 +6,13 @@ import { Button } from '#/components/Button'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Menu } from '#/components/Menu'
 import { PaywallDialogButton } from '#/components/Paywall'
+import { ProfilePicture } from '#/components/ProfilePicture'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json' }
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
-import UserMenu from '#/layouts/UserMenu'
 import InviteUsersModal from '#/modals/InviteUsersModal'
-import { NotificationTray } from '#/pages/dashboard/components/NotificationTray'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { Plan } from '#/services/Backend'
 import { isAbsoluteUrl } from '#/utilities/url'
@@ -21,7 +20,8 @@ import { useText } from '$/providers/react'
 import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
-import { ProfilePicture } from '../components/ProfilePicture/ProfilePicture'
+import { NotificationTray } from './NotificationTray'
+import UserMenu from './UserMenu'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const TOPBAR_LINKS_SCHEMA = z.object({
@@ -64,7 +64,7 @@ export interface UserBarProps {
 }
 
 /** A toolbar containing chat and the user menu. */
-export default function UserBar(props: UserBarProps) {
+export function UserBar(props: UserBarProps) {
   const { goToSettingsPage, onSignOut } = props
 
   const { user } = useFullUserSession()

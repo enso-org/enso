@@ -6,14 +6,17 @@ import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { AnyAsset, AssetId, BackendType, Label, ProjectId } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
-import type { SortableColumn } from './column/columnUtils'
-import { Column } from './column/columnUtils'
-import LabelsColumn from './column/LabelsColumn'
-import ModifiedColumn from './column/ModifiedColumn'
-import NameColumn from './column/NameColumn'
-import PathColumn from './column/PathColumn'
-import PlaceholderColumn from './column/PlaceholderColumn'
-import SharedWithColumn from './column/SharedWithColumn'
+import type { SortableColumn } from './columnUtils'
+import { Column } from './columnUtils'
+import {
+  LabelsColumn,
+  ModifiedColumn,
+  NameColumn,
+  PathColumn,
+  PlaceholderColumn,
+  SharedWithColumn,
+} from './components'
+export * from './components'
 
 /** Props for an arbitrary variant of {@link Asset}. */
 export interface AssetColumnProps {

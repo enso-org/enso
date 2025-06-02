@@ -1,6 +1,6 @@
 import TOPBAR_LINKS from '#/configurations/topbarLinks.json'
 import type { Meta, StoryObj } from '@storybook/react'
-import { TOPBAR_LINKS_SCHEMA, UserBarHelpSection, type UserBarHelpSectionProps } from '../UserBar'
+import { TOPBAR_LINKS_SCHEMA, UserBarHelpSection, type UserBarHelpSectionProps } from './UserBar'
 
 export default {
   title: 'Layouts/UserBar',

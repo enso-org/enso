@@ -1,8 +1,8 @@
 /** @file The icon and name of a {@link ProjectAsset}. */
-import type { AssetColumnProps } from '#/components/dashboard/column'
-import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/components/dashboard/ProjectIcon'
 import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'

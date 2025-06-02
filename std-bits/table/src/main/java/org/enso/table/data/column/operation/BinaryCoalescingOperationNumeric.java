@@ -6,16 +6,11 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageFacade;
-import org.enso.table.data.column.storage.PreciseTypeOptions;
-import org.enso.table.data.column.storage.numeric.DoubleStorageFacade;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.table.Column;
 
 /**
  * A binary coalescing operation for numeric types. This class is used to perform operations on two
@@ -26,7 +21,7 @@ import org.enso.table.data.table.Column;
  *
  * @param <T> the type of the elements in the column
  */
-public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOperation<T> {
+public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperationNumeric<T, T> {
   /**
    * An abstract class representing a numeric operation. This class defines the methods that must be
    * implemented by any numeric operation.
@@ -103,112 +98,24 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
     }
   }
 
-  private static StorageType<?> storageTypeForObject(Object right) {
-    if (right == null) {
-      return NullType.INSTANCE;
-    }
-
-    if (right instanceof Column rightColumn) {
-      return rightColumn.getStorage().getType();
-    }
-
-    return StorageType.forBoxedItem(right, PreciseTypeOptions.DEFAULT);
-  }
-
-  protected final StorageType<T> validType;
   protected final NumericOperation operation;
-  protected final StorageType<?>[] validInputs;
 
   protected BinaryCoalescingOperationNumeric(
-      StorageType<T> validType, NumericOperation operation, StorageType<?>... validInputs) {
-    this.validType = validType;
+      NumericColumnAdapter<T> adapter, StorageType<T> returnType, NumericOperation operation) {
+    super(adapter, false, returnType);
     this.operation = operation;
-    this.validInputs = validInputs;
   }
 
   @Override
-  public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
-    var leftType = left.getType();
-    if (validType.isOfType(leftType)) {
-      return true;
-    }
-
-    for (var validInput : validInputs) {
-      if (validInput.isOfType(leftType)) {
-        return true;
-      }
-    }
-
-    return false;
+  protected ColumnStorage<T> applyNullMap(
+      ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+    return adapter.asTypedStorage(left);
   }
-
-  @Override
-  public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-    return canApplyMap(left, null) && canApplyMap(right, null);
-  }
-
-  @Override
-  public ColumnStorage<T> applyMap(
-      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-    if (rightValue == null) {
-      return asTypedStorage(left);
-    }
-
-    T rightValueTyped = validType.valueAsType(rightValue);
-    if (rightValueTyped == null) {
-      throw new IllegalArgumentException(
-          "Unsupported right value type " + rightValue.getClass() + ".");
-    }
-
-    return innerApplyMap(asTypedStorage(left), rightValueTyped, problemAggregator);
-  }
-
-  @Override
-  public ColumnStorage<T> applyZip(
-      ColumnStorage<?> left,
-      ColumnStorage<?> right,
-      MapOperationProblemAggregator problemAggregator) {
-    if (NullType.INSTANCE.isOfType(right.getType())) {
-      return validType.asTypedStorage(left);
-    }
-
-    return innerApplyZip(asTypedStorage(left), asTypedStorage(right), problemAggregator);
-  }
-
-  protected abstract ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
-
-  protected abstract ColumnStorage<T> innerApplyMap(
-      ColumnStorage<T> left, T right, MapOperationProblemAggregator problemAggregator);
-
-  protected abstract ColumnStorage<T> innerApplyZip(
-      ColumnStorage<T> left,
-      ColumnStorage<T> right,
-      MapOperationProblemAggregator problemAggregator);
 
   private static class BinaryCoalescingOperationDouble
       extends BinaryCoalescingOperationNumeric<Double> {
     public BinaryCoalescingOperationDouble(NumericOperation operation) {
-      super(
-          FloatType.FLOAT_64,
-          operation,
-          BigDecimalType.INSTANCE,
-          BigIntegerType.INSTANCE,
-          IntegerType.INT_64);
-    }
-
-    @Override
-    protected ColumnDoubleStorage asTypedStorage(ColumnStorage<?> storage) {
-      return switch (storage.getType()) {
-        case FloatType floatType -> floatType.asTypedStorage(storage);
-        case BigDecimalType bigDecimalType -> DoubleStorageFacade.forBigDecimal(
-            bigDecimalType.asTypedStorage(storage));
-        case BigIntegerType bigIntegerType -> DoubleStorageFacade.forBigInteger(
-            bigIntegerType.asTypedStorage(storage));
-        case IntegerType integerType -> DoubleStorageFacade.forLong(
-            integerType.asTypedStorage(storage));
-        default -> throw new IllegalArgumentException(
-            "Unsupported storage type: " + storage.getType());
-      };
+      super(DoubleColumnAdapter.INSTANCE, FloatType.FLOAT_64, operation);
     }
 
     @Override
@@ -245,107 +152,60 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
             }
           });
     }
-  }
-
-  private abstract static class BinaryCoalescingOperationBigNumber<T>
-      extends BinaryCoalescingOperationNumeric<T> {
-    protected BinaryCoalescingOperationBigNumber(
-        StorageType<T> validType, NumericOperation operation, StorageType<?>... validInputs) {
-      super(validType, operation, validInputs);
-    }
 
     @Override
-    protected ColumnStorage<T> innerApplyMap(
-        ColumnStorage<T> left, T right, MapOperationProblemAggregator problemAggregator) {
-      return StorageIterators.mapOverStorage(
-          left,
-          false,
-          validType.makeBuilder(left.getSize(), problemAggregator),
-          (index, value) -> value == null ? right : doSingle(value, right, index));
+    protected Double doSingle(
+        Double left, Double right, long index, MapOperationProblemAggregator problemAggregator) {
+      if (left == null) {
+        return right;
+      } else if (right == null) {
+        return left;
+      } else {
+        return operation.doDouble(left, right, index);
+      }
     }
-
-    @Override
-    protected ColumnStorage<T> innerApplyZip(
-        ColumnStorage<T> left,
-        ColumnStorage<T> right,
-        MapOperationProblemAggregator problemAggregator) {
-      return StorageIterators.zipOverStorages(
-          left,
-          right,
-          size -> validType.makeBuilder(size, problemAggregator),
-          false,
-          (index, x, y) -> {
-            if (x == null) {
-              return y;
-            } else {
-              return y == null ? x : doSingle(x, y, index);
-            }
-          });
-    }
-
-    protected abstract T doSingle(T left, T right, long index);
   }
 
   private static class BinaryCoalescingOperationBigDecimal
-      extends BinaryCoalescingOperationBigNumber<BigDecimal> {
+      extends BinaryCoalescingOperationNumeric<BigDecimal> {
     public BinaryCoalescingOperationBigDecimal(NumericOperation operation) {
-      super(BigDecimalType.INSTANCE, operation, BigIntegerType.INSTANCE, IntegerType.INT_64);
+      super(BigDecimalColumnAdapter.INSTANCE, BigDecimalType.INSTANCE, operation);
     }
 
     @Override
-    protected ColumnStorage<BigDecimal> asTypedStorage(ColumnStorage<?> storage) {
-      return switch (storage.getType()) {
-        case BigDecimalType bigDecimalType -> bigDecimalType.asTypedStorage(storage);
-        case BigIntegerType bigIntegerType -> new ColumnStorageFacade<>(
-            bigIntegerType.asTypedStorage(storage), BigDecimal::new);
-        case IntegerType integerType -> new ColumnStorageFacade<>(
-            integerType.asTypedStorage(storage), BigDecimal::valueOf);
-        default -> throw new IllegalArgumentException(
-            "Unsupported storage type: " + storage.getType());
-      };
-    }
-
-    @Override
-    protected BigDecimal doSingle(BigDecimal left, BigDecimal right, long index) {
-      return operation.doBigDecimal(left, right, index);
+    protected BigDecimal doSingle(
+        BigDecimal left,
+        BigDecimal right,
+        long index,
+        MapOperationProblemAggregator problemAggregator) {
+      return left == null
+          ? right
+          : (right == null ? left : operation.doBigDecimal(left, right, index));
     }
   }
 
   private static class BinaryCoalescingOperationBigInteger
-      extends BinaryCoalescingOperationBigNumber<BigInteger> {
+      extends BinaryCoalescingOperationNumeric<BigInteger> {
     public BinaryCoalescingOperationBigInteger(NumericOperation operation) {
-      super(BigIntegerType.INSTANCE, operation, IntegerType.INT_64);
+      super(BigIntegerColumnAdapter.INSTANCE, BigIntegerType.INSTANCE, operation);
     }
 
     @Override
-    protected ColumnStorage<BigInteger> asTypedStorage(ColumnStorage<?> storage) {
-      return switch (storage.getType()) {
-        case BigIntegerType bigIntegerType -> bigIntegerType.asTypedStorage(storage);
-        case IntegerType integerType -> new ColumnStorageFacade<>(
-            integerType.asTypedStorage(storage), BigInteger::valueOf);
-        default -> throw new IllegalArgumentException(
-            "Unsupported storage type: " + storage.getType());
-      };
-    }
-
-    @Override
-    protected BigInteger doSingle(BigInteger left, BigInteger right, long index) {
-      return operation.doBigInteger(left, right, index);
+    protected BigInteger doSingle(
+        BigInteger left,
+        BigInteger right,
+        long index,
+        MapOperationProblemAggregator problemAggregator) {
+      return left == null
+          ? right
+          : (right == null ? left : operation.doBigInteger(left, right, index));
     }
   }
 
   private static class BinaryCoalescingOperationLong
       extends BinaryCoalescingOperationNumeric<Long> {
     public BinaryCoalescingOperationLong(NumericOperation operation) {
-      super(IntegerType.INT_64, operation);
-    }
-
-    @Override
-    protected ColumnLongStorage asTypedStorage(ColumnStorage<?> storage) {
-      if (storage.getType() instanceof IntegerType integerType) {
-        return integerType.asTypedStorage(storage);
-      }
-      throw new IllegalArgumentException("Unsupported storage type: " + storage.getType());
+      super(LongColumnAdapter.INSTANCE, IntegerType.INT_64, operation);
     }
 
     @Override
@@ -368,7 +228,7 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
       return StorageIterators.zipOverLongStorages(
           (ColumnLongStorage) left,
           (ColumnLongStorage) right,
-          s -> validType.makeBuilder(s, problemAggregator),
+          s -> IntegerType.INT_64.makeBuilder(s, problemAggregator),
           true,
           (index, value1, isNothing1, value2, isNothing2) -> {
             if (isNothing1 && isNothing2) {
@@ -381,6 +241,18 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
               return operation.doLong(value1, value2, index);
             }
           });
+    }
+
+    @Override
+    protected Long doSingle(
+        Long left, Long right, long index, MapOperationProblemAggregator problemAggregator) {
+      if (left == null) {
+        return right;
+      } else if (right == null) {
+        return left;
+      } else {
+        return operation.doLong(left, right, index);
+      }
     }
   }
 }

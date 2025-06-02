@@ -6,7 +6,9 @@ from Standard.Base.System.File import file_as_java
 
 polyglot java import software.amazon.awssdk.core.sync.RequestBody
 
-## PRIVATE
+## ---
+   private: true
+   ---
 from_local_file (file : File) = File_Error.handle_java_exceptions file <|
     java_file = file_as_java file
     RequestBody.fromFile java_file

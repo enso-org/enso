@@ -10,26 +10,48 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 
-public abstract class GenericComparators<T> implements BinaryOperation<Boolean> {
+public class GenericComparators<T> implements BinaryOperation<Boolean> {
+  protected final StorageType<T> valueType;
   protected final BiPredicate<T, T> comparator;
   protected final boolean throwOnOther;
+  protected final boolean valueOnOther;
 
-  protected GenericComparators(BiPredicate<T, T> comparator, boolean throwOnOther) {
+  public GenericComparators(StorageType<T> valueType, BiPredicate<T, T> comparator) {
+    this.valueType = valueType;
     this.comparator = comparator;
-    this.throwOnOther = throwOnOther;
+    this.throwOnOther = true;
+    this.valueOnOther = false;
   }
 
-  protected abstract T asTypedValue(Object value);
+  public GenericComparators(
+      StorageType<T> valueType, BiPredicate<T, T> comparator, boolean valueOnOther) {
+    this.valueType = valueType;
+    this.comparator = comparator;
+    this.throwOnOther = false;
+    this.valueOnOther = valueOnOther;
+  }
 
-  protected abstract ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
+  protected T asTypedValue(Object value) {
+    return valueType.valueAsType(value);
+  }
 
-  protected RuntimeException makeCompareError(Object left, Object right) {
-    return new CompareException(left, right);
+  protected ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage) {
+    return valueType.asTypedStorage(storage);
+  }
+
+  protected boolean onIncomparable(Object left, Object right) {
+    if (throwOnOther) {
+      throw new CompareException(left, right);
+    }
+    return valueOnOther;
   }
 
   @Override
-  public abstract boolean canApplyMap(ColumnStorage<?> left, Object rightValue);
+  public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
+    return valueType.isOfType(left.getType());
+  }
 
   @Override
   public ColumnStorage<Boolean> applyMap(
@@ -49,22 +71,22 @@ public abstract class GenericComparators<T> implements BinaryOperation<Boolean> 
           typedLeft,
           builder,
           (b, index, value) -> b.appendBoolean(comparator.test(value, typedRight)));
-    } else if (throwOnOther) {
+    } else {
       // If all are Nothing then will return a Nothing Boolean Storage
       return StorageIterators.buildOverStorage(
           typedLeft,
           builder,
-          (b, index, value) -> {
-            throw makeCompareError(value, rightValue);
-          });
-    } else {
-      return StorageIterators.buildOverStorage(
-          typedLeft, builder, (b, index, value) -> b.appendBoolean(false));
+          (b, index, value) -> b.appendBoolean(onIncomparable(value, rightValue)));
     }
   }
 
   @Override
-  public abstract boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right);
+  public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
+    return valueType.isOfType(left.getType())
+        && (!throwOnOther
+            || valueType.isOfType(right.getType())
+            || right.getType() instanceof AnyObjectType);
+  }
 
   @Override
   public ColumnStorage<Boolean> applyZip(
@@ -79,7 +101,7 @@ public abstract class GenericComparators<T> implements BinaryOperation<Boolean> 
     assert canApplyZip(left, right);
 
     var typedLeft = asTypedStorage(left);
-    if (right.getType() instanceof AnyObjectType) {
+    if (!valueType.isOfType(right.getType())) {
       // Fall back to iterating over each.
       return StorageIterators.zipOverStorages(
           typedLeft,
@@ -88,15 +110,9 @@ public abstract class GenericComparators<T> implements BinaryOperation<Boolean> 
           true,
           (index, leftValue, rightValue) -> {
             T typedRightValue = asTypedValue(rightValue);
-            if (typedRightValue == null) {
-              if (throwOnOther) {
-                throw makeCompareError(leftValue, rightValue);
-              } else {
-                return false;
-              }
-            } else {
-              return comparator.test(leftValue, typedRightValue);
-            }
+            return typedRightValue == null
+                ? onIncomparable(leftValue, rightValue)
+                : comparator.test(leftValue, typedRightValue);
           });
     }
 

@@ -2,21 +2,6 @@
 import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button } from '#/components/Button'
-import type { AssetRowInnerProps } from '#/components/dashboard/AssetRow'
-import { AssetRow } from '#/components/dashboard/AssetRow'
-import { INITIAL_ROW_STATE } from '#/components/dashboard/AssetRow/assetRowUtils'
-import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
-import {
-  Column,
-  COLUMN_CSS_CLASS,
-  COLUMN_ICONS,
-  COLUMN_SHOW_TEXT_ID,
-  DEFAULT_ENABLED_COLUMNS,
-  getColumnList,
-} from '#/components/dashboard/column/columnUtils'
-import NameColumn from '#/components/dashboard/column/NameColumn'
-import { COLUMN_HEADING } from '#/components/dashboard/columnHeading'
-import Label from '#/components/dashboard/Label'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
@@ -46,6 +31,21 @@ import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
+import { AssetRow } from '#/pages/dashboard/components/AssetRow'
+import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
+import { NameColumn } from '#/pages/dashboard/components/column'
+import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
+import {
+  Column,
+  COLUMN_CSS_CLASS,
+  COLUMN_ICONS,
+  COLUMN_SHOW_TEXT_ID,
+  DEFAULT_ENABLED_COLUMNS,
+  getColumnList,
+} from '#/pages/dashboard/components/column/columnUtils'
+import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
+import Label from '#/pages/dashboard/components/Label'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import {
   useDriveStore,
