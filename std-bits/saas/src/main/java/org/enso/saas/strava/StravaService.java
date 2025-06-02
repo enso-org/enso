@@ -1,8 +1,7 @@
-package org.enso.strava;
+package org.enso.saas.strava;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.time.ZonedDateTime;
 
 import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper;
 import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.AccessToken;
@@ -20,12 +19,12 @@ public final class StravaService {
       accessToken = ExternalLibraryCredentialHelper.requestAccessToken(credentialReference);
     }
 
-    public Map<String, List<String>> getRequestHeaders() throws IOException {
+    // TODO remove this.
+    public AccessToken getAccessToken() throws IOException {
       if (accessToken == null) {
         refresh();
       }
-
-      // TODO this is the wrong format.
-      return Map.of("Authorization", List.of("Bearer " + accessToken));
+      //return new AccessToken("token", ZonedDateTime.now().plusMonths(1));
+      return accessToken;
     }
 }
