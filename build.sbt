@@ -5855,18 +5855,39 @@ createEnginePackageNoIndex := {
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
   val cacheFactory  = streams.value.cacheStoreFactory
+  val parserTargetDir =
+    (`syntax-rust-definition` / rustParserTargetDirectory).value
+  val parserNativeLib =
+    parserTargetDir / Platform.dynamicLibraryFileName("enso_parser")
+  val jnaWrapperNativeLibsDir = (`jna-wrapper` / nativeLibsOutDir).value
+  if (!jnaWrapperNativeLibsDir.exists()) {
+    throw new RuntimeException(
+      s"JNA wrapper native libs directory does not exist: $jnaWrapperNativeLibsDir." +
+      "Probably wrong task dependencies?"
+    )
+  }
+  val jnaWrapperNativeLibs = IO.listFiles(jnaWrapperNativeLibsDir)
+  if (jnaWrapperNativeLibs.isEmpty) {
+    throw new RuntimeException(
+      s"JNA wrapper native libs directory is empty: $jnaWrapperNativeLibsDir." +
+      "Probably wrong task dependencies?"
+    )
+  }
+  val nativeLibsToCopy = Seq(
+    parserNativeLib
+  ) ++ jnaWrapperNativeLibs
   DistributionPackage.createEnginePackage(
-    distributionRoot    = root,
-    cacheFactory        = cacheFactory,
-    log                 = log,
-    jarModulesToCopy    = modulesToCopy,
-    graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = graalVersion,
-    ensoVersion         = ensoVersion,
-    editionName         = currentEdition,
-    sourceStdlibVersion = stdLibVersion,
-    targetStdlibVersion = targetStdlibVersion,
-    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value
+    distributionRoot      = root,
+    cacheFactory          = cacheFactory,
+    log                   = log,
+    jarModulesToCopy      = modulesToCopy,
+    graalVersion          = graalMavenPackagesVersion,
+    javaVersion           = graalVersion,
+    ensoVersion           = ensoVersion,
+    editionName           = currentEdition,
+    sourceStdlibVersion   = stdLibVersion,
+    targetStdlibVersion   = targetStdlibVersion,
+    nativeLibrariesToCopy = nativeLibsToCopy
   )
   log.info(s"Engine package created at $root")
 }
