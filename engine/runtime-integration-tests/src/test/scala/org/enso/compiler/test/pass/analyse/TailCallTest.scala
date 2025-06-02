@@ -10,7 +10,13 @@ import org.enso.compiler.core.ir.expression.Case
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
-import org.enso.compiler.pass.{IRPass, MiniPassFactory, PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.pass.{
+  IRPass,
+  MiniPassFactory,
+  PassConfiguration,
+  PassGroup,
+  PassManager
+}
 import org.enso.compiler.test.MiniPassTest
 import org.enso.compiler.context.LocalScope
 import org.enso.compiler.core.ir.module.scope.definition.Method
@@ -415,8 +421,8 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          val lambdas = ir.preorder().collect {
-            case lam: Function.Lambda => lam
+          val lambdas = ir.preorder().collect { case lam: Function.Lambda =>
+            lam
           }
           lambdas.zipWithIndex.foreach { case (lam, idx) =>
             withClue(s"Function.Lambda ${idx} should be marked as canBeTCO") {
@@ -447,12 +453,10 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          val foldMethod = ir
-            .bindings
+          val foldMethod = ir.bindings
             .apply(1)
             .asInstanceOf[Method.Explicit]
-          val goMethod = foldMethod
-            .body
+          val goMethod = foldMethod.body
             .asInstanceOf[Function.Lambda]
             .body()
             .asInstanceOf[Expression.Block]
