@@ -1,7 +1,6 @@
 package org.enso.tableau;
 
 import com.tableau.hyperapi.*;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -28,7 +27,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
@@ -379,7 +377,7 @@ public class HyperFormat {
       String columnName = col.getName();
       var sqlType = mapEnsoTypeToSqlType(col.getStorage().getType());
       tableDef.addColumn(columnName, sqlType);
-      }
+    }
 
     connection.executeCommand("DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"");
     connection.getCatalog().createTable(tableDef);
@@ -387,24 +385,24 @@ public class HyperFormat {
   }
 
   private static SqlType mapEnsoTypeToSqlType(StorageType<?> type) {
-  return switch (type) {
-    case TextType t -> SqlType.text();
-    case IntegerType t -> SqlType.bigInt();
-    case FloatType t -> SqlType.doublePrecision();
-    case BooleanType t -> SqlType.bool();
-    case DateType t -> SqlType.date();
-    case TimeOfDayType t -> SqlType.time();
-    case DateTimeType t -> SqlType.timestampTz();
-       // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
-          // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
-          // values is
-          // often slower than processing 64-bit values, so it is advisable to use a sensible
-          // precision for
-          // the use case at hand instead of always using the maximum precision by default.
-    case BigDecimalType t -> SqlType.numeric(18, 9);
-    default -> throw new HyperUnsupportedTypeError(type.toString());
-  };
-}
+    return switch (type) {
+      case TextType t -> SqlType.text();
+      case IntegerType t -> SqlType.bigInt();
+      case FloatType t -> SqlType.doublePrecision();
+      case BooleanType t -> SqlType.bool();
+      case DateType t -> SqlType.date();
+      case TimeOfDayType t -> SqlType.time();
+      case DateTimeType t -> SqlType.timestampTz();
+        // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
+        // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
+        // values is
+        // often slower than processing 64-bit values, so it is advisable to use a sensible
+        // precision for
+        // the use case at hand instead of always using the maximum precision by default.
+      case BigDecimalType t -> SqlType.numeric(18, 9);
+      default -> throw new HyperUnsupportedTypeError(type.toString());
+    };
+  }
 
   private static void insertData(
       Table table,
@@ -555,31 +553,30 @@ public class HyperFormat {
     }
   }
 
-private static void validateTypesMatch(
-    ColumnStorage[] storages,
-    TableDefinition tableDef) {
+  private static void validateTypesMatch(ColumnStorage[] storages, TableDefinition tableDef) {
 
-  List<HyperTypeMismatch.Mismatch> mismatches = new ArrayList<>();
+    List<HyperTypeMismatch.Mismatch> mismatches = new ArrayList<>();
 
-  for (int i = 0; i < storages.length; i++) {
-    ColumnStorage storage = storages[i];
+    for (int i = 0; i < storages.length; i++) {
+      ColumnStorage storage = storages[i];
 
-    if (storage instanceof NullStorage) {
-      continue; // Allow NULLs
+      if (storage instanceof NullStorage) {
+        continue; // Allow NULLs
+      }
+
+      SqlType expectedSqlType = tableDef.getColumns().get(i).getType();
+      SqlType actualSqlType = mapEnsoTypeToSqlType(storage.getType());
+
+      if (!expectedSqlType.equals(actualSqlType)) {
+        String columnName = tableDef.getColumns().get(i).getName().toString();
+        mismatches.add(
+            new HyperTypeMismatch.Mismatch(
+                columnName, expectedSqlType.toString(), actualSqlType.toString()));
+      }
     }
 
-    SqlType expectedSqlType = tableDef.getColumns().get(i).getType();
-    SqlType actualSqlType = mapEnsoTypeToSqlType(storage.getType());
-
-    if (!expectedSqlType.equals(actualSqlType)) {
-      String columnName = tableDef.getColumns().get(i).getName().toString();
-      mismatches.add(new HyperTypeMismatch.Mismatch(
-          columnName, expectedSqlType.toString(), actualSqlType.toString()));
+    if (!mismatches.isEmpty()) {
+      throw new HyperTypeMismatch(mismatches);
     }
   }
-
-  if (!mismatches.isEmpty()) {
-    throw new HyperTypeMismatch(mismatches);
-  }
-}
 }
