@@ -498,7 +498,6 @@ public class HyperFormat {
     Set<String> tableColumnNames =
         Arrays.stream(table.getColumns()).map(Column::getName).collect(Collectors.toSet());
 
-    // Check for extra columns in the table (not allowed — throw)
     String[] extraColumns =
         tableColumnNames.stream().filter(name -> !allowed.contains(name)).toArray(String[]::new);
 
@@ -506,7 +505,6 @@ public class HyperFormat {
       throw new HyperUnmatchedColumns(extraColumns);
     }
 
-    // Check for missing columns: warn or error depending on flag
     List<String> missingColumns =
         Arrays.stream(allowedColumnNames).filter(name -> !tableColumnNames.contains(name)).toList();
 
@@ -527,7 +525,6 @@ public class HyperFormat {
     int tableColumnCount = table.getColumns().length;
     int defColumnCount = tableDef.getColumns().size();
 
-    // Throw if the table has more columns than the definition
     if (tableColumnCount > defColumnCount) {
       String[] extraColumnNames =
           IntStream.range(defColumnCount, tableColumnCount)
@@ -537,7 +534,6 @@ public class HyperFormat {
       throw new HyperUnmatchedColumns(extraColumnNames);
     }
 
-    // Missing columns: warn or throw based on flag
     if (tableColumnCount < defColumnCount) {
       String[] missingColumnNames =
           IntStream.range(tableColumnCount, defColumnCount)
@@ -561,7 +557,7 @@ public class HyperFormat {
       ColumnStorage storage = storages[i];
 
       if (storage instanceof NullStorage) {
-        continue; // Allow NULLs
+        continue; // Allow NULLs to append to anything
       }
 
       SqlType expectedSqlType = tableDef.getColumns().get(i).getType();
