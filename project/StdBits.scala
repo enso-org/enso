@@ -506,22 +506,21 @@ object StdBits {
     )
   }
 
-  /**
-   * Extract native libraries from `org.conscrypt:conscrypt-openjdk-uber:2.5.2` jar, which is
-   * a transitive dependency of
-   * `com.google.analytics:google-analytics-admin:0.66.0` and of
-   * `net.snowflake:snowflake-jdbc-thin:3.15.0`.
-   *
-   * Currently, it is included in both `Standard.Google_Api` and `Standard.Snowflake` libraries.
-   *
-   * Names of the native libraries in jar:
-   * - `META-INF/native/conscrypt_openjdk_jni-windows-x86.dll`
-   * - `META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll`
-   * - `META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so`
-   * - `META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib`
-   *
-   * The jar is signed, so we also have to remove `META-INF/SIGNING.SF`.
-   */
+  /** Extract native libraries from `org.conscrypt:conscrypt-openjdk-uber:2.5.2` jar, which is
+    * a transitive dependency of
+    * `com.google.analytics:google-analytics-admin:0.66.0` and of
+    * `net.snowflake:snowflake-jdbc-thin:3.15.0`.
+    *
+    * Currently, it is included in both `Standard.Google_Api` and `Standard.Snowflake` libraries.
+    *
+    * Names of the native libraries in jar:
+    * - `META-INF/native/conscrypt_openjdk_jni-windows-x86.dll`
+    * - `META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll`
+    * - `META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so`
+    * - `META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib`
+    *
+    * The jar is signed, so we also have to remove `META-INF/SIGNING.SF`.
+    */
   def extractNativeLibsFromConscrypt(
     polyglotRootDir: File,
     nativeLibsDir: File,
@@ -538,7 +537,7 @@ object StdBits {
     val osName     = plainOsName().replace("macos", "osx")
     val validOsExt = osExt()
     val validArch  = arch().replace("-", "_")
-    val prefix = "META-INF/native"
+    val prefix     = "META-INF/native"
     val entriesToRemove = Seq(
       "META-INF/SIGNINGC.SF",
       "META-INF/SIGNINGC.RSA"
@@ -547,7 +546,7 @@ object StdBits {
 
     def renameFunc(entryName: String): Option[String] = {
       val strippedEntryName = entryName.substring(prefix.length + 1)
-      val pattern = "^(.+)-(\\w+)-([\\w_]+)(\\.\\w+)$".r
+      val pattern           = "^(.+)-(\\w+)-([\\w_]+)(\\.\\w+)$".r
       strippedEntryName match {
         case pattern(libname, entryOs, entryArch, entryExt) =>
           if (
@@ -560,9 +559,10 @@ object StdBits {
             val outputArch = validArch.replace("x86_64", "amd64")
             Some(s"$outputArch/$osName/$libname$entryExt")
           }
-        case _ => throw new RuntimeException(
-          s"Unexpected entry name format: $strippedEntryName"
-        )
+        case _ =>
+          throw new RuntimeException(
+            s"Unexpected entry name format: $strippedEntryName"
+          )
       }
     }
 
@@ -576,7 +576,8 @@ object StdBits {
         shouldContainAll = true
       )
       .head
-    val outputJar = (polyglotRootDir / s"conscrypt-openjdk-uber-$conscryptVersion.jar").toPath
+    val outputJar =
+      (polyglotRootDir / s"conscrypt-openjdk-uber-$conscryptVersion.jar").toPath
     val extractedLibs = JARUtils.extractFilesFromJar(
       conscryptJar.toPath,
       Some(prefix),
