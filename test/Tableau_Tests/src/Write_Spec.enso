@@ -455,3 +455,22 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         backup_file.exists.should_equal False
 
         written_file.delete
+
+    group_builder.specify "writing to 2 different tables" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']]]
+        t1.write written_file (..Hyper_Table "MySchemaName" "Table1")
+        t2 = Table.input [['Col2', [2]]]
+        t2.write written_file (..Hyper_Table "MySchemaName" "Table2")
+
+        written_table1_in_hyper = Hyper_File.new written_file . tables . at 0
+        written_table1_in_hyper.read.should_equal t1
+
+        written_table2_in_hyper = Hyper_File.new written_file . tables . at 1
+        written_table2_in_hyper.read.should_equal t2
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
