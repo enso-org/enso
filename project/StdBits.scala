@@ -233,6 +233,85 @@ object StdBits {
     )
   }
 
+  /** Extracts native libraries from `jna-wrapper-assembly-0.1.0-SNAPSHOT.jar`.
+    * This is our own fat JAR that we assemble inside `jna-wrapper` project.
+    *
+    * The list of the native libraries is listed in
+    * <a href="https://github.com/enso-org/enso/blob/7e0c6373b55bdf976562bce899f2fe6af7c258c0/test/Base_Tests/data/native_libs.json#L2-L25">
+    *   test/Base_Tests/data/native_libs.json
+    * </a>
+    */
+  def extractNativeLibsFromJna(
+    inputJar: File,
+    outputJar: File,
+    nativeLibsOutDir: File,
+    logger: ManagedLogger,
+    moduleName: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
+    if (nativeLibsOutDir.exists()) {
+      IO.delete(nativeLibsOutDir)
+    }
+    IO.createDirectory(nativeLibsOutDir)
+    val nativeCodeEntries =
+      JARUtils.readNativeCodeEntriesFromManifest(inputJar.toPath)
+    val (expectedOsName, targetOs) = if (Platform.isWindows) {
+      ("win", "windows")
+    } else if (Platform.isLinux) {
+      ("linux", "linux")
+    } else if (Platform.isMacOS) {
+      ("macosx", "macos")
+    } else {
+      throw new IllegalStateException(s"Unsupported OS")
+    }
+    val (expectedProcessor, targetArch) = if (Platform.isAmd64) {
+      ("x86-64", "amd64")
+    } else if (Platform.isArm64) {
+      ("aarch64", "aarch64")
+    } else {
+      throw new IllegalStateException(s"Unsupported processor architecture")
+    }
+    val entriesToExtract = nativeCodeEntries.filter { entry =>
+      entry.osName == expectedOsName && entry.processor == expectedProcessor
+    }
+    if (entriesToExtract.isEmpty) {
+      throw new IllegalStateException(
+        s"No native libraries found for $expectedOsName-$expectedProcessor in $inputJar"
+      )
+    }
+    val pathsToExtract = entriesToExtract.map(_.libPath)
+
+    def renameFunc(entryName: String): Option[String] = {
+      if (pathsToExtract.contains(entryName)) {
+        val libName = entryName.split("/").last
+        Some(libName)
+      } else {
+        None
+      }
+    }
+
+    val extractedLibs = JARUtils.extractFilesFromJar(
+      inputJar.toPath,
+      None,
+      Some(outputJar.toPath),
+      nativeLibsOutDir.toPath,
+      renameFunc,
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(inputJar))
+    )
+
+    AnalysisOfExtractedNativeLibs(
+      inputJar,
+      extractedLibs.getOrElse(Nil),
+      Some(outputJar)
+    )
+  }
+
   /** Extract native libraries from `tableauhyperapi-<osname>.jar` and put them under
     * `Standard/Tableau/polyglot/lib` directory.
     * @param tableauPolyglotRoot root dir of Std tableau polyglot dir

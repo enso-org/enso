@@ -219,4 +219,73 @@ object JARUtils {
     )
     IO.delete(tempJarPath.toFile)
   }
+
+  /** Reads the `Bundle-NativeCode` entries from the JAR manifest.
+    * See <a href="https://docs.osgi.org/specification/osgi.core/8.0.0/framework.module.html#framework.module-loading.native.code.libraries">
+    *   OSGi Bundle-NativeCode specification
+    * </a>
+    *
+    * If there is no such manifest attribute, an empty list is returned.
+    */
+  def readNativeCodeEntriesFromManifest(
+    jarPath: Path
+  ): List[NativeCodeEntry] = {
+    Using(new JarFile(jarPath.toFile)) { jarFile =>
+      val manifest = jarFile.getManifest
+      if (manifest == null) {
+        return List()
+      }
+      val nativeCodeHeader = manifest.getMainAttributes.getValue(
+        "Bundle-NativeCode"
+      )
+      if (nativeCodeHeader == null) {
+        return List()
+      }
+      val entries = nativeCodeHeader.split(",").map(_.trim)
+      val nativeCodeEntries = entries.map { entry =>
+        val parts                 = entry.split(";").map(_.trim)
+        var processor: String     = null
+        var osName: String        = null
+        var nativeLibPath: String = null
+        for (part <- parts) {
+          if (part.contains("=")) {
+            val key   = part.split("=", 2)(0).trim
+            val value = part.split("=", 2)(1).trim
+            key match {
+              case "processor" => processor = value
+              case "osname"    => osName    = value
+              case _ =>
+                throw new IllegalStateException(
+                  s"Unknown key in native code entry: $key"
+                )
+            }
+          } else {
+            nativeLibPath = part
+          }
+        }
+        if (processor == null || osName == null || nativeLibPath == null) {
+          throw new IllegalStateException(
+            s"Invalid Bundle-NativeCode entry: $entry"
+          )
+        }
+        NativeCodeEntry(
+          processor = processor,
+          osName    = osName,
+          libPath   = nativeLibPath
+        )
+      }
+      return nativeCodeEntries.toList
+    }
+    return List()
+  }
+
+  /** @param processor
+    * @param osName
+    * @param libPath Path inside the JAR
+    */
+  case class NativeCodeEntry(
+    processor: String,
+    osName: String,
+    libPath: String
+  )
 }

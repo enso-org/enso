@@ -1416,6 +1416,11 @@ lazy val `language-server-deps-wrapper` = project
     }
   )
 
+lazy val nativeLibsOutDir = TaskKey[File](
+  "nativeLibsOutdir",
+  "Directory where native libraries are extracted to"
+)
+
 lazy val `jna-wrapper` = project
   .in(file("lib/java/jna-wrapper"))
   .enablePlugins(JPMSPlugin)
@@ -1442,6 +1447,42 @@ lazy val `jna-wrapper` = project
         javaModuleName.value -> jna
       )
     },
+    nativeLibsOutDir := {
+      (Compile / classDirectory).value / "native-libs"
+    },
+    extractNativeLibs := Def.task {
+      val logger            = streams.value.log
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      import sbt.util.CacheImplicits._
+      val prev     = extractNativeLibs.previous
+      val inputJar = assembly.value
+      val outputJarPath = inputJar.toPath.toString
+        .replace(".jar", "-minimized.jar")
+      val outputJar = new File(outputJarPath)
+      StdBits.extractNativeLibsFromJna(
+        inputJar,
+        outputJar,
+        nativeLibsOutDir.value,
+        logger,
+        moduleName.value,
+        cacheStoreFactory,
+        prev
+      )
+    }.value,
+    assembly := assembly
+      .dependsOn(
+        Compile / compileModuleInfo
+      )
+      .value,
+    // Returns path to the minimized jar
+    Compile / exportedModuleBin := Def
+      .task {
+        val analysis = extractNativeLibs.value
+        analysis.libs.head.thinTarget.get
+      }
+      .dependsOn(assembly)
+      .dependsOn(Compile / compileModuleInfo)
+      .value,
     assemblyMergeStrategy := { case _ =>
       MergeStrategy.preferProject
     }
