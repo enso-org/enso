@@ -469,8 +469,8 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         written_table2_in_hyper = Hyper_File.new written_file . tables . at 1
         written_table2_in_hyper.read.should_equal t2
 
-        ## backup file is not created
         backup_file = File.new (written_file.path + ".bak")
-        backup_file.exists.should_equal False
-
+        backup_file_written_table_in_hyper = Hyper_File.new backup_file . tables . first
+        backup_file_written_table_in_hyper.read.should_equal t1
         written_file.delete
+        backup_file.delete
