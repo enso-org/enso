@@ -23,37 +23,25 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
 import { ProfilePicture } from '../components/ProfilePicture/ProfilePicture'
 
+const TEXT_ID_SCHEMA = z.custom<TextId>((s) => typeof s === 'string')
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const TOPBAR_LINKS_SCHEMA = z.object({
   items: z.array(
     z
       .object({
-        name: z.custom<TextId>(),
-        url: z.string().url(),
-        menu: z.array(
-          z.object({
-            name: z.custom<TextId>().and(z.string()),
-            url: z.string().url(),
-          }),
-        ),
-      })
-      .or(
-        z.object({
-          name: z.custom<TextId>(),
-          menu: z.array(
+        name: TEXT_ID_SCHEMA,
+        url: z.string().url().optional(),
+        menu: z
+          .array(
             z.object({
-              name: z.custom<TextId>().and(z.string()),
+              name: TEXT_ID_SCHEMA,
               url: z.string().url(),
             }),
-          ),
-        }),
-      )
-      .or(
-        z.object({
-          name: z.custom<TextId>().and(z.string()),
-          url: z.string().url(),
-        }),
-      ),
+          )
+          .optional(),
+      })
+      .refine((obj) => 'url' in obj || 'menu' in obj),
   ),
 })
 
@@ -166,33 +154,33 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
   return (
     <Button.Group gap="small" buttonVariants={{ variant: 'icon' }}>
       {items.map((item) => {
-        if ('url' in item) {
-          if ('menu' in item) {
-            return (
-              <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
-                <Button href={item.url} {...getSafetyProps(item.url)}>
-                  {getText(item.name)}
-                </Button>
+        if (item.url != null && item.menu != null) {
+          return (
+            <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
+              <Button href={item.url} {...getSafetyProps(item.url)}>
+                {getText(item.name)}
+              </Button>
 
-                <Menu.Trigger>
-                  <Button icon={ArrowDownIcon} aria-label={getText('more')} />
+              <Menu.Trigger>
+                <Button icon={ArrowDownIcon} aria-label={getText('more')} />
 
-                  <Menu placement="bottom right">
-                    {item.menu.map((menuItem) => (
-                      <Menu.Item
-                        key={menuItem.name}
-                        href={menuItem.url}
-                        {...getSafetyProps(menuItem.url)}
-                      >
-                        {getText(menuItem.name)}
-                      </Menu.Item>
-                    ))}
-                  </Menu>
-                </Menu.Trigger>
-              </Button.GroupJoin>
-            )
-          }
-        } else {
+                <Menu placement="bottom right">
+                  {item.menu.map((menuItem) => (
+                    <Menu.Item
+                      key={menuItem.name}
+                      href={menuItem.url}
+                      {...getSafetyProps(menuItem.url)}
+                    >
+                      {getText(menuItem.name)}
+                    </Menu.Item>
+                  ))}
+                </Menu>
+              </Menu.Trigger>
+            </Button.GroupJoin>
+          )
+        }
+
+        if (item.menu != null) {
           return (
             <Menu.Trigger key={item.name}>
               <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
@@ -212,11 +200,15 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
           )
         }
 
-        return (
-          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
-            {getText(item.name)}
-          </Button>
-        )
+        if (item.url != null) {
+          return (
+            <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
+              {getText(item.name)}
+            </Button>
+          )
+        }
+
+        return null
       })}
     </Button.Group>
   )
