@@ -10,15 +10,10 @@ import org.enso.compiler.core.ir.expression.Case
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
-import org.enso.compiler.pass.{
-  IRPass,
-  MiniPassFactory,
-  PassConfiguration,
-  PassGroup,
-  PassManager
-}
+import org.enso.compiler.pass.{IRPass, MiniPassFactory, PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.MiniPassTest
 import org.enso.compiler.context.LocalScope
+import org.enso.compiler.core.ir.module.scope.definition.Method
 
 class TailCallTest extends MiniPassTest {
   override def testName: String = "Tail call"
@@ -396,6 +391,61 @@ class TailCallTest extends MiniPassTest {
           )
           branchExpression.function.diagnosticsList
             .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
+        },
+        compareIR = true
+      )
+    }
+
+    "no warning when annotated in nested tail branch" in {
+      val code =
+        """
+          |type List
+          |    Nil
+          |    Cons x xs
+          |
+          |    fold self init f =
+          |        go acc list = case list of
+          |            Nil -> acc
+          |            Cons h t -> @Tail_Call go (f acc h) t
+          |        res = go init self
+          |        res
+          |""".stripMargin
+
+      assertModuleCompilation(
+        code,
+        () => mkModuleContext,
+        ir => {
+          val foldMethod = ir
+            .bindings
+            .apply(1)
+            .asInstanceOf[Method.Explicit]
+          val goMethod = foldMethod
+            .body
+            .asInstanceOf[Function.Lambda]
+            .body()
+            .asInstanceOf[Expression.Block]
+            .expressions
+            .head
+            .asInstanceOf[Expression.Binding]
+            .expression
+            .asInstanceOf[Function.Lambda]
+          val caseExpr = goMethod
+            .body()
+            .asInstanceOf[Expression.Block]
+            .returnValue
+            .asInstanceOf[Case.Expr]
+          val exprAnnotatedWithTail = caseExpr
+            .branches()
+            .apply(1)
+            .expression()
+            .asInstanceOf[Application.Prefix]
+
+          withClue(
+            "No warning on `@Tail_Call go (f acc h) t` in the tail branch"
+          ) {
+            exprAnnotatedWithTail.diagnosticsList
+              .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
+          }
         },
         compareIR = true
       )
