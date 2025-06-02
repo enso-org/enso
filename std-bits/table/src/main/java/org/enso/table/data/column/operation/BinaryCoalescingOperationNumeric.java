@@ -115,7 +115,7 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
   private static class BinaryCoalescingOperationDouble
       extends BinaryCoalescingOperationNumeric<Double> {
     public BinaryCoalescingOperationDouble(NumericOperation operation) {
-      super(DoubleColumnAdapter.INSTANCE, FloatType.FLOAT_64, operation);
+      super(NumericColumnAdapter.DoubleColumnAdapter.INSTANCE, FloatType.FLOAT_64, operation);
     }
 
     @Override
@@ -169,7 +169,10 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
   private static class BinaryCoalescingOperationBigDecimal
       extends BinaryCoalescingOperationNumeric<BigDecimal> {
     public BinaryCoalescingOperationBigDecimal(NumericOperation operation) {
-      super(BigDecimalColumnAdapter.INSTANCE, BigDecimalType.INSTANCE, operation);
+      super(
+          NumericColumnAdapter.BigDecimalColumnAdapter.INSTANCE,
+          BigDecimalType.INSTANCE,
+          operation);
     }
 
     @Override
@@ -187,7 +190,10 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
   private static class BinaryCoalescingOperationBigInteger
       extends BinaryCoalescingOperationNumeric<BigInteger> {
     public BinaryCoalescingOperationBigInteger(NumericOperation operation) {
-      super(BigIntegerColumnAdapter.INSTANCE, BigIntegerType.INSTANCE, operation);
+      super(
+          NumericColumnAdapter.BigIntegerColumnAdapter.INSTANCE,
+          BigIntegerType.INSTANCE,
+          operation);
     }
 
     @Override
@@ -205,7 +211,7 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
   private static class BinaryCoalescingOperationLong
       extends BinaryCoalescingOperationNumeric<Long> {
     public BinaryCoalescingOperationLong(NumericOperation operation) {
-      super(LongColumnAdapter.INSTANCE, IntegerType.INT_64, operation);
+      super(NumericColumnAdapter.LongColumnAdapter.INSTANCE, IntegerType.INT_64, operation);
     }
 
     @Override

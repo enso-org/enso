@@ -60,6 +60,7 @@ polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperatio
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
+polyglot java import org.enso.table.data.column.operation.unary.RoundOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
@@ -220,10 +221,11 @@ type In_Memory_Column_Implementation
 
     const this_column value = this_column.to_table.make_constant_column value
 
-    round this_column decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column ! Illegal_Argument | Invalid_Value_Type = Value_Type.expect_numeric this_column <|
-        Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
+    round this_column decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column ! Illegal_Argument | Invalid_Value_Type =
+        Value_Type.expect_numeric this_column <| Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
             new_name = naming_helper.function_name "round" [this_column]
-            run_vectorized_ternary_op this_column Java_Storage.Maps.ROUND decimal_places (rounding_mode == Rounding_Mode.Bankers) new_name=new_name
+            round_operation = RoundOperation.create (this_column:In_Memory_Column).java_column decimal_places (rounding_mode == Rounding_Mode.Bankers)
+            apply_unary_operation this_column round_operation new_name
 
     truncate this_column -> Column ! Invalid_Value_Type =
         new_name = naming_helper.function_name "truncate" [this_column]
