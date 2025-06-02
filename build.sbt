@@ -5556,7 +5556,7 @@ lazy val `std-microsoft` = project
       `std-microsoft-polyglot-root` / "std-microsoft.jar",
     Compile / unmanagedJars := {
       Seq(
-        Attributed.blank((`jna-wrapper` / assembly).value)
+        Attributed.blank((`jna-wrapper` / Compile / exportedModuleBin).value)
       )
     },
     libraryDependencies ++= Seq(
