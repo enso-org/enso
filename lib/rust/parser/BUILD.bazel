@@ -1,3 +1,4 @@
+load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_library")
 

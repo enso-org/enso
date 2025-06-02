@@ -19,3 +19,119 @@ write_source_files(
         "//app/table-expression:write_parser_codegen",
     ],
 )
+
+###########################
+### Engine distribution ###
+###########################
+
+# TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
+SRCS = [
+    "build.sbt",
+    "project/plugins.sbt",
+    "project/build.properties",
+    "//lib/rust/parser:generate_java",
+] + glob([
+    "engine/common/src/**",
+    "engine/interpreter-dsl-test/src/**",
+    "engine/language-server/src/**",
+    "engine/launcher/src/**",
+    "engine/polyglot-api/src/**",
+    "engine/polyglot-api-macros/src/**",
+    "engine/runner/src/**",
+    "engine/runner-common/src/**",
+    "engine/runtime/src/**",
+    "engine/runtime-benchmarks/src/**",
+    "engine/runtime-compiler/src/**",
+    "engine/runtime-compiler-dump/src/**",
+    "engine/runtime-compiler-dump-igv/src/**",
+    "engine/runtime-instrument-common/src/**",
+    "engine/runtime-instrument-id-execution/src/**",
+    "engine/runtime-instrument-repl-debugger/src/**",
+    "engine/runtime-instrument-runtime-server/src/**",
+    "engine/runtime-integration-tests/src/**",
+    "engine/runtime-language-arrow/src/**",
+    "engine/runtime-language-epb/src/**",
+    "engine/runtime-parser/src/**",
+    "engine/runtime-parser-dsl/src/**",
+    "engine/runtime-parser-processor/src/**",
+    "engine/runtime-parser-processor-tests/src/**",
+    "engine/runtime-suggestions/src/**",
+    "engine/runtime-test-instruments/src/**",
+    "lib/java/akka-wrapper/src/**",
+    "lib/java/benchmarks-common/src/**",
+    "lib/java/directory-watcher-wrapper/src/**",
+    "lib/java/fansi-wrapper/src/**",
+    "lib/java/interpreter-dsl/src/**",
+    "lib/java/jna-wrapper/src/**",
+    "lib/java/language-server-deps-wrapper/src/**",
+    "lib/java/logging-service-common/src/**",
+    "lib/java/logging-service-opensearch/src/**",
+    "lib/java/logging-service-telemetry/src/**",
+    "lib/java/os-environment/src/**",
+    "lib/java/persistance/src/**",
+    "lib/java/persistance-dsl/src/**",
+    "lib/java/poi-wrapper/src/**",
+    "lib/java/runtime-utils/src/**",
+    "lib/java/scala-libs-wrapper/src/**",
+    "lib/java/test-utils/src/**",
+    "lib/java/ydoc-polyfill/src/**",
+    "lib/java/ydoc-server/src/**",
+    "lib/java/zio-wrapper/src/**",
+    "lib/scala/akka-native/src/**",
+    "lib/scala/bench-processor/src/**",
+    "lib/scala/cli/src/**",
+    "lib/scala/common-polyglot-core-utils/src/**",
+    "lib/scala/connected-lock-manager/src/**",
+    "lib/scala/connected-lock-manager-server/src/**",
+    "lib/scala/distribution-manager/src/**",
+    "lib/scala/downloader/src/**",
+    "lib/scala/edition-updater/src/**",
+    "lib/scala/edition-uploader/src/**",
+    "lib/scala/editions/src/**",
+    "lib/scala/filewatcher/src/**",
+    "lib/scala/json-rpc-server/src/**",
+    "lib/scala/library-manager/src/**",
+    "lib/scala/locking-test-helper/src/**",
+    "lib/scala/logging-config/src/**",
+    "lib/scala/logging-service/src/**",
+    "lib/scala/logging-service-logback/src/**",
+    "lib/scala/logging-truffle-connector/src/**",
+    "lib/scala/logging-utils/src/**",
+    "lib/scala/logging-utils-akka/src/**",
+    "lib/scala/pkg/src/**",
+    "lib/scala/process-utils/src/**",
+    "lib/scala/profiling-utils/src/**",
+    "lib/scala/project-manager/src/**",
+    "lib/scala/refactoring-utils/src/**",
+    "lib/scala/runtime-version-manager/src/**",
+    "lib/scala/searcher/src/**",
+    "lib/scala/semver/src/**",
+    "lib/scala/task-progress-notifications/src/**",
+    "lib/scala/text-buffer/src/**",
+    "lib/scala/version-output/src/**",
+    "lib/scala/yaml/src/**",
+    "project/*.scala",
+    "project/src/**",
+])
+
+SBT_PATH = "/opt/homebrew/bin/sbt"
+SBT_COMMAND = "buildEngineDistribution"
+SBT_ARGS = "-v -Dsbt.global.base=$$TMPDIR -Dsbt.ivy.home=$$TMPDIR/.ivy2/ -Dsbt.server.autostart=false"
+JAVA_HOME_MODIFICATION = "JAVA_HOME=$(JAVABASE)"
+# TODO: do we really need these? Rust build script does use them.
+SBT_SETTINGS = "SBT_SERVER_FORCESTART=1 LC_ALL=C.UTF-8"
+FLATC_PATH = "/Users/ilyabogdanov/Library/Application\\ Support/.enso-ci/cache/ZTNA-iiP6xtfLXPSYIXS32khYmotLUINMg7z2A"
+
+CMD = "PATH={FLATC_PATH}:$$PATH {JAVA_HOME_MODIFICATION} {SBT_SETTINGS} {SBT_PATH} {SBT_ARGS} {SBT_COMMAND}".format(FLATC_PATH=FLATC_PATH, JAVA_HOME_MODIFICATION=JAVA_HOME_MODIFICATION, SBT_SETTINGS=SBT_SETTINGS, SBT_PATH=SBT_PATH, SBT_ARGS=SBT_ARGS, SBT_COMMAND=SBT_COMMAND)
+
+# TODO: consider using `run_binary` instead, but it does not have `toolchains` attribute, and providing `sbt` is questionable.
+# `genrule` requires `bash` though.
+genrule(
+    name = "sbt_build_engine_distribution",
+    srcs = SRCS,
+    outs = ["something.txt"],
+    cmd = CMD,
+    message = "Building engine distribution",
+    toolchains = ["@rules_java//toolchains:current_java_runtime"],
+    visibility = ["//visibility:public"],
+)
