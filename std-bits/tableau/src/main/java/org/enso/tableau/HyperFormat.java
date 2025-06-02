@@ -555,22 +555,31 @@ public class HyperFormat {
     }
   }
 
-  private static void validateTypesMatch(
+private static void validateTypesMatch(
     ColumnStorage[] storages,
     TableDefinition tableDef) {
+
+  List<HyperTypeMismatch.Mismatch> mismatches = new ArrayList<>();
+
   for (int i = 0; i < storages.length; i++) {
-    ColumnStorage actualStorage = storages[i];
-    if (actualStorage instanceof NullStorage) {
-      continue; // Allow NULLs for missing values
+    ColumnStorage storage = storages[i];
+
+    if (storage instanceof NullStorage) {
+      continue; // Allow NULLs
     }
 
-    var actualSqlType = mapEnsoTypeToSqlType(actualStorage.getType());
-    var expectedSqlType = tableDef.getColumns().get(i).getType();
+    SqlType expectedSqlType = tableDef.getColumns().get(i).getType();
+    SqlType actualSqlType = mapEnsoTypeToSqlType(storage.getType());
 
     if (!expectedSqlType.equals(actualSqlType)) {
-      String colName = tableDef.getColumns().get(i).getName().toString();
-      throw new HyperTypeMismatch(colName, expectedSqlType.toString(), actualSqlType.toString());
+      String columnName = tableDef.getColumns().get(i).getName().toString();
+      mismatches.add(new HyperTypeMismatch.Mismatch(
+          columnName, expectedSqlType.toString(), actualSqlType.toString()));
     }
+  }
+
+  if (!mismatches.isEmpty()) {
+    throw new HyperTypeMismatch(mismatches);
   }
 }
 }

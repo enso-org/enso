@@ -444,7 +444,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         t2 = Table.input [['Col1', [2]]]
         r = t2.write written_file on_existing_file=..Append match_columns=..By_Name 
         r.should_fail_with  Hyper_Type_Mismatch
-        r.catch.should_equal (Hyper_Type_Mismatch.Error '"Col1"' "TEXT" "BIG_INT")
+        r.catch.to_display_text.should_equal 'The following columns had the wrong types for appending: "Col1" of type BIG_INT appending to type TEXT.'
 
         ## Data is still t1 as we didn't overwrite
         written_table_in_hyper = Hyper_File.new written_file . tables . first
