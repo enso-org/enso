@@ -79,6 +79,26 @@ final class TestMain {
     }
   }
 
+  @Persistable(id = 430608)
+  static final class ComputeFactorial extends JVM.Message<String> {
+    private long n;
+
+    ComputeFactorial(long n) {
+      super(String.class);
+      this.n = n;
+    }
+
+    @Override
+    protected String evaluate(Channel channel) throws Throwable {
+      var res = factorial(n).toString();
+      return res;
+    }
+
+    long n() {
+      return n;
+    }
+  }
+
   @Persistable(id = 430606)
   static final class ReportResult extends JVM.Message<Void> {
     private final long key;

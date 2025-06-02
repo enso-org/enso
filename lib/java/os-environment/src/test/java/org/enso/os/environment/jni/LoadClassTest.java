@@ -134,7 +134,7 @@ public class LoadClassTest {
   }
 
   @Test
-  public void computeFactoriaViaMessages() throws Exception {
+  public void computeFactorialViaMessages() throws Exception {
     TestMain.CORRECT_RESULTS.clear();
     assertEquals("Results are empty", 0, TestMain.CORRECT_RESULTS.size());
     var channel = new JVM.Channel(JVMPeer.POOL, env());
@@ -149,6 +149,19 @@ public class LoadClassTest {
     for (var e : TestMain.CORRECT_RESULTS.entrySet()) {
       var expecting = TestMain.factorial(e.getKey());
       assertEquals("fac(" + e.getKey() + ") should be", expecting.toString(), e.getValue());
+    }
+  }
+
+  @Test
+  public void computeFactorialViaSingleMessage() throws Exception {
+    var channel = new JVM.Channel(JVMPeer.POOL, env());
+    var gen = new Random();
+    var n = 0L;
+    for (var i = 0; i < 5; i++) {
+      n += gen.nextLong(MIN, MAX);
+      var res = channel.execute(new TestMain.ComputeFactorial(n));
+      var expecting = TestMain.factorial(n);
+      assertEquals("fac(" + n + ") should be", expecting.toString(), res);
     }
   }
 }
