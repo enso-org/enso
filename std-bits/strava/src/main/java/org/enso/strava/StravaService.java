@@ -8,7 +8,7 @@ import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper;
 import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.AccessToken;
 import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference;
 
-public class StravaService {
+public final class StravaService {
     private final CredentialReference credentialReference;
     private AccessToken accessToken;
 
