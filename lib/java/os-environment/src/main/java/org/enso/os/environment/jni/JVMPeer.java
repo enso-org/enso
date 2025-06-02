@@ -134,4 +134,21 @@ final class JVMPeer {
       return new BigInteger(arr);
     }
   }
+
+  @Persistable(id = 4439)
+  public static final class PersistLong extends Persistance<Long> {
+    public PersistLong() {
+      super(Long.class, true, 4439);
+    }
+
+    @Override
+    protected void writeObject(Long obj, Persistance.Output out) throws IOException {
+      out.writeLong(obj);
+    }
+
+    @Override
+    protected Long readObject(Persistance.Input in) throws IOException {
+      return in.readLong();
+    }
+  }
 }

@@ -126,4 +126,33 @@ final class TestMain {
       return null;
     }
   }
+
+  @Persistable(id = 430609)
+  static final class CountDownAndReturn extends JVM.Message<Long> {
+    private final long value;
+    private final long acc;
+
+    CountDownAndReturn(long value, long acc) {
+      super(Long.class);
+      this.value = value;
+      this.acc = acc;
+    }
+
+    long value() {
+      return value;
+    }
+
+    long acc() {
+      return acc;
+    }
+
+    @Override
+    protected Long evaluate(Channel otherVM) throws Throwable {
+      if (value <= 1) {
+        return acc;
+      } else {
+        return otherVM.execute(new CountDownAndReturn(value - 1, acc * value));
+      }
+    }
+  }
 }
