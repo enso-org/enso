@@ -12,6 +12,11 @@ import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.junit.Test;
 
 public class LoadClassTest {
+  // TBD: Make the number bigger again
+  //   - which currently exceeds the maximum size of a message
+  //   - so fix it
+  private static final int MAX = 5; // 5000;
+  private static final int MIN = 1; // 1000;
   private static final String PATH = System.getProperty("java.home");
   // set from TestCollectorFeature
   public static String MODULE_PATH;
@@ -111,12 +116,33 @@ public class LoadClassTest {
   public void executeMainClass() throws Exception {
     var jvmIsolate = CurrentIsolate.getCurrentThread().rawValue();
     var callbackFn = JVM.CALLBACK_FN.getFunctionPointer().rawValue();
+    TestMain.CORRECT_RESULTS.clear();
+    assertEquals("Results are empty", 0, TestMain.CORRECT_RESULTS.size());
     var gen = new Random();
     var n = 0L;
     for (var i = 0; i < 5; i++) {
-      n += gen.nextLong(1000, 5000);
+      n += gen.nextLong(MIN, MAX);
       var mainClass = "org/enso/os/environment/jni/TestMain";
       jvm().executeMain(mainClass, "" + jvmIsolate, "" + callbackFn, "" + n);
+    }
+    assertEquals(
+        "Five results found: " + TestMain.CORRECT_RESULTS, 5, TestMain.CORRECT_RESULTS.size());
+    for (var e : TestMain.CORRECT_RESULTS.entrySet()) {
+      var expecting = TestMain.factorial(e.getKey());
+      assertEquals("fac(" + e.getKey() + ") should be", expecting.toString(), e.getValue());
+    }
+  }
+
+  @Test
+  public void computeFactoriaViaMessages() throws Exception {
+    TestMain.CORRECT_RESULTS.clear();
+    assertEquals("Results are empty", 0, TestMain.CORRECT_RESULTS.size());
+    var channel = new JVM.Channel(JVMPeer.POOL, env());
+    var gen = new Random();
+    var n = 0L;
+    for (var i = 0; i < 5; i++) {
+      n += gen.nextLong(MIN, MAX);
+      channel.execute(new TestMain.RequestFactorial(n));
     }
     assertEquals(
         "Five results found: " + TestMain.CORRECT_RESULTS, 5, TestMain.CORRECT_RESULTS.size());

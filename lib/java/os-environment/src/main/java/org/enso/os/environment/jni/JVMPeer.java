@@ -14,21 +14,27 @@ final class JVMPeer {
 
   private JVMPeer() {}
 
-  static long handle(long address, long size) {
+  /** called via JNI from SVM to HotSpot */
+  static long handle(long threadId, long callbackFn, long address, long size) {
     try {
-      var seg = MemorySegment.ofAddress(address).reinterpret(size);
-      var buf = seg.asByteBuffer();
-      var ref = POOL.read(buf, null);
-      var msg = ref.get(JVM.Message.class);
-      var res = msg.evaluate(null);
-      var bytes = Persistables.POOL.write(res, null);
-      seg.copyFrom(MemorySegment.ofArray(bytes));
-      return bytes.length;
+      var channel = new JVM.Channel(JVMPeer.POOL, threadId, callbackFn);
+      return handleWithChannel(channel, address, size);
     } catch (Throwable t) {
       // TBD: proper handling of exceptions is needed
       t.printStackTrace();
       return -1;
     }
+  }
+
+  static long handleWithChannel(Channel channel, long address, long size) throws Throwable {
+    var seg = MemorySegment.ofAddress(address).reinterpret(size);
+    var buf = seg.asByteBuffer();
+    var ref = POOL.read(buf, null);
+    var msg = ref.get(JVM.Message.class);
+    var res = msg.evaluate(channel);
+    var bytes = Persistables.POOL.write(res, null);
+    seg.copyFrom(MemorySegment.ofArray(bytes));
+    return bytes.length;
   }
 
   @Persistable(id = 432001)

@@ -3,13 +3,18 @@ package org.enso.os.environment.jni;
 import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import org.enso.common.Platform;
 import org.enso.persist.Persistance;
+import org.graalvm.nativeimage.CurrentIsolate;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.UnmanagedMemory;
@@ -85,8 +90,9 @@ public final class JVM {
 
   @CEntryPoint
   private static long acceptRequestFromHotSpotJvm(
-      IsolateThread threadId, CCharPointer data, long size) {
-    var len = JVMPeer.handle(data.rawValue(), size);
+      IsolateThread threadId, CCharPointer data, long size) throws Throwable {
+    // TBD: recursive calls will need to find a proper channel
+    var len = JVMPeer.handleWithChannel(null, data.rawValue(), size);
     return len;
   }
 
@@ -100,15 +106,28 @@ public final class JVM {
 
   /** Channel connects two JVMs. */
   public static final class Channel {
-    /** persistance pool associated with this JVM object */
+    /** persistance pool associated with this channel object */
     private final Persistance.Pool pool;
 
-    /** JNI env */
     private final JNI.JNIEnv env;
+    private final long isolate;
+    private final long callbackFn;
 
-    private Channel(Persistance.Pool pool, JNI.JNIEnv env) {
+    /* private */ Channel(Persistance.Pool pool, JNI.JNIEnv env) {
       this.pool = pool;
       this.env = env;
+      this.isolate = -1;
+      this.callbackFn = -1;
+    }
+
+    /* private */ Channel(Persistance.Pool pool, long isolate, long callbackFn) {
+      if (ImageInfo.inImageCode()) {
+        throw new IllegalStateException("Only usable in HotSpot");
+      }
+      this.pool = pool;
+      this.env = null;
+      this.isolate = isolate;
+      this.callbackFn = callbackFn;
     }
 
     /**
@@ -125,30 +144,52 @@ public final class JVM {
      *     from this method
      */
     public final <R> R execute(Message<R> msg) {
-      return executeImpl(
-          pool,
-          msg,
-          (memory) ->
-              executeMessageBytes(env, "org/enso/os/environment/jni/JVMPeer", "handle", memory));
+      if (this.isolate == -1) {
+        return executeImpl(pool, msg, (memory) -> toHotSpotMessage(env, memory));
+      } else {
+        var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
+        var fnDescriptor =
+            FunctionDescriptor.of(
+                ValueLayout.JAVA_LONG,
+                ValueLayout.ADDRESS,
+                ValueLayout.ADDRESS,
+                ValueLayout.JAVA_LONG);
+        var fnHandle = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+        return executeImpl(
+            pool,
+            msg,
+            (seg) -> {
+              Object res = -1L;
+              try {
+                var isoRef = MemorySegment.ofAddress(isolate);
+                res = fnHandle.invoke(isoRef, seg, seg.byteSize());
+              } catch (Throwable ex) {
+                ex.printStackTrace();
+              }
+              return (long) res;
+            });
+      }
     }
 
-    private static long executeMessageBytes(
-        JNI.JNIEnv e, String classNameWithSlashes, String method, MemorySegment segment) {
-      try (var className = CTypeConversion.toCString(classNameWithSlashes);
-          var methodName = CTypeConversion.toCString(method);
-          var methodSig = CTypeConversion.toCString("(JJ)J"); ) {
+    private static long toHotSpotMessage(JNI.JNIEnv e, MemorySegment segment) {
+      var classNameWithSlashes = "org/enso/os/environment/jni/JVMPeer";
+      var methodName = "handle";
+      try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
+          var methodInC = CTypeConversion.toCString(methodName);
+          var signatureInC = CTypeConversion.toCString("(JJJJ)J"); ) {
         var fn = e.getFunctions();
-        var clazz = fn.getFindClass().call(e, className.get());
+        var clazz = fn.getFindClass().call(e, classInC.get());
         assert clazz.isNonNull() : "Class not found " + classNameWithSlashes;
-        var mainMethod =
-            fn.getGetStaticMethodID().call(e, clazz, methodName.get(), methodSig.get());
-        assert mainMethod.isNonNull() : "method not found in " + classNameWithSlashes;
+        var method = fn.getGetStaticMethodID().call(e, clazz, methodInC.get(), signatureInC.get());
+        assert method.isNonNull() : "method not found in " + classNameWithSlashes;
         var address = segment.address();
         assert address > 0 : "We need an address";
-        var arg = StackValue.get(2, JNI.JValue.class);
-        arg.addressOf(0).setLong(address);
-        arg.addressOf(1).setLong(segment.byteSize());
-        var replySize = fn.getCallStaticLongMethodA().call(e, clazz, mainMethod, arg);
+        var arg = StackValue.get(4, JNI.JValue.class);
+        arg.addressOf(0).setLong(CurrentIsolate.getCurrentThread().rawValue());
+        arg.addressOf(1).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
+        arg.addressOf(2).setLong(address);
+        arg.addressOf(3).setLong(segment.byteSize());
+        var replySize = fn.getCallStaticLongMethodA().call(e, clazz, method, arg);
         return replySize;
       }
     }

@@ -58,12 +58,33 @@ final class TestMain {
         });
   }
 
-  @Persistable(id = 430606)
-  public static final class ReportResult extends JVM.Message<Void> {
-    private long key;
-    private String value;
+  @Persistable(id = 430607)
+  static final class RequestFactorial extends JVM.Message<Void> {
+    private long n;
 
-    public ReportResult(long key, String value) {
+    RequestFactorial(long n) {
+      super(Void.class);
+      this.n = n;
+    }
+
+    @Override
+    protected Void evaluate(Channel channel) throws Throwable {
+      var res = factorial(n).toString();
+      channel.execute(new ReportResult(n, res));
+      return null;
+    }
+
+    long n() {
+      return n;
+    }
+  }
+
+  @Persistable(id = 430606)
+  static final class ReportResult extends JVM.Message<Void> {
+    private final long key;
+    private final String value;
+
+    ReportResult(long key, String value) {
       super(Void.class);
       this.key = key;
       this.value = value;
