@@ -1,28 +1,4 @@
 {
-  "component/jna-wrapper-assembly-0.1.0-SNAPSHOT.jar": [
-    "com/sun/jna/freebsd-x86-64/libjnidispatch.so",
-    "com/sun/jna/freebsd-x86/libjnidispatch.so",
-    "com/sun/jna/linux-aarch64/libjnidispatch.so",
-    "com/sun/jna/linux-arm/libjnidispatch.so",
-    "com/sun/jna/linux-armel/libjnidispatch.so",
-    "com/sun/jna/linux-loongarch64/libjnidispatch.so",
-    "com/sun/jna/linux-mips64el/libjnidispatch.so",
-    "com/sun/jna/linux-ppc/libjnidispatch.so",
-    "com/sun/jna/linux-ppc64le/libjnidispatch.so",
-    "com/sun/jna/linux-riscv64/libjnidispatch.so",
-    "com/sun/jna/linux-s390x/libjnidispatch.so",
-    "com/sun/jna/linux-x86-64/libjnidispatch.so",
-    "com/sun/jna/linux-x86/libjnidispatch.so",
-    "com/sun/jna/openbsd-x86-64/libjnidispatch.so",
-    "com/sun/jna/openbsd-x86/libjnidispatch.so",
-    "com/sun/jna/sunos-sparc/libjnidispatch.so",
-    "com/sun/jna/sunos-sparcv9/libjnidispatch.so",
-    "com/sun/jna/sunos-x86-64/libjnidispatch.so",
-    "com/sun/jna/sunos-x86/libjnidispatch.so",
-    "com/sun/jna/win32-aarch64/jnidispatch.dll",
-    "com/sun/jna/win32-x86-64/jnidispatch.dll",
-    "com/sun/jna/win32-x86/jnidispatch.dll"
-  ],
   "component/truffle-api-24.2.0.jar": [
     "META-INF/resources/engine/libtruffleattach/linux/amd64/bin/libtruffleattach.so",
     "META-INF/resources/engine/libtruffleattach/linux/aarch64/bin/libtruffleattach.so",
