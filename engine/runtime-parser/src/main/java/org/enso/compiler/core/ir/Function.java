@@ -95,7 +95,7 @@ public interface Function extends Expression {
     }
 
     public static Builder builder() {
-      return new Builder();
+      return new Builder().canBeTCO(true);
     }
 
     public static Builder builder(Lambda copy) {
@@ -155,7 +155,7 @@ public interface Function extends Expression {
     }
 
     public static Builder builder() {
-      return new Builder();
+      return new Builder().canBeTCO(true);
     }
 
     public static Builder builder(Function.Binding copy) {
