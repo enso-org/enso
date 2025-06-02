@@ -396,6 +396,38 @@ class TailCallTest extends MiniPassTest {
       )
     }
 
+    "all Function.Lambda should be marked as canBeTCO" in {
+      val code =
+        """
+          |type List
+          |    Nil
+          |    Cons x xs
+          |
+          |    fold self init f =
+          |        go acc list = case list of
+          |            Nil -> acc
+          |            Cons h t -> @Tail_Call go (f acc h) t
+          |        res = go init self
+          |        res
+          |""".stripMargin
+
+      assertModuleCompilation(
+        code,
+        () => mkModuleContext,
+        ir => {
+          val lambdas = ir.preorder().collect {
+            case lam: Function.Lambda => lam
+          }
+          lambdas.zipWithIndex.foreach { case (lam, idx) =>
+            withClue(s"Function.Lambda ${idx} should be marked as canBeTCO") {
+              lam.canBeTCO shouldBe true
+            }
+          }
+        },
+        compareIR = true
+      )
+    }
+
     "no warning when annotated in nested tail branch" in {
       val code =
         """
@@ -429,14 +461,17 @@ class TailCallTest extends MiniPassTest {
             .asInstanceOf[Expression.Binding]
             .expression
             .asInstanceOf[Function.Lambda]
+          goMethod.canBeTCO shouldBe true
           val caseExpr = goMethod
             .body()
             .asInstanceOf[Expression.Block]
             .returnValue
             .asInstanceOf[Case.Expr]
-          val exprAnnotatedWithTail = caseExpr
+          val caseBranch = caseExpr
             .branches()
             .apply(1)
+          caseBranch.terminalBranch() shouldBe true
+          val exprAnnotatedWithTail = caseBranch
             .expression()
             .asInstanceOf[Application.Prefix]
 
