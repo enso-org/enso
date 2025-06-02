@@ -4003,6 +4003,7 @@ lazy val `engine-runner` = project
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
               "-H:+RunReachabilityHandlersConcurrently",
+              "-H:+ForeignAPISupport",
               "-R:-InstallSegfaultHandler",
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
