@@ -11,7 +11,6 @@ module org.enso.runtime.compiler {
   requires org.enso.syntax;
   requires org.enso.scala.wrapper;
 
-  requires org.openide.util.lookup.RELEASE180;
   requires org.slf4j;
 
   exports org.enso.compiler;
