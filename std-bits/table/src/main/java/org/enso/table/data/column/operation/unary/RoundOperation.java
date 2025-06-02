@@ -42,7 +42,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
   private static LongRoundingFunction roundLong(int decimalPlaces, boolean useBankers) {
     return (index, value, problemAggregator) -> {
       if (value < ROUND_MIN_LONG || value > ROUND_MAX_LONG) {
-        String message = ROUND_LONG_ERROR + value + ".";
+        String message = ROUND_LONG_ERROR + value;
         problemAggregator.reportIllegalArgumentError(message, (int) index);
         return null;
       }

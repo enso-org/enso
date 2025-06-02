@@ -68,7 +68,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public abstract Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemAggregator problemAggregator);
 
-
   /**
    * Runs a vectorized operation on this storage, taking a storage as the right argument -
    * processing row-by-row.
