@@ -161,7 +161,7 @@ public class LoadClassTest {
       n += gen.nextLong(MIN, MAX);
       var res = channel.execute(new TestMain.ComputeFactorial(n));
       var expecting = TestMain.factorial(n);
-      assertEquals("fac(" + n + ") should be", expecting.toString(), res);
+      assertEquals("fac(" + n + ") should be", expecting, res);
     }
   }
 }

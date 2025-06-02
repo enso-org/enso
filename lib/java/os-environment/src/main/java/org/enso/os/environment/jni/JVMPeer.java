@@ -2,6 +2,7 @@ package org.enso.os.environment.jni;
 
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -108,6 +109,29 @@ final class JVMPeer {
     protected String readObject(Persistance.Input in) throws IOException, ClassNotFoundException {
       var obj = in.readUTF();
       return obj;
+    }
+  }
+
+  @Persistable(id = 4438)
+  public static final class PersistBigInt extends Persistance<BigInteger> {
+    public PersistBigInt() {
+      super(BigInteger.class, true, 4438);
+    }
+
+    @Override
+    protected void writeObject(BigInteger obj, Persistance.Output out) throws IOException {
+      var arr = obj.toByteArray();
+      out.writeInt(arr.length);
+      out.write(arr);
+    }
+
+    @Override
+    protected BigInteger readObject(Persistance.Input in)
+        throws IOException, ClassNotFoundException {
+      var size = in.readInt();
+      var arr = new byte[size];
+      in.readFully(arr);
+      return new BigInteger(arr);
     }
   }
 }

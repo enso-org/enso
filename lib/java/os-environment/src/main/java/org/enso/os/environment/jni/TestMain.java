@@ -80,17 +80,17 @@ final class TestMain {
   }
 
   @Persistable(id = 430608)
-  static final class ComputeFactorial extends JVM.Message<String> {
+  static final class ComputeFactorial extends JVM.Message<BigInteger> {
     private long n;
 
     ComputeFactorial(long n) {
-      super(String.class);
+      super(BigInteger.class);
       this.n = n;
     }
 
     @Override
-    protected String evaluate(Channel channel) throws Throwable {
-      var res = factorial(n).toString();
+    protected BigInteger evaluate(Channel channel) throws Throwable {
+      var res = factorial(n);
       return res;
     }
 
