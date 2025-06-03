@@ -419,6 +419,43 @@ public class BindingsMapResolutionTest {
         });
   }
 
+  @Test
+  public void resolveModule_InImportCycle() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("A"),
+                """
+                    import project.B
+                    """
+            ),
+            new SourceModule(
+                QualifiedName.fromString("B"),
+                """
+                    import project.A
+                    """
+            ),
+            new SourceModule(
+                QualifiedName.fromString("Main"), "")
+        ),
+        projDir
+    );
+    testBindingsMap(
+        projDir,
+        "local.Proj.A",
+        bindingsMap -> {
+          var nameToResolve = asScala(List.of("local", "Proj", "A"));
+          var res = bindingsMap.resolveQualifiedName(nameToResolve);
+          assertThat("Resolution method finishes",
+              res, is(notNullValue()));
+        }
+    );
+  }
+
   private Path createProject(String mainModuleSrc) throws IOException {
     var projDir = TMP_DIR.newFolder().toPath();
     var modules =
