@@ -121,7 +121,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       !pasteDataParent ||
       !pasteData ||
       !isCloud ||
-      permissions.isTeamPath(pasteDataParent.virtualParentsPath)
+      (pasteDataParent.ensoPath != null && permissions.isTeamPath(pasteDataParent.ensoPath))
     ) ?
       true
     : pasteData.data.assets.every((pasteAsset) => {

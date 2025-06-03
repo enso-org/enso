@@ -11,8 +11,9 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
+import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
+import { AssetDoesNotExistError, BackendType, isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRightPanelData, useText } from '$/providers/react'
@@ -28,6 +29,7 @@ export function DriveBarNavigation() {
   const { getText } = useText()
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
+  const localRootDirectory = useLocalRootDirectory() ?? undefined
 
   const { rootDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
@@ -55,7 +57,11 @@ export function DriveBarNavigation() {
 
   const { data: directoryData } = useSuspenseQuery({
     queryKey: [associatedBackend.type, 'getAssetDetails', { id: currentDirectoryId }],
-    queryFn: () => associatedBackend.getAssetDetails(currentDirectoryId),
+    queryFn: () =>
+      associatedBackend.getAssetDetails(
+        currentDirectoryId,
+        associatedBackend.type === BackendType.local ? localRootDirectory : undefined,
+      ),
     meta: { persist: false },
     retry: (count, error) => {
       if (error instanceof AssetDoesNotExistError) {

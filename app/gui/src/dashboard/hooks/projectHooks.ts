@@ -226,7 +226,6 @@ export function useOpenProjectMutation() {
       title,
       id,
       type,
-      parentId,
       hybrid,
       inBackground = false,
       suppressHybridProjectOpen: _ = false,
@@ -250,7 +249,6 @@ export function useOpenProjectMutation() {
               refreshUrl: session.refreshUrl,
             },
             cloudProjectDirectoryPath,
-            parentId,
           },
           title,
         )

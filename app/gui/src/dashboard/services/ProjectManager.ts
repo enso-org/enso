@@ -7,6 +7,7 @@ import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
 import * as newtype from '#/utilities/newtype'
+import { omit } from '#/utilities/object'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import { getFileName } from '../utilities/fileInfo'
@@ -155,6 +156,7 @@ export interface ProjectList {
 export interface CreateProject {
   readonly projectId: UUID
   readonly projectName: string
+  readonly projectPath: Path
   readonly projectNormalizedName: string
 }
 
@@ -183,6 +185,7 @@ export interface VersionList {
 export interface DuplicatedProject {
   readonly projectId: UUID
   readonly projectName: string
+  readonly projectPath: Path
   readonly projectNormalizedName: string
 }
 
@@ -209,7 +212,7 @@ export interface OpenProjectParams {
   readonly projectId: UUID
   readonly missingComponentAction: MissingComponentAction
   readonly cloudProjectDirectoryPath?: string
-  readonly projectsDirectory?: string
+  readonly projectsDirectory: Path
 }
 
 /** Parameters for the "close project" endpoint. */
@@ -231,23 +234,28 @@ export interface CreateProjectParams {
   readonly projectsDirectory?: Path
 }
 
+/** A project with its path provided instead of its id. */
+type WithProjectPath<T> = Omit<T, 'projectId' | 'projectsDirectory'> & {
+  readonly projectPath: Path
+}
+
 /** Parameters for the "rename project" endpoint. */
 export interface RenameProjectParams {
   readonly projectId: UUID
   readonly name: ProjectName
-  readonly projectsDirectory?: Path
+  readonly projectsDirectory: Path
 }
 
 /** Parameters for the "duplicate project" endpoint. */
 export interface DuplicateProjectParams {
   readonly projectId: UUID
-  readonly projectsDirectory?: Path
+  readonly projectsDirectory: Path
 }
 
 /** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
   readonly projectId: UUID
-  readonly projectsDirectory?: Path
+  readonly projectsDirectory: Path
 }
 
 /** Possible events that may be emitted by a {@link ProjectManager}. */
@@ -264,20 +272,10 @@ export enum ProjectManagerEvents {
  * `app/gui/controller/engine-protocol/src/project_manager.rs`.
  */
 export default class ProjectManager {
-  private readonly initialRootDirectory: Path
   // This is required so that projects get recursively updated (deleted, renamed or moved).
-  private readonly internalDirectories = new Map<Path, readonly FileSystemEntry[]>()
-  private readonly internalProjects = new Map<UUID, ProjectState>()
-  private readonly internalProjectPaths = new Map<UUID, Path>()
-  // This MUST be declared after `internalDirectories` because it depends on `internalDirectories`.
-  // eslint-disable-next-line @typescript-eslint/member-ordering
-  readonly directories: ReadonlyMap<UUID, ProjectState> = this.internalProjects
-  // This MUST be declared after `internalProjects` because it depends on `internalProjects`.
-  // eslint-disable-next-line @typescript-eslint/member-ordering
-  readonly projects: ReadonlyMap<UUID, ProjectState> = this.internalProjects
-  // This MUST be declared after `internalProjectPaths` because it depends on `internalProjectPaths`.
-  // eslint-disable-next-line @typescript-eslint/member-ordering
-  readonly projectPaths: ReadonlyMap<UUID, Path> = this.internalProjectPaths
+  private readonly directories = new Map<Path, readonly FileSystemEntry[]>()
+  private readonly projects = new Map<UUID, ProjectState>()
+  private readonly projectIds = new Map<Path, UUID>()
   private id = 0
   private reconnecting = false
   private resolvers = new Map<number, (value: never) => void>()
@@ -287,9 +285,8 @@ export default class ProjectManager {
   /** Create a {@link ProjectManager} */
   constructor(
     private readonly connectionUrl: string,
-    public rootDirectory: Path,
+    public readonly rootDirectory: Path,
   ) {
-    this.initialRootDirectory = this.rootDirectory
     this.socketPromise = this.reconnect()
   }
 
@@ -354,64 +351,71 @@ export default class ProjectManager {
     return this.socketPromise
   }
 
-  /** Set the root directory to the initial root directory. */
-  resetRootDirectory() {
-    this.rootDirectory = this.initialRootDirectory
-  }
-
   /** Dispose of the {@link ProjectManager}. */
   async dispose() {
     const socket = await this.socketPromise
     socket.close()
   }
 
-  /** Get the path of a project. */
-  getProjectPath(projectId: UUID) {
-    const projectPath = this.internalProjectPaths.get(projectId)
-    invariant(projectPath, `Unknown project path for project '${projectId}'.`)
-    return projectPath
+  /** Get the id of a project given its path. */
+  getProjectId(projectPath: Path) {
+    const projectId = this.projectIds.get(projectPath)
+    invariant(projectId, `Unknown project path for project '${projectId}'.`)
+    return projectId
   }
 
-  /** Get the directory path of a project. */
-  getProjectDirectoryPath(projectId: UUID) {
-    const projectPath = this.internalProjectPaths.get(projectId)
-    return projectPath == null ? this.rootDirectory : getDirectoryAndName(projectPath).directoryPath
+  /** Get the state of a project given its path. */
+  getProject(projectPath: Path) {
+    const id = this.getProjectId(projectPath)
+    return this.projects.get(id)
   }
 
   /** Open an existing project. */
-  async openProject(params: OpenProjectParams): Promise<OpenProject> {
-    const cached = this.internalProjects.get(params.projectId)
+  async openProject(params: WithProjectPath<OpenProjectParams>): Promise<OpenProject> {
+    const fullParams: OpenProjectParams = this.paramsWithPathToWithId(params)
+    const cached = this.projects.get(fullParams.projectId)
     if (cached) {
       return cached.data
     } else {
-      const promise = this.sendRequest<OpenProject>('project/open', params)
-      this.internalProjects.set(params.projectId, {
+      const promise = this.sendRequest<OpenProject>('project/open', fullParams)
+      this.projects.set(fullParams.projectId, {
         state: backend.ProjectState.openInProgress,
         data: promise,
       })
       try {
         const result = await promise
-        this.internalProjects.set(params.projectId, {
+        this.projects.set(fullParams.projectId, {
           state: backend.ProjectState.opened,
           data: result,
         })
         return result
       } catch (error) {
-        this.internalProjects.delete(params.projectId)
+        this.projects.delete(fullParams.projectId)
         throw error
       }
     }
   }
 
   /** Close an open project. */
-  async closeProject(params: CloseProjectParams): Promise<void> {
-    this.internalProjects.delete(params.projectId)
+  async closeProject(params: WithProjectPath<CloseProjectParams>): Promise<void> {
+    const id = this.projectIds.get(params.projectPath)
+    const state = id != null ? this.projects.get(id) : null
+    if (state?.state === backend.ProjectState.openInProgress) {
+      // Projects that are not opened cannot be closed.
+      // This is the only way to wait until the project is open.
+      await this.openProject({
+        projectPath: params.projectPath,
+        missingComponentAction: MissingComponentAction.install,
+      })
+    }
+    const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
+    this.projects.delete(fullParams.projectId)
     return this.sendRequest('project/close', params)
   }
 
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
-    const result = await this.sendRequest<CreateProject>('project/create', {
+    const result = await this.sendRequest<Omit<CreateProject, 'projectPath'>>('project/create', {
       missingComponentAction: MissingComponentAction.install,
       ...params,
     })
@@ -419,38 +423,38 @@ export default class ProjectManager {
     // Update `internalDirectories` by listing the project's parent directory, because the
     // directory name of the project is unknown. Deleting the directory is not an option because
     // that will prevent ALL descendants of the parent directory from being updated.
-    await this.listDirectory(directoryPath)
-    return result
+    const siblings = await this.listDirectory(directoryPath)
+    const projectEntry = siblings.find(
+      (entry) =>
+        entry.type === FileSystemEntryType.ProjectEntry && entry.metadata.id === result.projectId,
+    )
+    if (projectEntry == null) {
+      throw new Error('Project failed to be created')
+    }
+    return { ...result, projectPath: projectEntry.path }
   }
 
   /**
    * Return the content of the `Main.enso` file of a project.
    */
-  async getFileContent(projectId: UUID) {
-    const path = this.internalProjectPaths.get(projectId)
-
-    invariant(path, `Unknown project path for project '${projectId}'.`)
-
+  async getFileContent(projectPath: Path) {
+    const path = this.getProjectId(projectPath)
     const res = await this.runStandaloneCommand<string>(
       null,
       'filesystem-read-path',
       'text',
       path + '/src/Main.enso',
     )
-
     return res
   }
 
   /** Rename a project. */
-  async renameProject(params: Omit<RenameProjectParams, 'projectsDirectory'>): Promise<void> {
-    const path = this.internalProjectPaths.get(params.projectId)
-    const directoryPath =
-      path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
-    const fullParams: RenameProjectParams = { ...params, projectsDirectory: directoryPath }
+  async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
+    const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
     await this.sendRequest('project/rename', fullParams)
-    const state = this.internalProjects.get(params.projectId)
+    const state = this.projects.get(fullParams.projectId)
     if (state?.state === backend.ProjectState.opened) {
-      this.internalProjects.set(params.projectId, {
+      this.projects.set(fullParams.projectId, {
         state: state.state,
         data: { ...state.data, projectName: params.name },
       })
@@ -458,46 +462,50 @@ export default class ProjectManager {
     // Update `internalDirectories` by listing the project's parent directory, because the new
     // directory name of the project is unknown. Deleting the directory is not an option because
     // that will prevent ALL descendants of the parent directory from being updated.
-    await this.listDirectory(directoryPath)
+    await this.listDirectory(fullParams.projectsDirectory)
   }
 
   /** Duplicate a project. */
   async duplicateProject(
-    params: Omit<DuplicateProjectParams, 'projectsDirectory'>,
+    params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
-    const path = this.internalProjectPaths.get(params.projectId)
-    const directoryPath =
-      path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
-    const fullParams: DuplicateProjectParams = { ...params, projectsDirectory: directoryPath }
-    const result = this.sendRequest<DuplicatedProject>('project/duplicate', fullParams)
+    const fullParams: DuplicateProjectParams = this.paramsWithPathToWithId(params)
+    const result = await this.sendRequest<Omit<DuplicatedProject, 'projectPath'>>(
+      'project/duplicate',
+      fullParams,
+    )
     // Update `internalDirectories` by listing the project's parent directory, because the
     // directory name of the project is unknown. Deleting the directory is not an option because
     // that will prevent ALL descendants of the parent directory from being updated.
-    await this.listDirectory(directoryPath)
-    return result
+    const siblings = await this.listDirectory(fullParams.projectsDirectory)
+    const projectEntry = siblings.find(
+      (entry) =>
+        entry.type === FileSystemEntryType.ProjectEntry && entry.metadata.id === result.projectId,
+    )
+    if (projectEntry == null) {
+      throw new Error('Project failed to be created')
+    }
+    return { ...result, projectPath: projectEntry.path }
   }
 
   /** Delete a project. */
-  async deleteProject(params: Omit<DeleteProjectParams, 'projectsDirectory'>): Promise<void> {
-    const cached = this.internalProjects.get(params.projectId)
+  async deleteProject(params: WithProjectPath<DeleteProjectParams>): Promise<void> {
+    const fullParams: DeleteProjectParams = this.paramsWithPathToWithId(params)
+    const cached = this.projects.get(fullParams.projectId)
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
-      await this.closeProject({ projectId: params.projectId })
+      await this.closeProject({ projectPath: params.projectPath })
     }
-    const path = this.internalProjectPaths.get(params.projectId)
-    const directoryPath =
-      path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
-    const fullParams: DeleteProjectParams = { ...params, projectsDirectory: directoryPath }
     await this.sendRequest('project/delete', fullParams)
-    this.internalProjectPaths.delete(params.projectId)
-    this.internalProjects.delete(params.projectId)
-    const siblings = this.internalDirectories.get(directoryPath)
+    this.projectIds.delete(params.projectPath)
+    this.projects.delete(fullParams.projectId)
+    const siblings = this.directories.get(fullParams.projectsDirectory)
     if (siblings != null) {
-      this.internalDirectories.set(
-        directoryPath,
+      this.directories.set(
+        fullParams.projectsDirectory,
         siblings.filter(
           (entry) =>
             entry.type !== FileSystemEntryType.ProjectEntry ||
-            entry.metadata.id !== params.projectId,
+            entry.metadata.id !== fullParams.projectId,
         ),
       )
     }
@@ -556,11 +564,11 @@ export default class ProjectManager {
         path: normalizeSlashes(entry.path),
       }))
 
-    this.internalDirectories.set(parentId, result)
+    this.directories.set(parentId, result)
 
     for (const entry of result) {
       if (entry.type === FileSystemEntryType.ProjectEntry) {
-        this.internalProjectPaths.set(entry.metadata.id, entry.path)
+        this.projectIds.set(entry.path, entry.metadata.id)
       }
     }
     return result
@@ -569,12 +577,12 @@ export default class ProjectManager {
   /** Create a directory. */
   async createDirectory(path: Path) {
     await this.runStandaloneCommand(null, 'filesystem-create-directory', 'json', path)
-    this.internalDirectories.set(path, [])
+    this.directories.set(path, [])
     const directoryPath = getDirectoryAndName(path).directoryPath
-    const siblings = this.internalDirectories.get(directoryPath)
+    const siblings = this.directories.get(directoryPath)
     if (siblings) {
       const now = dateTime.toRfc3339(new Date())
-      this.internalDirectories.set(directoryPath, [
+      this.directories.set(directoryPath, [
         ...siblings.filter((sibling) => sibling.type === FileSystemEntryType.DirectoryEntry),
         {
           type: FileSystemEntryType.DirectoryEntry,
@@ -595,10 +603,10 @@ export default class ProjectManager {
   async createFile(path: Path, file: Blob) {
     await this.runStandaloneCommand(file, 'filesystem-write-path', 'json', path)
     const directoryPath = getDirectoryAndName(path).directoryPath
-    const siblings = this.internalDirectories.get(directoryPath)
+    const siblings = this.directories.get(directoryPath)
     if (siblings) {
       const now = dateTime.toRfc3339(new Date())
-      this.internalDirectories.set(directoryPath, [
+      this.directories.set(directoryPath, [
         ...siblings.filter((sibling) => sibling.type !== FileSystemEntryType.FileEntry),
         {
           type: FileSystemEntryType.FileEntry,
@@ -630,22 +638,22 @@ export default class ProjectManager {
   /** Delete a file or directory. */
   async deleteFile(path: Path) {
     await this.runStandaloneCommand(null, 'filesystem-delete', 'json', path)
-    const children = this.internalDirectories.get(path)
+    const children = this.directories.get(path)
     // Assume a directory needs to be loaded for its children to be loaded.
     if (children) {
       const removeChildren = (directoryChildren: readonly FileSystemEntry[]) => {
         for (const child of directoryChildren) {
           switch (child.type) {
             case FileSystemEntryType.DirectoryEntry: {
-              const childChildren = this.internalDirectories.get(child.path)
+              const childChildren = this.directories.get(child.path)
               if (childChildren) {
                 removeChildren(childChildren)
               }
               break
             }
             case FileSystemEntryType.ProjectEntry: {
-              this.internalProjects.delete(child.metadata.id)
-              this.internalProjectPaths.delete(child.metadata.id)
+              this.projects.delete(child.metadata.id)
+              this.projectIds.delete(child.path)
               break
             }
             case FileSystemEntryType.FileEntry: {
@@ -656,12 +664,12 @@ export default class ProjectManager {
         }
       }
       removeChildren(children)
-      this.internalDirectories.delete(path)
+      this.directories.delete(path)
     }
     const directoryPath = getDirectoryAndName(path).directoryPath
-    const siblings = this.internalDirectories.get(directoryPath)
+    const siblings = this.directories.get(directoryPath)
     if (siblings) {
-      this.internalDirectories.set(
+      this.directories.set(
         directoryPath,
         siblings.filter((entry) => entry.path !== path),
       )
@@ -672,6 +680,24 @@ export default class ProjectManager {
   private cleanup(id: number) {
     this.resolvers.delete(id)
     this.rejecters.delete(id)
+  }
+
+  /**
+   * Convert {@link WithProjectPath<T>} to `T`.
+   * @throws {Error} when the `id` is not cached.
+   */
+  private paramsWithPathToWithId<T>(obj: WithProjectPath<T>) {
+    const path = obj.projectPath
+    const directoryPath = getDirectoryAndName(path).directoryPath
+    const id = this.projectIds.get(path)
+    if (id == null) {
+      throw new Error(`Project with path '${path}' does not exist`)
+    }
+    return {
+      ...omit(obj, 'projectPath'),
+      projectId: id,
+      projectsDirectory: directoryPath,
+    }
   }
 
   /** Send a JSON-RPC request to the project manager. */

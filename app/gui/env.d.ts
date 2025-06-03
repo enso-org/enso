@@ -4,6 +4,7 @@
  * monkeypatching on `window` and generated code.
  */
 /// <reference types="vite/client" />
+import type { Path } from '#/services/Backend'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
 import type { FileFilter } from './src/project-view/util/fileFilter'
@@ -90,6 +91,7 @@ interface SystemApi {
 interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly path: Path
   readonly parentDirectory: string
 }
 

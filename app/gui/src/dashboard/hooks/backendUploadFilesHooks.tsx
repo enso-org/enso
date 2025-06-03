@@ -16,7 +16,7 @@ import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAss
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import type LocalBackend from '#/services/LocalBackend'
-import { extractTypeAndId } from '#/services/LocalBackend'
+import { extractTypeAndPath } from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
@@ -529,10 +529,10 @@ export function useUploadFileToCloudMutation() {
               switch (asset.type) {
                 case AssetType.project: {
                   // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
-                  const parentDirectoryPath = extractTypeAndId(asset.parentId).id
+                  const parentDirectoryPath = extractTypeAndPath(asset.parentId).path
 
                   const projectResponse = await httpClient.get(
-                    `/api/project-manager/projects/${extractTypeAndId(asset.id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
+                    `/api/project-manager/projects/${extractTypeAndPath(asset.id).path}/enso-project?projectsDirectory=${parentDirectoryPath}`,
                   )
 
                   if (!projectResponse.ok) {

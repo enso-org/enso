@@ -22,6 +22,7 @@ import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
 
 import * as desktopEnvironment from '@/desktopEnvironment'
+import { Path } from 'enso-common/src/services/Backend'
 
 const logger = console
 
@@ -45,6 +46,7 @@ const SAMPLES_DIRECTORY_NAME = 'Samples'
 export interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly path: string
   readonly parentDirectory: string
 }
 
@@ -72,7 +74,7 @@ export function importProjectFromPath(
   openedPath: string,
   directory?: string | null,
   name: string | null = null,
-) {
+): ProjectInfo {
   directory ??= getProjectsDirectory()
   if (isProjectBundle(openedPath)) {
     logger.log(`Path '${openedPath}' denotes a bundled project.`)
@@ -223,7 +225,12 @@ export function importDirectory(
     logger.log(`Project already installed at '${rootPath}'.`)
     const id = getProjectId(rootPath)
     if (id != null) {
-      return { id, name: getPackageName(rootPath) ?? '', parentDirectory: directory }
+      return {
+        id,
+        name: getPackageName(rootPath) ?? '',
+        path: Path(rootPath),
+        parentDirectory: directory,
+      }
     } else {
       throw new Error(`Project already installed, but missing metadata.`)
     }
@@ -517,7 +524,7 @@ export function bumpMetadata(
     id: generateId(),
     lastOpened: new Date().toISOString(),
   })).id
-  return { id, name, parentDirectory }
+  return { id, name, path: Path(projectRoot), parentDirectory }
 }
 
 /** Download project templates GitHub repo into the Samples directory if one not exists. */

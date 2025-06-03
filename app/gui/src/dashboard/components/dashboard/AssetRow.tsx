@@ -36,7 +36,7 @@ import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 import {
   canPermissionModifyDirectoryContents,
-  isTeamParentsPath,
+  isTeamPath,
   tryFindSelfPermission,
 } from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -345,7 +345,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
           // Assume the parent is the root directory.
           return true
         }
-        if (isTeamParentsPath(parent.parentsPath, [])) {
+        if (parent.ensoPath != null && isTeamPath(parent.ensoPath)) {
           return true
         }
         // Assume user path; check permissions

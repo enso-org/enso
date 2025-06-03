@@ -63,11 +63,9 @@ import LocalStorage from '#/utilities/LocalStorage'
 
 import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
-import { localRootDirectoryStore, useLocalRootDirectory } from '#/layouts/Drive/persistentState'
-import { BackendType } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 
 window.menuApi?.setShowAboutModalHandler(() => {
   setModal(<AboutModal />)
@@ -228,7 +226,6 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
       >
         <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
           <InputBindingsProvider>
-            <LocalBackendPathSynchronizer />
             <VersionChecker />
             {children}
           </InputBindingsProvider>
@@ -236,27 +233,4 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
       </sessionProvider.SessionProvider>
     </RouterProvider>
   )
-}
-
-/** Keep `localBackend.rootPath` in sync with the saved root path state. */
-function LocalBackendPathSynchronizer() {
-  const queryClient = reactQuery.useQueryClient()
-  const localRootDirectory = useLocalRootDirectory()
-  const { localBackend } = useBackends()
-
-  React.useEffect(
-    () =>
-      localRootDirectoryStore.subscribe(() => {
-        void queryClient.invalidateQueries({ queryKey: [BackendType.local, 'listDirectories'] })
-      }),
-    [queryClient],
-  )
-
-  if (localRootDirectory != null) {
-    localBackend?.setRootPath(localRootDirectory)
-  } else {
-    localBackend?.resetRootPath()
-  }
-
-  return null
 }

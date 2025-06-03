@@ -18,7 +18,6 @@ import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
 
 import { usePaywall } from '#/hooks/billing'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
@@ -92,14 +91,14 @@ function DashboardInner() {
     queryFn: async () => {
       if (initialLocalProjectPath != null && window.backendApi && localBackend) {
         const projectName = baseName(initialLocalProjectPath)
-        const { id } = await window.backendApi.importProjectFromPath(
+        const { path } = await window.backendApi.importProjectFromPath(
           initialLocalProjectPath,
           localBackend.rootPath(),
           projectName,
         )
         await openProjectLocally(
           {
-            id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
+            id: localBackendModule.newProjectId(path),
             title: projectName,
             parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
           },
@@ -115,10 +114,7 @@ function DashboardInner() {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
       categoriesAPI.setCategory('local')
 
-      const projectId = localBackendModule.newProjectId(
-        projectManager.UUID(project.id),
-        projectManager.Path(project.parentDirectory),
-      )
+      const projectId = localBackendModule.newProjectId(project.path)
 
       void openProjectLocally(
         {

@@ -67,15 +67,11 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
   const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
-  const newProject = useEventCallback(
-    async (templateId: string | null | undefined, templateName: string | null | undefined) => {
-      return await newProjectRaw({ templateName, templateId }, directoryId ?? currentDirectoryId)
-    },
-  )
+  const newProject = useEventCallback(() => newProjectRaw({}, directoryId ?? currentDirectoryId))
   const uploadFilesRaw = useUploadFiles(backend, category)
-  const uploadFiles = useEventCallback(async (files: readonly File[]) => {
-    await uploadFilesRaw(files, directoryId ?? currentDirectoryId)
-  })
+  const uploadFiles = useEventCallback((files: readonly File[]) =>
+    uploadFilesRaw(files, directoryId ?? currentDirectoryId),
+  )
 
   const entries = (
     <>
@@ -92,7 +88,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
         action="newProject"
         doAction={() => {
           unsetModal()
-          void newProject(null, null)
+          void newProject()
         }}
       />
       <ContextMenuEntry

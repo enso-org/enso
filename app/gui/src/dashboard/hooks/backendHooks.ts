@@ -460,11 +460,9 @@ export function useNewProject(backend: Backend, category: Category) {
     async (
       {
         templateName,
-        templateId,
         ensoPath,
       }: {
-        templateName: string | null | undefined
-        templateId?: string | null | undefined
+        templateName?: string | null | undefined
         ensoPath?: string | null | undefined
       },
       parentId: DirectoryId,
@@ -487,7 +485,6 @@ export function useNewProject(backend: Backend, category: Category) {
         {
           parentDirectoryId: placeholderItem.parentId,
           projectName: placeholderItem.title,
-          ...(templateId == null ? {} : { projectTemplateName: templateId }),
           ...(ensoPath == null ? {} : { ensoPath }),
         },
       ])

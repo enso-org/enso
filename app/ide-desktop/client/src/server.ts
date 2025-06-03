@@ -21,6 +21,7 @@ import * as paths from '@/paths'
 import { app } from 'electron'
 import {
   AnyAsset,
+  AssetConflict,
   AssetId,
   AssetType,
   DirectoryAsset,
@@ -28,6 +29,7 @@ import {
   ExportedArchive,
   extractTypeFromId,
   FileId,
+  ImportArchiveResponse,
   ParentsPath,
   Path,
   ProjectId,
@@ -85,6 +87,46 @@ async function fileExists(path: string) {
     return true
   } catch {
     return false
+  }
+}
+
+// ========================
+// === extractTypeAndId ===
+// ========================
+
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+interface AssetTypeAndIdRaw<Type extends AssetType> {
+  readonly type: Type
+  readonly path: Path
+}
+
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+type AssetTypeAndId<Id extends AssetId = AssetId> =
+  | (DirectoryId extends Id ? AssetTypeAndIdRaw<AssetType.directory> : never)
+  | (FileId extends Id ? AssetTypeAndIdRaw<AssetType.file> : never)
+  | (ProjectId extends Id ? AssetTypeAndIdRaw<AssetType.project> : never)
+
+export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId<Id>
+/**
+ * Extracts the asset type and its corresponding internal ID from a {@link AssetId}.
+ * @throws {Error} if the id has an unknown type.
+ */
+export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
+  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
+
+  switch (typeRaw) {
+    case AssetType.directory:
+    case AssetType.project:
+    case AssetType.file: {
+      return {
+        type: typeRaw,
+        path: Path(idRaw),
+      }
+    }
+    case undefined:
+    default: {
+      throw new Error(`Invalid type '${typeRaw}'`)
+    }
   }
 }
 
@@ -278,11 +320,11 @@ export class Server {
       const params = route.searchParams
       switch (route.pathname) {
         case '/cloud/download-project': {
-          await this.apiDownloadProject(request, response, params)
+          await this.httpDownloadProject(request, response, params)
           break
         }
         case '/cloud/get-project-archive': {
-          await this.apiGetProjectArchive(request, response, params)
+          await this.httpGetProjectArchive(request, response, params)
           break
         }
         default: {
@@ -295,26 +337,26 @@ export class Server {
       const params = route.searchParams
       switch (route.pathname) {
         case `/${EXPORT_ARCHIVE_PATH}`: {
-          await this.apiDownloadArchive(request, response, params)
+          await this.httpDownloadArchive(request, response, params)
           break
         }
         case `/${IMPORT_ARCHIVE_PATH}`: {
-          await this.apiUploadArchive(request, response, params)
+          await this.httpUploadArchive(request, response, params)
           break
         }
         case '/upload-file': {
-          await this.apiUploadFile(request, response, params)
+          await this.httpUploadFile(request, response, params)
           break
         }
         case '/upload-project': {
           // This endpoint should only be used when accessing the app from the browser.
           // When accessing the app from Electron, the file input event will have the
           // full system path.
-          await this.apiUploadProject(request, response, params)
+          await this.httpUploadProject(request, response, params)
           break
         }
         case '/run-project-manager-command': {
-          await this.apiRunProjectManagerCommand(request, response, params)
+          await this.httpRunProjectManagerCommand(request, response, params)
           break
         }
         default: {
@@ -396,7 +438,7 @@ export class Server {
   }
 
   /** Response handler for "download project" endpoint. */
-  async apiDownloadProject(
+  async httpDownloadProject(
     _request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
@@ -444,7 +486,7 @@ export class Server {
   }
 
   /** Response handler for "get project archive" endpoint. */
-  async apiGetProjectArchive(
+  async httpGetProjectArchive(
     _request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
@@ -473,7 +515,7 @@ export class Server {
   }
 
   /** Response handler for "download archive" endpoint. */
-  async apiDownloadArchive(
+  async httpDownloadArchive(
     _request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
@@ -580,8 +622,70 @@ export class Server {
       .end(content)
   }
 
+  /** List a directory. */
+  async apiGetAssetDetails(params: { readonly assetId: AssetId }) {
+    const { assetId } = params
+    const { type, path } = extractTypeAndPath(assetId)
+    switch (type) {
+      case AssetType.project: {
+        break
+      }
+      case AssetType.file: {
+        break
+      }
+      case AssetType.directory: {
+        break
+      }
+    }
+  }
+
+  /** List a directory. */
+  async apiListDirectory(params: { readonly directory?: DirectoryId }) {
+    const { directory: directoryRaw } = params
+    const directory = directoryRaw?.replace(/^directory-/, '') ?? this.projectsRootDirectory
+    const assets: AnyAsset[] = []
+    for (const entryName of await readdir(directory)) {
+      const entryPath = path.join(directory, entryName)
+      const entryStat = await stat(entryPath)
+      const shared = {
+        title: getFileName(entryPath),
+        modifiedAt: toRfc3339(new Date()),
+        parentId: DirectoryId(`directory-${getFolderPath(entryPath)}` as const),
+        extension: null,
+        permissions: [],
+        projectState: null,
+        parentsPath: ParentsPath(''),
+        virtualParentsPath: VirtualParentsPath(''),
+      } satisfies Partial<DirectoryAsset>
+      if (entryStat.isDirectory()) {
+        const metadata = projectManagement.getMetadata(entryPath)
+        if (metadata) {
+          assets.push({
+            ...shared,
+            type: AssetType.project,
+            id: ProjectId(`project-${metadata.id}-${shared.parentId.replace('directory-', '')}`),
+            projectState: { type: ProjectState.closed },
+          })
+        } else {
+          assets.push({
+            ...shared,
+            type: AssetType.directory,
+            id: DirectoryId(`directory-${entryPath}` as const),
+          })
+        }
+      } else {
+        assets.push({
+          ...shared,
+          type: AssetType.file,
+          id: FileId(`file-${entryPath}`),
+          extension: basenameAndExtension(entryPath).extension,
+        })
+      }
+    }
+  }
+
   /** Response handler for "upload archive" endpoint. */
-  async apiUploadArchive(
+  async httpUploadArchive(
     request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
@@ -598,13 +702,14 @@ export class Server {
       await finished(writeStream)
     }
     const assets: AnyAsset[] = []
+    const conflicts: AssetConflict[] = []
     const archive = new Unzip({
       onEntry(event) {
-        const childPath = path.join(directory, event.entryName)
+        const entryPath = path.join(directory, event.entryName)
         const shared = {
-          title: getFileName(childPath),
+          title: getFileName(entryPath),
           modifiedAt: toRfc3339(new Date()),
-          parentId: DirectoryId(`directory-${getFolderPath(childPath)}` as const),
+          parentId: DirectoryId(`directory-${getFolderPath(entryPath)}` as const),
           extension: null,
           permissions: [],
           projectState: null,
@@ -615,14 +720,14 @@ export class Server {
           assets.push({
             ...shared,
             type: AssetType.directory,
-            id: DirectoryId(`directory-${childPath}` as const),
+            id: DirectoryId(`directory-${entryPath}` as const),
           })
         } else {
           assets.push({
             ...shared,
             type: AssetType.file,
-            id: FileId(`file-${childPath}`),
-            extension: basenameAndExtension(childPath).extension,
+            id: FileId(`file-${entryPath}`),
+            extension: basenameAndExtension(entryPath).extension,
           })
         }
       },
@@ -649,7 +754,8 @@ export class Server {
         projectState: { type: ProjectState.closed },
       }
     }
-    const content = JSON.stringify(assets)
+    const responseBody: ImportArchiveResponse = { assets }
+    const content = JSON.stringify(responseBody)
     response
       .writeHead(HTTP_STATUS_OK, [
         ['Content-Length', String(content.length)],
@@ -660,7 +766,7 @@ export class Server {
   }
 
   /** Response handler for "upload file" endpoint. */
-  async apiUploadFile(
+  async httpUploadFile(
     request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
@@ -692,7 +798,7 @@ export class Server {
   }
 
   /** Response handler for "upload project" endpoint. */
-  async apiUploadProject(
+  async httpUploadProject(
     request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
@@ -718,7 +824,7 @@ export class Server {
   }
 
   /** Response handler for "run project manager command" endpoint. */
-  async apiRunProjectManagerCommand(
+  async httpRunProjectManagerCommand(
     request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,

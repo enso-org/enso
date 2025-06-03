@@ -145,6 +145,10 @@ export type UserPermissionIdentifier = UserGroupId | UserId
 export type Path = newtype.Newtype<string, 'Path'>
 export const Path = newtype.newtypeConstructor<Path>()
 
+/** A project UUID. Only present on the local backend. */
+export type UUID = newtype.Newtype<string, 'UUID'>
+export const UUID = newtype.newtypeConstructor<UUID>()
+
 /** The path of ids to this asset. */
 export type ParentsPath = newtype.Newtype<string, 'ParentsPath'>
 export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
@@ -1463,7 +1467,6 @@ export interface DeleteAssetRequestBody {
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
   readonly projectName: string
-  readonly projectTemplateName?: string
   readonly parentDirectoryId?: DirectoryId
   readonly ensoPath?: string
 }
@@ -1481,8 +1484,6 @@ export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
   /** MUST be present on Remote backend; NOT REQUIRED on Local backend. */
   readonly cognitoCredentials: CognitoCredentials | null
-  /** Only used by the Local backend. */
-  readonly parentId: DirectoryId
   /** Required when running in hybrid mode. */
   readonly cloudProjectDirectoryPath: string | null
 }
@@ -1671,8 +1672,13 @@ interface ImportArchiveResponseWithAssets {
   readonly assets: readonly AnyAsset[]
 }
 
+export interface AssetConflict {
+  readonly sourcePath: Path
+  readonly existingAsset: AnyAsset
+}
+
 interface ImportArchiveResponseWithConflicts {
-  readonly conflicts: readonly AnyAsset[]
+  readonly conflicts: readonly AssetConflict[]
 }
 
 export type ImportArchiveResponse =
@@ -2027,7 +2033,7 @@ export default abstract class Backend {
     Id extends RealAssetId,
     ReturnType extends Id extends DirectoryId ? Asset<AssetType.directory> | null
     : Asset<RealAssetTypeId<Id>>,
-  >(assetId: Id): Promise<ReturnType>
+  >(assetId: Id, rootPath: Path | undefined): Promise<ReturnType>
 
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(

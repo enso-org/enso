@@ -112,10 +112,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 
   const newProjectMutation = useMutationCallback({
     mutationKey: ['newProject'],
-    mutationFn: async ([templateId, templateName]: [
-      templateId: string | null | undefined,
-      templateName: string | null | undefined,
-    ]) => await newProjectRaw({ templateName, templateId }, currentDirectoryId),
+    mutationFn: async () => await newProjectRaw({}, currentDirectoryId),
   })
 
   const attachEventListeners = useEventCallback(() =>
@@ -128,7 +125,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
         }
       : {}),
       newProject: () => {
-        void newProjectMutation([null, null])
+        void newProjectMutation()
       },
       uploadFiles: () => {
         void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
@@ -139,7 +136,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   React.useEffect(() => attachEventListeners(), [attachEventListeners])
 
   const newProject = useEventCallback(async () => {
-    await newProjectMutation([null, null])
+    await newProjectMutation()
   })
 
   const newFolderCallback = useEventCallback(async () => {

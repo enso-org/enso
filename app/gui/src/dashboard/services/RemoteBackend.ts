@@ -24,7 +24,7 @@ import type { GetText } from '$/providers/text'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
-import { extractTypeAndId } from './LocalBackend'
+import { extractTypeAndPath } from './LocalBackend'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -1049,10 +1049,9 @@ export default class RemoteBackend extends Backend {
    */
   override async openProject(
     projectId: backend.ProjectId,
-    bodyRaw: backend.OpenProjectRequestBody,
+    body: backend.OpenProjectRequestBody,
     title: string,
   ): Promise<void> {
-    const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.openProjectPath(projectId)
     if (body.cognitoCredentials == null) {
       return this.throw(null, 'openProjectMissingCredentialsBackendError', title)
@@ -1503,7 +1502,7 @@ export default class RemoteBackend extends Backend {
     shouldUnpackProject = true,
   ) {
     const asset = backend.extractTypeFromId(id)
-    const targetPath = targetDirectoryId ? extractTypeAndId(targetDirectoryId).id : null
+    const targetPath = targetDirectoryId ? extractTypeAndPath(targetDirectoryId).path : null
 
     switch (asset.type) {
       case backend.AssetType.project: {
