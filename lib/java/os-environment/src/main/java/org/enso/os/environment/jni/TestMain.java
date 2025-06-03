@@ -8,7 +8,6 @@ import java.lang.invoke.MethodHandle;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
-import org.enso.os.environment.jni.JVM.Channel;
 import org.enso.persist.Persistable;
 
 final class TestMain {
@@ -59,7 +58,7 @@ final class TestMain {
   }
 
   @Persistable(id = 430607)
-  static final class RequestFactorial extends JVM.Message<Void> {
+  static final class RequestFactorial extends Channel.Message<Void> {
     private long n;
 
     RequestFactorial(long n) {
@@ -80,7 +79,7 @@ final class TestMain {
   }
 
   @Persistable(id = 430608)
-  static final class ComputeFactorial extends JVM.Message<BigInteger> {
+  static final class ComputeFactorial extends Channel.Message<BigInteger> {
     private long n;
 
     ComputeFactorial(long n) {
@@ -100,7 +99,7 @@ final class TestMain {
   }
 
   @Persistable(id = 430606)
-  static final class ReportResult extends JVM.Message<Void> {
+  static final class ReportResult extends Channel.Message<Void> {
     private final long key;
     private final String value;
 
@@ -128,7 +127,7 @@ final class TestMain {
   }
 
   @Persistable(id = 430609)
-  static final class CountDownAndReturn extends JVM.Message<Long> {
+  static final class CountDownAndReturn extends Channel.Message<Long> {
     private final long value;
     private final long acc;
 
