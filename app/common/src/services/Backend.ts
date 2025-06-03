@@ -1667,6 +1667,18 @@ interface ImportArchiveParamsWithFile extends ImportArchiveParamsBase {
 
 export type ImportArchiveParams = ImportArchiveParamsWithPath | ImportArchiveParamsWithFile
 
+interface ImportArchiveResponseWithAssets {
+  readonly assets: readonly AnyAsset[]
+}
+
+interface ImportArchiveResponseWithConflicts {
+  readonly conflicts: readonly AnyAsset[]
+}
+
+export type ImportArchiveResponse =
+  | ImportArchiveResponseWithAssets
+  | ImportArchiveResponseWithConflicts
+
 export interface ExportArchiveParams {
   readonly assetIds: readonly AssetId[]
   /** The path of the archive to export to. */

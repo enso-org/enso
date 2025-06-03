@@ -20,7 +20,7 @@ export interface ResponseWithTypedJson<U> extends Response {
   readonly json: () => Promise<U>
 }
 
-/** Options for {@link HttpClient.post} method. */
+/** Options for {@link HttpClient['post']} method. */
 export interface HttpClientPostOptions {
   readonly keepalive?: boolean
 }
