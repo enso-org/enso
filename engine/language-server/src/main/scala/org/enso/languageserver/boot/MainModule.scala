@@ -319,6 +319,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     RuntimeOptions.JOB_PARALLELISM,
     Runtime.getRuntime.availableProcessors().toString
   )
+  extraOptions.put(
+    RuntimeOptions.GUEST_PARALLELISM,
+    3.toString
+  )
 
   if (HostEnsoUtils.isAot()) {
     log.info("Running Language Server in AOT mode")
