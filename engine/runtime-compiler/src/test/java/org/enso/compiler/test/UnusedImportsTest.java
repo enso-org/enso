@@ -158,6 +158,28 @@ public class UnusedImportsTest {
   }
 
   @Test
+  public void unusedSymbols_InlineSignature_TypeCast() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type My_Type_1
+            type My_Type_2
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import My_Type_1, My_Type_2
+            foo x =
+                casted = x : My_Type_1
+                casted
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().apply(0);
+    expectWarning(imp, List.of("local.Proj.Module.My_Type_2"));
+  }
+
+  @Test
   public void unusedSymbols_InTypeAscription_ReturnType() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
