@@ -4,9 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Random;
 import org.enso.os.environment.jni.JNI.JValue;
-import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.junit.Ignore;
@@ -115,22 +115,14 @@ public class LoadClassTest {
 
   @Test
   public void executeMainClass() throws Exception {
-    var jvmIsolate = CurrentIsolate.getCurrentThread().rawValue();
-    var callbackFn = JVM.CALLBACK_FN.getFunctionPointer().rawValue();
-    TestMain.CORRECT_RESULTS.clear();
-    assertEquals("Results are empty", 0, TestMain.CORRECT_RESULTS.size());
+    var out = File.createTempFile("check-main", ".log");
     var gen = new Random();
-    var n = 0L;
     for (var i = 0; i < 5; i++) {
-      n += gen.nextLong(MIN, MAX);
-      var mainClass = "org/enso/os/environment/jni/TestMain";
-      jvm().executeMain(mainClass, "" + jvmIsolate, "" + callbackFn, "" + n);
-    }
-    assertEquals(
-        "Five results found: " + TestMain.CORRECT_RESULTS, 5, TestMain.CORRECT_RESULTS.size());
-    for (var e : TestMain.CORRECT_RESULTS.entrySet()) {
-      var expecting = TestMain.factorial(e.getKey());
-      assertEquals("fac(" + e.getKey() + ") should be", expecting.toString(), e.getValue());
+      var n = gen.nextInt(MIN, MAX);
+      jvm().executeMain("org/enso/os/environment/jni/TestMain", out.getPath(), "" + n);
+      var content = Files.readString(out.toPath());
+      assertEquals("Factorial of " + n + " is the same", TestMain.factorial(n).toString(), content);
+      out.delete();
     }
   }
 

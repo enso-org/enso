@@ -1,7 +1,6 @@
 package org.enso.os.environment.jni;
 
 import java.io.IOException;
-import java.lang.foreign.MemorySegment;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,17 +11,6 @@ final class JVMPeer {
   static final Persistance.Pool POOL = Persistables.POOL;
 
   private JVMPeer() {}
-
-  static long handleWithChannel(Channel channel, long address, long size) throws Throwable {
-    var seg = MemorySegment.ofAddress(address).reinterpret(size);
-    var buf = seg.asByteBuffer();
-    var ref = POOL.read(buf, null);
-    var msg = ref.get(Channel.Message.class);
-    var res = msg.evaluate(channel);
-    var bytes = Persistables.POOL.write(res, null);
-    seg.copyFrom(MemorySegment.ofArray(bytes));
-    return bytes.length;
-  }
 
   @Persistable(id = 432002)
   public static final class PersistList extends Persistance<List> {

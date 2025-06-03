@@ -1,15 +1,23 @@
 package org.enso.os.environment.jni;
 
+import java.io.IOException;
+import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import org.enso.persist.Persistance;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.ImageInfo;
+import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.StackValue;
+import org.graalvm.nativeimage.c.function.CEntryPoint;
+import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
+import org.graalvm.nativeimage.c.function.CFunctionPointer;
+import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 
 /** Channel connects two {@link JVM} instances. */
@@ -75,7 +83,7 @@ public final class Channel implements AutoCloseable {
       var arg = StackValue.get(2, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
       arg.addressOf(1).setLong(CurrentIsolate.getCurrentThread().rawValue());
-      arg.addressOf(2).setLong(JVM.CALLBACK_FN.getFunctionPointer().rawValue());
+      arg.addressOf(2).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
       var replyOk = fn.getCallStaticBooleanMethodA().call(e, clazz, method, arg);
       assert replyOk : "Failed to create peer in HotSpot JVM";
 
@@ -107,31 +115,60 @@ public final class Channel implements AutoCloseable {
    */
   public final <R> R execute(Message<R> msg) {
     if (this.isolate == -1) {
-      return JVM.executeImpl(pool, msg, memory -> toHotSpotMessage(env, id, memory));
+      return executeImpl(pool, msg, memory -> toHotSpotMessage(env, id, memory));
     } else {
-      java.lang.foreign.MemorySegment fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
-      java.lang.foreign.FunctionDescriptor fnDescriptor =
+      var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
+      var fnDescriptor =
           FunctionDescriptor.of(
               ValueLayout.JAVA_LONG,
               ValueLayout.ADDRESS,
+              ValueLayout.JAVA_LONG,
               ValueLayout.ADDRESS,
               ValueLayout.JAVA_LONG);
-      java.lang.invoke.MethodHandle fnHandle =
-          Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
-      return JVM.executeImpl(
+      var fnHandle = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+      return executeImpl(
           pool,
           msg,
           seg -> {
             Object res = -1L;
             try {
-              java.lang.foreign.MemorySegment isoRef = MemorySegment.ofAddress(isolate);
-              res = fnHandle.invoke(isoRef, seg, seg.byteSize());
+              var isoRef = MemorySegment.ofAddress(isolate);
+              res = fnHandle.invoke(isoRef, id, seg, seg.byteSize());
             } catch (Throwable ex) {
               ex.printStackTrace();
             }
             return (long) res;
           });
     }
+  }
+
+  private static final CEntryPointLiteral<CFunctionPointer> CALLBACK_FN =
+      CEntryPointLiteral.create(
+          Channel.class,
+          "acceptRequestFromHotSpotJvm",
+          IsolateThread.class,
+          long.class,
+          CCharPointer.class,
+          long.class);
+
+  @CEntryPoint
+  private static long acceptRequestFromHotSpotJvm(
+      IsolateThread threadId, long id, CCharPointer data, long size) throws Throwable {
+    var channel = ID_TO_CHANNEL.get(id);
+    assert channel != null : "There must be a channel " + id + " but " + ID_TO_CHANNEL;
+    var len = handleWithChannel(channel, data.rawValue(), size);
+    return len;
+  }
+
+  private static long handleWithChannel(Channel channel, long address, long size) throws Throwable {
+    var seg = MemorySegment.ofAddress(address).reinterpret(size);
+    var buf = seg.asByteBuffer();
+    var ref = JVMPeer.POOL.read(buf, null);
+    var msg = ref.get(Channel.Message.class);
+    var res = msg.evaluate(channel);
+    var bytes = Persistables.POOL.write(res, null);
+    seg.copyFrom(MemorySegment.ofArray(bytes));
+    return bytes.length;
   }
 
   private static long toHotSpotMessage(JNI.JNIEnv e, long id, MemorySegment segment) {
@@ -156,9 +193,27 @@ public final class Channel implements AutoCloseable {
     }
   }
 
+  static <R> R executeImpl(
+      Persistance.Pool pool, Channel.Message<R> msg, Function<MemorySegment, Long> send) {
+    try (var arena = Arena.ofConfined()) {
+      var bytes = pool.write(msg, null);
+      var memory = arena.allocate(Math.max(bytes.length, 4096));
+      memory.copyFrom(MemorySegment.ofArray(bytes));
+      long len = send.apply(memory);
+      assert len >= 0;
+      var reply = memory.asByteBuffer();
+      reply.position(0);
+      reply.limit((int) len);
+      var result = pool.read(reply, null);
+      return result.get(msg.replyType);
+    } catch (IOException ex) {
+      throw new IllegalStateException(ex);
+    }
+  }
+
   private static long handleJvmMessage(long id, long address, long size) throws Throwable {
     var channel = ID_TO_CHANNEL.get(id);
-    return JVMPeer.handleWithChannel(channel, address, size);
+    return handleWithChannel(channel, address, size);
   }
 
   @Override

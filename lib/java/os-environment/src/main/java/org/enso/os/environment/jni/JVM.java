@@ -1,22 +1,12 @@
 package org.enso.os.environment.jni;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.function.Function;
 import org.enso.common.Platform;
-import org.enso.persist.Persistance;
-import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.UnmanagedMemory;
-import org.graalvm.nativeimage.c.function.CEntryPoint;
-import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
-import org.graalvm.nativeimage.c.function.CFunctionPointer;
 import org.graalvm.nativeimage.c.struct.SizeOf;
-import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.WordFactory;
 
@@ -63,40 +53,6 @@ public final class JVM {
     jvmArgs.addAll(Arrays.asList(options));
     return new JVM(createJvmFn, jvmArgs.toArray(new String[0]));
   }
-
-  static <R> R executeImpl(
-      Persistance.Pool pool, Channel.Message<R> msg, Function<MemorySegment, Long> send) {
-    try (var arena = Arena.ofConfined()) {
-      var bytes = pool.write(msg, null);
-      var memory = arena.allocate(Math.max(bytes.length, 4096));
-      memory.copyFrom(MemorySegment.ofArray(bytes));
-      long len = send.apply(memory);
-      assert len >= 0;
-      var reply = memory.asByteBuffer();
-      reply.position(0);
-      reply.limit((int) len);
-      var result = pool.read(reply, null);
-      return result.get(msg.replyType);
-    } catch (IOException ex) {
-      throw new IllegalStateException(ex);
-    }
-  }
-
-  @CEntryPoint
-  private static long acceptRequestFromHotSpotJvm(
-      IsolateThread threadId, CCharPointer data, long size) throws Throwable {
-    // TBD: recursive calls will need to find a proper channel
-    var len = JVMPeer.handleWithChannel(null, data.rawValue(), size);
-    return len;
-  }
-
-  static final CEntryPointLiteral<CFunctionPointer> CALLBACK_FN =
-      CEntryPointLiteral.create(
-          JVM.class,
-          "acceptRequestFromHotSpotJvm",
-          IsolateThread.class,
-          CCharPointer.class,
-          long.class);
 
   /**
    * Executes main method of provided class
