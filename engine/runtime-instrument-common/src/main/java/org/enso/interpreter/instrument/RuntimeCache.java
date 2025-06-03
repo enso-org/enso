@@ -1,6 +1,10 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.observers.DisposableObserver;
+import io.reactivex.rxjava3.subjects.ReplaySubject;
+import io.reactivex.rxjava3.subjects.Subject;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
@@ -16,6 +20,8 @@ import org.enso.interpreter.service.ExecutionService;
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
   private final Map<UUID, Reference<Object>> cache = new HashMap<>();
+  private final Map<UUID, Subject<Object>> observables = new HashMap<>();
+  private final Map<UUID, DisposableObserver> observers = new HashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, TypeInfo> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
@@ -35,9 +41,63 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     if (preferences.contains(key)) {
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
+      Subject<Object> observable;
+      synchronized (observables) {
+        observable =
+            observables.computeIfAbsent(key, (UUID uuid) -> ReplaySubject.createWithSize(1));
+      }
+      observable.onNext(value);
       return true;
     }
     return false;
+  }
+
+  public void registerObserver(
+      UUID visualizationId,
+      UUID expressionId,
+      Consumer<Object> onNext,
+      Consumer<Throwable> onFailure) {
+    Subject<Object> observable;
+    synchronized (observables) {
+      observable =
+          observables.computeIfAbsent(expressionId, (UUID uuid) -> ReplaySubject.createWithSize(1));
+    }
+    var observer =
+        observable.subscribeWith(
+            new DisposableObserver<Object>() {
+              @Override
+              public void onNext(Object t) {
+                onNext.accept(t);
+              }
+
+              @Override
+              public void onError(Throwable t) {
+                onFailure.accept(t);
+              }
+
+              @Override
+              public void onComplete() {
+                unregisterObserver(visualizationId);
+              }
+            });
+    synchronized (observers) {
+      var current = observers.get(visualizationId);
+      if (current != null) {
+        // TODO: wrong, shouldn't have any?
+      } else {
+        observers.put(visualizationId, observer);
+      }
+    }
+  }
+
+  public void unregisterObserver(UUID visualizationId) {
+    Disposable observer;
+    synchronized (observers) {
+      observer = observers.remove(visualizationId);
+    }
+    if (observer != null) {
+      observer.dispose();
+    }
   }
 
   /** Get the value from the cache. */

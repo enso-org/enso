@@ -30,16 +30,15 @@ class DetachVisualizationJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Unit = {
-    ctx.locking.withContextLock(
-      ctx.locking.getOrCreateContextLock(contextId),
-      this.getClass,
-      () => {
-        ctx.contextManager.removeVisualization(
-          contextId,
-          expressionId,
-          visualizationId
-        )
-      }
-    )
+
+    // TODO needs context lock?
+    val stack =
+      ctx.contextManager.getStack(contextId)
+    val runtimeCache = stack.headOption
+      .flatMap(frame => Option(frame.cache))
+
+    runtimeCache.foreach { cache =>
+      cache.unregisterObserver(visualizationId)
+    }
   }
 }

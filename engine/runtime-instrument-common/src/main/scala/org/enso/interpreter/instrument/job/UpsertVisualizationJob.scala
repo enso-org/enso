@@ -63,70 +63,91 @@ class UpsertVisualizationJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
-    ctx.locking.withContextLock(
-      ctx.locking.getOrCreateContextLock(config.executionContextId),
-      this.getClass,
-      () => {
-        val maybeCallable =
-          UpsertVisualizationJob.evaluateVisualizationExpression(
-            config.visualizationModule,
-            config.expression
-          )
+    // TODO: context lock?
+    val stack =
+      ctx.contextManager.getStack(config.executionContextId)
+    val runtimeCache = stack.headOption
+      .flatMap(frame => Option(frame.cache))
 
-        maybeCallable match {
-          case Left(ModuleNotFound(moduleName)) =>
-            ctx.endpoint.sendToClient(
-              Api.Response(Api.ModuleNotFound(moduleName))
+    runtimeCache match {
+      case Some(runtimeCache) =>
+        runtimeCache.registerObserver(
+          visualizationId,
+          expressionId,
+          (t: scala.AnyRef) => {
+            val maybeCallable = ctx.locking.withWriteCompilationLock(
+              classOf[UpsertVisualizationJob],
+              () => {
+                UpsertVisualizationJob.logger.trace(
+                  "Evaluating expression {} in observer for value {}",
+                  expressionId,
+                  t
+                )
+
+                UpsertVisualizationJob.evaluateVisualizationExpression(
+                  config.visualizationModule,
+                  config.expression
+                )
+              }
             )
-            None
 
-          case Left(EvaluationFailed(message, result)) =>
+            maybeCallable match {
+              case Left(ModuleNotFound(moduleName)) =>
+                ctx.endpoint.sendToClient(
+                  Api.Response(Api.ModuleNotFound(moduleName))
+                )
+              case Left(EvaluationFailed(message, result)) =>
+                replyWithExpressionFailedError(
+                  config.executionContextId,
+                  visualizationId,
+                  expressionId,
+                  message,
+                  result
+                )
+              case Right(EvaluationResult(module, callable, arguments)) =>
+                UpsertVisualizationJob.logger.trace(
+                  "Evaluated visualization in observer for expression {}. Executing with value {} ",
+                  expressionId,
+                  t
+                )
+                val visualization =
+                  UpsertVisualizationJob.updateAttachedVisualization(
+                    visualizationId,
+                    expressionId,
+                    module,
+                    config,
+                    callable,
+                    arguments
+                  )
+
+                ProgramExecutionSupport.executeAndSendVisualizationUpdate(
+                  config.executionContextId,
+                  runtimeCache,
+                  stack.headOption.get.syncState,
+                  visualization,
+                  expressionId,
+                  t
+                )
+            }
+          },
+          (t: Throwable) => {
             replyWithExpressionFailedError(
               config.executionContextId,
               visualizationId,
               expressionId,
-              message,
-              result
+              t.getMessage,
+              None
             )
-            None
-
-          case Right(EvaluationResult(module, callable, arguments)) =>
-            val visualization =
-              UpsertVisualizationJob.updateAttachedVisualization(
-                visualizationId,
-                expressionId,
-                module,
-                config,
-                callable,
-                arguments
-              )
-            val stack =
-              ctx.contextManager.getStack(config.executionContextId)
-            val runtimeCache = stack.headOption
-              .flatMap(frame => Option(frame.cache))
-            val cachedValue = runtimeCache
-              .flatMap(c => Option(c.get(expressionId)))
-            UpsertVisualizationJob.requireVisualizationSynchronization(
-              stack,
-              expressionId
-            )
-            cachedValue match {
-              case Some(value) =>
-                ProgramExecutionSupport.executeAndSendVisualizationUpdate(
-                  config.executionContextId,
-                  runtimeCache.getOrElse(new RuntimeCache),
-                  stack.headOption.get.syncState,
-                  visualization,
-                  expressionId,
-                  value
-                )
-                None
-              case None =>
-                Some(Executable(config.executionContextId, stack))
-            }
-        }
-      }
-    )
+          }
+        )
+        Some(Executable(config.executionContextId, stack))
+      case None =>
+        UpsertVisualizationJob.logger.trace(
+          "no cache availablle for {}, aborting",
+          expressionId
+        )
+        None
+    }
   }
 
   private def replyWithExpressionFailedError(
@@ -178,7 +199,7 @@ object UpsertVisualizationJob {
   }
 
   /** The number of times to retry the expression evaluation. */
-  private val MaxEvaluationRetryCount: Int = 5
+  @unused private val MaxEvaluationRetryCount: Int = 5
 
   /** Base trait for evaluation failures.
     */
@@ -356,7 +377,7 @@ object UpsertVisualizationJob {
   private def evaluateVisualizationFunction(
     expression: Api.VisualizationExpression,
     expressionModule: Module,
-    @unused retryCount: Int
+    retryCount: Int
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, AnyRef] =
@@ -437,7 +458,9 @@ object UpsertVisualizationJob {
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, EvaluationResult] = {
-    for {
+    val start = java.lang.System.currentTimeMillis()
+
+    val res = for {
       callback <- evaluateVisualizationFunction(
         expression,
         expressionModule,
@@ -448,6 +471,12 @@ object UpsertVisualizationJob {
         expression.positionalArgumentsExpressions
       )
     } yield EvaluationResult(module, callback, arguments)
+
+    UpsertVisualizationJob.logger.trace(
+      "Evaluation of a visualization expression took miliseconds: {}",
+      java.lang.System.currentTimeMillis() - start
+    )
+    res
   }
 
   /** Evaluate the visualization expression.

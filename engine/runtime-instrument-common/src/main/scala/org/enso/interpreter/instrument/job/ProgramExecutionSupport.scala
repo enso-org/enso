@@ -12,7 +12,6 @@ import org.enso.interpreter.instrument.{
   WarningPreview
 }
 import org.enso.interpreter.instrument.execution.{
-  Completion,
   ErrorResolver,
   LocationResolver,
   RuntimeContext
@@ -54,6 +53,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.function.{Consumer, Supplier}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
+import scala.annotation.unused
 
 /** Provides support for executing Enso code. Adds convenient methods to
   * run Enso programs in a Truffle context.
@@ -86,12 +86,12 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.trace("ON_CACHED_VALUE {}", value.getExpressionId)
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        sendVisualizationUpdates(
+        /*sendVisualizationUpdates(
           contextId,
           executionFrame.cache,
           executionFrame.syncState,
           value
-        )
+        )*/
       }
     }
 
@@ -114,12 +114,12 @@ object ProgramExecutionSupport {
           case _ =>
         }
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        sendVisualizationUpdates(
+        /*sendVisualizationUpdates(
           contextId,
           executionFrame.cache,
           executionFrame.syncState,
           value
-        )
+        )*/
       }
     }
 
@@ -631,7 +631,7 @@ object ProgramExecutionSupport {
     * @param value the computed value
     * @param ctx the runtime context
     */
-  private def sendVisualizationUpdates(
+  @unused private def sendVisualizationUpdates(
     contextId: ContextId,
     runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
