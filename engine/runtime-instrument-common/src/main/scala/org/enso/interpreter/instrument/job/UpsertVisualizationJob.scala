@@ -241,7 +241,7 @@ object UpsertVisualizationJob {
       )
       val stack =
         ctx.contextManager.getStack(visualizationConfig.executionContextId)
-      requireVisualizationSynchronization(stack, expressionId)
+      requireVisualizationSynchronization(stack, visualizationId)
     }
   }
 
@@ -481,7 +481,7 @@ object UpsertVisualizationJob {
     * @param ctx the runtime context
     * @return the re-evaluated visualization
     */
-  private def updateAttachedVisualization(
+  def updateAttachedVisualization(
     visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
     module: Module,
@@ -656,12 +656,12 @@ object UpsertVisualizationJob {
   /** Require to send the visualization update.
     *
     * @param stack the execution stack
-    * @param expressionId the expression id to which the visualization is applied
+    * @param visualizationId the visualization id associated with the expression
     */
   private def requireVisualizationSynchronization(
     stack: Iterable[InstrumentFrame],
-    expressionId: Api.ExpressionId
+    visualizationId: Api.VisualizationId
   ): Unit =
-    stack.foreach(_.syncState.setVisualizationUnsync(expressionId))
+    stack.foreach(_.syncState.setVisualizationUnsync(visualizationId))
 
 }

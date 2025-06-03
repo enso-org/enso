@@ -634,13 +634,13 @@ object ProgramExecutionSupport {
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
-    if (!syncState.isVisualizationSync(value.getExpressionId)) {
-      val visualizations =
-        ctx.contextManager.findVisualizationForExpression(
-          contextId,
-          value.getExpressionId
-        )
-      visualizations.foreach { visualization =>
+    val visualizations =
+      ctx.contextManager.findVisualizationsForExpression(
+        contextId,
+        value.getExpressionId
+      )
+    visualizations.foreach { visualization =>
+      if (!syncState.isVisualizationSync(visualization.id)) {
         val v = if (visualization.expressionId == value.getExpressionId) {
           value.getValue
         } else {
@@ -711,7 +711,7 @@ object ProgramExecutionSupport {
     * @param expressionValue the value of expression to visualise
     * @param ctx the runtime context
     */
-  private def sendVisualizationUpdate(
+  def sendVisualizationUpdate(
     visualizationResult: Either[Throwable, AnyRef],
     contextId: ContextId,
     syncState: UpdatesSynchronizationState,
@@ -719,9 +719,8 @@ object ProgramExecutionSupport {
     expressionId: UUID,
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Unit = {
-    val result = visualizationResultToBytes(visualizationResult) match {
+    visualizationResultToBytes(visualizationResult) match {
       case Left(_: ThreadInterruptedException) =>
-        Completion.Interrupted
 
       case Left(error) =>
         val message =
@@ -739,39 +738,48 @@ object ProgramExecutionSupport {
             error
           )
         }
-        ctx.endpoint.sendToClient(
-          Api.Response(
-            Api.VisualizationEvaluationFailed(
-              Api
-                .VisualizationContext(visualizationId, contextId, expressionId),
-              message,
-              getDiagnosticOutcome.lift(error)
+        syncState.runAndSetVisualizationSync(
+          expressionId,
+          () => {
+            ctx.endpoint.sendToClient(
+              Api.Response(
+                Api.VisualizationEvaluationFailed(
+                  Api
+                    .VisualizationContext(
+                      visualizationId,
+                      contextId,
+                      expressionId
+                    ),
+                  message,
+                  getDiagnosticOutcome.lift(error)
+                )
+              )
             )
-          )
+          }
         )
-        Completion.Done
 
       case Right(data) =>
         logger.trace(
           "Visualization executed [{}].",
           expressionId
         )
-        ctx.endpoint.sendToClient(
-          Api.Response(
-            Api.VisualizationUpdate(
-              Api.VisualizationContext(
-                visualizationId,
-                contextId,
-                expressionId
-              ),
-              data
+        syncState.runAndSetVisualizationSync(
+          expressionId,
+          () => {
+            ctx.endpoint.sendToClient(
+              Api.Response(
+                Api.VisualizationUpdate(
+                  Api.VisualizationContext(
+                    visualizationId,
+                    contextId,
+                    expressionId
+                  ),
+                  data
+                )
+              )
             )
-          )
+          }
         )
-        Completion.Done
-    }
-    if (result != Completion.Interrupted) {
-      syncState.setVisualizationSync(expressionId)
     }
   }
 
