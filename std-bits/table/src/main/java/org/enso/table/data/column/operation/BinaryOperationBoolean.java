@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation;
 
 import org.enso.base.CompareException;
+import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -58,7 +59,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
 
     if (preserveNulls && rightValue == null) {
       // Return an all null column
-      return BoolStorage.makeEmpty(left.getSize());
+      return BoolBuilder.makeEmpty(left.getSize());
     }
 
     if (rightValue != null && !(rightValue instanceof Boolean)) {
@@ -191,7 +192,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
       boolean rightIsNothing,
       MapOperationProblemAggregator problemAggregator) {
     if (preserveNulls) {
-      return BoolStorage.makeEmpty(left.getSize());
+      return BoolBuilder.makeEmpty(left.getSize());
     } else {
       throw new IllegalStateException(
           "Cannot apply map operation over null storage with preserveNulls set to false.");
@@ -221,7 +222,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
     if (preserveNulls) {
-      return BoolStorage.makeEmpty(left.getSize());
+      return BoolBuilder.makeEmpty(left.getSize());
     } else {
       throw new IllegalStateException(
           "Cannot apply zip operation over null storage with preserveNulls set to false.");

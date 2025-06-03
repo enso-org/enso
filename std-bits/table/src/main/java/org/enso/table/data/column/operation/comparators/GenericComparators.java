@@ -2,11 +2,11 @@ package org.enso.table.data.column.operation.comparators;
 
 import java.util.function.BiPredicate;
 import org.enso.base.CompareException;
+import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -57,7 +57,7 @@ public class GenericComparators<T> implements BinaryOperation<Boolean> {
   public ColumnStorage<Boolean> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType || rightValue == null) {
-      return BoolStorage.makeEmpty(left.getSize());
+      return BoolBuilder.makeEmpty(left.getSize());
     }
 
     assert canApplyMap(left, rightValue);
@@ -95,7 +95,7 @@ public class GenericComparators<T> implements BinaryOperation<Boolean> {
       MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType || right.getType() instanceof NullType) {
       var size = Math.max(left.getSize(), right.getSize());
-      return BoolStorage.makeEmpty(size);
+      return BoolBuilder.makeEmpty(size);
     }
 
     assert canApplyZip(left, right);

@@ -2,12 +2,13 @@ package org.enso.table.data.column.operation.comparators;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+
+import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -228,7 +229,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
   @Override
   protected ColumnStorage<Boolean> applyNullMap(
       ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-    return BoolStorage.makeEmpty(left.getSize());
+    return BoolBuilder.makeEmpty(left.getSize());
   }
 
   private static class NumericComparatorsDouble extends NumericComparators<Double> {
