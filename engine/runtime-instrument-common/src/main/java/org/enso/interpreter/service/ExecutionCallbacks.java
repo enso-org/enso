@@ -162,7 +162,13 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             -1.0,
             null);
     syncState.setExpressionUnsync(nodeId);
-    syncState.setVisualizationUnsync(nodeId);
+    visualizationHolder
+        .find(nodeId)
+        .foreach(
+            visualization -> {
+              syncState.setVisualizationUnsync(visualization.id());
+              return null;
+            });
 
     boolean isPanic = info.isPanic();
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
