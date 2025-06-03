@@ -98,7 +98,8 @@ use_repo(crate, "crates")
 ###########
 ### JVM ###
 ###########
-bazel_dep(name = "rules_java", version = "7.6.5")
+
+bazel_dep(name = "rules_java", version = "8.11.0")
 bazel_dep(name = "rules_graalvm", version = "0.11.1")  ## upgrade to 0.11.2 once available in bazel central
 
 gvm = use_extension("@rules_graalvm//:extensions.bzl", "graalvm")
@@ -116,7 +117,7 @@ register_toolchains("@graalvm//:sdk")  ## Native-image
 
 register_toolchains("@graalvm//:toolchain")
 
-bazel_dep(name = "rules_jvm_external", version = "6.0")
+bazel_dep(name = "rules_jvm_external", version = "6.3")
 
 scala_logging_version = "3.9.4"
 
@@ -191,6 +192,29 @@ use_repo(
     "maven",
     "unpinned_maven",
 )
+
+#############
+### Scala ###
+#############
+
+### TODO: This setup is untested and probably does not work.
+
+bazel_dep(name = "platforms", version = "1.0.0")
+
+bazel_dep(name = "rules_scala", repo_name = "io_bazel_rules_scala", version = "7.0.0")
+
+scala_config = use_extension(
+    "@io_bazel_rules_scala//scala/extensions:config.bzl",
+    "scala_config",
+)
+scala_config.settings(scala_version = "2.13.16")
+
+scala_deps = use_extension(
+    "@io_bazel_rules_scala//scala/extensions:deps.bzl",
+    "scala_deps",
+)
+
+scala_deps.scala()
 
 ###################
 ### ENVIRONMENT ###
