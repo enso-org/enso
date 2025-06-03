@@ -4,6 +4,8 @@ import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.util.HashMap;
+import java.util.Map;
 import org.enso.persist.Persistance;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.ImageInfo;
@@ -11,32 +13,83 @@ import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 
 /** Channel connects two {@link JVM} instances. */
-public final class Channel {
+public final class Channel implements AutoCloseable {
+  /**
+   * @GuardedBy("Channel.class")
+   */
+  private static final Map<Long, Channel> ID_TO_CHANNEL = new HashMap<>();
+
+  /**
+   * @GuardedBy("Channel.class")
+   */
+  private static long idCounter = 1;
 
   /** persistance pool associated with this channel object */
   private final Persistance.Pool pool;
 
+  private final long id;
   private final JNI.JNIEnv env;
   private final long isolate;
   private final long callbackFn;
 
-  /* private */
-  Channel(Persistance.Pool pool, JNI.JNIEnv env) {
+  /** The SubstrateVM side of a channel. */
+  private Channel(long id, Persistance.Pool pool, JNI.JNIEnv env) {
+    this.id = id;
     this.pool = pool;
     this.env = env;
     this.isolate = -1;
     this.callbackFn = -1;
   }
 
-  /* private */
-  Channel(Persistance.Pool pool, long isolate, long callbackFn) {
+  /** The HotSpot JVM side of a channel. */
+  private Channel(long id, Persistance.Pool pool, long isolate, long callbackFn) {
     if (ImageInfo.inImageCode()) {
       throw new IllegalStateException("Only usable in HotSpot");
     }
+    this.id = id;
     this.pool = pool;
     this.env = null;
     this.isolate = isolate;
     this.callbackFn = callbackFn;
+  }
+
+  /**
+   * Factory method to initialize the Channel in the SubstrateVM.
+   *
+   * @param e
+   * @return
+   */
+  static synchronized Channel create(JNI.JNIEnv e) {
+    var id = idCounter++;
+
+    var classNameWithSlashes = "org/enso/os/environment/jni/Channel";
+    var methodName = "createJvmPeerChannel";
+    try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
+        var methodInC = CTypeConversion.toCString(methodName);
+        var signatureInC = CTypeConversion.toCString("(JJJ)Z")) {
+      var fn = e.getFunctions();
+      var clazz = fn.getFindClass().call(e, classInC.get());
+      assert clazz.isNonNull() : "Class not found " + classNameWithSlashes;
+      var method = fn.getGetStaticMethodID().call(e, clazz, methodInC.get(), signatureInC.get());
+      assert method.isNonNull() : "method not found in " + classNameWithSlashes;
+      var arg = StackValue.get(2, JNI.JValue.class);
+      arg.addressOf(0).setLong(id);
+      arg.addressOf(1).setLong(CurrentIsolate.getCurrentThread().rawValue());
+      arg.addressOf(2).setLong(JVM.CALLBACK_FN.getFunctionPointer().rawValue());
+      var replyOk = fn.getCallStaticBooleanMethodA().call(e, clazz, method, arg);
+      assert replyOk : "Failed to create peer in HotSpot JVM";
+
+      var channel = new Channel(id, JVMPeer.POOL, e);
+      ID_TO_CHANNEL.put(id, channel);
+      return channel;
+    }
+  }
+
+  /** Allocates new channel with given ID in the HotSpot VM. Called via JNI/foreign interface. */
+  private static boolean createJvmPeerChannel(long id, long threadId, long callbackFn) {
+    var channel = new Channel(id, JVMPeer.POOL, threadId, callbackFn);
+    var prev = ID_TO_CHANNEL.put(id, channel);
+    return prev == null;
   }
 
   /**
@@ -45,16 +98,16 @@ public final class Channel {
    * Persistance.Pool pool associated with this JVM}. The result (which is of type {@code R}) also
    * has to be registered for serde.
    *
-   * @param msg the message that gets serialized, transfered into the other JVM, deserialized on the
-   *     other side and {@link Message#evaluate() evaluated} there
+   * @param msg the message that gets serialized, transferred into the other JVM, deserialized on
+   *     the other side and {@link Message#evaluate() evaluated} there
    * @param <R> the type of result we expect the message to return
    * @return the value gets computed via {@link Message#evaluate()} in the other JVM and then it
-   *     gets serialized and transfered back to us. Deserialized and the value is then returned from
-   *     this method
+   *     gets serialized and transferred back to us. Deserialized and the value is then returned
+   *     from this method
    */
   public final <R> R execute(Message<R> msg) {
     if (this.isolate == -1) {
-      return JVM.executeImpl(pool, msg, memory -> toHotSpotMessage(env, memory));
+      return JVM.executeImpl(pool, msg, memory -> toHotSpotMessage(env, id, memory));
     } else {
       java.lang.foreign.MemorySegment fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
       java.lang.foreign.FunctionDescriptor fnDescriptor =
@@ -81,31 +134,37 @@ public final class Channel {
     }
   }
 
-  private static long toHotSpotMessage(JNI.JNIEnv e, MemorySegment segment) {
-    java.lang.String classNameWithSlashes = "org/enso/os/environment/jni/JVMPeer";
-    java.lang.String methodName = "handle";
-    try (org.graalvm.nativeimage.c.type.CTypeConversion.CCharPointerHolder classInC =
-            CTypeConversion.toCString(classNameWithSlashes);
-        org.graalvm.nativeimage.c.type.CTypeConversion.CCharPointerHolder methodInC =
-            CTypeConversion.toCString(methodName);
-        org.graalvm.nativeimage.c.type.CTypeConversion.CCharPointerHolder signatureInC =
-            CTypeConversion.toCString("(JJJJ)J")) {
-      org.enso.os.environment.jni.JNINativeInterface fn = e.getFunctions();
-      org.enso.os.environment.jni.JNI.JClass clazz = fn.getFindClass().call(e, classInC.get());
+  private static long toHotSpotMessage(JNI.JNIEnv e, long id, MemorySegment segment) {
+    var classNameWithSlashes = "org/enso/os/environment/jni/Channel";
+    var methodName = "handleJvmMessage";
+    try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
+        var methodInC = CTypeConversion.toCString(methodName);
+        var signatureInC = CTypeConversion.toCString("(JJJ)J")) {
+      var fn = e.getFunctions();
+      var clazz = fn.getFindClass().call(e, classInC.get());
       assert clazz.isNonNull() : "Class not found " + classNameWithSlashes;
-      org.enso.os.environment.jni.JNI.JMethodID method =
-          fn.getGetStaticMethodID().call(e, clazz, methodInC.get(), signatureInC.get());
+      var method = fn.getGetStaticMethodID().call(e, clazz, methodInC.get(), signatureInC.get());
       assert method.isNonNull() : "method not found in " + classNameWithSlashes;
       long address = segment.address();
       assert address > 0 : "We need an address";
-      org.enso.os.environment.jni.JNI.JValue arg = StackValue.get(4, JNI.JValue.class);
-      arg.addressOf(0).setLong(CurrentIsolate.getCurrentThread().rawValue());
-      arg.addressOf(1).setLong(JVM.CALLBACK_FN.getFunctionPointer().rawValue());
-      arg.addressOf(2).setLong(address);
-      arg.addressOf(3).setLong(segment.byteSize());
-      long replySize = fn.getCallStaticLongMethodA().call(e, clazz, method, arg);
+      var arg = StackValue.get(3, JNI.JValue.class);
+      arg.addressOf(0).setLong(id);
+      arg.addressOf(1).setLong(address);
+      arg.addressOf(2).setLong(segment.byteSize());
+      var replySize = fn.getCallStaticLongMethodA().call(e, clazz, method, arg);
       return replySize;
     }
+  }
+
+  private static long handleJvmMessage(long id, long address, long size) throws Throwable {
+    var channel = ID_TO_CHANNEL.get(id);
+    return JVMPeer.handleWithChannel(channel, address, size);
+  }
+
+  @Override
+  public void close() throws Exception {
+    ID_TO_CHANNEL.remove(id, this);
+    // TBD remove on the peer as well
   }
 
   /**

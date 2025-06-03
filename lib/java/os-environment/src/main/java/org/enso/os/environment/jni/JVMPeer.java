@@ -13,18 +13,6 @@ final class JVMPeer {
 
   private JVMPeer() {}
 
-  /** called via JNI from SVM to HotSpot */
-  static long handle(long threadId, long callbackFn, long address, long size) {
-    try {
-      var channel = new Channel(JVMPeer.POOL, threadId, callbackFn);
-      return handleWithChannel(channel, address, size);
-    } catch (Throwable t) {
-      // TBD: proper handling of exceptions is needed
-      t.printStackTrace();
-      return -1;
-    }
-  }
-
   static long handleWithChannel(Channel channel, long address, long size) throws Throwable {
     var seg = MemorySegment.ofAddress(address).reinterpret(size);
     var buf = seg.asByteBuffer();
