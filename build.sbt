@@ -4331,7 +4331,22 @@ lazy val `os-environment` =
             "--features=org.enso.os.environment.TestCollectorFeature",
             "-H:+ForeignAPISupport",
             "-R:-InstallSegfaultHandler"
-          )
+          ) ++ (if (GraalVM.EnsoLauncher.debug) {
+                  // useful perf & debug switches:
+                  Seq(
+                    "-g",
+                    "-O0",
+                    "-H:+SourceLevelDebug",
+                    "-H:-DeleteLocalSymbols",
+                    // you may need to set smallJdk := None to use following flags:
+                    // "--trace-class-initialization=org.enso.syntax2.Parser",
+                    // "--diagnostics-mode",
+                    // "--verbose",
+                    "-Dnic=nic"
+                  )
+                } else {
+                  Seq()
+                })
         )
       }.value,
       Test / test := Def
