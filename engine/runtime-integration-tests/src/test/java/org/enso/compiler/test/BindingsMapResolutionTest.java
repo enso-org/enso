@@ -397,14 +397,8 @@ public class BindingsMapResolutionTest {
             new SourceModule(
                 QualifiedName.fromString("Data.B"),
                 """
-                    import project.Data.C.C_Type
-                    type B_Type
-                    """),
-            new SourceModule(
-                QualifiedName.fromString("Data.C"),
-                """
                     import project.Data.A.A_Type
-                    type C_Type
+                    type B_Type
                     """),
             new SourceModule(QualifiedName.fromString("Main"), "")),
         projDir);
