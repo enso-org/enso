@@ -1,5 +1,6 @@
 package org.enso.compiler.test;
 
+import static org.enso.scala.wrapper.ScalaConversions.asScala;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -376,6 +377,45 @@ public class BindingsMapResolutionTest {
                 assertThat(resolvedNames.size(), is(1));
                 assertThat(resolvedNames.head() instanceof ResolvedType, is(true));
               });
+        });
+  }
+
+  @Test
+  public void resolveType_InImportCycle() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Data.A"),
+                """
+                    import project.Data.B.B_Type
+                    type A_Type
+                    """),
+            new SourceModule(
+                QualifiedName.fromString("Data.B"),
+                """
+                    import project.Data.C.C_Type
+                    type B_Type
+                    """),
+            new SourceModule(
+                QualifiedName.fromString("Data.C"),
+                """
+                    import project.Data.A.A_Type
+                    type C_Type
+                    """),
+            new SourceModule(QualifiedName.fromString("Main"), "")),
+        projDir);
+    testBindingsMap(
+        projDir,
+        "local.Proj.Data.A",
+        bindingsMap -> {
+          var nameToResolve = asScala(List.of("local", "Proj", "Data", "A"));
+          var res = bindingsMap.resolveQualifiedName(nameToResolve);
+          assertThat("Resolution method finishes",
+              res, is(notNullValue()));
         });
   }
 
