@@ -25,11 +25,11 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
+import org.enso.interpreter.service.ExecutionService
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
-
 import scala.annotation.unused
 import scala.util.Try
 
@@ -299,7 +299,9 @@ object UpsertVisualizationJob {
     ctx: RuntimeContext
   ): Either[EvaluationFailure, AnyRef] = {
     Try(
-      ctx.executionService.evaluateExpression(module, argumentExpression)
+      ExecutionService.resultOf(
+        ctx.executionService.evaluateExpression(module, argumentExpression)
+      )
     ).toEither.left.flatMap {
       case _: ThreadInterruptedException
           if retryCount < MaxEvaluationRetryCount =>
@@ -354,12 +356,12 @@ object UpsertVisualizationJob {
   private def evaluateVisualizationFunction(
     expression: Api.VisualizationExpression,
     expressionModule: Module,
-    retryCount: Int
+    @unused retryCount: Int
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, AnyRef] =
     Try {
-      expression match {
+      ExecutionService.resultOf(expression match {
         case Api.VisualizationExpression.Text(_, expression, _) =>
           ctx.executionService.evaluateExpression(
             expressionModule,
@@ -369,12 +371,14 @@ object UpsertVisualizationJob {
               Api.MethodPointer(_, definedOnType, name),
               _
             ) =>
-          ctx.executionService.prepareFunctionCall(
-            expressionModule,
-            QualifiedName.fromString(definedOnType).item,
-            name
-          )
-      }
+          ctx.executionService
+            .prepareFunctionCall(
+              expressionModule,
+              QualifiedName.fromString(definedOnType).item,
+              name
+            )
+            .thenApply(f => f.asInstanceOf[AnyRef])
+      })
     }.toEither.left.flatMap {
       case _: ThreadInterruptedException
           if retryCount < MaxEvaluationRetryCount =>

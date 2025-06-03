@@ -42,11 +42,13 @@ import org.enso.interpreter.runtime.warning.{
   WarningsLibrary,
   WithWarnings
 }
+import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
 import java.util.function.{Consumer, Supplier}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
@@ -191,7 +193,7 @@ object ProgramExecutionSupport {
             .orElseThrow(() =>
               new ModuleNotFoundForExpressionIdException(expressionId)
             )
-        ctx.executionService.execute(
+        val pending = ctx.executionService.execute(
           ctx.contextManager.getVisualizationHolder(contextId),
           module,
           callData,
@@ -205,6 +207,7 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
+        ExecutionService.resultOf(pending)
     }
 
     callStack match {
@@ -675,8 +678,8 @@ object ProgramExecutionSupport {
       )
       val holder = ctx.contextManager.getVisualizationHolder(contextId)
 
-      val makeCall = new Supplier[AnyRef] {
-        override def get(): AnyRef = {
+      val makeCall = new Supplier[CompletableFuture[AnyRef]] {
+        override def get(): CompletableFuture[AnyRef] = {
           ctx.executionService.callFunctionWithInstrument(
             holder,
             visualization.cache,
@@ -688,7 +691,7 @@ object ProgramExecutionSupport {
         }
       }
 
-      if (runtimeCache != null) {
+      val future = if (runtimeCache != null) {
         val processUUID = new Consumer[UUID] {
           override def accept(id: ContextId): Unit = {
             logger.trace(
@@ -703,6 +706,14 @@ object ProgramExecutionSupport {
       } else {
         makeCall.get()
       }
+      val res = ExecutionService.resultOf(future)
+      logger.trace(
+        "Visualization {} on expression {} resulted in {}",
+        visualization.id,
+        expressionId,
+        res
+      )
+      res
     }.toEither
 
   /** Compute the visualization of the expression value and send an update.

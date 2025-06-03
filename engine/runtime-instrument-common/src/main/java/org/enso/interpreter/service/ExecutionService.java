@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -112,21 +113,25 @@ public final class ExecutionService {
     return context;
   }
 
-  public FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
+  public CompletableFuture<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
       Module module, String typeName, String methodName)
       throws TypeNotFoundException, MethodNotFoundException {
-    ModuleScope scope = module.compileScope(context);
-    Type type = scope.getType(typeName, false);
-    if (type == null) {
-      throw new TypeNotFoundException(module.getName().toString(), typeName);
-    }
-    Function function = scope.lookupMethodDefinition(type, methodName);
-    if (function == null) {
-      throw new MethodNotFoundException(module.getName().toString(), type, methodName);
-    }
-    Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
-    return new FunctionCallInstrumentationNode.FunctionCall(
-        function, State.create(context), arguments);
+    return submitExecution(
+        () -> {
+          ModuleScope scope = module.compileScope(context);
+          Type type = scope.getType(typeName, false);
+          if (type == null) {
+            throw new TypeNotFoundException(module.getName().toString(), typeName);
+          }
+          Function function = scope.lookupMethodDefinition(type, methodName);
+          if (function == null) {
+            throw new MethodNotFoundException(module.getName().toString(), type, methodName);
+          }
+          Object[] arguments =
+              MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
+          return new FunctionCallInstrumentationNode.FunctionCall(
+              function, State.create(context), arguments);
+        });
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
@@ -158,7 +163,7 @@ public final class ExecutionService {
    * @param onCachedCallback the consumer of the cached value events.
    * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
    */
-  public void execute(
+  public CompletableFuture<Object> execute(
       VisualizationHolder visualizationHolder,
       Module module,
       FunctionCallInstrumentationNode.FunctionCall call,
@@ -170,54 +175,46 @@ public final class ExecutionService {
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
-      Consumer<ExecutedVisualization> onExecutedVisualizationCallback)
-      throws ArityException,
-          SourceNotFoundException,
-          UnsupportedMessageException,
-          UnsupportedTypeException {
-    var pending =
-        submitExecution(
-            () -> {
-              SourceSection src;
-              try {
-                src = call.getFunction().getSourceSection();
-              } catch (UnsupportedMessageException ex) {
-                src = null;
-              }
-              if (src == null) {
-                throw new SourceNotFoundException(call.getFunction().getName());
-              }
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
+    return submitExecution(
+        () -> {
+          SourceSection src;
+          try {
+            src = call.getFunction().getSourceSection();
+          } catch (UnsupportedMessageException ex) {
+            src = null;
+          }
+          if (src == null) {
+            throw new SourceNotFoundException(call.getFunction().getName());
+          }
 
-              var callbacks =
-                  new ExecutionCallbacks(
-                      visualizationHolder,
-                      nextExecutionItem,
-                      cache,
-                      methodCallsCache,
-                      syncState,
-                      expressionExecutionState,
-                      onCachedCallback,
-                      onComputedCallback,
-                      funCallCallback,
-                      onExecutedVisualizationCallback,
-                      this.context.isProgressReportEnabled() ? onComputedCallback : null);
-              Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-                  idExecutionInstrument.map(
-                      service ->
-                          service.bind(
-                              module, call.getFunction().getCallTarget(), callbacks, this.timer));
+          var callbacks =
+              new ExecutionCallbacks(
+                  visualizationHolder,
+                  nextExecutionItem,
+                  cache,
+                  methodCallsCache,
+                  syncState,
+                  expressionExecutionState,
+                  onCachedCallback,
+                  onComputedCallback,
+                  funCallCallback,
+                  onExecutedVisualizationCallback,
+                  this.context.isProgressReportEnabled() ? onComputedCallback : null);
+          Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
+              idExecutionInstrument.map(
+                  service ->
+                      service.bind(
+                          module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-              try {
-                var callFn =
-                    Function.fullyApplied(
-                        execute.getCallTarget(), substituteMissingArguments(call));
-                RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
-              } finally {
-                eventNodeFactory.ifPresent(EventBinding::dispose);
-              }
-              return null;
-            });
-    resultOf(pending);
+          try {
+            var callFn =
+                Function.fullyApplied(execute.getCallTarget(), substituteMissingArguments(call));
+            return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
+          } finally {
+            eventNodeFactory.ifPresent(EventBinding::dispose);
+          }
+        });
   }
 
   /**
@@ -237,7 +234,7 @@ public final class ExecutionService {
    * @param onCachedCallback the consumer of the cached value events.
    * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
    */
-  public void execute(
+  public CompletableFuture<Object> execute(
       String moduleName,
       String typeName,
       String methodName,
@@ -259,21 +256,23 @@ public final class ExecutionService {
           UnsupportedTypeException {
     Module module =
         context.findModule(moduleName).orElseThrow(() -> new ModuleNotFoundException(moduleName));
-    FunctionCallInstrumentationNode.FunctionCall call =
+    CompletableFuture<FunctionCallInstrumentationNode.FunctionCall> callFuture =
         prepareFunctionCall(module, typeName, methodName);
-    execute(
-        visualizationHolder,
-        module,
-        call,
-        cache,
-        methodCallsCache,
-        syncState,
-        nextExecutionItem,
-        expressionExecutionState,
-        funCallCallback,
-        onComputedCallback,
-        onCachedCallback,
-        onExecutedVisualizationCallback);
+    return callFuture.thenCompose(
+        call ->
+            execute(
+                visualizationHolder,
+                module,
+                call,
+                cache,
+                methodCallsCache,
+                syncState,
+                nextExecutionItem,
+                expressionExecutionState,
+                funCallCallback,
+                onComputedCallback,
+                onCachedCallback,
+                onExecutedVisualizationCallback));
   }
 
   /**
@@ -305,13 +304,8 @@ public final class ExecutionService {
    * @param expression the expression to evaluate
    * @return a result of evaluation
    */
-  public Object evaluateExpression(Module module, String expression) {
-    var future =
-        submitExecution(
-            () -> {
-              return invoke.getCallTarget().call(module, expression);
-            });
-    return resultOf(future);
+  public CompletableFuture<Object> evaluateExpression(Module module, String expression) {
+    return submitExecution(() -> invoke.getCallTarget().call(module, expression));
   }
 
   /**
@@ -337,16 +331,14 @@ public final class ExecutionService {
    * @param argument the argument applied to the function
    * @return the result of calling the function
    */
-  public Object callFunction(Object fn, Object argument) {
-    var future =
-        submitExecution(
-            () -> {
-              var callArgs =
-                  Function.ArgumentsHelper.buildArguments(
-                      null, new Object[] {fn, new Object[] {argument}});
-              return call.getCallTarget().call(callArgs);
-            });
-    return resultOf(future);
+  public CompletableFuture<Object> callFunction(Object fn, Object argument) {
+    return submitExecution(
+        () -> {
+          var callArgs =
+              Function.ArgumentsHelper.buildArguments(
+                  null, new Object[] {fn, new Object[] {argument}});
+          return call.getCallTarget().call(callArgs);
+        });
   }
 
   /**
@@ -360,7 +352,7 @@ public final class ExecutionService {
    * @param arguments the sequence of arguments applied to the function
    * @return the result of calling the function
    */
-  public Object callFunctionWithInstrument(
+  public CompletableFuture<Object> callFunctionWithInstrument(
       VisualizationHolder visualizationHolder,
       RuntimeCache cache,
       RuntimeCache executionCache,
@@ -368,58 +360,54 @@ public final class ExecutionService {
       Object function,
       Object... arguments) {
 
-    var future =
-        submitExecution(
-            () -> {
-              var fn = function;
-              UUID nextExecutionItem = null;
-              CallTarget entryCallTarget =
-                  (fn instanceof Function) ? ((Function) fn).getCallTarget() : null;
-              MethodCallsCache methodCallsCache = new MethodCallsCache();
-              UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
-              Consumer<ExpressionCall> funCallCallback = (value) -> {};
-              Consumer<ExpressionValue> onComputedCallback =
-                  (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
-              Consumer<ExpressionValue> onCachedCallback =
-                  (value) ->
-                      context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
-              Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
-              ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
-              Consumer<ExpressionValue> onProgressCallback =
-                  (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
+    return submitExecution(
+        () -> {
+          var fn = function;
+          UUID nextExecutionItem = null;
+          CallTarget entryCallTarget =
+              (fn instanceof Function) ? ((Function) fn).getCallTarget() : null;
+          MethodCallsCache methodCallsCache = new MethodCallsCache();
+          UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
+          Consumer<ExpressionCall> funCallCallback = (value) -> {};
+          Consumer<ExpressionValue> onComputedCallback =
+              (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
+          Consumer<ExpressionValue> onCachedCallback =
+              (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
+          Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
+          ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
+          Consumer<ExpressionValue> onProgressCallback =
+              (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
 
-              var callbacks =
-                  new ExecutionCallbacks(
-                      visualizationHolder,
-                      nextExecutionItem,
-                      cache,
-                      methodCallsCache,
-                      syncState,
-                      expressionExecutionState,
-                      onCachedCallback,
-                      onComputedCallback,
-                      funCallCallback,
-                      onExecutedVisualizationCallback,
-                      onProgressCallback);
-              Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-                  idExecutionInstrument.map(
-                      service -> service.bind(module, entryCallTarget, callbacks, this.timer));
-              var ret = new Object[1];
-              try {
-                if (fn instanceof Function tmp) {
-                  State state = State.create(context);
-                  fn = new FunctionCallInstrumentationNode.FunctionCall(tmp, state, new Object[0]);
-                }
-                var callArgs = new Object[] {fn, arguments};
-                var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
-                ret[0] =
-                    RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
-              } finally {
-                eventNodeFactory.ifPresent(EventBinding::dispose);
-              }
-              return ret[0];
-            });
-    return resultOf(future);
+          var callbacks =
+              new ExecutionCallbacks(
+                  visualizationHolder,
+                  nextExecutionItem,
+                  cache,
+                  methodCallsCache,
+                  syncState,
+                  expressionExecutionState,
+                  onCachedCallback,
+                  onComputedCallback,
+                  funCallCallback,
+                  onExecutedVisualizationCallback,
+                  onProgressCallback);
+          Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
+              idExecutionInstrument.map(
+                  service -> service.bind(module, entryCallTarget, callbacks, this.timer));
+          var ret = new Object[1];
+          try {
+            if (fn instanceof Function tmp) {
+              State state = State.create(context);
+              fn = new FunctionCallInstrumentationNode.FunctionCall(tmp, state, new Object[0]);
+            }
+            var callArgs = new Object[] {fn, arguments};
+            var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
+            ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
+          } finally {
+            eventNodeFactory.ifPresent(EventBinding::dispose);
+          }
+          return ret[0];
+        });
   }
 
   private Type cacheKey() {
@@ -586,11 +574,11 @@ public final class ExecutionService {
     throw (E) ex;
   }
 
-  private <T> Future<T> submitExecution(Supplier<T> c) {
+  private <T> CompletableFuture<T> submitExecution(Supplier<T> c) {
     return context.getThreadManager().submit(c);
   }
 
-  private static <T> T resultOf(Future<T> future) {
+  public static <T> T resultOf(Future<T> future) {
     try {
       return future.get();
     } catch (InterruptedException ex) {
