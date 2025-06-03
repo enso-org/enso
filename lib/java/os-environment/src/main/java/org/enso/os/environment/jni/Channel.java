@@ -183,7 +183,7 @@ public final class Channel implements AutoCloseable {
   private static long handleWithChannel(Channel channel, long address, long size) throws Throwable {
     var seg = MemorySegment.ofAddress(address).reinterpret(size);
     var buf = seg.asByteBuffer();
-    var ref = JVMPeer.POOL.read(buf, null);
+    var ref = channel.pool.read(buf, null);
     var msg = ref.get(Function.class);
     @SuppressWarnings("unchecked")
     var res = msg.apply(channel);
