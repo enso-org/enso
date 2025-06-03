@@ -117,10 +117,12 @@ public final class Channel implements AutoCloseable {
   }
 
   /**
-   * <em>Executes a message</em> in the other JVM. The message is any subclass of {@link Message}
+   * <em>Executes a message</em> in the other JVM. The message is any subclass of {@link Function}
    * registered for persistance via {@link Persistable @Persistable} annotation into the {@link
    * Persistance.Pool pool associated with this JVM}. The result (which is of type {@code R}) also
    * has to be registered for serde.
+   *
+   * <p>
    *
    * @param msg the message that gets serialized, transferred into the other JVM, deserialized on
    *     the other side and {@link Message#evaluate() evaluated} there
@@ -129,9 +131,9 @@ public final class Channel implements AutoCloseable {
    *     gets serialized and transferred back to us. Deserialized and the value is then returned
    *     from this method
    */
-  public final <R> R execute(Message<R> msg) {
+  public final <R> R execute(Class<R> resultType, Function<Channel, R> msg) {
     if (this.isolate == -1) {
-      return executeImpl(pool, msg, memory -> toHotSpotMessage(memory));
+      return executeImpl(pool, resultType, msg, memory -> toHotSpotMessage(memory));
     } else {
       var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
       var fnDescriptor =
@@ -144,6 +146,7 @@ public final class Channel implements AutoCloseable {
       var fnHandle = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
       return executeImpl(
           pool,
+          resultType,
           msg,
           seg -> {
             Object res = -1L;
@@ -181,8 +184,9 @@ public final class Channel implements AutoCloseable {
     var seg = MemorySegment.ofAddress(address).reinterpret(size);
     var buf = seg.asByteBuffer();
     var ref = JVMPeer.POOL.read(buf, null);
-    var msg = ref.get(Channel.Message.class);
-    var res = msg.evaluate(channel);
+    var msg = ref.get(Function.class);
+    @SuppressWarnings("unchecked")
+    var res = msg.apply(channel);
     var bytes = Persistables.POOL.write(res, null);
     seg.copyFrom(MemorySegment.ofArray(bytes));
     return bytes.length;
@@ -201,7 +205,10 @@ public final class Channel implements AutoCloseable {
   }
 
   static <R> R executeImpl(
-      Persistance.Pool pool, Channel.Message<R> msg, Function<MemorySegment, Long> send) {
+      Persistance.Pool pool,
+      Class<R> replyType,
+      Function<Channel, R> msg,
+      Function<MemorySegment, Long> send) {
     try (var arena = Arena.ofConfined()) {
       var bytes = pool.write(msg, null);
       var memory = arena.allocate(Math.max(bytes.length, 4096));
@@ -212,7 +219,7 @@ public final class Channel implements AutoCloseable {
       reply.position(0);
       reply.limit((int) len);
       var result = pool.read(reply, null);
-      return result.get(msg.replyType);
+      return result.get(replyType);
     } catch (IOException ex) {
       throw new IllegalStateException(ex);
     }
@@ -227,38 +234,5 @@ public final class Channel implements AutoCloseable {
   public void close() throws Exception {
     ID_TO_CHANNEL.remove(id, this);
     // TBD remove on the peer as well
-  }
-
-  /**
-   * Subclasses of message denote a computational task to be performed in the "other {@link JVM}".
-   *
-   * @param <R> type of the return value
-   */
-  public abstract static class Message<R> {
-
-    final Class<R> replyType;
-
-    /**
-     * Constructor for subclasses. Use it as {@code super(Integer.class)} to specify the reply type
-     * of the exception which is then returned from the {@link #evaluate} method.
-     *
-     * @param replyType the type of the reply
-     */
-    protected Message(Class<R> replyType) {
-      this.replyType = replyType;
-    }
-
-    /**
-     * Handles evaluation of the exception. Use {@link Channel#execute} to pass this messages to the
-     * other {@link JVM}. After all the serde and transfer to the other {@link JVM} this method is
-     * executed to perform its operation. Then the result is passed back via serde again and
-     * returned from the {@link Channel#execute} method.
-     *
-     * @param channel allows sending messages to the other JVM
-     * @return the result of the evaluation or {@code null}
-     * @throws Throwable the computation may yield exceptions or errors which are then transferred
-     *     back to the callee JVM
-     */
-    protected abstract R evaluate(Channel channel) throws Throwable;
   }
 }
