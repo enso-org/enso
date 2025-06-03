@@ -9,9 +9,11 @@
 - type File_Action
     - Open
     - Save
+- type File_Type
+    - Option label:Standard.Base.Data.Text.Text extensions:(Standard.Base.Any.Any|Standard.Base.Any.Any)= icon:Standard.Base.Data.Text.Text=
 - type Widget
     - Boolean_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
-    - File_Browse existing_only:Standard.Base.Data.Boolean.Boolean= label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= action:Standard.Base.Metadata.File_Action= file_types:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Pair.Pair)=
+    - File_Browse existing_only:Standard.Base.Data.Boolean.Boolean= label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= action:Standard.Base.Metadata.File_Action= file_types:(Standard.Base.Data.Vector.Vector Standard.Base.Metadata.File_Type)=
     - Folder_Browse label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
     - Multiple_Choice values:(Standard.Base.Data.Vector.Vector Standard.Base.Metadata.Choice) label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= quote_values:Standard.Base.Data.Boolean.Boolean=
     - Numeric_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= minimum:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= maximum:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= step:Standard.Base.Data.Numbers.Number= decimal_places:Standard.Base.Data.Numbers.Integer= allow_outside:Standard.Base.Data.Boolean.Boolean=

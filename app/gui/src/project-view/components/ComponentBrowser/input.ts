@@ -1,9 +1,10 @@
+import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
 import { useAI } from '@/components/ComponentBrowser/ai'
 import type { Filter, SelfArg } from '@/components/ComponentBrowser/filtering'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { type NodeId } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
-import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
+import { type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayOwner,
   entryDisplayPath,
@@ -15,6 +16,7 @@ import {
 import { Ast } from '@/util/ast'
 import { selfArgSeparator } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
+import { ANY_TYPE } from '@/util/ensoTypes'
 import { type ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
@@ -182,7 +184,12 @@ export function useComponentBrowserInput(
   } {
     if (sourceNodeIdentifier.value && sourceNodeType.value?.type === 'known') {
       const sourceType = sourceNodeType.value.typename
-      if (entryHasOwner(entry) && !sourceType.equals(entry.memberOf)) {
+      if (
+        entryHasOwner(entry) &&
+        !sourceType.equals(entry.memberOf) &&
+        !sourceNodeType.value.ancestors.find((ancestor) => ancestor.equals(entry.memberOf)) &&
+        !entry.memberOf.equals(ANY_TYPE)
+      ) {
         return {
           newText: ':' + entryDisplayOwner(entry) + ' . ' + entry.name + ' ',
           requiredImport: entry.memberOf,

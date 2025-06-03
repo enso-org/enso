@@ -32,3 +32,12 @@ export function mustExtend<T extends U, U>() {} // eslint-disable-line @typescri
  * ```
  */
 export type ForbidExcessProps<T, S> = { [K in keyof T]: K extends keyof S ? T[K] : never }
+
+/**
+ * An arbitrary class type that doesn't necessarily provide a public constructor.
+ * Works with standard and abstract classes.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+export type Class<T> = Function & {
+  prototype: T
+}

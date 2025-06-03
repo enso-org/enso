@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import ColorRing from '@/components/ColorRing.vue'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { type NodeId } from '@/stores/graph'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { ref } from 'vue'
 

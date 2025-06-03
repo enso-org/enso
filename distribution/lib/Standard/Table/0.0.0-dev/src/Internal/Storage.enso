@@ -5,6 +5,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Data.Decimal import from_big_decimal, get_big_decimal
 
 import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Value_Type_Helpers
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
@@ -123,4 +124,4 @@ make_builder storage initial_size java_problem_aggregator =
 
 ## PRIVATE
    Helper function for tests to get the storage of a Column
-get_storage_for_column column:Column = column.java_column.getStorage
+get_storage_for_column column:In_Memory_Column = (column:In_Memory_Column).java_column.getStorage

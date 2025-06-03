@@ -1,9 +1,5 @@
-/**
- * @file
- *
- * Scroller is a component that
- */
-
+/** @file A component that adds scroll shadows to a container. */
+import type { TestIdProps } from '#/components/types'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
@@ -17,7 +13,6 @@ import {
   type HTMLAttributes,
   type PropsWithChildren,
 } from 'react'
-import type { TestIdProps } from '../AriaComponents'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const SCROLLER_STYLES = tv({
@@ -26,6 +21,16 @@ export const SCROLLER_STYLES = tv({
     scrollbar: {
       false: {
         content: 'no-scrollbar',
+      },
+    },
+    background: {
+      primary: {
+        shadowStart: 'from-dashboard',
+        shadowEnd: 'from-dashboard',
+      },
+      secondary: {
+        shadowStart: 'from-background/80',
+        shadowEnd: 'from-background/80',
       },
     },
     orientation: {
@@ -74,8 +79,8 @@ export const SCROLLER_STYLES = tv({
 
   slots: {
     content: '',
-    shadowStart: 'pointer-events-none absolute from-dashboard transition-opacity',
-    shadowEnd: 'pointer-events-none absolute from-dashboard transition-opacity',
+    shadowStart: 'pointer-events-none absolute transition-opacity',
+    shadowEnd: 'pointer-events-none absolute transition-opacity',
   },
 
   compoundVariants: [
@@ -126,12 +131,11 @@ export const SCROLLER_STYLES = tv({
     showShadows: true,
     startHidden: true,
     endHidden: true,
+    background: 'primary',
   },
 })
 
-/**
- * Props for {@link Scroller}.
- */
+/** Props for {@link Scroller}. */
 export interface ScrollerProps
   extends HTMLAttributes<HTMLDivElement>,
     PropsWithChildren,
@@ -140,9 +144,7 @@ export interface ScrollerProps
   readonly shadowStartClassName?: string
 }
 
-/**
- * A component that adds scroll shadows to a container.
- */
+/** A component that adds scroll shadows to a container. */
 export function Scroller(props: ScrollerProps) {
   const {
     className,
@@ -153,6 +155,8 @@ export function Scroller(props: ScrollerProps) {
     orientation = 'horizontal',
     showShadows = true,
     testId = 'scroller',
+    onScroll,
+    background = 'primary',
     ...rest
   } = props
 
@@ -233,6 +237,7 @@ export function Scroller(props: ScrollerProps) {
     startHidden,
     endHidden,
     showShadows,
+    background,
   })
 
   return (
@@ -241,6 +246,7 @@ export function Scroller(props: ScrollerProps) {
         ref={(el) => {
           mergeRefs(refCallback, measureRef, containerRef)(el)
         }}
+        onScroll={onScroll}
         className={styles.content()}
       >
         {props.children}

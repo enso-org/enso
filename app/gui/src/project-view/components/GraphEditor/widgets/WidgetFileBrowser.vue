@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   SUPPORTED_DYNAMIC_CONFIG_KINDS,
@@ -10,15 +11,13 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
 import { useCloudBrowser } from '@/components/GraphEditor/widgets/WidgetFileBrowser/cloudBrowser'
 import { useLocalBrowser } from '@/components/GraphEditor/widgets/WidgetFileBrowser/localBrowser'
-import { CustomDropdownItemsKey } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
+import { withDropdownItems } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import {
   type CustomDropdownItem,
   ExpressionTag,
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { requiredImportsByProjectPath } from '@/stores/graph/imports'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 
@@ -72,8 +71,16 @@ function setPath(type: 'file' | 'secret', path: string) {
 
 const write = computed(() => typeInfo.value.write)
 
-const localBrowserItems = useLocalBrowser({ dialogKind, write, currentPath, setPath })
-const cloudBrowserItems = useCloudBrowser({ dialogKind, write, currentPath, setPath })
+const fileTypes = computed(() => {
+  if (props.input.dynamicConfig?.kind === 'File_Browse') {
+    return props.input.dynamicConfig?.file_types
+  } else {
+    return undefined
+  }
+})
+
+const localBrowserItems = useLocalBrowser({ dialogKind, write, currentPath, setPath, fileTypes })
+const cloudBrowserItems = useCloudBrowser({ dialogKind, write, currentPath, setPath, fileTypes })
 const textSecretsItems = useTextSecrets({ dialogKind, reprType })
 
 const items = computed((): (CustomDropdownItem | ExpressionTag)[] => [
@@ -82,13 +89,7 @@ const items = computed((): (CustomDropdownItem | ExpressionTag)[] => [
   ...textSecretsItems.value,
 ])
 
-const innerWidgetInput = computed(() => {
-  const existingItems = props.input[CustomDropdownItemsKey] ?? []
-  return {
-    ...props.input,
-    [CustomDropdownItemsKey]: [...existingItems, ...items.value],
-  }
-})
+const innerWidgetInput = computed(() => withDropdownItems(props.input, items.value))
 </script>
 
 <script lang="ts">

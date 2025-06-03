@@ -7,6 +7,7 @@ const MENU_CLOSE_TIMEOUT_MS = 300
 </script>
 
 <script setup lang="ts">
+import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
@@ -35,13 +36,11 @@ import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
-import { useGraphStore, type Node } from '@/stores/graph'
+import { type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
-import { useProjectStore } from '@/stores/project'
 import { evaluationProgress } from '@/stores/project/computedValueRegistry'
 import { useNodeExecution } from '@/stores/project/nodeExecution'
 import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
 import { prefixes } from '@/util/ast/node'
 import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
@@ -64,8 +63,6 @@ const emit = defineEmits<{
   draggingCommited: []
   draggingCancelled: []
   replaceSelection: []
-  outputPortClick: [event: PointerEvent, portId: AstId]
-  outputPortDoubleClick: [event: PointerEvent, portId: AstId]
   enterNode: []
   createNodes: [options: NodeCreationOptions[]]
   setNodeColor: [color: string | undefined]
@@ -695,7 +692,7 @@ const nodeName = computed(() => props.node.pattern?.code())
 }
 
 .ComponentMenu {
-  z-index: 25;
+  z-index: 20;
   &.partial {
     z-index: 1;
   }

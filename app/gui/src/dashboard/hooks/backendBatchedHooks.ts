@@ -5,20 +5,41 @@ import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import LocalBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { getMessageOrToString } from '#/utilities/error'
-import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
+import {
+  useMutationState,
+  type Mutation,
+  type QueryClient,
+  type UseMutationOptions,
+} from '@tanstack/react-query'
 import {
   DuplicateAssetError,
   FilterBy,
   type AnyAsset,
   type AssetId,
   type default as Backend,
+  type BackendType,
   type DirectoryId,
 } from 'enso-common/src/services/Backend'
+
+/** Extract the corresponding {@link Mutation} type from a `MutationOptions` function. */
+export type MutationFromOptionsFunction<T extends (...args: never) => unknown> =
+  ReturnType<T> extends (
+    UseMutationOptions<infer TData, infer TError, infer TVariables, infer TContext>
+  ) ?
+    Mutation<TData, TError, TVariables, TContext>
+  : never
+
+export const DELETE_ASSETS_MUTATION_METHOD = 'deleteAssets'
+
+/** A key for {@link deleteAssetsMutationOptions}. */
+export function deleteAssetsMutationKey(backendType: BackendType) {
+  return [backendType, DELETE_ASSETS_MUTATION_METHOD]
+}
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationKey: [backend.type, 'deleteAssets'],
+    mutationKey: deleteAssetsMutationKey(backend.type),
     mutationFn: async ([ids, force]: readonly [ids: readonly AssetId[], force: boolean]) => {
       const results = await Promise.allSettled(
         ids.map((id) => backend.deleteAsset(id, { force }, '(unknown)')),
@@ -78,10 +99,17 @@ export function useDeleteAssetsMutationState<Result>(
   })
 }
 
+export const RESTORE_ASSETS_MUTATION_METHOD = 'restoreAssets'
+
+/** A key for {@link restoreAssetsMutationOptions}. */
+export function restoreAssetsMutationKey(backendType: BackendType) {
+  return [backendType, RESTORE_ASSETS_MUTATION_METHOD]
+}
+
 /** Call "restore" mutations for a list of assets. */
 export function restoreAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationKey: [backend.type, 'restoreAssets'],
+    mutationKey: restoreAssetsMutationKey(backend.type),
     mutationFn: async ({
       ids,
       parentId = null,
@@ -147,10 +175,17 @@ export function useRestoreAssetsMutationState<Result>(
   })
 }
 
+export const COPY_ASSETS_MUTATION_METHOD = 'copyAssets'
+
+/** A key for {@link copyAssetsMutationOptions}. */
+export function copyAssetsMutationKey(backendType: BackendType) {
+  return [backendType, COPY_ASSETS_MUTATION_METHOD]
+}
+
 /** Call "copy" mutations for a list of assets. */
 export function copyAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationKey: [backend.type, 'copyAssets'],
+    mutationKey: copyAssetsMutationKey(backend.type),
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       /**
        * Copy an asset and return a promise that resolves to the asset or an error.
@@ -184,14 +219,14 @@ export function copyAssetsMutationOptions(backend: Backend) {
   })
 }
 
-/** The type of a "move assets" mutation. */
+/** The type of a "copy assets" mutation. */
 type CopyAssetsMutation = Mutation<
   null,
   Error,
   readonly [ids: readonly AssetId[], parentId: DirectoryId]
 >
 
-/** Return matching in-flight "move assets" mutations. */
+/** Return matching in-flight "copy assets" mutations. */
 export function useCopyAssetsMutationState<Result>(
   backend: Backend,
   options: {
@@ -213,10 +248,17 @@ export function useCopyAssetsMutationState<Result>(
   })
 }
 
+export const MOVE_ASSETS_MUTATION_METHOD = 'moveAssets'
+
+/** A key for {@link moveAssetsMutationOptions}. */
+export function moveAssetsMutationKey(backendType: BackendType) {
+  return [backendType, MOVE_ASSETS_MUTATION_METHOD]
+}
+
 /** Call "move" mutations for a list of assets. */
 export function moveAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationKey: [backend.type, 'moveAssets'],
+    mutationKey: moveAssetsMutationKey(backend.type),
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       const results = await Promise.allSettled(
         ids.map((id) =>

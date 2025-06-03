@@ -1,23 +1,15 @@
-/**
- * @file
- *
- * A paywall alert.
- */
-
-import * as React from 'react'
-
+/** @file A paywall alert. */
 import LockIcon from '#/assets/lock.svg'
-
-import type * as billingHooks from '#/hooks/billing'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Alert, type AlertProps } from '#/components/Alert'
 import * as paywall from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
-import { twJoin } from '#/utilities/tailwindMerge'
+import { Text } from '#/components/Text'
+import type * as billingHooks from '#/hooks/billing'
+import * as React from 'react'
+import { twJoin } from 'tailwind-merge'
 
 /** Props for {@link PaywallAlert}. */
-export interface PaywallAlertProps<IconType extends string>
-  extends Omit<ariaComponents.AlertProps, 'children'> {
+export interface PaywallAlertProps<IconType extends string> extends Omit<AlertProps, 'children'> {
   readonly feature: billingHooks.PaywallFeatureName
   readonly label: string
   readonly showUpgradeButton?: boolean
@@ -38,7 +30,7 @@ export function PaywallAlert<IconType extends string>(
   } = props
 
   return (
-    <ariaComponents.Alert
+    <Alert
       variant="outline"
       size="small"
       rounded="xlarge"
@@ -48,7 +40,7 @@ export function PaywallAlert<IconType extends string>(
       <div className="flex items-center gap-2">
         <SvgMask src={LockIcon} className="h-5 w-5 flex-none text-primary" />
 
-        <ariaComponents.Text>
+        <Text>
           {label}{' '}
           {showUpgradeButton && (
             <paywall.UpgradeButton
@@ -58,8 +50,8 @@ export function PaywallAlert<IconType extends string>(
               {...upgradeButtonProps}
             />
           )}
-        </ariaComponents.Text>
+        </Text>
       </div>
-    </ariaComponents.Alert>
+    </Alert>
   )
 }

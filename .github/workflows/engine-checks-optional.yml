@@ -79,7 +79,6 @@ jobs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
       - macos-13
-    continue-on-error: true
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
@@ -120,9 +119,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
-      - run: |-
-          ls -l built-distribution.tar
-          sha256sum built-distribution.tar
+      - run: ls -l built-distribution.tar
         shell: bash
       - name: Unpack Engine Distribution
         run: |-
@@ -155,7 +152,6 @@ jobs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
       - macos-13
-    continue-on-error: true
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
@@ -196,9 +192,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
-      - run: |-
-          ls -l built-distribution.tar
-          sha256sum built-distribution.tar
+      - run: ls -l built-distribution.tar
         shell: bash
       - name: Unpack Engine Distribution
         run: |-
@@ -234,7 +228,6 @@ jobs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
       - macos-13
-    continue-on-error: true
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
@@ -275,9 +268,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
-      - run: |-
-          ls -l built-distribution.tar
-          sha256sum built-distribution.tar
+      - run: ls -l built-distribution.tar
         shell: bash
       - name: Unpack Engine Distribution
         run: |-

@@ -420,10 +420,10 @@ final class SuggestionsHandler(
     * @param state current initialization state
     */
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
-    logger.debug("Trying to initialize with state [{}]", state)
+    logger.debug("Initializing suggestions...")
     state.initialized.fold(context.become(initializing(state))) {
       case (projectName, graph) =>
-        logger.debug("Initialized with state [{}]", state)
+        logger.debug("Initialized suggestions")
         context.become(initialized(projectName, graph, Set(), new State()))
         unstashAll()
     }

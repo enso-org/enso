@@ -71,7 +71,7 @@ public class RepoInitialization implements InitializationComponent {
   private CompletableFuture<Void> initSuggestionsRepo() {
     return CompletableFuture.supplyAsync(
             () -> {
-              logger.debug("Initializing Suggestions repo [{}]...", suggestionsRepo);
+              logger.trace("Initializing Suggestions repo [{}]...", suggestionsRepo);
               try {
                 lock.acquire();
                 if (!isInitialized)
@@ -84,7 +84,7 @@ public class RepoInitialization implements InitializationComponent {
             },
             executor)
         .thenRunAsync(
-            () -> logger.debug("Initialized Suggestions repo [{}]", suggestionsRepo), executor)
+            () -> logger.trace("Initialized Suggestions repo [{}]", suggestionsRepo), executor)
         .whenCompleteAsync(
             (res, err) -> {
               if (err != null) {

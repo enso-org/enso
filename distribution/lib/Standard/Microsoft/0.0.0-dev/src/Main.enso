@@ -1,2 +1,4 @@
 export project.Connection.SQLServer_Details.SQLServer_Details
 
+export project.Azure.Azure
+export project.Azure_Storage.Azure_Storage

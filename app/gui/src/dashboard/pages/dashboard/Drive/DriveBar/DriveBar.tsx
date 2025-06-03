@@ -2,11 +2,9 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
-
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type Backend from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-
 import { DriveBarNavigation } from './DriveBarNavigation'
 import { DriveBarToolbar } from './DriveBarToolbar'
 

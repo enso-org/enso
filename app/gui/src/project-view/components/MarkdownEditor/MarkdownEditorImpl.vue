@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { documentationEditorBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
@@ -11,6 +12,7 @@ import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
 import { Vec2 } from '@/util/data/vec2'
+import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { drawSelection, EditorView } from '@codemirror/view'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
@@ -24,6 +26,8 @@ const { content, toolbar, contentTestId } = defineProps<{
 defineOptions({
   inheritAttrs: false,
 })
+
+const toastError = useToast.error()
 
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)
@@ -41,6 +45,7 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
     ensoMarkdown(),
   ],
   vueHost: () => vueHost,
+  lineMode: 'multi',
   contentTestId,
 })
 const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
@@ -56,6 +61,36 @@ onMounted(() => {
     .addEventListener('focusin', () => (focused.value = true))
 })
 
+function reportUnformattable() {
+  toastError.show('The selected text cannot be formated')
+}
+
+function toggleFormat({
+  set,
+  value,
+}: {
+  set: ((value: boolean) => void) | undefined
+  value: boolean
+}) {
+  if (!set) {
+    reportUnformattable()
+    return
+  }
+  set(!value)
+}
+
+function doFormat(action: (() => void) | undefined) {
+  if (!action) {
+    reportUnformattable()
+    return
+  }
+  action()
+}
+
+function binding(binding: keyof typeof documentationEditorBindings.bindings): string {
+  return documentationEditorBindings.bindings[binding].humanReadable
+}
+
 defineExpose({
   putText: (text: string) => {
     const range = editorView.state.selection.main
@@ -66,6 +101,13 @@ defineExpose({
     const pos = editorView.posAtCoords(coords, false)
     putTextAt(text, pos, pos)
   },
+  bold: () => toggleFormat(bold),
+  italic: () => toggleFormat(italic),
+  header1: () => blockType.set('ATXHeading1'),
+  header2: () => blockType.set('ATXHeading2'),
+  header3: () => blockType.set('ATXHeading3'),
+  paragraph: () => blockType.set('Paragraph'),
+  link: () => doFormat(insertLink.value),
 })
 </script>
 
@@ -82,25 +124,27 @@ defineExpose({
           icon="italic"
           :disabled="!editing || !italic.set"
           :modelValue="italic.value"
+          :title="`Italic (${binding('italic')})`"
           @update:modelValue="italic.set!"
         />
         <ToggleIcon
           icon="bold"
           :disabled="!editing || !bold.set"
           :modelValue="bold.value"
+          :title="`Bold (${binding('bold')})`"
           @update:modelValue="bold.set!"
         />
         <SvgButton
           name="connector_add"
           :disabled="insertLink == null"
-          title="Insert link"
-          @click.stop="insertLink?.()"
+          :title="`Insert link (${binding('link')})`"
+          @activate="insertLink?.()"
         />
         <SvgButton
           name="code"
           :disabled="insertCodeBlock == null"
           title="Insert code block"
-          @click.stop="insertCodeBlock?.()"
+          @activate="insertCodeBlock?.()"
         />
       </template>
       <slot name="toolbarRight" />
@@ -111,6 +155,7 @@ defineExpose({
       v-bind="$attrs"
       :class="{ editing }"
       @focusout="focused = false"
+      @keydown.enter.stop
     >
       <VueHostRender :host="vueHost" />
     </CodeMirrorRoot>
@@ -123,10 +168,11 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   width: 100%;
+  gap: 8px;
 }
 
 .toolbar {
-  height: 48px;
+  height: 26px;
   flex-shrink: 0;
   display: flex;
   align-items: center;

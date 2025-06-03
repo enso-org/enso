@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
@@ -6,7 +7,6 @@ import type { PortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } from 'vue'
 import { isAstId, MutableModule } from 'ydoc-shared/ast'
@@ -102,7 +102,7 @@ function useChildEditForwarding(input: WatchSource<Ast.Expression | unknown>) {
         )
       }
     }
-    editHandler.edit(editedAst)
+    editHandler.value.edit(editedAst)
     editStarted = true
   })
 
@@ -118,7 +118,7 @@ function useChildEditForwarding(input: WatchSource<Ast.Expression | unknown>) {
 }
 const { childEnded, edit } = useChildEditForwarding(toRef(props.input, 'value'))
 
-const editHandler = WidgetEditHandler.New('WidgetVector', props.input, {
+const editHandler = WidgetEditHandler.New(props, {
   cancel: () => {},
   end: () => {},
   childEnded,
@@ -130,7 +130,7 @@ function itemInput(ast: Ast.Expression): WidgetInput {
     ...WidgetInput.FromAst(ast),
     dynamicConfig: itemConfig.value,
     forcePort: true,
-    editHandler,
+    editHandler: editHandler.value,
   }
 }
 </script>

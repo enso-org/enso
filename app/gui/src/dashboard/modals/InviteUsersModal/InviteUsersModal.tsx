@@ -1,17 +1,13 @@
 /** @file A modal with inputs for user email and permission level. */
-import * as React from 'react'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
-import * as inviteUsersForm from '#/modals/InviteUsersModal/InviteUsersForm'
-import * as inviteUsersSuccess from '#/modals/InviteUsersModal/InviteUsersSuccess'
-
+import { Dialog, Popover } from '#/components/Dialog'
 import { Stepper } from '#/components/Stepper'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import * as inviteUsersForm from '#/modals/InviteUsersModal/InviteUsersForm'
+import * as inviteUsersSuccess from '#/modals/InviteUsersModal/InviteUsersSuccess'
+import * as authProvider from '#/providers/AuthProvider'
 import type * as backendModule from '#/services/Backend'
+import { useText } from '$/providers/react'
+import * as React from 'react'
 
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
@@ -21,22 +17,22 @@ export interface InviteUsersModalProps {
 /** A modal for inviting one or more users. */
 export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { relativeToTrigger = false } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const { user } = authProvider.useFullUserSession()
 
   if (relativeToTrigger) {
     return (
-      <ariaComponents.Popover>
+      <Popover>
         <InviteUsersModalContent organizationId={user.organizationId} />
-      </ariaComponents.Popover>
+      </Popover>
     )
   } else {
     return (
-      <ariaComponents.Dialog title={getText('invite')}>
+      <Dialog title={getText('invite')}>
         {({ close }) => (
           <InviteUsersModalContent organizationId={user.organizationId} onClose={close} />
         )}
-      </ariaComponents.Dialog>
+      </Dialog>
     )
   }
 }

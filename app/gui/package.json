@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
-    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build",
     "build-cloud": "cross-env ENSO_IDE_CLOUD_BUILD=true corepack pnpm run build",
     "preview": "vite preview",
     "lint": "eslint . --cache --max-warnings=0",
@@ -157,7 +157,6 @@
     "@tanstack/react-query-devtools": "5.59.20",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.0.1",
-    "@testing-library/react-hooks": "8.0.1",
     "@testing-library/user-event": "14.5.2",
     "@tsconfig/node20": "^20.1.4",
     "@types/css.escape": "^1.5.2",

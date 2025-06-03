@@ -1,49 +1,12 @@
 /** @file Table displaying a list of projects. */
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  memo,
-  startTransition,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type DragEvent,
-  type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
-  type ReactNode,
-  type RefObject,
-  type SetStateAction,
-} from 'react'
-
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { toast } from 'react-toastify'
-import * as z from 'zod'
-
 import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
-import { Button, Text } from '#/components/AriaComponents'
-import type { AssetRowInnerProps } from '#/components/dashboard/AssetRow'
-import { AssetRow } from '#/components/dashboard/AssetRow'
-import { INITIAL_ROW_STATE } from '#/components/dashboard/AssetRow/assetRowUtils'
-import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
-import {
-  Column,
-  COLUMN_CSS_CLASS,
-  COLUMN_ICONS,
-  COLUMN_SHOW_TEXT_ID,
-  DEFAULT_ENABLED_COLUMNS,
-  getColumnList,
-} from '#/components/dashboard/column/columnUtils'
-import NameColumn from '#/components/dashboard/column/NameColumn'
-import { COLUMN_HEADING } from '#/components/dashboard/columnHeading'
-import Label from '#/components/dashboard/Label'
+import { Button } from '#/components/Button'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
@@ -60,12 +23,6 @@ import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import {
-  assetPanelStore,
-  useResetAssetPanelProps,
-  useSetAssetPanelProps,
-  useSetIsAssetPanelTemporarilyVisible,
-} from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
@@ -74,12 +31,22 @@ import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
+import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
+import { AssetRow } from '#/pages/dashboard/components/AssetRow'
+import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
+import { NameColumn } from '#/pages/dashboard/components/column'
+import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import {
-  useBackend,
-  useDidLoadingProjectManagerFail,
-  useReconnectToProjectManager,
-} from '#/providers/BackendProvider'
+  Column,
+  COLUMN_CSS_CLASS,
+  COLUMN_ICONS,
+  COLUMN_SHOW_TEXT_ID,
+  DEFAULT_ENABLED_COLUMNS,
+  getColumnList,
+} from '#/pages/dashboard/components/column/columnUtils'
+import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
+import Label from '#/pages/dashboard/components/Label'
+import { useFullUserSession } from '#/providers/AuthProvider'
 import {
   useDriveStore,
   useSetCanDownload,
@@ -91,9 +58,8 @@ import {
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
 import {
@@ -119,7 +85,29 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  memo,
+  startTransition,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type DragEvent,
+  type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+} from 'react'
+import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
+import * as z from 'zod'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
   SUGGESTIONS_FOR_HAS,
@@ -198,19 +186,16 @@ function AssetsTable(props: AssetsTableProps) {
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const backend = useBackend(category)
+  const { backendForType, didLoadingProjectManagerFail, reconnectToProjectManager } = useBackends()
+  const backend = backendForType(category.backend)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
-  const { setModal, unsetModal } = useSetModal()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()
-  const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
-  const reconnectToProjectManager = useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
-  const setAssetPanelProps = useSetAssetPanelProps()
-  const resetAssetPanelProps = useResetAssetPanelProps()
+  const { setContext: setRightPanelContext, setTemporaryTab: setRightPanelTemporaryTab } =
+    useRightPanelData()
 
   const columns = useMemo(
     () =>
@@ -309,13 +294,14 @@ function AssetsTable(props: AssetsTableProps) {
       const [soleId] = selectedIds
       const asset = soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-      if (asset) {
-        setAssetPanelProps({ item: asset })
-      } else {
-        setAssetPanelProps({ item: null })
-      }
+      setRightPanelContext('drive', {
+        item: asset ?? undefined,
+        category,
+      })
+    } else {
+      setRightPanelContext('drive', { category })
     }
-  }, [assets, driveStore, setAssetPanelProps])
+  }, [assets, driveStore, setRightPanelContext, category])
 
   useEffect(
     () =>
@@ -326,40 +312,17 @@ function AssetsTable(props: AssetsTableProps) {
             const asset =
               soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-            if (asset && asset.id !== assetPanelStore.getState().assetPanelProps.item?.id) {
-              setAssetPanelProps({ backend, item: asset })
-              setIsAssetPanelTemporarilyVisible(false)
-            }
+            setRightPanelContext('drive', {
+              item: asset ?? undefined,
+              category,
+            })
+            setRightPanelTemporaryTab(undefined)
           } else {
-            let commonDirectoryId: AssetId | null = null
-            let otherCandidateDirectoryId: AssetId | null = null
-            const map = new Map(assets.map((asset) => [asset.id, asset]))
-            for (const id of selectedIds) {
-              const asset = map.get(id)
-              if (asset != null) {
-                if (commonDirectoryId == null) {
-                  commonDirectoryId = asset.parentId
-                  otherCandidateDirectoryId = asset.type === AssetType.directory ? asset.id : null
-                } else if (asset.id === commonDirectoryId || asset.parentId === commonDirectoryId) {
-                  otherCandidateDirectoryId = null
-                } else if (
-                  otherCandidateDirectoryId != null &&
-                  (asset.id === otherCandidateDirectoryId ||
-                    asset.parentId === otherCandidateDirectoryId)
-                ) {
-                  commonDirectoryId = otherCandidateDirectoryId
-                  otherCandidateDirectoryId = null
-                } else {
-                  // No match; there is no common parent directory for the entire selection.
-                  commonDirectoryId = null
-                  break
-                }
-              }
-            }
+            setRightPanelContext('drive', { category })
           }
         }
       }),
-    [backend, driveStore, assets, setAssetPanelProps, setIsAssetPanelTemporarilyVisible],
+    [category, driveStore, assets, setRightPanelContext, setRightPanelTemporaryTab],
   )
 
   useEffect(() => {
@@ -611,11 +574,11 @@ function AssetsTable(props: AssetsTableProps) {
     () =>
       driveStore.subscribe(({ selectedIds }) => {
         if (selectedIds.size !== 1) {
-          resetAssetPanelProps()
-          setIsAssetPanelTemporarilyVisible(false)
+          setRightPanelContext('drive', { category })
+          setRightPanelTemporaryTab(undefined)
         }
       }),
-    [driveStore, resetAssetPanelProps, setIsAssetPanelTemporarilyVisible],
+    [driveStore, setRightPanelContext, setRightPanelTemporaryTab, category],
   )
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number | null>(null)
@@ -670,7 +633,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.datalink: {
                 event.preventDefault()
                 event.stopPropagation()
-                setIsAssetPanelTemporarilyVisible(true)
+                setRightPanelTemporaryTab('settings')
                 break
               }
               case AssetType.secret: {
@@ -682,7 +645,7 @@ function AssetsTable(props: AssetsTableProps) {
                   const id = item.id
                   setModal(
                     <UpsertSecretModal
-                      id={item.id}
+                      secretId={item.id}
                       name={item.title}
                       doCreate={async (title, value) => {
                         try {
@@ -1458,7 +1421,7 @@ function AssetsTable(props: AssetsTableProps) {
         </div>
       </IsolateLayout>
 
-      {isDraggingFiles && !isMainDropzoneVisible && (
+      {isDraggingFiles && !isMainDropzoneVisible && category.canUploadHere && (
         <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
           <div
             className="pointer-events-auto flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"

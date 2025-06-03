@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import {
+  useGraphStore,
+  useProjectStore,
+  useSuggestionDbStore,
+} from '$/components/WithCurrentProject.vue'
 import { useEnsoDiagnostics } from '@/components/CodeEditor/diagnostics'
 import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
 import { useEnsoSourceSync } from '@/components/CodeEditor/sync'
 import { ensoHoverTooltip } from '@/components/CodeEditor/tooltips'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
-import { useGraphStore } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
@@ -50,6 +52,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     ensoHoverTooltip(graphStore, suggestionDbStore, vueHost),
   ],
   vueHost: () => vueHost,
+  lineMode: 'multi',
 })
 ;(window as any).__codeEditorApi = testSupport(editorView)
 useAutoBlur(editorView.dom)

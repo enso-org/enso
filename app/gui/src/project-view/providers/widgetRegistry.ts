@@ -1,15 +1,20 @@
-import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { GraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import { Result } from '@/util/data/result'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
+import { Class } from 'ydoc-shared/util/types'
 import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
+
+declare const brandWidgetId: unique symbol
+/** Uniquely identifies a widget type. */
+export type WidgetTypeId = string & { [brandWidgetId]: true }
 
 export namespace WidgetInput {
   /** Returns widget-input data for the given AST tree or token. */
@@ -26,6 +31,19 @@ export namespace WidgetInput {
       portId,
       value: ast,
     }
+  }
+
+  /** Returns widget-input data for the given AST tree or a placeholder in case a value is missing. */
+  export function FromAstOrPlaceholder<A extends Ast.Ast | Ast.Token | string | undefined>(
+    ast: A,
+    portIdFallback: () => PortId,
+  ): WidgetInput & { value: A } {
+    return ast instanceof Ast.Ast || ast instanceof Ast.Token ?
+        WidgetInput.FromAst(ast)
+      : {
+          portId: portIdFallback(),
+          value: ast,
+        }
   }
 
   /** Returns the input marked to be a port. */
@@ -50,13 +68,13 @@ export namespace WidgetInput {
   }
 
   /** Match input against a specific AST node type. */
-  export function astMatcher<T extends Ast.Ast>(nodeType: new (...args: any[]) => T) {
+  export function astMatcher<T extends Ast.Ast>(nodeType: Class<T>) {
     return (input: WidgetInput): input is WidgetInput & { value: T } =>
       input.value instanceof nodeType
   }
 
   /** Match input against a placeholder or specific AST node type. */
-  export function placeholderOrAstMatcher<T extends Ast.Ast>(nodeType: new (...args: any[]) => T) {
+  export function placeholderOrAstMatcher<T extends Ast.Ast>(nodeType: Class<T>) {
     return (input: WidgetInput): input is WidgetInput & { value: T | string | undefined } =>
       isPlaceholder(input) || input.value instanceof nodeType
   }
@@ -176,15 +194,53 @@ export interface WidgetProps<T> {
  */
 export interface WidgetUpdate {
   edit?: Ast.MutableModule | undefined
-  portUpdate?: { origin: PortId } & (
-    | { value: Ast.Owned<Ast.MutableExpression> | string | undefined }
-    | { metadataKey: string; metadata: unknown }
-  )
+  portUpdate?:
+    | { origin: PortId; value: Ast.Owned<Ast.MutableExpression> | string | undefined }
+    | { origin: PortId; metadataKey: string; metadata: unknown }
+
   /**
    * Set to true if the updated is caused by direct interaction with the origin widget - a usual case.
    * An example if _nondirect_ interaction is an update of a port connected to a removed node).
    */
   directInteraction: boolean
+}
+
+/**
+ * Handle a direct child widget port value update in a special way, while letting any direct edit updates
+ * through unaffected.
+ */
+export async function rewritePortValueUpdate(
+  update: WidgetUpdate,
+  parentOnUpdate: UpdateHandler,
+  originPredicate: PortId | ((origin: PortId) => boolean) | undefined,
+  valueHandler: (
+    value: Ast.Owned<Ast.MutableExpression> | string | undefined,
+  ) => UpdateResult | Promise<UpdateResult>,
+) {
+  if (
+    update.portUpdate &&
+    'value' in update.portUpdate &&
+    originMatches(update.portUpdate.origin, originPredicate)
+  ) {
+    const { portUpdate, ...remainingUpdate } = update
+    let result = valueHandler(portUpdate.value)
+    if (result instanceof Promise) result = await result
+    if (!result.ok) return result
+    return parentOnUpdate(remainingUpdate)
+  } else {
+    return parentOnUpdate(update)
+  }
+}
+
+function originMatches(
+  origin: PortId,
+  predicate: PortId | ((origin: PortId) => boolean) | undefined,
+) {
+  return (
+    predicate === undefined ||
+    origin === predicate ||
+    (typeof predicate === 'function' && predicate(origin))
+  )
 }
 
 /**
@@ -233,23 +289,25 @@ export function applyWidgetUpdates(update: WidgetUpdate, graph: GraphStore) {
   }
 }
 
+export type UpdateResult = Result<void, string>
+export type HandledUpdate = UpdateResult | Promise<UpdateResult>
+export type UpdateHandler = (update: WidgetUpdate) => UpdateResult | Promise<UpdateResult>
+
 /**
  * Create Vue props definition for a widget component. This cannot be done automatically by using
  * typed `defineProps`, because vue compiler is not able to resolve conditional types. As a
  * workaround, the runtime prop information is specified manually, and the inferred `T: WidgetInput`
  * type is provided through `PropType`.
  */
-export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
+export function widgetProps<T extends WidgetInput>(def: WidgetDefinition<T>) {
   return {
-    input: {
-      type: Object as PropType<T>,
-      required: true,
-    },
+    input: { type: Object as PropType<T>, required: true },
     nesting: { type: Number, required: true },
-    onUpdate: {
-      type: Function as PropType<(update: WidgetUpdate) => void>,
-      required: true,
+    widgetTypeId: {
+      type: String as unknown as PropType<WidgetTypeId>,
+      default: def.widgetTypeId,
     },
+    onUpdate: { type: Function as PropType<UpdateHandler>, required: true },
   } as const
 }
 
@@ -309,6 +367,7 @@ export interface WidgetDefinition<T extends WidgetInput> {
   prevent: WidgetComponent<any>[] | undefined
   /** See {@link WidgetOptions.allowAsLeaf}. */
   allowAsLeaf: boolean
+  widgetTypeId: WidgetTypeId
 }
 
 export interface WidgetModule<T extends WidgetInput> {
@@ -363,11 +422,14 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
     score,
     prevent: definition.prevent,
     allowAsLeaf: definition.allowAsLeaf ?? true,
+    widgetTypeId: crypto.randomUUID() as WidgetTypeId,
   }
 
-  if (import.meta.hot && hmr) {
+  // Checking hmr.data, as it is undefined in unit test enviroment
+  if (import.meta.hot && hmr && hmr.data) {
     if (hmr.data.widgetDefinition) {
-      Object.assign(hmr.data.widgetDefinition, resolved)
+      const widgetTypeId = hmr.data.widgetDefinition.widgetTypeId
+      Object.assign(hmr.data.widgetDefinition, resolved, { widgetTypeId })
     } else {
       hmr.data.widgetDefinition = shallowReactive(resolved)
     }
@@ -391,11 +453,6 @@ function makeInputMatcher<T extends WidgetInput>(
     throw new Error('Invalid widget input matcher definiton: ' + matcher)
   }
 }
-
-export const [provideWidgetRegistry, injectWidgetRegistry] = createContextStore(
-  'Widget registry',
-  (db: GraphDb) => new WidgetRegistry(db),
-)
 
 /** TODO: Add docs */
 export class WidgetRegistry {

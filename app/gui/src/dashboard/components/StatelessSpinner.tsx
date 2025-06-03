@@ -1,34 +1,34 @@
-/** @file A spinner that does not expose its {@link SpinnerState}. */
+/** @file A spinner that does not expose its {@link SpinnerPhase}. */
 import { startTransition, useEffect, useState } from 'react'
 
-import type { SpinnerProps, SpinnerState } from '#/components/Spinner'
+import type { SpinnerPhase, SpinnerProps } from '#/components/Spinner'
 import { Spinner } from '#/components/Spinner'
-export type { SpinnerState } from '#/components/Spinner'
+export type { SpinnerPhase as SpinnerState } from '#/components/Spinner'
 
 /** Props for a {@link StatelessSpinner}. */
 export type StatelessSpinnerProps = SpinnerProps
 
 /**
- * A spinner that does not expose its {@link SpinnerState}. Instead, it begins at
+ * A spinner that does not expose its {@link SpinnerPhase}. Instead, it begins at
  * `initial` and immediately changes to the given state.
  */
 export function StatelessSpinner(props: StatelessSpinnerProps) {
-  const { state: rawState, ...spinnerProps } = props
+  const { phase: rawPhase, ...spinnerProps } = props
 
-  const [state, setState] = useState<SpinnerState>('initial')
+  const [phase, setPhase] = useState<SpinnerPhase>('initial')
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
       // consider this as a low-priority update
       startTransition(() => {
-        setState(rawState)
+        setPhase(rawPhase)
       })
     })
 
     return () => {
       cancelAnimationFrame(id)
     }
-  }, [rawState])
+  }, [rawPhase])
 
-  return <Spinner state={state} {...spinnerProps} />
+  return <Spinner phase={phase} {...spinnerProps} />
 }

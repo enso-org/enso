@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import { useDragging } from '@/components/GraphEditor/dragging'
@@ -7,8 +8,7 @@ import { useArrows, useEvent } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
-import { useGraphStore, type NodeId } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
+import { type NodeId } from '@/stores/graph'
 import type { AstId } from '@/util/ast/abstract'
 import { type Vec2 } from '@/util/data/vec2'
 import { set } from 'lib0'
@@ -68,8 +68,6 @@ const layerStyle = computed(() => ({
       @dragging="nodeIsDragged(id, $event)"
       @draggingCommited="dragging.finishDrag()"
       @draggingCancelled="dragging.cancelDrag()"
-      @outputPortClick="(event, port) => graphStore.createEdgeFromOutput(port, event)"
-      @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
       @enterNode="emit('enterNode', id)"
       @createNodes="emit('createNodes', id, $event)"
       @toggleDocPanel="emit('toggleDocPanel')"

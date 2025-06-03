@@ -11,15 +11,14 @@ import RecentIcon from '#/assets/recent.svg'
 import { useUser } from '#/providers/AuthProvider'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
+import { useBackends, useText } from '$/providers/react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
@@ -84,6 +83,7 @@ function useCloudCategoryList() {
     label: getText('cloudCategory'),
     icon: 'cloud',
     homeDirectoryId: user.rootDirectoryId,
+    canUploadHere: true,
     backend: BackendType.remote,
   }
 
@@ -93,6 +93,7 @@ function useCloudCategoryList() {
     label: getText('recentCategory'),
     icon: RecentIcon,
     homeDirectoryId: null,
+    canUploadHere: false,
     backend: BackendType.remote,
   }
 
@@ -102,6 +103,7 @@ function useCloudCategoryList() {
     label: getText('trashCategory'),
     icon: 'trash_small',
     homeDirectoryId: organizationIdToDirectoryId(user.organizationId),
+    canUploadHere: false,
     backend: BackendType.remote,
   }
 
@@ -119,6 +121,7 @@ function useCloudCategoryList() {
     homeDirectoryId: group.homeDirectoryId,
     label: getText('teamCategory', group.name),
     icon: 'people',
+    canUploadHere: true,
     backend: BackendType.remote,
   }))
 
@@ -169,6 +172,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
     homeDirectoryId: newDirectoryId(Path(directory)),
     label: getFileName(directory),
     icon: 'folder_small',
+    canUploadHere: true,
     backend: BackendType.local,
   }
 }
@@ -179,7 +183,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
  */
 function useLocalCategoryList() {
   const { getText } = useText()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const rootPath = localRootDirectory != null ? Path(localRootDirectory) : localBackend?.rootPath()
   const [localRootDirectories, setLocalRootDirectories] = useLocalStorageState(
@@ -240,6 +244,7 @@ function useLocalCategoryList() {
     icon: ComputerIcon,
     homeDirectoryId: newDirectoryId(rootPath),
     rootPath,
+    canUploadHere: true,
     backend: BackendType.local,
   }
 

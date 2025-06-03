@@ -1,5 +1,4 @@
 import { createSHA3 } from 'hash-wasm'
-import * as random from 'lib0/random'
 import {
   Builder,
   ByteBuffer,
@@ -46,7 +45,7 @@ function createError(builder: Builder, code: LanguageServerErrorCode, message: s
 }
 
 function createMessageId(builder: Builder) {
-  const messageUuid = random.uuidv4()
+  const messageUuid = crypto.randomUUID()
   const [leastSigBits, mostSigBits] = uuidToBits(messageUuid)
   return EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
 }

@@ -84,8 +84,6 @@ const INITIAL_CALLS_OBJECT = {
     labels?: backend.LabelName[]
     recent_projects?: boolean
   }>(),
-  listFiles: array<object>(),
-  listProjects: array<object>(),
   listSecrets: array<object>(),
   listTags: array<object>(),
   listUsers: array<object>(),
@@ -148,6 +146,14 @@ export interface MockParams {
   readonly setupAPI?: SetupAPI | null | undefined
 }
 
+/** The type for the search query for the "list directory" endpoint. */
+interface ListDirectoryQuery {
+  readonly parent_id?: string
+  readonly filter_by?: backend.FilterBy
+  readonly labels?: backend.LabelName[]
+  readonly recent_projects?: boolean
+}
+
 /**
  * Setup function for the mock API.
  * use it to setup the mock API with custom handlers.
@@ -196,7 +202,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   let featureFlags: Partial<FeatureFlags> = {
     enableCloudExecution: true,
-    enableAsyncExecution: true,
+    enableScheduledExecution: true,
     enableAdvancedProjectExecutionOptions: true,
     enableAssetsTableBackgroundRefresh: false,
   }
@@ -302,6 +308,43 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
   }
 
+  function listDirectory(query: ListDirectoryQuery) {
+    called('listDirectory', query)
+    const parentId = query.parent_id ?? defaultDirectoryId
+    let filteredAssets = assets.filter((asset) => asset.parentId === parentId)
+
+    switch (query.filter_by) {
+      case backend.FilterBy.active: {
+        filteredAssets = filteredAssets.filter((asset) => !deletedAssets.has(asset.id))
+        break
+      }
+      case backend.FilterBy.trashed: {
+        filteredAssets = assets.filter((asset) => deletedAssets.has(asset.id))
+        break
+      }
+      case backend.FilterBy.recent: {
+        filteredAssets = assets.filter((asset) => !deletedAssets.has(asset.id)).slice(0, 10)
+        break
+      }
+      case backend.FilterBy.all:
+      case null: {
+        // do nothing
+        break
+      }
+      case undefined: {
+        // do nothing
+        break
+      }
+    }
+    return filteredAssets.sort(
+      (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type],
+    )
+  }
+
+  function listRootDirectory() {
+    return listDirectory({})
+  }
+
   const addAsset = <T extends backend.AnyAsset>(asset: T) => {
     assetMap.set(asset.id, asset)
     assets = Array.from(assetMap.values())
@@ -361,7 +404,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     )
 
   const createUserGroupPermission = (
-    userGroup: backend.UserGroup,
+    userGroup: backend.UserGroupInfo,
     permission: permissions.PermissionAction = permissions.PermissionAction.own,
     rest: Partial<backend.UserGroupPermission> = {},
   ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
@@ -657,58 +700,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     // === Endpoints returning arrays ===
 
     await get(remoteBackendPaths.LIST_DIRECTORY_PATH + '*', (route, request) => {
-      /** The type for the search query for this endpoint. */
-      interface Query {
-        readonly parent_id?: string
-        readonly filter_by?: backend.FilterBy
-        readonly labels?: backend.LabelName[]
-        readonly recent_projects?: boolean
-      }
       const query = Object.fromEntries(
         new URL(request.url()).searchParams.entries(),
-      ) as unknown as Query
+      ) as unknown as ListDirectoryQuery
       called('listDirectory', query)
-      const parentId = query.parent_id ?? defaultDirectoryId
-      let filteredAssets = assets.filter((asset) => asset.parentId === parentId)
-
-      // This lint rule is broken; there is clearly a case for `undefined` below.
-      switch (query.filter_by) {
-        case backend.FilterBy.active: {
-          filteredAssets = filteredAssets.filter((asset) => !deletedAssets.has(asset.id))
-          break
-        }
-        case backend.FilterBy.trashed: {
-          filteredAssets = assets.filter((asset) => deletedAssets.has(asset.id))
-          break
-        }
-        case backend.FilterBy.recent: {
-          filteredAssets = assets.filter((asset) => !deletedAssets.has(asset.id)).slice(0, 10)
-          break
-        }
-        case backend.FilterBy.all:
-        case null: {
-          // do nothing
-          break
-        }
-        case undefined: {
-          // do nothing
-          break
-        }
-      }
-      filteredAssets.sort(
-        (a, b) => backend.ASSET_TYPE_ORDER[a.type] - backend.ASSET_TYPE_ORDER[b.type],
-      )
-      const json: remoteBackend.ListDirectoryResponseBody = { assets: filteredAssets }
-
+      const json: remoteBackend.ListDirectoryResponseBody = { assets: listDirectory(query) }
       route.fulfill({ json })
-    })
-    await get(remoteBackendPaths.LIST_FILES_PATH + '*', () => {
-      called('listFiles', {})
-      return { files: [] } satisfies remoteBackend.ListFilesResponseBody
-    })
-    await get(remoteBackendPaths.LIST_PROJECTS_PATH + '*', () => {
-      called('listProjects', {})
-      return { projects: [] } satisfies remoteBackend.ListProjectsResponseBody
     })
     await get(remoteBackendPaths.LIST_SECRETS_PATH + '*', () => {
       called('listSecrets', {})
@@ -1389,6 +1386,8 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       currentOrganization = organization
     },
     currentOrganizationProfilePicture: () => currentOrganizationProfilePicture,
+    listDirectory,
+    listRootDirectory,
     addAsset,
     deleteAsset,
     editAsset,

@@ -2,28 +2,10 @@
  * @file A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected.
  */
-import * as React from 'react'
-
-import { useStore } from '#/utilities/zustand'
-
-import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
-
-import {
-  canTransferBetweenCategories,
-  type Category,
-  isCloudCategory,
-} from '#/layouts/CategorySwitcher/Category'
-
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-
-import { Separator } from '#/components/AriaComponents'
 import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
+import { Separator } from '#/components/Separator'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
@@ -31,15 +13,24 @@ import {
 import { useUploadFileToCloudMutation, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import {
+  canTransferBetweenCategories,
+  type Category,
+  isCloudCategory,
+} from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useUser } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
+import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
+import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import { useStore } from '#/utilities/zustand'
+import { useBackends, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
+import * as React from 'react'
 import invariant from 'tiny-invariant'
-import { twJoin } from '../utilities/tailwindMerge'
 import { GlobalContextMenu } from './GlobalContextMenu'
 
 /** Props for an {@link AssetsTableContextMenu}. */
@@ -75,10 +66,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     doPaste,
   } = props
 
-  const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const user = useUser()
   const isCloud = isCloudCategory(category)
   const getAsset = useGetAsset()
@@ -150,9 +140,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const doDeleteAll = useEventCallback(() => {
     const selectedIds = selectedAssets.map((asset) => asset.id)
     const deleteAll = async () => {
-      unsetModal()
       setSelectedAssets([])
-
       await deleteAssetsMutation.mutateAsync([selectedIds, false])
     }
     const firstKey = selectedIds[0]
@@ -313,7 +301,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         {pasteAllMenuEntry}
       </>
 
-      <Separator className={twJoin('my-2 first:hidden', hidden && 'hidden')} />
+      {!hidden && <Separator className="my-2 first:hidden" />}
 
       <GlobalContextMenu
         noWrapper

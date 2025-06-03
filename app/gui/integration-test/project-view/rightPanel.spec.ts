@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test'
 import { test } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
@@ -5,26 +6,28 @@ import { mockCollapsedFunctionInfo, mockMethodCallInfo } from './expressionUpdat
 import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
-test('Main method documentation', async ({ page }) => {
+async function goToGraphAndGetDocs(page: Page) {
   await actions.goToGraph(page)
+  await page.getByRole('tab', { name: 'Documentation' }).click()
+  const docsContent = page.getByTestId('documentation-editor-content')
+  await expect(docsContent.locator('.cm-line')).toExist()
+  return { docsContent }
+}
 
-  const rightDock = locate.rightDock(page)
-  // Documentation panel hotkey opens right-dock.
-  await expect(rightDock).toBeHidden()
-  await page.keyboard.press(`${CONTROL_KEY}+D`)
-  await expect(rightDock).toBeVisible()
+test('Main method documentation', async ({ page }) => {
+  const { docsContent } = await goToGraphAndGetDocs(page)
 
   // Right-dock displays main method documentation.
-  await expect(page.getByTestId('documentation-editor-content')).toContainText('The main method')
+  await expect(docsContent).toContainText('The main method')
+
   // All three images are loaded properly
-  await expect(rightDock.getByAltText('Image')).toHaveCount(3)
-  for (const img of await rightDock.getByAltText('Image').all())
+  await expect(docsContent.getByAltText('Image')).toHaveCount(3)
+  for (const img of await docsContent.getByAltText('Image').all())
     await expect(img).toHaveJSProperty('naturalWidth', 3)
 
   // Nested lists are rendered with hierarchical indentation
   const listItemPos = (text: string) =>
-    page
-      .getByTestId('documentation-editor-content')
+    docsContent
       .locator('span.cm-BulletList-item span')
       .getByText(text, { exact: true })
       .boundingBox()
@@ -39,19 +42,16 @@ test('Main method documentation', async ({ page }) => {
 
   // Documentation hotkey closes right-dock.p
   await page.keyboard.press(`${CONTROL_KEY}+D`)
-  await expect(locate.rightDock(page)).toBeHidden()
+  await expect(docsContent).toBeHidden()
 })
 
 test('Doc panel focus (regression #10471)', async ({ page }) => {
-  await actions.goToGraph(page)
+  const { docsContent } = await goToGraphAndGetDocs(page)
 
-  await page.keyboard.press(`${CONTROL_KEY}+D`)
+  // Open and focus code editor.
   await page.keyboard.press(`${CONTROL_KEY}+\``)
-  await expect(locate.rightDock(page)).toBeVisible()
   const codeEditor = page.locator('.CodeEditor')
   await expect(codeEditor).toBeVisible()
-
-  // Focus code editor.
   await codeEditor.click()
 
   await page.evaluate(() => {
@@ -70,30 +70,24 @@ test('Doc panel focus (regression #10471)', async ({ page }) => {
     return codeEditor.textContent()
   })
   expect(content.includes('The main TEST method')).toBe(true)
-  await expect(locate.rightDock(page)).toContainText('The main TEST method')
+  await expect(docsContent).toContainText('The main TEST method')
 })
 
 test('Code editor with wide content does not take space from doc editor (#12476)', async ({
   page,
 }) => {
-  await actions.goToGraph(page)
+  await goToGraphAndGetDocs(page)
+  const rightDock = locate.rightDock(page)
 
-  await page.keyboard.press(`${CONTROL_KEY}+D`)
-  await expect(locate.rightDock(page)).toBeVisible()
-  await locate
-    .rightDock(page)
-    .elementHandle()
-    .then((el) => el!.waitForElementState('stable'))
-  const docPosWithoutCodeEditor = (await locate.rightDock(page).boundingBox())!.x
-
+  const getDocX = async () => {
+    await rightDock.elementHandle().then((el) => el!.waitForElementState('stable'))
+    return (await rightDock.boundingBox())!.x
+  }
+  const docPosWithoutCodeEditor = await getDocX()
   await page.keyboard.press(`${CONTROL_KEY}+\``)
   const codeEditor = page.locator('.CodeEditor')
   await expect(codeEditor).toBeVisible()
-  await locate
-    .rightDock(page)
-    .elementHandle()
-    .then((el) => el!.waitForElementState('stable'))
-  const docPosWithCodeEditor = (await locate.rightDock(page).boundingBox())!.x
+  const docPosWithCodeEditor = await getDocX()
 
   // Note that we compare `x` instead of `width`: This will catch either a change in width, or the
   // viewport becoming larger than the page (causing a change in *apparent* width).
@@ -101,8 +95,9 @@ test('Code editor with wide content does not take space from doc editor (#12476)
 })
 
 test('Component help', async ({ page }) => {
-  await actions.goToGraph(page, false)
-  await locate.rightDock(page).getByRole('button', { name: 'Help' }).click()
+  await actions.goToGraph(page)
+
+  await page.getByRole('tab', { name: 'Help' }).click()
   await expect(locate.rightDock(page)).toHaveText(/Select a single component/)
 
   await locate.graphNodeByBinding(page, 'final').click()
@@ -121,12 +116,7 @@ test('Component help', async ({ page }) => {
 })
 
 test('Documentation reflects entered function', async ({ page }) => {
-  await actions.goToGraph(page)
-
-  // Open the panel
-  await expect(locate.rightDock(page)).toBeHidden()
-  await page.keyboard.press(`${CONTROL_KEY}+D`)
-  await expect(locate.rightDock(page)).toBeVisible()
+  const { docsContent } = await goToGraphAndGetDocs(page)
 
   // Enter the collapsed function
   await mockCollapsedFunctionInfo(page, 'final', 'func1')
@@ -134,15 +124,12 @@ test('Documentation reflects entered function', async ({ page }) => {
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
 
   // Editor should contain collapsed function's docs
-  await expect(page.getByTestId('documentation-editor-content')).toHaveText('A collapsed function')
+  await expect(docsContent).toHaveText('A collapsed function')
 })
 
 test('Link in documentation is rendered and interactive', async ({ page, context }) => {
-  await actions.goToGraph(page)
-  await page.keyboard.press(`${CONTROL_KEY}+D`)
-  await expect(locate.rightDock(page)).toBeVisible()
+  const { docsContent } = await goToGraphAndGetDocs(page)
   const rightDock = locate.rightDock(page)
-  const docsContent = page.getByTestId('documentation-editor-content')
   await expect(docsContent.locator('a')).toHaveAccessibleDescription(
     /Click to edit.*Click to open link/,
   )
@@ -157,12 +144,8 @@ test('Link in documentation is rendered and interactive', async ({ page, context
 })
 
 test('Insert link button inserts link and focuses editor', async ({ page }) => {
-  await actions.goToGraph(page)
-  await page.keyboard.press(`${CONTROL_KEY}+D`)
-  await expect(locate.rightDock(page)).toBeVisible()
+  const { docsContent } = await goToGraphAndGetDocs(page)
   const rightDock = locate.rightDock(page)
-  const docsContent = page.getByTestId('documentation-editor-content')
-  await expect(docsContent.locator('.cm-line')).toExist()
 
   // Delete all text and defocus the editor
   await docsContent.locator('.cm-line').first().click()
@@ -172,9 +155,37 @@ test('Insert link button inserts link and focuses editor', async ({ page }) => {
   await docsContent.blur()
 
   // Push the button
-  await locate.rightDock(page).getByRole('button', { name: 'Insert link' }).click()
+  await rightDock.getByRole('button', { name: 'Insert link' }).click()
 
   // The link exists and is being edited
   await expect(docsContent.locator('a')).toExist()
   await expect(rightDock.locator('.LinkEditPopup')).toExist()
+})
+
+test('Documentation editor: Editing with keyboard', async ({ page }) => {
+  const { docsContent } = await goToGraphAndGetDocs(page)
+
+  await page.keyboard.press(`${CONTROL_KEY}+\``)
+  const getGraphCode = () => page.evaluate(() => (window as any).__codeEditorApi.textContent())
+
+  await docsContent
+    .locator('.cm-line')
+    .getByText(/The main method/)
+    .click()
+  await expect(docsContent).toBeFocused()
+
+  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  const NEW_DOCS = 'New main method documentation'
+  await page.keyboard.type(NEW_DOCS)
+  const codeAfterSettingNewDocs = await getGraphCode()
+  expect(codeAfterSettingNewDocs).toContain(`## ${NEW_DOCS}`)
+
+  await page.keyboard.press(`${CONTROL_KEY}+Alt+1`)
+  const codeAfterHeaderCommand = await getGraphCode()
+  expect(codeAfterHeaderCommand).toContain(`## # ${NEW_DOCS}`)
+
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Second line')
+  const codeAfterAddingLine = await getGraphCode()
+  expect(codeAfterAddingLine).toContain(`## # ${NEW_DOCS}\n   Second line`)
 })

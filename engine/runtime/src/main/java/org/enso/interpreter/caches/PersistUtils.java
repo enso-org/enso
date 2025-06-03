@@ -5,7 +5,18 @@ import java.util.ArrayList;
 import org.enso.persist.Persistance;
 import org.openide.util.lookup.ServiceProvider;
 
-public class PersistUtils {
+public final class PersistUtils {
+  private PersistUtils() {}
+
+  /** Pool of persistable instances in the caches. */
+  public static final Persistance.Pool POOL =
+      Persistance.Pool.merge(
+          org.enso.compiler.core.ir.Persistables.POOL,
+          org.enso.compiler.pass.analyse.Persistables.POOL,
+          org.enso.compiler.pass.analyse.types.Persistables.POOL,
+          org.enso.compiler.pass.analyse.alias.graph.Persistables.POOL,
+          org.enso.interpreter.caches.Persistables.POOL);
+
   @ServiceProvider(service = Persistance.class)
   public static final class PersistArrayList extends Persistance<ArrayList> {
     public PersistArrayList() {

@@ -39,6 +39,13 @@ object JVMSettings {
   private val nioOpen: (String, String) =
     ("add-opens", "java.base/java.nio=ALL-UNNAMED")
 
+  // See GraalVM 24 upgrade notes
+  private val unsafeAllowed: (String, String) =
+    ("sun-misc-unsafe-memory-access", "allow")
+
+  private val nativeTruffle: (String, String) =
+    ("enable-native-access", "org.graalvm.truffle")
+
   /** Creates a default instance of [[JVMSettings]] that just use the default
     * JVM with no options overrides.
     */
@@ -53,7 +60,7 @@ object JVMSettings {
     JVMSettings(
       useSystemJVM = false,
       jvmOptions   = jvmOptions.result(),
-      extraOptions = Seq(nioOpen)
+      extraOptions = Seq(nioOpen, unsafeAllowed, nativeTruffle)
     )
   }
 

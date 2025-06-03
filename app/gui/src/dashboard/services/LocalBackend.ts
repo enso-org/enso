@@ -14,6 +14,7 @@ import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/util
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
+import { markRaw } from 'vue'
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
@@ -275,27 +276,6 @@ export default class LocalBackend extends Backend {
     }
 
     return result
-  }
-
-  /**
-   * Return a list of projects belonging to the current user.
-   * @throws An error if the JSON-RPC call fails.
-   */
-  override async listProjects(): Promise<readonly backend.ListedProject[]> {
-    const result = await this.projectManager.listProjects({})
-    return result.projects.map((project) => ({
-      name: project.name,
-      organizationId: backend.OrganizationId('organization-'),
-      projectId: newProjectId(project.id, this.projectManager.rootDirectory),
-      packageName: project.name,
-      state: {
-        type: backend.ProjectState.closed,
-        volumeId: '',
-      },
-      jsonAddress: null,
-      binaryAddress: null,
-      ydocAddress: null,
-    }))
   }
 
   /**
@@ -871,16 +851,6 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override checkResources() {
-    return this.invalidOperation()
-  }
-
-  /** Return an empty array. This function should never need to be called. */
-  override listFiles() {
-    return Promise.resolve([])
-  }
-
-  /** Invalid operation. */
   override getFileDetails() {
     return this.invalidOperation()
   }
@@ -1071,3 +1041,5 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 }
+
+markRaw(LocalBackend.prototype)

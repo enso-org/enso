@@ -1,6 +1,7 @@
 /** @file Rendering for an {@link SettingsFormEntryData}. */
-import { ButtonGroup, Form } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { useText } from '$/providers/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import SettingsInput from './Input'
@@ -73,10 +74,10 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
             exit={{ opacity: 0, y: -10 }}
           >
-            <ButtonGroup>
+            <Button.Group>
               <Form.Submit>{getText('save')}</Form.Submit>
               <Form.Reset>{getText('cancel')}</Form.Reset>
-            </ButtonGroup>
+            </Button.Group>
           </motion.div>
         )}
       </AnimatePresence>

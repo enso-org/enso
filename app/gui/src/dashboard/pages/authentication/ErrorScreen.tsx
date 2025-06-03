@@ -1,7 +1,7 @@
 /** @file A screen displaying an error. */
 import { Text } from '#/components/aria'
-import { useText } from '#/providers/TextProvider'
 import { getMessageOrToString } from '#/utilities/error'
+import { useText } from '$/providers/react'
 
 /** Props for an {@link ErrorScreen}. */
 export interface ErrorScreenProps {

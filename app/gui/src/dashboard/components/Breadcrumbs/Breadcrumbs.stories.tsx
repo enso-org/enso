@@ -1,7 +1,7 @@
 /** @file Stories for the Breadcrumbs component. */
-
 import ArrowDown from '#/assets/expand_arrow.svg'
-import { Button, Menu } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Menu } from '#/components/Menu'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, fn, userEvent, within } from '@storybook/test'
 import { useState } from 'react'
@@ -537,7 +537,7 @@ export const WithCustomIcon: Story = {
   ),
 }
 
-export const WithOnAction: Story = {
+export const WithOnactionCallback: Story = {
   args: { onAction: fn() },
   render: (args) => (
     <Breadcrumbs {...args}>
@@ -562,7 +562,7 @@ export const WithOnAction: Story = {
   },
 }
 
-export const WithDnD: Story = {
+export const WithDragAndDrop: Story = {
   args: {
     onDrop: fn(async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000))
