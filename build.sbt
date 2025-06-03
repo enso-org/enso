@@ -5282,7 +5282,7 @@ lazy val `std-google-api` = project
           unmanagedClasspath = (Compile / unmanagedJars).value,
           previousRun        = prev
         )
-      StdBits
+      val grpc = StdBits
         .extractNativeLibsFromGrpc(
           `google-api-polyglot-root`,
           `google-api-native-libs`,
@@ -5294,6 +5294,18 @@ lazy val `std-google-api` = project
           cacheStoreFactory  = cacheStoreFactory,
           previousRun        = prev
         )
+      val conscrypt = StdBits
+        .extractNativeLibsFromConscrypt(
+          `google-api-polyglot-root`,
+          `google-api-native-libs`,
+          updateReport       = (Compile / update).value,
+          logger             = streams.value.log,
+          moduleName         = moduleName.value,
+          scalaBinaryVersion = scalaBinaryVersion.value,
+          cacheStoreFactory  = cacheStoreFactory,
+          previousRun        = prev
+        )
+      grpc.appended(conscrypt)
     }.value,
     cleanPolyglotRoot := Def.task {
       import sbt.util.CacheImplicits._
@@ -5473,7 +5485,7 @@ lazy val `std-snowflake` = project
           unmanagedClasspath                = (Compile / unmanagedJars).value,
           previousRun                       = prev
         )
-      StdBits
+      val grpc = StdBits
         .extractNativeLibsFromGrpc(
           `std-snowflake-polyglot-root`,
           `std-snowflake-native-libs`,
@@ -5485,6 +5497,18 @@ lazy val `std-snowflake` = project
           cacheStoreFactory  = cacheStoreFactory,
           previousRun        = prev
         )
+      val conscrypt = StdBits
+        .extractNativeLibsFromConscrypt(
+          `std-snowflake-polyglot-root`,
+          `std-snowflake-native-libs`,
+          updateReport       = (Compile / update).value,
+          logger             = streams.value.log,
+          moduleName         = moduleName.value,
+          scalaBinaryVersion = scalaBinaryVersion.value,
+          cacheStoreFactory  = cacheStoreFactory,
+          previousRun        = prev
+        )
+      grpc.appended(conscrypt)
     }.value,
     cleanPolyglotRoot := Def.task {
       import sbt.util.CacheImplicits._

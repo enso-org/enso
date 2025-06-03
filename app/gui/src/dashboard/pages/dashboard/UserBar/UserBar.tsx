@@ -104,7 +104,16 @@ export function UserBar(props: UserBarProps) {
           )}
         </AnimatePresence>
 
-        <UserBarHelpSection items={topbarLinks.items} />
+        <div className="flex sm:hidden">
+          <Popover.Trigger>
+            <Button variant="icon" icon="help" aria-label={getText('help')} />
+            <Popover size="auto">
+              <UserBarHelpSection items={topbarLinks.items} className="flex-col" />
+            </Popover>
+          </Popover.Trigger>
+        </div>
+
+        <UserBarHelpSection items={topbarLinks.items} className="hidden sm:flex" />
 
         {shouldShowPaywallButton && (
           <PaywallDialogButton feature="inviteUser" size="medium" variant="accent">
@@ -153,18 +162,19 @@ export function UserBar(props: UserBarProps) {
 /** Props for a {@link UserBarHelpSection}. */
 export interface UserBarHelpSectionProps {
   readonly items: z.infer<typeof TOPBAR_LINKS_SCHEMA>['items']
+  readonly className?: string
 }
 
 /** A section containing help buttons. */
 export function UserBarHelpSection(props: UserBarHelpSectionProps) {
-  const { items } = props
+  const { items, className } = props
   const { getText } = useText()
 
   const getSafetyProps = (url: string) =>
     isAbsoluteUrl(url) ? { rel: 'opener', target: '_blank' } : {}
 
   return (
-    <Button.Group gap="small" buttonVariants={{ variant: 'icon' }}>
+    <Button.Group gap="small" buttonVariants={{ variant: 'icon' }} className={className}>
       {items.map((item) => {
         if ('url' in item) {
           if ('menu' in item) {

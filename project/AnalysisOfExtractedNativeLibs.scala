@@ -14,6 +14,12 @@ case class AnalysisOfExtractedNativeLibs(
     libs.find(_.from == srcJar)
 
   def isOutdated: Boolean = libs.exists(_.isOutdated)
+
+  def appended(
+    other: AnalysisOfExtractedNativeLibs
+  ): AnalysisOfExtractedNativeLibs = {
+    AnalysisOfExtractedNativeLibs(libs ++ other.libs)
+  }
 }
 object AnalysisOfExtractedNativeLibs {
   import sjsonnew.{:*:, LList, LNil}
