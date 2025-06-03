@@ -381,7 +381,7 @@ public class BindingsMapResolutionTest {
   }
 
   @Test
-  public void resolveType_InImportCycle() throws IOException {
+  public void resolveModule_InImportCycle_1() throws IOException {
     var tmpDir = TMP_DIR.newFolder();
     var projDir = tmpDir.toPath().resolve("Proj");
     projDir.toFile().mkdir();
@@ -391,14 +391,12 @@ public class BindingsMapResolutionTest {
             new SourceModule(
                 QualifiedName.fromString("Data.A"),
                 """
-                    import project.Data.B.B_Type
-                    type A_Type
+                    import project.Data.B
                     """),
             new SourceModule(
                 QualifiedName.fromString("Data.B"),
                 """
-                    import project.Data.A.A_Type
-                    type B_Type
+                    import project.Data.A
                     """),
             new SourceModule(QualifiedName.fromString("Main"), "")),
         projDir);
@@ -414,7 +412,7 @@ public class BindingsMapResolutionTest {
   }
 
   @Test
-  public void resolveModule_InImportCycle() throws IOException {
+  public void resolveModule_InImportCycle_2() throws IOException {
     var tmpDir = TMP_DIR.newFolder();
     var projDir = tmpDir.toPath().resolve("Proj");
     projDir.toFile().mkdir();
