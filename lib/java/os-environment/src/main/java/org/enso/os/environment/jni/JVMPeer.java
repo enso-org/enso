@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
@@ -35,35 +34,6 @@ final class JVMPeer {
     var bytes = Persistables.POOL.write(res, null);
     seg.copyFrom(MemorySegment.ofArray(bytes));
     return bytes.length;
-  }
-
-  @Persistable(id = 432001)
-  public static final class ExecuteMainClass extends Channel.Message<Void> {
-    private final String mainClassWithSlashes;
-    private final List<String> args;
-
-    public ExecuteMainClass(String mainClassWithSlashes, List<String> args) {
-      super(Void.class);
-      this.mainClassWithSlashes = mainClassWithSlashes;
-      this.args = args;
-    }
-
-    public String mainClassWithSlashes() {
-      return mainClassWithSlashes;
-    }
-
-    public List<String> args() {
-      return Collections.unmodifiableList(args);
-    }
-
-    @Override
-    protected final Void evaluate(Channel notNeeded) throws Exception {
-      var clazz = Class.forName(mainClassWithSlashes.replace('/', '.'));
-      var method = clazz.getDeclaredMethod("main", String[].class);
-      method.setAccessible(true);
-      method.invoke(null, (Object) args.toArray(new String[args.size()]));
-      return null;
-    }
   }
 
   @Persistable(id = 432002)

@@ -6,7 +6,6 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Function;
 import org.enso.common.Platform;
 import org.enso.persist.Persistance;
@@ -106,9 +105,30 @@ public final class JVM {
    * @param args arguments to pass to the main method
    */
   public final void executeMain(String classNameWithSlashes, String... args) {
-    var msg = new JVMPeer.ExecuteMainClass(classNameWithSlashes, List.of(args));
-    org.enso.os.environment.jni.Channel channel = new Channel(JVMPeer.POOL, env());
-    channel.execute(msg);
+    var e = env();
+    try (var className = CTypeConversion.toCString(classNameWithSlashes);
+        var mainName = CTypeConversion.toCString("main");
+        var stringName = CTypeConversion.toCString("java/lang/String");
+        var mainSig = CTypeConversion.toCString("([Ljava/lang/String;)V"); ) {
+      var fn = e.getFunctions();
+      var mainClazz = fn.getFindClass().call(e, className.get());
+      assert mainClazz.isNonNull() : "Class not found " + classNameWithSlashes;
+      var mainMethod = fn.getGetStaticMethodID().call(e, mainClazz, mainName.get(), mainSig.get());
+      assert mainMethod.isNonNull() : "main method found in " + classNameWithSlashes;
+      var stringClazz = fn.getFindClass().call(e, stringName.get());
+      var argsCopy =
+          fn.getNewObjectArray().call(e, args.length, stringClazz, WordFactory.nullPointer());
+
+      for (var i = 0; i < args.length; i++) {
+        try (var ithArg = CTypeConversion.toCString(args[i]); ) {
+          var str = fn.getNewStringUTF().call(e, ithArg.get());
+          fn.getSetObjectArrayElement().call(e, argsCopy, i, str);
+        }
+      }
+      var arg = StackValue.get(JNI.JValue.class);
+      arg.setJObject(argsCopy);
+      fn.getCallStaticVoidMethodA().call(e, mainClazz, mainMethod, arg);
+    }
   }
 
   /**
