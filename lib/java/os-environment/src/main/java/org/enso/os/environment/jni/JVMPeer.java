@@ -4,17 +4,22 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 
-final class JVMPeer {
-  static final Persistance.Pool POOL = Persistables.POOL;
+public final class JVMPeer implements Supplier<Persistance.Pool> {
 
-  private JVMPeer() {}
+  public JVMPeer() {}
+
+  @Override
+  public Persistance.Pool get() {
+    return Persistables.POOL;
+  }
 
   @Persistable(id = 432002)
-  public static final class PersistList extends Persistance<List> {
-    public PersistList() {
+  static final class PersistList extends Persistance<List> {
+    PersistList() {
       super(List.class, true, 432002);
     }
 
@@ -58,8 +63,8 @@ final class JVMPeer {
   }
 
   @Persistable(id = 4438)
-  public static final class PersistBigInt extends Persistance<BigInteger> {
-    public PersistBigInt() {
+  static final class PersistBigInt extends Persistance<BigInteger> {
+    PersistBigInt() {
       super(BigInteger.class, true, 4438);
     }
 
@@ -81,8 +86,8 @@ final class JVMPeer {
   }
 
   @Persistable(id = 4439)
-  public static final class PersistLong extends Persistance<Long> {
-    public PersistLong() {
+  static final class PersistLong extends Persistance<Long> {
+    PersistLong() {
       super(Long.class, true, 4439);
     }
 

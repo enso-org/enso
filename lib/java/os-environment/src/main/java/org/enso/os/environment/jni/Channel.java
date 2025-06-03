@@ -9,6 +9,7 @@ import java.lang.foreign.ValueLayout;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.enso.persist.Persistance;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.ImageInfo;
@@ -75,15 +76,19 @@ public final class Channel implements AutoCloseable {
   /**
    * Factory method to initialize the Channel in the SubstrateVM.
    *
-   * @param e
-   * @return
+   * @param e JNI environment to talk to the HotSpot JVM
+   * @param poolClass the class which has public default constructor and can suply instance of
+   *     persistance pool to use for communication
+   * @return channel for sending messages to the HotSpot JVM
    */
-  static synchronized Channel create(JNI.JNIEnv e) {
+  static synchronized Channel create(
+      JNI.JNIEnv e, Class<? extends Supplier<Persistance.Pool>> poolClass) {
     var id = idCounter++;
     var classNameWithSlashes = Channel.class.getName().replace('.', '/');
     try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
+        var poolClassInC = CTypeConversion.toCString(poolClass.getName());
         var createInC = CTypeConversion.toCString("createJvmPeerChannel");
-        var createSigInC = CTypeConversion.toCString("(JJJ)Z"); //
+        var createSigInC = CTypeConversion.toCString("(JJJLjava/lang/String;)Z"); //
         var handleInC = CTypeConversion.toCString("handleJvmMessage");
         var handleSigInC = CTypeConversion.toCString("(JJJ)J"); //
         ) {
@@ -93,25 +98,40 @@ public final class Channel implements AutoCloseable {
       var createMethod =
           fn.getGetStaticMethodID().call(e, channelClass, createInC.get(), createSigInC.get());
       assert createMethod.isNonNull() : "method not found in " + classNameWithSlashes;
-      var arg = StackValue.get(2, JNI.JValue.class);
+      var poolClassInHotSpot = fn.getNewStringUTF().call(e, poolClassInC.get());
+      var arg = StackValue.get(4, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
       arg.addressOf(1).setLong(CurrentIsolate.getCurrentThread().rawValue());
       arg.addressOf(2).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
+      arg.addressOf(3).setJObject(poolClassInHotSpot);
       var replyOk = fn.getCallStaticBooleanMethodA().call(e, channelClass, createMethod, arg);
+      if (!replyOk) {
+        fn.getExceptionDescribe().call(e);
+      }
       assert replyOk : "Failed to create peer in HotSpot JVM";
 
       var handleMethod =
           fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
 
-      var channel = new Channel(id, JVMPeer.POOL, e, channelClass, handleMethod);
-      ID_TO_CHANNEL.put(id, channel);
-      return channel;
+      try {
+        var pool = poolClass.getConstructor().newInstance().get();
+        var channel = new Channel(id, pool, e, channelClass, handleMethod);
+        ID_TO_CHANNEL.put(id, channel);
+        return channel;
+      } catch (ReflectiveOperationException ex) {
+        throw new IllegalStateException(ex);
+      }
     }
   }
 
   /** Allocates new channel with given ID in the HotSpot VM. Called via JNI/foreign interface. */
-  private static boolean createJvmPeerChannel(long id, long threadId, long callbackFn) {
-    var channel = new Channel(id, JVMPeer.POOL, threadId, callbackFn);
+  private static boolean createJvmPeerChannel(
+      long id, long threadId, long callbackFn, String poolClassName) throws Throwable {
+    @SuppressWarnings("unchecked")
+    var factory =
+        (Supplier<Persistance.Pool>) Class.forName(poolClassName).getConstructor().newInstance();
+    var pool = factory.get();
+    var channel = new Channel(id, pool, threadId, callbackFn);
     var prev = ID_TO_CHANNEL.put(id, channel);
     return prev == null;
   }
@@ -124,6 +144,7 @@ public final class Channel implements AutoCloseable {
    *
    * <p>
    *
+   * @param resultType class with the type of {@code R} to use for deserialization
    * @param msg the message that gets serialized, transferred into the other JVM, deserialized on
    *     the other side and {@link Message#evaluate() evaluated} there
    * @param <R> the type of result we expect the message to return

@@ -10,6 +10,7 @@ import java.util.Random;
 import org.enso.os.environment.jni.JNI.JValue;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.junit.Before;
 import org.junit.Test;
 
 public class LoadClassTest {
@@ -42,6 +43,13 @@ public class LoadClassTest {
 
   private static JNI.JNIEnv env() {
     return jvm().env();
+  }
+
+  private Channel channel;
+
+  @Before
+  public void initializeChannel() throws Exception {
+    channel = Channel.create(env(), JVMPeer.class);
   }
 
   @Test
@@ -130,7 +138,6 @@ public class LoadClassTest {
   public void computeFactorialViaMessages() throws Exception {
     TestMain.CORRECT_RESULTS.clear();
     assertEquals("Results are empty", 0, TestMain.CORRECT_RESULTS.size());
-    var channel = Channel.create(env());
     var gen = new Random();
     var n = 0L;
     for (var i = 0; i < 5; i++) {
@@ -147,7 +154,6 @@ public class LoadClassTest {
 
   @Test
   public void computeFactorialViaSingleMessage() throws Exception {
-    var channel = Channel.create(env());
     var gen = new Random();
     var n = 0L;
     for (var i = 0; i < 5; i++) {
@@ -160,35 +166,30 @@ public class LoadClassTest {
 
   @Test
   public void backAndForthFactorialOne() throws Exception {
-    var channel = Channel.create(env());
     var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(1, 1));
     assertEquals(1, fac.longValue());
   }
 
   @Test
   public void backAndForthFactorialTwo() throws Exception {
-    var channel = Channel.create(env());
     var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(2, 1));
     assertEquals(2, fac.longValue());
   }
 
   @Test
   public void backAndForthFactorialThree() throws Exception {
-    var channel = Channel.create(env());
     var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(3, 1));
     assertEquals(6, fac.longValue());
   }
 
   @Test
   public void backAndForthFactorialFour() throws Exception {
-    var channel = Channel.create(env());
     var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(4, 1));
     assertEquals(24, fac.longValue());
   }
 
   @Test
   public void backAndForthFactorialFive() throws Exception {
-    var channel = Channel.create(env());
     var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
     assertEquals(120, fac.longValue());
   }
