@@ -6,6 +6,7 @@ import * as common from 'enso-common'
 import * as object from '#/utilities/object'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
+import { markRaw } from 'vue'
 
 const KEY_DEFINITION_STACK_TRACES = new Map<string, string>()
 
@@ -309,3 +310,5 @@ export default class LocalStorage {
     return null
   }
 }
+
+markRaw(LocalStorage.prototype)

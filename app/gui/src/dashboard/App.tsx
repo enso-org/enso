@@ -47,7 +47,6 @@ import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
-import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import ModalProvider, { setModal } from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 
@@ -63,10 +62,11 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { Path } from '#/utilities/path'
 
 import { useInitAuthService } from '#/authentication/service'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { useBackends, useLocalStorage, useRouter, useText } from '$/providers/react'
 
 window.menuApi?.setShowAboutModalHandler(() => {
   setModal(<AboutModal />)
@@ -143,11 +143,9 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
         transition={toastify.Slide}
         limit={3}
       />
-      <LocalStorageProvider>
-        <ModalProvider>
-          <AppRouter {...props} />
-        </ModalProvider>
-      </LocalStorageProvider>
+      <ModalProvider>
+        <AppRouter {...props} />
+      </ModalProvider>
     </>
   )
 }
@@ -164,7 +162,7 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
   const { router } = useRouter()
   const navigate = router.push.bind(router)
 
-  const { localStorage } = localStorageProvider.useLocalStorage()
+  const localStorage = useLocalStorage()
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
@@ -241,7 +239,7 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
 
 /** Keep `localBackend.rootPath` in sync with the saved root path state. */
 function LocalBackendPathSynchronizer() {
-  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
+  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const { localBackend } = useBackends()
 
   if (localRootDirectory != null) {

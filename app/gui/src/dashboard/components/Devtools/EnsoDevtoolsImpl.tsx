@@ -26,12 +26,11 @@ import {
   useFeatureFlags,
   useSetFeatureFlag,
 } from '#/providers/FeatureFlagsProvider'
-import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
-import { useText } from '$/providers/react'
+import { useLocalStorage, useText } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as React from 'react'
@@ -278,7 +277,7 @@ export function EnsoDevtools() {
   const animationsDisabled = useAnimationsDisabled()
   const setAnimationsDisabled = useSetAnimationsDisabled()
 
-  const { localStorage } = useLocalStorage()
+  const localStorage = useLocalStorage()
   const [localStorageState, setLocalStorageState] = React.useState<Partial<LocalStorageData>>({})
 
   // Re-render when localStorage changes.

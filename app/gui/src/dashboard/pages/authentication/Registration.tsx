@@ -18,10 +18,9 @@ import {
 } from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { useBackends, useLocalStorage, useRouter, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import * as z from 'zod'
@@ -45,7 +44,7 @@ export default function Registration() {
   const { signUp, confirmSignUp, signInWithPassword } = useSessionAPI()
 
   const { searchParams } = useRouter()
-  const { localStorage } = useLocalStorage()
+  const localStorage = useLocalStorage()
   const { getText } = useText()
   const { localBackend } = useBackends()
   const supportsOffline = localBackend != null

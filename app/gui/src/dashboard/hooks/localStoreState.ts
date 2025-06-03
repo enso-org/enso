@@ -6,36 +6,8 @@ import * as React from 'react'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
-import LocalStorage, { type LocalStorageData, type LocalStorageKey } from '#/utilities/LocalStorage'
-
-/** State contained in a `LocalStorageContext`. */
-export interface LocalStorageContextType {
-  readonly localStorage: LocalStorage
-}
-
-// @ts-expect-error The default value will never be exposed, as using this without a `Provider`
-// is a mistake.
-const LocalStorageContext = React.createContext<LocalStorageContextType>(null)
-
-/** Props for a {@link LocalStorageProvider}. */
-export type LocalStorageProviderProps = Readonly<React.PropsWithChildren>
-
-/** A React Provider that lets components get the shortcut registry. */
-export default function LocalStorageProvider(props: LocalStorageProviderProps) {
-  const { children } = props
-
-  const localStorage = LocalStorage.getInstance()
-
-  return (
-    <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>
-  )
-}
-
-/** Exposes a property to get the shortcut registry. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useLocalStorage() {
-  return React.useContext(LocalStorageContext)
-}
+import { type LocalStorageData, type LocalStorageKey } from '#/utilities/LocalStorage'
+import { useLocalStorage } from '$/providers/react'
 
 /** Options for {@link useLocalStorageState}. */
 export interface LocalStorageStateOptions<K extends LocalStorageKey> {
@@ -61,7 +33,6 @@ export function useLocalStorageState<K extends LocalStorageKey>(
 ]
 
 /** Subscribe to Local Storage updates for a specific key. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useLocalStorageState<K extends LocalStorageKey>(
   key: K,
   defaultValue?: LocalStorageData[K],
@@ -70,7 +41,7 @@ export function useLocalStorageState<K extends LocalStorageKey>(
   value: LocalStorageData[K] | undefined,
   setValue: (newValue: LocalStorageData[K] | undefined) => void,
 ] {
-  const { localStorage } = useLocalStorage()
+  const localStorage = useLocalStorage()
   const { sanitize } = options
 
   const [value, privateSetValue] = React.useState<LocalStorageData[K] | undefined>(() => {

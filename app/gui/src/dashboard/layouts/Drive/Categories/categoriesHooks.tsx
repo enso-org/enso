@@ -11,7 +11,7 @@ import RecentIcon from '#/assets/recent.svg'
 import { useUser } from '#/providers/AuthProvider'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import type Backend from '#/services/Backend'
 import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'

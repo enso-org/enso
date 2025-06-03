@@ -1,5 +1,7 @@
 import HttpClient from '#/utilities/HttpClient'
+import LocalStorage from '#/utilities/LocalStorage'
 import { useBackends as useBackendsVue, type BackendsStore } from '$/providers/backends'
+import { useLocalStorage as useLocalStorageVue } from '$/stores/localStorage'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { assert } from '@/util/assert'
 import * as react from 'react'
@@ -38,12 +40,16 @@ export const useHttpClient = useInReactFunction(HTTPClientContext)
 const BackendsContext = react.createContext<BackendsStore | null>(null)
 export const useBackends = useInReactFunction(BackendsContext)
 
+const LocalStorageContext = react.createContext<LocalStorage | null>(null)
+export const useLocalStorage = useInReactFunction(LocalStorageContext)
+
 interface ContextsForReactProviderProps {
   router: RouterForReact
   config: GuiConfig
   text: TextStore
   httpClient: HttpClient
   backends: BackendsStore
+  localStorage: LocalStorage
 }
 
 /**
@@ -54,13 +60,15 @@ interface ContextsForReactProviderProps {
  */
 export const ContextsForReactProvider = applyPureReactInVue(
   (props: react.PropsWithChildren<ContextsForReactProviderProps>) => {
-    const { children, router, config, text, httpClient, backends } = props
+    const { children, router, config, text, httpClient, backends, localStorage } = props
     return (
       <RouterContext.Provider value={router}>
         <ConfigContext.Provider value={config}>
           <TextContext.Provider value={text}>
             <HTTPClientContext.Provider value={httpClient}>
-              <BackendsContext.Provider value={backends}>{children}</BackendsContext.Provider>
+              <LocalStorageContext.Provider value={localStorage}>
+                <BackendsContext.Provider value={backends}>{children}</BackendsContext.Provider>
+              </LocalStorageContext.Provider>
             </HTTPClientContext.Provider>
           </TextContext.Provider>
         </ConfigContext.Provider>
@@ -93,6 +101,7 @@ export const ContextsForReactProvider = applyPureReactInVue(
         text: useTextVue(),
         httpClient: useHttpClientVue(),
         backends: useBackendsVue(),
+        localStorage: useLocalStorageVue(),
       }
     },
   },

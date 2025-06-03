@@ -20,7 +20,6 @@ import {
   useFeatureFlag,
   useSetFeatureFlags,
 } from '#/providers/FeatureFlagsProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -30,7 +29,7 @@ import { getDownloadUrl } from '#/utilities/github'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { useBackends, useLocalStorage, useRouter, useText } from '$/providers/react'
 import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
 import * as detect from 'enso-common/src/detect'
@@ -337,7 +336,7 @@ export function ProtectedLayout({ children }: React.PropsWithChildren<object>) {
  */
 export function SemiProtectedLayout({ children }: React.PropsWithChildren) {
   const { session } = useAuth()
-  const { localStorage } = localStorageProvider.useLocalStorage()
+  const localStorage = useLocalStorage()
   const { router } = useRouter()
 
   // The user is not logged in - redirect to the login page.
@@ -362,7 +361,7 @@ export function SemiProtectedLayout({ children }: React.PropsWithChildren) {
  */
 export function GuestLayout({ children }: React.PropsWithChildren) {
   const { session } = useAuth()
-  const { localStorage } = localStorageProvider.useLocalStorage()
+  const localStorage = useLocalStorage()
   const { router } = useRouter()
 
   if (session?.type === UserSessionType.partial) {
