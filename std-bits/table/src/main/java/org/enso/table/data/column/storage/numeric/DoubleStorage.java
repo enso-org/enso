@@ -59,13 +59,6 @@ public final class DoubleStorage extends Storage<Double>
         new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
-  public static DoubleStorage makeEmpty(long size) {
-    int intSize = Builder.checkSize(size);
-    BitSet isNothing = new BitSet(intSize);
-    isNothing.set(0, intSize);
-    return new DoubleStorage(new double[0], intSize, isNothing);
-  }
-
   @Override
   public long getSize() {
     return size;

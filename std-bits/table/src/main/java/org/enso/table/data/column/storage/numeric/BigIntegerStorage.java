@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -44,11 +43,6 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
         .add(new ModOp<>())
         .add(new PowerOp<>())
         .add(new BigIntegerIsInOp<>());
-  }
-
-  public static BigIntegerStorage makeEmpty(long size) {
-    int intSize = Builder.checkSize(size);
-    return new BigIntegerStorage(new BigInteger[intSize]);
   }
 
   @Override

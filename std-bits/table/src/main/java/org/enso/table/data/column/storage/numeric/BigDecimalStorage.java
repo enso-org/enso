@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -26,11 +25,6 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal>
     super(BigDecimalType.INSTANCE, data, buildOps());
     isNumericFormatRequired =
         new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
-  }
-
-  public static BigDecimalStorage makeEmpty(long size) {
-    int intSize = Builder.checkSize(size);
-    return new BigDecimalStorage(new BigDecimal[intSize]);
   }
 
   private static MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> buildOps() {
