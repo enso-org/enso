@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.comparators;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;

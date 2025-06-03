@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.binary;
 
 import java.util.BitSet;
-
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;

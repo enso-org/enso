@@ -8,6 +8,18 @@ import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
 public final class StringBuilder extends TypedBuilder<String> {
+  /**
+   * Creates a new empty string storage with the specified size.
+   *
+   * @param type the type of the strings in the storage
+   * @param size the size of the storage
+   * @return a new empty string storage
+   */
+  public static StringStorage makeEmpty(TextType type, long size) {
+    int intSize = Builder.checkSize(size);
+    return new StringStorage(new String[intSize], type);
+  }
+
   private final TextType type;
 
   public StringBuilder(int size, TextType type) {

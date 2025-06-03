@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.operation.CountUntrimmed;
@@ -33,11 +32,6 @@ public final class StringStorage extends SpecializedStorage<String> {
 
     distinctValuesCheck =
         new CachedPropertyCheck<>(() -> DistinctValuesCheck.compute(this, null), null);
-  }
-
-  public static StringStorage makeEmpty(TextType type, long size) {
-    int intSize = Builder.checkSize(size);
-    return new StringStorage(new String[intSize], type);
   }
 
   @Override

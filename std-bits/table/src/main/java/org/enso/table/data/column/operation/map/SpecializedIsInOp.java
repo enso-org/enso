@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.map;
 
 import java.util.HashSet;
 import java.util.List;
-
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
@@ -55,7 +54,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
 
   public Storage<?> runMap(S storage, List<?> arg) {
     if (arg.isEmpty()) {
-      return BoolBuilder.makeConstant(storage.getSize(), false);
+      return (Storage<?>) BoolBuilder.makeConstant(storage.getSize(), false);
     }
 
     long size = storage.getSize();
