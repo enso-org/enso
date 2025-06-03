@@ -76,14 +76,17 @@ public final class Channel implements AutoCloseable {
   /**
    * Factory method to initialize the Channel in the SubstrateVM.
    *
-   * @param e JNI environment to talk to the HotSpot JVM
-   * @param poolClass the class which has public default constructor and can suply instance of
+   * @param jvm instance of HotSpot JVM to connect to
+   * @param poolClass the class which has public default constructor and can supply an instance of
    *     persistance pool to use for communication
    * @return channel for sending messages to the HotSpot JVM
    */
-  static synchronized Channel create(
-      JNI.JNIEnv e, Class<? extends Supplier<Persistance.Pool>> poolClass) {
+  public static synchronized Channel create( //
+      JVM jvm, //
+      Class<? extends Supplier<Persistance.Pool>> poolClass //
+      ) {
     var id = idCounter++;
+    var e = jvm.env();
     var classNameWithSlashes = Channel.class.getName().replace('.', '/');
     try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
         var poolClassInC = CTypeConversion.toCString(poolClass.getName());

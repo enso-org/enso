@@ -49,7 +49,7 @@ public class LoadClassTest {
 
   @Before
   public void initializeChannel() throws Exception {
-    channel = Channel.create(env(), JVMPeer.class);
+    channel = Channel.create(jvm(), JVMPeer.class);
   }
 
   @Test
