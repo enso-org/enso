@@ -454,7 +454,7 @@ val akkaURL                   = "com.typesafe.akka"
 val akkaVersion               = "2.6.20"
 val akkaHTTPVersion           = "10.2.10"
 val akkaMockSchedulerVersion  = "0.5.5"
-val reactiveStreamsVersion    = "1.0.3"
+val reactiveStreamsVersion    = "1.0.4"
 val sprayJsonVersion          = "1.3.6"
 val logbackClassicVersion     = JPMSUtils.logbackClassicVersion
 val javaDiffVersion           = "4.12"
@@ -487,6 +487,13 @@ val circeGenericExtrasVersion = "0.14.3"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 val snakeyamlVersion = "2.3"
+
+// === Reactive ===============================================================
+
+val rxJavaVersion = "3.1.10"
+val rxJava = Seq(
+  "io.reactivex.rxjava3" % "rxjava" % "3.1.10"
+)
 
 // === Commons ================================================================
 
@@ -708,6 +715,7 @@ lazy val componentModulesPaths =
     logbackPkg ++
     jline ++
     slf4jApi ++
+    rxJava ++
     Seq(
       "org.netbeans.api"       % "org-openide-util-lookup"      % netbeansApiVersion,
       "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
@@ -3641,17 +3649,19 @@ lazy val `runtime-instrument-common` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
-        "junit"          % "junit"           % junitVersion     % Test,
-        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
-        "org.scalatest" %% "scalatest"       % scalatestVersion % Test
+        "io.reactivex.rxjava3" % "rxjava"          % rxJavaVersion,
+        "junit"                % "junit"           % junitVersion     % Test,
+        "com.github.sbt"       % "junit-interface" % junitIfVersion   % Test,
+        "org.scalatest"       %% "scalatest"       % scalatestVersion % Test
       ),
       javaModuleName := "org.enso.runtime.instrument.common",
-      Compile / moduleDependencies ++= slf4jApi ++ Seq(
-        "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
-        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
+      Compile / moduleDependencies ++= slf4jApi ++ rxJava ++ Seq(
+        "org.graalvm.truffle"  % "truffle-api"      % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"         % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "collections"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"             % graalMavenPackagesVersion,
+        "org.reactivestreams"  % "reactive-streams" % reactiveStreamsVersion
       ),
       Compile / internalModuleDependencies := Seq(
         (`cli` / Compile / exportedModule).value,
@@ -3833,7 +3843,7 @@ lazy val `engine-runner` = project
     Compile / run / mainClass := Some("org.enso.runner.Main"),
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    libraryDependencies ++= GraalVM.modules ++ GraalVM.toolsPkgs ++ jline ++ Seq(
+    libraryDependencies ++= GraalVM.modules ++ GraalVM.toolsPkgs ++ jline ++ rxJava ++ Seq(
       "org.graalvm.polyglot"    % "polyglot"                % graalMavenPackagesVersion,
       "org.graalvm.sdk"         % "polyglot-tck"            % graalMavenPackagesVersion % Provided,
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
@@ -3846,6 +3856,7 @@ lazy val `engine-runner` = project
     Compile / moduleDependencies ++=
       jline ++
       slf4jApi ++
+      rxJava ++
       Seq(
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,

@@ -2,6 +2,7 @@ module org.enso.runtime.instrument.common {
   requires java.logging;
   requires scala.library;
   requires org.slf4j;
+  requires io.reactivex.rxjava3;
 
   requires org.enso.cli;
   requires org.enso.distribution;
