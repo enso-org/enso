@@ -39,14 +39,23 @@ public final class Channel implements AutoCloseable {
   private final JNI.JNIEnv env;
   private final long isolate;
   private final long callbackFn;
+  private final JNI.JClass channelClass;
+  private final JNI.JMethodID channelHandle;
 
   /** The SubstrateVM side of a channel. */
-  private Channel(long id, Persistance.Pool pool, JNI.JNIEnv env) {
+  private Channel(
+      long id,
+      Persistance.Pool pool,
+      JNI.JNIEnv env,
+      JNI.JClass handleClass,
+      JNI.JMethodID handleFn) {
     this.id = id;
     this.pool = pool;
     this.env = env;
     this.isolate = -1;
     this.callbackFn = -1;
+    this.channelClass = handleClass;
+    this.channelHandle = handleFn;
   }
 
   /** The HotSpot JVM side of a channel. */
@@ -56,9 +65,11 @@ public final class Channel implements AutoCloseable {
     }
     this.id = id;
     this.pool = pool;
-    this.env = null;
     this.isolate = isolate;
     this.callbackFn = callbackFn;
+    this.env = null;
+    this.channelClass = null;
+    this.channelHandle = null;
   }
 
   /**
@@ -69,25 +80,30 @@ public final class Channel implements AutoCloseable {
    */
   static synchronized Channel create(JNI.JNIEnv e) {
     var id = idCounter++;
-
-    var classNameWithSlashes = "org/enso/os/environment/jni/Channel";
-    var methodName = "createJvmPeerChannel";
+    var classNameWithSlashes = Channel.class.getName().replace('.', '/');
     try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
-        var methodInC = CTypeConversion.toCString(methodName);
-        var signatureInC = CTypeConversion.toCString("(JJJ)Z")) {
+        var createInC = CTypeConversion.toCString("createJvmPeerChannel");
+        var createSigInC = CTypeConversion.toCString("(JJJ)Z"); //
+        var handleInC = CTypeConversion.toCString("handleJvmMessage");
+        var handleSigInC = CTypeConversion.toCString("(JJJ)J"); //
+        ) {
       var fn = e.getFunctions();
-      var clazz = fn.getFindClass().call(e, classInC.get());
-      assert clazz.isNonNull() : "Class not found " + classNameWithSlashes;
-      var method = fn.getGetStaticMethodID().call(e, clazz, methodInC.get(), signatureInC.get());
-      assert method.isNonNull() : "method not found in " + classNameWithSlashes;
+      var channelClass = fn.getFindClass().call(e, classInC.get());
+      assert channelClass.isNonNull() : "Class not found " + classNameWithSlashes;
+      var createMethod =
+          fn.getGetStaticMethodID().call(e, channelClass, createInC.get(), createSigInC.get());
+      assert createMethod.isNonNull() : "method not found in " + classNameWithSlashes;
       var arg = StackValue.get(2, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
       arg.addressOf(1).setLong(CurrentIsolate.getCurrentThread().rawValue());
       arg.addressOf(2).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
-      var replyOk = fn.getCallStaticBooleanMethodA().call(e, clazz, method, arg);
+      var replyOk = fn.getCallStaticBooleanMethodA().call(e, channelClass, createMethod, arg);
       assert replyOk : "Failed to create peer in HotSpot JVM";
 
-      var channel = new Channel(id, JVMPeer.POOL, e);
+      var handleMethod =
+          fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
+
+      var channel = new Channel(id, JVMPeer.POOL, e, channelClass, handleMethod);
       ID_TO_CHANNEL.put(id, channel);
       return channel;
     }
@@ -115,7 +131,7 @@ public final class Channel implements AutoCloseable {
    */
   public final <R> R execute(Message<R> msg) {
     if (this.isolate == -1) {
-      return executeImpl(pool, msg, memory -> toHotSpotMessage(env, id, memory));
+      return executeImpl(pool, msg, memory -> toHotSpotMessage(memory));
     } else {
       var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
       var fnDescriptor =
@@ -154,6 +170,7 @@ public final class Channel implements AutoCloseable {
   @CEntryPoint
   private static long acceptRequestFromHotSpotJvm(
       IsolateThread threadId, long id, CCharPointer data, long size) throws Throwable {
+
     var channel = ID_TO_CHANNEL.get(id);
     assert channel != null : "There must be a channel " + id + " but " + ID_TO_CHANNEL;
     var len = handleWithChannel(channel, data.rawValue(), size);
@@ -171,26 +188,16 @@ public final class Channel implements AutoCloseable {
     return bytes.length;
   }
 
-  private static long toHotSpotMessage(JNI.JNIEnv e, long id, MemorySegment segment) {
-    var classNameWithSlashes = "org/enso/os/environment/jni/Channel";
-    var methodName = "handleJvmMessage";
-    try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
-        var methodInC = CTypeConversion.toCString(methodName);
-        var signatureInC = CTypeConversion.toCString("(JJJ)J")) {
-      var fn = e.getFunctions();
-      var clazz = fn.getFindClass().call(e, classInC.get());
-      assert clazz.isNonNull() : "Class not found " + classNameWithSlashes;
-      var method = fn.getGetStaticMethodID().call(e, clazz, methodInC.get(), signatureInC.get());
-      assert method.isNonNull() : "method not found in " + classNameWithSlashes;
-      long address = segment.address();
-      assert address > 0 : "We need an address";
-      var arg = StackValue.get(3, JNI.JValue.class);
-      arg.addressOf(0).setLong(id);
-      arg.addressOf(1).setLong(address);
-      arg.addressOf(2).setLong(segment.byteSize());
-      var replySize = fn.getCallStaticLongMethodA().call(e, clazz, method, arg);
-      return replySize;
-    }
+  private long toHotSpotMessage(MemorySegment segment) {
+    var fn = env.getFunctions();
+    long address = segment.address();
+    assert address > 0 : "We need an address";
+    var arg = StackValue.get(3, JNI.JValue.class);
+    arg.addressOf(0).setLong(id);
+    arg.addressOf(1).setLong(address);
+    arg.addressOf(2).setLong(segment.byteSize());
+    var replySize = fn.getCallStaticLongMethodA().call(env, channelClass, channelHandle, arg);
+    return replySize;
   }
 
   static <R> R executeImpl(

@@ -9,7 +9,6 @@ import java.util.Random;
 import org.enso.os.environment.jni.JNI.JValue;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class LoadClassTest {
@@ -172,7 +171,6 @@ public class LoadClassTest {
     assertEquals(2, fac.longValue());
   }
 
-  @Ignore
   @Test
   public void backAndForthFactorialThree() throws Exception {
     var channel = Channel.create(env());
@@ -180,7 +178,6 @@ public class LoadClassTest {
     assertEquals(6, fac.longValue());
   }
 
-  @Ignore
   @Test
   public void backAndForthFactorialFour() throws Exception {
     var channel = Channel.create(env());
@@ -188,7 +185,6 @@ public class LoadClassTest {
     assertEquals(24, fac.longValue());
   }
 
-  @Ignore
   @Test
   public void backAndForthFactorialFive() throws Exception {
     var channel = Channel.create(env());
