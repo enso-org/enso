@@ -36,6 +36,7 @@ import { PropsWithChildren, ReactNode } from 'react'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
 import { useAuth, UserSessionType } from './providers/auth'
+import { useLocalStorage } from './stores/localStorage'
 
 /**
  * Wrap react component in ErrorBoundary and Suspense.
@@ -220,6 +221,7 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuth()
+  const localStorage = useLocalStorage()
   await auth.suspense()
   const session = auth.session
   console.log('Routing to ', to.path, ' session ', session)
@@ -230,8 +232,8 @@ router.beforeEach(async (to) => {
 
   if (session == null) return { path: LOGIN_PATH }
   if (session.type === UserSessionType.partial) return { path: SETUP_PATH }
-  // TODO[ao]: get redirect login from local storage BEFORE MERGE
-  if (session.type === UserSessionType.full) return { path: DASHBOARD_PATH }
+  if (session.type === UserSessionType.full)
+    return { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH }
   console.error('ROUTING FAILED', session, to)
   return false
 })

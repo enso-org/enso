@@ -5,6 +5,7 @@ import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
 import { AuthEvent } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
+import { useLocalStorage } from '$/stores/localStorage'
 import { Opt } from '@/util/data/opt'
 import { Err } from '@/util/data/result'
 import { useToast } from '@/util/toast'
@@ -40,6 +41,7 @@ export const useSession = createGlobalState(() => {
   const httpClient: HttpClient = useHttpClient()
   const { getText }: TextStore = useText()
   const queryClient: vueQuery.QueryClient = vueQuery.useQueryClient()
+  const localStorage = useLocalStorage()
   // ----
 
   const mainPageUrl = getMainPageUrl()
@@ -92,9 +94,7 @@ export const useSession = createGlobalState(() => {
     // TODO[ao]: Finish before merge
     // onMutate: unsetModal,
     onSuccess: async () => {
-      // TODO[ao]: Finish before merge
-      // await onLogout?.()
-
+      localStorage.clearUserSpecificEntries()
       sentry.setUser(null)
       successToast.show(getText('signOutSuccess'))
 
@@ -240,7 +240,7 @@ export const useSession = createGlobalState(() => {
         // because otherwise the user will be redirected to a URL like `enso://auth`, which
         // will not work.
         // See https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
-        // history.replaceState({}, '', mainPageUrl)
+        history.replaceState({}, '', mainPageUrl)
         void queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
         break
       }

@@ -17,6 +17,10 @@ export function useFeatureFlag<Key extends keyof FeatureFlags>(key: Key): Ref<Fe
   return value
 }
 
+export function setFeatureFlags(flags: Partial<FeatureFlags>) {
+  return flagsStore.getState().setFeatureFlags(flags)
+}
+
 export function setFeatureFlag<Key extends keyof FeatureFlags>(key: Key, value: FeatureFlags[Key]) {
-  flagsStore.getState().setFeatureFlag(key, value)
+  return flagsStore.getState().setFeatureFlag(key, value)
 }

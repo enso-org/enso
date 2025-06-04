@@ -1,7 +1,9 @@
 import * as gtagHooks from '#/hooks/gtagHooks'
+import { featureFlagsForInternalTesting } from '#/providers/FeatureFlagsProvider'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import type * as cognitoModule from '$/authentication/cognito'
+import { setFeatureFlags } from '$/stores/featureFlags'
 import { Opt } from '@/util/data/opt'
 import { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
@@ -79,9 +81,6 @@ export const useAuth = createGlobalState(() => {
   const { remoteBackend }: BackendsStore = useBackends()
   const { getText }: TextStore = useText()
   // ---
-  // TODO finish before merge
-  // setFeatureFlags(featureFlagsForInternalTesting())
-  // const setFeatureFlags = useSetFeatureFlags()
 
   const session = toRef(sessionData, 'session')
   const { organizationId, signOut } = sessionData
@@ -242,8 +241,7 @@ export const useAuth = createGlobalState(() => {
 
   watchEffect(() => {
     if (userData.value?.type === UserSessionType.full && userData.value.user.isEnsoTeamMember) {
-      // TODO[ao] finish before merge
-      // setFeatureFlags(featureFlagsForInternalTesting())
+      setFeatureFlags(featureFlagsForInternalTesting())
     }
   })
 
