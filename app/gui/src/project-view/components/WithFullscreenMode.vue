@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** @file Provides a fullscreen mode to its slot, based on conditional teleport and conditional styling. */
 
+import { useFullscreenRoot } from '@/providers/fullscreenRoot'
 import { Rect } from '@/util/data/rect'
 import { computed, ref, toRef, watch } from 'vue'
 
@@ -9,6 +10,9 @@ export type SavedSize = Keyframe
 const props = defineProps<{
   fullscreen: boolean
 }>()
+
+const fullscreenRoot = useFullscreenRoot()
+
 /**
  * This value contains the non-fullscreen size of the element, stored for animating the return from fullscreen mode; the
  * presence or absence of the value is also used to determine whether the entering-fullscreen animation has already been
@@ -66,7 +70,7 @@ function animate(start: Keyframe, end: Keyframe) {
 }
 
 watch([toRef(props, 'fullscreen'), content], ([fullscreen, el]) => {
-  const fullscreenContainer = document.getElementById('graphEditorRoot')
+  const fullscreenContainer = fullscreenRoot.value
   if (!el || !fullscreenContainer) return
   const container = fullscreenContainer.getBoundingClientRect()
   if (fullscreen && !savedSize.value) {
@@ -85,14 +89,14 @@ watch([toRef(props, 'fullscreen'), content], ([fullscreen, el]) => {
   }
 })
 
-const active = computed(() => props.fullscreen || animating.value)
+const active = computed(() => props.fullscreen || animating.value > 0)
 </script>
 
 <!-- The outer `div` is to avoid having a dynamic root. A component whose root may change cannot be passed to a `slot`,
 or used with `unrefElement`. -->
 <template>
   <div class="WithFullscreenMode fullsize">
-    <Teleport defer :disabled="!active" to="#graphEditorRoot">
+    <Teleport :disabled="!active" :to="fullscreenRoot">
       <div ref="content" class="fullsize" :class="{ active }">
         <slot />
       </div>

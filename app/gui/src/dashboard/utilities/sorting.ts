@@ -1,5 +1,5 @@
 /** @file Utilities related to sorting. */
-import type { SvgUseIcon } from '#/components/AriaComponents'
+import type { SvgUseIcon } from '#/components/types'
 
 /** Sort direction. */
 export enum SortDirection {

@@ -1,12 +1,10 @@
 /** @file Settings tab for viewing and editing keyboard shortcuts. */
-import * as React from 'react'
-
 import BlankIcon from '#/assets/blank.svg'
 import CrossIcon from '#/assets/cross.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import ReloadIcon from '#/assets/reload.svg'
-import { Button, ButtonGroup, DialogTrigger } from '#/components/AriaComponents'
-import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
 import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
 import { Scroller } from '#/components/Scroller'
@@ -14,9 +12,11 @@ import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useRefresh } from '#/hooks/refreshHooks'
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsafeEntries } from '#/utilities/object'
 import { useText } from '$/providers/react'
+import * as React from 'react'
 
 /** Settings tab for viewing and editing keyboard shortcuts. */
 export default function KeyboardShortcutsSettingsSection() {
@@ -36,8 +36,8 @@ export default function KeyboardShortcutsSettingsSection() {
 
   return (
     <>
-      <ButtonGroup className="grow-0">
-        <DialogTrigger>
+      <Button.Group className="grow-0">
+        <Dialog.Trigger>
           <Button size="medium" variant="outline">
             {getText('resetAll')}
           </Button>
@@ -53,8 +53,8 @@ export default function KeyboardShortcutsSettingsSection() {
               await Promise.resolve()
             }}
           />
-        </DialogTrigger>
-      </ButtonGroup>
+        </Dialog.Trigger>
+      </Button.Group>
       <Scroller
         scrollbar
         orientation="vertical"
@@ -110,7 +110,7 @@ export default function KeyboardShortcutsSettingsSection() {
                       ))}
                       <div className="grow" />
                       <div className="flex shrink-0 items-center gap-1">
-                        <DialogTrigger>
+                        <Dialog.Trigger>
                           <Button
                             variant="icon"
                             size="medium"
@@ -127,7 +127,7 @@ export default function KeyboardShortcutsSettingsSection() {
                               doRefresh()
                             }}
                           />
-                        </DialogTrigger>
+                        </Dialog.Trigger>
                         <Button
                           variant="icon"
                           size="medium"

@@ -1,5 +1,7 @@
 /** @file A modal for creating and editing a credential. */
-import { Dialog, Dropdown, Text } from '#/components/AriaComponents'
+import { Dialog } from '#/components/Dialog'
+import { Dropdown } from '#/components/Inputs'
+import { Text } from '#/components/Text'
 import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
 import { makeCredentialCreationHandler } from '#/data/serviceCredentials/logic'
 import type { CredentialConfig, SecretId } from '#/services/Backend'

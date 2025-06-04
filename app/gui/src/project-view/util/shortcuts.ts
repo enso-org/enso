@@ -410,7 +410,7 @@ export function defineKeybinds<
     return event.key.toLowerCase() as Key_
   }
 
-  function handler<Event_ extends KeyboardEvent | MouseEvent | PointerEvent | TouchEvent>(
+  function handler<Event_ extends AnyHandlerEvent>(
     handlers: Partial<
       Record<BindingName | typeof DefaultHandler, (event: Event_) => boolean | void>
     >,
@@ -558,3 +558,5 @@ interface Mousebind {
   key: PointerButtonFlags
   modifierFlags: ModifierFlags
 }
+
+export type AnyHandlerEvent = KeyboardEvent | MouseEvent | PointerEvent | TouchEvent

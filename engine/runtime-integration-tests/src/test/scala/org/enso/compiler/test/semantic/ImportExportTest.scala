@@ -9,7 +9,6 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.phase.exports.ExportsResolution
 import org.enso.compiler.pass.analyse.{BindingAnalysis, GatherDiagnostics}
 import org.enso.interpreter.runtime
-import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.pkg.Package
 import org.enso.common.LanguageInfo
@@ -1039,7 +1038,7 @@ class ImportExportTest
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
-      val arr = Persistance.write(
+      val arr = org.enso.interpreter.caches.PersistUtils.POOL.write(
         mainIr,
         {
           case metadata: ProcessingPass.Metadata =>
@@ -1080,7 +1079,7 @@ class ImportExportTest
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
       try {
-        val arr = Persistance.write(
+        val arr = org.enso.interpreter.caches.PersistUtils.POOL.write(
           mainIr,
           {
             case metadata: ProcessingPass.Metadata =>

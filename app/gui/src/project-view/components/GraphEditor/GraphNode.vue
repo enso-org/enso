@@ -7,6 +7,7 @@ const MENU_CLOSE_TIMEOUT_MS = 300
 </script>
 
 <script setup lang="ts">
+import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
@@ -35,9 +36,8 @@ import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
-import { useGraphStore, type Node } from '@/stores/graph'
+import { type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
-import { useProjectStore } from '@/stores/project'
 import { evaluationProgress } from '@/stores/project/computedValueRegistry'
 import { useNodeExecution } from '@/stores/project/nodeExecution'
 import { Ast } from '@/util/ast'

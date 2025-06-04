@@ -419,6 +419,186 @@ object StdBits {
     )
   }
 
+  /** Extracts all the native libraries from `sqlite-jdbc-<version>.jar`.
+    * Also, removes the `SqliteJdbcFeature` class from the JAR.
+    */
+  def extractNativeLibsFromSqlite(
+    databasePolyglotRoot: File,
+    databaseNativeLibs: File,
+    sqliteVersion: String,
+    updateReport: UpdateReport,
+    logger: ManagedLogger,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
+    val osName     = plainOsName()
+    val validOsExt = osExt()
+    val validArch  = arch().replace("-", "_")
+    // Make sure that the native libs in the `lib` directory complies with
+    // `org.enso.interpreter.runtime.NativeLibraryFinder`
+    def renameFunc(prefix: String)(entryName: String): Option[String] = {
+      val strippedEntryName = entryName.substring(prefix.length + 1)
+      val entryOsName = strippedEntryName
+        .split("/")
+        .head
+        .toLowerCase
+        .replace("mac", "macos")
+      val entryArch = strippedEntryName.split("/").apply(1)
+      val libName   = strippedEntryName.split("/").apply(2)
+      if (
+        !strippedEntryName.endsWith(validOsExt) ||
+        // Remove native libs for different platforms
+        !(entryOsName.equals(osName)) ||
+        !entryArch.equals(validArch)
+      ) {
+        None
+      } else {
+        Some(
+          entryArch.replace(
+            "x86_64",
+            "amd64"
+          ) + "/" + entryOsName + "/" + libName
+        )
+      }
+    }
+
+    val sqliteJar = JPMSUtils
+      .filterModulesFromUpdate(
+        updateReport,
+        Seq("org.xerial" % "sqlite-jdbc" % sqliteVersion),
+        logger,
+        moduleName,
+        scalaBinaryVersion,
+        shouldContainAll = true
+      )
+      .head
+    val outputJar =
+      (databasePolyglotRoot / s"sqlite-jdbc-$sqliteVersion.jar").toPath
+    val extractPrefix = "org/sqlite/native"
+    val extractedLibs = JARUtils.extractFilesFromJar(
+      sqliteJar.toPath,
+      Some(extractPrefix),
+      Some(outputJar),
+      databaseNativeLibs.toPath,
+      renameFunc(extractPrefix),
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(sqliteJar))
+    )
+    val sqliteFeature =
+      "META-INF/versions/9/org/sqlite/nativeimage/SqliteJdbcFeature"
+    def shouldBeDeleted(entryName: String): Boolean = {
+      entryName.startsWith(sqliteFeature)
+    }
+    JARUtils.removeEntriesFromJar(
+      outputJar,
+      shouldBeDeleted
+    )
+    AnalysisOfExtractedNativeLibs(
+      sqliteJar,
+      extractedLibs.getOrElse(Nil),
+      Some(outputJar.toFile)
+    )
+  }
+
+  /** Extract native libraries from `org.conscrypt:conscrypt-openjdk-uber:2.5.2` jar, which is
+    * a transitive dependency of
+    * `com.google.analytics:google-analytics-admin:0.66.0` and of
+    * `net.snowflake:snowflake-jdbc-thin:3.15.0`.
+    *
+    * Currently, it is included in both `Standard.Google_Api` and `Standard.Snowflake` libraries.
+    *
+    * Names of the native libraries in jar:
+    * - `META-INF/native/conscrypt_openjdk_jni-windows-x86.dll`
+    * - `META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll`
+    * - `META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so`
+    * - `META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib`
+    *
+    * The jar is signed, so we also have to remove `META-INF/SIGNING.SF`.
+    */
+  def extractNativeLibsFromConscrypt(
+    polyglotRootDir: File,
+    nativeLibsDir: File,
+    updateReport: UpdateReport,
+    logger: ManagedLogger,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
+    val osName     = plainOsName().replace("macos", "osx")
+    val validOsExt = osExt()
+    val validArch  = arch().replace("-", "_")
+    val prefix     = "META-INF/native"
+    val entriesToRemove = Seq(
+      "META-INF/SIGNINGC.SF",
+      "META-INF/SIGNINGC.RSA"
+    )
+    val conscryptVersion = "2.5.2"
+
+    def renameFunc(entryName: String): Option[String] = {
+      val strippedEntryName = entryName.substring(prefix.length + 1)
+      val pattern           = "^(.+)-(\\w+)-([\\w_]+)(\\.\\w+)$".r
+      strippedEntryName match {
+        case pattern(libname, entryOs, entryArch, entryExt) =>
+          if (
+            !entryOs.equals(osName) ||
+            !entryArch.equals(validArch) ||
+            !entryExt.equals(validOsExt)
+          ) {
+            None
+          } else {
+            val outputArch = validArch.replace("x86_64", "amd64")
+            Some(s"$outputArch/$osName/$libname$entryExt")
+          }
+        case _ =>
+          throw new RuntimeException(
+            s"Unexpected entry name format: $strippedEntryName"
+          )
+      }
+    }
+
+    val conscryptJar = JPMSUtils
+      .filterModulesFromUpdate(
+        updateReport,
+        Seq("org.conscrypt" % "conscrypt-openjdk-uber" % conscryptVersion),
+        logger,
+        moduleName,
+        scalaBinaryVersion,
+        shouldContainAll = true
+      )
+      .head
+    val outputJar =
+      (polyglotRootDir / s"conscrypt-openjdk-uber-$conscryptVersion.jar").toPath
+    val extractedLibs = JARUtils.extractFilesFromJar(
+      conscryptJar.toPath,
+      Some(prefix),
+      Some(outputJar),
+      nativeLibsDir.toPath,
+      renameFunc,
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(conscryptJar))
+    )
+    JARUtils.removeEntriesFromJar(
+      outputJar,
+      entryName => entriesToRemove.contains(entryName)
+    )
+    AnalysisOfExtractedNativeLibs(
+      conscryptJar,
+      extractedLibs.getOrElse(Nil),
+      Some(outputJar.toFile)
+    )
+  }
+
   def ensureDirExistsAndIsClean(
     path: Path,
     logger: sbt.util.Logger,

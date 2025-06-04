@@ -1,5 +1,9 @@
 /** @file A form to create a user group. */
-import { ButtonGroup, Dialog, Form, Input, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
+import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { normalizeName } from '#/utilities/string'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -32,10 +36,10 @@ export function NewUserGroupForm() {
     >
       <Text.Heading variant="subtitle">{getText('newUserGroup')}</Text.Heading>
       <Input name="name" label={getText('name')} />
-      <ButtonGroup className="relative">
+      <Button.Group className="relative">
         <Form.Submit />
         <Dialog.Close variant="outline">{getText('cancel')}</Dialog.Close>
-      </ButtonGroup>
+      </Button.Group>
       <Form.FormError />
     </Form>
   )

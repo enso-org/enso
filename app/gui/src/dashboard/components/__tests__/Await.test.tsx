@@ -1,5 +1,5 @@
 import { TextContext } from '$/providers/react'
-import { useText } from '$/providers/text'
+import { createTextStore } from '$/providers/text'
 import { act, render, screen } from '@testing-library/react'
 import { describe, vi } from 'vitest'
 import { Await } from '../Await'
@@ -9,7 +9,11 @@ describe('<Await />', (it) => {
     expect,
   }) => {
     const promise = Promise.resolve('Hello')
-    render(<Await promise={promise}>{(value) => <div>{value}</div>}</Await>)
+    render(
+      <TextContext.Provider value={createTextStore()}>
+        <Await promise={promise}>{(value) => <div>{value}</div>}</Await>
+      </TextContext.Provider>,
+    )
 
     expect(screen.queryByText('Hello')).not.toBeInTheDocument()
     expect(screen.getByTestId('spinner')).toBeInTheDocument()
@@ -32,7 +36,7 @@ describe('<Await />', (it) => {
     const errorPromise = Promise.reject(new Error('💣'))
 
     render(
-      <TextContext.Provider value={useText()}>
+      <TextContext.Provider value={createTextStore()}>
         <Await promise={errorPromise}>{() => <>Hello</>}</Await>
       </TextContext.Provider>,
     )
@@ -53,7 +57,11 @@ describe('<Await />', (it) => {
     expect,
   }) => {
     const promise = Promise.resolve('Hello')
-    const { unmount } = render(<Await promise={promise}>{(value) => <div>{value}</div>}</Await>)
+    const { unmount } = render(
+      <TextContext.Provider value={createTextStore()}>
+        <Await promise={promise}>{(value) => <div>{value}</div>}</Await>
+      </TextContext.Provider>,
+    )
 
     await act(() => promise)
 

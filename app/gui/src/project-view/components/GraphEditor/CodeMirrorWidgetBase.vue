@@ -145,12 +145,7 @@ defineExpose({
   />
 </template>
 <style scoped>
-.CodeMirrorWidgetBase {
-  :deep(.cm-content) {
-    caret-color: var(--color-node-text);
-  }
-  &:deep(::selection) {
-    background: var(--color-widget-selection);
-  }
+.CodeMirrorWidgetBase :deep(.cm-content) {
+  caret-color: var(--color-node-text);
 }
 </style>

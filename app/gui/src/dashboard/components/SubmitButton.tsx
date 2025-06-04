@@ -1,5 +1,5 @@
 /** @file A styled submit button. */
-import { Button } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import { submitForm } from '#/utilities/event'
 
 /** Props for a {@link SubmitButton}. */

@@ -125,25 +125,6 @@
     "META-INF/resources/nfi-native/libnfi/darwin/aarch64/bin/libtrufflenfi.dylib",
     "META-INF/resources/nfi-native/libnfi/windows/amd64/bin/trufflenfi.dll"
   ],
-  "lib/Standard/Snowflake/0.0.0-dev/polyglot/java/grpc-netty-shaded-1.60.0.jar": [
-    "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_linux_x86_64.so",
-    "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_linux_aarch_64.so",
-    "META-INF/native/io_grpc_netty_shaded_netty_tcnative_windows_x86_64.dll",
-    "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_x86_64.so",
-    "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_aarch_64.so"
-  ],
-  "lib/Standard/Snowflake/0.0.0-dev/polyglot/java/conscrypt-openjdk-uber-2.5.2.jar": [
-    "META-INF/native/conscrypt_openjdk_jni-windows-x86.dll",
-    "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll",
-    "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so",
-    "META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib"
-  ],
-  "lib/Standard/Google_Api/0.0.0-dev/polyglot/java/conscrypt-openjdk-uber-2.5.2.jar": [
-    "META-INF/native/conscrypt_openjdk_jni-windows-x86.dll",
-    "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll",
-    "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so",
-    "META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib"
-  ],
   "lib/Standard/Microsoft/0.0.0-dev/polyglot/java/jna-wrapper-assembly-0.1.0-SNAPSHOT.jar": [
     "com/sun/jna/freebsd-x86-64/libjnidispatch.so",
     "com/sun/jna/freebsd-x86/libjnidispatch.so",
@@ -173,31 +154,5 @@
   ],
   "lib/Standard/Microsoft/0.0.0-dev/polyglot/java/netty-transport-native-epoll-4.1.118.Final-linux-x86_64.jar": [
     "META-INF/native/libnetty_transport_native_epoll_x86_64.so"
-  ],
-  "lib/Standard/Database/0.0.0-dev/polyglot/java/sqlite-jdbc-3.46.1.0.jar": [
-    "org/sqlite/native/Linux-Android/x86_64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Android/arm/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Android/x86/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Android/aarch64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Musl/x86_64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Musl/x86/libsqlitejdbc.so",
-    "org/sqlite/native/Linux-Musl/aarch64/libsqlitejdbc.so",
-    "org/sqlite/native/Windows/x86_64/sqlitejdbc.dll",
-    "org/sqlite/native/Windows/x86/sqlitejdbc.dll",
-    "org/sqlite/native/Windows/armv7/sqlitejdbc.dll",
-    "org/sqlite/native/Windows/aarch64/sqlitejdbc.dll",
-    "org/sqlite/native/FreeBSD/x86_64/libsqlitejdbc.so",
-    "org/sqlite/native/FreeBSD/x86/libsqlitejdbc.so",
-    "org/sqlite/native/FreeBSD/aarch64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/x86_64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/arm/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/x86/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/armv7/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/riscv64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/aarch64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/ppc64/libsqlitejdbc.so",
-    "org/sqlite/native/Linux/armv6/libsqlitejdbc.so",
-    "org/sqlite/native/Mac/x86_64/libsqlitejdbc.dylib",
-    "org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib"
   ]
 }

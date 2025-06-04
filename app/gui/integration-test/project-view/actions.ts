@@ -9,18 +9,12 @@ import { graphNodeByBinding } from './locate'
 // =================
 
 /** Perform a successful login. */
-export async function goToGraph(page: Page, closeDocPanel: boolean = true) {
+export async function goToGraph(page: Page) {
   await page.goto('/')
   // Initial load through vite can take a while. Make sure that the first locator has enough time.
   await expect(page.locator('.GraphEditor')).toBeVisible({ timeout: 100000 })
   // Wait until nodes are loaded.
   await expect(locate.graphNode(page)).toExist()
-  if (closeDocPanel) {
-    await expect(page.getByTestId('rightDock')).toExist()
-    await page.getByRole('button', { name: 'Documentation Panel' }).click()
-    // Wait for the closing animation.
-    await expect(page.getByTestId('rightDock')).toBeHidden()
-  }
   // Wait for position initialization
   await expectNodePositionsInitialized(page, -16)
 }

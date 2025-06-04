@@ -12,8 +12,7 @@ import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import type * as assetRow from '#/components/dashboard/AssetRow'
-import Separator from '#/components/styled/Separator'
+import type * as assetRow from '#/pages/dashboard/components/AssetRow'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -21,6 +20,7 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import * as backendModule from '#/services/Backend'
 
 import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
+import { Separator } from '#/components/Separator'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -37,12 +37,12 @@ import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/react'
+import type { RightPanelData } from '$/providers/rightPanel'
 import {
   isUploadableAsset,
   useUploadFileToCloudMutation,
   useUploadFileToLocal,
 } from '../hooks/backendUploadFilesHooks'
-import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
 import { useCategories } from './Drive/Categories'
 
 /** Props for a {@link AssetContextMenu}. */
@@ -59,11 +59,12 @@ export interface AssetContextMenuProps {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
+  readonly rightPanel: RightPanelData
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, event, hidden = false, triggerRef, currentDirectoryId } = props
+  const { innerProps, event, hidden = false, triggerRef, currentDirectoryId, rightPanel } = props
   const { doCopy, doCut, doPaste } = props
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
@@ -77,8 +78,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackends()
   const { getText } = useText()
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
-  const setAssetPanelProps = useSetAssetPanelProps()
   const openProjectNatively = projectHooks.useOpenProjectNatively()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
@@ -312,24 +311,18 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="edit"
               doAction={() => {
-                setIsAssetPanelTemporarilyVisible(true)
-                const assetPanelProps = { backend, item: asset }
-                switch (asset.type) {
-                  case backendModule.AssetType.secret: {
-                    setAssetPanelProps({
-                      ...assetPanelProps,
-                      spotlightOn: 'secret',
-                    })
-                    break
+                rightPanel.setTemporaryTab('settings')
+                rightPanel.updateContext('drive', (ctx) => {
+                  ctx.category = category
+                  ctx.item = asset
+                  switch (asset.type) {
+                    case backendModule.AssetType.secret:
+                    case backendModule.AssetType.datalink:
+                      ctx.spotlightOn = asset.type
+                      break
                   }
-                  case backendModule.AssetType.datalink: {
-                    setAssetPanelProps({
-                      ...assetPanelProps,
-                      spotlightOn: 'datalink',
-                    })
-                    break
-                  }
-                }
+                  return ctx
+                })
               }}
             />
           )}
@@ -366,7 +359,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && <Separator hidden={hidden} />}
+        {isCloud && !hidden && <Separator className="my-0.5" />}
 
         {isCloud && (
           <ContextMenuEntry
@@ -377,7 +370,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && managesThisAsset && self != null && <Separator hidden={hidden} />}
+        {isCloud && managesThisAsset && self != null && !hidden && <Separator className="my-0.5" />}
         {asset.type === backendModule.AssetType.project && (
           <ContextMenuEntry
             hidden={hidden}
@@ -416,7 +409,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {pasteMenuEntry}
-        {canAddToThisDirectory && <Separator hidden={hidden} />}
+        {canAddToThisDirectory && !hidden && <Separator className="my-0.5" />}
         {canAddToThisDirectory && (
           <GlobalContextMenu
             noWrapper

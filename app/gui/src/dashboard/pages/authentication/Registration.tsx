@@ -1,15 +1,16 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import { useEffect, useState } from 'react'
-
-import * as z from 'zod'
-
 import { LOGIN_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import { Alert, Button, Checkbox, Form, Input, Password, Text } from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { Button } from '#/components/Button'
+import { Checkbox } from '#/components/Checkbox'
+import { Form } from '#/components/Form'
+import { Input, Password } from '#/components/Inputs'
 import Link from '#/components/Link'
 import { Stepper, useStepperState } from '#/components/Stepper'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import {
   latestPrivacyPolicyQueryOptions,
@@ -22,6 +23,8 @@ import { useSessionAPI } from '#/providers/SessionProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import { useBackends, useRouter, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import * as z from 'zod'
 
 declare module '#/utilities/LocalStorage' {
   /** */
