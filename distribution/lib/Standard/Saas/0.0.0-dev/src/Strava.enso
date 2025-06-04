@@ -21,6 +21,6 @@ type Strava
     get_user self = strava_get self "https://www.strava.com/api/v3/athlete"
 
 strava_get strava url =
-    header = Header.new "Authorization" ("Bearer: " + strava.strava_service.getAccessToken.token)
-    r = Data.fetch url [header]
+    header = Header.new "Authorization" ("Bearer " + strava.strava_service.getAccessToken.token)
+    r = HTTP.fetch url headers=[header]
     r

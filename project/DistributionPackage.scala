@@ -350,7 +350,11 @@ object DistributionPackage {
 
     val at = args.indexOf("--debug")
     if (at >= 0) {
-      args.set(at, "--jvm=" + System.getProperty("java.home"))
+      if (jvmOptName == "JAVA_OPTS") {
+        args.set(at, "--jvm=" + System.getProperty("java.home"))
+      } else {
+        args.remove(at)
+      }
       val newValue =
         prevValue + " " + WithDebugCommand.DEBUG_OPTION
       envToFill.put(jvmOptName, newValue)
