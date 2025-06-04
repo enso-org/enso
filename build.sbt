@@ -1272,14 +1272,18 @@ lazy val filewatcher = project
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
-      "commons-io"     % "commons-io" % commonsIoVersion,
-      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
+      "commons-io"     % "commons-io"      % commonsIoVersion,
+      "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
+      "junit"          % "junit"           % junitVersion     % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
+      "org.hamcrest"   % "hamcrest-all"    % hamcrestVersion  % Test
     ),
     Compile / moduleDependencies ++= slf4jApi,
     Compile / internalModuleDependencies := Seq(
       (`directory-watcher-wrapper` / Compile / exportedModule).value
     ),
     Test / fork := true,
+    commands += WithDebugCommand.withDebug,
     Test / javaOptions ++= testLogProviderOptions
   )
   .dependsOn(testkit % Test)
