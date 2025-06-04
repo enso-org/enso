@@ -6,6 +6,7 @@ import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -40,7 +41,7 @@ public final class Channel implements AutoCloseable {
   private final long id;
   private final JNI.JNIEnv env;
   private final long isolate;
-  private final long callbackFn;
+  private final MethodHandle callbackFn;
   private final JNI.JClass channelClass;
   private final JNI.JMethodID channelHandle;
 
@@ -55,7 +56,7 @@ public final class Channel implements AutoCloseable {
     this.pool = pool;
     this.env = env;
     this.isolate = -1;
-    this.callbackFn = -1;
+    this.callbackFn = null;
     this.channelClass = handleClass;
     this.channelHandle = handleFn;
   }
@@ -68,10 +69,19 @@ public final class Channel implements AutoCloseable {
     this.id = id;
     this.pool = pool;
     this.isolate = isolate;
-    this.callbackFn = callbackFn;
     this.env = null;
     this.channelClass = null;
     this.channelHandle = null;
+
+    var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
+    var fnDescriptor =
+        FunctionDescriptor.of(
+            ValueLayout.JAVA_LONG,
+            ValueLayout.ADDRESS,
+            ValueLayout.JAVA_LONG,
+            ValueLayout.ADDRESS,
+            ValueLayout.JAVA_LONG);
+    this.callbackFn = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
   }
 
   /**
@@ -155,31 +165,9 @@ public final class Channel implements AutoCloseable {
    */
   public final <R> R execute(Class<R> resultType, Function<Channel, R> msg) {
     if (this.isolate == -1) {
-      return executeImpl(pool, resultType, msg, memory -> toHotSpotMessage(memory));
+      return executeImpl(pool, resultType, msg, this::toHotSpotMessage);
     } else {
-      var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
-      var fnDescriptor =
-          FunctionDescriptor.of(
-              ValueLayout.JAVA_LONG,
-              ValueLayout.ADDRESS,
-              ValueLayout.JAVA_LONG,
-              ValueLayout.ADDRESS,
-              ValueLayout.JAVA_LONG);
-      var fnHandle = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
-      return executeImpl(
-          pool,
-          resultType,
-          msg,
-          seg -> {
-            try {
-              var isoRef = MemorySegment.ofAddress(isolate);
-              var res = fnHandle.invoke(isoRef, id, seg, seg.byteSize());
-              return (long) res;
-            } catch (Throwable ex) {
-              printStackTrace(ex, false);
-              return -1L;
-            }
-          });
+      return executeImpl(pool, resultType, msg, this::toSubstrateMessage);
     }
   }
 
@@ -234,6 +222,17 @@ public final class Channel implements AutoCloseable {
     var replySize = fn.getCallStaticLongMethodA().call(env, channelClass, channelHandle, arg);
     checkForException(env);
     return replySize;
+  }
+
+  private long toSubstrateMessage(MemorySegment seg) {
+    try {
+      var isoRef = MemorySegment.ofAddress(isolate);
+      var res = callbackFn.invoke(isoRef, id, seg, seg.byteSize());
+      return (long) res;
+    } catch (Throwable ex) {
+      printStackTrace(ex, false);
+      return -1L;
+    }
   }
 
   private void checkForException(JNI.JNIEnv e) {
