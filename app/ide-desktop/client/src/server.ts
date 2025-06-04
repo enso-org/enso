@@ -28,10 +28,12 @@ import {
   DirectoryId,
   ExportedArchive,
   extractTypeFromId,
+  FileAsset,
   FileId,
   ImportArchiveResponse,
   ParentsPath,
   Path,
+  ProjectAsset,
   ProjectId,
   ProjectState,
   VirtualParentsPath,
@@ -623,20 +625,76 @@ export class Server {
   }
 
   /** List a directory. */
+  async apiGetAssetDetailsByPath(params: { readonly type?: AssetType; readonly path: Path }) {
+    try {
+      const { type: typeRaw, path } = params
+      const type =
+        typeRaw ??
+        (await (async () => {
+          const assetStat = await stat(path)
+          if (assetStat.isDirectory()) {
+            const metadata = projectManagement.getMetadata(path)
+            if (metadata) {
+              return AssetType.project
+            } else {
+              return AssetType.directory
+            }
+          } else {
+            return AssetType.file
+          }
+        })())
+      const shared = {
+        title: getFileName(path),
+        modifiedAt: toRfc3339(new Date()),
+        parentId: DirectoryId(`directory-${getFolderPath(path)}` as const),
+        extension: null,
+        permissions: [],
+        projectState: null,
+        parentsPath: ParentsPath(''),
+        virtualParentsPath: VirtualParentsPath(''),
+      } satisfies Partial<DirectoryAsset>
+      switch (type) {
+        case AssetType.project: {
+          const result: ProjectAsset = {
+            ...shared,
+            type: AssetType.project,
+            id: ProjectId(`project-${path}`),
+            // FIXME: get correct state
+            projectState: { type: ProjectState.closed },
+          }
+          return result
+        }
+        case AssetType.file: {
+          const result: FileAsset = {
+            ...shared,
+            type: AssetType.file,
+            id: FileId(`file-${path}`),
+            extension: basenameAndExtension(path).extension,
+          }
+          return result
+        }
+        case AssetType.directory: {
+          const result: DirectoryAsset = {
+            ...shared,
+            type: AssetType.directory,
+            id: DirectoryId(`directory-${path}` as const),
+          }
+          return result
+        }
+        default: {
+          throw new Error(`Unknown asset type '${type}'`)
+        }
+      }
+    } catch {
+      return
+    }
+  }
+
+  /** List a directory. */
   async apiGetAssetDetails(params: { readonly assetId: AssetId }) {
     const { assetId } = params
-    const { type, path } = extractTypeAndPath(assetId)
-    switch (type) {
-      case AssetType.project: {
-        break
-      }
-      case AssetType.file: {
-        break
-      }
-      case AssetType.directory: {
-        break
-      }
-    }
+    const typeAndPath = extractTypeAndPath(assetId)
+    return await this.apiGetAssetDetailsByPath(typeAndPath)
   }
 
   /** List a directory. */
@@ -645,43 +703,14 @@ export class Server {
     const directory = directoryRaw?.replace(/^directory-/, '') ?? this.projectsRootDirectory
     const assets: AnyAsset[] = []
     for (const entryName of await readdir(directory)) {
-      const entryPath = path.join(directory, entryName)
-      const entryStat = await stat(entryPath)
-      const shared = {
-        title: getFileName(entryPath),
-        modifiedAt: toRfc3339(new Date()),
-        parentId: DirectoryId(`directory-${getFolderPath(entryPath)}` as const),
-        extension: null,
-        permissions: [],
-        projectState: null,
-        parentsPath: ParentsPath(''),
-        virtualParentsPath: VirtualParentsPath(''),
-      } satisfies Partial<DirectoryAsset>
-      if (entryStat.isDirectory()) {
-        const metadata = projectManagement.getMetadata(entryPath)
-        if (metadata) {
-          assets.push({
-            ...shared,
-            type: AssetType.project,
-            id: ProjectId(`project-${metadata.id}-${shared.parentId.replace('directory-', '')}`),
-            projectState: { type: ProjectState.closed },
-          })
-        } else {
-          assets.push({
-            ...shared,
-            type: AssetType.directory,
-            id: DirectoryId(`directory-${entryPath}` as const),
-          })
-        }
-      } else {
-        assets.push({
-          ...shared,
-          type: AssetType.file,
-          id: FileId(`file-${entryPath}`),
-          extension: basenameAndExtension(entryPath).extension,
-        })
+      const entryPath = Path(path.join(directory, entryName))
+      const asset = await this.apiGetAssetDetailsByPath({ path: entryPath })
+      if (asset == null) {
+        throw new Error(`File not found at '${entryPath}'`)
       }
+      assets.push(asset)
     }
+    return assets
   }
 
   /** Response handler for "upload archive" endpoint. */
@@ -690,6 +719,8 @@ export class Server {
     response: http.ServerResponse,
     params: URLSearchParams,
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this
     const directory =
       params.get('directory')?.replace(/^directory-/, '') ?? this.projectsRootDirectory
     let filePath = params.get('filePath')
@@ -704,8 +735,9 @@ export class Server {
     const assets: AnyAsset[] = []
     const conflicts: AssetConflict[] = []
     const archive = new Unzip({
-      onEntry(event) {
-        const entryPath = path.join(directory, event.entryName)
+      async onEntry(event) {
+        const entryPath = Path(path.join(directory, event.entryName))
+        const existingAsset = await self.apiGetAssetDetailsByPath({ path: entryPath })
         const shared = {
           title: getFileName(entryPath),
           modifiedAt: toRfc3339(new Date()),
