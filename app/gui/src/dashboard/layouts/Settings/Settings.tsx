@@ -16,8 +16,9 @@ import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import {
   ALL_SETTINGS_TABS,
@@ -53,10 +54,10 @@ export function Settings() {
   const isQueryBlank = !/\S/.test(query)
   const [preferredTimeZone, setPreferredTimeZone] = useLocalStorageState('preferredTimeZone')
 
-  const updateUser = useMutation(backendMutationOptions(backend, 'updateUser')).mutateAsync
-  const updateOrganization = useMutation(
+  const updateUser = useMutationCallback(backendMutationOptions(backend, 'updateUser'))
+  const updateOrganization = useMutationCallback(
     backendMutationOptions(backend, 'updateOrganization'),
-  ).mutateAsync
+  )
 
   const localRootDirectory = useLocalRootDirectory() ?? localBackend?.rootPath() ?? null
   const downloadDirectory = useDownloadDirectory()

@@ -734,37 +734,57 @@ export class Server {
     }
     const assets: AnyAsset[] = []
     const conflicts: AssetConflict[] = []
-    const archive = new Unzip({
-      async onEntry(event) {
-        const entryPath = Path(path.join(directory, event.entryName))
-        const existingAsset = await self.apiGetAssetDetailsByPath({ path: entryPath })
-        const shared = {
-          title: getFileName(entryPath),
-          modifiedAt: toRfc3339(new Date()),
-          parentId: DirectoryId(`directory-${getFolderPath(entryPath)}` as const),
-          extension: null,
-          permissions: [],
-          projectState: null,
-          parentsPath: ParentsPath(''),
-          virtualParentsPath: VirtualParentsPath(''),
-        } satisfies Partial<DirectoryAsset>
-        if (event.entryName.endsWith('/')) {
-          assets.push({
-            ...shared,
-            type: AssetType.directory,
-            id: DirectoryId(`directory-${entryPath}` as const),
-          })
-        } else {
-          assets.push({
-            ...shared,
-            type: AssetType.file,
-            id: FileId(`file-${entryPath}`),
-            extension: basenameAndExtension(entryPath).extension,
-          })
-        }
+    const promises: Promise<void>[] = []
+    const archiveMetadata = new Unzip({
+      onEntry(event) {
+        event.preventDefault()
+        const promise = (async () => {
+          const entryPath = Path(path.join(directory, event.entryName))
+          const isDirectory = event.entryName.endsWith('/')
+          // If directories need to be merged in the future, the 'existing asset' check can be skipped.
+          const existingAsset = await self.apiGetAssetDetailsByPath({ path: entryPath })
+          if (existingAsset) {
+            const conflict: AssetConflict = {
+              sourcePath: Path(event.entryName),
+              existingAsset,
+            }
+            conflicts.push(conflict)
+            return
+          }
+          const shared = {
+            title: getFileName(entryPath),
+            modifiedAt: toRfc3339(new Date()),
+            parentId: DirectoryId(`directory-${getFolderPath(entryPath)}` as const),
+            extension: null,
+            permissions: [],
+            projectState: null,
+            parentsPath: ParentsPath(''),
+            virtualParentsPath: VirtualParentsPath(''),
+          } satisfies Partial<DirectoryAsset>
+          if (isDirectory) {
+            assets.push({
+              ...shared,
+              type: AssetType.directory,
+              id: DirectoryId(`directory-${entryPath}` as const),
+            })
+          } else {
+            assets.push({
+              ...shared,
+              type: AssetType.file,
+              id: FileId(`file-${entryPath}`),
+              extension: basenameAndExtension(entryPath).extension,
+            })
+          }
+        })()
+        promises.push(promise)
       },
     })
-    await archive.extract(filePath, directory)
+    await Promise.all(promises)
+    await archiveMetadata.extract(filePath, directory)
+    if (conflicts.length === 0) {
+      // Upload; no conflict resolution needed.
+      await new Unzip().extract(filePath, directory)
+    }
     if (tempDirectory != null) {
       await rm(tempDirectory, { force: true, recursive: true })
     }
@@ -782,7 +802,7 @@ export class Server {
       assets[i] = {
         ...asset,
         type: AssetType.project,
-        id: ProjectId(`project-${metadata.id}-${asset.parentId.replace('directory-', '')}`),
+        id: ProjectId(`project-${asset.id.replace('directory-', '')}`),
         projectState: { type: ProjectState.closed },
       }
     }
