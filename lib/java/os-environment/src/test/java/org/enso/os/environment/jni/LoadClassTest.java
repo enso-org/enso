@@ -12,7 +12,6 @@ import org.enso.os.environment.jni.JNI.JValue;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class LoadClassTest {
@@ -201,25 +200,21 @@ public class LoadClassTest {
     assertException("1", new TestMain.CountDownAndThrow(1, 1));
   }
 
-  @Ignore
   @Test
   public void throwFactorialTwo() throws Exception {
     assertException("2", new TestMain.CountDownAndThrow(2, 1));
   }
 
-  @Ignore
   @Test
   public void throwFactorialThree() throws Exception {
     assertException("6", new TestMain.CountDownAndThrow(3, 1));
   }
 
-  @Ignore
   @Test
   public void throwFactorialFour() throws Exception {
     assertException("24", new TestMain.CountDownAndThrow(4, 1));
   }
 
-  @Ignore
   @Test
   public void throwFactorialFive() throws Exception {
     assertException("120", new TestMain.CountDownAndThrow(5, 1));

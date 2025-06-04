@@ -20,6 +20,7 @@ import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.graalvm.word.WordFactory;
 
 /** Channel connects two {@link JVM} instances. */
 public final class Channel implements AutoCloseable {
@@ -114,7 +115,7 @@ public final class Channel implements AutoCloseable {
       arg.addressOf(2).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
       arg.addressOf(3).setJObject(poolClassInHotSpot);
       var replyOk = fn.getCallStaticBooleanMethodA().call(e, channelClass, createMethod, arg);
-      checkForException(e);
+      channel.checkForException(e);
       assert replyOk : "Failed to create peer in HotSpot JVM";
 
       ID_TO_CHANNEL.put(id, channel);
@@ -170,14 +171,14 @@ public final class Channel implements AutoCloseable {
           resultType,
           msg,
           seg -> {
-            Object res = -1L;
             try {
               var isoRef = MemorySegment.ofAddress(isolate);
-              res = fnHandle.invoke(isoRef, id, seg, seg.byteSize());
+              var res = fnHandle.invoke(isoRef, id, seg, seg.byteSize());
+              return (long) res;
             } catch (Throwable ex) {
-              ex.printStackTrace();
+              printStackTrace(ex, false);
+              return -1L;
             }
-            return (long) res;
           });
     }
   }
@@ -197,8 +198,17 @@ public final class Channel implements AutoCloseable {
 
     var channel = ID_TO_CHANNEL.get(id);
     assert channel != null : "There must be a channel " + id + " but " + ID_TO_CHANNEL;
-    var len = handleWithChannel(channel, data.rawValue(), size);
-    return len;
+    try {
+      var len = handleWithChannel(channel, data.rawValue(), size);
+      return len;
+    } catch (Throwable ex) {
+      channel.printStackTrace(ex, true);
+      var exceptionMessage =
+          ex.getMessage()
+              .subSequence(0, Math.min(ex.getMessage().length(), (int) Math.min(2048, size)));
+      CTypeConversion.toCString(exceptionMessage, data, WordFactory.unsigned(size));
+      return -2L;
+    }
   }
 
   private static long handleWithChannel(Channel channel, long address, long size) throws Throwable {
@@ -226,14 +236,12 @@ public final class Channel implements AutoCloseable {
     return replySize;
   }
 
-  private static void checkForException(JNI.JNIEnv e) {
+  private void checkForException(JNI.JNIEnv e) {
     var fn = e.getFunctions();
     if (fn.getExceptionCheck().call(e)) {
       var throwable = fn.getExceptionOccurred().call(e);
       assert throwable.isNonNull() : "There must be a throwable";
-      var assertsOn = false;
-      assert assertsOn = true;
-      if (assertsOn) {
+      if (printStackTrace(null, true)) {
         fn.getExceptionDescribe().call(e);
       }
       fn.getExceptionClear().call(e);
@@ -264,6 +272,11 @@ public final class Channel implements AutoCloseable {
       var memory = arena.allocate(Math.max(bytes.length, 4096));
       memory.copyFrom(MemorySegment.ofArray(bytes));
       long len = send.apply(memory);
+      if (len == -2) {
+        // signals exception
+        var exceptionMessage = memory.getString(0);
+        throw new IllegalStateException(exceptionMessage);
+      }
       assert len >= 0;
       var reply = memory.asByteBuffer();
       reply.position(0);
@@ -284,5 +297,20 @@ public final class Channel implements AutoCloseable {
   public void close() throws Exception {
     ID_TO_CHANNEL.remove(id, this);
     // TBD remove on the peer as well
+  }
+
+  /**
+   * @param ex exception to print stack trace for or {@code null}
+   * @param userCode is the exception from user code or is it unexpected
+   * @return {@code true} if the exception was printed and further details should be printed
+   */
+  private boolean printStackTrace(Throwable ex, boolean userCode) {
+    if (!userCode) {
+      if (ex != null) {
+        ex.printStackTrace();
+      }
+      return true;
+    }
+    return false;
   }
 }
