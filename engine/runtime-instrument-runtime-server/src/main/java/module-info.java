@@ -10,4 +10,6 @@ module org.enso.runtime.instrument.runtime.server {
 
   provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider with
       org.enso.interpreter.instrument.runtime.server.RuntimeServerInstrumentProvider;
+
+  uses org.enso.interpreter.instrument.HandlerFactory;
 }
