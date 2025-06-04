@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -14,6 +15,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import org.enso.filewatcher.Watcher.EventTypeCreate$;
+import org.enso.filewatcher.Watcher.EventTypeDelete$;
+import org.enso.filewatcher.Watcher.EventTypeModify$;
 import org.enso.filewatcher.Watcher.WatcherEvent;
 import org.enso.testkit.RetryTestRule;
 import org.junit.After;
@@ -75,6 +78,44 @@ public class FileWatcherTest {
     assertThat(event.path(), is(expectedPath));
   }
 
+  @Test
+  public void receiveDeleteEvents() throws IOException {
+    var fileA = Paths.get(tmpDir.getPath(), "a.txt");
+
+    Files.createFile(fileA);
+    var event1 = pollEvent();
+    assertThat(event1, is(createEvent(fileA)));
+
+    Files.delete(fileA);
+    var event2 = pollEvent();
+    assertThat(event2, is(deleteEvent(fileA)));
+  }
+
+  @Test
+  public void receiveModifyEvents() throws IOException {
+    var fileA = Paths.get(tmpDir.getPath(), "a.txt");
+
+    Files.createFile(fileA);
+    var event1 = pollEvent();
+    assertThat(event1, is(createEvent(fileA)));
+
+    Files.writeString(fileA, "Hello, World!");
+    var event2 = pollEvent();
+    assertThat(event2, is(modifyEvent(fileA)));
+  }
+
+  @Test
+  public void receiveEventsFromSubdirectories() throws IOException {
+    var subdir = Paths.get(tmpDir.getPath(), "subdir");
+    var fileA = Paths.get(tmpDir.getPath(), "subdir", "a.txt");
+    Files.createDirectories(subdir);
+    var event1 = pollEvent();
+    assertThat(event1, is(createEvent(subdir)));
+
+    Files.createFile(fileA);
+    assertThat(event1, is(createEvent(fileA)));
+  }
+
   private WatcherEvent pollEvent() {
     try {
       return eventQueue.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -85,5 +126,17 @@ public class FileWatcherTest {
 
   private static Watcher.EventType createEventType() {
     return EventTypeCreate$.MODULE$;
+  }
+
+  private static Watcher.WatcherEvent createEvent(Path path) {
+    return new WatcherEvent(path, EventTypeCreate$.MODULE$);
+  }
+
+  private static Watcher.WatcherEvent deleteEvent(Path path) {
+    return new WatcherEvent(path, EventTypeDelete$.MODULE$);
+  }
+
+  private static Watcher.WatcherEvent modifyEvent(Path path) {
+    return new WatcherEvent(path, EventTypeModify$.MODULE$);
   }
 }
