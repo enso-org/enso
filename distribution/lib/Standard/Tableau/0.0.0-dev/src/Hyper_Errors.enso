@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Table.Errors import Unmatched_Columns
 
 polyglot java import org.enso.tableau.HyperQueryError
 polyglot java import org.enso.tableau.HyperTableNotFound
@@ -24,20 +25,6 @@ type Hyper_Unsupported_Type
     to_display_text : Text
     to_display_text self = "Tableau Hyper files do not support columns of type " + self.type_name
 
-type Hyper_Unmatched_Columns
-    ## PRIVATE
-
-       An error indicating that some columns were not present in all of the
-       merged tables.
-    Error column_names
-
-    ## PRIVATE
-
-       Create a human-readable version of the error.
-    to_display_text : Text
-    to_display_text self =
-        "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + "."
-
 type Hyper_Type_Mismatch
     ## PRIVATE
 
@@ -56,6 +43,6 @@ private handle_java_exceptions ~action =
     Panic.catch HyperTableNotFound handler=(c-> Error.throw (Hyper_Table_Not_Found.Error c.payload.getSchema c.payload.getName)) <|
         Panic.catch HyperQueryError handler=(c-> Error.throw (Query_Failed.Error c.payload.getMessage c.payload.getQuery)) <|
             Panic.catch HyperUnsupportedTypeError handler=(c-> Error.throw (Hyper_Unsupported_Type.Error c.payload.getTypeName)) <|
-                Panic.catch HyperUnmatchedColumns handler=(c-> Error.throw (Hyper_Unmatched_Columns.Error c.payload.getUnmatchedColumns)) <|
+                Panic.catch HyperUnmatchedColumns handler=(c-> Error.throw (Unmatched_Columns.Error c.payload.getUnmatchedColumns.to_vector)) <|
                     Panic.catch HyperTypeMismatch handler=(c-> Error.throw (Hyper_Type_Mismatch.Error c.payload.getMismatches)) <|
                         action

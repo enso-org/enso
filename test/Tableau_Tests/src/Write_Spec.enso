@@ -263,8 +263,8 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         t2 = Table.input [['Col2', ['b']], ['Col1', ['a']]]
         r = t2.write written_file on_existing_file=..Append match_columns=..By_Name
-        r.should_fail_with Hyper_Unmatched_Columns
-        r.catch.should_equal (Hyper_Unmatched_Columns.Error ["Col2"])
+        r.should_fail_with Unmatched_Columns
+        r.catch.should_equal (Unmatched_Columns.Error ["Col2"])
 
         ## Data is still t1 as we didn't append
         written_table_in_hyper = Hyper_File.new written_file . tables . first
@@ -288,8 +288,8 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         t2 = Table.input [['Col2', ['b']], ['Col1', ['a']]]
         r = t2.write written_file on_existing_file=..Append match_columns=..By_Position
-        r.should_fail_with Hyper_Unmatched_Columns
-        r.catch.should_equal (Hyper_Unmatched_Columns.Error ["Col1"])
+        r.should_fail_with Unmatched_Columns
+        r.catch.should_equal (Unmatched_Columns.Error ["Col1"])
 
         ## Data is still t1 as we didn't append
         written_table_in_hyper = Hyper_File.new written_file . tables . first
@@ -312,7 +312,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         t2 = Table.input [['Col2', ['b']]]
         r = t2.write written_file on_existing_file=..Append match_columns=..By_Name
-        Problems.expect_only_warning (Hyper_Unmatched_Columns.Error ["Col1"]) r
+        Problems.expect_only_warning (Unmatched_Columns.Error ["Col1"]) r
 
         written_table_in_hyper = Hyper_File.new written_file . tables . first
         written_table_in_hyper.read.should_equal (Table.input [['Col1', ['a', Nothing]], ['Col2', ['b', 'b']]])
@@ -334,7 +334,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         t2 = Table.input [['Col2', ['b']]]
         r = t2.write written_file on_existing_file=..Append match_columns=..By_Position
-        Problems.expect_only_warning (Hyper_Unmatched_Columns.Error ["Col2"]) r
+        Problems.expect_only_warning (Unmatched_Columns.Error ["Col2"]) r
 
         written_table_in_hyper = Hyper_File.new written_file . tables . first
         written_table_in_hyper.read.should_equal (Table.input [['Col1', ['a', 'b']], ['Col2', ['b', Nothing]]])
@@ -356,8 +356,8 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         t2 = Table.input [['Col2', ['b']]]
         r = t2.write written_file on_existing_file=..Append match_columns=..By_Name on_problems=..Report_Error
-        r.should_fail_with Hyper_Unmatched_Columns
-        r.catch.should_equal (Hyper_Unmatched_Columns.Error ["Col1"])
+        r.should_fail_with Unmatched_Columns
+        r.catch.should_equal (Unmatched_Columns.Error ["Col1"])
 
         ## Data is still t1 as we didn't append
         written_table_in_hyper = Hyper_File.new written_file . tables . first
@@ -402,8 +402,8 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         t2 = Table.input [['Col2', ['b']]]
         r = t2.write written_file on_existing_file=..Append match_columns=..By_Position on_problems=..Report_Error
-        r.should_fail_with Hyper_Unmatched_Columns
-        r.catch.should_equal (Hyper_Unmatched_Columns.Error ["Col2"])
+        r.should_fail_with Unmatched_Columns
+        r.catch.should_equal (Unmatched_Columns.Error ["Col2"])
 
         ## Data is still t1 as we didn't append
         written_table_in_hyper = Hyper_File.new written_file . tables . first
