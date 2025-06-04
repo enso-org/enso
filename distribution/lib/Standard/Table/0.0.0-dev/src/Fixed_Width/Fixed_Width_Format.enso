@@ -257,7 +257,7 @@ type Infer_Layout
     ## PRIVATE
     to_java self -> Justification = case self of
         Infer_Layout.Left -> Justification.LEFT
-        Infer_Layout.Right -> Justification.Right
+        Infer_Layout.Right -> Justification.RIGHT
 
 ## PRIVATE
 Fixed_Width_Layout.from (that:Table) =

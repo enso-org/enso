@@ -282,7 +282,7 @@ public class FixedWidthReader {
               var ends = findEnds(lineLength);
               for (int i = 0; i < ends.size(); ++i) {
                 var start = i == 0 ? 0 : ends.get(i-1) + 1;
-                var end = ends.get(i);
+                var end = ends.get(i) + 1;
                 var width = end-start;
                 var columnName = decodeSubarray(start, width).trim();
                 entries.add(new FixedWidthLayoutEntry(start, width, columnName));
@@ -312,6 +312,7 @@ public class FixedWidthReader {
       return starts;
   }
 
+  // Ends are inclusive.
   private List<Integer> findEnds(int lineLength) {
       var ends = new ArrayList<Integer>();
 
@@ -323,6 +324,7 @@ public class FixedWidthReader {
           }
           inWhitespace = isWhitespace;
       }
+      ends.add(lineLength-1);
 
       return ends;
   }

@@ -11,7 +11,7 @@ import project.Fixed_Width.Fixed_Width_Format.Infer_Layout
 import project.Fixed_Width.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Fixed_Width.On_Empty_Field.On_Empty_Field
 import project.Internal.Java_Problems
-from project.Errors import Empty_File_Error
+from project.Errors import Empty_File_Error, Fixed_Width_Line_Too_Long, No_Column_Names_Found
 from project.Table import from_java_table
 
 polyglot java import java.io.IOException
@@ -60,7 +60,7 @@ read_stream format input_stream on_problems:Problem_Behavior related_file=Nothin
         buffered_input_stream = input_stream.as_peekable_stream
         decoding_problem_aggregator = FixedWidthDecodingProblemAggregator.new
         result = buffered_input_stream.with_java_stream java_stream->
-            Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <|
+            Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <| No_Column_Names_Found.handle_java_exception <| Fixed_Width_Line_Too_Long.handle_java_exception <|
                 Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                     reader = prepare_reader format format.encoding on_problems decoding_problem_aggregator java_problem_aggregator
                     java_table = reader.read java_stream
