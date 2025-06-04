@@ -1,17 +1,15 @@
-import gunzipMaybe from 'gunzip-maybe'
+import { createReadStream } from 'node:fs'
+import { readdir, stat } from 'node:fs/promises'
+import { join, relative } from 'node:path'
 import { Stream } from 'node:stream'
 import { createGzip } from 'node:zlib'
 import { pack as tarPack } from 'tar-stream'
 import { default as ZipStream, type FileDataInput } from 'zip-stream'
-gunzipMaybe()
+export { pack as tarFsPack } from 'tar-fs'
 
 export interface ArchiveEntryMetadata extends FileDataInput {
   readonly name: string
   readonly mode?: number | undefined
-}
-
-interface ArchiveBuilderFunction {
-  (onCreate: (stream: Stream) => void): ArchiveBuilder
 }
 
 export interface ArchiveBuilder {
@@ -20,15 +18,13 @@ export interface ArchiveBuilder {
     source: Buffer | _Readable.Stream | Stream | string,
     data: ArchiveEntryMetadata,
   ) => Promise<void>
-  readonly addDirectory: (data: ArchiveEntryMetadata) => Promise<void>
+  readonly addFolder: (data: ArchiveEntryMetadata) => Promise<void>
   readonly finalize: () => void
 }
 
-zipWriteStream satisfies ArchiveBuilderFunction
 /** Create a stream to encode to a `.zip` file. */
-export function zipWriteStream(onCreate: (stream: Stream) => void): ArchiveBuilder {
+export function zipWriteStream(): ArchiveBuilder {
   const archive = new ZipStream()
-  onCreate(archive)
   return {
     stream: archive,
     addFile(source, data) {
@@ -36,7 +32,7 @@ export function zipWriteStream(onCreate: (stream: Stream) => void): ArchiveBuild
         archive.entry(source, data, (error, entry) => (entry ? resolve() : reject(error)))
       })
     },
-    addDirectory(data) {
+    addFolder(data) {
       return new Promise((resolve, reject) => {
         archive.entry(null, data, (error, entry) => (entry ? resolve() : reject(error)))
       })
@@ -47,11 +43,9 @@ export function zipWriteStream(onCreate: (stream: Stream) => void): ArchiveBuild
   }
 }
 
-tarWriteStream satisfies ArchiveBuilderFunction
 /** Create a stream to encode to a `.tar` file. */
-function tarWriteStream(onCreate: (stream: Stream) => void): ArchiveBuilder {
+function tarWriteStream(): ArchiveBuilder {
   const archive = tarPack()
-  onCreate(archive)
   return {
     stream: archive,
     addFile(source, data) {
@@ -68,7 +62,7 @@ function tarWriteStream(onCreate: (stream: Stream) => void): ArchiveBuilder {
         }
       })
     },
-    addDirectory(data) {
+    addFolder(data) {
       return new Promise((resolve) => {
         const entry = archive.entry({ type: 'directory', ...data }, () => {
           resolve()
@@ -82,13 +76,34 @@ function tarWriteStream(onCreate: (stream: Stream) => void): ArchiveBuilder {
   }
 }
 
-tarWriteStream satisfies ArchiveBuilderFunction
 /** Create a stream to encode to a `.tar` file. */
-export function tarGzWriteStream(onCreate: (stream: Stream) => void): ArchiveBuilder {
+export function tarGzWriteStream(): ArchiveBuilder {
   const gzipStream = createGzip()
-  const builder = tarWriteStream((stream) => {
-    stream.pipe(gzipStream)
-    onCreate(gzipStream)
-  })
+  const builder = tarWriteStream()
+  builder.stream.pipe(gzipStream)
   return { ...builder, stream: gzipStream }
+}
+
+/** Add a folder and all its children recursively to an archive. */
+export async function addFsFolderToArchive(
+  builder: ArchiveBuilder,
+  folderPath: string,
+  data: ArchiveEntryMetadata,
+) {
+  const { name: rootPath } = data
+  const onEntry = async (entryPath: string) => {
+    const pathInFolder = relative(folderPath, entryPath)
+    const pathInArchive = join(rootPath, pathInFolder)
+    const entryStat = await stat(entryPath)
+    if (!entryStat.isDirectory()) {
+      await builder.addFile(createReadStream(pathInFolder), { name: pathInArchive })
+    } else {
+      await builder.addFolder({ name: pathInArchive })
+      for (const entryName of await readdir(entryPath)) {
+        const childPath = join(entryPath, entryName)
+        await onEntry(childPath)
+      }
+    }
+  }
+  await onEntry(folderPath)
 }

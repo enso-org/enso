@@ -31,6 +31,8 @@ export function useExportArchive() {
       // Assume that the user cancelled the action.
       return
     }
+    // If the file path is null, assume the user is using the desktop app's server with a browser.
+    // The desktop app's server will return a stream instead that can be downloaded by the browser.
     const filePath = filePathRaw != null ? Path(filePathRaw) : null
     await toast.promise(exportArchive([{ assetIds: [...selectedIds], filePath }]), {
       pending: getText('exportArchive.inProgress'),

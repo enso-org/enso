@@ -12,11 +12,13 @@ import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
 import * as projectManagement from '@/projectManagement'
-import { COOP_COEP_CORP_HEADERS, PRODUCT_NAME } from 'enso-common'
+import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as ydocServer from 'ydoc-server'
 
+import { addFsFolderToArchive, tarFsPack, zipWriteStream } from '@/archive'
 import * as contentConfig from '@/contentConfig'
+import { BUNDLED_PROJECT_EXTENSION } from '@/fileAssociations'
 import * as paths from '@/paths'
 import { app } from 'electron'
 import {
@@ -42,9 +44,9 @@ import {
   EXPORT_ARCHIVE_PATH,
   IMPORT_ARCHIVE_PATH,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
-import { toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { basenameAndExtension, getFileName, getFolderPath } from 'enso-common/src/utilities/file'
-import { createWriteStream } from 'node:fs'
+import { createReadStream, createWriteStream } from 'node:fs'
 import {
   access,
   mkdir,
@@ -59,7 +61,8 @@ import {
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
-import { Unzip, Zip } from 'zip-lib'
+import { createGzip } from 'node:zlib'
+import { Unzip } from 'zip-lib'
 
 const logger = contentConfig.logger
 
@@ -523,8 +526,7 @@ export class Server {
     params: URLSearchParams,
   ) {
     const assets = params.getAll('asset') as AssetId[]
-    const archive = new Zip()
-    let filePath = params.get('filePath')
+    const filePath = params.get('filePath')
     const notFound = (id: AssetId) => {
       const content = JSON.stringify({ error: `Asset '${id}' not found` })
       response
@@ -534,6 +536,12 @@ export class Server {
           ...COOP_COEP_CORP_HEADERS,
         ])
         .end(content)
+    }
+    const archive = zipWriteStream()
+    if (filePath != null) {
+      archive.stream.pipe(createWriteStream(filePath))
+    } else {
+      archive.stream.pipe(response)
     }
     for (const asset of assets) {
       const typeAndId = extractTypeFromId(asset)
@@ -553,7 +561,9 @@ export class Server {
               if (metadata?.id !== uuid) {
                 continue
               }
-              archive.addFolder(projectPath, entry.name)
+              await archive.addFile(tarFsPack(projectPath).pipe(createGzip()), {
+                name: `${entry.name}.${BUNDLED_PROJECT_EXTENSION}`,
+              })
               found = true
               break
             } catch {
@@ -572,7 +582,7 @@ export class Server {
             notFound(asset)
             return
           }
-          archive.addFile(filePath, getFileName(filePath))
+          await archive.addFile(createReadStream(filePath), { name: getFileName(filePath) })
           break
         }
         case AssetType.directory: {
@@ -581,7 +591,7 @@ export class Server {
             notFound(asset)
             return
           }
-          archive.addFolder(directoryPath, getFileName(directoryPath))
+          await addFsFolderToArchive(archive, directoryPath, { name: getFileName(directoryPath) })
           break
         }
         // These asset types are not valid, however include them to force any newly added
@@ -596,24 +606,8 @@ export class Server {
         }
       }
     }
-    if (filePath == null) {
-      const folderPath = app.getPath('downloads')
-      let generatedFilePath: string
-      let number = 0
-      do {
-        number += 1
-        const secondsString = new Date().getSeconds().toString().padStart(2, '0')
-        const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
-        const suffix = number === 1 ? '' : ` (${number})`
-        generatedFilePath = path.join(
-          folderPath,
-          `${PRODUCT_NAME} archive ${dateString}${suffix}.zip`,
-        )
-      } while (await fileExists(generatedFilePath))
-      filePath = generatedFilePath
-    }
-    await archive.archive(filePath)
-    const result: ExportedArchive = { filePath: Path(filePath) }
+    archive.finalize()
+    const result: ExportedArchive = { filePath: filePath != null ? Path(filePath) : null }
     const content = JSON.stringify(result)
     response
       .writeHead(HTTP_STATUS_OK, [
