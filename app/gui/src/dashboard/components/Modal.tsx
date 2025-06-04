@@ -1,9 +1,8 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/ModalProvider'
-
 import { ClearPressResponder } from '#/components/aria'
+import { unsetModal } from '#/providers/ModalProvider'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 const MODAL_VARIANTS = tailwindVariants.tv({
@@ -33,7 +32,6 @@ export interface ModalProps
  */
 export default function Modal(props: ModalProps) {
   const { hidden = false, children, style, onClick, onContextMenu, ...variantProps } = props
-  const { unsetModal } = modalProvider.useSetModal()
 
   return (
     // Required so that `Button`s and `Checkbox`es contained inside do not trigger any

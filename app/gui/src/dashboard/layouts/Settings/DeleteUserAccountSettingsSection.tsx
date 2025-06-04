@@ -1,5 +1,7 @@
 /** @file Settings tab for deleting the current user. */
-import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Text } from '#/components/Text'
 import { ConfirmDeleteUserModal } from '#/modals/ConfirmDeleteUserModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useText } from '$/providers/react'
@@ -13,7 +15,7 @@ export default function DeleteUserAccountSettingsSection() {
     <div className="flex flex-col items-start gap-2.5 rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]">
       <Text.Heading color="danger">{getText('dangerZone')}</Text.Heading>
       <div className="flex gap-2">
-        <DialogTrigger>
+        <Dialog.Trigger>
           <Button size="medium" variant="delete">
             {getText('deleteUserAccountButtonLabel')}
           </Button>
@@ -22,7 +24,7 @@ export default function DeleteUserAccountSettingsSection() {
               await deleteUser()
             }}
           />
-        </DialogTrigger>
+        </Dialog.Trigger>
         <Text className="my-auto">{getText('deleteUserAccountWarning')}</Text>
       </div>
     </div>

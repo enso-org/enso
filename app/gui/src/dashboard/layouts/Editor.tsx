@@ -1,5 +1,5 @@
 /** @file The container that launches the IDE. */
-import { Button } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import * as suspense from '#/components/Suspense'
@@ -239,7 +239,7 @@ function EditorInternal(props: EditorInternalProps) {
     hidden,
     projectViewProps: {
       projectId: openedProject.projectId,
-      projectName: openedProject.packageName,
+      projectInitialName: openedProject.packageName,
       projectDisplayedName: projectName,
       engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
       renameProject: onRenameProject,

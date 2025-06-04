@@ -2,29 +2,25 @@
  * @file
  * Setup page
  */
-import * as React from 'react'
-
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
-
-import type * as text from 'enso-common/src/text'
-
 import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
-
-import { useIsFirstRender } from '#/hooks/mountHooks'
-
-import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
-import { useText } from '$/providers/react'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import Page from '#/components/Page'
+import { Separator } from '#/components/Separator'
 import * as stepper from '#/components/Stepper'
-
+import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useIsFirstRender } from '#/hooks/mountHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
+import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
 import { Plan } from '#/services/Backend'
-import { useBackends, useRouter } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import type * as text from 'enso-common/src/text'
+import * as React from 'react'
+import invariant from 'tiny-invariant'
 
 /** Step in the setup process */
 interface Step {
@@ -62,7 +58,7 @@ const BASE_STEPS: Step[] = [
         session && 'user' in session ? session.user.name : (userSession?.email ?? '')
 
       return (
-        <ariaComponents.Form
+        <Form
           className="max-w-96"
           schema={(z) =>
             z.object({
@@ -83,19 +79,17 @@ const BASE_STEPS: Step[] = [
             goToNextStep()
           }}
         >
-          <ariaComponents.Input
+          <Input
             name="username"
             label={getText('userNameSettingsInput')}
             placeholder={getText('usernamePlaceholder')}
             description="Minimum 3 characters, maximum 48 characters"
           />
 
-          <ariaComponents.Form.Submit variant="primary">
-            {getText('next')}
-          </ariaComponents.Form.Submit>
+          <Form.Submit variant="primary">{getText('next')}</Form.Submit>
 
-          <ariaComponents.Form.FormError />
-        </ariaComponents.Form>
+          <Form.FormError />
+        </Form>
       )
     },
   },
@@ -155,7 +149,7 @@ const BASE_STEPS: Step[] = [
       )
 
       return (
-        <ariaComponents.Form
+        <Form
           schema={(z) =>
             z.object({ organizationName: z.string().min(1).max(ORGANIZATION_NAME_MAX_LENGTH) })
           }
@@ -167,7 +161,7 @@ const BASE_STEPS: Step[] = [
             }
           }}
         >
-          <ariaComponents.Input
+          <Input
             name="organizationName"
             autoComplete="off"
             label={getText('organizationNameSettingsInput')}
@@ -177,18 +171,16 @@ const BASE_STEPS: Step[] = [
             )}
           />
 
-          <ariaComponents.ButtonGroup align="start">
-            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+          <Button.Group align="start">
+            <Button variant="outline" onPress={goToPreviousStep}>
               {getText('back')}
-            </ariaComponents.Button>
+            </Button>
 
-            <ariaComponents.Form.Submit variant="primary">
-              {getText('next')}
-            </ariaComponents.Form.Submit>
-          </ariaComponents.ButtonGroup>
+            <Form.Submit variant="primary">{getText('next')}</Form.Submit>
+          </Button.Group>
 
-          <ariaComponents.Form.FormError />
-        </ariaComponents.Form>
+          <Form.FormError />
+        </Form>
       )
     },
   },
@@ -213,15 +205,15 @@ const BASE_STEPS: Step[] = [
         <div className="max-w-96">
           <InviteUsersForm onSubmitted={goToNextStep} />
 
-          <ariaComponents.ButtonGroup align="start" className="mt-4">
-            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+          <Button.Group align="start" className="mt-4">
+            <Button variant="outline" onPress={goToPreviousStep}>
               {getText('back')}
-            </ariaComponents.Button>
+            </Button>
 
-            <ariaComponents.Button variant="ghost-fading" onPress={goToNextStep}>
+            <Button variant="ghost-fading" onPress={goToNextStep}>
               {getText('skip')}
-            </ariaComponents.Button>
-          </ariaComponents.ButtonGroup>
+            </Button>
+          </Button.Group>
         </div>
       )
     },
@@ -274,30 +266,28 @@ const BASE_STEPS: Step[] = [
       )
 
       return (
-        <ariaComponents.Form
+        <Form
           schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
           className="max-w-96"
           onSubmit={({ groupName }) => createUserGroupMutation.mutateAsync([{ name: groupName }])}
         >
-          <ariaComponents.Input
+          <Input
             name="groupName"
             autoComplete="off"
             label={getText('groupNameSettingsInput')}
             description={getText('groupNameSettingsInputDescription', defaultUserGroupMaxLength)}
           />
 
-          <ariaComponents.ButtonGroup align="start">
-            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+          <Button.Group align="start">
+            <Button variant="outline" onPress={goToPreviousStep}>
               {getText('back')}
-            </ariaComponents.Button>
+            </Button>
 
-            <ariaComponents.Form.Submit variant="primary">
-              {getText('next')}
-            </ariaComponents.Form.Submit>
-          </ariaComponents.ButtonGroup>
+            <Form.Submit variant="primary">{getText('next')}</Form.Submit>
+          </Button.Group>
 
-          <ariaComponents.Form.FormError />
-        </ariaComponents.Form>
+          <Form.FormError />
+        </Form>
       )
     },
   },
@@ -313,12 +303,12 @@ const BASE_STEPS: Step[] = [
       const queryClient = useQueryClient()
 
       return (
-        <ariaComponents.ButtonGroup align="start">
-          <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+        <Button.Group align="start">
+          <Button variant="outline" onPress={goToPreviousStep}>
             {getText('back')}
-          </ariaComponents.Button>
+          </Button>
 
-          <ariaComponents.Button
+          <Button
             variant="primary"
             size="medium"
             icon="arrow_right"
@@ -326,8 +316,8 @@ const BASE_STEPS: Step[] = [
             onPress={() => queryClient.invalidateQueries().then(() => router.push(DASHBOARD_PATH))}
           >
             {getText('goToDashboard')}
-          </ariaComponents.Button>
-        </ariaComponents.ButtonGroup>
+          </Button>
+        </Button.Group>
       )
     },
   },
@@ -408,9 +398,9 @@ export function Setup() {
     <Page>
       <div className="flex flex-1 flex-col overflow-y-auto">
         <div className="mx-auto my-24 w-full max-w-screen-xl px-8 py-6">
-          <ariaComponents.Text.Heading level="1" className="mb-4">
+          <Text.Heading level="1" className="mb-4">
             {getText('setupEnso')}
-          </ariaComponents.Text.Heading>
+          </Text.Heading>
 
           <stepper.Stepper
             state={stepperState}
@@ -426,38 +416,36 @@ export function Setup() {
                   description={step.description && getText(step.description)}
                   isDisabled={step.ignore?.(context) ?? false}
                 >
-                  {!stepProps.isLast && <ariaComponents.Separator variant="current" />}
+                  {!stepProps.isLast && <Separator variant="current" />}
                 </stepper.Stepper.Step>
               )
             }}
           >
             {({ isLast, isFirst }) => (
               <div className="flex w-full flex-col gap-6">
-                {currentScreen.text && (
-                  <ariaComponents.Text>{getText(currentScreen.text)}</ariaComponents.Text>
-                )}
+                {currentScreen.text && <Text>{getText(currentScreen.text)}</Text>}
 
                 {currentScreen.component && <currentScreen.component {...context} />}
 
-                <ariaComponents.ButtonGroup align="start">
+                <Button.Group align="start">
                   {isFirst || hidePrevious ? null : (
-                    <ariaComponents.Button variant="outline" onPress={previousStep}>
+                    <Button variant="outline" onPress={previousStep}>
                       {getText('back')}
-                    </ariaComponents.Button>
+                    </Button>
                   )}
 
                   {canSkip && (
-                    <ariaComponents.Button variant="ghost" onPress={nextStep}>
+                    <Button variant="ghost" onPress={nextStep}>
                       {getText('skip')}
-                    </ariaComponents.Button>
+                    </Button>
                   )}
 
                   {!hideNext && !isLast && (
-                    <ariaComponents.Button variant="primary" onPress={nextStep}>
+                    <Button variant="primary" onPress={nextStep}>
                       {getText('next')}
-                    </ariaComponents.Button>
+                    </Button>
                   )}
-                </ariaComponents.ButtonGroup>
+                </Button.Group>
               </div>
             )}
           </stepper.Stepper>

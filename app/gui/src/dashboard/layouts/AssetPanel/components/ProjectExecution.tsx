@@ -1,26 +1,12 @@
 /** @file Displays information describing a specific version of an asset. */
-import { useMutation, useQuery } from '@tanstack/react-query'
-
-import {
-  DAY_3_LETTER_TEXT_IDS,
-  DAY_TEXT_IDS,
-  getDescriptionForTimeZone,
-  getTimeZoneOffsetStringWithGMT,
-  MONTH_3_LETTER_TEXT_IDS,
-  zonedDateTimeToReadableIsoString,
-} from 'enso-common/src/utilities/data/dateTime'
-
 import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
-import {
-  Button,
-  ButtonGroup,
-  Dialog,
-  IconDisplay,
-  Menu,
-  Text,
-  VisualTooltip,
-} from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { IconDisplay } from '#/components/IconDisplay'
+import { Menu } from '#/components/Menu'
+import { Text } from '#/components/Text'
+import { VisualTooltip } from '#/components/VisualTooltip'
 import {
   backendMutationOptions,
   getProjectExecutionDetailsQueryOptions,
@@ -42,6 +28,15 @@ import {
   toZoned,
   type ZonedDateTime,
 } from '@internationalized/date'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import {
+  DAY_3_LETTER_TEXT_IDS,
+  DAY_TEXT_IDS,
+  getDescriptionForTimeZone,
+  getTimeZoneOffsetStringWithGMT,
+  MONTH_3_LETTER_TEXT_IDS,
+  zonedDateTimeToReadableIsoString,
+} from 'enso-common/src/utilities/data/dateTime'
 
 /** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
 const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 60_000
@@ -254,7 +249,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
         </Button.GroupJoin>
       </div>
       {!compact && (
-        <ButtonGroup className={styles.infoContainer()}>
+        <Button.Group className={styles.infoContainer()}>
           {enableAdvancedProjectExecutionOptions && (
             <IconDisplay
               variant="outline"
@@ -284,7 +279,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
           >
             {timeZoneDescription}
           </IconDisplay>
-        </ButtonGroup>
+        </Button.Group>
       )}
     </div>
   )

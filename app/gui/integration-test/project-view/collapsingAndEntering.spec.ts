@@ -19,8 +19,8 @@ test('Entering nodes', async ({ page }) => {
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project'])
 
   await locate.graphNodeByBinding(page, 'final').dblclick()
-  await mockCollapsedFunctionInfo(page, 'f2', 'func2')
   await expectInsideFunc1(page)
+  await mockCollapsedFunctionInfo(page, 'f2', 'func2')
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
 
   await locate.graphNodeByBinding(page, 'f2').dblclick()

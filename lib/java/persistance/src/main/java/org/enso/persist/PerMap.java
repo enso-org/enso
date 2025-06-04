@@ -1,63 +1,38 @@
 package org.enso.persist;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
 final class PerMap {
-  private static final class AllPersistables extends ClassValue<Persistance[]> {
-    @Override
-    protected Persistance[] computeValue(Class<?> type) {
-      return new Persistance[1];
-    }
-  }
-
-  private static final AllPersistables CACHE = new AllPersistables();
-
-  private static final int serialVersionUID = 8652; // Use PR number
-  private static final Collection<Persistance> ALL = new ArrayList<>();
-
-  static {
-    registerPersistance(PerReferencePeristance.INSTANCE);
-  }
-
-  static void registerPersistance(Persistance p) {
-    var arr = CACHE.get(p.getClass());
-    if (arr[0] == null) {
-      synchronized (ALL) {
-        ALL.add(arr[0] = p);
-      }
-    }
-  }
-
+  private static final int serialVersionUID = 13201; // Use PR number
   private final Map<Integer, Persistance<?>> ids = new HashMap<>();
   private final Map<Class<?>, Persistance<?>> types = new HashMap<>();
   final int versionStamp;
 
-  private PerMap() {
-    int hash = serialVersionUID;
-    for (var orig : ALL) {
-      var p = orig.newClone();
-      var prevId = ids.put(p.id, p);
-      if (prevId != null) {
-        throw new IllegalStateException(
-            "Multiple registrations for ID " + p.id + " " + prevId + " != " + p);
-      }
-      hash = Objects.hash(hash, p.id);
-      var prevType = types.put(p.clazz, p);
-      if (prevType != null) {
-        throw new IllegalStateException(
-            "Multiple registrations for " + p.clazz.getName() + " " + prevId + " != " + p);
-      }
+  PerMap(Persistance<?>[] all) {
+    int hash = registerPersistance(PerReferencePeristance.INSTANCE, serialVersionUID);
+    for (var orig : all) {
+      hash = registerPersistance(orig, hash);
     }
     versionStamp = hash;
   }
 
-  static PerMap create() {
-    return new PerMap();
+  private int registerPersistance(Persistance<?> orig, int hash) throws IllegalStateException {
+    var p = orig.newClone();
+    var prevId = ids.put(p.id, p);
+    if (prevId != null) {
+      throw new IllegalStateException(
+          "Multiple registrations for ID " + p.id + " " + prevId + " != " + p);
+    }
+    hash = Objects.hash(hash, p.id);
+    var prevType = types.put(p.clazz, p);
+    if (prevType != null) {
+      throw new IllegalStateException(
+          "Multiple registrations for " + p.clazz.getName() + " " + prevId + " != " + p);
+    }
+    return hash;
   }
 
   @SuppressWarnings(value = "unchecked")

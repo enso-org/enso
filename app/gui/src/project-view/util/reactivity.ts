@@ -255,6 +255,11 @@ export function syncSetDiff<T>(
 /** Type of the parameter of `toValue`. */
 export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
 
+/** Transforms an array to an array of refs. */
+export type MaybeRefOrGetterArray<K extends [...any[]]> = {
+  [I in keyof K]: MaybeRefOrGetter<K[I]>
+}
+
 /**
  * A writable proxy computed value that reads a fallback value in case the base is `undefined`.
  * Useful for cases where we have a user-overridable behavior with a computed default.

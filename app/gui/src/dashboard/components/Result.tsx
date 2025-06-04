@@ -1,12 +1,12 @@
 /** @file Display the result of an operation. */
 import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
+import type { TestIdProps } from '#/components/types'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import type { JSX, PropsWithChildren, ReactElement } from 'react'
-import type { TestIdProps } from './AriaComponents'
-import { Text } from './AriaComponents/Text'
 import { Loader } from './Loader'
 import SvgMask from './SvgMask'
+import { Text } from './Text'
 
 const INFO_ICON = (
   // eslint-disable-next-line no-restricted-syntax

@@ -30,27 +30,28 @@ import project.S3.S3
 
 polyglot java import org.enso.aws.file_system.S3DataLinkCache
 
-## Represents an S3 file or folder
+## Represents an S3 file or folder.
    If the path ends with a slash, it is a folder. Otherwise, it is a file.
 type S3_File
-    ## ICON data_input
-
+    ## ---
+       icon: data_input
+       ---
        Given an S3 URI, create a file representation.
 
-       Arguments:
-       - uri: The URI of the file.
-         The URI must be in the form `s3://bucket/path/to/file`.
-         If the path contains `.` or `..` segments, they will be normalized.
-       - credentials: The credentials to use when accessing the file.
-         If not specified, the default credentials are used.
-         Note, the credentials are not verified until the file is accessed.
+       ## Arguments
+        - `uri`: The URI of the file. The URI must be in the form
+          `s3://bucket/path/to/file`. If the path contains `.` or `..` segments,
+          they will be normalized.
+        - `credentials`: The credentials to use when accessing the file. If not
+          specified, the default credentials are used. Note, the credentials are
+          not verified until the file is accessed.
 
-       Returns:
+       ## Returns
        - An `S3_File` object representing the file.
 
-       ! Error Conditions
-       - If the URI is not in the correct format, an `Illegal_Argument` error is
-         thrown.
+       ## Errors
+        - If the URI is not in the correct format, an `Illegal_Argument` error
+          is thrown.
     @credentials AWS_Credential.default_widget
     new : Text -> AWS_Credential -> S3_File ! Illegal_Argument
     new (uri : Text = S3.uri_prefix) credentials:AWS_Credential=..Default =
@@ -58,22 +59,25 @@ type S3_File
         root = S3_File.Value parsed_path.bucket_root credentials
         root / parsed_path.key
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private Value (s3_path : S3_Path) credentials:AWS_Credential
 
-    ## PRIVATE
-       ADVANCED
-       Creates a new output stream for this file and runs the specified action
-       on it.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a new output stream for this file and runs the specified action on
+       it.
+       The created stream is automatically closed when `action` returns (even if
+       it returns exceptionally).
 
-       The created stream is automatically closed when `action` returns (even
-       if it returns exceptionally).
-
-       Arguments:
-       - open_options: A vector of `File_Access` objects determining how to open
-         the stream. These options set the access properties of the stream.
-       - action: A function that operates on the output stream and returns some
-         value. The value is returned from this method.
+       ## Arguments
+        - `open_options`: A vector of `File_Access` objects determining how to
+          open the stream. These options set the access properties of the stream.
+        - `action`: A function that operates on the output stream and returns
+          some value. The value is returned from this method.
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action = if self.is_directory_no_follow_links then Error.throw (S3_Error.Error "S3 directory cannot be opened as a stream." self.uri) else
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot write to S3. Press the Write button ▶ to perform the operation." panic=False <|
@@ -95,19 +99,20 @@ type S3_File
                                         result
 
 
-    ## PRIVATE
-       ADVANCED
-       Creates a new input stream for this file and runs the specified action
-       on it.
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a new input stream for this file and runs the specified action on
+       it.
+       The created stream is automatically closed when `action` returns (even if
+       it returns exceptionally).
 
-       The created stream is automatically closed when `action` returns (even
-       if it returns exceptionally).
-
-       Arguments:
-       - open_options: A vector of `File_Access` objects determining how to open
-         the stream. These options set the access properties of the stream.
-       - action: A function that operates on the input stream and returns some
-         value. The value is returned from this method.
+       ## Arguments
+        - `open_options`: A vector of `File_Access` objects determining how to
+          open the stream. These options set the access properties of the stream.
+        - `action`: A function that operates on the input stream and returns some
+          value. The value is returned from this method.
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! S3_Error | Illegal_Argument
     with_input_stream self (open_options : Vector) action = if self.is_directory_no_follow_links then Error.throw (Illegal_Argument.Error "S3 folders cannot be opened as a stream." self.uri) else
         open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && self.is_data_link
@@ -116,33 +121,33 @@ type S3_File
                 response_body = _translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
                 response_body.with_stream action
 
-    ## ALIAS import, load, open
-       GROUP Standard.Base.Input
-       ICON data_input
-
+    ## ---
+       aliases: [import, load, open]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
        Read a file using the specified file format
 
-       Arguments:
-       - format: A `File_Format` object used to read file into memory.
-         If `Auto_Detect` is specified; the provided file determines the specific
-         type and configures it appropriately.
-       - on_problems: Specifies the behavior when a problem occurs during the
-         function.
-         By default, a warning is issued, but the operation proceeds.
-         If set to `Report_Error`, the operation fails with a dataflow error.
-         If set to `Ignore`, the operation proceeds without errors or warnings.
+       ## Arguments
+        - `format`: A `File_Format` object used to read file into memory. If
+          `Auto_Detect` is specified; the provided file determines the specific
+          type and configures it appropriately.
+        - `on_problems`: Specifies the behavior when a problem occurs during the
+          function. By default, a warning is issued, but the operation proceeds.
+          If set to `Report_Error`, the operation fails with a dataflow error. If
+          set to `Ignore`, the operation proceeds without errors or warnings.
 
-       Returns:
-       - The contents of the file read using the specified `File_Format`.
+       ## Returns
+        - The contents of the file read using the specified `File_Format`.
 
-       ! Error Conditions
-       - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
-       - If the target is a directory, an `Illegal_Argument` error is thrown.
-       - If the file does not exist, a `File_Error.Not_Found` error is thrown.
-       - If the access to the object is forbidden, an `S3_Error.Access_Denied`
-         error is thrown.
-       - If using `Auto_Detect`, and there is no matching type then a
-         `File_Error.Unsupported_Type` error is returned.
+       ## Errors
+        - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
+        - If the target is a directory, an `Illegal_Argument` error is thrown.
+        - If the file does not exist, a `File_Error.Not_Found` error is thrown.
+        - If the access to the object is forbidden, an `S3_Error.Access_Denied`
+          error is thrown.
+        - If using `Auto_Detect`, and there is no matching type then a
+          `File_Error.Unsupported_Type` error is returned.
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! S3_Error
     read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
@@ -157,30 +162,32 @@ type S3_File
                         resolved_format = File_Format.resolve format
                         self.with_input_stream [File_Access.Read] (stream-> resolved_format.read_stream stream metadata)
 
-    ## GROUP Standard.Base.Input
-       ICON data_input
+    ## ---
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Lists files contained in the directory denoted by this file. Note, as S3
+       does not have a native notion of directories, this operation will return
+       an empty Vector if the folder does not exist.
 
-       Lists files contained in the directory denoted by this file.
-       Note, as S3 does not have a native notion of directories, this operation
-       will return an empty Vector if the folder does not exist.
+       ## Arguments
+        - `name_filter`: A glob pattern that can be used to filter the returned
+          files. If it is not specified, all files are returned.
+        - `recursive`: Specifies whether the returned list of files should
+          include also files from the subdirectories. If set to `False` (the
+          default), only the immediate children of the listed directory are
+          considered.
 
-       Arguments:
-       - name_filter: A glob pattern that can be used to filter the returned
-         files. If it is not specified, all files are returned.
-       - recursive: Specifies whether the returned list of files should include
-         also files from the subdirectories. If set to `False` (the default),
-         only the immediate children of the listed directory are considered.
-
-       Returns:
+       ## Returns
        - A vector of `S3_File` objects representing the files in the directory.
 
-       ! Error Conditions
-       - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
-       - If the target is a file, an `Illegal_Argument` error is thrown.
-       - If the access to the object is forbidden, an `S3_Error.Access_Denied`
-         error is thrown.
-       - If using `name_filter` or `recursive`, an `Unimplemented` error is
-         thrown as these are currently unsupported.
+       ## Errors
+        - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
+        - If the target is a file, an `Illegal_Argument` error is thrown.
+        - If the access to the object is forbidden, an `S3_Error.Access_Denied`
+          error is thrown.
+        - If using `name_filter` or `recursive`, an `Unimplemented` error is
+          thrown as these are currently unsupported.
     list : Text -> Boolean -> Vector S3_File
     list self name_filter:Text="" recursive:Boolean=False =
         if self.is_data_link then _s3_file_as_data_link self . list name_filter=name_filter recursive=recursive else
@@ -198,67 +205,74 @@ type S3_File
                         S3_File.Value (S3_Path.Value bucket key) self.credentials
                     (sub_folders + files) . sort on=.path
 
-    ## ALIAS load bytes, open bytes
-       ICON data_input
+    ## ---
+       aliases: [load bytes, open bytes]
+       icon: data_input
+       ---
        Reads all bytes in this file into a byte vector.
 
-       Returns:
+       ## Returns
        - The contents of the file as a vector of bytes.
 
-       ! Error Conditions
-       - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
-       - If the target is a directory, an `Illegal_Argument` error is thrown.
-       - If the file does not exist, a `File_Error.Not_Found` error is thrown.
-       - If the access to the object is forbidden, an `S3_Error.Access_Denied`
-         error is thrown.
+       ## Errors
+        - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
+        - If the target is a directory, an `Illegal_Argument` error is thrown.
+        - If the file does not exist, a `File_Error.Not_Found` error is thrown.
+        - If the access to the object is forbidden, an `S3_Error.Access_Denied`
+          error is thrown.
     read_bytes : Vector ! File_Error
     read_bytes self = if self.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read_bytes` of a directory.") else
         self.read Bytes
 
-    ## ALIAS load text, open text
-       ICON data_input
+    ## ---
+       aliases: [load text, open text]
+       icon: data_input
+       ---
        Reads the whole file into a `Text`, with specified encoding.
 
-       Arguments:
-       - encoding: The text encoding to decode the file with. Defaults to UTF-8.
-       - on_problems: Specifies the behavior when a problem occurs during the
-         function.
+       ## Arguments
+        - `encoding`: The text encoding to decode the file with. Defaults to
+          UTF-8.
+        - `on_problems`: Specifies the behavior when a problem occurs during the
+          function.
 
-       Returns:
+       ## Returns
        - The contents of the file as `Text` decoded with the specified encoding.
 
-       ! Error Conditions
-       - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
-       - If the target is a directory, an `Illegal_Argument` error is thrown.
-       - If the file does not exist, a `File_Error.Not_Found` error is thrown.
-       - If the access to the object is forbidden, an `S3_Error.Access_Denied`
-         error is thrown.
-       - If there is a problem decoding the byte stream to text, then an
-         `Encoding_Error` will be raised following the `on_problems` behavior.
+       ## Errors
+        - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
+        - If the target is a directory, an `Illegal_Argument` error is thrown.
+        - If the file does not exist, a `File_Error.Not_Found` error is thrown.
+        - If the access to the object is forbidden, an `S3_Error.Access_Denied`
+          error is thrown.
+        - If there is a problem decoding the byte stream to text, then an
+          `Encoding_Error` will be raised following the `on_problems` behavior.
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
     read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
         if self.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read_text` of a directory.") else
             self.read (Plain_Text_Format.Plain_Text encoding) on_problems
 
-    ## ICON data_output
+    ## ---
+       icon: data_output
+       ---
        Copies the S3 file to the specified destination.
 
-       Arguments:
-       - destination: the destination to copy the file to.
-       - replace_existing: specifies if the operation should proceed if the
-         destination file already exists. Defaults to `False`.
+       ## Arguments
+        - `destination`: the destination to copy the file to.
+        - `replace_existing`: specifies if the operation should proceed if the
+          destination file already exists. Defaults to `False`.
 
-       Returns:
+       ## Returns
        - The destination file if the operation was successful.
 
-       ! Error Conditions
-       - Unless `replace_existing` is set to `True`, if the destination file
-         already exists, a `File_Error` is thrown.
-       - If the source is a directory, an `S3_Error` will occur as this is not
-         currently supported.
-       - If the Output operations are disabled, a `Forbidden_Operation` panic
-         will occur.
+       ## Errors
+        - Unless `replace_existing` is set to `True`, if the destination file
+          already exists, a `File_Error` is thrown.
+        - If the source is a directory, an `S3_Error` will occur as this is not
+          currently supported.
+        - If the Output operations are disabled, a `Forbidden_Operation` panic
+          will occur.
     copy_to : File_Like -> Boolean -> Any ! S3_Error | File_Error
     copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
         if self.is_directory then Error.throw (S3_Error.Error "Copying S3 folders is currently not implemented." self.uri) else
@@ -275,31 +289,34 @@ type S3_File
                                         . if_not_error destination_writable.file_for_return
                     _ -> generic_copy self destination_writable replace_existing
 
-    ## ICON data_output
+    ## ---
+       icon: data_output
+       ---
        Moves the file to the specified destination.
 
-       Arguments:
-       - destination: the destination to move the file to.
-       - replace_existing: specifies if the operation should proceed if the
-         destination file already exists. Defaults to `False`.
+       ## Arguments
+        - `destination`: the destination to move the file to.
+        - `replace_existing`: specifies if the operation should proceed if the
+          destination file already exists. Defaults to `False`.
 
-       Returns:
+       ## Returns
        - The destination file if the operation was successful.
 
-       ! Error Conditions
-       - Unless `replace_existing` is set to `True`, if the destination file
-         already exists, a `File_Error` is thrown.
-       - If the source is a directory, an `S3_Error` will occur as this is not
-         currently supported.
-       - If the Output operations are disabled, a `Forbidden_Operation` panic
-         will occur.
+       ## Errors
+        - Unless `replace_existing` is set to `True`, if the destination file
+          already exists, a `File_Error` is thrown.
+        - If the source is a directory, an `S3_Error` will occur as this is not
+          currently supported.
+        - If the Output operations are disabled, a `Forbidden_Operation` panic
+          will occur.
 
-       ! S3 Move is a Copy and Delete
+       ## Remarks
 
-         Since S3 does not support moving files, this operation is implemented
-         as a copy followed by delete. Keep in mind that the space usage of the
-         file will briefly be doubled and that the operation may not be as fast
-         as a local move often is.
+       ### S3 Move is a Copy and Delete
+       Since S3 does not support moving files, this operation is implemented as
+       a copy followed by delete. Keep in mind that the space usage of the file
+       will briefly be doubled and that the operation may not be as fast as a
+       local move often is.
     move_to : File_Like -> Boolean -> Any ! File_Error
     move_to self (destination : File_Like) (replace_existing : Boolean = False) =
         Data_Link_Helpers.disallow_links_in_move self destination <|
@@ -311,50 +328,56 @@ type S3_File
                         if destination.underlying == self then r else
                             self.delete.if_not_error r
 
-    ## ICON data_output
+    ## ---
+       icon: data_output
+       ---
        Deletes the object.
 
-       Arguments:
-       - recursive: If the target is a non-empty directory, it will only be
-         removed if this is set to `True`. Defaults to `False`, meaning that the
-         operation will fail if the directory is not empty. This option has no
-         effect for files or data links.
+       ## Arguments
+        - `recursive`: If the target is a non-empty directory, it will only be
+          removed if this is set to `True`. Defaults to `False`, meaning that the
+          operation will fail if the directory is not empty. This option has no
+          effect for files or data links.
 
-       ! Error Conditions
-       - If the target is a directory and `recursive` is `False`, a
-         `File_Error.Directory_Not_Empty` error is thrown.
-       - If the bucket or file does not exist, a `File_Error.Not_Found` error is
-         thrown.
-       - If the access to the object is forbidden, an `S3_Error.Access_Denied`
-         error is thrown.
-       - If the Output operations are disabled, a `Forbidden_Operation` panic
-         will occur.
+       ## Errors
+        - If the target is a directory and `recursive` is `False`, a
+          `File_Error.Directory_Not_Empty` error is thrown.
+        - If the bucket or file does not exist, a `File_Error.Not_Found` error is
+          thrown.
+        - If the access to the object is forbidden, an `S3_Error.Access_Denied`
+          error is thrown.
+        - If the Output operations are disabled, a `Forbidden_Operation` panic
+          will occur.
 
-       ? Data Links
-         If the file is a data link, this will delete the link itself, not
-         affecting its target.
+       ## Remarks
+
+       ### Data Links
+       If the file is a data link, this will delete the link itself, not
+       affecting its target.
     delete : Boolean -> Nothing
     delete self (recursive : Boolean = False) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
             self.delete_if_exists recursive
 
-    ## ICON data_output
+    ## ---
+       icon: data_output
+       ---
        Deletes the file if it had existed.
 
-       Arguments:
-       - recursive: If the target is a non-empty directory, it will only be
-         removed if this is set to `True`. Defaults to `False`, meaning that the
-         operation will fail if the directory is not empty. This option has no
-         effect for files or data links.
+       ## Arguments
+        - `recursive`: If the target is a non-empty directory, it will only be
+          removed if this is set to `True`. Defaults to `False`, meaning that the
+          operation will fail if the directory is not empty. This option has no
+          effect for files or data links.
 
-       ! Error Conditions
-       - If the target is a directory and `recursive` is `False`, a
-         `File_Error.Directory_Not_Empty` error is thrown.
-       - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
-       - If the access to the object is forbidden, an `S3_Error.Access_Denied`
-         error is thrown.
-       - If the Output operations are disabled, a `Forbidden_Operation` panic
-         will occur.
+       ## Errors
+        - If the target is a directory and `recursive` is `False`, a
+          `File_Error.Directory_Not_Empty` error is thrown.
+        - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
+        - If the access to the object is forbidden, an `S3_Error.Access_Denied`
+          error is thrown.
+        - If the Output operations are disabled, a `Forbidden_Operation` panic
+          will occur.
     delete_if_exists : Boolean -> Nothing
     delete_if_exists self (recursive : Boolean = False) =
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot delete the file. Press the Write button ▶ to perform the operation." panic=False <|
@@ -368,19 +391,18 @@ type S3_File
                         r.if_not_error self
                 False -> _translate_file_errors self <| S3.delete_object self.s3_path.bucket self.s3_path.key self.credentials . if_not_error Nothing
 
-    ## GROUP Output
-       ICON folder_add
+    ## ---
+       group: Output
+       icon: folder_add
+       ---
        Within S3 the concept of creating directories has slightly different
        meaning than on other filesystems.
-
        The `create_directory` method is provided on `S3_File` only for
        compatibility - to allow easy switching between file-systems.
-
        It does not perform any actual operation. Note that in S3 a directory is
        treated as existing if it contains any entries. Thus, even after calling
        this `create_directory` method, the `exists` method may still yield
        `False` until the directory is populated with some files.
-
        To warn about this specific behaviour, a warning is attached to the
        result.
     create_directory : File
@@ -389,119 +411,131 @@ type S3_File
         warning = S3_Warning.Warning "The `create_directory` on `S3_File` is only kept for compatibility, it does not do anything. To make sure a directory reports as `exists` you must put some files into it."
         Warning.attach warning self
 
-    ## GROUP Standard.Base.Operators
-       ICON folder
+    ## ---
+       group: Standard.Base.Operators
+       icon: folder
+       ---
        Join two path segments together, normalizing the `..` and `.` sub-paths.
 
-       Arguments:
-       - subpath: The path to join to the path of `self`.
+       ## Arguments
+        - `subpath`: The path to join to the path of `self`.
 
-       Returns:
+       ## Returns
        - An `S3_File` representing the joined and normalised path, with the same
-         credentials.
+       credentials.
 
-       ! S3 Directory Handling
+       ## Remarks
 
-         Note that regular S3 buckets do not have a 'native' notion of
-         directories, instead they are emulated using prefixes and a delimiter
-         (in Enso, the delimiter is set to "/").
-
-         The trailing slash determines if the given path is treated as a
-         directory or as a regular file.
-
-         However, for ease-of-use, if a path without a trailing slash is used
-         with the `/` operator it will be accepted and the sub paths will be
-         resolved, even though such a path would not be treated as a directory
-         by any other operations.
-
-         See: https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
+       ### S3 Directory Handling
+       Note that regular S3 buckets do not have a 'native' notion of
+       directories, instead they are emulated using prefixes and a delimiter
+       (in Enso, the delimiter is set to "/").
+       The trailing slash determines if the given path is treated as a
+       directory or as a regular file.
+       However, for ease-of-use, if a path without a trailing slash is used
+       with the `/` operator it will be accepted and the sub paths will be
+       resolved, even though such a path would not be treated as a directory by
+       any other operations.
+       See: https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
     / : Text -> S3_File
     / self subpath =
         Path_Helpers.resolve_many_parts self subpath
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An internal helper method that resolves a single part (subpath) of a path.
     resolve_single_part self part:Text -> Any =
         if self.is_data_link then _s3_file_as_data_link self . resolve_single_part part else
             S3_File.Value (self.s3_path.resolve part) self.credentials
 
-    ## GROUP Standard.Base.Calculations
-       ICON folder
-       Join two or more path segments together, normalizing the `..` and `.` subpaths.
+    ## ---
+       group: Standard.Base.Calculations
+       icon: folder
+       ---
+       Join two or more path segments together, normalizing the `..` and `.`
+       subpaths.
 
-       Arguments:
-       - sub-paths: The path segment or segments to join to the path of `self`.
+       ## Arguments
+        - `sub-paths`: The path segment or segments to join to the path of
+          `self`.
 
-       Returns:
+       ## Returns
        - An `S3_File` representing the joined and normalised path, with the same
-         credentials.
+       credentials.
 
-       ! S3 Directory Handling
+       ## Remarks
 
-         Note that regular S3 buckets do not have a 'native' notion of
-         directories, instead they are emulated using prefixes and a delimiter
-         (in Enso, the delimiter is set to "/").
-
-         The trailing slash determines if the given path is treated as a
-         directory or as a regular file.
-
-         However, for ease-of-use, if a path without a trailing slash is used
-         with the `/` operator it will be accepted and the sub paths will be
-         resolved, even though such a path would not be treated as a directory
-         by any other operations.
-
-         See: https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
+       ### S3 Directory Handling
+       Note that regular S3 buckets do not have a 'native' notion of
+       directories, instead they are emulated using prefixes and a delimiter
+       (in Enso, the delimiter is set to "/").
+       The trailing slash determines if the given path is treated as a
+       directory or as a regular file.
+       However, for ease-of-use, if a path without a trailing slash is used
+       with the `/` operator it will be accepted and the sub paths will be
+       resolved, even though such a path would not be treated as a directory   by
+       any other operations.
+       See:
+       https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
     join : (Vector | Text) -> S3_File
     join self (subpaths : Vector | Text) =
         vec = Vector.unify_vector_or_element subpaths
         vec_as_texts = vec.map subpath-> (subpath : Text)
         S3_File.Value (self.s3_path.join vec_as_texts) self.credentials
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the name of this file.
     name : Text
     name self = self.s3_path.file_name
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the extension of the file.
     extension : Text
     extension self = if self.is_directory_no_follow_links then Error.throw (S3_Error.Error "Directories do not have extensions." self.uri) else
         find_extension_from_name self.name
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the path of this file.
     path : Text
     path self = self.s3_path.to_text
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
-       Returns the URI of this file
-       The URI is in the form `s3://bucket/path/to/file`.
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the URI of this file The URI is in the form
+       `s3://bucket/path/to/file`.
     uri : Text
     uri self -> Text = self.s3_path.to_text
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if the folder or file exists
 
-       Returns:
+       ## Returns
        - `True` if the bucket or object exists, `False` otherwise.
 
-       ! Error Conditions
-       - If the credential is invalid, an `AWS_SDK_Error` is thrown.
-       - If access is denied to the bucket, an `S3_Error` is thrown.
+       ## Errors
+        - If the credential is invalid, an `AWS_SDK_Error` is thrown.
+        - If access is denied to the bucket, an `S3_Error` is thrown.
 
-       ? Data Links
-         If the file is a data link, this checks if the data link itself exists. 
-         It does not tell anything about existence of the data link target.
+       ## Remarks
+
+       ### Data Links
+       If the file is a data link, this checks if the data link itself exists.
+       It does not tell anything about existence of the data link target.
     exists : Boolean
     exists self = if self.s3_path.bucket == "" then True else
         raw_result = if self.s3_path.is_root then _translate_file_errors self <| S3.head self.s3_path.bucket "" self.credentials . is_error . not else
@@ -509,56 +543,65 @@ type S3_File
             pair.second.contains self.s3_path.key
         raw_result.catch S3_Bucket_Not_Found _->False
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the size of a file in bytes.
 
-       ? Data Links
-         If the file is a data link that points to a file, the size of the 
-         target file will be returned.
+       ## Errors
+        - If the `S3_File` represents a directory, an `S3_Error` error is thrown.
+        - If the bucket or object does not exist, a `File_Error.Not_Found` is
+          thrown.
+        - If the object is not accessible, an `S3_Error` is thrown.
 
-       ! Error Conditions
-       - If the `S3_File` represents a directory, an `S3_Error` error is thrown.
-       - If the bucket or object does not exist, a `File_Error.Not_Found` is
-         thrown.
-       - If the object is not accessible, an `S3_Error` is thrown.
+       ## Remarks
+
+       ### Data Links
+       If the file is a data link that points to a file, the size of the
+       target file will be returned.
     size : Integer
     size self = if self.is_data_link then _s3_file_as_data_link self . size else
         if self.is_directory then Error.throw (S3_Error.Error "size can only be called on files." self.uri) else
             content_length = _translate_file_errors self <| S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials . contentLength
             if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Gets the creation time of a file.
 
-       Returns:
+       ## Returns
        - An `S3_Error` error as only the last modified time is available for S3
-         objects.
+       objects.
 
-       ? Data Links
-         If the file is a data link, this returns the creation time of the data 
-         link.
+       ## Remarks
+
+       ### Data Links
+       If the file is a data link, this returns the creation time of the data
+       link.
     creation_time : Date_Time ! File_Error
     creation_time self =
         Error.throw (S3_Error.Error "Creation time is not available for S3 files, consider using `last_modified_time` instead." self.uri)
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the last modified time of a file.
 
-       ! Error Conditions
-       - If the `S3_File` represents a directory, an `S3_Error` error is thrown.
-       - If the bucket or object does not exist, a `File_Error.Not_Found` is
-         thrown.
-       - If the object is not accessible, an `S3_Error` is thrown.
+       ## Errors
+        - If the `S3_File` represents a directory, an `S3_Error` error is thrown.
+        - If the bucket or object does not exist, a `File_Error.Not_Found` is
+          thrown.
+        - If the object is not accessible, an `S3_Error` is thrown.
 
-       ? Data Links
-         If the file is a data link, this returns the modification time of the 
-         data link.
+       ## Remarks
+
+       ### Data Links
+       If the file is a data link, this returns the modification time of the
+       data link.
     last_modified_time : Date_Time ! File_Error
     last_modified_time self =
         if self.is_directory then Error.throw (S3_Error.Error "`last_modified_time` can only be called on files." self.uri) else
@@ -566,25 +609,27 @@ type S3_File
             if instant.is_nothing then Error.throw (S3_Error.Error "Missing information for: lastModified" self.uri) else
                 instant.at_zone Time_Zone.system
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if this is a folder.
 
-       Returns:
+       ## Returns
        - `True` if the S3 path represents a folder, `False` otherwise.
 
-       ! S3 Directory Handling
+       ## Remarks
 
-         Note that regular S3 buckets do not have a 'native' notion of
-         directories, instead they are emulated using prefixes and a delimiter
-         (in Enso, the delimiter is set to "/").
+       ### S3 Directory Handling
+       Note that regular S3 buckets do not have a 'native' notion of
+       directories, instead they are emulated using prefixes and a delimiter
+       (in Enso, the delimiter is set to "/").
+       The trailing slash determines if the given path is treated as a
+       directory or as a regular file.
 
-         The trailing slash determines if the given path is treated as a
-         directory or as a regular file.
-
-       ? Data Links
-         If the file is a data link, this checks whether the target of the data 
-         link is a directory.
+       ### Data Links
+       If the file is a data link, this checks whether the target of the data
+       link is a directory.
     is_directory : Boolean
     is_directory self =
         case self.is_data_link of
@@ -593,29 +638,33 @@ type S3_File
                     . catch Illegal_Argument _->False
             False -> self.s3_path.is_directory
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if this file is a directory, not following links.
     private is_directory_no_follow_links self = self.is_data_link.not && self.s3_path.is_directory
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if this is a regular file.
 
-       Returns:
+       ## Returns
        - `True` if the S3 path represents a file, `False` otherwise.
 
-       ! S3 Directory Handling
+       ## Remarks
 
-         Note that regular S3 buckets do not have a 'native' notion of
-         directories, instead they are emulated using prefixes and a delimiter
-         (in Enso, the delimiter is set to "/").
+       ### S3 Directory Handling
+       Note that regular S3 buckets do not have a 'native' notion of
+       directories, instead they are emulated using prefixes and a delimiter
+       (in Enso, the delimiter is set to "/").
+       The trailing slash determines if the given path is treated as a
+       directory or as a regular file.
 
-         The trailing slash determines if the given path is treated as a
-         directory or as a regular file.
-
-       ? Data Links
-         If the file is a data link, this checks whether the target of the data 
-         link is a regular file.
+       ### Data Links
+       If the file is a data link, this checks whether the target of the data
+       link is a regular file.
     is_regular_file : Boolean
     is_regular_file self =
         case self.is_data_link of
@@ -625,7 +674,9 @@ type S3_File
             False ->
                 self.s3_path.is_directory.not
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_data_link self -> Boolean =
         ## First we perform the cheap check of the necessary condition - if the
            name contains the correct extension.
@@ -634,12 +685,13 @@ type S3_File
             ttl = Duration.new seconds=30
             S3DataLinkCache.INSTANCE.getOrCompute self.path (_-> _check_is_data_link self) ttl
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Resolves the parent of this file.
 
-       Returns:
+       ## Returns
        - The parent of this file as an `S3_File` object or if a top level then
          `Nothing`.
     parent : S3_File | Nothing
@@ -648,40 +700,55 @@ type S3_File
         parent_path.if_not_nothing <|
             S3_File.Value parent_path self.credentials
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Checks if `self` is a descendant of `other`.
 
-       Returns:
+       ## Returns
        - `True` if `self` is a descendant of `other`, `False` otherwise.
     is_descendant_of : S3_File -> Boolean
     is_descendant_of self other = self.s3_path.is_descendant_of other.s3_path
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Return the absolute path of this S3_File.
     to_text : Text
     to_text self = self.uri
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this S3_File.
     to_display_text : Text
     to_display_text self = "S3_File {" + self.to_text + "}"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 File_Format_Metadata.from (that : S3_File) = File_Format_Metadata.Value that.uri that.name (that.extension.catch S3_Error _->Nothing)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 File_Like.from (that : S3_File) = File_Like.Value that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Writable_File.from (that : S3_File) = if that.is_data_link then Data_Link_Helpers.interpret_data_link_as_writable_file (_without_trailing_slash that) else
     Writable_File.Value that S3_File_Write_Strategy.instance
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Data_Link_From_File.from (that : S3_File) = Data_Link_From_File.Value that
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that translates lower level S3 errors to file-system errors.
 private _translate_file_errors related_file result =
     result.catch S3_Key_Not_Found error->
@@ -689,45 +756,40 @@ private _translate_file_errors related_file result =
         s3_file = S3_File.Value s3_path related_file.credentials
         Error.throw (File_Error.Not_Found s3_file)
 
-## Ensure the file has no trailing slash.
-   This is needed when treating a possible directory as a data link entity - to
-   find its S3 object we need to strip the trailing slash if it has one.
+## Ensure the file has no trailing slash. This is needed when treating a possible
+   directory as a data link entity - to find its S3 object we need to strip the
+   trailing slash if it has one.
 private _without_trailing_slash (f : S3_File) -> S3_File =
     S3_File.Value f.s3_path.without_trailing_slash f.credentials
 
 private _s3_file_as_data_link (f : S3_File) =
     Data_Link_Helpers.interpret_data_link_target_as_file (_without_trailing_slash f)
 
-## If the file _may_ be a data link we now need to verify it further.
-   On S3 this is complicated because there is no direct notion of
-   directories, so a path `s3://Bucket/a.datalink/b` can mean both
-   that `a.datalink` is a data link file, or just that `b` is a
-   regular file inside a weirdly named 'directory' `a.datalink`.
-
-   To distinguish these scenarios we use the following heuristics:
-   - if the entity under the given path `s3://Bucket/a.datalink`
-     exists, that means there is a file, so we treat it as a data link.
-   - if that entity does not exist, but there are entities under the
-     path `s3://Bucket/a.datalink/`, we treat it as a directory.
-   - if that entity does not exist and there are no 'child entities'
-     we determine the treatment based on the exact path containing a
-     trailing slash character - if the path was
-     `s3://Bucket/a.datalink`, that will be a data link (e.g. this
-     may be passed as destination of a write method while creating a
-     new link), but if it contains a slash
-     (`s3://Bucket/a.datalink/`) that will be treated as a directory.
-
-   We acknowledge an edge case where both objects
-   `s3://Bucket/a.datalink` and `s3://Bucket/a.datalink/b` exist
-   (since the concept of directories in S3 is 'simulated' and there
-   is nothing preventing such aliasing). In that case, we treat the
-   first object (`s3://Bucket/a.datalink`) as a data link, thus
-   rendering `s3://Bucket/a.datalink/b` inaccessible. This is not
-   ideal, but we report a warning. Note that the user cannot create
-   such situation from Enso because once the entity starts to exist
-   (either as data link or as directory) it cannot be interpreted as
-   the other one. We can still encounter such scenarios in buckets
-   created externally.
+## If the file _may_ be a data link we now need to verify it further. On S3 this
+   is complicated because there is no direct notion of directories, so a path
+   `s3://Bucket/a.datalink/b` can mean both that `a.datalink` is a data link
+   file, or just that `b` is a regular file inside a weirdly named 'directory'
+   `a.datalink`.
+   To distinguish these scenarios we use the following heuristics: - if the
+   entity under the given path `s3://Bucket/a.datalink`   exists, that means
+   there is a file, so we treat it as a data link. - if that entity does not
+   exist, but there are entities under the   path `s3://Bucket/a.datalink/`, we
+   treat it as a directory. - if that entity does not exist and there are no
+   'child entities'   we determine the treatment based on the exact path
+   containing a   trailing slash character - if the path was
+   `s3://Bucket/a.datalink`, that will be a data link (e.g. this   may be passed
+   as destination of a write method while creating a   new link), but if it
+   contains a slash   (`s3://Bucket/a.datalink/`) that will be treated as a
+   directory.
+   We acknowledge an edge case where both objects `s3://Bucket/a.datalink` and
+   `s3://Bucket/a.datalink/b` exist (since the concept of directories in S3 is
+   'simulated' and there is nothing preventing such aliasing). In that case, we
+   treat the first object (`s3://Bucket/a.datalink`) as a data link, thus
+   rendering `s3://Bucket/a.datalink/b` inaccessible. This is not ideal, but we
+   report a warning. Note that the user cannot create such situation from Enso
+   because once the entity starts to exist (either as data link or as directory)
+   it cannot be interpreted as the other one. We can still encounter such
+   scenarios in buckets created externally.
 private _check_is_data_link (f : S3_File) =
     Runtime.assert (Data_Link.is_data_link_name f.name) "This should only be run on potential data links."
 
@@ -745,11 +807,11 @@ private _check_is_data_link (f : S3_File) =
                     has_trailing_slash.not
 
 
-## Checks if an object exists under the given key _directly_.
-   This is different from `exists` which will be true if any child objects exist
-   under a given directory key. This method, however, will only return true if
-   an object with the exact key exists and is not just an empty marker (as used
-   sometimes to mark directories).
+## Checks if an object exists under the given key _directly_. This is different
+   from `exists` which will be true if any child objects exist under a given
+   directory key. This method, however, will only return true if an object with
+   the exact key exists and is not just an empty marker (as used sometimes to
+   mark directories).
 private _exists_entity_direct (f : S3_File) -> Boolean =
     size = S3.raw_head f.s3_path.bucket f.s3_path.key f.credentials . contentLength
     if size.is_error then False else size > 0

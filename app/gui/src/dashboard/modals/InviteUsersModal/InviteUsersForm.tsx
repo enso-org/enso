@@ -1,23 +1,17 @@
 /** @file A modal with inputs for user email and permission level. */
-import * as React from 'react'
-
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-import isEmail from 'validator/es/lib/isEmail'
-
+import { Form } from '#/components/Form'
+import { ResizableContentEditableInput } from '#/components/Inputs'
+import * as paywallComponents from '#/components/Paywall'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
-
 import * as authProvider from '#/providers/AuthProvider'
-import { useText } from '$/providers/react'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import * as paywallComponents from '#/components/Paywall'
-
 import type * as backendModule from '#/services/Backend'
-
 import * as parserUserEmails from '#/utilities/parseUserEmails'
-import { useBackends } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import * as React from 'react'
+import isEmail from 'validator/es/lib/isEmail'
 
 /** Props for an {@link InviteUsersForm}. */
 export interface InviteUsersFormProps {
@@ -106,10 +100,10 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   })
 
   return (
-    <ariaComponents.Form
+    <Form
       formOptions={{ mode: 'onSubmit' }}
-      schema={ariaComponents.Form.schema.object({
-        emails: ariaComponents.Form.schema
+      schema={Form.schema.object({
+        emails: Form.schema
           .string()
           .min(1, { message: getText('emailIsRequired') })
           .refine(
@@ -139,7 +133,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
         })
       }}
     >
-      <ariaComponents.ResizableContentEditableInput
+      <ResizableContentEditableInput
         ref={inputRef}
         name="emails"
         label={getText('inviteEmailFieldLabel')}
@@ -154,16 +148,11 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
         />
       )}
 
-      <ariaComponents.Form.Submit
-        variant="accent"
-        size="medium"
-        fullWidth
-        isDisabled={seatsLeft <= 0}
-      >
+      <Form.Submit variant="accent" size="medium" fullWidth isDisabled={seatsLeft <= 0}>
         {getText('inviteSubmit')}
-      </ariaComponents.Form.Submit>
+      </Form.Submit>
 
-      <ariaComponents.Form.FormError />
-    </ariaComponents.Form>
+      <Form.FormError />
+    </Form>
   )
 }

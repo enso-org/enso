@@ -62,7 +62,7 @@ public final class ImportExportCache
   @Override
   public byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
     var arr =
-        Persistance.write(
+        PersistUtils.POOL.write(
             entry.bindings(), CacheUtils.writeReplace(context.getCompiler().context(), false));
     return arr;
   }
@@ -71,7 +71,7 @@ public final class ImportExportCache
   public CachedBindings deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws IOException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var ref = PersistUtils.POOL.read(data, CacheUtils.readResolve(context.getCompiler().context()));
     var bindings = ref.get(MapToBindings.class);
     return new CachedBindings(libraryName, bindings, Optional.empty());
   }

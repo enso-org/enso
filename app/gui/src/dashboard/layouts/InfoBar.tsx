@@ -1,5 +1,6 @@
 /** @file A toolbar containing chat and the user menu. */
-import { Button, DialogTrigger } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
 import InfoMenu from '#/layouts/InfoMenu'
 import { useText } from '$/providers/react'
@@ -11,7 +12,7 @@ function InfoBar() {
 
   return (
     <div className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default">
-      <DialogTrigger>
+      <Dialog.Trigger>
         <Button
           size="custom"
           variant="icon"
@@ -24,7 +25,7 @@ function InfoBar() {
           />
         </Button>
         <InfoMenu />
-      </DialogTrigger>
+      </Dialog.Trigger>
       {/* Required for shortcuts to work. */}
       <div className="hidden">
         <InfoMenu hidden />

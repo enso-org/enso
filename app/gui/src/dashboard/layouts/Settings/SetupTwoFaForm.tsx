@@ -6,22 +6,16 @@
 import ShieldCheck from '#/assets/shield_check.svg'
 import ShieldCrossed from '#/assets/shield_crossed.svg'
 import type { MfaType } from '#/authentication/cognito'
-import {
-  Alert,
-  Button,
-  ButtonGroup,
-  CopyBlock,
-  Dialog,
-  DialogDismiss,
-  DialogTrigger,
-  Form,
-  OTPInput,
-  Selector,
-  Switch,
-  Text,
-} from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { Button } from '#/components/Button'
+import { CopyBlock } from '#/components/CopyBlock'
+import { Dialog } from '#/components/Dialog'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { Form } from '#/components/Form'
+import { OTPInput, Selector } from '#/components/Inputs'
 import { Suspense } from '#/components/Suspense'
+import { Switch } from '#/components/Switch'
+import { Text } from '#/components/Text'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
@@ -75,7 +69,7 @@ export function SetupTwoFaForm() {
             {getText('disable2FADescription')}
           </Text>
 
-          <DialogTrigger>
+          <Dialog.Trigger>
             <Button variant="delete" className="self-start" icon={ShieldCrossed}>
               {getText('disable2FA')}
             </Button>
@@ -100,15 +94,15 @@ export function SetupTwoFaForm() {
 
                 <OTPInput autoFocus name="otp" maxLength={6} label={getText('verificationCode')} />
 
-                <ButtonGroup>
+                <Button.Group>
                   <Form.Submit variant="delete">{getText('disable')}</Form.Submit>
-                  <DialogDismiss />
-                </ButtonGroup>
+                  <Dialog.Dismiss />
+                </Button.Group>
 
                 <Form.FormError />
               </Form>
             </Dialog>
-          </DialogTrigger>
+          </Dialog.Trigger>
         </div>
       </div>
     )
@@ -225,11 +219,11 @@ function TwoFa() {
         />
       </div>
 
-      <ButtonGroup>
+      <Button.Group>
         <Form.Submit>{getText('enable')}</Form.Submit>
 
         <Form.Reset>{getText('cancel')}</Form.Reset>
-      </ButtonGroup>
+      </Button.Group>
 
       <Form.FormError />
     </>

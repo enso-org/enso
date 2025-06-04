@@ -7,23 +7,22 @@ import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
 async function goToGraphAndGetDocs(page: Page) {
-  await actions.goToGraph(page, false)
-  const rightDock = locate.rightDock(page)
-  await expect(rightDock).toBeVisible()
+  await actions.goToGraph(page)
+  await page.getByRole('tab', { name: 'Documentation' }).click()
   const docsContent = page.getByTestId('documentation-editor-content')
   await expect(docsContent.locator('.cm-line')).toExist()
-  return { rightDock, docsContent }
+  return { docsContent }
 }
 
 test('Main method documentation', async ({ page }) => {
-  const { rightDock, docsContent } = await goToGraphAndGetDocs(page)
+  const { docsContent } = await goToGraphAndGetDocs(page)
 
   // Right-dock displays main method documentation.
   await expect(docsContent).toContainText('The main method')
 
   // All three images are loaded properly
-  await expect(rightDock.getByAltText('Image')).toHaveCount(3)
-  for (const img of await rightDock.getByAltText('Image').all())
+  await expect(docsContent.getByAltText('Image')).toHaveCount(3)
+  for (const img of await docsContent.getByAltText('Image').all())
     await expect(img).toHaveJSProperty('naturalWidth', 3)
 
   // Nested lists are rendered with hierarchical indentation
@@ -43,11 +42,11 @@ test('Main method documentation', async ({ page }) => {
 
   // Documentation hotkey closes right-dock.p
   await page.keyboard.press(`${CONTROL_KEY}+D`)
-  await expect(locate.rightDock(page)).toBeHidden()
+  await expect(docsContent).toBeHidden()
 })
 
 test('Doc panel focus (regression #10471)', async ({ page }) => {
-  const { rightDock } = await goToGraphAndGetDocs(page)
+  const { docsContent } = await goToGraphAndGetDocs(page)
 
   // Open and focus code editor.
   await page.keyboard.press(`${CONTROL_KEY}+\``)
@@ -71,13 +70,14 @@ test('Doc panel focus (regression #10471)', async ({ page }) => {
     return codeEditor.textContent()
   })
   expect(content.includes('The main TEST method')).toBe(true)
-  await expect(rightDock).toContainText('The main TEST method')
+  await expect(docsContent).toContainText('The main TEST method')
 })
 
 test('Code editor with wide content does not take space from doc editor (#12476)', async ({
   page,
 }) => {
-  const { rightDock } = await goToGraphAndGetDocs(page)
+  await goToGraphAndGetDocs(page)
+  const rightDock = locate.rightDock(page)
 
   const getDocX = async () => {
     await rightDock.elementHandle().then((el) => el!.waitForElementState('stable'))
@@ -95,13 +95,13 @@ test('Code editor with wide content does not take space from doc editor (#12476)
 })
 
 test('Component help', async ({ page }) => {
-  const { rightDock } = await goToGraphAndGetDocs(page)
+  await actions.goToGraph(page)
 
-  await rightDock.getByRole('button', { name: 'Help' }).click()
-  await expect(rightDock).toHaveText(/Select a single component/)
+  await page.getByRole('tab', { name: 'Help' }).click()
+  await expect(locate.rightDock(page)).toHaveText(/Select a single component/)
 
   await locate.graphNodeByBinding(page, 'final').click()
-  await expect(rightDock).toHaveText(/No documentation available/)
+  await expect(locate.rightDock(page)).toHaveText(/No documentation available/)
 
   await mockMethodCallInfo(page, 'data', {
     methodPointer: {
@@ -112,7 +112,7 @@ test('Component help', async ({ page }) => {
     notAppliedArguments: [0, 1, 2],
   })
   await locate.graphNodeByBinding(page, 'data').click()
-  await expect(rightDock).toHaveText(/Reads a file into Enso/)
+  await expect(locate.rightDock(page)).toHaveText(/Reads a file into Enso/)
 })
 
 test('Documentation reflects entered function', async ({ page }) => {
@@ -128,7 +128,8 @@ test('Documentation reflects entered function', async ({ page }) => {
 })
 
 test('Link in documentation is rendered and interactive', async ({ page, context }) => {
-  const { rightDock, docsContent } = await goToGraphAndGetDocs(page)
+  const { docsContent } = await goToGraphAndGetDocs(page)
+  const rightDock = locate.rightDock(page)
   await expect(docsContent.locator('a')).toHaveAccessibleDescription(
     /Click to edit.*Click to open link/,
   )
@@ -143,7 +144,8 @@ test('Link in documentation is rendered and interactive', async ({ page, context
 })
 
 test('Insert link button inserts link and focuses editor', async ({ page }) => {
-  const { rightDock, docsContent } = await goToGraphAndGetDocs(page)
+  const { docsContent } = await goToGraphAndGetDocs(page)
+  const rightDock = locate.rightDock(page)
 
   // Delete all text and defocus the editor
   await docsContent.locator('.cm-line').first().click()

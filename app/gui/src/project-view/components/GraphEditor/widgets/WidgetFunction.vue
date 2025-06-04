@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {
+  useGraphStore,
+  useProjectNames,
+  useProjectStore,
+} from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
@@ -10,10 +15,7 @@ import {
   widgetProps,
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
-import { useProjectStore } from '@/stores/project'
-import { injectProjectNames } from '@/stores/projectNames'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -41,7 +43,7 @@ const { methodCallInfo, application } = useWidgetFunctionCallInfo(
   () => props.input,
   graph.db,
   project,
-  injectProjectNames(),
+  useProjectNames(),
 )
 
 provideFunctionInfo(

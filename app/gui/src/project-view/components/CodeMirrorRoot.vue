@@ -15,6 +15,16 @@ defineExpose({ highlightClasses })
 .CodeMirrorRoot :deep(.cm-content) {
   cursor: text;
 }
+
+/*
+ * Change the looks of codemirror placeholder nodes to look the same as placeholder widgets.
+ * This is visible when a `placeholder` property is used in the `useCodeMirror` composable,
+ * and the edited text value at the same time happen to be empty.
+ */
+.CodeMirrorRoot :deep(.cm-placeholder) {
+  color: inherit;
+  opacity: 0.6;
+}
 </style>
 
 <!--suppress CssUnusedSymbol -->

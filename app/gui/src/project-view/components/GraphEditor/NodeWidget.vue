@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useWidgetRegistry } from '$/components/WithCurrentProject.vue'
 import type { UpdateHandler, WidgetModule } from '@/providers/widgetRegistry'
-import { injectWidgetRegistry, WidgetInput } from '@/providers/widgetRegistry'
+import { WidgetInput } from '@/providers/widgetRegistry'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,
@@ -27,7 +28,7 @@ const props = defineProps<{
 }>()
 defineOptions({ inheritAttrs: false })
 
-const registry = injectWidgetRegistry()
+const registry = useWidgetRegistry()
 const parentUsageInfo = injectWidgetUsageInfo(true)
 
 const usageKey = computed(() => usageKeyForInput(props.input))

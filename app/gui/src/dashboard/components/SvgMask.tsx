@@ -1,8 +1,7 @@
 /** @file File containing SVG icon definitions. */
-import * as React from 'react'
-
+import type { TestIdProps } from '#/components/types'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import type { TestIdProps } from './AriaComponents'
+import * as React from 'react'
 
 /** Props for a {@link SvgMask}. */
 export interface SvgMaskProps extends TestIdProps {
