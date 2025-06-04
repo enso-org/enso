@@ -1,7 +1,7 @@
 import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import { useBackends as useBackendsVue, type BackendsStore } from '$/providers/backends'
-import { useLocalStorage as useLocalStorageVue } from '$/stores/localStorage'
+import { useLocalStorageClass as useLocalStorageVue } from '$/stores/localStorage'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { assert } from '@/util/assert'
 import * as react from 'react'

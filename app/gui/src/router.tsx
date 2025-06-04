@@ -34,9 +34,9 @@ import { reactComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { PropsWithChildren, ReactNode } from 'react'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import ProtectedLayout from './components/ProtectedLayout.vue'
 import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
 import { useAuth, UserSessionType } from './providers/auth'
-import { useLocalStorage } from './stores/localStorage'
 
 /**
  * Wrap react component in ErrorBoundary and Suspense.
@@ -122,6 +122,7 @@ const routes = [
   {
     path: '/UNAVAILABLE',
     meta: { access: 'guest' as const },
+    component: ProtectedLayout,
     children: [
       { path: LOGIN_PATH, component: reactForRouter(Login) },
       { path: '/registration', component: reactForRouter(Registration) },
@@ -130,6 +131,7 @@ const routes = [
   {
     path: '/UNAVAILABLE',
     meta: { access: UserSessionType.full },
+    component: ProtectedLayout,
     children: [
       {
         path: '/UNAVAILABLE',
@@ -179,6 +181,7 @@ const routes = [
     path: '/UNAVAILABLE',
     meta: { access: 'anyLoggedIn' as const },
     beforeEnter: [prefetchAgreements, notDeletedUser],
+    component: ProtectedLayout,
     children: [
       applyLayouts(
         [
@@ -221,21 +224,8 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuth()
-  const localStorage = useLocalStorage()
   await auth.suspense()
-  const session = auth.session
-  console.log('Routing to ', to.path, ' session ', session)
-  if (to.meta.access == null) return true
-  if (to.meta.access === 'guest' && session == null) return true
-  if (to.meta.access === 'anyLoggedIn' && session != null) return true
-  if (to.meta.access === session?.type) return true
-
-  if (session == null) return { path: LOGIN_PATH }
-  if (session.type === UserSessionType.partial) return { path: SETUP_PATH }
-  if (session.type === UserSessionType.full)
-    return { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH }
-  console.error('ROUTING FAILED', session, to)
-  return false
+  return auth.routeGuard(to)
 })
 
 export default router

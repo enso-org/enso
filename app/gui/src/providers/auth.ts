@@ -2,8 +2,10 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 import { featureFlagsForInternalTesting } from '#/providers/FeatureFlagsProvider'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
+import { DASHBOARD_PATH, LOGIN_PATH, SETUP_PATH } from '$/appUtils'
 import type * as cognitoModule from '$/authentication/cognito'
 import { setFeatureFlags } from '$/stores/featureFlags'
+import { useLocalStorageClass } from '$/stores/localStorage'
 import { Opt } from '@/util/data/opt'
 import { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
@@ -13,6 +15,7 @@ import { createGlobalState, StorageSerializers, useLocalStorage } from '@vueuse/
 import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
 import { computed, inject, proxyRefs, toRef, toValue, watchEffect } from 'vue'
+import { RouteLocation } from 'vue-router'
 import { BackendsStore, useBackends } from './backends'
 import { SessionStore, useSession } from './session'
 import { TextStore, useText } from './text'
@@ -85,6 +88,7 @@ export const useAuth = createGlobalState(() => {
   const session = toRef(sessionData, 'session')
   const { organizationId, signOut } = sessionData
   const toastSuccess = useToast.success()
+  const localStorage = useLocalStorageClass()
 
   const queryClient = vueQuery.useQueryClient()
 
@@ -227,7 +231,7 @@ export const useAuth = createGlobalState(() => {
         id: userData.value.user.userId,
         email: userData.value.email,
         username: userData.value.user.name,
-        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+        // eslint-disable-next-line camelcase
         ip_address: '{{auto}}',
       })
       onAuthenticated?.(userData.value.accessToken)
@@ -251,6 +255,20 @@ export const useAuth = createGlobalState(() => {
     : userData.value,
   )
 
+  function routeGuard(route: RouteLocation) {
+    console.log('routeGuart', route, effectiveUserData.value)
+    if (route.meta.access == null) return true
+    if (route.meta.access === 'guest' && effectiveUserData.value == null) return true
+    if (route.meta.access === 'anyLoggedIn' && effectiveUserData.value != null) return true
+    if (route.meta.access === effectiveUserData.value?.type) return true
+
+    if (effectiveUserData.value == null) return { path: LOGIN_PATH }
+    if (effectiveUserData.value.type === UserSessionType.partial) return { path: SETUP_PATH }
+    if (effectiveUserData.value.type === UserSessionType.full)
+      return { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH }
+    return false
+  }
+
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
@@ -262,5 +280,6 @@ export const useAuth = createGlobalState(() => {
     restoreUser,
     deleteUser,
     setUser,
+    routeGuard,
   })
 })

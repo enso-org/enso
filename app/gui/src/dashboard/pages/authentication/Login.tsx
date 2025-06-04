@@ -16,22 +16,16 @@ import { useSessionAPI } from '#/providers/SessionProvider'
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUtils'
 import type { CognitoUser } from '$/authentication/cognito'
 import { useRouter, useText } from '$/providers/react'
-import { useQueryClient } from '@tanstack/react-query'
 import { isOnElectron } from 'enso-common/src/detect'
 import { useState } from 'react'
 
 /** A form for users to log in. */
 export default function Login() {
   const { router, searchParams } = useRouter()
-  const queryClient = useQueryClient()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSessionAPI()
   const { getText } = useText()
 
   const initialEmail = searchParams.get('email') ?? ''
-
-  // useEffect(() => {
-  //   void queryClient.clearWithPersister()
-  // }, [queryClient])
 
   const form = Form.useForm({
     schema: (z) =>

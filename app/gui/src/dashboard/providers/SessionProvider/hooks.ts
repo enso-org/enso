@@ -29,7 +29,7 @@ export { useSession } from '$/providers/react'
  */
 export function useSessionAPI(): Omit<SessionContextType, 'session'> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { session, ...api } = useSession()
+  const { session, suspense, ...api } = useSession()
 
   return api
 }

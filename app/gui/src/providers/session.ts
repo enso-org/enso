@@ -1,11 +1,13 @@
 import * as gtag from '#/hooks/gtagHooks'
+import { unsetModal } from '#/providers/ModalProvider'
+import { NotAuthorizedError } from '#/services/Backend'
 import { unreachable } from '#/utilities/error'
 import HttpClient from '#/utilities/HttpClient'
 import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
 import { AuthEvent } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
-import { useLocalStorage } from '$/stores/localStorage'
+import { useLocalStorageClass } from '$/stores/localStorage'
 import { Opt } from '@/util/data/opt'
 import { Err } from '@/util/data/result'
 import { useToast } from '@/util/toast'
@@ -41,7 +43,7 @@ export const useSession = createGlobalState(() => {
   const httpClient: HttpClient = useHttpClient()
   const { getText }: TextStore = useText()
   const queryClient: vueQuery.QueryClient = vueQuery.useQueryClient()
-  const localStorage = useLocalStorage()
+  const localStorage = useLocalStorageClass()
   // ----
 
   const mainPageUrl = getMainPageUrl()
@@ -91,22 +93,11 @@ export const useSession = createGlobalState(() => {
       isLoggingOut.value = false
     },
     // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
-    // TODO[ao]: Finish before merge
-    // onMutate: unsetModal,
+    onMutate: unsetModal,
     onSuccess: async () => {
       localStorage.clearUserSpecificEntries()
       sentry.setUser(null)
       successToast.show(getText('signOutSuccess'))
-
-      // On sign out, we need to clear the query client.
-      // But we dont want to delay the logoutMutation to avoid possible side effects,
-      // like refetching some data. By the moment of clearing the query client,
-      // the logoutMutation is already resolved, and user is navigated to the login page.
-      // TODO[ao]: fix clearing before merge.
-      console.log('CLEAR')
-      // void queryClient.removeQueries({ type: 'inactive' })
-      // queryClient.setQueryData(sessionQueryOptions.queryKey, null)
-      // queryClient.setQueriesData({ queryKey: [BackendType.remote, 'usersMe'] }, null)
     },
     onError: () => errorToast.show(getText('signOutError')),
     meta: { invalidates: [sessionQueryOptions.queryKey], awaitInvalidates: true },
@@ -295,12 +286,24 @@ export const useSession = createGlobalState(() => {
     }
   })
 
-  setupRefresh(refreshUserSessionMutation.mutateAsync, session.data)
+  queryClient.getQueryCache().config.onError = (error, query) => {
+    if (error instanceof NotAuthorizedError) {
+      void refreshUserSessionMutation
+        .mutateAsync()
+        .then(() => queryClient.refetchQueries({ queryKey: query.queryKey }))
+    }
+  }
+  queryClient.getMutationCache().config.onError = (error, variables, _context, mutation) => {
+    if (error instanceof NotAuthorizedError) {
+      void refreshUserSessionMutation.mutateAsync().then(() => mutation.execute(variables))
+    }
+  }
 
   return proxyRefs({
     signUp,
     session: session.data,
     suspense: session.suspense,
+    isLoggingOut,
     confirmSignUp,
     signInWithPassword,
     signInWithGitHub,

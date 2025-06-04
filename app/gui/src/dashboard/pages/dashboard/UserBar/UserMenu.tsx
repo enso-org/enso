@@ -11,7 +11,6 @@ import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
-import { LOGIN_PATH } from '$/appUtils'
 import { useBackends, useRouter, useText } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
@@ -72,7 +71,7 @@ export default function UserMenu(props: UserMenuProps) {
         action="signOut"
         doAction={() => {
           onSignOut()
-          void signOut().then(() => router.push(LOGIN_PATH))
+          void signOut()
         }}
       />
     </>
