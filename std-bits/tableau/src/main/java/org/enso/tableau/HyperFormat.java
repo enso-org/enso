@@ -467,24 +467,25 @@ public class HyperFormat {
     }
   }
 
-  private static void addValueToInserter(Inserter inserter, ColumnStorage storage, int row) {
+private static void addValueToInserter(Inserter inserter, ColumnStorage storage, int row) {
     if (storage.isNothing(row)) {
       inserter.addNull();
-    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-      inserter.add(doubleStorage.getItemAsDouble(row));
-    } else if (storage instanceof ColumnLongStorage longStorage) {
-      inserter.add(longStorage.getItemAsLong(row));
-    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-      inserter.add(boolStorage.getItemAsBoolean(row));
     } else {
-      Object value = storage.getItemBoxed(row);
-      switch (value) {
-        case String s -> inserter.add(s);
-        case LocalDate ld -> inserter.add(ld);
-        case LocalTime lt -> inserter.add(lt);
-        case ZonedDateTime zdt -> inserter.add(zdt);
-        case BigDecimal bd -> inserter.add(bd);
-        default -> throw new HyperUnsupportedTypeError(value.toString());
+      switch (storage) {
+        case ColumnDoubleStorage doubleStorage -> inserter.add(doubleStorage.getItemAsDouble(row));
+        case ColumnLongStorage longStorage -> inserter.add(longStorage.getItemAsLong(row));
+        case ColumnBooleanStorage boolStorage -> inserter.add(boolStorage.getItemAsBoolean(row));
+        default -> {
+          Object value = storage.getItemBoxed(row);
+          switch (value) {
+            case String s -> inserter.add(s);
+            case LocalDate ld -> inserter.add(ld);
+            case LocalTime lt -> inserter.add(lt);
+            case ZonedDateTime zdt -> inserter.add(zdt);
+            case BigDecimal bd -> inserter.add(bd);
+            default -> throw new HyperUnsupportedTypeError(value.toString());
+          }
+        }
       }
     }
   }
