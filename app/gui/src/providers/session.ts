@@ -17,10 +17,13 @@ import { useHttpClient } from './httpClient'
 import { TextStore, useText } from './text'
 
 /** Create a query for the user session. */
-function createSessionQuery(authService: cognito.ISessionProvider) {
+export function createSessionQuery(authService: cognito.ISessionProvider) {
   return vueQuery.queryOptions({
     queryKey: ['userSession'],
     queryFn: () => authService.userSession().catch(() => null),
+    meta: {
+      persist: false,
+    },
   })
 }
 
@@ -50,7 +53,8 @@ export const useSession = createGlobalState(() => {
 
   const sessionQueryOptions = createSessionQuery(authService.cognito)
   const session = vueQuery.useQuery(sessionQueryOptions)
-  watchEffect(() => console.error('session', session.isStale.value, session.data.value), {
+
+  watchEffect(() => console.error('session', session.fetchStatus.value, session.data.value), {
     flush: 'sync',
   })
 
@@ -100,7 +104,9 @@ export const useSession = createGlobalState(() => {
       // the logoutMutation is already resolved, and user is navigated to the login page.
       // TODO[ao]: fix clearing before merge.
       console.log('CLEAR')
-      void queryClient.removeQueries({ type: 'inactive' })
+      // void queryClient.removeQueries({ type: 'inactive' })
+      // queryClient.setQueryData(sessionQueryOptions.queryKey, null)
+      // queryClient.setQueriesData({ queryKey: [BackendType.remote, 'usersMe'] }, null)
     },
     onError: () => errorToast.show(getText('signOutError')),
     meta: { invalidates: [sessionQueryOptions.queryKey], awaitInvalidates: true },
@@ -206,11 +212,14 @@ export const useSession = createGlobalState(() => {
     return result.ok
   }
 
-  watchEffect(() => {
-    if (session.data.value) {
-      httpClient.setSessionToken(session.data.value.accessToken)
-    }
-  })
+  watchEffect(
+    () => {
+      if (session.data.value) {
+        httpClient.setSessionToken(session.data.value.accessToken)
+      }
+    },
+    { flush: 'sync' },
+  )
 
   // Register an effect that will listen for authentication events. When the event occurs, we
   // will refresh or clear the user's session, forcing a re-render of the page with the new
@@ -291,6 +300,7 @@ export const useSession = createGlobalState(() => {
   return proxyRefs({
     signUp,
     session: session.data,
+    suspense: session.suspense,
     confirmSignUp,
     signInWithPassword,
     signInWithGitHub,

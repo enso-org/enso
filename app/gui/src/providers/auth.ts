@@ -3,13 +3,14 @@ import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import type * as cognitoModule from '$/authentication/cognito'
 import { Opt } from '@/util/data/opt'
+import { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState, StorageSerializers, useLocalStorage } from '@vueuse/core'
 import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
-import { computed, inject, proxyRefs, Ref, toRef, watchEffect } from 'vue'
+import { computed, inject, proxyRefs, toRef, toValue, watchEffect } from 'vue'
 import { BackendsStore, useBackends } from './backends'
 import { SessionStore, useSession } from './session'
 import { TextStore, useText } from './text'
@@ -47,13 +48,13 @@ export interface FullUserSession extends BaseUserSession {
 
 /** Query to fetch the user's session data from the backend. */
 export function createUsersMeQuery(
-  session: Ref<Opt<cognitoModule.UserSession>>,
+  session: ToValue<Opt<cognitoModule.UserSession>>,
   remoteBackend: RemoteBackend,
 ) {
   return vueQuery.queryOptions({
-    queryKey: computed(() => [remoteBackend.type, 'usersMe', session.value?.clientId] as const),
+    queryKey: [remoteBackend.type, 'usersMe', () => toValue(session)?.clientId ?? null] as const,
     queryFn: async () => {
-      const sessionVal = session.value
+      const sessionVal = toValue(session)
 
       if (sessionVal == null) {
         return null
@@ -83,7 +84,6 @@ export const useAuth = createGlobalState(() => {
   // const setFeatureFlags = useSetFeatureFlags()
 
   const session = toRef(sessionData, 'session')
-  watchEffect(() => console.log('auth session', session.value), { flush: 'sync' })
   const { organizationId, signOut } = sessionData
   const toastSuccess = useToast.success()
 
@@ -256,7 +256,7 @@ export const useAuth = createGlobalState(() => {
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
-    sessionPromise: () => usersMeQuery.promise.value.then(() => effectiveUserData.value),
+    suspense: () => sessionData.suspense().then(usersMeQuery.suspense),
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,
@@ -264,6 +264,5 @@ export const useAuth = createGlobalState(() => {
     restoreUser,
     deleteUser,
     setUser,
-    // authQueryKey: usersMeQueryOptions.queryKey,
   })
 })

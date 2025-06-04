@@ -18,12 +18,7 @@ import { Setup } from '#/pages/authentication/Setup'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import { Subscribe } from '#/pages/subscribe/Subscribe'
 import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
-import {
-  CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl,
-  NotDeletedUserLayout,
-  ProtectedLayout,
-  SoftDeletedUserLayout,
-} from '#/providers/AuthProvider'
+import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/providers/AuthProvider'
 import {
   CONFIRM_REGISTRATION_PATH,
   DASHBOARD_PATH,
@@ -182,12 +177,11 @@ const routes = [
   {
     path: '/UNAVAILABLE',
     meta: { access: 'anyLoggedIn' as const },
-    beforeEnter: prefetchAgreements,
+    beforeEnter: [prefetchAgreements, notDeletedUser],
     children: [
       applyLayouts(
         [
           ({ children }) => <AgreementsModal>{children}</AgreementsModal>,
-          NotDeletedUserLayout,
           CloudBrowserDisabledLayout,
         ],
         [
@@ -213,7 +207,6 @@ const routes = [
     path: RESET_PASSWORD_PATH,
     component: reactForRouter(ResetPassword),
   },
-  applyLayouts([ProtectedLayout, SoftDeletedUserLayout], []),
   {
     path: '/:anyPath(.*)*',
     redirect: '/',
@@ -227,7 +220,8 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuth()
-  const session = await auth.sessionPromise()
+  await auth.suspense()
+  const session = auth.session
   console.log('Routing to ', to.path, ' session ', session)
   if (to.meta.access == null) return true
   if (to.meta.access === 'guest' && session == null) return true
