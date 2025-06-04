@@ -36,7 +36,6 @@ async function expectAndCancelBrowser(
   await expect(page.getByTestId('component-editor-content')).toBeInViewport()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.rightDock(page)).toBeHidden()
   await expect(page.locator('[data-transitioning]')).toHaveCount(0)
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
 }

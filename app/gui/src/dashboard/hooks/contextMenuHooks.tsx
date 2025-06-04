@@ -1,11 +1,9 @@
 /** @file Hooks related to context menus. */
-import * as React from 'react'
-
-import * as modalProvider from '#/providers/ModalProvider'
-
 import ContextMenu from '#/components/ContextMenu'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
+import { setModal } from '#/providers/ModalProvider'
+import * as React from 'react'
 
 /**
  * Return a ref that attaches a context menu event listener.
@@ -16,7 +14,6 @@ export function useContextMenuRef(
   createEntries: (position: Pick<React.MouseEvent, 'pageX' | 'pageY'>) => React.JSX.Element | null,
   options: { enabled?: boolean } = {},
 ) {
-  const { setModal } = modalProvider.useSetModal()
   const stableCreateEntries = useEventCallback(createEntries)
   const optionsRef = useSyncRef(options)
   const cleanupRef = React.useRef(() => {})
@@ -49,6 +46,6 @@ export function useContextMenuRef(
         }
       }
     },
-    [stableCreateEntries, label, optionsRef, setModal],
+    [stableCreateEntries, label, optionsRef],
   )
 }

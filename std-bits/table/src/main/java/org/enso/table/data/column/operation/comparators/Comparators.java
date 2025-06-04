@@ -5,6 +5,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.NumericType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
@@ -23,10 +24,11 @@ public final class Comparators {
         || storageType instanceof DateTimeType
         || storageType instanceof TextType
         || storageType instanceof NullType
-        || storageType instanceof BooleanType;
+        || storageType instanceof BooleanType
+        || storageType instanceof NumericType;
   }
 
-  public static BinaryOperation<Boolean> eq(Column left) {
+  public static BinaryOperation<Boolean> eq(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -35,11 +37,13 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.EQ;
       case TextType tt -> StringComparators.EQ;
       case BooleanType bt -> BooleanComparators.EQ;
+      case NumericType nt -> NumericComparators.create(
+          leftStorage.getType(), right, NumericComparators.EQUAL_OPERATION, false);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
 
-  public static BinaryOperation<Boolean> notEq(Column left) {
+  public static BinaryOperation<Boolean> notEq(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -48,11 +52,13 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.NEQ;
       case TextType tt -> StringComparators.NEQ;
       case BooleanType bt -> BooleanComparators.NEQ;
+      case NumericType nt -> NumericComparators.create(
+          leftStorage.getType(), right, NumericComparators.NOT_EQUAL_OPERATION, true);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
 
-  public static BinaryOperation<Boolean> lessThan(Column left) {
+  public static BinaryOperation<Boolean> lessThan(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -61,11 +67,13 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.LT;
       case TextType tt -> StringComparators.LT;
       case BooleanType bt -> BooleanComparators.LT;
+      case NumericType nt -> NumericComparators.create(
+          leftStorage.getType(), right, NumericComparators.LESS_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
 
-  public static BinaryOperation<Boolean> lessThanEq(Column left) {
+  public static BinaryOperation<Boolean> lessThanEq(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -74,11 +82,13 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.LTE;
       case TextType tt -> StringComparators.LTE;
       case BooleanType bt -> BooleanComparators.LTE;
+      case NumericType nt -> NumericComparators.create(
+          leftStorage.getType(), right, NumericComparators.LESS_OR_EQUAL_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
 
-  public static BinaryOperation<Boolean> greaterThan(Column left) {
+  public static BinaryOperation<Boolean> greaterThan(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -87,11 +97,13 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.GT;
       case TextType tt -> StringComparators.GT;
       case BooleanType bt -> BooleanComparators.GT;
+      case NumericType nt -> NumericComparators.create(
+          leftStorage.getType(), right, NumericComparators.GREATER_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
 
-  public static BinaryOperation greaterThanEq(Column left) {
+  public static BinaryOperation<Boolean> greaterThanEq(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -100,6 +112,8 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.GTE;
       case TextType tt -> StringComparators.GTE;
       case BooleanType bt -> BooleanComparators.GTE;
+      case NumericType nt -> NumericComparators.create(
+          leftStorage.getType(), right, NumericComparators.GREATER_OR_EQUAL_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }

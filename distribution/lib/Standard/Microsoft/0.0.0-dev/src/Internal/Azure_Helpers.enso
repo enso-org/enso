@@ -1,0 +1,33 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+polyglot java import com.azure.core.exception.ClientAuthenticationException
+
+handle_azure_exceptions =
+    Panic.catch ClientAuthenticationException handler=Azure_Client_Authentication.handler <|
+        Illegal_Argument.handle_java_exception
+
+type Azure_Client_Authentication
+    private Error java_exception
+
+    ## The message for the error.
+    message self -> Text = self.java_exception.getMessage
+
+    ## PRIVATE
+    to_text self =
+        "Azure Client Authentication Error:" + self.message
+
+    ## PRIVATE
+    to_display_text self = self.to_text
+
+    ## PRIVATE
+    handler caught_panic:Any =
+        Error.throw (Azure_Client_Authentication.Error caught_panic.payload)
+
+    ## PRIVATE
+    to_js_object self =
+        error_type = ["type", "Azure_Client_Authentication"]
+        error_message = ["message", self.message]
+        JS_Object.from_pairs [error_type, error_message]

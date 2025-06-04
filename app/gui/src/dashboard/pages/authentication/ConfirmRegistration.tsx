@@ -3,10 +3,8 @@
  * email address.
  */
 import * as appUtils from '#/appUtils'
-
+import { Button } from '#/components/Button'
 import { Result } from '#/components/Result'
-
-import { Button } from '#/components/AriaComponents'
 import { useMounted } from '#/hooks/mountHooks'
 import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useSessionAPI } from '#/providers/SessionProvider'

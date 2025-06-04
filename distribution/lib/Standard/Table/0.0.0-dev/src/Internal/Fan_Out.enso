@@ -3,9 +3,9 @@ import Standard.Base.Data.Vector.Builder
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Column.Column
-import project.In_Memory_Column.In_Memory_Column
 import project.Columns_To_Add.Columns_To_Add
 import project.Conversions.Convertible_To_Rows.Key_Value
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Table.Table
 import project.Value_Type.Value_Type

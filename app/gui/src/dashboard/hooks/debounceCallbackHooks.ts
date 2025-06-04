@@ -79,3 +79,29 @@ export type DebouncedFunction<Fn extends (...args: never[]) => unknown> = (
   this: ThisParameterType<Fn>,
   ...args: Parameters<Fn>
 ) => void
+
+/** Wrap an async callback into a throttled async function */
+export function useThrottledAsyncCallback<Fn extends (...args: Parameters<Fn>) => Promise<T>, T>(
+  callback: Fn,
+): Fn {
+  const promiseRef = React.useRef<Promise<T> | null>(null)
+
+  const wrapped = useEventCallback((...args: Parameters<Fn>) => {
+    if (promiseRef.current == null) {
+      const promise = callback(...args)
+      promiseRef.current = promise
+      void promise.then(() => {
+        promiseRef.current = null
+      })
+    }
+    return promiseRef.current
+  })
+
+  Object.defineProperties(wrapped, {
+    length: { value: callback.length },
+    name: { value: `${callback.name || 'anonymous'}__throttled__` },
+  })
+
+  // eslint-disable-next-line no-restricted-syntax
+  return wrapped as Fn
+}

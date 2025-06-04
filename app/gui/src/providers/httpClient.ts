@@ -12,7 +12,7 @@ function generateSessionID() {
   return newSessionID
 }
 
-export const [provideHttpClient, injectHttpClient] = createContextStore('http-client', () => {
+export const [provideHttpClient, useHttpClient] = createContextStore('http-client', () => {
   const sessionID = generateSessionID()
   const httpClient = new HttpClient({
     'x-enso-ide-version': $config.VERSION ?? '',

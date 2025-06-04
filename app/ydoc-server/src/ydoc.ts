@@ -94,8 +94,20 @@ export class WSSharedDoc {
  * @param docName The name of the document to synchronize. When the document name is `index`, the
  * document is considered to be the root document of the `DistributedProject` data model.
  */
-export function setupGatewayClient(ws: WS, lsUrl: string, docName: string) {
-  const lsSession = LanguageServerSession.get(lsUrl)
+export function setupGatewayClient(ws: WS, lsUrl: string | undefined | null, docName: string) {
+  let lsSession: LanguageServerSession
+  console.log(`setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName})`)
+  if (lsUrl) {
+    lsSession = LanguageServerSession.get(lsUrl)
+  } else {
+    const anySession = LanguageServerSession.sessions.values().next().value
+    if (anySession) {
+      lsSession = anySession
+    } else {
+      throw `There are too many sessions: ${Array.from(LanguageServerSession.sessions.keys())} - specify one via ?ls=... parameter!`
+    }
+  }
+
   const wsDoc = lsSession.getYDoc(docName)
   if (wsDoc == null) {
     console.error(`Document '${docName}' not found in language server session '${lsUrl}'.`)

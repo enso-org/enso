@@ -6,12 +6,17 @@ import { type Command, EditorView, type KeyBinding, keymap } from '@codemirror/v
 import * as objects from 'enso-common/src/utilities/data/object'
 import type { LineMode } from './index'
 
-export interface CmKeyboardEvent extends KeyboardEvent {
+export interface CmEvent {
   codemirrorView: EditorView
 }
 
-function extendCmKeyboardEvent(view: EditorView, event: KeyboardEvent): CmKeyboardEvent {
-  const ext = event as CmKeyboardEvent
+export type CmEventExt<T extends Event> = T & CmEvent
+
+type CmKeyboardEvent = CmEventExt<KeyboardEvent>
+
+/** Extend any kind of DOM event with a property holding a reference to codemirror view. */
+export function extendCmEvent<E extends Event>(view: EditorView, event: E): CmEventExt<E> {
+  const ext = event as CmEventExt<E>
   ext.codemirrorView = view
   return ext
 }
@@ -26,7 +31,7 @@ export function handlerToKeyBinding(
 ): KeyBinding {
   return {
     any: (view: EditorView, event: KeyboardEvent) =>
-      handler(extendCmKeyboardEvent(view, event), stopAndPrevent),
+      handler(extendCmEvent(view, event), stopAndPrevent),
   }
 }
 

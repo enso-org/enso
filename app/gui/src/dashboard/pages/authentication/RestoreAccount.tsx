@@ -1,16 +1,12 @@
 /** @file Restore an account that has been deleted. */
-
-import UntrashIcon from '#/assets/untrash.svg'
-
-import { useAuth } from '#/providers/AuthProvider'
-import { useText } from '$/providers/react'
-
 import { LOGIN_PATH } from '#/appUtils'
+import UntrashIcon from '#/assets/untrash.svg'
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import SvgMask from '#/components/SvgMask'
+import { useAuth } from '#/providers/AuthProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useRouter } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 
 /** Restore an account that has been deleted. */
 export default function RestoreAccount() {
@@ -36,7 +32,7 @@ export default function RestoreAccount() {
         </p>
 
         <div className="mt-8 flex items-center gap-8">
-          <ariaComponents.Button
+          <Button
             onPress={async () => {
               await restoreUser()
             }}
@@ -44,9 +40,9 @@ export default function RestoreAccount() {
             className="flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-auth-input-y text-white transition-all duration-auth selectable enabled:active"
           >
             {getText('restoreAccountSubmit')}
-          </ariaComponents.Button>
+          </Button>
 
-          <ariaComponents.Button
+          <Button
             variant="icon"
             onPress={async () => {
               await signOut().then(() => {
@@ -55,7 +51,7 @@ export default function RestoreAccount() {
             }}
           >
             {getText('signOutShortcut')}
-          </ariaComponents.Button>
+          </Button>
         </div>
       </div>
     </div>

@@ -2,12 +2,12 @@
  * @file Container responsible for rendering and interactions in second half of forgot password
  * flow.
  */
-import * as z from 'zod'
-
 import { LOGIN_PATH } from '#/appUtils'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import { Button, Form, Input, Password } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input, Password } from '#/components/Inputs'
 import Link from '#/components/Link'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
@@ -23,6 +23,7 @@ import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter, useText } from '$/providers/react'
 import { type GetText } from '$/providers/text'
 import { toast } from 'react-toastify'
+import * as z from 'zod'
 
 /** Create the schema for this form. */
 function createResetPasswordFormSchema(getText: GetText) {
