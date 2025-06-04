@@ -102,28 +102,25 @@ public final class Channel implements AutoCloseable {
           fn.getGetStaticMethodID().call(e, channelClass, createInC.get(), createSigInC.get());
       assert createMethod.isNonNull() : "method not found in " + classNameWithSlashes;
       var poolClassInHotSpot = fn.getNewStringUTF().call(e, poolClassInC.get());
+      var handleMethod =
+          fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
+
+      var pool = poolClass.getConstructor().newInstance().get();
+      var channel = new Channel(id, pool, e, channelClass, handleMethod);
+
       var arg = StackValue.get(4, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
       arg.addressOf(1).setLong(CurrentIsolate.getCurrentThread().rawValue());
       arg.addressOf(2).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
       arg.addressOf(3).setJObject(poolClassInHotSpot);
       var replyOk = fn.getCallStaticBooleanMethodA().call(e, channelClass, createMethod, arg);
-      if (!replyOk) {
-        fn.getExceptionDescribe().call(e);
-      }
+      checkForException(e);
       assert replyOk : "Failed to create peer in HotSpot JVM";
 
-      var handleMethod =
-          fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
-
-      try {
-        var pool = poolClass.getConstructor().newInstance().get();
-        var channel = new Channel(id, pool, e, channelClass, handleMethod);
-        ID_TO_CHANNEL.put(id, channel);
-        return channel;
-      } catch (ReflectiveOperationException ex) {
-        throw new IllegalStateException(ex);
-      }
+      ID_TO_CHANNEL.put(id, channel);
+      return channel;
+    } catch (ReflectiveOperationException ex) {
+      throw new IllegalStateException(ex);
     }
   }
 
@@ -225,7 +222,36 @@ public final class Channel implements AutoCloseable {
     arg.addressOf(1).setLong(address);
     arg.addressOf(2).setLong(segment.byteSize());
     var replySize = fn.getCallStaticLongMethodA().call(env, channelClass, channelHandle, arg);
+    checkForException(env);
     return replySize;
+  }
+
+  private static void checkForException(JNI.JNIEnv e) {
+    var fn = e.getFunctions();
+    if (fn.getExceptionCheck().call(e)) {
+      var throwable = fn.getExceptionOccurred().call(e);
+      assert throwable.isNonNull() : "There must be a throwable";
+      var assertsOn = false;
+      assert assertsOn = true;
+      if (assertsOn) {
+        fn.getExceptionDescribe().call(e);
+      }
+      fn.getExceptionClear().call(e);
+      try (var throwableInC = CTypeConversion.toCString("java/lang/Throwable");
+          var messageInC = CTypeConversion.toCString("getMessage");
+          var messageSigInC = CTypeConversion.toCString("()Ljava/lang/String;")) {
+        var throwableClass = fn.getFindClass().call(e, throwableInC.get());
+        var messageMethod =
+            fn.getGetMethodID().call(e, throwableClass, messageInC.get(), messageSigInC.get());
+        var args = StackValue.get(1, JNI.JValue.class);
+        var msg = (JNI.JString) fn.getCallObjectMethodA().call(e, throwable, messageMethod, args);
+        args.addressOf(0).setBoolean(false);
+        var cStr = fn.getGetStringUTFChars().call(e, msg, args);
+        var javaMsg = CTypeConversion.toJavaString(cStr);
+        fn.getReleaseStringUTFChars().call(e, msg, cStr);
+        throw new IllegalStateException(javaMsg);
+      }
+    }
   }
 
   static <R> R executeImpl(

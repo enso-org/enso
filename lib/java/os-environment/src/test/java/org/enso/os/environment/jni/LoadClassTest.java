@@ -2,6 +2,7 @@ package org.enso.os.environment.jni;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.math.BigInteger;
@@ -11,6 +12,7 @@ import org.enso.os.environment.jni.JNI.JValue;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class LoadClassTest {
@@ -192,5 +194,43 @@ public class LoadClassTest {
   public void backAndForthFactorialFive() throws Exception {
     var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
     assertEquals(120, fac.longValue());
+  }
+
+  @Test
+  public void throwFactorialOne() throws Exception {
+    assertException("1", new TestMain.CountDownAndThrow(1, 1));
+  }
+
+  @Ignore
+  @Test
+  public void throwFactorialTwo() throws Exception {
+    assertException("2", new TestMain.CountDownAndThrow(2, 1));
+  }
+
+  @Ignore
+  @Test
+  public void throwFactorialThree() throws Exception {
+    assertException("6", new TestMain.CountDownAndThrow(3, 1));
+  }
+
+  @Ignore
+  @Test
+  public void throwFactorialFour() throws Exception {
+    assertException("24", new TestMain.CountDownAndThrow(4, 1));
+  }
+
+  @Ignore
+  @Test
+  public void throwFactorialFive() throws Exception {
+    assertException("120", new TestMain.CountDownAndThrow(5, 1));
+  }
+
+  private void assertException(String msg, TestMain.CountDownAndThrow action) {
+    try {
+      channel.execute(Void.class, action);
+      fail("Expecting an exception to be thrown for " + msg);
+    } catch (IllegalStateException ex) {
+      assertEquals(msg, ex.getMessage());
+    }
   }
 }

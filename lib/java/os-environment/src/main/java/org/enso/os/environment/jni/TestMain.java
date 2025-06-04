@@ -73,4 +73,16 @@ final class TestMain {
       }
     }
   }
+
+  @Persistable(id = 430610)
+  record CountDownAndThrow(long value, long acc) implements Function<Channel, Void> {
+    @Override
+    public Void apply(Channel otherVM) {
+      if (value <= 1) {
+        throw new IllegalStateException("" + acc);
+      } else {
+        return otherVM.execute(Void.class, new CountDownAndThrow(value - 1, acc * value));
+      }
+    }
+  }
 }
