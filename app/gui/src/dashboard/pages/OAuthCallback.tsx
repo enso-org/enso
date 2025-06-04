@@ -1,10 +1,10 @@
-/**
- * @file OAuth callback page.
- */
+/** @file OAuth callback page. */
 import { DASHBOARD_PATH, LOGIN_PATH, OPEN_IDE_DEEPLINK } from '#/appUtils'
-import { Button, DIALOG_BACKGROUND, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { DIALOG_BACKGROUND } from '#/components/Dialog'
 import Page from '#/components/Page'
 import { Result } from '#/components/Result'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useAuth } from '#/providers/AuthProvider'
