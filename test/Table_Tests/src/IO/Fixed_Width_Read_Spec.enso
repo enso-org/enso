@@ -9,6 +9,7 @@ import Standard.Table.Errors.Inconsistent_Fixed_Width_Lengths
 import Standard.Table.Errors.Invalid_Fixed_Width_Row
 import Standard.Table.Errors.No_Column_Names_Found
 import Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout_Entry
+import Standard.Table.Fixed_Width.Fixed_Width_Format.Infer_Layout
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -175,7 +176,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Width 3 "y"]
             layout = Fixed_Width_Layout.from_descriptions descs
 
-            t0 = data4.read (Fixed_Width_Format.Fixed_Width layout skip_rows=5)
+            t0 = fixed2.read (Fixed_Width_Format.Fixed_Width layout skip_rows=5)
             t0.at "x" . to_vector . should_equal ["fg", "gh", "hi"]
             t0.at "y" . to_vector . should_equal [106, 107, 108]
 
@@ -195,7 +196,7 @@ add_direct_specs suite_builder =
                 + [Fixed_Width_Column_Description.Width 3 "y"]
             layout = Fixed_Width_Layout.from_descriptions descs
 
-            t0 = data4.read (Fixed_Width_Format.Fixed_Width layout skip_rows=4 row_limit=2)
+            t0 = fixed2.read (Fixed_Width_Format.Fixed_Width layout skip_rows=4 row_limit=2)
             t0.at "x" . to_vector . should_equal ["ef", "fg"]
             t0.at "y" . to_vector . should_equal [105, 106]
 

@@ -944,22 +944,10 @@ type No_Column_Names_Found
     handle_java_exception =
         Panic.catch NoColumnNamesFoundException handler=(_ -> Error.throw No_Column_Names_Found.Error)
 
-## Indicates that a fixed-width file's header line contained no column names.
-type No_Column_Names_Found
-    ## PRIVATE
-    private Error
-
-    ## PRIVATE
-    to_display_text self -> Text = "No column names were foond in the header line."
-
-    ## PRIVATE
-    handle_java_exception =
-        Panic.catch NoColumnNamesFoundException handler=(_ -> Error.throw No_Column_Names_Found.Error)
-
 ## Indicates that a fixed-width file contains a line that is too long.
 type Fixed_Width_Line_Too_Long
     ## PRIVATE
-    private Error source_line_number:Integer max_line_length:Ingtegr
+    private Error source_line_number:Integer max_line_length:Integer
 
     ## PRIVATE
     to_display_text self -> Text = "Fixed width file line " + self.sourceLineNumber.to_text + " is longer than the maximum length of " + self.MAXIMUM_LINE_LENGTH.to_text
