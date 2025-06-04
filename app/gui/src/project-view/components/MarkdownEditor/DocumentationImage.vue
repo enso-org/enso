@@ -35,7 +35,7 @@ const title = computed(() =>
 const alt = props.alt ? props.alt : DEFAULT_ALT_TEXT
 
 const isYouTubeVideo = computed(() =>
-  props.src.match(/https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[^\/]+/),
+  props.src.match(/https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[^/]+/),
 )
 
 onUnmounted(() => {
