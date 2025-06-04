@@ -25,15 +25,15 @@ public class FixedWidthReader {
   public static final int MAXIMUM_LINE_LENGTH = 1024 * 1024;
 
   private List<FixedWidthLayoutEntry> layoutEntries;
-  private Justification justification,
+  private Justification justification;
   private final Charset charset;
   private final long skipRows;
   private final long rowLimit;
-  private InvalidFixedWidthRowsBehavior invalidRowsBehavior;
-  private boolean emptyToNull;
-  private DatatypeParser valueParser;
+  private final InvalidFixedWidthRowsBehavior invalidRowsBehavior;
+  private final boolean emptyToNull;
+  private final DatatypeParser valueParser;
   private final FixedWidthDecodingProblemAggregator decodingProblemAggregator;
-  private FixedWidthReaderProblemAggregator problemAggregator;
+  private final FixedWidthReaderProblemAggregator problemAggregator;
 
   private List<BuilderForType<String>> builders = null;
 
@@ -59,7 +59,7 @@ public class FixedWidthReader {
       FixedWidthDecodingProblemAggregator decodingProblemAggregator,
       ProblemAggregator problemAggregator) {
     
-    assert layoutEntries == null || justificaiton == null : "Exactly one of 'layoutEntries' and 'justification' can be specified";
+    assert layoutEntries == null || justification == null : "Exactly one of 'layoutEntries' and 'justification' can be specified";
 
     this.layoutEntries = layoutEntries;
     this.charset = charset;
@@ -73,18 +73,18 @@ public class FixedWidthReader {
         new FixedWidthReaderProblemAggregator(
             problemAggregator, invalidRowsBehavior, warningsAsErrors);
 
-    if (layoutEntires != null && layoutEntries.isEmpty()) {
+    if (layoutEntries != null && layoutEntries.isEmpty()) {
       throw new IllegalArgumentException("Must specify at least one column");
     }
-
-    if (layoutEntries == null) {
-      inferHeaders();
-    }
-
-    layoutWidth = layoutEntries.get(layoutEntries.size() - 1).end();
   }
 
   public Table read(InputStream inputStream) throws IOException {
+    if (layoutEntries == null) {
+      inferHeaders(inputStream);
+    }
+
+    layoutWidth = layoutEntries.get(layoutEntries.size() - 1).end();
+
     initBuilders(layoutEntries.size());
 
     while (true) {
@@ -95,7 +95,7 @@ public class FixedWidthReader {
       }
 
       if (sourceLineNumber >= skipRows) {
-        addRow(readBuffer, lineLength);
+        addRow(lineLength);
       }
 
       sourceLineNumber++;
@@ -105,7 +105,7 @@ public class FixedWidthReader {
   }
 
   // lineLength is the length of the actual line from the input stream, which
-  // might be larger than minimumLineLength and the buffer capacity.
+  // might be larger than layoutWidth and the buffer capacity.
   private void addRow(int lineLength) throws IOException {
     Context context = Context.getCurrent();
 
@@ -118,12 +118,12 @@ public class FixedWidthReader {
       }
     }
 
-    if (lineLength < minimumLineLength) {
+    if (lineLength < layoutWidth) {
       var trn = invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP ? tableRowNumber : null;
-      problemAggregator.reportShortLine(sourceLineNumber, trn, lineLength, minimumLineLength);
+      problemAggregator.reportShortLine(sourceLineNumber, trn, lineLength, layoutWidth);
     }
 
-    if (lineLength < minimumLineLength
+    if (lineLength < layoutWidth
         && invalidRowsBehavior == InvalidFixedWidthRowsBehavior.DROP) {
       return;
     }
@@ -137,7 +137,7 @@ public class FixedWidthReader {
       var startPosition = Math.min(lineLength, entry.start());
       var endPosition = Math.min(lineLength, entry.end());
       var actualWidth = endPosition - startPosition;
-      String value = decodeSubarray(readBuffer, startPosition, actualWidth);
+      String value = decodeSubarray(startPosition, actualWidth);
 
       if (entry.end() > lineLength) {
         assert invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP;
@@ -155,17 +155,17 @@ public class FixedWidthReader {
     tableRowNumber++;
   }
 
-  private String decodeSubarray(int start, int width) {
+  private String decodeSubarray(int start, int width) throws IOException {
       var baos = new ByteArrayInputStream(readBuffer, start, width);
       var reportingStreamDecoder =
           new ReportingStreamDecoder(baos, charset, decodingProblemAggregator, false);
-      String value = reportingStreamDecoder.readAllIntoMemory();
+      return reportingStreamDecoder.readAllIntoMemory();
   }
 
   /*
-   * Reads up to `minimumLineLength` bytes into the buffer. Returns the actual
+   * Reads up to `layoutWidth` bytes into the buffer. Returns the actual
    * length of the entire line, even if that is not equal to
-   * `minimumLineLength`.
+   * `layoutWidth`.
    * Returns -1 if the first read attempt is EOF.
    */
   private int readLine(InputStream inputStream) throws IOException {
@@ -187,7 +187,7 @@ public class FixedWidthReader {
         break;
       } else {
         if (lineLength >= MAXIMUM_LINE_LENGTH) {
-          throw new FixedWidthLineTooLongException("Fixed width file line " + sourceLineNumber + " is longer than the maximum length of " + MAXIMUM_LINE_LENGTH);
+          throw new FixedWidthLineTooLongException(sourceLineNumber, MAXIMUM_LINE_LENGTH);
         }
 
         assert lineLength <= readBuffer.length;
@@ -258,32 +258,33 @@ public class FixedWidthReader {
     KEEP,
   }
 
-  private void inferHeaders() {
+  private void inferHeaders(InputStream inputStream) throws IOException {
     int lineLength = readLine(inputStream);
+    layoutEntries = inferHeadersFromLine(lineLength);
   }
 
-  private List<FixedWidthLayoutEntry> inferHeadersFromLine(Justificiaton justification, int lineLength) {
+  private List<FixedWidthLayoutEntry> inferHeadersFromLine(int lineLength) throws IOException {
       var entries = new ArrayList<FixedWidthLayoutEntry>();
 
-      switch (justificaiton) {
+      switch (justification) {
           case LEFT -> {
-              var starts = findStarts(readBuffer, lineLength);
-              for (int i = 0; i < starts.length(); ++i) {
+              var starts = findStarts(lineLength);
+              for (int i = 0; i < starts.size(); ++i) {
                 var start = starts.get(i);
-                var end = i < starts.length()-1 ? starts.get(i+1) : lineLength;
-                var width - end-start;
-                var columnName = decodeSubarray(readBuffer, start, width).trim();
-                entries.add(new FixedWidthLayoutEntry(start, width, columnName);
+                var end = i < starts.size()-1 ? starts.get(i+1) : lineLength;
+                var width = end-start;
+                var columnName = decodeSubarray(start, width).trim();
+                entries.add(new FixedWidthLayoutEntry(start, width, columnName));
               }
           }
           case RIGHT -> {
-              var ends = findEnds(readBuffer, lineLength);
-              for (int i = 0; i < starts.length(); ++i) {
+              var ends = findEnds(lineLength);
+              for (int i = 0; i < ends.size(); ++i) {
                 var start = i == 0 ? 0 : ends.get(i-1) + 1;
                 var end = ends.get(i);
-                var width - end-start;
-                var columnName = decodeSubarray(readBuffer, start, width).trim();
-                entries.add(new FixedWidthLayoutEntry(start, width, columnName);
+                var width = end-start;
+                var columnName = decodeSubarray(start, width).trim();
+                entries.add(new FixedWidthLayoutEntry(start, width, columnName));
               }
           }
       }
@@ -296,7 +297,7 @@ public class FixedWidthReader {
   }
 
   private List<Integer> findStarts(int lineLength) {
-      var starts = new ArrayList<FixedWidthLayoutEntry>();
+      var starts = new ArrayList<Integer>();
 
       boolean inWhitespace = true;
       for (int i = 0; i < lineLength; ++i) {
@@ -304,14 +305,14 @@ public class FixedWidthReader {
           if (inWhitespace && !isWhitespace) {
               starts.add(i);
           }
-          inWhiteSpace = isWhitespace;
+          inWhitespace = isWhitespace;
       }
 
       return starts;
   }
 
   private List<Integer> findEnds(int lineLength) {
-      var ends = new ArrayList<FixedWidthLayoutEntry>();
+      var ends = new ArrayList<Integer>();
 
       boolean inWhitespace = true;
       for (int i = 0; i < lineLength; ++i) {
@@ -319,7 +320,7 @@ public class FixedWidthReader {
           if (!inWhitespace && isWhitespace) {
               ends.add(i-1);
           }
-          inWhiteSpace = isWhitespace;
+          inWhitespace = isWhitespace;
       }
 
       return ends;
