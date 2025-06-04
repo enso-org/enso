@@ -10,10 +10,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StorageListView;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 
 import java.util.BitSet;
@@ -34,9 +31,7 @@ public final class IsInOperation {
   public static boolean isSupported(Column column) {
     var storage = BinaryOperation.getInferredStorage(column);
     var storageType = storage.getType();
-
-    return storageType instanceof NullType
-        || storageType instanceof BooleanType;
+    return !(storageType instanceof AnyObjectType);
   }
 
   /**
@@ -68,6 +63,13 @@ public final class IsInOperation {
       case NullType nt -> BoolBuilder.makeEmpty(leftStorage.getSize());
       case BooleanType bt -> applyBooleanIsIn(bt.asTypedStorage(leftStorage), list, problemAggregator);
       case DateType dt -> applySpecialized(dt.asTypedStorage(leftStorage), list, dt, problemAggregator);
+      case DateTimeType dtt -> applySpecialized(dtt.asTypedStorage(leftStorage), list, dtt, problemAggregator);
+      case TimeOfDayType todt -> applySpecialized(todt.asTypedStorage(leftStorage), list, todt, problemAggregator);
+      case TextType tt -> applySpecialized(tt.asTypedStorage(leftStorage), list, tt, problemAggregator);
+      case IntegerType it -> applySpecialized(it.asTypedStorage(leftStorage), list, it, problemAggregator);
+      case FloatType ft -> applySpecialized(ft.asTypedStorage(leftStorage), list, ft, problemAggregator);
+      case BigIntegerType bit -> applySpecialized(bit.asTypedStorage(leftStorage), list, bit, problemAggregator);
+      case BigDecimalType bdt -> applySpecialized(bdt.asTypedStorage(leftStorage), list, bdt, problemAggregator);
       default ->
           throw new IllegalArgumentException(
               "Unsupported StorageType for `is_in`: " + leftStorage.getType());
