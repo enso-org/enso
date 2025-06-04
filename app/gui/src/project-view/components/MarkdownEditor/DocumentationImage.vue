@@ -58,7 +58,8 @@ onUnmounted(() => {
         :title="title"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         referrerpolicy="strict-origin-when-cross-origin"
-        allowfullscreen>
+        allowfullscreen
+      >
       </iframe>
     </div>
   </div>
