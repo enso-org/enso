@@ -2,33 +2,40 @@ package org.enso.filewatcher;
 
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.concurrent.Executor;
-import scala.Function1;
-import scala.runtime.BoxedUnit;
+import java.util.function.Consumer;
+import org.enso.filewatcher.JWatcherEvent.EventType;
 
-public final class JWatcher implements Watcher {
+public final class JWatcher {
   private final Path root;
-  private final Function1<WatcherEvent, BoxedUnit> eventCallback;
-  private final Function1<WatcherError, BoxedUnit> exceptionCallback;
+  private final Consumer<JWatcherEvent> eventCallback;
+  private final Consumer<JWatcherError> exceptionCallback;
   private WatchKey watchKey;
   private WatchService watchService;
   private boolean stopped = false;
 
-  public JWatcher(
-      Path root,
-      Function1<WatcherEvent, BoxedUnit> eventCallback,
-      Function1<WatcherError, BoxedUnit> exceptionCallback) {
+  public static JWatcher create(
+      Path root, Consumer<JWatcherEvent> eventCallback, Consumer<JWatcherError> exceptionCallback) {
+    if (!Files.exists(root) || !Files.isDirectory(root)) {
+      throw new IllegalArgumentException(
+          "Root path must exist and be a directory: " + root.toAbsolutePath());
+    }
+    return new JWatcher(root, eventCallback, exceptionCallback);
+  }
+
+  private JWatcher(
+      Path root, Consumer<JWatcherEvent> eventCallback, Consumer<JWatcherError> exceptionCallback) {
     this.root = root;
     this.eventCallback = eventCallback;
     this.exceptionCallback = exceptionCallback;
   }
 
-  @Override
   public void start(Executor executor) {
     if (stopped) {
       throw new IllegalStateException("Watcher has already been stopped.");
@@ -49,14 +56,13 @@ public final class JWatcher implements Watcher {
     executor.execute(() -> watch(watchKey));
   }
 
-  @Override
   public void stop() {
     stopped = true;
     if (watchService != null) {
       try {
         watchService.close();
       } catch (IOException e) {
-        exceptionCallback.apply(new WatcherError(e));
+        exceptionCallback.accept(new JWatcherError(e));
       }
     }
   }
@@ -71,8 +77,8 @@ public final class JWatcher implements Watcher {
           var absolutePath = root.resolve(eventPath);
           var eventType = deduceType(event);
           if (eventType != null) {
-            var convertedEvent = new WatcherEvent(absolutePath, eventType);
-            eventCallback.apply(convertedEvent);
+            var convertedEvent = new JWatcherEvent(absolutePath, eventType);
+            eventCallback.accept(convertedEvent);
           }
         }
 
@@ -83,8 +89,8 @@ public final class JWatcher implements Watcher {
         }
       }
     } catch (Throwable e) {
-      var err = new WatcherError(e);
-      exceptionCallback.apply(err);
+      var err = new JWatcherError(e);
+      exceptionCallback.accept(err);
     } finally {
       watchKey.cancel();
     }
@@ -92,15 +98,17 @@ public final class JWatcher implements Watcher {
 
   private EventType deduceType(WatchEvent<?> event) {
     return switch (event.kind().name()) {
-      case "ENTRY_CREATE" -> EventTypeCreate$.MODULE$;
-      case "ENTRY_MODIFY" -> EventTypeModify$.MODULE$;
-      case "ENTRY_DELETE" -> EventTypeDelete$.MODULE$;
+      case "ENTRY_CREATE" -> EventType.CREATE;
+      case "ENTRY_MODIFY" -> EventType.MODIFY;
+      case "ENTRY_DELETE" -> EventType.DELETE;
       default -> {
         var err = new IllegalArgumentException("Unknown event type: " + event.kind());
-        var watcherErr = new WatcherError(err);
-        exceptionCallback.apply(watcherErr);
+        var watcherErr = new JWatcherError(err);
+        exceptionCallback.accept(watcherErr);
         yield null;
       }
     };
   }
+
+  public record JWatcherError(Throwable throwable) {}
 }
