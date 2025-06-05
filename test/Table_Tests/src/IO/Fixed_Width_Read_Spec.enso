@@ -403,18 +403,19 @@ add_direct_specs suite_builder =
         group_builder.specify "Should reject a too-long line" <|
             too_long = FixedWidthReader.MAXIMUM_LINE_LENGTH + 1
 
-            header = Vector.new too_long (_ -> 65)
-            all = header + [10, 66, 66, 66, 10]
-            stream = Input_Stream.from_bytes all
-
             infer_format = Fixed_Width_Format.Fixed_Width Infer_Layout.Left
-            infer_format.read_stream stream . should_fail_with Fixed_Width_Line_Too_Long
 
             descs = []
                 + [Fixed_Width_Column_Description.Start_And_Width 0 too_long "x"]
             layout = Fixed_Width_Layout.from_descriptions descs
-            format = Fixed_Width_Format.Fixed_Width layout
-            format.read_stream stream . should_fail_with Fixed_Width_Line_Too_Long
+            regular_format = Fixed_Width_Format.Fixed_Width layout
+
+            [infer_format, regular_format].map format->
+                header = Vector.new too_long (_ -> 65)
+                all = header + [10, 66, 66, 66, 10]
+                stream = Input_Stream.from_bytes all
+
+                format.read_stream stream . should_fail_with Fixed_Width_Line_Too_Long
 
 fixed_width_spec_from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Error) -> Text =
