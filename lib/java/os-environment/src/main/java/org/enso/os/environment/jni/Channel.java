@@ -185,7 +185,8 @@ public final class Channel implements AutoCloseable {
     var channel = ID_TO_CHANNEL.get(id);
     assert channel != null : "There must be a channel " + id + " but " + ID_TO_CHANNEL;
     try {
-      var len = handleWithChannel(channel, data.rawValue(), size);
+      var buf = CTypeConversion.asByteBuffer(data, (int) size);
+      var len = handleWithChannel(channel, buf);
       return len;
     } catch (Throwable ex) {
       channel.printStackTrace(ex, true);
@@ -197,15 +198,13 @@ public final class Channel implements AutoCloseable {
     }
   }
 
-  private static long handleWithChannel(Channel channel, long address, long size) throws Throwable {
-    var seg = MemorySegment.ofAddress(address).reinterpret(size);
-    var buf = seg.asByteBuffer();
+  private static long handleWithChannel(Channel channel, ByteBuffer buf) throws Throwable {
     var ref = channel.pool.read(buf, null);
     var msg = ref.get(Function.class);
     @SuppressWarnings("unchecked")
     var res = msg.apply(channel);
     var bytes = Persistables.POOL.write(res, null);
-    seg.copyFrom(MemorySegment.ofArray(bytes));
+    buf.put(0, bytes);
     return bytes.length;
   }
 
@@ -307,7 +306,8 @@ public final class Channel implements AutoCloseable {
 
   private static long handleJvmMessage(long id, long address, long size) throws Throwable {
     var channel = ID_TO_CHANNEL.get(id);
-    return handleWithChannel(channel, address, size);
+    var seg = MemorySegment.ofAddress(address).reinterpret(size);
+    return handleWithChannel(channel, seg.asByteBuffer());
   }
 
   @Override
