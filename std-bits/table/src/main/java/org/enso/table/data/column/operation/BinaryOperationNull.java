@@ -7,8 +7,7 @@ import org.enso.table.data.column.storage.type.NullType;
 public class BinaryOperationNull implements BinaryOperation<Void> {
   public static final BinaryOperationNull INSTANCE = new BinaryOperationNull();
 
-  private BinaryOperationNull() {
-  }
+  private BinaryOperationNull() {}
 
   @Override
   public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
@@ -21,7 +20,8 @@ public class BinaryOperationNull implements BinaryOperation<Void> {
   }
 
   @Override
-  public ColumnStorage<Void> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<Void> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType) {
       return NullType.INSTANCE.asTypedStorage(left);
     }
@@ -29,7 +29,10 @@ public class BinaryOperationNull implements BinaryOperation<Void> {
   }
 
   @Override
-  public ColumnStorage<Void> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<Void> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (left.getSize() != right.getSize()) {
       throw new IllegalArgumentException("Columns must be of the same size.");
     }

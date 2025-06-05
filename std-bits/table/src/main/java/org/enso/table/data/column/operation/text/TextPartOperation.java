@@ -36,12 +36,16 @@ public final class TextPartOperation extends BinaryOperationBase<String> {
   }
 
   @Override
-  protected ColumnStorage<String> applyNullMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  protected ColumnStorage<String> applyNullMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     return StringBuilder.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
   }
 
   @Override
-  protected ColumnStorage<String> applyTypedMap(ColumnStorage<String> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  protected ColumnStorage<String> applyTypedMap(
+      ColumnStorage<String> left,
+      Object rightValue,
+      MapOperationProblemAggregator problemAggregator) {
     if (!(left.getType() instanceof TextType textType)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }
@@ -62,7 +66,10 @@ public final class TextPartOperation extends BinaryOperationBase<String> {
   }
 
   @Override
-  protected ColumnStorage<String> applyTypedZip(ColumnStorage<String> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  protected ColumnStorage<String> applyTypedZip(
+      ColumnStorage<String> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (!(left.getType() instanceof TextType textType)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }

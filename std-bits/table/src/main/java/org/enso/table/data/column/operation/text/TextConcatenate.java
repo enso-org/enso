@@ -1,12 +1,11 @@
 package org.enso.table.data.column.operation.text;
 
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.BinaryOperationBase;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.builder.StringBuilder;
-import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.UnexpectedTypeException;
 
@@ -18,12 +17,16 @@ public class TextConcatenate extends BinaryOperationBase<String> {
   }
 
   @Override
-  protected ColumnStorage<String> applyNullMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  protected ColumnStorage<String> applyNullMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     return StringBuilder.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
   }
 
   @Override
-  protected ColumnStorage<String> applyTypedMap(ColumnStorage<String> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  protected ColumnStorage<String> applyTypedMap(
+      ColumnStorage<String> left,
+      Object rightValue,
+      MapOperationProblemAggregator problemAggregator) {
     if (!(left.getType() instanceof TextType textType)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }
@@ -48,7 +51,10 @@ public class TextConcatenate extends BinaryOperationBase<String> {
   }
 
   @Override
-  protected ColumnStorage<String> applyTypedZip(ColumnStorage<String> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  protected ColumnStorage<String> applyTypedZip(
+      ColumnStorage<String> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (!(left.getType() instanceof TextType textType)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }

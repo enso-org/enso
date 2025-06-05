@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.binary;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.enso.table.data.column.builder.BigDecimalBuilder;
 import org.enso.table.data.column.builder.BigIntegerBuilder;
 import org.enso.table.data.column.builder.DoubleBuilder;
@@ -17,15 +19,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-
-/**
- * Support the addition operation
- * - Numeric
- * - Text Concatenation
- * - Date + Time => Date Time ??
- */
+/** Support the addition operation - Numeric - Text Concatenation - Date + Time => Date Time ?? */
 public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
   /**
    * An abstract class representing a numeric operation. This class defines the methods that must be
@@ -42,35 +36,36 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     abstract BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix);
   }
 
-  private static final NumericOperation ADDITION = new NumericOperation() {
-    @Override
-    Double doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
-      return a + b;
-    }
+  private static final NumericOperation ADDITION =
+      new NumericOperation() {
+        @Override
+        Double doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          return a + b;
+        }
 
-    @Override
-    Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
-      try {
-        return Math.addExact(a, b);
-      } catch (ArithmeticException e) {
-        problemAggregator.reportOverflow(IntegerType.INT_64, a, "+", b);
-        return null;
-      }
-    }
+        @Override
+        Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
+          try {
+            return Math.addExact(a, b);
+          } catch (ArithmeticException e) {
+            problemAggregator.reportOverflow(IntegerType.INT_64, a, "+", b);
+            return null;
+          }
+        }
 
-    @Override
-    BigInteger doBigInteger(BigInteger a, BigInteger b, long ix) {
-      return a.add(b);
-    }
+        @Override
+        BigInteger doBigInteger(BigInteger a, BigInteger b, long ix) {
+          return a.add(b);
+        }
 
-    @Override
-    BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
-      return a.add(b);
-    }
-  };
+        @Override
+        BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+          return a.add(b);
+        }
+      };
 
   /**
-   *
    * @param left
    * @param right
    * @return
@@ -123,7 +118,8 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     }
 
     @Override
-    protected ColumnStorage<Double> applyNullMap(ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+    protected ColumnStorage<Double> applyNullMap(
+        ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
       return DoubleBuilder.makeEmpty(left.getSize());
     }
 
@@ -167,7 +163,8 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     }
 
     @Override
-    protected ColumnStorage<BigDecimal> applyNullMap(ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+    protected ColumnStorage<BigDecimal> applyNullMap(
+        ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
       return BigDecimalBuilder.makeEmpty(left.getSize());
     }
 
@@ -187,7 +184,8 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     }
 
     @Override
-    protected ColumnStorage<BigInteger> applyNullMap(ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+    protected ColumnStorage<BigInteger> applyNullMap(
+        ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
       return BigIntegerBuilder.makeEmpty(left.getSize());
     }
 
@@ -207,7 +205,8 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     }
 
     @Override
-    protected ColumnStorage<Long> applyNullMap(ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+    protected ColumnStorage<Long> applyNullMap(
+        ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
       return LongBuilder.makeEmpty(left.getSize(), IntegerType.INT_64);
     }
 
@@ -220,8 +219,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
           true,
           IntegerType.INT_64.makeBuilder(left.getSize(), problemAggregator),
           (builder, index, value, isNothing) ->
-              builder.appendLong(
-                  operation.doLong(value, rightAsLong, index, problemAggregator)));
+              builder.append(operation.doLong(value, rightAsLong, index, problemAggregator)));
     }
 
     @Override

@@ -29,7 +29,8 @@ public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
   }
 
   @Override
-  public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<T> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType) {
       return applyNullMap(left, rightValue, problemAggregator);
     }
@@ -41,16 +42,23 @@ public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
     throw new IllegalArgumentException("Unsupported storage type.");
   }
 
-  protected ColumnStorage<T> applyNullMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalArgumentException("applyNullMap has not been implemented. This is a bug in the libraries code.");
+  protected ColumnStorage<T> applyNullMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+    throw new IllegalArgumentException(
+        "applyNullMap has not been implemented. This is a bug in the libraries code.");
   }
 
-  protected ColumnStorage<T> applyTypedMap(ColumnStorage<T> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalArgumentException("applyTypedMap has not been implemented. This is a bug in the libraries code.");
+  protected ColumnStorage<T> applyTypedMap(
+      ColumnStorage<T> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+    throw new IllegalArgumentException(
+        "applyTypedMap has not been implemented. This is a bug in the libraries code.");
   }
 
   @Override
-  public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<T> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (left.getSize() != right.getSize()) {
       throw new IllegalArgumentException("Columns must be of the same size.");
     }
@@ -66,8 +74,12 @@ public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
     throw new IllegalArgumentException("Unsupported storage types.");
   }
 
-  protected ColumnStorage<T> applyTypedZip(ColumnStorage<T> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalArgumentException("applyTypedZip has not been implemented. This is a bug in the libraries code.");
+  protected ColumnStorage<T> applyTypedZip(
+      ColumnStorage<T> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
+    throw new IllegalArgumentException(
+        "applyTypedZip has not been implemented. This is a bug in the libraries code.");
   }
 
   protected BuilderForType<T> makeStorageBuilder(
