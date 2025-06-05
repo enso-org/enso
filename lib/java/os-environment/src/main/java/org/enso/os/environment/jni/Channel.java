@@ -23,6 +23,7 @@ import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.graalvm.word.PointerBase;
 import org.graalvm.word.WordFactory;
 
 /** Channel connects two {@link JVM} instances. */
@@ -185,13 +186,13 @@ public final class Channel implements AutoCloseable {
     var channel = ID_TO_CHANNEL.get(id);
     assert channel != null : "There must be a channel " + id + " but " + ID_TO_CHANNEL;
     try {
-      var buf = CTypeConversion.asByteBuffer(data, (int) size);
+      var buf = asNativeByteBuffer(data, size);
       var len = handleWithChannel(channel, buf);
       return len;
     } catch (Throwable ex) {
       channel.printStackTrace(ex, true);
       var bytes = ex.getMessage() == null ? new byte[0] : ex.getMessage().getBytes();
-      var buf = CTypeConversion.asByteBuffer(data, (int) size).order(ByteOrder.BIG_ENDIAN);
+      var buf = asNativeByteBuffer(data, size);
       buf.putInt(bytes.length);
       buf.put(bytes);
       return -2L;
@@ -270,7 +271,7 @@ public final class Channel implements AutoCloseable {
       ByteBuffer buffer;
       if (ImageInfo.inImageRuntimeCode()) {
         var memory = UnmanagedMemory.malloc(size);
-        buffer = CTypeConversion.asByteBuffer(memory, size);
+        buffer = asNativeByteBuffer(memory, size);
         buffer.put(0, bytes);
         address = memory.rawValue();
         len = toHotSpotMessage(address, size);
@@ -302,6 +303,11 @@ public final class Channel implements AutoCloseable {
         UnmanagedMemory.free(WordFactory.pointer(address));
       }
     }
+  }
+
+  private static ByteBuffer asNativeByteBuffer(PointerBase memory, long size) {
+    var bufferSize = Math.toIntExact(size);
+    return CTypeConversion.asByteBuffer(memory, bufferSize).order(ByteOrder.BIG_ENDIAN);
   }
 
   private static long handleJvmMessage(long id, long address, long size) throws Throwable {
