@@ -395,10 +395,10 @@ public class HyperFormat {
       case DateTimeType t -> SqlType.timestampTz();
         // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
         // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
-        // values is
-        // often slower than processing 64-bit values, so it is advisable to use a sensible
-        // precision for
-        // the use case at hand instead of always using the maximum precision by default.
+        // values is often slower than processing 64-bit values, so it is advisable to use 
+        // a sensible precision for the use case at hand instead of always using the maximum
+        // precision by default.
+        // TODO fix this after https://github.com/enso-org/enso/issues/13022
       case BigDecimalType t -> SqlType.numeric(18, 9);
       default -> throw new HyperUnsupportedTypeError(type.toString());
     };
