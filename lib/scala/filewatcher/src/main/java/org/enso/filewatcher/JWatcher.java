@@ -84,17 +84,17 @@ public final class JWatcher implements AutoCloseable {
   private void eventLoop() {
     try {
       while (!closed) {
-        for (var entry : watchedDirs.entrySet()) {
-          var path = entry.getKey();
+        var iterator = watchedDirs.entrySet().iterator();
+        while (iterator.hasNext()) {
+          var entry = iterator.next();
+          var dir = entry.getKey();
           var watchKey = entry.getValue();
           for (var event : watchKey.pollEvents()) {
-            dispatchEvent(event, path);
+            dispatchEvent(event, dir);
           }
           var valid = watchKey.reset();
           if (!valid) {
-            // object no longer registered
-            // TODO: Report exception?
-            throw new IllegalStateException("WatchKey is no longer valid: " + watchKey);
+            iterator.remove();
           }
         }
       }
