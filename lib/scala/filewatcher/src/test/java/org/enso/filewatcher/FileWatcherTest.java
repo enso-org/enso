@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,9 +45,11 @@ public class FileWatcherTest {
 
   @After
   public void after() {
+    assertThat(
+        "No further events should be in the queue: " + eventQueue, eventQueue.isEmpty(), is(true));
     eventQueue.clear();
     executor.shutdown();
-    watcher.stop();
+    watcher.close();
   }
 
   private void eventCallback(JWatcherEvent event) {
@@ -58,16 +61,15 @@ public class FileWatcherTest {
   }
 
   private void exceptionCallback(JWatcher.JWatcherError error) {
-    throw new AssertionError("Watcher error: " + error.throwable().getMessage(), error.throwable());
+    throw new AssertionError(
+        "Unexpected Watcher error: " + error.throwable().getMessage(), error.throwable());
   }
 
   @Test
   public void receiveCreateEvents() throws IOException {
     var fileA = Paths.get(tmpDir.getPath(), "a.txt");
     Files.createFile(fileA);
-    var event = pollEvent();
-    var expectedPath = tmpDir.toPath().resolve("a.txt");
-    assertThat(event, is(new JWatcherEvent(expectedPath, EventType.CREATE)));
+    assertNextEventIs(createEvent(fileA));
   }
 
   @Test
@@ -75,12 +77,10 @@ public class FileWatcherTest {
     var fileA = Paths.get(tmpDir.getPath(), "a.txt");
 
     Files.createFile(fileA);
-    var event1 = pollEvent();
-    assertThat(event1, is(createEvent(fileA)));
+    assertNextEventIs(createEvent(fileA));
 
     Files.delete(fileA);
-    var event2 = pollEvent();
-    assertThat(event2, is(deleteEvent(fileA)));
+    assertNextEventIs(deleteEvent(fileA));
   }
 
   @Test
@@ -88,12 +88,24 @@ public class FileWatcherTest {
     var fileA = Paths.get(tmpDir.getPath(), "a.txt");
 
     Files.createFile(fileA);
-    var event1 = pollEvent();
-    assertThat(event1, is(createEvent(fileA)));
+    assertNextEventIs(createEvent(fileA));
 
-    Files.writeString(fileA, "Hello, World!");
-    var event2 = pollEvent();
-    assertThat(event2, is(modifyEvent(fileA)));
+    atomicAppend(fileA, "Hello, World!");
+    assertNextEventIs(modifyEvent(fileA));
+  }
+
+  @Test
+  public void receiveMultipleModifyEvents() throws IOException {
+    var fileA = Paths.get(tmpDir.getPath(), "a.txt");
+
+    Files.createFile(fileA);
+    assertNextEventIs(createEvent(fileA));
+
+    atomicAppend(fileA, "Hello, World!");
+    assertNextEventIs(modifyEvent(fileA));
+
+    atomicAppend(fileA, "Nazdar!");
+    assertNextEventIs(modifyEvent(fileA));
   }
 
   @Test
@@ -101,12 +113,68 @@ public class FileWatcherTest {
     var subdir = Paths.get(tmpDir.getPath(), "subdir");
     var fileA = Paths.get(tmpDir.getPath(), "subdir", "a.txt");
     Files.createDirectories(subdir);
-    var event1 = pollEvent();
-    assertThat(event1, is(createEvent(subdir)));
+    assertNextEventIs(createEvent(subdir));
 
     Files.createFile(fileA);
-    var event2 = pollEvent();
-    assertThat(event2, is(createEvent(fileA)));
+    assertNextEventIs(createEvent(fileA));
+  }
+
+  @Test
+  public void receiveModifyEventInSubdir() throws IOException {
+    var subdir = Paths.get(tmpDir.getPath(), "subdir");
+    var fileA = Paths.get(tmpDir.getPath(), "subdir", "a.txt");
+    Files.createDirectories(subdir);
+    assertNextEventIs(createEvent(subdir));
+
+    Files.createFile(fileA);
+    assertNextEventIs(createEvent(fileA));
+
+    atomicAppend(fileA, "Hello, World!");
+    assertNextEventIs(modifyEvent(fileA));
+  }
+
+  @Test
+  public void receiveEventsFromNestedSubdirectories() throws IOException {
+    var dir = Paths.get(tmpDir.getPath(), "dir");
+    var subdir = Paths.get(tmpDir.getPath(), "dir", "subdir");
+    var file = Paths.get(tmpDir.getPath(), "dir", "subdir", "a.txt");
+    Files.createDirectories(dir);
+    assertNextEventIs(createEvent(dir));
+    Files.createDirectories(subdir);
+    assertNextEventIs(createEvent(subdir));
+    Files.createFile(file);
+    assertNextEventIs(createEvent(file));
+  }
+
+  @Test
+  public void receiveEvents_AfterSubdirWasDeletedAndRecreated() throws IOException {
+    var subdir = Paths.get(tmpDir.getPath(), "subdir");
+    var fileA = Paths.get(tmpDir.getPath(), "subdir", "a.txt");
+    Files.createDirectories(subdir);
+    assertNextEventIs(createEvent(subdir));
+
+    Files.delete(subdir);
+    assertNextEventIs(deleteEvent(subdir));
+
+    Files.createDirectories(subdir);
+    assertNextEventIs(createEvent(subdir));
+
+    Files.createFile(fileA);
+    assertNextEventIs(createEvent(fileA));
+  }
+
+  /**
+   * Atomically (with respect to other FS operations) appends string to the file.
+   *
+   * @param path Must already be a file and exist.
+   */
+  private static void atomicAppend(Path path, String content) throws IOException {
+    Files.writeString(path, content, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+  }
+
+  private void assertNextEventIs(JWatcherEvent expectedEvent) {
+    var event = pollEvent();
+    assertThat(event, is(expectedEvent));
   }
 
   private JWatcherEvent pollEvent() {
