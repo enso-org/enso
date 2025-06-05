@@ -140,13 +140,13 @@ class UpsertVisualizationJob(
             )
           }
         )
-        Some(Executable(config.executionContextId, stack))
+        None
       case None =>
         UpsertVisualizationJob.logger.trace(
           "no cache availablle for {}, aborting",
           expressionId
         )
-        None
+        Some(Executable(config.executionContextId, stack))
     }
   }
 

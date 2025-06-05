@@ -488,7 +488,7 @@ object ProgramExecutionSupport {
           expressionId
         )
       ) ||
-      Types.isPanic(value.getType.visibleType())
+      (value.getType() != null && Types.isPanic(value.getType.visibleType()))
     ) {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>

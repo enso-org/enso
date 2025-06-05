@@ -80,7 +80,7 @@ public final class EnsoContext {
 
   private final EnsoLanguage language;
   private final Env environment;
-  private final HostClassLoader hostClassLoader = new HostClassLoader();
+  private final HostClassLoader hostClassLoader = HostClassLoader.getClassLoader();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticTypeAnalysisEnabled;

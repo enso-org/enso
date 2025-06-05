@@ -13,6 +13,7 @@ public final class EnsoMeta {
   public static Value getType(String moduleName, String typeName) {
     var module = getBindings().invokeMember("get_module", moduleName);
     try {
+      if (typeName == null) throw new NullPointerException();
       return module.invokeMember("get_type", typeName);
     } catch (NullPointerException e) {
       var ex =
