@@ -176,11 +176,6 @@ export interface EngineVersion {
   readonly markedAsBroken: boolean
 }
 
-/** The return value of the "list available engine versions" endpoint. */
-export interface VersionList {
-  readonly versions: readonly EngineVersion[]
-}
-
 /** The return value of the "duplicate project" endpoint. */
 export interface DuplicatedProject {
   readonly projectId: UUID
@@ -410,7 +405,7 @@ export default class ProjectManager {
     }
     const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
     this.projects.delete(fullParams.projectId)
-    return this.sendRequest('project/close', params)
+    return this.sendRequest('project/close', fullParams)
   }
 
   /** Create a new project. */
@@ -509,16 +504,6 @@ export default class ProjectManager {
         ),
       )
     }
-  }
-
-  /** List installed engine versions. */
-  async listInstalledEngineVersions(): Promise<VersionList> {
-    return await this.sendRequest<VersionList>('engine/list-installed', {})
-  }
-
-  /** List available engine versions. */
-  async listAvailableEngineVersions(): Promise<VersionList> {
-    return await this.sendRequest<VersionList>('engine/list-available', {})
   }
 
   /** Checks if a file or directory exists. */

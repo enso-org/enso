@@ -13,7 +13,6 @@ import type * as vite from 'vite'
 
 import * as projectManagement from '@/projectManagement'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
-import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, tarGzReadStreamToFs, unzipEntries, zipWriteStream } from '@/archive'
@@ -53,6 +52,7 @@ import {
   mkdtemp,
   readdir,
   readFile,
+  rename,
   rm,
   rmdir,
   stat,
@@ -124,7 +124,7 @@ export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
     case AssetType.file: {
       return {
         type: typeRaw,
-        path: Path(idRaw),
+        path: Path(decodeURIComponent(idRaw)),
       }
     }
     case undefined:
@@ -298,27 +298,6 @@ export class Server {
     const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
     if (requestUrl == null) {
       logger.error('Request URL is null.')
-    } else if (requestUrl.startsWith('/api/project-manager/')) {
-      const actualUrl = new URL(
-        requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
-      )
-      request.pipe(
-        http.request(
-          actualUrl,
-          { headers: request.headers, method: request.method },
-          (actualResponse) => {
-            response.writeHead(
-              // This is SAFE. The documentation says:
-              // Only valid for response obtained from ClientRequest.
-              actualResponse.statusCode!,
-              actualResponse.statusMessage,
-              actualResponse.headers,
-            )
-            actualResponse.pipe(response, { end: true })
-          },
-        ),
-        { end: true },
-      )
     } else if (requestUrl.startsWith('/api/cloud/')) {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       const params = route.searchParams
@@ -548,7 +527,7 @@ export class Server {
     }
 
     const addProject = async (id: ProjectId, rootPath?: string) => {
-      const assetPath = id.replace(/^project-/, '')
+      const assetPath = extractTypeAndPath(id).path
       rootPath ??= getFolderPath(assetPath)
       const pathInArchive = `${path.relative(rootPath, assetPath)}${BUNDLED_PROJECT_SUFFIX}`
       if (!(await fileExists(assetPath))) {
@@ -559,7 +538,7 @@ export class Server {
     }
 
     const addFile = async (id: FileId, rootPath?: string) => {
-      const assetPath = id.replace(/^file-/, '')
+      const assetPath = extractTypeAndPath(id).path
       rootPath ??= getFolderPath(assetPath)
       const pathInArchive = path.relative(rootPath, assetPath)
       if (!(await fileExists(assetPath))) {
@@ -570,7 +549,7 @@ export class Server {
     }
 
     const addFolder = async (id: DirectoryId, rootPath?: string) => {
-      const assetPath = id.replace(/^directory-/, '')
+      const assetPath = extractTypeAndPath(id).path
       rootPath ??= getFolderPath(assetPath)
       const pathInArchive = path.relative(rootPath, assetPath)
       if (!(await fileExists(assetPath))) {
@@ -707,7 +686,8 @@ export class Server {
   /** List a directory. */
   async apiListDirectory(params: { readonly directory?: DirectoryId }) {
     const { directory: directoryRaw } = params
-    const directory = directoryRaw?.replace(/^directory-/, '') ?? this.projectsRootDirectory
+    const directory =
+      directoryRaw ? extractTypeAndPath(directoryRaw).path : this.projectsRootDirectory
     const assets: AnyAsset[] = []
     for (const entryName of await readdir(directory)) {
       const entryPath = Path(path.join(directory, entryName))
@@ -728,8 +708,9 @@ export class Server {
   ) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this
+    const directoryParam = params.get('directory') as DirectoryId | null
     const directory =
-      params.get('directory')?.replace(/^directory-/, '') ?? this.projectsRootDirectory
+      directoryParam ? extractTypeAndPath(directoryParam).path : this.projectsRootDirectory
     let filePath = params.get('filePath')
     let tempDirectory: string | undefined
     if (filePath == null) {
@@ -742,7 +723,7 @@ export class Server {
     const assets: AnyAsset[] = []
     const conflicts: AssetConflict[] = []
     for await (const { metadata } of await unzipEntries(filePath)) {
-      const entryPathInArchive = metadata.fileName
+      const entryPathInArchive = metadata.name
       const entryPath = Path(path.join(directory, entryPathInArchive))
       const isDirectory = entryPathInArchive.endsWith('/')
       const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
@@ -754,7 +735,7 @@ export class Server {
           existingAsset,
         }
         conflicts.push(conflict)
-        return
+        continue
       }
       const shared = {
         title: getFileName(entryPath),
@@ -791,9 +772,34 @@ export class Server {
     if (conflicts.length === 0) {
       // Upload; no conflict resolution needed.
       for await (const entry of await unzipEntries(filePath)) {
-        if (entry.metadata.fileName.endsWith(BUNDLED_PROJECT_SUFFIX)) {
+        if (entry.metadata.name.endsWith(BUNDLED_PROJECT_SUFFIX)) {
           const destinationPath = entry.getDestinationPath(directory)
-          await tarGzReadStreamToFs(await entry.readStream(), destinationPath)
+          await entry.extract(directory, async (stream) => {
+            await tarGzReadStreamToFs(stream, destinationPath)
+            const entries = await readdir(destinationPath)
+            const originalSingleChild = entries[0]
+            // Unwrap project contents if there is only a single directory inside.
+            if (entries.length === 1 && originalSingleChild != null) {
+              let singleChild = originalSingleChild
+              while (
+                await fileExists(path.join(destinationPath, originalSingleChild, singleChild))
+              ) {
+                singleChild += '_'
+              }
+              if (singleChild !== originalSingleChild) {
+                await rename(
+                  path.join(destinationPath, originalSingleChild),
+                  path.join(destinationPath, singleChild),
+                )
+              }
+              const childPath = path.join(destinationPath, singleChild)
+              for (const entry of await readdir(childPath)) {
+                await rename(path.join(childPath, entry), path.join(destinationPath, entry))
+              }
+            }
+            // Prevent default behavior.
+            return false as const
+          })
         } else {
           await entry.extract(directory)
         }
@@ -802,7 +808,7 @@ export class Server {
     if (tempDirectory != null) {
       await rm(tempDirectory, { force: true, recursive: true })
     }
-    const responseBody: ImportArchiveResponse = { assets }
+    const responseBody: ImportArchiveResponse = conflicts.length === 0 ? { assets } : { conflicts }
     const content = JSON.stringify(responseBody)
     response
       .writeHead(HTTP_STATUS_OK, [
@@ -820,8 +826,9 @@ export class Server {
     params: URLSearchParams,
   ) {
     const fileName = params.get('file_name')
+    const directoryParam = params.get('directory') as DirectoryId | null
     const directory =
-      params.get('directory')?.replace(/^directory-/, '') ?? this.projectsRootDirectory
+      directoryParam ? extractTypeAndPath(directoryParam).path : this.projectsRootDirectory
     if (fileName == null) {
       response
         .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
@@ -851,7 +858,8 @@ export class Server {
     response: http.ServerResponse,
     params: URLSearchParams,
   ) {
-    const directory = params.get('directory')?.replace(/^directory-/, '') ?? null
+    const directoryParam = params.get('directory') as DirectoryId | null
+    const directory = directoryParam ? extractTypeAndPath(directoryParam).path : null
     const name = params.get('name')
     try {
       const project = await this.config.externalFunctions.uploadProjectBundle(

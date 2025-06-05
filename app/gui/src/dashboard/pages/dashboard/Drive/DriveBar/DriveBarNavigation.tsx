@@ -60,7 +60,11 @@ export function DriveBarNavigation() {
     queryFn: () =>
       associatedBackend.getAssetDetails(
         currentDirectoryId,
-        associatedBackend.type === BackendType.local ? localRootDirectory : undefined,
+        associatedBackend.type === BackendType.local ?
+          'rootPath' in category ?
+            category.rootPath
+          : localRootDirectory
+        : undefined,
       ),
     meta: { persist: false },
     retry: (count, error) => {
@@ -78,18 +82,13 @@ export function DriveBarNavigation() {
         return null
       }
 
-      const virtualParentsPath = () => {
-        if (data.virtualParentsPath.length === 0) {
-          return data.title
-        }
-
-        return data.virtualParentsPath + '/' + data.title
-      }
-
       return {
         asset: data,
-        parentsPath: data.parentsPath + '/' + data.id,
-        virtualParentsPath: virtualParentsPath(),
+        parentsPath: data.parentsPath === '' ? data.id : data.parentsPath + '/' + data.id,
+        virtualParentsPath:
+          data.virtualParentsPath.length === 0 ?
+            data.title
+          : data.virtualParentsPath + '/' + data.title,
         parentId: data.parentId,
       }
     },

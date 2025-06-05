@@ -38,17 +38,17 @@ export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
 export function newDirectoryId(path: projectManager.Path) {
-  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}` as const)
+  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${encodeURIComponent(path)}` as const)
 }
 
 /** Create a {@link backend.ProjectId} from a path. */
 export function newProjectId(path: projectManager.Path) {
-  return backend.ProjectId(`${PROJECT_ID_PREFIX}${path}`)
+  return backend.ProjectId(`${PROJECT_ID_PREFIX}${encodeURIComponent(path)}`)
 }
 
 /** Create a {@link backend.FileId} from a path. */
 export function newFileId(path: projectManager.Path) {
-  return backend.FileId(`${FILE_ID_PREFIX}${path}`)
+  return backend.FileId(`${FILE_ID_PREFIX}${encodeURIComponent(path)}`)
 }
 
 /** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
@@ -77,7 +77,7 @@ export function extractTypeAndPath<Id extends backend.AssetId>(id: Id): AssetTyp
     case backend.AssetType.file: {
       return {
         type: typeRaw,
-        path: projectManager.Path(idRaw),
+        path: projectManager.Path(decodeURIComponent(idRaw)),
       }
     }
     case undefined:
@@ -146,38 +146,23 @@ export default class LocalBackend extends Backend {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = entries
         .map((entry) => {
-          const virtualParentsPath = (() => {
-            let path = entry.path.replace(rootPath, '')
-
-            if (path.startsWith('/')) {
-              path = path.slice(1)
-            }
-
-            if (path.endsWith('/')) {
-              path = path.slice(0, -1)
-            }
-
-            return path
-          })()
+          const virtualParentsPath = entry.path.replace(rootPath, '').replace(/^[/\\]|[/\\]$/g, '')
 
           const parentsPath = (() => {
-            const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
+            const parentsPathArray: backend.DirectoryId[] =
+              entry.path.startsWith(rootPath) ? [newDirectoryId(rootPath)] : []
             const splitPath = virtualParentsPath.split('/')
 
-            let previousPath = ''
+            let previousPath = entry.path.startsWith(rootPath) ? rootPath : backend.Path('')
 
             for (const directory of splitPath) {
               if (directory === '') {
                 continue
               }
 
-              previousPath = backend.Path(previousPath + '/' + directory)
+              previousPath = backend.Path((previousPath + '/' + directory).replace(/\/$/g, ''))
 
-              if (previousPath.endsWith('/')) {
-                previousPath = previousPath.slice(0, -1)
-              }
-
-              parentsPathArray.push(newDirectoryId(backend.Path(rootPath + previousPath)))
+              parentsPathArray.push(newDirectoryId(previousPath))
             }
 
             return parentsPathArray.slice(0, -1).join('/')
@@ -769,8 +754,9 @@ export default class LocalBackend extends Backend {
         projectsDirectory: getDirectoryAndName(path).directoryPath,
       }).toString()
 
+      // FIXME: This is wrong, the `path` segment should contain `uuid` instead.
       await download({
-        url: `/api/project-manager/projects/${uuid}/enso-project?${queryString}`,
+        url: `/api/project-manager/projects/${path}/enso-project?${queryString}`,
         name: `${title}.enso-project`,
         electronOptions: {
           shouldUnpackProject,
