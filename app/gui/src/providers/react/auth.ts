@@ -1,32 +1,16 @@
-/**
- * @file
- *
- * Hooks for the {@link AuthProvider}.
- */
-import * as React from 'react'
+import { useStore } from '#/utilities/zustand'
+import {
+  authOverridesStore,
+  AuthStore,
+  type FullUserSession,
+  UserSessionType,
+} from '$/providers/auth'
+import * as react from 'react'
 import invariant from 'tiny-invariant'
+import { useInReactFunction } from './common'
 
-import { UserSessionType, type FullUserSession } from '$/providers/auth'
-import { useAuth } from '$/providers/react'
-import type { AuthContextType } from './types'
-export { useAuth }
-
-export const AuthContext = React.createContext<AuthContextType | null>(null)
-
-/**
- * A React hook that provides access to the authentication context.
- *
- * Only the hook is exported, and not the context, because we only want to use the hook directly and
- * never the context component.
- * @throws {Error} when used outside a {@link AuthProvider}.
- */
-// export function useAuth() {
-//   const context = React.useContext(AuthContext)
-
-//   invariant(context != null, '`useAuth` must be used within an `<AuthProvider />`.')
-
-//   return context
-// }
+export const AuthContext = react.createContext<AuthStore | null>(null)
+export const useAuth = useInReactFunction(AuthContext)
 
 /**
  * A React context hook returning the user session
@@ -59,4 +43,14 @@ export function useUser() {
   const { user } = useFullUserSession()
 
   return user
+}
+
+/** The current overridden plan. */
+export function usePlanOverride() {
+  return useStore(authOverridesStore, ({ planOverride }) => planOverride)
+}
+
+/** A function to set (or unset) the current overridden plan. */
+export function useSetPlanOverride() {
+  return useStore(authOverridesStore, ({ setPlanOverride }) => setPlanOverride)
 }

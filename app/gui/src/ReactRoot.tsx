@@ -15,14 +15,13 @@ import invariant from 'tiny-invariant'
 
 interface ReactRootProps {
   queryClient: QueryClient
-  onAuthenticated: (accessToken: string | null) => void
 }
 
 /**
  * A component gathering all views written currently in React with necessary contexts.
  */
 export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
-  const { queryClient, onAuthenticated, children } = props
+  const { queryClient, children } = props
 
   const appRoot = document.querySelector('#enso-app')
   invariant(appRoot instanceof HTMLElement, 'AppRoot element not found')

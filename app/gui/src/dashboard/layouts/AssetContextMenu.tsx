@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
+import * as authProvider from '$/providers/react'
 import { useText } from '$/providers/react'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -30,13 +30,13 @@ import {
 import { useNewProject } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
-import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/react'
+import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import type { RightPanelData } from '$/providers/rightPanel'
 import {
   isUploadableAsset,

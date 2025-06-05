@@ -13,24 +13,19 @@ import { Tooltip } from '#/components/Tooltip'
 import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
-import {
-  useAuth,
-  usePlanOverride,
-  UserSessionType,
-  useSetPlanOverride,
-} from '#/providers/AuthProvider'
-import {
-  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
-  FEATURE_FLAGS_SCHEMA,
-  useFeatureFlags,
-  useSetFeatureFlag,
-} from '#/providers/FeatureFlagsProvider'
 import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
 import { SETUP_PATH } from '$/appUtils'
-import { useLocalStorage, useText } from '$/providers/react'
+import { UserSessionType } from '$/providers/auth'
+import {
+  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
+  FEATURE_FLAGS_SCHEMA,
+} from '$/providers/featureFlags'
+import { useAuth, useLocalStorage, usePlanOverride, useText } from '$/providers/react'
+import { useSetPlanOverride } from '$/providers/react/auth'
+import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as React from 'react'

@@ -246,12 +246,10 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
             // work with a custom URL protocol in Electron.
             // `history.replaceState` is only being saved here to be restored later.
             // It will never be called without a bound `this`.
-            // eslint-disable-next-line @typescript-eslint/unbound-method
             const replaceState = history.replaceState
             history.replaceState = () => false
             try {
               // @ts-expect-error `_handleAuthResponse` is a private method without typings.
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-call
               await amplify.Auth._handleAuthResponse(url.toString())
 
               navigate(appUtils.DASHBOARD_PATH)

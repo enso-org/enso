@@ -3,16 +3,14 @@ import UntrashIcon from '#/assets/untrash.svg'
 import * as aria from '#/components/aria'
 import { Button } from '#/components/Button'
 import SvgMask from '#/components/SvgMask'
-import { useAuth } from '#/providers/AuthProvider'
-import { useSessionAPI } from '#/providers/SessionProvider'
 import { LOGIN_PATH } from '$/appUtils'
-import { useRouter, useText } from '$/providers/react'
+import { useAuth, useRouter, useSession, useText } from '$/providers/react'
 
 /** Restore an account that has been deleted. */
 export default function RestoreAccount() {
   const { getText } = useText()
   const { restoreUser } = useAuth()
-  const { signOut } = useSessionAPI()
+  const { signOut } = useSession()
   const { router } = useRouter()
 
   return (

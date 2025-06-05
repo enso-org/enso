@@ -2,7 +2,7 @@
 import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import { provideOpenedProjects } from '$/providers/openedProjects'
-import { ContextsForReactProvider } from '$/providers/react'
+import { ContextsForReactProvider } from '$/providers/react/globalProvider'
 import ReactRoot from '$/ReactRoot'
 import '@/assets/base.css'
 import { interactionBindings } from '@/bindings'
@@ -26,12 +26,10 @@ import { provideContainerData } from './providers/container'
 import { provideRightPanelData } from './providers/rightPanel'
 import { useText } from './providers/text'
 
-const { projectViewOnly, onAuthenticated, rootDirPath } = defineProps<{
+const { projectViewOnly } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
   // removed
   projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
-  onAuthenticated?: (accessToken: string | null) => void
-  rootDirPath: string | undefined
 }>()
 
 const LoadingScreen = reactComponent(LoadingScreenReact)
@@ -105,7 +103,7 @@ if (projectViewOnly) {
       <RightPanel />
     </div>
     <ContextsForReactProvider v-else>
-      <ReactRootWrapper :queryClient="queryClient" @authenticated="onAuthenticated ?? (() => {})">
+      <ReactRootWrapper :queryClient="queryClient">
         <RouterView v-slot="{ Component }">
           <component :is="Component" v-if="Component" />
           <LoadingScreen v-else />

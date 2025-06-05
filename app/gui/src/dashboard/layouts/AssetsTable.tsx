@@ -46,7 +46,6 @@ import {
 } from '#/pages/dashboard/components/column/columnUtils'
 import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
 import Label from '#/pages/dashboard/components/Label'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import {
   useDriveStore,
   useSetCanDownload,
@@ -84,7 +83,13 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useLocalStorage, useRightPanelData, useText } from '$/providers/react'
+import {
+  useBackends,
+  useFullUserSession,
+  useLocalStorage,
+  useRightPanelData,
+  useText,
+} from '$/providers/react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Children,

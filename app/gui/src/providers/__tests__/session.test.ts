@@ -8,7 +8,7 @@ import type {
   SignUpError,
   UserSession,
 } from '$/authentication/cognito'
-import { withEffectsScope } from '@/util/testing'
+import { withSetup } from '@/util/testing'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Result } from 'ts-results'
@@ -60,7 +60,7 @@ class MockAuthService implements ISessionProvider {
 }
 
 describe('SessionProvider', () => {
-  const mainPageUrl = new URL('https://enso.dev')
+  //   const mainPageUrl = new URL('https://enso.dev')
   const registerAuthEventListener = vi.fn()
 
   const authService = new MockAuthService()
@@ -70,26 +70,28 @@ describe('SessionProvider', () => {
   })
 
   it('Should retrieve the user session', () =>
-    withEffectsScope(async () => {
-      const session = createSessionStore(new HttpClient())
+    withSetup(async () => {
+      const session = createSessionStore(authService, registerAuthEventListener, new HttpClient())
+      console.error('Before')
+      // One tick for useQuery firing refetch, second for result propagation.
       await nextTick()
       expect(authService.userSession).toBeCalled()
+      await nextTick()
       expect(session.session?.email).toBe('test@test.com')
-    }))
+    })[0])
 
   it('Should set the access token on the HTTP client', () =>
-    withEffectsScope(async () => {
+    withSetup(async () => {
       const httpClient = new HttpClient()
       httpClient.setSessionToken = vi.fn()
-      createSessionStore(httpClient)
-      await nextTick()
-      expect(httpClient.setSessionToken).toBeCalledWith('accessToken')
-    }))
+      createSessionStore(authService, registerAuthEventListener, httpClient)
+      await expect.poll(() => httpClient.setSessionToken).toBeCalledWith('accessToken')
+    })[0])
 
   it('Should call registerAuthEventListener when the session is updated', () =>
-    withEffectsScope(async () => {
-      createSessionStore(new HttpClient())
+    withSetup(async () => {
+      createSessionStore(authService, registerAuthEventListener, new HttpClient())
       await nextTick()
       expect(registerAuthEventListener).toBeCalled()
-    }))
+    })[0])
 })

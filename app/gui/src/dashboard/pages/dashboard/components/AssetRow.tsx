@@ -20,7 +20,6 @@ import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import {
   useDriveStore,
   useSetCurrentDirectoryId,
@@ -42,7 +41,7 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import { useRightPanelData, useText } from '$/providers/react'
+import { useFullUserSession, useRightPanelData, useText } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'

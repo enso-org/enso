@@ -1,5 +1,6 @@
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
+import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/layouts/CloudBrowserDisabled'
 import { OpenAppWatcher } from '#/layouts/OpenAppWatcher'
 import {
   AgreementsModal,
@@ -18,7 +19,6 @@ import { Setup } from '#/pages/authentication/Setup'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import { Subscribe } from '#/pages/subscribe/Subscribe'
 import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
-import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/providers/AuthProvider'
 import {
   CONFIRM_REGISTRATION_PATH,
   DASHBOARD_PATH,

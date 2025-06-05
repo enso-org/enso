@@ -1,13 +1,8 @@
-/**
- * @file
- *
- * Feature flags provider.
- * Feature flags are used to enable or disable certain features in the application.
- */
 import { unsafeWriteValue } from '#/utilities/write'
-import { createStore, useStore } from '#/utilities/zustand'
+import { useZustantStoreRef } from '$/utils/zustand'
 import { IS_DEV_MODE, isOnElectron } from 'enso-common/src/detect'
 import { z } from 'zod'
+import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
@@ -113,26 +108,19 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
   ),
 )
 
-/** Hook to get all feature flags. */
-export function useFeatureFlags() {
-  return useStore(flagsStore, (state) => state.featureFlags)
+/** Composable for getting a specific feature flag. */
+export function useFeatureFlag<Key extends keyof FeatureFlags>(key: Key) {
+  return useZustantStoreRef(flagsStore, (store) => store.featureFlags[key])
 }
 
-/** Hook to get a specific feature flag. */
-export function useFeatureFlag<Key extends keyof FeatureFlagsStore['featureFlags']>(
-  key: Key,
-): FeatureFlagsStore['featureFlags'][Key] {
-  return useStore(flagsStore, ({ featureFlags }) => featureFlags[key])
+/** Set a subset of feature flags. */
+export function setFeatureFlags(flags: Partial<FeatureFlags>) {
+  return flagsStore.getState().setFeatureFlags(flags)
 }
 
-/** Hook to set feature flags. */
-export function useSetFeatureFlags() {
-  return useStore(flagsStore, ({ setFeatureFlags }) => setFeatureFlags)
-}
-
-/** Hook to set a specific feature flag. */
-export function useSetFeatureFlag() {
-  return useStore(flagsStore, ({ setFeatureFlag }) => setFeatureFlag)
+/** Set a single feature flag. */
+export function setFeatureFlag<Key extends keyof FeatureFlags>(key: Key, value: FeatureFlags[Key]) {
+  return flagsStore.getState().setFeatureFlag(key, value)
 }
 
 // Define global API for managing feature flags

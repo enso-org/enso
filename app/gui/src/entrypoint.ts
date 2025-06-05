@@ -27,7 +27,7 @@ async function main() {
   const queryClient = createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath()
 
-  const app = createApp(App, { onAuthenticated, rootDirPath })
+  const app = createApp(App)
   app.use(VueQueryPlugin, { queryClient, enableDevtoolsV6Plugin: true })
   app.use(router)
   app.provide('rootDirPath', rootDirPath)

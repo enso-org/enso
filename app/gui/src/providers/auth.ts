@@ -1,21 +1,23 @@
 import * as gtagHooks from '#/hooks/gtagHooks'
-import { featureFlagsForInternalTesting } from '#/providers/FeatureFlagsProvider'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { DASHBOARD_PATH, LOGIN_PATH, SETUP_PATH } from '$/appUtils'
 import type * as cognitoModule from '$/authentication/cognito'
-import { setFeatureFlags } from '$/stores/featureFlags'
-import { useLocalStorageClass } from '$/stores/localStorage'
+import { featureFlagsForInternalTesting, setFeatureFlags } from '$/providers/featureFlags'
+import { useLocalStorageClass } from '$/providers/localStorage'
+import { useZustantStoreRef } from '$/utils/zustand'
 import { Opt } from '@/util/data/opt'
 import { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
-import { createGlobalState, StorageSerializers, useLocalStorage } from '@vueuse/core'
+import { createGlobalState } from '@vueuse/core'
 import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
 import { computed, inject, proxyRefs, toRef, toValue, watchEffect } from 'vue'
 import { RouteLocation } from 'vue-router'
+import { createStore } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { BackendsStore, useBackends } from './backends'
 import { SessionStore, useSession } from './session'
 import { TextStore, useText } from './text'
@@ -74,6 +76,24 @@ export function createUsersMeQuery(
   })
 }
 
+/** State for {@link authOverridesStore}. */
+interface AuthOverridesStoreState {
+  readonly planOverride: backendModule.Plan | undefined
+  readonly setPlanOverride: (planOverride: backendModule.Plan | undefined) => void
+}
+
+export const authOverridesStore = createStore<AuthOverridesStoreState>()(
+  persist(
+    (set): AuthOverridesStoreState => ({
+      planOverride: undefined,
+      setPlanOverride: (planOverride) => {
+        set({ planOverride })
+      },
+    }),
+    { name: 'enso-auth-overrides', version: 1 },
+  ),
+)
+
 export type AuthStore = ReturnType<typeof useAuth>
 /** A React provider for the Cognito API. */
 export const useAuth = createGlobalState(() => {
@@ -108,11 +128,7 @@ export const useAuth = createGlobalState(() => {
     usersMeQuery.promise.value.then((user) => (user && 'user' in user ? user.user : null)),
   )
 
-  const planOverride = useLocalStorage<backendModule.Plan | undefined>(
-    'enso-auth-overrides',
-    undefined,
-    { serializer: StorageSerializers.string },
-  )
+  const planOverride = useZustantStoreRef(authOverridesStore, (state) => state.planOverride)
 
   const createUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),

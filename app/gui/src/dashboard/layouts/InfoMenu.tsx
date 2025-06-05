@@ -4,11 +4,9 @@ import { Icon } from '#/components/Icon'
 import MenuEntry from '#/components/MenuEntry'
 import { Text } from '#/components/Text'
 import AboutModal from '#/modals/AboutModal'
-import { useAuth } from '#/providers/AuthProvider'
 import { setModal } from '#/providers/ModalProvider'
-import { useSessionAPI } from '#/providers/SessionProvider'
 import { LOGIN_PATH } from '$/appUtils'
-import { useRouter, useText } from '$/providers/react'
+import { useAuth, useRouter, useSession, useText } from '$/providers/react'
 import { PRODUCT_NAME } from 'enso-common'
 
 /** Props for an {@link InfoMenu}. */
@@ -21,7 +19,7 @@ export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
 
   const { router } = useRouter()
-  const { signOut } = useSessionAPI()
+  const { signOut } = useSession()
   const { session } = useAuth()
   const { getText } = useText()
 

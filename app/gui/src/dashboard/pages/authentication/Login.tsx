@@ -12,17 +12,16 @@ import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
-import { useSessionAPI } from '#/providers/SessionProvider'
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUtils'
 import type { CognitoUser } from '$/authentication/cognito'
-import { useRouter, useText } from '$/providers/react'
+import { useRouter, useSession, useText } from '$/providers/react'
 import { isOnElectron } from 'enso-common/src/detect'
 import { useState } from 'react'
 
 /** A form for users to log in. */
 export default function Login() {
   const { router, searchParams } = useRouter()
-  const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSessionAPI()
+  const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSession()
   const { getText } = useText()
 
   const initialEmail = searchParams.get('email') ?? ''

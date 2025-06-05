@@ -17,10 +17,9 @@ import {
 } from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useSessionAPI } from '#/providers/SessionProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import { LOGIN_PATH } from '$/appUtils'
-import { useBackends, useLocalStorage, useRouter, useText } from '$/providers/react'
+import { useBackends, useLocalStorage, useRouter, useSession, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import * as z from 'zod'
@@ -41,7 +40,7 @@ const CONFIRM_SIGN_IN_INTERVAL = 5_000
 
 /** A form for users to register an account. */
 export default function Registration() {
-  const { signUp, confirmSignUp, signInWithPassword } = useSessionAPI()
+  const { signUp, confirmSignUp, signInWithPassword } = useSession()
 
   const { searchParams } = useRouter()
   const localStorage = useLocalStorage()

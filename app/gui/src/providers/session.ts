@@ -5,9 +5,9 @@ import { unreachable } from '#/utilities/error'
 import HttpClient from '#/utilities/HttpClient'
 import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
-import { AuthEvent } from '$/authentication/listen'
+import { AuthEvent, ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
-import { useLocalStorageClass } from '$/stores/localStorage'
+import { useLocalStorageClass } from '$/providers/localStorage'
 import { Err } from '@/util/data/result'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
@@ -15,7 +15,6 @@ import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
 import { computed, onScopeDispose, proxyRefs, ref, watchEffect } from 'vue'
-import { useHttpClient } from './httpClient'
 import { useText } from './text'
 
 /** Create a query for the user session. */
@@ -37,22 +36,22 @@ function getMainPageUrl() {
 }
 
 export type SessionStore = ReturnType<typeof createSessionStore>
+/** Create a store maintaining session information. */
 export function createSessionStore(
-  httpClient: HttpClient = useHttpClient(),
+  authService: cognito.ISessionProvider,
+  registerAuthEventListener: ListenFunction,
+  httpClient: HttpClient = new HttpClient(),
   { getText } = useText(),
   queryClient = vueQuery.useQueryClient(),
   localStorage = useLocalStorageClass(),
 ) {
   const mainPageUrl = getMainPageUrl()
-  const authService = useInitAuthService({
-    supportsDeepLinks: !IS_DEV_MODE && !isOnLinux() && isOnElectron(),
-  })
   const errorToast = useToast.error()
   const successToast = useToast.success()
 
   const isLoggingOut = ref(false)
 
-  const sessionQueryOptions = createSessionQuery(authService.cognito)
+  const sessionQueryOptions = createSessionQuery(authService)
   const session = vueQuery.useQuery(sessionQueryOptions)
 
   watchEffect(() => console.error('session', session.fetchStatus.value, session.data.value), {
@@ -61,7 +60,7 @@ export function createSessionStore(
 
   const refreshUserSessionMutation = vueQuery.useMutation({
     mutationKey: computed(() => ['refreshUserSession', { expireAt: session.data.value?.expireAt }]),
-    mutationFn: async () => authService.cognito.refreshUserSession(),
+    mutationFn: async () => authService.refreshUserSession(),
     onSuccess: (data) => {
       if (data) {
         httpClient.setSessionToken(data.accessToken)
@@ -80,13 +79,13 @@ export function createSessionStore(
     mutationKey: computed(() => ['session', 'logout', session.data.value?.clientId] as const),
     mutationFn: async () => {
       isLoggingOut.value = true
-      await authService.cognito.signOut()
+      await authService.signOut()
 
       gtag.event('cloud_sign_out')
       const parentDomain = location.hostname.replace(/^[^.]*\./, '')
       document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
 
-      authService.cognito.saveAccessToken(null)
+      authService.saveAccessToken(null)
       isLoggingOut.value = false
     },
     // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
@@ -102,7 +101,7 @@ export function createSessionStore(
 
   const signUp = async (username: string, password: string, organizationId: string | null) => {
     gtag.event('cloud_sign_up')
-    const result = await authService.cognito.signUp(username, password, organizationId)
+    const result = await authService.signUp(username, password, organizationId)
 
     if (result.err) {
       throw new Error(result.val.message)
@@ -113,7 +112,7 @@ export function createSessionStore(
 
   const confirmSignUp = async (email: string, code: string) => {
     gtag.event('cloud_confirm_sign_up')
-    const result = await authService.cognito.confirmSignUp(email, code)
+    const result = await authService.confirmSignUp(email, code)
 
     if (result.err) {
       switch (result.val.type) {
@@ -131,7 +130,7 @@ export function createSessionStore(
   const signInWithPassword = async (email: string, password: string) => {
     gtag.event('cloud_sign_in', { provider: 'Email' })
 
-    const result = await authService.cognito.signInWithPassword(email, password)
+    const result = await authService.signInWithPassword(email, password)
 
     if (result.ok) {
       const user = result.unwrap()
@@ -153,7 +152,7 @@ export function createSessionStore(
   const signInWithGoogle = () => {
     gtag.event('cloud_sign_in', { provider: 'Google' })
 
-    return authService.cognito.signInWithGoogle().then(
+    return authService.signInWithGoogle().then(
       () => true,
       () => false,
     )
@@ -162,17 +161,17 @@ export function createSessionStore(
   const signInWithGitHub = () => {
     gtag.event('cloud_sign_in', { provider: 'GitHub' })
 
-    return authService.cognito.signInWithGitHub().then(
+    return authService.signInWithGitHub().then(
       () => true,
       () => false,
     )
   }
 
   const confirmSignIn = (user: cognito.CognitoUser, otp: string) =>
-    authService.cognito.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+    authService.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
 
   const forgotPassword = async (email: string) => {
-    const result = await authService.cognito.forgotPassword(email)
+    const result = await authService.forgotPassword(email)
     if (result.ok) {
       return null
     } else {
@@ -181,7 +180,7 @@ export function createSessionStore(
   }
 
   const resetPassword = async (email: string, code: string, password: string) => {
-    const result = await authService.cognito.forgotPasswordSubmit(email, code, password)
+    const result = await authService.forgotPasswordSubmit(email, code, password)
 
     if (result.ok) {
       return null
@@ -191,7 +190,7 @@ export function createSessionStore(
   }
 
   const changePassword = async (oldPassword: string, newPassword: string) => {
-    const result = await authService.cognito.changePassword(oldPassword, newPassword)
+    const result = await authService.changePassword(oldPassword, newPassword)
 
     if (result.err) {
       throw new Error(result.val.message)
@@ -214,7 +213,7 @@ export function createSessionStore(
   // session.
   // For example, if a user clicks the "sign out" button, this will clear the user's session, which
   // means the login screen (which is a child of this provider) should render.
-  const unregister = authService.registerAuthEventListener((event) => {
+  const unregister = registerAuthEventListener((event) => {
     switch (event) {
       case AuthEvent.signIn:
       case AuthEvent.signOut: {
@@ -239,10 +238,10 @@ export function createSessionStore(
   })
   onScopeDispose(unregister)
 
-  const organizationId = authService.cognito.organizationId
+  const organizationId = authService.organizationId
 
   const getMFAPreference = async () => {
-    const result = await authService.cognito.getMFAPreference()
+    const result = await authService.getMFAPreference()
     if (result.err) {
       throw result.val
     } else {
@@ -251,7 +250,7 @@ export function createSessionStore(
   }
 
   const updateMFAPreference = async (mfaType: cognito.MfaType) => {
-    const result = await authService.cognito.updateMFAPreference(mfaType)
+    const result = await authService.updateMFAPreference(mfaType)
 
     if (result.err) {
       throw result.val
@@ -259,7 +258,7 @@ export function createSessionStore(
   }
 
   const verifyTotpToken = async (otp: string) => {
-    const result = await authService.cognito.verifyTotpToken(otp)
+    const result = await authService.verifyTotpToken(otp)
     if (result.err) {
       throw result.val
     } else {
@@ -268,7 +267,7 @@ export function createSessionStore(
   }
 
   const setupTOTP = async () => {
-    const result = await authService.cognito.setupTOTP()
+    const result = await authService.setupTOTP()
     if (result.err) {
       throw result.val
     } else {
@@ -279,7 +278,7 @@ export function createSessionStore(
   watchEffect(() => {
     if (session.data.value) {
       // Save access token so can it be reused by backend services
-      authService.cognito.saveAccessToken(session.data.value)
+      authService.saveAccessToken(session.data.value)
     }
   })
 
@@ -318,4 +317,9 @@ export function createSessionStore(
   })
 }
 
-export const useSession = createGlobalState(createSessionStore)
+export const useSession = createGlobalState(() => {
+  const authService = useInitAuthService({
+    supportsDeepLinks: !IS_DEV_MODE && !isOnLinux() && isOnElectron(),
+  })
+  return createSessionStore(authService.cognito, authService.registerAuthEventListener)
+})
