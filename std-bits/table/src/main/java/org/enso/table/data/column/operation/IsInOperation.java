@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -10,12 +11,26 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StorageListView;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 /**
  * The IsInOperation class provides a way to check if a value is in a set of values.
@@ -62,14 +77,14 @@ public final class IsInOperation {
     var result = switch (leftStorage.getType()) {
       case NullType nt -> BoolBuilder.makeEmpty(leftStorage.getSize());
       case BooleanType bt -> applyBooleanIsIn(bt.asTypedStorage(leftStorage), list, problemAggregator);
-      case DateType dt -> applySpecialized(dt.asTypedStorage(leftStorage), list, dt, problemAggregator);
-      case DateTimeType dtt -> applySpecialized(dtt.asTypedStorage(leftStorage), list, dtt, problemAggregator);
-      case TimeOfDayType todt -> applySpecialized(todt.asTypedStorage(leftStorage), list, todt, problemAggregator);
-      case TextType tt -> applySpecialized(tt.asTypedStorage(leftStorage), list, tt, problemAggregator);
-      case IntegerType it -> applySpecialized(it.asTypedStorage(leftStorage), list, it, problemAggregator);
-      case FloatType ft -> applySpecialized(ft.asTypedStorage(leftStorage), list, ft, problemAggregator);
-      case BigIntegerType bit -> applySpecialized(bit.asTypedStorage(leftStorage), list, bit, problemAggregator);
-      case BigDecimalType bdt -> applySpecialized(bdt.asTypedStorage(leftStorage), list, bdt, problemAggregator);
+      case DateType dt -> applySpecialized(dt.asTypedStorage(leftStorage), list, dt::valueAsType, problemAggregator);
+      case DateTimeType dtt -> applySpecialized(dtt.asTypedStorage(leftStorage), list, dtt::valueAsType, problemAggregator);
+      case TimeOfDayType todt -> applySpecialized(todt.asTypedStorage(leftStorage), list, todt::valueAsType, problemAggregator);
+      case TextType tt -> applySpecialized(tt.asTypedStorage(leftStorage), list, tt::valueAsType, problemAggregator);
+      case IntegerType it -> applySpecialized(it.asTypedStorage(leftStorage), list, NumericConverter::tryConvertingToLong, problemAggregator);
+      case FloatType ft -> applySpecialized(ft.asTypedStorage(leftStorage), list, NumericConverter::tryConvertingToDouble, problemAggregator);
+      case BigIntegerType bit -> applySpecialized(bit.asTypedStorage(leftStorage), list, bit::valueAsType, problemAggregator);
+      case BigDecimalType bdt -> applySpecialized(bdt.asTypedStorage(leftStorage), list, o -> tryConvertingToBigDecimal(o, problemAggregator), problemAggregator, IsInOperation::containsBigDecimal);
       default ->
           throw new IllegalArgumentException(
               "Unsupported StorageType for `is_in`: " + leftStorage.getType());
@@ -78,39 +93,96 @@ public final class IsInOperation {
     return new Column(new_name, (Storage<?>) result);
   }
 
+  private static BigDecimal tryConvertingToBigDecimal(Object o, MapOperationProblemAggregator problemAggregator) {
+    return switch (o) {
+      case BigDecimal x -> x;
+      case BigInteger x -> new BigDecimal(x);
+      case Double x -> {
+        problemAggregator.reportFloatingPointEquality(-1);
+        yield BigDecimal.valueOf(x);
+      }
+      case Float x -> {
+        problemAggregator.reportFloatingPointEquality(-1);
+        yield BigDecimal.valueOf(x);
+      }
+      case Long x -> BigDecimal.valueOf(x);
+      case Integer x -> BigDecimal.valueOf(x);
+      case Short x -> BigDecimal.valueOf(x);
+      case Byte x -> BigDecimal.valueOf(x);
+      case null, default -> null;
+    };
+  }
+
+  private static boolean containsBigDecimal(HashSet<BigDecimal> set, BigDecimal bigDecimal) {
+    return set.contains(bigDecimal) || set.stream().anyMatch(b -> b.compareTo(bigDecimal) == 0);
+  }
+
+  /**
+   * An optimized representation of the vector of values to match.
+   *
+   * <p>It indicates whether the vector contained a null value and contains a hashmap of the vector
+   * elements for faster contains checks.
+   */
+  private record CompactRepresentation<T>(HashSet<T> uniqueValues, boolean hadNull) {
+    public static <T> CompactRepresentation<T> create(List<?> arg, Function<Object, T> converter, MapOperationProblemAggregator problemAggregator) {
+      boolean hadNull = false;
+      boolean hadFloat = false;
+      var uniqueValues = new HashSet<T>();
+      for (Object o : arg) {
+        if (o == null) {
+          hadNull = true;
+        } else {
+          T typedValue = converter.apply(o);
+
+          if (typedValue != null) {
+            if (!hadFloat && (typedValue instanceof Double || typedValue instanceof Float)) {
+              hadFloat = true;
+              problemAggregator.reportFloatingPointEquality(-1);
+            }
+
+            uniqueValues.add(typedValue);
+          }
+        }
+      }
+      return new CompactRepresentation<>(uniqueValues, hadNull);
+    }
+  }
+
   private static <T> ColumnStorage<?> applySpecialized(
       ColumnStorage<T> storage,
       List<?> arg,
-      StorageType<T> valueType,
+      Function<Object, T> converter,
       MapOperationProblemAggregator problemAggregator) {
+    return applySpecialized(storage, arg, converter, problemAggregator, HashSet::contains);
+  }
+
+    private static <T> ColumnStorage<?> applySpecialized(
+        ColumnStorage<T> storage,
+        List<?> arg,
+        Function<Object, T> converter,
+        MapOperationProblemAggregator problemAggregator,
+        BiPredicate<HashSet<T>, T> contains) {
     // Convert the List to a Set<T>
-    boolean hadNull = false;
-    var uniqueValues = new HashSet<>();
-    for (Object o : arg) {
-      if (o == null) {
-        hadNull = true;
-      } else {
-        T typedValue = valueType.valueAsType(o);
-        if (typedValue != null) {
-          uniqueValues.add(typedValue);
-        }
-      }
-    }
+    var result = CompactRepresentation.create(arg, converter, problemAggregator);
 
     // If the set is empty, return a constant storage
-    if (uniqueValues.isEmpty()) {
-      return hadNull
+    if (result.uniqueValues.isEmpty()) {
+      return result.hadNull()
           ? BoolBuilder.makeEmpty(storage.getSize())
           : BoolBuilder.makeConstant(storage.getSize(), false);
     }
 
     // Scan the storage and build the result
-    final boolean hadNullFinal = hadNull;
+    final boolean hadNullFinal = result.hadNull();
     return StorageIterators.buildOverStorage(
         storage,
         Builder.getForBoolean(storage.getSize()),
         (builder, index, value) -> {
-          if (uniqueValues.contains(value)) {
+          if (value instanceof Double || value instanceof Float) {
+            problemAggregator.reportFloatingPointEquality((int)index);
+          }
+
+          if (contains.test(result.uniqueValues, value)) {
             builder.appendBoolean(true);
           } else if (hadNullFinal) {
             builder.appendNulls(1);
