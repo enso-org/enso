@@ -105,7 +105,8 @@ public class FileWatcherTest {
     assertThat(event1, is(createEvent(subdir)));
 
     Files.createFile(fileA);
-    assertThat(event1, is(createEvent(fileA)));
+    var event2 = pollEvent();
+    assertThat(event2, is(createEvent(fileA)));
   }
 
   private JWatcherEvent pollEvent() {
