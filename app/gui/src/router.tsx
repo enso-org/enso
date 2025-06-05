@@ -11,6 +11,7 @@ import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import Login from '#/pages/authentication/Login'
 import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
@@ -38,6 +39,8 @@ import ProtectedLayout from './components/ProtectedLayout.vue'
 import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
 import { useAuth, UserSessionType } from './providers/auth'
 
+const UNAVAILABLE_PATH = '/UNAVAILABLE'
+
 /**
  * Wrap react component in ErrorBoundary and Suspense.
  *
@@ -46,7 +49,7 @@ import { useAuth, UserSessionType } from './providers/auth'
 function wrapReactForRouter(Component: (props: PropsWithChildren) => ReactNode) {
   return ({ children }: PropsWithChildren) => (
     <ErrorBoundary>
-      <Suspense>
+      <Suspense fallback={<LoadingScreen />}>
         <Component>{children}</Component>
       </Suspense>
     </ErrorBoundary>
@@ -74,7 +77,7 @@ function applyLayouts(
     props: {
       reactComponent: wrapReactForRouter(reducedComponent),
     },
-    path: '/UNAVAILABLE',
+    path: UNAVAILABLE_PATH,
     children,
   }
 }
@@ -120,7 +123,7 @@ async function prefetchAgreements() {
 // (https://router.vuejs.org/guide/advanced/navigation-guards.html#Per-Route-Guard or similar).
 const routes = [
   {
-    path: '/UNAVAILABLE',
+    path: UNAVAILABLE_PATH,
     meta: { access: 'guest' as const },
     component: ProtectedLayout,
     children: [
@@ -129,12 +132,12 @@ const routes = [
     ],
   },
   {
-    path: '/UNAVAILABLE',
+    path: UNAVAILABLE_PATH,
     meta: { access: UserSessionType.full },
     component: ProtectedLayout,
     children: [
       {
-        path: '/UNAVAILABLE',
+        path: UNAVAILABLE_PATH,
         beforeEnter: notDeletedUser,
         children: [
           {
@@ -166,7 +169,7 @@ const routes = [
         ],
       },
       {
-        path: '/UNAVAILABLE',
+        path: UNAVAILABLE_PATH,
         beforeEnter: softDeletedUser,
         children: [
           {
@@ -178,7 +181,7 @@ const routes = [
     ],
   },
   {
-    path: '/UNAVAILABLE',
+    path: UNAVAILABLE_PATH,
     meta: { access: 'anyLoggedIn' as const },
     beforeEnter: [prefetchAgreements, notDeletedUser],
     component: ProtectedLayout,
@@ -227,5 +230,7 @@ router.beforeEach(async (to) => {
   await auth.waitForSession()
   return auth.routeGuard(to)
 })
+
+router.onError((error) => console.error('Router error', error))
 
 export default router

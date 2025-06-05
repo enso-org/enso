@@ -1,5 +1,5 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
-import { type App, createApp, effectScope } from 'vue'
+import { type App, createApp } from 'vue'
 
 /**
  * An utility for testing composables that actually depend on vue's `setup` environment.
@@ -20,18 +20,4 @@ export function withSetup<T>(composable: () => T): [T | undefined, App] {
   // return the result and the app instance
   // for testing provide/unmount
   return [result, app]
-}
-
-/**
- * Run code inside effect scope, which will be disposed after exit.
- */
-export function withEffectsScope<T>(composable: () => T): T {
-  const scope = effectScope()
-  return scope.run(() => {
-    try {
-      return composable()
-    } finally {
-      scope.stop()
-    }
-  })!
 }

@@ -3,11 +3,11 @@ import { unsetModal } from '#/providers/ModalProvider'
 import { NotAuthorizedError } from '#/services/Backend'
 import { unreachable } from '#/utilities/error'
 import HttpClient from '#/utilities/HttpClient'
+import LocalStorage from '#/utilities/LocalStorage'
 import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
 import { AuthEvent, ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
-import { useLocalStorageClass } from '$/providers/localStorage'
 import { Err } from '@/util/data/result'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
@@ -44,7 +44,7 @@ export function createSessionStore(
   httpClient: HttpClient = useHttpClient(),
   { getText } = useText(),
   queryClient = vueQuery.useQueryClient(),
-  localStorage = useLocalStorageClass(),
+  localStorage = LocalStorage.getInstance(),
 ) {
   const mainPageUrl = getMainPageUrl()
   const errorToast = useToast.error()

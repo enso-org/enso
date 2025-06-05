@@ -1,10 +1,10 @@
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
+import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, SETUP_PATH } from '$/appUtils'
 import type * as cognitoModule from '$/authentication/cognito'
 import { featureFlagsForInternalTesting, setFeatureFlags } from '$/providers/featureFlags'
-import { useLocalStorageClass } from '$/providers/localStorage'
 import { useZustantStoreRef } from '$/utils/zustand'
 import { Opt } from '@/util/data/opt'
 import { ToValue } from '@/util/reactivity'
@@ -18,9 +18,9 @@ import { computed, inject, proxyRefs, toRef, toValue, watchEffect } from 'vue'
 import { RouteLocation } from 'vue-router'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { BackendsStore, useBackends } from './backends'
-import { SessionStore, useSession } from './session'
-import { TextStore, useText } from './text'
+import { useBackends } from './backends'
+import { useSession } from './session'
+import { useText } from './text'
 
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {
@@ -94,21 +94,17 @@ export const authOverridesStore = createStore<AuthOverridesStoreState>()(
   ),
 )
 
-export type AuthStore = ReturnType<typeof useAuth>
-/** A React provider for the Cognito API. */
-export const useAuth = createGlobalState(() => {
-  // --- these were parameters ---
-  const onAuthenticated: ((accessToken: string | null) => void) | undefined =
-    inject('onAuthenticated')
-  const sessionData: SessionStore = useSession()
-  const { remoteBackend }: BackendsStore = useBackends()
-  const { getText }: TextStore = useText()
-  // ---
-
+export type AuthStore = ReturnType<typeof createAuthStore>
+function createAuthStore(
+  onAuthenticated: ((accessToken: string | null) => void) | undefined = inject('onAuthenticated'),
+  sessionData = useSession(),
+  { remoteBackend } = useBackends(),
+  { getText } = useText(),
+) {
   const session = toRef(sessionData, 'session')
   const { organizationId, signOut } = sessionData
   const toastSuccess = useToast.success()
-  const localStorage = useLocalStorageClass()
+  const localStorage = LocalStorage.getInstance()
 
   const queryClient = vueQuery.useQueryClient()
 
@@ -267,6 +263,11 @@ export const useAuth = createGlobalState(() => {
     : userData.value,
   )
 
+  /**
+   * Check if given route is allowed for the current user.
+   *
+   * @returns boolean specifying if the route is allowed, or necessary redirect.
+   */
   function routeGuard(route: RouteLocation) {
     if (route.meta.access == null) return true
     if (route.meta.access === 'guest' && effectiveUserData.value == null) return true
@@ -294,4 +295,7 @@ export const useAuth = createGlobalState(() => {
     setUser,
     routeGuard,
   })
-})
+}
+
+/** A React provider for the Cognito API. */
+export const useAuth = createGlobalState(createAuthStore)

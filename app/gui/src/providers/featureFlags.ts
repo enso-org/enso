@@ -1,3 +1,9 @@
+/**
+ * @file
+ *
+ * Feature flags provider.
+ * Feature flags are used to enable or disable certain features in the application.
+ */
 import { unsafeWriteValue } from '#/utilities/write'
 import { useZustantStoreRef } from '$/utils/zustand'
 import { IS_DEV_MODE, isOnElectron } from 'enso-common/src/detect'

@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * @file A component watching changes in current user state. It hides subcomponents and redirects
+ * if user lost privileges to see them.
+ */
+
 import { LOGIN_PATH } from '$/appUtils'
 import { useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
@@ -27,6 +32,8 @@ watch(
   { immediate: true },
 )
 
+// Once user is logged out, we clear queries. We do it in post effect to make sure all unused
+// queries are inactive.
 watchPostEffect(() => {
   if (auth.session == null) {
     queryClient.removeQueries({ type: 'inactive' })

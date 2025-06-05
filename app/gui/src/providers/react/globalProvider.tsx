@@ -3,7 +3,6 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { AuthStore, useAuth } from '$/providers/auth'
 import { BackendsStore, useBackends } from '$/providers/backends'
 import { useHttpClient } from '$/providers/httpClient'
-import { useLocalStorageClass } from '$/providers/localStorage'
 import {
   BackendsContext,
   ConfigContext,
@@ -87,7 +86,7 @@ export const ContextsForReactProvider = applyPureReactInVue(
         text: useText(),
         httpClient: useHttpClient(),
         backends: useBackends(),
-        localStorage: useLocalStorageClass(),
+        localStorage: LocalStorage.getInstance(),
         session: useSession(),
         auth: useAuth(),
       }
