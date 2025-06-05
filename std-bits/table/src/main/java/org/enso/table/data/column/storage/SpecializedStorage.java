@@ -5,10 +5,7 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-
 import org.enso.table.data.column.operation.CountNothing;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -22,26 +19,13 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   /**
    * @param data the underlying data
    */
-  protected SpecializedStorage(
-      StorageType<T> type, T[] data) {
-    this(type, data, new MapOperationStorage<>());
-  }
-
-
-  /**
-   * @param data the underlying data
-   * @param ops the operations supported by this storage
-   */
-  protected SpecializedStorage(
-      StorageType<T> type, T[] data, MapOperationStorage<T, SpecializedStorage<T>> ops) {
+  protected SpecializedStorage(StorageType<T> type, T[] data) {
     this.type = type;
     this.data = data;
-    this.ops = ops;
   }
 
   protected final T[] data;
   private final StorageType<T> type;
-  private final MapOperationStorage<T, SpecializedStorage<T>> ops;
 
   @Override
   public final long getSize() {
@@ -67,23 +51,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   @Override
   public boolean isNothing(long idx) {
     return this.getItemBoxed(idx) == null;
-  }
-
-  @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return ops.isSupportedBinary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runZip(name, this, argument, problemAggregator);
   }
 
   @Override

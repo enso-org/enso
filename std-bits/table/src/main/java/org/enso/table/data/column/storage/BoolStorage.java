@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -59,23 +58,6 @@ public final class BoolStorage extends Storage<Boolean>
       throw new IndexOutOfBoundsException(idx);
     }
     return isNothing.get((int) idx);
-  }
-
-  @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return false;
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    throw new UnsupportedOperationException();
   }
 
   public boolean isNegated() {

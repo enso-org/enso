@@ -63,18 +63,13 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   public abstract long getItemAsLong(long index) throws ValueIsNothingException;
 
   @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return OPS.isSupportedBinary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
+  protected Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemAggregator problemAggregator) {
     return OPS.runBinaryMap(name, this, argument, problemAggregator);
   }
 
   @Override
-  public Storage<?> runVectorizedZip(
+  protected Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
     return OPS.runZip(name, this, argument, problemAggregator);
   }

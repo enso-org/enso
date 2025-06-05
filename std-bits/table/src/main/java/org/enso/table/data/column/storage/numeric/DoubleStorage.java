@@ -106,11 +106,6 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public boolean isBinaryOpVectorized(String op) {
-    return OPS.isSupportedBinary(op);
-  }
-
-  @Override
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemAggregator problemAggregator) {
     return OPS.runBinaryMap(name, this, argument, problemAggregator);
