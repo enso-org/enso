@@ -2,9 +2,11 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.Input_Stream.Input_Stream
 
 from Standard.Table import all
 import Standard.Table.Errors.Additional_Invalid_Rows
+import Standard.Table.Errors.Fixed_Width_Line_Too_Long
 import Standard.Table.Errors.Inconsistent_Fixed_Width_Lengths
 import Standard.Table.Errors.Invalid_Fixed_Width_Row
 import Standard.Table.Errors.No_Column_Names_Found
@@ -17,6 +19,8 @@ import Standard.Test.Test_Environment
 import enso_dev.Base_Tests.Data.Text.Encoding_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
+
+polyglot java import org.enso.table.read.FixedWidthReader
 
 add_direct_specs suite_builder =
     data_dir = enso_project.data / "fixed-width"
@@ -395,6 +399,22 @@ add_direct_specs suite_builder =
             err = Fixed_Width_Format.Fixed_Width
             err . should_fail_with Missing_Argument
             err . catch . message . should_contain "A fixed-width table layout can be a Column or Vector"
+
+        group_builder.specify "Should reject a too-long line" <|
+            too_long = FixedWidthReader.MAXIMUM_LINE_LENGTH + 1
+
+            header = Vector.new too_long (_ -> 65)
+            all = header + [10, 66, 66, 66, 10]
+            stream = Input_Stream.from_bytes all
+
+            infer_format = Fixed_Width_Format.Fixed_Width Infer_Layout.Left
+            infer_format.read_stream stream . should_fail_with Fixed_Width_Line_Too_Long
+
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 0 too_long "x"]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            format = Fixed_Width_Format.Fixed_Width layout
+            format.read_stream stream . should_fail_with Fixed_Width_Line_Too_Long
 
 fixed_width_spec_from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Error) -> Text =
