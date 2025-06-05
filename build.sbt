@@ -424,16 +424,15 @@ lazy val enso = (project in file("."))
     commands ++= Seq(packageBuilder.makePackages, packageBuilder.makeBundles)
   )
   .settings(
-    cleanFiles ++= {
-      Seq(
-        engineDistributionRoot.value,
-        launcherDistributionRoot.value,
-        projectManagerDistributionRoot.value
-      )
-    },
     clean := Def.task {
       val _ = clean.value
-      IO.delete(packageBuilder.artifactRoot)
+      val filesToDelete = Seq(
+        engineDistributionRoot.value,
+        launcherDistributionRoot.value,
+        projectManagerDistributionRoot.value,
+        packageBuilder.artifactRoot
+      )
+      IO.delete(filesToDelete)
     }.value
   )
 
