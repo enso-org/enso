@@ -1,18 +1,26 @@
 package org.enso.tableau;
 
-import java.util.List;
-
 public class HyperTypeMismatch extends RuntimeException {
-  public record Mismatch(String columnName, String expectedType, String actualType) {}
+  private final String columnName;
+  private final String expectedType;
+  private final String actualType;
 
-  private final List<Mismatch> mismatches;
-
-  public HyperTypeMismatch(List<Mismatch> mismatches) {
-    super("Type mismatches found in " + mismatches.size() + " column(s).");
-    this.mismatches = mismatches;
+  public HyperTypeMismatch(String columnName, String expectedType, String actualType) {
+    super("Type mismatch found in column " + columnName + ": expected " + expectedType + ", actual " + actualType + ".");
+    this.columnName = columnName;
+    this.expectedType = expectedType;
+    this.actualType = actualType;
   }
 
-  public List<Mismatch> getMismatches() {
-    return mismatches;
+  public String getColumnName() {
+    return columnName;
+  }
+
+  public String getExpectedType() {
+    return expectedType;
+  }
+
+  public String getActualType() {
+    return actualType;
   }
 }

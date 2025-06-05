@@ -550,30 +550,21 @@ private static void addValueToInserter(Inserter inserter, ColumnStorage storage,
     }
   }
 
-  private static void validateTypesMatch(ColumnStorage[] storages, TableDefinition tableDef) {
+private static void validateTypesMatch(ColumnStorage[] storages, TableDefinition tableDef) {
+  for (int i = 0; i < storages.length; i++) {
+    ColumnStorage storage = storages[i];
 
-    List<HyperTypeMismatch.Mismatch> mismatches = new ArrayList<>();
-
-    for (int i = 0; i < storages.length; i++) {
-      ColumnStorage storage = storages[i];
-
-      if (storage instanceof NullStorage) {
-        continue; // Allow NULLs to append to anything
-      }
-
-      SqlType expectedSqlType = tableDef.getColumns().get(i).getType();
-      SqlType actualSqlType = mapEnsoTypeToSqlType(storage.getType());
-
-      if (!expectedSqlType.equals(actualSqlType)) {
-        String columnName = tableDef.getColumns().get(i).getName().toString();
-        mismatches.add(
-            new HyperTypeMismatch.Mismatch(
-                columnName, expectedSqlType.toString(), actualSqlType.toString()));
-      }
+    if (storage instanceof NullStorage) {
+      continue; // Allow NULLs to append to anything
     }
 
-    if (!mismatches.isEmpty()) {
-      throw new HyperTypeMismatch(mismatches);
+    SqlType expectedSqlType = tableDef.getColumns().get(i).getType();
+    SqlType actualSqlType = mapEnsoTypeToSqlType(storage.getType());
+
+    if (!expectedSqlType.equals(actualSqlType)) {
+      String columnName = tableDef.getColumns().get(i).getName().toString();
+      throw new HyperTypeMismatch(columnName, expectedSqlType.toString(), actualSqlType.toString());
     }
   }
+}
 }
