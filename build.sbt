@@ -423,6 +423,19 @@ lazy val enso = (project in file("."))
   .settings(
     commands ++= Seq(packageBuilder.makePackages, packageBuilder.makeBundles)
   )
+  .settings(
+    cleanFiles ++= {
+      Seq(
+        engineDistributionRoot.value,
+        launcherDistributionRoot.value,
+        projectManagerDistributionRoot.value
+      )
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(packageBuilder.artifactRoot)
+    }.value
+  )
 
 // ============================================================================
 // === Dependency Versions ====================================================
@@ -4181,6 +4194,9 @@ lazy val launcher = project
         "ensoup"
       )
       .value,
+    cleanFiles += {
+      new File("ensoup")
+    },
     assembly / test := {},
     assembly / assemblyOutputPath := file("launcher.jar"),
     assembly / assemblyMergeStrategy := {
