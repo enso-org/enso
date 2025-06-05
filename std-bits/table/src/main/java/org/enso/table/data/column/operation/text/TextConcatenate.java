@@ -1,38 +1,20 @@
 package org.enso.table.data.column.operation.text;
 
-import org.enso.base.Text_Utils;
-import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.BinaryOperationBase;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.error.UnexpectedTypeException;
 
-public final class TextPartOperation extends BinaryOperationBase<String> {
-  public static final TextPartOperation LEFT = new TextPartOperation(Text_Utils::take_prefix);
-  public static final TextPartOperation RIGHT = new TextPartOperation(Text_Utils::take_suffix);
+public class TextConcatenate extends BinaryOperationBase<String> {
+  public static final TextConcatenate INSTANCE = new TextConcatenate();
 
-  @FunctionalInterface
-  public interface TextLongToStringFunction {
-    String apply(String text, long value);
-  }
-
-  private final TextLongToStringFunction function;
-
-  private TextPartOperation(TextLongToStringFunction function) {
+  private TextConcatenate() {
     super(TextType.VARIABLE_LENGTH, true);
-    this.function = function;
-  }
-
-  @Override
-  public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-    var rightStorageType = right.getType();
-    return canApplyMap(left, null)
-        && (rightStorageType instanceof IntegerType || rightStorageType instanceof NullType);
   }
 
   @Override
@@ -50,15 +32,19 @@ public final class TextPartOperation extends BinaryOperationBase<String> {
       return StringBuilder.makeEmpty(textType, left.getSize());
     }
 
-    if (!NumericConverter.isCoercibleToLong(rightValue)) {
-      throw new IllegalArgumentException("Unsupported right value type.");
+    String typedRightValue = textType.valueAsType(rightValue);
+    if (typedRightValue == null) {
+      throw new UnexpectedTypeException("a Text");
     }
-    long right = NumericConverter.coerceToLong(rightValue);
+
+    // Compute the combined type
+    TextType rightType = TextType.preciseTypeForValue(typedRightValue);
+    TextType newType = TextType.concatTypes(textType, rightType);
 
     return StorageIterators.mapOverStorage(
-        textType.asTypedStorage(left),
-        Builder.getForText(textType, left.getSize()),
-        (index, value) -> function.apply(value, right));
+        left,
+        Builder.getForText(newType, left.getSize()),
+        (index, value) -> value + typedRightValue);
   }
 
   @Override
@@ -67,13 +53,14 @@ public final class TextPartOperation extends BinaryOperationBase<String> {
       throw new IllegalArgumentException("Left type is not a text type");
     }
 
-    if (right.getType() instanceof IntegerType integerType) {
+    if (right.getType() instanceof TextType rightType) {
+      TextType newType = TextType.concatTypes(textType, rightType);
       return StorageIterators.zipOverStorages(
           left,
-          integerType.asTypedStorage(right),
-          length -> Builder.getForText(textType, length),
+          rightType.asTypedStorage(right),
+          length -> Builder.getForText(newType, length),
           true,
-          (index, leftValue, rightValue) -> function.apply(leftValue, rightValue));
+          (index, leftValue, rightValue) -> leftValue + rightValue);
     }
 
     throw new IllegalArgumentException("Unsupported storage types.");
