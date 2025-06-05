@@ -125,18 +125,6 @@
     "META-INF/resources/nfi-native/libnfi/darwin/aarch64/bin/libtrufflenfi.dylib",
     "META-INF/resources/nfi-native/libnfi/windows/amd64/bin/trufflenfi.dll"
   ],
-  "lib/Standard/Snowflake/0.0.0-dev/polyglot/java/conscrypt-openjdk-uber-2.5.2.jar": [
-    "META-INF/native/conscrypt_openjdk_jni-windows-x86.dll",
-    "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll",
-    "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so",
-    "META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib"
-  ],
-  "lib/Standard/Google_Api/0.0.0-dev/polyglot/java/conscrypt-openjdk-uber-2.5.2.jar": [
-    "META-INF/native/conscrypt_openjdk_jni-windows-x86.dll",
-    "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll",
-    "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so",
-    "META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib"
-  ],
   "lib/Standard/Microsoft/0.0.0-dev/polyglot/java/jna-wrapper-assembly-0.1.0-SNAPSHOT.jar": [
     "com/sun/jna/freebsd-x86-64/libjnidispatch.so",
     "com/sun/jna/freebsd-x86/libjnidispatch.so",

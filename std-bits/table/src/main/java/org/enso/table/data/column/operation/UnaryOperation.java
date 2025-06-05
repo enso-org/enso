@@ -88,4 +88,27 @@ public interface UnaryOperation {
 
   /** Applies the operation to the given Storage. */
   ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator);
+
+  /**
+   * A no-op identity operation that returns the original storage unchanged. This can be useful when
+   * you need to ensure a UnaryOperation is always present, but no actual transformation is needed.
+   */
+  public static UnaryOperation IDENTITY =
+      new UnaryOperation() {
+        @Override
+        public String getName() {
+          return "identity";
+        }
+
+        @Override
+        public boolean canApply(ColumnStorage<?> storage) {
+          return true; // Identity operation can be applied to any storage.
+        }
+
+        @Override
+        public ColumnStorage<?> apply(
+            ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+          return storage; // Returns the original storage unchanged.
+        }
+      };
 }

@@ -27,7 +27,7 @@ of the cloud logic running on the helper server.
 To run a full set of cloud tests against a real deployment, you need to set the
 following 3 environment variables:
 
-- `ENSO_CLOUD_API_URI` to point to the root of the cloud API,
+- `ENSO_CLOUD_API_URL` to point to the root of the cloud API,
 - `ENSO_CLOUD_CREDENTIALS_FILE` to be a path to a file containing the
   credentials to use, e.g. `~/.enso/credentials`,
 - `ENSO_RUN_REAL_CLOUD_TEST=1` to tell the test suite to run against a real

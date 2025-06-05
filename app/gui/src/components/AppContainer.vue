@@ -1,6 +1,6 @@
 <script lang="ts">
-import { type PaywallFeatureName } from '#/hooks/billing'
-import UserBarReact from '#/layouts/UserBar'
+import type { PaywallFeatureName } from '#/hooks/billing'
+import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
 import { LaunchedProject } from '#/providers/ProjectsProvider'
 import { BackendType, ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/AppContainer/reactTabs'

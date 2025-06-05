@@ -1,10 +1,9 @@
 package org.enso.table.data.column.operation.map;
 
-import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
+import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StorageListView;
 import org.graalvm.polyglot.Context;
@@ -55,8 +54,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
 
   public Storage<?> runMap(S storage, List<?> arg) {
     if (arg.isEmpty()) {
-      int size = Math.toIntExact(storage.getSize());
-      return new BoolStorage(new BitSet(), new BitSet(), size, false);
+      return (Storage<?>) BoolBuilder.makeConstant(storage.getSize(), false);
     }
 
     long size = storage.getSize();

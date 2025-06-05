@@ -22,14 +22,17 @@ polyglot java import java.util.Properties
 type Redshift_Details
     ## Connect to a AWS Redshift database.
 
-       Arguments:
-       - host: The hostname of the database server.
-       - port: The port of the database server (defaults to 5439).
-       - schema: The schema to connect to (if not provided or empty, the default schema will be used).
-       - db_user: The user to connect to the database as.
-       - credentials: The credentials to use for the connection (defaults AWS_Profile).
-       - use_ssl: Whether to use SSL (defaults to `SSL_Mode.Require`).
-       - client_cert: The client certificate to use or `Nothing` if not needed.
+       ## Arguments
+        - `host`: The hostname of the database server.
+        - `port`: The port of the database server (defaults to 5439).
+        - `schema`: The schema to connect to (if not provided or empty, the
+          default schema will be used).
+        - `db_user`: The user to connect to the database as.
+        - `credentials`: The credentials to use for the connection (defaults
+          AWS_Profile).
+        - `use_ssl`: Whether to use SSL (defaults to `SSL_Mode.Require`).
+        - `client_cert`: The client certificate to use or `Nothing` if not
+          needed.
     @host (Text_Input display=..Always)
     @credentials AWS_Credential.default_widget add_user_password=True
     Redshift
@@ -41,17 +44,21 @@ type Redshift_Details
         use_ssl:SSL_Mode=..Require
         client_cert:Client_Certificate|Nothing=Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Attempt to resolve the constructor.
     resolve : Function -> Redshift_Details | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:Redshift_Details) _->Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Build the Connection resource.
 
-       Arguments:
-       - options: Overrides for the connection properties.
+       ## Arguments
+        - `options`: Overrides for the connection properties.
     connect : Connection_Options -> Connection
     connect self options =
         if Driver.isRegistered.not then Driver.register
@@ -65,7 +72,9 @@ type Redshift_Details
 
         Connection.new jdbc_connection Redshift_Dialect.redshift entity_naming_properties
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
@@ -74,7 +83,9 @@ type Redshift_Details
             _ -> 'jdbc:redshift://'
         prefix + self.host + ':' + self.port.to_text + '/' + self.schema
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Provides the properties for the connection.
     jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =

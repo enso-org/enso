@@ -32,18 +32,6 @@ public final class BoolStorage extends Storage<Boolean>
     this.negated = negated;
   }
 
-  public static BoolStorage makeEmpty(long size) {
-    int checkedSize = Builder.checkSize(size);
-
-    BitSet isNothing = new BitSet(checkedSize);
-    isNothing.set(0, checkedSize);
-    return new BoolStorage(new BitSet(), isNothing, checkedSize, false);
-  }
-
-  public static BoolStorage makeConstant(int size, boolean r) {
-    return new BoolStorage(new BitSet(), new BitSet(), size, r);
-  }
-
   @Override
   public long getSize() {
     return size;

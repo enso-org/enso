@@ -47,13 +47,6 @@ public final class LongStorage extends AbstractLongStorage
         new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
-  public static LongStorage makeEmpty(long size, IntegerType type) {
-    int intSize = Builder.checkSize(size);
-    BitSet isNothing = new BitSet(intSize);
-    isNothing.set(0, intSize);
-    return new LongStorage(new long[0], intSize, isNothing, type);
-  }
-
   public LongStorage(long[] data, IntegerType type) {
     this(data, data.length, new BitSet(), type);
   }

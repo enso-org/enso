@@ -3,6 +3,7 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.DoubleBuilder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -12,7 +13,6 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorageFacade;
 import org.enso.table.data.column.storage.type.FloatType;
 
@@ -36,7 +36,7 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
   public Storage<? extends Number> runBinaryMap(
       I storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
-      return DoubleStorage.makeEmpty(storage.getSize());
+      return DoubleBuilder.makeEmpty(storage.getSize());
     }
 
     double rhs =

@@ -539,8 +539,6 @@ type Vector a
     not_empty self = self.is_empty.not
 
     ## ALIAS where
-       GROUP Selections
-       ICON preparation
        MACRO equals filter=..Equal
        MACRO not_equals filter=..Not_Equal
        MACRO not_nothing filter=..Not_Nothing
@@ -555,6 +553,8 @@ type Vector a
        MACRO like filter=..Like
        MACRO regex_match filter=..Regex_Match
        MACRO predicate filter=v->v==Nothing
+       GROUP Selections
+       ICON preparation
        Selects all elements of this vector which satisfy a condition.
 
        Arguments:
