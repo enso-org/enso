@@ -1,6 +1,11 @@
 package org.enso.table.data.column.storage;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
 import org.enso.table.data.column.operation.CountNothing;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -10,10 +15,18 @@ import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
 
 public abstract class SpecializedStorage<T> extends Storage<T> {
-
   protected abstract SpecializedStorage<T> newInstance(T[] data);
 
   protected abstract T[] newUnderlyingArray(int size);
+
+  /**
+   * @param data the underlying data
+   */
+  protected SpecializedStorage(
+      StorageType<T> type, T[] data) {
+    this(type, data, new MapOperationStorage<>());
+  }
+
 
   /**
    * @param data the underlying data
@@ -160,19 +173,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     }
 
     return newInstance(newData);
-  }
-
-  /**
-   * Returns the specialized storage casted to my own type, if it is of the same type; or null
-   * otherwise.
-   */
-  @SuppressWarnings("unchecked")
-  public SpecializedStorage<T> castIfSameType(SpecializedStorage<?> storage) {
-    if (storage.getType().equals(getType())) {
-      return (SpecializedStorage<T>) storage;
-    } else {
-      return null;
-    }
   }
 
   @Override

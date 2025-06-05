@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -19,7 +17,6 @@ import org.graalvm.polyglot.Value;
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
     implements ColumnBooleanStorage, ColumnStorageWithNothingMap {
-  private static final MapOperationStorage<Boolean, BoolStorage> ops = buildOps();
   private final BitSet values;
   private final BitSet isNothing;
   private final int size;
@@ -66,19 +63,19 @@ public final class BoolStorage extends Storage<Boolean>
 
   @Override
   public boolean isBinaryOpVectorized(String name) {
-    return ops.isSupportedBinary(name);
+    return false;
   }
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runBinaryMap(name, this, argument, problemAggregator);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runZip(name, this, argument, problemAggregator);
+    throw new UnsupportedOperationException();
   }
 
   public boolean isNegated() {
@@ -186,12 +183,6 @@ public final class BoolStorage extends Storage<Boolean>
       context.safepoint();
     }
     return builder.seal();
-  }
-
-  private static MapOperationStorage<Boolean, BoolStorage> buildOps() {
-    MapOperationStorage<Boolean, BoolStorage> ops = new MapOperationStorage<>();
-    ops.add(new BooleanIsInOp());
-    return ops;
   }
 
   /** Creates a mask that selects elements corresponding to true entries in the passed storage. */

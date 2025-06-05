@@ -11,7 +11,6 @@ import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
-import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -21,7 +20,18 @@ import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends Storage<Long> implements ColumnLongStorage {
-  private static final MapOperationStorage<Long, AbstractLongStorage> ops = buildOps();
+  private static final MapOperationStorage<Long, AbstractLongStorage> OPS = buildOps();
+
+  private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
+    MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
+    ops.add(new AddOp<>())
+        .add(new SubOp<>())
+        .add(new MulOp<>())
+        .add(new DivideOp<>())
+        .add(new ModOp<>())
+        .add(new PowerOp<>());
+    return ops;
+  }
 
   private final long size;
   private final IntegerType type;
@@ -54,19 +64,19 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
 
   @Override
   public boolean isBinaryOpVectorized(String name) {
-    return ops.isSupportedBinary(name);
+    return OPS.isSupportedBinary(name);
   }
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runBinaryMap(name, this, argument, problemAggregator);
+    return OPS.runBinaryMap(name, this, argument, problemAggregator);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runZip(name, this, argument, problemAggregator);
+    return OPS.runZip(name, this, argument, problemAggregator);
   }
 
   @Override
@@ -120,18 +130,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
     }
 
     return possibleTypes[currentTypeIdx];
-  }
-
-  private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
-    MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
-    ops.add(new AddOp<>())
-        .add(new SubOp<>())
-        .add(new MulOp<>())
-        .add(new DivideOp<>())
-        .add(new ModOp<>())
-        .add(new PowerOp<>())
-        .add(new LongIsInOp());
-    return ops;
   }
 
   @Override

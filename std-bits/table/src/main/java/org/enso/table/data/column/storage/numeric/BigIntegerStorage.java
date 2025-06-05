@@ -11,7 +11,6 @@ import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
-import org.enso.table.data.column.operation.map.numeric.isin.BigIntegerIsInOp;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -20,20 +19,9 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 public class BigIntegerStorage extends SpecializedStorage<BigInteger>
     implements NumericFormattingStorage {
+  private static final MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> OPS = buildOps();
 
-  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
-
-  /**
-   * @param data the underlying data
-   */
-  public BigIntegerStorage(BigInteger[] data) {
-    super(BigIntegerType.INSTANCE, data, makeOps());
-
-    isNumericFormatRequired =
-        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
-  }
-
-  protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
+  protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> buildOps() {
     MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops =
         new MapOperationStorage<>();
     return ops.add(new AddOp<>())
@@ -41,8 +29,19 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
         .add(new MulOp<>())
         .add(new DivideOp<>())
         .add(new ModOp<>())
-        .add(new PowerOp<>())
-        .add(new BigIntegerIsInOp<>());
+        .add(new PowerOp<>());
+  }
+
+  private final CachedPropertyCheck<Boolean> isNumericFormatRequired;
+
+  /**
+   * @param data the underlying data
+   */
+  public BigIntegerStorage(BigInteger[] data) {
+    super(BigIntegerType.INSTANCE, data, OPS);
+
+    isNumericFormatRequired =
+        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   @Override
