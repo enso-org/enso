@@ -46,6 +46,7 @@ from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.operation.binary.BinaryOperator
 polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
 polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
@@ -145,7 +146,10 @@ type In_Memory_Column_Implementation
 
     add this_column (other : Column | Any) -> Column =
         Value_Type_Helpers.resolve_addition_kind this_column other . if_not_error <|
-            run_vectorized_binary_op this_column Java_Storage.Maps.ADD other
+            operation = BinaryOperator.createAddIfSupported (this_column:In_Memory_Column).java_column (_java_other other)
+            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported add operation.")
+            new_name = naming_helper.binary_operation_name "+" this_column other
+            _call_binary_operator this_column other new_name operation
 
     minus this_column (other : Column | Any) -> Column =
         case Value_Type_Helpers.resolve_subtraction_kind this_column other of

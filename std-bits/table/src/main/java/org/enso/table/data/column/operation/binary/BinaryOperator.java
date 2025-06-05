@@ -1,0 +1,247 @@
+package org.enso.table.data.column.operation.binary;
+
+import org.enso.table.data.column.builder.BigDecimalBuilder;
+import org.enso.table.data.column.builder.BigIntegerBuilder;
+import org.enso.table.data.column.builder.DoubleBuilder;
+import org.enso.table.data.column.builder.LongBuilder;
+import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.operation.BinaryOperationNull;
+import org.enso.table.data.column.operation.BinaryOperationNumeric;
+import org.enso.table.data.column.operation.NumericColumnAdapter;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.operation.text.TextConcatenate;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.table.Column;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+/**
+ * Support the addition operation
+ * - Numeric
+ * - Text Concatenation
+ * - Date + Time => Date Time ??
+ */
+public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
+  /**
+   * An abstract class representing a numeric operation. This class defines the methods that must be
+   * implemented by any numeric operation.
+   */
+  public abstract static class NumericOperation {
+    abstract Double doDouble(
+        double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
+
+    abstract Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator);
+
+    abstract BigInteger doBigInteger(BigInteger a, BigInteger b, long ix);
+
+    abstract BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix);
+  }
+
+  private static final NumericOperation ADDITION = new NumericOperation() {
+    @Override
+    Double doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+      return a + b;
+    }
+
+    @Override
+    Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
+      try {
+        return Math.addExact(a, b);
+      } catch (ArithmeticException e) {
+        problemAggregator.reportOverflow(IntegerType.INT_64, a, "+", b);
+        return null;
+      }
+    }
+
+    @Override
+    BigInteger doBigInteger(BigInteger a, BigInteger b, long ix) {
+      return a.add(b);
+    }
+
+    @Override
+    BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+      return a.add(b);
+    }
+  };
+
+  /**
+   *
+   * @param left
+   * @param right
+   * @return
+   */
+  public static BinaryOperation<?> createAddIfSupported(Column left, Object right) {
+    var leftStorage = BinaryOperation.getInferredStorage(left);
+    return switch (leftStorage.getType()) {
+      case NumericType nt -> createNumeric(leftStorage.getType(), right, ADDITION);
+      case TextType tt -> TextConcatenate.INSTANCE;
+      case NullType nt -> {
+        // Work out based on the RHS
+        var rightType = storageTypeForObject(right);
+        yield switch (rightType) {
+          case NullType rnt -> BinaryOperationNull.INSTANCE;
+          case NumericType rnt -> createNumeric(leftStorage.getType(), right, ADDITION);
+          case TextType rtt -> TextConcatenate.INSTANCE;
+          default -> null;
+        };
+      }
+      default -> null;
+    };
+  }
+
+  static BinaryOperation<?> createNumeric(
+      StorageType<?> leftType, Object right, NumericOperation operation) {
+    var rightType = storageTypeForObject(right);
+    if (leftType instanceof FloatType || rightType instanceof FloatType) {
+      return new BinaryOperatorDouble(operation);
+    } else if (leftType instanceof BigDecimalType || rightType instanceof BigDecimalType) {
+      return new BinaryOperatorBigDecimal(operation);
+    } else if (leftType instanceof BigIntegerType || rightType instanceof BigIntegerType) {
+      return new BinaryOperatorBigInteger(operation);
+    } else if (leftType instanceof IntegerType || rightType instanceof IntegerType) {
+      return new BinaryOperatorLong(operation);
+    } else {
+      throw new IllegalArgumentException("Unsupported type: " + leftType + " or " + rightType);
+    }
+  }
+
+  protected final NumericOperation operation;
+
+  protected BinaryOperator(NumericColumnAdapter<T> adapter, NumericOperation operation) {
+    super(adapter, true, adapter.getValidType());
+    this.operation = operation;
+  }
+
+  private static class BinaryOperatorDouble extends BinaryOperator<Double> {
+    public BinaryOperatorDouble(NumericOperation operation) {
+      super(NumericColumnAdapter.DoubleColumnAdapter.INSTANCE, operation);
+    }
+
+    @Override
+    protected ColumnStorage<Double> applyNullMap(ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+      return DoubleBuilder.makeEmpty(left.getSize());
+    }
+
+    @Override
+    protected ColumnStorage<Double> innerApplyMap(
+        ColumnStorage<Double> left, Double right, MapOperationProblemAggregator problemAggregator) {
+      double rightAsDouble = right;
+      return StorageIterators.buildOverDoubleStorage(
+          (ColumnDoubleStorage) left,
+          true,
+          FloatType.FLOAT_64.makeBuilder(left.getSize(), problemAggregator),
+          (builder, index, value, isNothing) ->
+              builder.appendDouble(
+                  operation.doDouble(value, rightAsDouble, index, problemAggregator)));
+    }
+
+    @Override
+    protected ColumnStorage<Double> innerApplyZip(
+        ColumnStorage<Double> left,
+        ColumnStorage<Double> right,
+        MapOperationProblemAggregator problemAggregator) {
+      return StorageIterators.zipOverDoubleStorages(
+          (ColumnDoubleStorage) left,
+          (ColumnDoubleStorage) right,
+          s -> FloatType.FLOAT_64.makeBuilder(s, problemAggregator),
+          true,
+          (index, value1, isNothing1, value2, isNothing2) ->
+              operation.doDouble(value1, value2, index, problemAggregator));
+    }
+
+    @Override
+    protected Double doSingle(
+        Double left, Double right, long index, MapOperationProblemAggregator problemAggregator) {
+      return operation.doDouble(left, right, index, problemAggregator);
+    }
+  }
+
+  private static class BinaryOperatorBigDecimal extends BinaryOperator<BigDecimal> {
+    public BinaryOperatorBigDecimal(NumericOperation operation) {
+      super(NumericColumnAdapter.BigDecimalColumnAdapter.INSTANCE, operation);
+    }
+
+    @Override
+    protected ColumnStorage<BigDecimal> applyNullMap(ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+      return BigDecimalBuilder.makeEmpty(left.getSize());
+    }
+
+    @Override
+    protected BigDecimal doSingle(
+        BigDecimal left,
+        BigDecimal right,
+        long index,
+        MapOperationProblemAggregator problemAggregator) {
+      return operation.doBigDecimal(left, right, index);
+    }
+  }
+
+  private static class BinaryOperatorBigInteger extends BinaryOperator<BigInteger> {
+    public BinaryOperatorBigInteger(NumericOperation operation) {
+      super(NumericColumnAdapter.BigIntegerColumnAdapter.INSTANCE, operation);
+    }
+
+    @Override
+    protected ColumnStorage<BigInteger> applyNullMap(ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+      return BigIntegerBuilder.makeEmpty(left.getSize());
+    }
+
+    @Override
+    protected BigInteger doSingle(
+        BigInteger left,
+        BigInteger right,
+        long index,
+        MapOperationProblemAggregator problemAggregator) {
+      return operation.doBigInteger(left, right, index);
+    }
+  }
+
+  private static class BinaryOperatorLong extends BinaryOperator<Long> {
+    public BinaryOperatorLong(NumericOperation operation) {
+      super(NumericColumnAdapter.LongColumnAdapter.INSTANCE, operation);
+    }
+
+    @Override
+    protected ColumnStorage<Long> applyNullMap(ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
+      return LongBuilder.makeEmpty(left.getSize(), IntegerType.INT_64);
+    }
+
+    @Override
+    protected ColumnStorage<Long> innerApplyMap(
+        ColumnStorage<Long> left, Long right, MapOperationProblemAggregator problemAggregator) {
+      long rightAsLong = right;
+      return StorageIterators.buildOverLongStorage(
+          (ColumnLongStorage) left,
+          true,
+          IntegerType.INT_64.makeBuilder(left.getSize(), problemAggregator),
+          (builder, index, value, isNothing) ->
+              builder.appendLong(
+                  operation.doLong(value, rightAsLong, index, problemAggregator)));
+    }
+
+    @Override
+    protected ColumnStorage<Long> innerApplyZip(
+        ColumnStorage<Long> left,
+        ColumnStorage<Long> right,
+        MapOperationProblemAggregator problemAggregator) {
+      return StorageIterators.zipOverLongStorages(
+          (ColumnLongStorage) left,
+          (ColumnLongStorage) right,
+          s -> IntegerType.INT_64.makeBuilder(s, problemAggregator),
+          true,
+          (index, value1, isNothing1, value2, isNothing2) ->
+              operation.doLong(value1, value2, index, problemAggregator));
+    }
+
+    @Override
+    protected Long doSingle(
+        Long left, Long right, long index, MapOperationProblemAggregator problemAggregator) {
+      return operation.doLong(left, right, index, problemAggregator);
+    }
+  }
+}
