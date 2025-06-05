@@ -7,6 +7,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -188,10 +189,10 @@ public final class Channel implements AutoCloseable {
       return len;
     } catch (Throwable ex) {
       channel.printStackTrace(ex, true);
-      var exceptionMessage =
-          ex.getMessage()
-              .subSequence(0, Math.min(ex.getMessage().length(), (int) Math.min(2048, size)));
-      CTypeConversion.toCString(exceptionMessage, data, WordFactory.unsigned(size));
+      var bytes = ex.getMessage() == null ? new byte[0] : ex.getMessage().getBytes();
+      var buf = CTypeConversion.asByteBuffer(data, (int) size).order(ByteOrder.BIG_ENDIAN);
+      buf.putInt(bytes.length);
+      buf.put(bytes);
       return -2L;
     }
   }
@@ -283,7 +284,11 @@ public final class Channel implements AutoCloseable {
       }
       if (len == -2) {
         // signals exception
-        var exceptionMessage = "No message yet"; // memory.getString(0);
+        buffer.position(0);
+        var msgLen = buffer.getInt();
+        var msgBytes = new byte[msgLen];
+        buffer.get(msgBytes);
+        var exceptionMessage = new String(msgBytes);
         throw new IllegalStateException(exceptionMessage);
       }
       assert len >= 0;
