@@ -261,7 +261,11 @@ export default class LocalStorage {
 
   /** Save the current value of the stored data.. */
   protected save() {
-    localStorage.setItem(this.localStorageKey, JSON.stringify(this.values))
+    const storedValues = localStorage.getItem(this.localStorageKey)
+    const savedValues: unknown = JSON.parse(storedValues ?? '{}')
+    const valuesToSave =
+      typeof savedValues === 'object' ? { ...savedValues, ...this.values } : this.values
+    localStorage.setItem(this.localStorageKey, JSON.stringify(valuesToSave))
   }
 
   /**
