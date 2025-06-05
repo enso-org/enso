@@ -22,10 +22,7 @@ import { useText } from './text'
 export function createSessionQuery(authService: cognito.ISessionProvider) {
   return vueQuery.queryOptions({
     queryKey: ['userSession'],
-    queryFn: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 5000))
-      return authService.userSession().catch(() => null)
-    },
+    queryFn: async () => authService.userSession().catch(() => null),
     meta: {
       persist: false,
     },
