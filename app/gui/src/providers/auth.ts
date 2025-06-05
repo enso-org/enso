@@ -288,7 +288,8 @@ export const useAuth = createGlobalState(() => {
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
-    suspense: () => sessionData.suspense().then(usersMeQuery.suspense),
+    waitForSession: () =>
+      sessionData.waitForSession().then(() => queryClient.ensureQueryData(usersMeQueryOptions)),
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,

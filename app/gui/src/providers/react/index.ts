@@ -15,8 +15,8 @@ export {
   useUser,
   useUserSession,
 } from '$/providers/react/auth'
+export { useRightPanelData } from '$/providers/react/rightPanel'
 export { useRouter } from '$/providers/react/router'
-export { useRightPanelData } from '$/providers/rightPanel'
 
 export const ConfigContext = react.createContext<GuiConfig | null>(null)
 export const useConfig = useInReactFunction(ConfigContext)

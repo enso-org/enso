@@ -224,7 +224,7 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuth()
-  await auth.suspense()
+  await auth.waitForSession()
   return auth.routeGuard(to)
 })
 

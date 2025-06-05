@@ -15,13 +15,17 @@ import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
 import { computed, onScopeDispose, proxyRefs, ref, watchEffect } from 'vue'
+import { useHttpClient } from './httpClient'
 import { useText } from './text'
 
 /** Create a query for the user session. */
 export function createSessionQuery(authService: cognito.ISessionProvider) {
   return vueQuery.queryOptions({
     queryKey: ['userSession'],
-    queryFn: () => authService.userSession().catch(() => null),
+    queryFn: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+      return authService.userSession().catch(() => null)
+    },
     meta: {
       persist: false,
     },
@@ -40,7 +44,7 @@ export type SessionStore = ReturnType<typeof createSessionStore>
 export function createSessionStore(
   authService: cognito.ISessionProvider,
   registerAuthEventListener: ListenFunction,
-  httpClient: HttpClient = new HttpClient(),
+  httpClient: HttpClient = useHttpClient(),
   { getText } = useText(),
   queryClient = vueQuery.useQueryClient(),
   localStorage = useLocalStorageClass(),
@@ -298,7 +302,7 @@ export function createSessionStore(
   return proxyRefs({
     signUp,
     session: session.data,
-    suspense: session.suspense,
+    waitForSession: () => queryClient.ensureQueryData(sessionQueryOptions),
     isLoggingOut,
     confirmSignUp,
     signInWithPassword,
