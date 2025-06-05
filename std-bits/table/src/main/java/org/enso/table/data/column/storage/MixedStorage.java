@@ -170,26 +170,6 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     }
   }
 
-  /** {@see resolveUnaryOp} for explanations. */
-  private VectorizedOperationAvailability resolveTernaryOp(String name) {
-    // Shortcut - if the storage is already specialized - we prefer it.
-    if (cachedInferredStorage != null && cachedInferredStorage.isTernaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-    }
-
-    // Otherwise, we try to avoid specializing if not yet necessary.
-    if (super.isTernaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SUPER;
-    } else {
-      // But if our storage does not provide the operation, we have to try checking the other one.
-      if (getInferredStorage() != null && getInferredStorage().isTernaryOpVectorized(name)) {
-        return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-      } else {
-        return VectorizedOperationAvailability.NOT_AVAILABLE;
-      }
-    }
-  }
-
   @Override
   public boolean isBinaryOpVectorized(String name) {
     return resolveBinaryOp(name) != VectorizedOperationAvailability.NOT_AVAILABLE;
@@ -203,27 +183,6 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
       return super.runVectorizedBinaryMap(name, argument, problemAggregator);
-    }
-  }
-
-  @Override
-  public boolean isTernaryOpVectorized(String name) {
-    return resolveTernaryOp(name) != VectorizedOperationAvailability.NOT_AVAILABLE;
-  }
-
-  @Override
-  public Storage<?> runVectorizedTernaryMap(
-      String name,
-      Object argument0,
-      Object argument1,
-      MapOperationProblemAggregator problemAggregator) {
-    if (resolveTernaryOp(name)
-        == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage()
-          .runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
-    } else {
-      // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
     }
   }
 

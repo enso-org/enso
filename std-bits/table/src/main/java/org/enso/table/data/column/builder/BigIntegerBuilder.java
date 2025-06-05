@@ -15,6 +15,11 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
+  public static BigIntegerStorage makeEmpty(long size) {
+    int intSize = Builder.checkSize(size);
+    return new BigIntegerStorage(new BigInteger[intSize]);
+  }
+
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
 

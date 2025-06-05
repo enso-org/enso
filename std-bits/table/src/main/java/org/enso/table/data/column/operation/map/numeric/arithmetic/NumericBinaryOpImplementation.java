@@ -3,7 +3,11 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.builder.BigDecimalBuilder;
+import org.enso.table.data.column.builder.BigIntegerBuilder;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.DoubleBuilder;
+import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -14,9 +18,7 @@ import org.enso.table.data.column.storage.ColumnStorageFacade;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorageFacade;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
@@ -157,10 +159,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
 
   private static Storage<? extends Number> allNullStorageOfSameType(Storage<?> storage) {
     return switch (storage) {
-      case ColumnLongStorage s -> LongStorage.makeEmpty(storage.getSize(), INTEGER_RESULT_TYPE);
-      case BigIntegerStorage s -> BigIntegerStorage.makeEmpty(storage.getSize());
-      case BigDecimalStorage s -> BigDecimalStorage.makeEmpty(storage.getSize());
-      case ColumnDoubleStorage s -> DoubleStorage.makeEmpty(storage.getSize());
+      case ColumnLongStorage s -> LongBuilder.makeEmpty(storage.getSize(), INTEGER_RESULT_TYPE);
+      case BigIntegerStorage s -> BigIntegerBuilder.makeEmpty(storage.getSize());
+      case BigDecimalStorage s -> BigDecimalBuilder.makeEmpty(storage.getSize());
+      case ColumnDoubleStorage s -> DoubleBuilder.makeEmpty(storage.getSize());
       default -> throw newUnsupported(storage);
     };
   }
