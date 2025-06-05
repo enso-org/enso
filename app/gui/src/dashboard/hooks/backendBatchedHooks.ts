@@ -393,7 +393,7 @@ export function downloadAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationKey: [backend.type, 'downloadAssets'],
     mutationFn: async (options: DownloadAssetsMutationOptions) => {
-      const { ids, targetDirectoryId, shouldUnpackProject = true } = options
+      const { ids, targetDirectoryId, shouldUnpackProject } = options
 
       // Downloading assets should be done in order, because we want to avoid potential
       // race conditions.
