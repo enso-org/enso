@@ -535,29 +535,30 @@ class App {
           throw new Error('Window is not available.')
         }
 
+        console.log('D:', url)
         await download.download(this.window, url, {
           ...(path != null ? { directory: path } : {}),
           ...(name != null ? { filename: name } : {}),
           saveAs: showFileDialog != null ? showFileDialog : path == null,
           onCompleted: (file) => {
             const path = file.path
-            const clone = { path, filename: pathModule.basename(path) }
+            const filenameRaw = pathModule.basename(path)
 
             try {
               if (
-                projectManagement.isProjectBundle(clone.path) ||
-                projectManagement.isProjectRoot(clone.path)
+                projectManagement.isProjectBundle(path) ||
+                projectManagement.isProjectRoot(path)
               ) {
                 if (!shouldUnpackProject) {
                   return
                 }
                 // in case we're importing a project bundle, we need to remove the extension
                 // from the filename
-                const filename = clone.filename.replace(pathModule.extname(clone.filename), '')
-                const directory = pathModule.dirname(clone.path)
+                const filename = filenameRaw.replace(pathModule.extname(filenameRaw), '')
+                const directory = pathModule.dirname(path)
 
-                projectManagement.importProjectFromPath(clone.path, directory, filename)
-                fsSync.unlinkSync(clone.path)
+                projectManagement.importProjectFromPath(path, directory, filename)
+                fsSync.unlinkSync(path)
               }
             } catch (error) {
               console.error('Error downloading URL', error)

@@ -770,7 +770,7 @@ export default class LocalBackend extends Backend {
       }).toString()
 
       await download({
-        url: `/api/project-manager/projects/${path}/enso-project?${queryString}`,
+        url: `/api/project-manager/projects/${uuid}/enso-project?${queryString}`,
         name: `${title}.enso-project`,
         electronOptions: {
           shouldUnpackProject,
