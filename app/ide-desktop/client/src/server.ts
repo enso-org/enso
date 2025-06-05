@@ -16,9 +16,9 @@ import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as ydocServer from 'ydoc-server'
 
-import { addFsFolderToArchive, tarFsPack, zipWriteStream } from '@/archive'
+import { tarFsPack, tarGzReadStreamToFs, unzipEntries, zipWriteStream } from '@/archive'
 import * as contentConfig from '@/contentConfig'
-import { BUNDLED_PROJECT_EXTENSION } from '@/fileAssociations'
+import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import * as paths from '@/paths'
 import { app } from 'electron'
 import {
@@ -46,7 +46,7 @@ import {
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { basenameAndExtension, getFileName, getFolderPath } from 'enso-common/src/utilities/file'
-import { createReadStream, createWriteStream } from 'node:fs'
+import { createReadStream, createWriteStream, statSync } from 'node:fs'
 import {
   access,
   mkdir,
@@ -62,7 +62,6 @@ import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
 import { createGzip } from 'node:zlib'
-import { Unzip } from 'zip-lib'
 
 const logger = contentConfig.logger
 
@@ -541,57 +540,63 @@ export class Server {
     if (filePath != null) {
       archive.stream.pipe(createWriteStream(filePath))
     } else {
+      response.writeHead(HTTP_STATUS_OK, [
+        ['Content-Type', 'application/octet-stream'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
       archive.stream.pipe(response)
     }
-    for (const asset of assets) {
-      const typeAndId = extractTypeFromId(asset)
+
+    const addProject = async (id: ProjectId, rootPath?: string) => {
+      const assetPath = id.replace(/^project-/, '')
+      rootPath ??= getFolderPath(assetPath)
+      const pathInArchive = `${path.relative(rootPath, assetPath)}${BUNDLED_PROJECT_SUFFIX}`
+      if (!(await fileExists(assetPath))) {
+        notFound(id)
+        return
+      }
+      await archive.addFile(tarFsPack(assetPath).pipe(createGzip()), { name: pathInArchive })
+    }
+
+    const addFile = async (id: FileId, rootPath?: string) => {
+      const assetPath = id.replace(/^file-/, '')
+      rootPath ??= getFolderPath(assetPath)
+      const pathInArchive = path.relative(rootPath, assetPath)
+      if (!(await fileExists(assetPath))) {
+        notFound(id)
+        return
+      }
+      await archive.addFile(createReadStream(assetPath), { name: pathInArchive })
+    }
+
+    const addFolder = async (id: DirectoryId, rootPath?: string) => {
+      const assetPath = id.replace(/^directory-/, '')
+      rootPath ??= getFolderPath(assetPath)
+      const pathInArchive = path.relative(rootPath, assetPath)
+      if (!(await fileExists(assetPath))) {
+        notFound(id)
+        return
+      }
+      await archive.addFolder({ name: pathInArchive })
+      const entries = await this.apiListDirectory({ directory: id })
+      for (const entry of entries) {
+        await addAsset(entry.id, rootPath)
+      }
+    }
+
+    const addAsset = async (id: AssetId, rootPath?: string) => {
+      const typeAndId = extractTypeFromId(id)
       switch (typeAndId.type) {
         case AssetType.project: {
-          const [, uuid = '', directory = ''] =
-            asset.replace(/^project-/, '').match(/(\w+-\w+-\w+-\w+-\w+)-(.+)/) ?? []
-          const entries = await readdir(directory, { withFileTypes: true })
-          let found = false
-          for (const entry of entries) {
-            if (entry.isFile()) {
-              continue
-            }
-            try {
-              const projectPath = path.join(entry.parentPath, entry.name)
-              const metadata = projectManagement.getMetadata(projectPath)
-              if (metadata?.id !== uuid) {
-                continue
-              }
-              await archive.addFile(tarFsPack(projectPath).pipe(createGzip()), {
-                name: `${entry.name}.${BUNDLED_PROJECT_EXTENSION}`,
-              })
-              found = true
-              break
-            } catch {
-              // Ignore; this folder is not a project entry.
-            }
-          }
-          if (!found) {
-            notFound(asset)
-            return
-          }
+          await addProject(typeAndId.id, rootPath)
           break
         }
         case AssetType.file: {
-          const filePath = asset.replace(/^file-/, '')
-          if (!(await fileExists(filePath))) {
-            notFound(asset)
-            return
-          }
-          await archive.addFile(createReadStream(filePath), { name: getFileName(filePath) })
+          await addFile(typeAndId.id, rootPath)
           break
         }
         case AssetType.directory: {
-          const directoryPath = asset.replace(/^directory-/, '')
-          if (!(await fileExists(directoryPath))) {
-            notFound(asset)
-            return
-          }
-          await addFsFolderToArchive(archive, directoryPath, { name: getFileName(directoryPath) })
+          await addFolder(typeAndId.id, rootPath)
           break
         }
         // These asset types are not valid, however include them to force any newly added
@@ -602,12 +607,20 @@ export class Server {
         case AssetType.specialEmpty:
         case AssetType.specialError:
         case AssetType.specialUp: {
-          continue
+          return
         }
       }
     }
+
+    for (const id of assets) {
+      await addAsset(id)
+    }
     archive.finalize()
-    const result: ExportedArchive = { filePath: filePath != null ? Path(filePath) : null }
+    if (filePath == null) {
+      // The HTTP headers were already sent
+      return
+    }
+    const result: ExportedArchive = { filePath: Path(filePath) }
     const content = JSON.stringify(result)
     response
       .writeHead(HTTP_STATUS_OK, [
@@ -619,13 +632,13 @@ export class Server {
   }
 
   /** List a directory. */
-  async apiGetAssetDetailsByPath(params: { readonly type?: AssetType; readonly path: Path }) {
+  apiGetAssetDetailsByPath(params: { readonly type?: AssetType; readonly path: Path }) {
     try {
       const { type: typeRaw, path } = params
       const type =
         typeRaw ??
-        (await (async () => {
-          const assetStat = await stat(path)
+        (() => {
+          const assetStat = statSync(path)
           if (assetStat.isDirectory()) {
             const metadata = projectManagement.getMetadata(path)
             if (metadata) {
@@ -636,7 +649,7 @@ export class Server {
           } else {
             return AssetType.file
           }
-        })())
+        })()
       const shared = {
         title: getFileName(path),
         modifiedAt: toRfc3339(new Date()),
@@ -685,10 +698,10 @@ export class Server {
   }
 
   /** List a directory. */
-  async apiGetAssetDetails(params: { readonly assetId: AssetId }) {
+  apiGetAssetDetails(params: { readonly assetId: AssetId }) {
     const { assetId } = params
     const typeAndPath = extractTypeAndPath(assetId)
-    return await this.apiGetAssetDetailsByPath(typeAndPath)
+    return this.apiGetAssetDetailsByPath(typeAndPath)
   }
 
   /** List a directory. */
@@ -728,77 +741,66 @@ export class Server {
     }
     const assets: AnyAsset[] = []
     const conflicts: AssetConflict[] = []
-    const promises: Promise<void>[] = []
-    const archiveMetadata = new Unzip({
-      onEntry(event) {
-        event.preventDefault()
-        const promise = (async () => {
-          const entryPath = Path(path.join(directory, event.entryName))
-          const isDirectory = event.entryName.endsWith('/')
-          // If directories need to be merged in the future, the 'existing asset' check can be skipped.
-          const existingAsset = await self.apiGetAssetDetailsByPath({ path: entryPath })
-          if (existingAsset) {
-            const conflict: AssetConflict = {
-              sourcePath: Path(event.entryName),
-              existingAsset,
-            }
-            conflicts.push(conflict)
-            return
-          }
-          const shared = {
-            title: getFileName(entryPath),
-            modifiedAt: toRfc3339(new Date()),
-            parentId: DirectoryId(`directory-${getFolderPath(entryPath)}` as const),
-            extension: null,
-            permissions: [],
-            projectState: null,
-            parentsPath: ParentsPath(''),
-            virtualParentsPath: VirtualParentsPath(''),
-          } satisfies Partial<DirectoryAsset>
-          if (isDirectory) {
-            assets.push({
-              ...shared,
-              type: AssetType.directory,
-              id: DirectoryId(`directory-${entryPath}` as const),
-            })
-          } else {
-            assets.push({
-              ...shared,
-              type: AssetType.file,
-              id: FileId(`file-${entryPath}`),
-              extension: basenameAndExtension(entryPath).extension,
-            })
-          }
-        })()
-        promises.push(promise)
-      },
-    })
-    await Promise.all(promises)
-    await archiveMetadata.extract(filePath, directory)
+    for await (const { metadata } of await unzipEntries(filePath)) {
+      const entryPathInArchive = metadata.fileName
+      const entryPath = Path(path.join(directory, entryPathInArchive))
+      const isDirectory = entryPathInArchive.endsWith('/')
+      const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
+      // If directories need to be merged in the future, the 'existing asset' check can be skipped.
+      const existingAsset = self.apiGetAssetDetailsByPath({ path: entryPath })
+      if (existingAsset) {
+        const conflict: AssetConflict = {
+          sourcePath: Path(entryPathInArchive),
+          existingAsset,
+        }
+        conflicts.push(conflict)
+        return
+      }
+      const shared = {
+        title: getFileName(entryPath),
+        modifiedAt: toRfc3339(new Date()),
+        parentId: DirectoryId(`directory-${getFolderPath(entryPath)}` as const),
+        extension: null,
+        permissions: [],
+        projectState: null,
+        parentsPath: ParentsPath(''),
+        virtualParentsPath: VirtualParentsPath(''),
+      } satisfies Partial<DirectoryAsset>
+      if (isDirectory) {
+        assets.push({
+          ...shared,
+          type: AssetType.directory,
+          id: DirectoryId(`directory-${entryPath}` as const),
+        })
+      } else if (isProject) {
+        assets.push({
+          ...shared,
+          type: AssetType.project,
+          id: ProjectId(`project-${entryPath.replace(BUNDLED_PROJECT_SUFFIX, '/')}`),
+          projectState: { type: ProjectState.closed },
+        })
+      } else {
+        assets.push({
+          ...shared,
+          type: AssetType.file,
+          id: FileId(`file-${entryPath}`),
+          extension: basenameAndExtension(entryPath).extension,
+        })
+      }
+    }
     if (conflicts.length === 0) {
       // Upload; no conflict resolution needed.
-      await new Unzip().extract(filePath, directory)
+      for await (const entry of await unzipEntries(filePath)) {
+        if (entry.metadata.fileName.endsWith(BUNDLED_PROJECT_SUFFIX)) {
+          const destinationPath = entry.getDestinationPath(directory)
+          await tarGzReadStreamToFs(await entry.readStream(), destinationPath)
+        } else {
+          await entry.extract(directory)
+        }
+      }
     }
     if (tempDirectory != null) {
       await rm(tempDirectory, { force: true, recursive: true })
-    }
-    for (let i = 0; i < assets.length; i += 1) {
-      const asset = assets[i]
-      if (asset?.type !== AssetType.directory) {
-        continue
-      }
-      const path = asset.id.replace('directory-', '')
-      const metadata = projectManagement.getMetadata(path)
-      if (!metadata) {
-        // Ignore; this folder is not a project.
-        continue
-      }
-      assets[i] = {
-        ...asset,
-        type: AssetType.project,
-        id: ProjectId(`project-${asset.id.replace('directory-', '')}`),
-        projectState: { type: ProjectState.closed },
-      }
     }
     const responseBody: ImportArchiveResponse = { assets }
     const content = JSON.stringify(responseBody)

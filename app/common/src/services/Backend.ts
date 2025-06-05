@@ -1692,10 +1692,6 @@ export interface ExportArchiveParams {
 }
 
 export interface ExportedArchive {
-  /**
-   * `null` when there is not enough information to figure out the path.
-   * This happens, for example, when downloding in the browser.
-   */
   readonly filePath: Path | null
 }
 

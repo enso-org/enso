@@ -22,6 +22,7 @@ import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
 
 import * as desktopEnvironment from '@/desktopEnvironment'
+import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import { Path } from 'enso-common/src/services/Backend'
 
 const logger = console
@@ -32,8 +33,6 @@ const logger = console
 
 export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
-/** The filename suffix for the project bundle, including the leading period character. */
-const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 
 const SAMPLES_URL = 'https://github.com/enso-org/project-templates/archive/refs/heads/main.tar.gz'
 const SAMPLES_DIRECTORY_NAME = 'Samples'

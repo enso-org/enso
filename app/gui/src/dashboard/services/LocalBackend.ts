@@ -15,10 +15,12 @@ import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/util
 import HttpClient from '#/utilities/HttpClient'
 import { omit, unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
+import { PRODUCT_NAME } from 'enso-common'
 import {
   EXPORT_ARCHIVE_PATH,
   IMPORT_ARCHIVE_PATH,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
@@ -802,8 +804,15 @@ export default class LocalBackend extends Backend {
     )
     const searchParams = new URLSearchParams(entries).toString()
     const path = `${EXPORT_ARCHIVE_PATH}?${searchParams}`
-    const response = await this.post<backend.ExportedArchive>(path, {})
-    return await response.json()
+    if (params.filePath != null) {
+      const response = await this.post<backend.ExportedArchive>(path, {})
+      return await response.json()
+    } else {
+      const secondsString = new Date().getSeconds().toString().padStart(2, '0')
+      const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
+      await download({ url: path, name: `${PRODUCT_NAME} ${dateString}.zip` })
+      return { filePath: null }
+    }
   }
 
   /** Invalid operation. */

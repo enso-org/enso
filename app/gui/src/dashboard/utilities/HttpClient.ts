@@ -7,13 +7,7 @@ export const FETCH_ERROR_EVENT_NAME = 'fetch-error'
 export const OFFLINE_EVENT_NAME = 'offline'
 
 /** HTTP method variants that can be used in an HTTP request. */
-enum HttpMethod {
-  get = 'GET',
-  post = 'POST',
-  put = 'PUT',
-  patch = 'PATCH',
-  delete = 'DELETE',
-}
+type HttpMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
 
 /** A {@link Response} with a properly typed return type for `response.json()`. */
 export interface ResponseWithTypedJson<U> extends Response {
@@ -26,8 +20,8 @@ export interface HttpClientPostOptions {
 }
 
 /** Options for {@link HttpClient.request} private method. */
-export interface HttpClientRequestOptions {
-  readonly method: HttpMethod
+export interface HttpClientRequestOptions<Method extends HttpMethod> {
+  readonly method: Method
   readonly url: string
   readonly payload?: BodyInit | null
   readonly mimetype?: string
@@ -49,13 +43,13 @@ export default class HttpClient {
 
   /** Send an HTTP GET request to the specified URL. */
   get<T = void>(url: string) {
-    return this.request<T>({ method: HttpMethod.get, url })
+    return this.request<'GET', T>({ method: 'GET', url })
   }
 
   /** Send a JSON HTTP POST request to the specified URL. */
   post<T = void>(url: string, payload: object, options?: HttpClientPostOptions) {
-    return this.request<T>({
-      method: HttpMethod.post,
+    return this.request<'POST', T>({
+      method: 'POST',
       url,
       payload: JSON.stringify(payload),
       mimetype: 'application/json',
@@ -65,8 +59,8 @@ export default class HttpClient {
 
   /** Send a base64-encoded binary HTTP POST request to the specified URL. */
   async postBinary<T = void>(url: string, payload: Blob) {
-    return await this.request<T>({
-      method: HttpMethod.post,
+    return await this.request<'POST', T>({
+      method: 'POST',
       url,
       payload,
       mimetype: 'application/octet-stream',
@@ -75,8 +69,8 @@ export default class HttpClient {
 
   /** Send a JSON HTTP PATCH request to the specified URL. */
   patch<T = void>(url: string, payload: object) {
-    return this.request<T>({
-      method: HttpMethod.patch,
+    return this.request<'PATCH', T>({
+      method: 'PATCH',
       url,
       payload: JSON.stringify(payload),
       mimetype: 'application/json',
@@ -85,8 +79,8 @@ export default class HttpClient {
 
   /** Send a JSON HTTP PUT request to the specified URL. */
   put<T = void>(url: string, payload: object) {
-    return this.request<T>({
-      method: HttpMethod.put,
+    return this.request<'PUT', T>({
+      method: 'PUT',
       url,
       payload: JSON.stringify(payload),
       mimetype: 'application/json',
@@ -95,8 +89,8 @@ export default class HttpClient {
 
   /** Send a base64-encoded binary HTTP POST request to the specified URL. */
   async putBinary<T = void>(url: string, payload: Blob) {
-    return await this.request<T>({
-      method: HttpMethod.put,
+    return await this.request<'PUT', T>({
+      method: 'PUT',
       url,
       payload,
       mimetype: payload.type || 'application/octet-stream',
@@ -105,8 +99,8 @@ export default class HttpClient {
 
   /** Send an HTTP DELETE request to the specified URL. */
   delete<T = void>(url: string, payload?: Record<string, unknown>) {
-    return this.request<T>({
-      method: HttpMethod.delete,
+    return this.request<'DELETE', T>({
+      method: 'DELETE',
       url,
       payload: payload ? JSON.stringify(payload) : null,
     })
@@ -125,7 +119,9 @@ export default class HttpClient {
    * Execute an HTTP request to the specified URL, with the given HTTP method.
    * @throws {Error} if the HTTP request fails.
    */
-  private async request<T = void>(options: HttpClientRequestOptions) {
+  private async request<Method extends HttpMethod, T = void>(
+    options: HttpClientRequestOptions<Method>,
+  ) {
     const headers = new Headers(this.defaultHeaders)
     const payload = options.payload
     if (payload != null) {
@@ -146,7 +142,9 @@ export default class HttpClient {
         headers,
         keepalive: options.keepalive ?? false,
         ...(payload != null ? { body: payload } : {}),
-      })) as ResponseWithTypedJson<T>
+      })) as ResponseWithTypedJson<T> & {
+        readonly body: Method extends 'GET' | 'HEAD' ? null : NonNullable<Response['body']>
+      }
       document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
       return response
     } catch (error) {

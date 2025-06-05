@@ -34,8 +34,8 @@
     "tar-stream": "^3.1.7",
     "yaml": "^2.7.0",
     "yargs": "17.6.2",
+    "yauzl": "^3.2.0",
     "ydoc-server": "workspace:*",
-    "zip-lib": "^1.1.2",
     "zip-stream": "^7.0.2"
   },
   "devDependencies": {
@@ -51,6 +51,7 @@
     "@types/tar": "^6.1.13",
     "@types/tar-stream": "^3.1.4",
     "@types/yargs": "^17.0.33",
+    "@types/yauzl": "^2.10.3",
     "@types/zip-stream": "^7.0.0",
     "babel-plugin-react-compiler": "19.0.0-beta-6fc168f-20241025",
     "chromatic": "11.25.1",

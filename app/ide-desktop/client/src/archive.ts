@@ -1,9 +1,14 @@
-import { createReadStream } from 'node:fs'
-import { readdir, stat } from 'node:fs/promises'
-import { join, relative } from 'node:path'
-import { Stream } from 'node:stream'
+import { getFolderPath } from 'enso-common/src/utilities/file'
+import gunzipMaybe from 'gunzip-maybe'
+import { createWriteStream } from 'node:fs'
+import { mkdir } from 'node:fs/promises'
+import { platform } from 'node:os'
+import { join } from 'node:path'
+import type { Readable, Stream, Writable } from 'node:stream'
 import { createGzip } from 'node:zlib'
+import { extract as tarFsExtract } from 'tar-fs'
 import { pack as tarPack } from 'tar-stream'
+import { Entry, open as yauzlOpen, type ZipFile } from 'yauzl'
 import { default as ZipStream, type FileDataInput } from 'zip-stream'
 export { pack as tarFsPack } from 'tar-fs'
 
@@ -22,6 +27,22 @@ export interface ArchiveBuilder {
   readonly finalize: () => void
 }
 
+/** Convert a readable stream to a promise. */
+function readableStreamToPromise(stream: Readable) {
+  return new Promise<void>((resolve, reject) => {
+    stream.once('end', resolve)
+    stream.once('error', reject)
+  })
+}
+
+/** Convert a stream to a promise. */
+function writableStreamToPromise(stream: Writable) {
+  return new Promise<void>((resolve, reject) => {
+    stream.once('close', resolve)
+    stream.once('error', reject)
+  })
+}
+
 /** Create a stream to encode to a `.zip` file. */
 export function zipWriteStream(): ArchiveBuilder {
   const archive = new ZipStream()
@@ -34,7 +55,13 @@ export function zipWriteStream(): ArchiveBuilder {
     },
     addFolder(data) {
       return new Promise((resolve, reject) => {
-        archive.entry(null, data, (error, entry) => (entry ? resolve() : reject(error)))
+        const nameRaw = data.name
+        const nameHasTrailingFolderSeparator =
+          nameRaw.endsWith('/') || (platform() === 'win32' && nameRaw.endsWith('\\'))
+        const name = nameHasTrailingFolderSeparator ? nameRaw : `${nameRaw}/`
+        archive.entry(null, { ...data, name }, (error, entry) =>
+          entry ? resolve() : reject(error),
+        )
       })
     },
     finalize() {
@@ -78,32 +105,95 @@ function tarWriteStream(): ArchiveBuilder {
 
 /** Create a stream to encode to a `.tar` file. */
 export function tarGzWriteStream(): ArchiveBuilder {
-  const gzipStream = createGzip()
   const builder = tarWriteStream()
-  builder.stream.pipe(gzipStream)
-  return { ...builder, stream: gzipStream }
+  return { ...builder, stream: builder.stream.pipe(createGzip()) }
 }
 
-/** Add a folder and all its children recursively to an archive. */
-export async function addFsFolderToArchive(
-  builder: ArchiveBuilder,
-  folderPath: string,
-  data: ArchiveEntryMetadata,
-) {
-  const { name: rootPath } = data
-  const onEntry = async (entryPath: string) => {
-    const pathInFolder = relative(folderPath, entryPath)
-    const pathInArchive = join(rootPath, pathInFolder)
-    const entryStat = await stat(entryPath)
-    if (!entryStat.isDirectory()) {
-      await builder.addFile(createReadStream(pathInFolder), { name: pathInArchive })
-    } else {
-      await builder.addFolder({ name: pathInArchive })
-      for (const entryName of await readdir(entryPath)) {
-        const childPath = join(entryPath, entryName)
-        await onEntry(childPath)
+/** Exrtract a `.tar` file to the filesystem. */
+async function tarReadStreamToFs(stream: Stream, path: string) {
+  return writableStreamToPromise(stream.pipe(tarFsExtract(path)))
+}
+
+/** Exrtract a `.tar.gz` file to the filesystem. */
+export async function tarGzReadStreamToFs(stream: Stream, path: string) {
+  await tarReadStreamToFs(stream.pipe(gunzipMaybe()), path)
+}
+
+export interface ArchiveEntry {
+  readonly metadata: Entry
+  readonly getDestinationPath: (rootDirectory: string) => string
+  readonly readStream: () => Promise<Readable>
+  /**
+   * @param rootDirectory - The root directory of extraction. This will be joined with the path
+   * in the archive to form the destination path.
+   */
+  readonly extract: (
+    rootDirectory: string,
+    transform?: (stream: Readable, entry: Entry) => Readable | null | undefined | false,
+  ) => Promise<void>
+}
+
+/** Return an async iterator over the entries of a `.zip` file. */
+export async function unzipEntries(path: string) {
+  const archive = await new Promise<ZipFile>((resolve, reject) => {
+    yauzlOpen(path, { lazyEntries: true }, (error, archive) =>
+      error ? reject(error) : resolve(archive),
+    )
+  })
+  return {
+    async *[Symbol.asyncIterator]() {
+      while (true) {
+        const promise = new Promise<ArchiveEntry | null>((resolve, reject) => {
+          const end = () => {
+            resolve(null)
+          }
+          archive.on('error', reject)
+          archive.on('end', end)
+          archive.once('entry', (entry: Entry) => {
+            archive.off('error', reject)
+            archive.off('end', end)
+            const archiveEntry: ArchiveEntry = {
+              metadata: entry,
+              getDestinationPath(rootDirectory) {
+                return join(rootDirectory, entry.fileName)
+              },
+              async readStream() {
+                return new Promise<Readable>((resolve, reject) =>
+                  archive.openReadStream(entry, (error, readStream) =>
+                    error ? reject(error) : resolve(readStream),
+                  ),
+                )
+              },
+              async extract(rootDirectory, transform) {
+                const destinationPath = archiveEntry.getDestinationPath(rootDirectory)
+                if (entry.fileName.endsWith('/')) {
+                  await mkdir(destinationPath, { recursive: true })
+                  return
+                }
+                // According to `yauzl` documentation:
+                // Entries for directories themselves are optional in `.zip` archives.
+                await mkdir(getFolderPath(destinationPath), { recursive: true })
+                const readStreamRaw = await archiveEntry.readStream()
+                const readStream = transform?.(readStreamRaw, entry) ?? readStreamRaw
+                if (readStream === false) {
+                  // Skip this entry.
+                  return
+                }
+                const promise = readableStreamToPromise(readStream)
+                readStream.pipe(createWriteStream(destinationPath))
+                return await promise
+              },
+            }
+            resolve(archiveEntry)
+          })
+        })
+        archive.readEntry()
+        const result = await promise
+        if (!result) {
+          break
+        }
+        yield result
       }
-    }
+    },
   }
-  await onEntry(folderPath)
 }
