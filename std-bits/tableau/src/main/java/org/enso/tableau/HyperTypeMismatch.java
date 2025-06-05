@@ -6,7 +6,14 @@ public class HyperTypeMismatch extends RuntimeException {
   private final String actualType;
 
   public HyperTypeMismatch(String columnName, String expectedType, String actualType) {
-    super("Type mismatch found in column " + columnName + ": expected " + expectedType + ", actual " + actualType + ".");
+    super(
+        "Type mismatch found in column "
+            + columnName
+            + ": expected "
+            + expectedType
+            + ", actual "
+            + actualType
+            + ".");
     this.columnName = columnName;
     this.expectedType = expectedType;
     this.actualType = actualType;
