@@ -954,4 +954,4 @@ type Fixed_Width_Line_Too_Long
 
     ## PRIVATE
     handle_java_exception =
-        Panic.catch FixedWidthLineTooLongException handler=(e -> Error.throw (Fixed_Width_Line_Too_Long.Error e.payload.source_line_number e.payload.max_line_length))
+        Panic.catch FixedWidthLineTooLongException handler=(e -> Error.throw (Fixed_Width_Line_Too_Long.Error e.payload.sourceLineNumber e.payload.maxLineLength))
