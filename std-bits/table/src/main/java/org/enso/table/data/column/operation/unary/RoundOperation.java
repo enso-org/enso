@@ -23,7 +23,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
   /** Minimum value for the `n` parameter to `roundLong`. */
   private static final long ROUND_MIN_LONG = -99999999999999L;
 
-  /** Minimum value for the `n` parameter to `roundLong`. */
+  /** Maximum value for the `n` parameter to `roundLong`. */
   private static final long ROUND_MAX_LONG = 99999999999999L;
 
   /** Error message for out-of-range values in `roundLong`. */

@@ -87,6 +87,7 @@ public class FixedWidthReader {
     layoutWidth = layoutEntries.get(layoutEntries.size() - 1).end();
 
     initBuilders(layoutEntries.size());
+    byte[] readBuffer = new byte[minimumLineLength];
 
     while (true) {
       int lineLength = readLine(inputStream);
@@ -204,6 +205,41 @@ public class FixedWidthReader {
       context.safepoint();
     }
 
+    return lineLength;
+  }
+
+  /*
+   * Reads up to `minimumLineLength` bytes into the buffer. Returns the actual
+   * length of the entire line, even if that is not equal to
+   * `minimumLineLength`.
+   * Returns -1 if the first read attempt is EOF.
+   */
+  private int readLine(InputStream inputStream, byte[] buffer) throws IOException {
+    Context context = Context.getCurrent();
+
+    int lineLength = 0;
+    while (true) {
+      int c = inputStream.read();
+      if (c == -1) {
+        if (lineLength == 0) {
+          // First attempt was EOF, so return -1 to signify that the stream is done.
+          return -1;
+        } else {
+          break;
+        }
+      } else if (c == '\n') {
+        // Line is done. Don't include the newline.
+        break;
+      } else {
+        if (lineLength < minimumLineLength) {
+          // There is room for the next byte.
+          buffer[lineLength] = (byte) c;
+        }
+        lineLength++;
+      }
+
+      context.safepoint();
+    }
     return lineLength;
   }
 

@@ -423,6 +423,18 @@ lazy val enso = (project in file("."))
   .settings(
     commands ++= Seq(packageBuilder.makePackages, packageBuilder.makeBundles)
   )
+  .settings(
+    clean := Def.task {
+      val _ = clean.value
+      val filesToDelete = Seq(
+        engineDistributionRoot.value,
+        launcherDistributionRoot.value,
+        projectManagerDistributionRoot.value,
+        packageBuilder.artifactRoot
+      )
+      IO.delete(filesToDelete)
+    }.value
+  )
 
 // ============================================================================
 // === Dependency Versions ====================================================
@@ -4014,7 +4026,6 @@ lazy val `engine-runner` = project
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
               "-H:+RunReachabilityHandlersConcurrently",
-              "-H:+ForeignAPISupport",
               "-R:-InstallSegfaultHandler",
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
@@ -4181,6 +4192,9 @@ lazy val launcher = project
         "ensoup"
       )
       .value,
+    cleanFiles += {
+      new File("ensoup")
+    },
     assembly / test := {},
     assembly / assemblyOutputPath := file("launcher.jar"),
     assembly / assemblyMergeStrategy := {
@@ -4341,7 +4355,6 @@ lazy val `os-environment` =
           additionalOptions = Seq(
             "-ea",
             "--features=org.enso.os.environment.TestCollectorFeature",
-            "-H:+ForeignAPISupport",
             "-R:-InstallSegfaultHandler"
           ) ++ (if (GraalVM.EnsoLauncher.debug) {
                   // useful perf & debug switches:
@@ -4940,7 +4953,11 @@ lazy val `std-base` = project
           previousRun        = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`base-polyglot-root`)
+    }.value
   )
   .dependsOn(`common-polyglot-core-utils`)
 
@@ -5126,7 +5143,11 @@ lazy val `std-table` = project
           previousRun       = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`table-polyglot-root`)
+    }.value
   )
   .dependsOn(`poi-wrapper`)
   .dependsOn(`std-base` % "provided")
@@ -5210,7 +5231,12 @@ lazy val `std-image` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`image-polyglot-root`)
+      IO.delete(`image-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
 
@@ -5243,7 +5269,11 @@ lazy val `std-generic-jdbc` = project
           previousRun = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`generic-jdbc-polyglot-root`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5334,7 +5364,12 @@ lazy val `std-google-api` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`google-api-polyglot-root`)
+      IO.delete(`google-api-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5411,7 +5446,12 @@ lazy val `std-database` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`database-polyglot-root`)
+      IO.delete(`database-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5453,7 +5493,11 @@ lazy val `std-aws` = project
           previousRun = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-aws-polyglot-root`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5537,7 +5581,12 @@ lazy val `std-snowflake` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-snowflake-polyglot-root`)
+      IO.delete(`std-snowflake-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5597,7 +5646,11 @@ lazy val `std-microsoft` = project
           previousRun       = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-microsoft-polyglot-root`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5767,7 +5820,12 @@ lazy val `std-tableau` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-tableau-polyglot-root`)
+      IO.delete(`std-tableau-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")

@@ -1,5 +1,8 @@
 from Standard.Base import all
+<<<<<<< HEAD
 import Standard.Base.Errors.Common.Missing_Argument
+=======
+>>>>>>> develop
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -20,8 +23,11 @@ import enso_dev.Base_Tests.Data.Text.Encoding_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 
+<<<<<<< HEAD
 polyglot java import org.enso.table.read.FixedWidthReader
 
+=======
+>>>>>>> develop
 add_direct_specs suite_builder =
     data_dir = enso_project.data / "fixed-width"
     fixed_file = data_dir / "fixed.txt"
@@ -30,12 +36,15 @@ add_direct_specs suite_builder =
     formatted = data_dir / "formatted.txt"
     fixed2 = data_dir / "fixed2.txt"
     bad_chars = data_dir / "bad_chars.txt"
+<<<<<<< HEAD
     empty_fields = data_dir / "empty_fields.txt"
     infer_headers_left = data_dir / "infer_headers_left.txt"
     infer_headers_right = data_dir / "infer_headers_right.txt"
     infer_headers_one_left = data_dir / "infer_headers_one_left.txt"
     infer_headers_one_right = data_dir / "infer_headers_one_right.txt"
     infer_headers_no_headers = data_dir / "infer_headers_no_headers.txt"
+=======
+>>>>>>> develop
 
     suite_builder.group "Read fixed-width files" group_builder->
         group_builder.specify "Should make a layout from a description" <|
@@ -270,7 +279,7 @@ add_direct_specs suite_builder =
             Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 3 17 21) t
             t.at "Column 1" . to Vector . should_equal [1234, 2345, 6789, 4343]
             t.at "Column 2" . to Vector . should_equal [98765, 87654, 51122, 1234]
-            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", Nothing]
+            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", ""]
 
         group_builder.specify "Should drop short lines with Invalid_Rows.Drop_Invalid_Rows" <|
             descs = []
@@ -306,6 +315,7 @@ add_direct_specs suite_builder =
             t.at "y" . to Vector . should_equal [True, False, False]
             t.at "z" . to Vector . should_equal ["J", "C", "E"]
 
+<<<<<<< HEAD
         group_builder.specify "Should treat empty fields as Nothing" <|
             descs = []
                 + [Fixed_Width_Column_Description.Start_And_Width 5 3]
@@ -357,6 +367,8 @@ add_direct_specs suite_builder =
         group_builder.specify "Throws an exception when inferring headers and the header row has no columns" <|
             infer_headers_no_headers.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left) . should_fail_with No_Column_Names_Found
 
+=======
+>>>>>>> develop
         group_builder.specify "should work with all kinds of line endings" pending="https://github.com/enso-org/enso/issues/13137" <|
             descs = []
                 + [Fixed_Width_Column_Description.Start_And_Width 0 1 "x"]
@@ -395,6 +407,7 @@ add_direct_specs suite_builder =
             expected = Encoding_Error.Error "Failed to decode 4 code units (at positions: character 0 row 0 column 1, character 1 row 0 column 1, character 1 row 1 column 0, ...)."
             Problems.expect_warning expected t
 
+<<<<<<< HEAD
         group_builder.specify "Should respond to a missing layout with a custom message" <|
             err = Fixed_Width_Format.Fixed_Width
             err . should_fail_with Missing_Argument
@@ -417,6 +430,8 @@ add_direct_specs suite_builder =
 
                 format.read_stream stream . should_fail_with Fixed_Width_Line_Too_Long
 
+=======
+>>>>>>> develop
 fixed_width_spec_from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Error) -> Text =
     table_bytes =
