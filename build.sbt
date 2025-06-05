@@ -5500,7 +5500,6 @@ lazy val `std-aws` = project
       val _ = clean.value
       IO.delete(`std-aws-polyglot-root`)
     }.value
-
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5590,7 +5589,6 @@ lazy val `std-snowflake` = project
       IO.delete(`std-snowflake-polyglot-root`)
       IO.delete(`std-snowflake-native-libs`)
     }.value
-
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
