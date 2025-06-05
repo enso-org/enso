@@ -49,64 +49,33 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     return getType();
   }
 
-  /**
-   * Returns the smallest type (according to Column.auto_value_type rules) that may still fit all
-   * values in this column.
-   *
-   * <p>It is a sibling of `inferPreciseType` that allows some further shrinking. It is kept
-   * separate, because `inferPreciseType` should be quick to compute (cached if needed) as it is
-   * used in typechecking of lots of operations. This one however, is only used in a specific
-   * `auto_value_type` use-case and rarely will need to be computed more than once.
-   */
-  @Deprecated
-  public StorageType<?> inferPreciseTypeShrunk() {
-    return getType();
-  }
-
   /** A container for names of vectorizable operation. */
   public static final class Maps {
-    public static final String EQ = "==";
-    public static final String LT = "<";
-    public static final String LTE = "<=";
-    public static final String GT = ">";
-    public static final String GTE = ">=";
     public static final String MUL = "*";
     public static final String ADD = "+";
     public static final String SUB = "-";
     public static final String DIV = "/";
     public static final String MOD = "%";
     public static final String POWER = "^";
-    public static final String ROUND = "round";
-    public static final String IS_IN = "is_in";
   }
 
-  /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
-  public abstract boolean isBinaryOpVectorized(String name);
-
-  /** Runs a vectorized operation on this storage, taking one scalar argument. */
-  public abstract Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator);
-
-  /* Specifies if the given ternary operation has a vectorized implementation available for this storage.*/
-  public boolean isTernaryOpVectorized(String name) {
-    return false;
-  }
-
-  /** Runs a vectorized operation on this storage, taking two scalar arguments. */
-  public Storage<?> runVectorizedTernaryMap(
-      String name,
-      Object argument0,
-      Object argument1,
-      MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalArgumentException("Unsupported ternary operation: " + name);
+  /**
+   * Runs a vectorized operation on this storage, taking one scalar argument. Return null is not a
+   * supported operation.
+   */
+  protected Storage<?> runVectorizedBinaryMap(
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return null;
   }
 
   /**
    * Runs a vectorized operation on this storage, taking a storage as the right argument -
-   * processing row-by-row.
+   * processing row-by-row. Return null is not a supported operation.
    */
-  public abstract Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator);
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return null;
+  }
 
   /**
    * Runs a 2-argument function on each element in this storage.
@@ -203,40 +172,13 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       Object argument,
       boolean skipNulls,
       StorageType<?> expectedResultType) {
-    if (isBinaryOpVectorized(name)) {
-      return runVectorizedBinaryMap(name, argument, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
+    var binaryMap = runVectorizedBinaryMap(name, argument, problemAggregator);
+    if (binaryMap != null) {
+      return binaryMap;
     }
-  }
 
-  /**
-   * Runs a ternary operation with two scalar arguments.
-   *
-   * <p>Does not take a fallback function.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param argument0 the first argument to pass to each run of the function
-   * @param argument1 the second argument to pass to each run of the function
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedTernaryMap(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      Object argument0,
-      Object argument1,
-      boolean skipNulls,
-      StorageType<?> expectedResultType) {
-    if (isTernaryOpVectorized(name)) {
-      return runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
-    } else {
-      throw new IllegalArgumentException("Unsupported ternary operation: " + name);
-    }
+    checkFallback(fallback, expectedResultType, name);
+    return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
   }
 
   /**
@@ -261,12 +203,13 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       Storage<?> other,
       boolean skipNulls,
       StorageType<?> expectedResultType) {
-    if (isBinaryOpVectorized(name)) {
-      return runVectorizedZip(name, other, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return zip(fallback, other, skipNulls, expectedResultType, problemAggregator);
+    var binaryZip = runVectorizedZip(name, other, problemAggregator);
+    if (binaryZip != null) {
+      return binaryZip;
     }
+
+    checkFallback(fallback, expectedResultType, name);
+    return zip(fallback, other, skipNulls, expectedResultType, problemAggregator);
   }
 
   private void checkFallback(Object fallback, StorageType<?> storageType, String operationName)
@@ -427,7 +370,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
 
   @Override
   public Iterator<T> iterator() {
-    return new Iterator<T>() {
+    return new Iterator<>() {
       private long index = -1;
 
       @Override
