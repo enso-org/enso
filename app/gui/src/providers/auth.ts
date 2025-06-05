@@ -119,10 +119,6 @@ export const useAuth = createGlobalState(() => {
   const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend)
 
   const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)
-  watchEffect(
-    () => console.log('usersMe', usersMeQuery.fetchStatus.value, usersMeQuery.data.value),
-    { flush: 'sync' },
-  )
   const userData = usersMeQuery.data
   const userPromise = computed(() =>
     usersMeQuery.promise.value.then((user) => (user && 'user' in user ? user.user : null)),
@@ -272,7 +268,6 @@ export const useAuth = createGlobalState(() => {
   )
 
   function routeGuard(route: RouteLocation) {
-    console.log('routeGuart', route, effectiveUserData.value)
     if (route.meta.access == null) return true
     if (route.meta.access === 'guest' && effectiveUserData.value == null) return true
     if (route.meta.access === 'anyLoggedIn' && effectiveUserData.value != null) return true

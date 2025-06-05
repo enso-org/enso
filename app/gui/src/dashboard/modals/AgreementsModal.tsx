@@ -70,7 +70,6 @@ export const AgreementsModal = memo(function AgreementsModal({
   const [cachedTosHash, setCachedTosHash] = useLocalStorageState('termsOfService')
   const [cachedPrivacyPolicyHash, setCachedPrivacyPolicyHash] =
     useLocalStorageState('privacyPolicy')
-  console.log('>>>', cachedTosHash, cachedPrivacyPolicyHash)
 
   const { data: tosHash } = useSuspenseQuery({
     ...latestTermsOfServiceQueryOptions,
@@ -90,9 +89,6 @@ export const AgreementsModal = memo(function AgreementsModal({
     }),
     select: (data) => data.hash,
   })
-
-  console.log('tosHash', tosHash, 'agreed', cachedTosHash?.versionHash)
-  console.log('ppHash', privacyPolicyHash, 'agreed', cachedPrivacyPolicyHash?.versionHash)
 
   const isLatest =
     tosHash === cachedTosHash?.versionHash &&

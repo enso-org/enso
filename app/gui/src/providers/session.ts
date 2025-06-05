@@ -55,10 +55,6 @@ export function createSessionStore(
   const sessionQueryOptions = createSessionQuery(authService)
   const session = vueQuery.useQuery(sessionQueryOptions)
 
-  watchEffect(() => console.error('session', session.fetchStatus.value, session.data.value), {
-    flush: 'sync',
-  })
-
   const refreshUserSessionMutation = vueQuery.useMutation({
     mutationKey: computed(() => ['refreshUserSession', { expireAt: session.data.value?.expireAt }]),
     mutationFn: async () => authService.refreshUserSession(),

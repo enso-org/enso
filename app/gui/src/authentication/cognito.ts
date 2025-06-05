@@ -275,7 +275,6 @@ export class Cognito implements ISessionProvider {
    * Will refresh the {@link UserSession} if it has expired.
    */
   async userSession() {
-    console.log('Getting user session')
     return amplify.Auth.currentSession()
       .then((result) => parseUserSession(result, this.amplifyConfig.userPoolWebClientId))
       .catch(() => null)

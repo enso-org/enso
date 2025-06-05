@@ -72,7 +72,6 @@ describe('SessionProvider', () => {
   it('Should retrieve the user session', () =>
     withSetup(async () => {
       const session = createSessionStore(authService, registerAuthEventListener, new HttpClient())
-      console.error('Before')
       // One tick for useQuery firing refetch, second for result propagation.
       await nextTick()
       expect(authService.userSession).toBeCalled()
