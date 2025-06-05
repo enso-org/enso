@@ -234,14 +234,14 @@ class Runner(
           (engine, runtime) =>
             if (runSettings.jvm.isDefined) {
               val javaHome = runSettings.jvm.get
-              val javaExec = if (javaHome.isDefined) {
-                new JavaExecCommand(
-                  javaHome.get.resolve("bin").resolve("java").toString,
-                  javaHome.map(_.toString)
+              val javaExec = javaHome
+                .map(home =>
+                  new JavaExecCommand(
+                    home.resolve("bin").resolve("java").toString,
+                    javaHome.map(_.toString)
+                  )
                 )
-              } else {
-                JavaExecCommand.forRuntime(runtime)
-              }
+                .getOrElse(JavaExecCommand.forRuntime(runtime))
               prepareAndRunCommand(
                 engine,
                 javaExec
