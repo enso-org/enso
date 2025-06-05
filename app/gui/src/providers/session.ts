@@ -8,16 +8,15 @@ import * as cognito from '$/authentication/cognito'
 import { AuthEvent } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
 import { useLocalStorageClass } from '$/stores/localStorage'
-import { Opt } from '@/util/data/opt'
 import { Err } from '@/util/data/result'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
-import { computed, onScopeDispose, proxyRefs, Ref, ref, watchEffect } from 'vue'
+import { computed, onScopeDispose, proxyRefs, ref, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
-import { TextStore, useText } from './text'
+import { useText } from './text'
 
 /** Create a query for the user session. */
 export function createSessionQuery(authService: cognito.ISessionProvider) {
@@ -37,15 +36,13 @@ function getMainPageUrl() {
   return mainPageUrl
 }
 
-export type SessionStore = ReturnType<typeof useSession>
-export const useSession = createGlobalState(() => {
-  // -- these were parameters
-  const httpClient: HttpClient = useHttpClient()
-  const { getText }: TextStore = useText()
-  const queryClient: vueQuery.QueryClient = vueQuery.useQueryClient()
-  const localStorage = useLocalStorageClass()
-  // ----
-
+export type SessionStore = ReturnType<typeof createSessionStore>
+export function createSessionStore(
+  httpClient: HttpClient = useHttpClient(),
+  { getText } = useText(),
+  queryClient = vueQuery.useQueryClient(),
+  localStorage = useLocalStorageClass(),
+) {
   const mainPageUrl = getMainPageUrl()
   const authService = useInitAuthService({
     supportsDeepLinks: !IS_DEV_MODE && !isOnLinux() && isOnElectron(),
@@ -319,42 +316,6 @@ export const useSession = createGlobalState(() => {
     verifyTotpToken,
     setupTOTP,
   })
-})
-
-const TEN_SECONDS_MS = 10_000
-const SIX_HOURS_MS = 21_600_000
-
-function setupRefresh(
-  refreshUserSession: () => Promise<cognito.UserSession | null>,
-  session: Ref<Opt<cognito.UserSession>>,
-) {
-  vueQuery.useQuery({
-    queryKey: computed(
-      () => ['refreshUserSession', { refreshToken: session.value?.refreshToken }] as const,
-    ),
-    queryFn: () => refreshUserSession(),
-    meta: { persist: false },
-    networkMode: 'online',
-    initialData: session.value,
-    initialDataUpdatedAt: Date.now(),
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: 'always',
-    refetchOnReconnect: 'always',
-    refetchOnMount: 'always',
-    enabled: computed(() => session.value != null),
-    refetchInterval: () => {
-      if (!session.value) return false
-      const expireAt = session.value.expireAt
-
-      const timeUntilRefresh =
-        // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
-        // We use 1 second to ensure that we refresh even if the time is very close to expiring
-        // and value won't be less than 0.
-        Math.max(new Date(expireAt).getTime() - Date.now() - TEN_SECONDS_MS, TEN_SECONDS_MS)
-
-      return timeUntilRefresh < SIX_HOURS_MS ? timeUntilRefresh : SIX_HOURS_MS
-    },
-  })
 }
 
-// TODO[ao]: restore logout dialog before merge.
+export const useSession = createGlobalState(createSessionStore)

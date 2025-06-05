@@ -1,4 +1,4 @@
-import { type App, createApp } from 'vue'
+import { type App, createApp, effectScope } from 'vue'
 
 /**
  * An utility for testing composables that actually depend on vue's `setup` environment.
@@ -18,4 +18,15 @@ export function withSetup<T>(composable: () => T): [T | undefined, App] {
   // return the result and the app instance
   // for testing provide/unmount
   return [result, app]
+}
+
+export function withEffectsScope(composable: () => T): T {
+  const scope = effectScope()
+  return scope.run(() => {
+    try {
+      return composable()
+    } finally {
+      scope.stop()
+    }
+  })
 }
