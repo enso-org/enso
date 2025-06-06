@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { Action, ActionName, resolveAction } from '@/providers/action'
+import { type ActionName, resolveAction } from '@/providers/action'
 import { computed, toValue } from 'vue'
 
-const { action: actionOrName } = defineProps<{ action: Action | ActionName }>()
-const action = computed(() => resolveAction(actionOrName))
+const { action: actionName } = defineProps<{ action: ActionName }>()
+const action = computed(() => resolveAction(actionName))
 </script>
 
 <template>
   <MenuButton
-    v-if="!toValue(action.hidden)"
-    :data-testid="action.testid"
-    :disabled="toValue(action.disabled)"
+    v-if="toValue(action.available)"
+    :data-testid="`action:${actionName}`"
+    :disabled="!toValue(action.enabled)"
     class="ContextMenuEntry"
     v-bind="action.toggled != null ? { modelValue: toValue(action.toggled) } : {}"
     @click="action.action"

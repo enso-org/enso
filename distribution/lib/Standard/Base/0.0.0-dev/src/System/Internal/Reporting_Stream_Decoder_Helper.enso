@@ -32,23 +32,6 @@ run (input_stream : Input_Stream) (encoding : Encoding) (on_problems : Problem_B
             decoder = ReportingStreamDecoder.new java_stream effective_encoding.to_java_charset problem_aggregator poll_safepoints
             continuation decoder
     problems = Vector.from_polyglot_array problem_aggregator.summarize . map decoding_problem->
-        IO.println "AAAAA "+decoding_problem.to_text+" "+(Meta.type_of decoding_problem).to_text
-        hh cp =
-            IO.println "AAAAA caught "+cp.to_text
-        foo ~x =
-            Panic.catch Any handler=hh x
-        foo <|
-            IO.println "AAAAA "+decoding_problem.getClass.to_text
-        foo <|
-            IO.println "AAAAA "+decoding_problem.catch.message.to_text
-        foo <|
-            IO.println "AAAAA "+decoding_problem.message.to_text
-        foo <|
-            IO.println "AAAAA "+decoding_problem.catch.getTheMessage.to_text
-        foo <|
-            IO.println "AAAAA "+decoding_problem.getTheMessage.to_text
-        foo <|
-            IO.println "AAAAA "+(Polyglot.get_language decoding_problem).to_text
         Encoding_Error.Error decoding_problem.message
     on_problems.attach_problems_after result problems
 
