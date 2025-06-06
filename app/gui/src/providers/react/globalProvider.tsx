@@ -5,7 +5,6 @@ import { BackendsStore, useBackends } from '$/providers/backends'
 import { useHttpClient } from '$/providers/httpClient'
 import { QueryParams, useQueryParams } from '$/providers/queryParams'
 import {
-  BackendsContext,
   ConfigContext,
   HTTPClientContext,
   LocalStorageContext,
@@ -13,6 +12,7 @@ import {
   TextContext,
 } from '$/providers/react'
 import { AuthContext } from '$/providers/react/auth'
+import { BackendsContext } from '$/providers/react/backends'
 import { QueryParamsContext } from '$/providers/react/queryParams'
 import { RouterContext, RouterForReact } from '$/providers/react/router'
 import { SessionStore, useSession } from '$/providers/session'

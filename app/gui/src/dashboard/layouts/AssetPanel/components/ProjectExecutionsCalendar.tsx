@@ -29,7 +29,11 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackends, useRightPanelData, useText } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/rightPanel'
 import {
   CalendarDate,
   getLocalTimeZone,
@@ -62,22 +66,21 @@ const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
 export function ProjectExecutionsCalendar() {
   const { getText } = useText()
   const { remoteBackend } = useBackends()
-  const rightPanel = useRightPanelData()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
 
-  if (rightPanel.context?.category?.backend !== BackendType.remote) {
+  if (category?.backend !== BackendType.remote) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />
   }
-  if (rightPanel.focusedAsset == null) {
+  if (focusedAsset == null) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notSelected')} />
   }
-  if (rightPanel.focusedAsset.type !== AssetType.project) {
+  if (focusedAsset.type !== AssetType.project) {
     return (
       <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notProjectAsset')} />
     )
   }
-  return (
-    <ProjectExecutionsCalendarInternal backend={remoteBackend} item={rightPanel.focusedAsset} />
-  )
+  return <ProjectExecutionsCalendarInternal backend={remoteBackend} item={focusedAsset} />
 }
 
 /** Props for a {@link ProjectExecutionsCalendarInternal}. */

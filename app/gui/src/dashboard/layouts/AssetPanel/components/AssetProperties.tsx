@@ -31,6 +31,10 @@ import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
 import { useFeatureFlags } from '$/providers/react/featureFlags'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/rightPanel'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
@@ -45,25 +49,26 @@ const ASSET_PROPERTIES_VARIANTS = tv({
 /** Display and modify the properties of an asset. */
 export function AssetProperties() {
   const { remoteBackend } = useBackends()
-  const rightPanel = useRightPanelData()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
   const { getText } = useText()
-  const isReadonly = rightPanel.context?.category?.type === 'trash'
+  const isReadonly = category?.type === 'trash'
 
-  if (rightPanel.context?.category?.backend !== BackendType.remote) {
+  if (category?.backend !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (rightPanel.focusedAsset == null) {
+  if (focusedAsset == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
-      key={rightPanel.focusedAsset.id}
+      key={focusedAsset.id}
       backend={remoteBackend}
-      item={rightPanel.focusedAsset}
+      item={focusedAsset}
       isReadonly={isReadonly}
-      category={rightPanel.context.category}
+      category={category}
     />
   )
 }
