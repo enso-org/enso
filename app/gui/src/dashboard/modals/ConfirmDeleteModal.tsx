@@ -1,6 +1,8 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { Alert, AlertDialog, Text, type Confirmable } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { Alert } from '#/components/Alert'
+import { AlertDialog, type Confirmable } from '#/components/AlertDialog'
+import { Text } from '#/components/Text'
+import { useText } from '$/providers/react'
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps extends Confirmable {

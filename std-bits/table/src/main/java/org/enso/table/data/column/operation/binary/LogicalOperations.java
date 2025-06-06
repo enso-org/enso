@@ -1,7 +1,7 @@
 package org.enso.table.data.column.operation.binary;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -63,8 +63,8 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || rightBoolean
-          ? BoolStorage.makeEmpty(left.getSize())
-          : BoolStorage.makeConstant(Builder.checkSize(left.getSize()), false);
+          ? BoolBuilder.makeEmpty(left.getSize())
+          : BoolBuilder.makeConstant(left.getSize(), false);
     }
 
     @Override
@@ -73,11 +73,11 @@ public final class LogicalOperations {
         boolean rightBoolean,
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
-      int size = (int) left.getSize();
       if (!rightIsNothing) {
-        return rightBoolean ? left : BoolStorage.makeConstant(size, false);
+        return rightBoolean ? left : BoolBuilder.makeConstant(left.getSize(), false);
       }
 
+      int size = (int) left.getSize();
       BitSet values = left.getValues();
       if (left.isNegated()) {
         var newMissing = new BitSet(size);
@@ -186,8 +186,8 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || !rightBoolean
-          ? BoolStorage.makeEmpty(left.getSize())
-          : BoolStorage.makeConstant(Builder.checkSize(left.getSize()), true);
+          ? BoolBuilder.makeEmpty(left.getSize())
+          : BoolBuilder.makeConstant(left.getSize(), true);
     }
 
     @Override
@@ -196,11 +196,11 @@ public final class LogicalOperations {
         boolean rightBoolean,
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
-      int size = (int) left.getSize();
       if (!rightIsNothing) {
-        return rightBoolean ? BoolStorage.makeConstant(size, true) : left;
+        return rightBoolean ? BoolBuilder.makeConstant(left.getSize(), true) : left;
       }
 
+      int size = (int) left.getSize();
       BitSet values = left.getValues();
       if (left.isNegated()) {
         var newMissing = left.getIsNothingMap().get(0, size);

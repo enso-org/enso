@@ -7,6 +7,9 @@ import com.oracle.truffle.api.CallTarget;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.junit.ClassRule;
@@ -49,5 +52,31 @@ public class TypeCheckValueTest {
     root.insertChildren(bothNode);
     call[0] = root.getCallTarget();
     return call[0];
+  }
+
+  @Test
+  public void checkWithWarnings() throws Exception {
+    var ctx = ctxRule.ensoContext();
+    var builtins = ctx.getBuiltins();
+
+    var convert = allOfIntegerAndText();
+    var hi = Text.create("Hi");
+    var m1 =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(new Type[] {builtins.text(), builtins.number().getInteger()}, 2, 0, hi, 42);
+    var warning = Warning.create(ctx, Text.create("Problem"), builtins.nothing());
+    var w1 = WithWarnings.create(m1, 100, false, warning);
+
+    assertEquals("'Hi'", w1.toDisplayString(true).toString());
+
+    var with = convert.call(w1);
+    assertTrue("Converted value has warnings", WarningsLibrary.getUncached().hasWarnings(with));
+
+    var res = WarningsLibrary.getUncached().removeWarnings(with);
+
+    assertTrue("Got multivalue again", res instanceof EnsoMultiValue);
+    var emv = (EnsoMultiValue) res;
+
+    assertEquals("42", emv.toDisplayString(true));
   }
 }

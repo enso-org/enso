@@ -3,11 +3,11 @@ package org.enso.table.data.column.operation.text;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -44,12 +44,12 @@ public final class TextPartOperation implements BinaryOperation<String> {
   public ColumnStorage<String> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType) {
-      return StringStorage.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
+      return StringBuilder.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
     }
 
     if (left.getType() instanceof TextType textType) {
       if (rightValue == null) {
-        return StringStorage.makeEmpty(textType, left.getSize());
+        return StringBuilder.makeEmpty(textType, left.getSize());
       }
 
       if (!NumericConverter.isCoercibleToLong(rightValue)) {
@@ -76,7 +76,7 @@ public final class TextPartOperation implements BinaryOperation<String> {
     }
 
     if (left.getType() instanceof NullType || right.getType() instanceof NullType) {
-      return StringStorage.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
+      return StringBuilder.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
     }
 
     if (left.getType() instanceof TextType textType

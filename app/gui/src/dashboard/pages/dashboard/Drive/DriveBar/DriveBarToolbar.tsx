@@ -2,18 +2,12 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
-import * as React from 'react'
-
 import Plus2Icon from '#/assets/plus2.svg'
-import {
-  Button,
-  ButtonGroup,
-  DialogTrigger,
-  IconDisplay,
-  useVisualTooltip,
-  VisualTooltip,
-} from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
 import { ErrorBoundary, InlineErrorDisplay } from '#/components/ErrorBoundary'
+import { IconDisplay } from '#/components/IconDisplay'
+import { useVisualTooltip, VisualTooltip } from '#/components/VisualTooltip'
 import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
@@ -28,7 +22,6 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import {
@@ -43,16 +36,17 @@ import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import { type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
+import * as React from 'react'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
@@ -69,7 +63,6 @@ export interface DriveBarToolbarProps {
 export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { backend, query, setQuery, category } = props
 
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
   const driveStore = useDriveStore()
   const inputBindings = useInputBindings()
@@ -184,14 +177,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
   )
 
-  const assetPanelToggle = (
-    <>
-      {/* Spacing. */}
-      <div className="ml-auto" />
-      <AssetPanelToggle showWhen="collapsed" className="my-auto" />
-    </>
-  )
-
   const pasteDataStatus = effectivePasteData && (
     <div className="flex items-center">
       <VisualTooltip
@@ -212,11 +197,10 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   switch (category.type) {
     case 'recent': {
       return (
-        <ButtonGroup className="grow-0">
+        <Button.Group className="grow-0">
           {pasteDataStatus}
           {searchBar}
-          {assetPanelToggle}
-        </ButtonGroup>
+        </Button.Group>
       )
     }
     case 'trash': {
@@ -229,7 +213,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
           >
             {pasteDataStatus}
             {searchBar}
-            {assetPanelToggle}
           </TrashFolderToolbar>
         </ErrorBoundary>
       )
@@ -241,7 +224,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     case 'local-directory': {
       return (
         <div className="flex w-full flex-1 shrink-0 gap-2">
-          <ButtonGroup
+          <Button.Group
             ref={createAssetButtonsRef}
             className="grow-0"
             buttonVariants={{ isDisabled: shouldBeDisabled }}
@@ -259,7 +242,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 aria-label={getText('newFolder')}
                 onPress={newFolderCallback}
               />
-              <DialogTrigger>
+              <Dialog.Trigger>
                 <Button
                   isDisabled={!isCloud}
                   variant="icon"
@@ -268,8 +251,8 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   aria-label={isCloud ? getText('newSecret') : getText('newSecretOnlyCloud')}
                 />
                 <UpsertSecretModal doCreate={newSecretCallback} />
-              </DialogTrigger>
-              <DialogTrigger>
+              </Dialog.Trigger>
+              <Dialog.Trigger>
                 <Button
                   isDisabled={!isCloud}
                   variant="icon"
@@ -280,8 +263,8 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   }
                 />
                 <CreateCredentialModal doCreate={newCredentialCallback} />
-              </DialogTrigger>
-              <DialogTrigger>
+              </Dialog.Trigger>
+              <Dialog.Trigger>
                 <Button
                   isDisabled={!isCloud}
                   variant="icon"
@@ -290,7 +273,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   aria-label={isCloud ? getText('newDatalink') : getText('newDatalinkOnlyCloud')}
                 />
                 <UpsertDatalinkModal doCreate={newDatalinkCallback} />
-              </DialogTrigger>
+              </Dialog.Trigger>
             </div>
 
             <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
@@ -311,7 +294,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
               />
             </div>
             {createAssetsVisualTooltip.tooltip}
-          </ButtonGroup>
+          </Button.Group>
           {pasteDataStatus}
           {searchBar}
         </div>
@@ -357,8 +340,8 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   })
 
   return (
-    <ButtonGroup className="grow-0" buttonVariants={{ isDisabled: shouldBeDisabled }}>
-      <DialogTrigger>
+    <Button.Group className="grow-0" buttonVariants={{ isDisabled: shouldBeDisabled }}>
+      <Dialog.Trigger>
         <Button size="medium" variant="outline" isDisabled={isEmpty}>
           {getText('clearTrash')}
         </Button>
@@ -369,9 +352,9 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
             await clearTrash()
           }}
         />
-      </DialogTrigger>
+      </Dialog.Trigger>
 
       {children}
-    </ButtonGroup>
+    </Button.Group>
   )
 }

@@ -1,15 +1,16 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import { useEffect, useState } from 'react'
-
-import * as z from 'zod'
-
 import { LOGIN_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import { Alert, Button, Checkbox, Form, Input, Password, Text } from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { Button } from '#/components/Button'
+import { Checkbox } from '#/components/Checkbox'
+import { Form } from '#/components/Form'
+import { Input, Password } from '#/components/Inputs'
 import Link from '#/components/Link'
 import { Stepper, useStepperState } from '#/components/Stepper'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import {
   latestPrivacyPolicyQueryOptions,
@@ -17,13 +18,13 @@ import {
 } from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { useRouterInReact } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import * as z from 'zod'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -43,10 +44,10 @@ const CONFIRM_SIGN_IN_INTERVAL = 5_000
 export default function Registration() {
   const { signUp, confirmSignUp, signInWithPassword } = useSessionAPI()
 
-  const { searchParams } = useRouterInReact()
+  const { searchParams } = useRouter()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
   const initialEmail = searchParams.get('email') ?? ''

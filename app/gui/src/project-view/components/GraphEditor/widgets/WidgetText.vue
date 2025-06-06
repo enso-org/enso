@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   defineWidget,
@@ -7,7 +8,6 @@ import {
   WidgetInput,
   widgetProps,
 } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { languageExtension } from '@/util/codemirror/language'
 import { computed, ref, useTemplateRef } from 'vue'
@@ -128,7 +128,7 @@ export const widgetDefinition = defineWidget(
       v-model="textContents"
       contentTestId="widget-text-content"
       :placeholder="placeholder"
-      :lineMode="isMultiline ? 'multi' : 'auto'"
+      :lineMode="isMultiline ? 'autoMulti' : 'auto'"
       :extensions="extensions"
       :widgetTypeId="widgetTypeId"
       :input="input"

@@ -2,13 +2,12 @@
  * @file Exports `defineKeybinds`, a function to define a namespace containing keyboard and mouse
  * shortcuts.
  */
-import * as detect from 'enso-common/src/detect'
-
-import type { SvgUseIcon } from '#/components/AriaComponents'
+import type { SvgUseIcon } from '#/components/types'
 import * as eventModule from '#/utilities/event'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
+import * as detect from 'enso-common/src/detect'
 
 /** A keyboard key obtained from `KeyboardEvent.key`. */
 type KeyName = newtype.Newtype<string, 'keyboard key'>

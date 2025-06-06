@@ -5,7 +5,6 @@ import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
-import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as backendModule from '#/services/Backend'
 import * as array from '#/utilities/array'
@@ -81,13 +80,10 @@ export interface ProjectsContextType {
   ) => void
   readonly getState: () => {
     readonly launchedProjects: readonly LaunchedProject[]
-    readonly page: LaunchedProjectId | TabType
   }
-  readonly setPage: (page: LaunchedProjectId | TabType) => void
 }
 
 const ProjectsContext = React.createContext<ProjectsContextType | null>(null)
-const PageContext = React.createContext<LaunchedProjectId | TabType | null>(null)
 const LaunchedProjectsContext = React.createContext<readonly LaunchedProject[] | null>(null)
 
 /** Props for a {@link ProjectsProvider}. */
@@ -115,13 +111,6 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
         }),
     },
   )
-  const [page, setPage] = searchParamsState.useSearchParamsState(
-    'page',
-    (): LaunchedProjectId | TabType => 'drive',
-    (value: unknown): value is LaunchedProjectId | TabType => {
-      return array.includes(TAB_TYPES, value) || launchedProjects.some((p) => p.id === value)
-    },
-  )
 
   const addLaunchedProject = eventCallbacks.useEventCallback((project: LaunchedProject) => {
     setLaunchedProjects((current) => [...current, project])
@@ -139,7 +128,6 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 
   const getState = eventCallbacks.useEventCallback(() => ({
     launchedProjects,
-    page,
   }))
 
   const projectsContextValue = {
@@ -147,17 +135,14 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
     addLaunchedProject,
     removeLaunchedProject,
     setLaunchedProjects,
-    setPage,
     getState,
   }
 
   return (
     <ProjectsContext.Provider value={projectsContextValue}>
-      <PageContext.Provider value={page}>
-        <LaunchedProjectsContext.Provider value={launchedProjects}>
-          {children}
-        </LaunchedProjectsContext.Provider>
-      </PageContext.Provider>
+      <LaunchedProjectsContext.Provider value={launchedProjects}>
+        {children}
+      </LaunchedProjectsContext.Provider>
     </ProjectsContext.Provider>
   )
 }
@@ -170,25 +155,6 @@ export function useProjectsStore() {
   invariant(context != null, 'Projects store can only be used inside an `ProjectsProvider`.')
 
   return context
-}
-
-/** The page context. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function usePage() {
-  const context = React.useContext(PageContext)
-
-  invariant(context != null, 'Page context can only be used inside an `ProjectsProvider`.')
-
-  return context
-}
-
-/** A function to set the current page. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSetPage() {
-  const { setPage } = useProjectsStore()
-  return eventCallbacks.useEventCallback((page: LaunchedProjectId | TabType) => {
-    setPage(page)
-  })
 }
 
 /** Returns the launched projects context. */

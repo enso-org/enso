@@ -109,12 +109,7 @@ export function componentBrowserEntryByLabel(page: Locator | Page, label: string
 
 /** Right-docked panel */
 export function rightDock(page: Page) {
-  return page.getByTestId('rightDock')
-}
-
-/** rightDock, but also includes toggle button */
-export function rightDockRoot(page: Page) {
-  return page.getByTestId('rightDockRoot')
+  return page.getByTestId('right-panel')
 }
 
 /** Bottom-docked panel */

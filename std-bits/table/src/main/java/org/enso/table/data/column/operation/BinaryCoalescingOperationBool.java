@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation;
 
+import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -20,7 +21,7 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
         protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
           return rightValue
               ? left.fillMissingBoolean(true)
-              : BoolStorage.makeConstant(Builder.checkSize(left.getSize()), false);
+              : BoolBuilder.makeConstant(left.getSize(), false);
         }
       };
 
@@ -34,7 +35,7 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
         @Override
         protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
           return rightValue
-              ? BoolStorage.makeConstant(Builder.checkSize(left.getSize()), true)
+              ? BoolBuilder.makeConstant(left.getSize(), true)
               : left.fillMissingBoolean(false);
         }
       };

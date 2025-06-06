@@ -3,16 +3,16 @@ import type { AnyAsset, AssetId } from 'enso-common/src/services/Backend'
 import { AssetType, getAssetPermissionName } from 'enso-common/src/services/Backend'
 import { PermissionAction } from 'enso-common/src/utilities/permissions'
 
-import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
-import { useText } from '#/providers/TextProvider'
+import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import type { DirectoryId } from '#/services/ProjectManager'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { fileExtension } from '#/utilities/fileInfo'
 import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { createStore, useStore } from '#/utilities/zustand.ts'
+import { useText } from '$/providers/react'
 import { startTransition, useEffect } from 'react'
 
 /** Options for {@link useAssetsTableItems}. */

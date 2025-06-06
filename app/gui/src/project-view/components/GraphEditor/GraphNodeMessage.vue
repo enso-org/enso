@@ -1,14 +1,13 @@
 <script setup lang="ts">
+import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useGraphStore } from '@/stores/graph'
 import { QualifiedImport } from '@/stores/graph/imports'
-import { injectProjectNames } from '@/stores/projectNames'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 
 const graph = useGraphStore()
-const projectNames = injectProjectNames()
+const projectNames = useProjectNames()
 
 const props = defineProps<{
   message: string

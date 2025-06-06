@@ -10,15 +10,9 @@ import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import DriveProvider from '#/providers/DriveProvider'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, {
-  useClearLaunchedProjects,
-  useLaunchedProjects,
-  usePage,
-  useSetPage,
-} from '#/providers/ProjectsProvider'
+import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvider'
 
 import Page from '#/components/Page'
 
@@ -26,16 +20,19 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { usePaywall } from '#/hooks/billing'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
-import { useConfigInReact } from '$/providers/react'
+import { useBackends, useConfig } from '$/providers/react'
 import { usePrefetchQuery } from '@tanstack/react-query'
 
-const TabView = React.lazy(() =>
-  import('$/components/TabView.vue').then(({ default: vue }) => vueComponent(vue)),
+const AppContainer = React.lazy(() =>
+  import('$/components/AppContainer.vue').then(({ default: vue }) => vueComponent(vue)),
 )
 
 /** The component that contains the entire UI. */
@@ -76,9 +73,9 @@ function fileURLToPath(url: string): string | null {
 
 /** The component that contains the entire UI. */
 function DashboardInner() {
-  const localBackend = backendProvider.useLocalBackend()
+  const { localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const config = useConfigInReact()
+  const config = useConfig()
 
   const initialProjectNameRaw = config.params.startup.project
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
@@ -160,12 +157,12 @@ function DashboardInner() {
     [inputBindings],
   )
 
-  const page = usePage()
-  const setPage = useSetPage()
   const launchedProjects = useLaunchedProjects()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
-  const clearLaunchedProjects = useClearLaunchedProjects()
+  const { user } = useFullUserSession()
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const enableScheduledExecution = useFeatureFlag('enableScheduledExecution')
 
   return (
     <Page hideInfoBar>
@@ -176,14 +173,13 @@ function DashboardInner() {
           modalProvider.unsetModal()
         }}
       >
-        <TabView
+        <AppContainer
           initialProjectName={initialProjectName}
-          page={page}
-          setPage={setPage}
           launchedProjects={launchedProjects}
           closeProject={closeProject}
           closeAllProjects={closeAllProjects}
-          clearLaunchedProjects={clearLaunchedProjects}
+          isFeatureUnderPaywall={isFeatureUnderPaywall}
+          enableScheduledExecution={enableScheduledExecution}
         />
       </div>
     </Page>

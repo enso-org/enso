@@ -12,7 +12,6 @@ import org.enso.table.data.column.storage.Storage;
  */
 public class MapOperationStorage<T, S extends Storage<? super T>> {
   private final Map<String, BinaryMapOperation<T, S>> binaryOps = new HashMap<>();
-  private final Map<String, TernaryMapOperation<T, S>> ternaryOps = new HashMap<>();
 
   /**
    * Checks if a binary operation is supported by this set.
@@ -20,7 +19,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param n the operation name
    * @return whether the operation is supported
    */
-  public boolean isSupportedBinary(String n) {
+  private boolean isSupportedBinary(String n) {
     return n != null && binaryOps.get(n) != null;
   }
 
@@ -35,44 +34,9 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    */
   public Storage<?> runBinaryMap(
       String n, S storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-    if (!isSupportedBinary(n)) {
-      throw new IllegalStateException(
-          "Requested vectorized binary operation " + n + ", but no such operation is known.");
-    }
-    return binaryOps.get(n).runBinaryMap(storage, arg, problemAggregator);
-  }
-
-  /**
-   * Checks if a ternary operation is supported by this set.
-   *
-   * @param n the operation name
-   * @return whether the operation is supported
-   */
-  public boolean isSupportedTernary(String n) {
-    return n != null && ternaryOps.get(n) != null;
-  }
-
-  /**
-   * Runs the specified operation in map node.
-   *
-   * @param n the operation name
-   * @param storage the storage to run operation on
-   * @param arg0 the first argument to pass to the operation
-   * @param arg1 the second argument to pass to the operation
-   * @param problemAggregator the aggregator allowing to report computation problems
-   * @return the result of running the operation
-   */
-  public Storage<?> runTernaryMap(
-      String n,
-      S storage,
-      Object arg0,
-      Object arg1,
-      MapOperationProblemAggregator problemAggregator) {
-    if (!isSupportedTernary(n)) {
-      throw new IllegalStateException(
-          "Requested vectorized ternary operation " + n + ", but no such operation is known.");
-    }
-    return ternaryOps.get(n).runTernaryMap(storage, arg0, arg1, problemAggregator);
+    return isSupportedBinary(n)
+        ? binaryOps.get(n).runBinaryMap(storage, arg, problemAggregator)
+        : null;
   }
 
   /**
@@ -87,8 +51,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
   public Storage<?> runZip(
       String n, S storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     if (!isSupportedBinary(n)) {
-      throw new IllegalStateException(
-          "Requested vectorized binary operation " + n + ", but no such operation is known.");
+      return null;
     }
 
     var operation = binaryOps.get(n);
@@ -109,17 +72,6 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    */
   public MapOperationStorage<T, S> add(BinaryMapOperation<T, S> op) {
     binaryOps.put(op.getName(), op);
-    return this;
-  }
-
-  /**
-   * Adds a new operation to this set.
-   *
-   * @param op the operation to add
-   * @return this operation set
-   */
-  public MapOperationStorage<T, S> add(TernaryMapOperation<T, S> op) {
-    ternaryOps.put(op.getName(), op);
     return this;
   }
 }

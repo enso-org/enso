@@ -152,27 +152,47 @@ function requiresNewlineBeforeFollowingParagraph(nodeType: string) {
  */
 export function prerenderMarkdown(markdown: string): string {
   let prerendered = ''
-  let prevTo = 0
-  let prevName: string | undefined = undefined
   const cursor = ensoStandardMarkdownParser.parse(markdown).cursor()
   cursor.firstChild()
-  do {
-    if (prevTo < cursor.from) {
-      const textBetween = markdown.slice(prevTo, cursor.from)
-      prerendered +=
-        (
-          cursor.name === 'Paragraph' &&
-          prevName &&
-          requiresNewlineBeforeFollowingParagraph(prevName)
-        ) ?
-          textBetween.slice(0, -1)
-        : textBetween
+
+  /** Remove the trailing newline from a block followed by the Paragraph block, if necessary. */
+  function mergeSubsequentBlocks(
+    currentNodeName: string,
+    text: string,
+    prevName: string | undefined,
+  ) {
+    if (
+      currentNodeName === 'Paragraph' &&
+      prevName &&
+      requiresNewlineBeforeFollowingParagraph(prevName)
+    ) {
+      return text.slice(0, -1)
     }
-    const text = markdown.slice(cursor.from, cursor.to)
-    prerendered += cursor.name === 'Paragraph' ? text.replaceAll(/ *\n */g, ' ') : text
-    prevTo = cursor.to
-    prevName = cursor.name
-  } while (cursor.nextSibling())
+    return text
+  }
+
+  function prerenderTree(prevTo: number) {
+    let prevName: string | undefined = undefined
+    do {
+      if (prevTo < cursor.from) {
+        const textBetween = markdown.slice(prevTo, cursor.from)
+        prerendered += mergeSubsequentBlocks(cursor.name, textBetween, prevName)
+      }
+      const text = markdown.slice(cursor.from, cursor.to)
+      if (cursor.name === 'Paragraph') {
+        prerendered += text.replaceAll(/ *\n */g, ' ')
+      } else if (!cursor.name.startsWith('ATXHeading') && cursor.firstChild()) {
+        prerenderTree(cursor.from)
+        cursor.parent()
+      } else {
+        prerendered += text
+      }
+      prevTo = cursor.to
+      prevName = cursor.name
+    } while (cursor.nextSibling())
+  }
+
+  prerenderTree(0)
   return prerendered
 }
 

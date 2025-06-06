@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import RightPanel from '$/components/AppContainer/RightPanel.vue'
+import { provideBackends } from '$/providers/backends'
+import { provideHttpClient } from '$/providers/httpClient'
+import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react'
+import { provideText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
 import '@/assets/base.css'
 import { interactionBindings } from '@/bindings'
@@ -8,6 +13,7 @@ import { useEvent } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
 import { initializeActions } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
+import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
@@ -18,14 +24,17 @@ import { reactComponent } from '@/util/react'
 import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+import { provideContainerData } from './providers/container'
+import { provideRightPanelData } from './providers/rightPanel'
 
-const { projectViewOnly, onAuthenticated } = defineProps<{
+const { projectViewOnly, onAuthenticated, rootDirPath } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
   // removed
   projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
   onAuthenticated?: (accessToken: string | null) => void
+  rootDirPath: string | undefined
 }>()
 
 const classSet = provideAppClassSet()
@@ -48,15 +57,15 @@ const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
 provideKeyboard()
-provideGuiConfig(appConfigValue)
+const textStore = provideText()
+const config = provideGuiConfig(appConfigValue)
 const interaction = provideInteractionHandler()
 initializeActions()
-
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
 
 const interactionBindingsHandler = interactionBindings.handler({
-  cancel: () => interaction.handleCancel(),
+  cancel: () => interaction.cancelAll(),
 })
 
 useEvent(window, 'keydown', interactionBindingsHandler)
@@ -66,6 +75,8 @@ useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointe
 useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
   capture: true,
 })
+const httpClient = provideHttpClient()
+provideBackends(httpClient, config, rootDirPath, textStore.getText)
 
 const platformClass = (() => {
   switch (platform()) {
@@ -91,11 +102,24 @@ onMounted(() => {
     document.body.classList.add('vibrancy')
   }
 })
+const fullscreenRoot = shallowRef<HTMLElement>()
+
+// Mock external context in Project View integration tests. Once both test projects will be merged,
+// this should be removed
+if (projectViewOnly) {
+  provideOpenedProjects()
+  provideContainerData([])
+  provideRightPanelData(projectViewOnly.options.projectId, () => false, true, textStore)
+  provideFullscreenRoot(fullscreenRoot)
+}
 </script>
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
+    <div v-if="projectViewOnly" ref="fullscreenRoot" class="mainView">
+      <ProjectView v-bind="projectViewOnly.options" />
+      <RightPanel />
+    </div>
     <ContextsForReactProvider v-else>
       <ReactRootWrapper
         :config="appConfigValue"
@@ -139,6 +163,13 @@ onMounted(() => {
   > * {
     pointer-events: auto;
   }
+}
+
+.mainView {
+  flex-grow: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
 }
 
 /*

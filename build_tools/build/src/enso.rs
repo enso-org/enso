@@ -89,8 +89,19 @@ impl BuiltEnso {
             .engine_package
             .bin
             .join(filename);
+        let small_jdk_dir = &self.paths.repo_root.target.small_jdk;
+        if !small_jdk_dir.path.exists() {
+            bail!("Small JDK directory does not exist: {}", small_jdk_dir.path.display());
+        }
+        let small_jdk_dir_absolutized = small_jdk_dir.path.absolutize()?;
+        let small_jdk_dir_path = small_jdk_dir_absolutized.as_str();
         let benchmarks = Command::new(&enso)
-            .args(["--jvm", "--run", self.paths.repo_root.test.benchmarks.as_str()])
+            .args([
+                "--jvm",
+                small_jdk_dir_path,
+                "--run",
+                self.paths.repo_root.test.benchmarks.as_str(),
+            ])
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
             .await;
@@ -262,7 +273,7 @@ impl BuiltEnso {
                 cloud_tests::env::test_controls::ENSO_CLOUD_CREDENTIALS_FILE.name().to_string(),
                 path.to_string(),
             ));
-            // We do not set ENSO_CLOUD_API_URI - we rely on the default, or any existing overrides.
+            // We do not set ENSO_CLOUD_API_URL - we rely on the default, or any existing overrides.
             environment_overrides.push((
                 cloud_tests::env::test_controls::ENSO_RUN_REAL_CLOUD_TEST.name().to_string(),
                 "1".to_string(),

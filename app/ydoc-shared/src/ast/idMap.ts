@@ -1,4 +1,3 @@
-import * as random from 'lib0/random'
 import {
   SourceRange,
   type SourceRangeKey,
@@ -37,7 +36,7 @@ export interface SpanMap {
 
 /** Create a new random {@link ExternalId}. */
 export function newExternalId(): ExternalId {
-  return random.uuidv4() as ExternalId
+  return crypto.randomUUID() as ExternalId
 }
 
 /** Generate an `IdMap` from a `SpanMap`. */

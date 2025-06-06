@@ -1,17 +1,18 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
-import { Fragment, type JSX, useState } from 'react'
-
 import { Input } from '#/components/aria'
-import { Button, Checkbox, Dropdown, Text } from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
+import { Button } from '#/components/Button'
+import { Checkbox } from '#/components/Checkbox'
+import { Dropdown } from '#/components/Inputs'
 import FocusRing from '#/components/styled/FocusRing'
+import { Text } from '#/components/Text'
 import { backendQueryOptions } from '#/hooks/backendHooks'
-import { useRemoteBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useBackends, useText } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
+import { Fragment, type JSX, useState } from 'react'
 import { twJoin } from 'tailwind-merge'
 
 /** Props for a {@link JSONSchemaInput}. */
@@ -34,7 +35,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { noBorder = false, isAbsent = false, value, onChange } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
-  const remoteBackend = useRemoteBackend()
+  const { remoteBackend } = useBackends()
   const { getText } = useText()
   const [autocompleteText, setAutocompleteText] = useState(() =>
     typeof value === 'string' ? value : null,

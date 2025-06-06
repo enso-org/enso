@@ -4,7 +4,7 @@ import * as toastify from 'react-toastify'
 import type * as text from 'enso-common/src/text'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as errorModule from '#/utilities/error'
@@ -17,7 +17,7 @@ export type ToastAndLogCallback = ReturnType<typeof useToastAndLog>
  * as an error.
  */
 export function useToastAndLogWithId() {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const logger = loggerProvider.useLogger()
 
   return useEventCallback(
@@ -59,7 +59,7 @@ export function useToastAndLogWithId() {
  * as an error.
  */
 export function useToastAndLog() {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const logger = loggerProvider.useLogger()
 
   return useEventCallback(

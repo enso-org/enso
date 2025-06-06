@@ -1,5 +1,4 @@
 import type { ResultError } from '@/util/data/result'
-import { uuidv4 } from 'lib0/random'
 // We are using `react-toastify`, since we share toast environment with dashboard.
 import { toast, type ToastContent, type ToastOptions, type TypeOptions } from 'react-toastify'
 import { onScopeDispose } from 'vue'
@@ -8,7 +7,7 @@ declare const toastIdBrand: unique symbol
 type ToastId = string & { [toastIdBrand]: never }
 
 function makeToastId(): ToastId {
-  return `toast-${uuidv4()}` as ToastId
+  return `toast-${crypto.randomUUID()}` as ToastId
 }
 
 export interface UseToastOptions extends ToastOptions {

@@ -9,7 +9,6 @@ import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -17,15 +16,14 @@ import org.junit.Test;
  * indexing.
  */
 public class TypeMetadataPersistanceTest {
-  @BeforeClass
-  public static void initializePersistance() {
-    org.enso.compiler.core.ir.Persistables.initialize();
-    org.enso.compiler.pass.analyse.types.Persistables.initialize();
-  }
+  private static final Persistance.Pool POOL =
+      Persistance.Pool.merge(
+          org.enso.compiler.core.ir.Persistables.POOL,
+          org.enso.compiler.pass.analyse.types.Persistables.POOL);
 
   private static <T> T serde(Class<T> clazz, T l) throws IOException {
-    var arr = Persistance.write(l, null);
-    var ref = Persistance.read(arr, null);
+    var arr = POOL.write(l, null);
+    var ref = POOL.read(arr, null);
     return ref.get(clazz);
   }
 

@@ -1,44 +1,73 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.operation.CountUntrimmed;
+import org.enso.table.data.column.operation.DistinctValuesCheck;
 import org.enso.table.data.column.operation.SampleOperation;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
+  private static final MapOperationStorage<String, SpecializedStorage<String>> OPS = buildOps();
+
+  private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
+    MapOperationStorage<String, SpecializedStorage<String>> t = new MapOperationStorage<>();
+    t.add(
+        new StringStringOp(Maps.ADD) {
+          @Override
+          protected String doString(String a, String b) {
+            return a + b;
+          }
+
+          @Override
+          protected TextType computeResultType(TextType a, TextType b) {
+            return TextType.concatTypes(a, b);
+          }
+        });
+    return t;
+  }
 
   record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
 
-  private CachedPropertyCheck<DataQualityMetrics> dataQualityMetricsValues;
+  private final CachedPropertyCheck<DataQualityMetrics> dataQualityMetricsValues;
+  private final CachedPropertyCheck<Boolean> distinctValuesCheck;
 
   /**
    * @param data the underlying data
    * @param type the type of the column
    */
   public StringStorage(String[] data, TextType type) {
-    super(type, data, buildOps());
+    super(type, data);
 
     dataQualityMetricsValues =
-        new CachedPropertyCheck<>(() -> createDataQualityMetricsWitDefaultSize(), null);
-  }
+        new CachedPropertyCheck<>(this::createDataQualityMetricsWitDefaultSize, null);
 
-  public static StringStorage makeEmpty(TextType type, long size) {
-    int intSize = Builder.checkSize(size);
-    return new StringStorage(new String[intSize], type);
+    distinctValuesCheck =
+        new CachedPropertyCheck<>(() -> DistinctValuesCheck.compute(this, null), null);
   }
 
   @Override
   public TextType getType() {
     // As the type is fixed, we can safely cast it.
     return (TextType) super.getType();
+  }
+
+  @Override
+  protected Storage<?> runVectorizedBinaryMap(
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return OPS.runBinaryMap(name, this, argument, problemAggregator);
+  }
+
+  @Override
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return OPS.runZip(name, this, argument, problemAggregator);
   }
 
   @Override
@@ -64,7 +93,7 @@ public final class StringStorage extends SpecializedStorage<String> {
    * @return the number of cells with untrimmed whitespace
    */
   public Long cachedUntrimmedCount() throws InterruptedException {
-    return dataQualityMetricsValues.get().untrimmedCount.longValue();
+    return dataQualityMetricsValues.get().untrimmedCount;
   }
 
   /**
@@ -74,25 +103,16 @@ public final class StringStorage extends SpecializedStorage<String> {
    * @return the number of cells with non trivial whitespace
    */
   public Long cachedWhitespaceCount() throws InterruptedException {
-    return dataQualityMetricsValues.get().whitespaceCount.longValue();
+    return dataQualityMetricsValues.get().whitespaceCount;
   }
 
-  private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
-    MapOperationStorage<String, SpecializedStorage<String>> t = new MapOperationStorage<>();
-    t.add(new StringIsInOp<>());
-    t.add(
-        new StringStringOp(Maps.ADD) {
-          @Override
-          protected String doString(String a, String b) {
-            return a + b;
-          }
-
-          @Override
-          protected TextType computeResultType(TextType a, TextType b) {
-            return TextType.concatTypes(a, b);
-          }
-        });
-    return t;
+  /**
+   * Checks the number of distinct values
+   *
+   * @return true if there are less than 100 distinct values
+   */
+  public Boolean cachedDistinctValueCheck() throws InterruptedException {
+    return distinctValuesCheck.get();
   }
 
   @Override

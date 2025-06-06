@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import Breadcrumbs, {
   type Item as Breadcrumb,
 } from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
@@ -9,12 +10,14 @@ import DocsSynopsis from '@/components/DocumentationPanel/DocsSynopsis.vue'
 import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
 import { HistoryStack } from '@/components/DocumentationPanel/history'
 import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
-import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
+import {
+  lookupDocumentation,
+  lookupRawDocumentation,
+  placeholder,
+} from '@/components/DocumentationPanel/ir'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
-import { useGraphStore } from '@/stores/graph'
-import { injectProjectNames } from '@/stores/projectNames'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { entryMethodPointer, suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
@@ -28,14 +31,21 @@ import FunctionSignatureEditor from './FunctionSignatureEditor.vue'
 
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
-const db = useSuggestionDbStore()
-const graph = useGraphStore(true)
+
+const { graph, suggestionDb: db, names: projectNames } = injectCurrentProject().storesRefs
 
 const documentation = computed<Docs>(() => {
   if (props.aiMode)
     return placeholder('AI assistant mode: write query in natural language and press Enter.')
   const entry = props.selectedEntry
-  return entry ? lookupDocumentation(db.entries, entry) : placeholder('No suggestion selected.')
+  return entry && db.value ?
+      lookupDocumentation(db.value.entries, entry)
+    : placeholder('No suggestion selected.')
+})
+
+const rawDocumentation = computed(() => {
+  const entry = props.selectedEntry
+  return entry && db.value ? lookupRawDocumentation(db.value.entries, entry) : undefined
 })
 
 const sections = computed<Sections>(() => {
@@ -61,8 +71,6 @@ const types = computed<TypeDocs[]>(() => {
 
 const isPlaceholder = computed(() => documentation.value.kind === 'Placeholder')
 
-const projectNames = injectProjectNames()
-
 const name = computed<Opt<ProjectPath>>(() => {
   const docs = documentation.value
   return docs.kind === 'Placeholder' ? null : docs.name
@@ -71,10 +79,16 @@ const name = computed<Opt<ProjectPath>>(() => {
 // === Breadcrumbs ===
 
 const suggestion = computed(() =>
-  props.selectedEntry != null ? db.entries.get(props.selectedEntry) : undefined,
+  props.selectedEntry != null && db.value ? db.value.entries.get(props.selectedEntry) : undefined,
 )
 
-const color = computed(() => groupColorStyle(tryGetIndex(db.groups, suggestion.value?.groupIndex)))
+const color = computed(() =>
+  groupColorStyle(db.value && tryGetIndex(db.value.groups, suggestion.value?.groupIndex)),
+)
+
+const style = computed(() => ({
+  '--enso-docs-group-color': color.value,
+}))
 
 const icon = computed<IconName>(() => suggestion.value?.iconName ?? 'marketplace')
 
@@ -84,8 +98,8 @@ const documentationUrl = computed(
 
 const methodPointer = computed(() => entryMethodPointer(suggestion.value))
 const signatureAst = computed(() => {
-  if (graph == null || methodPointer.value == null) return
-  return unwrapOr(graph.getMethodAst(methodPointer.value), undefined)
+  if (graph.value == null || methodPointer.value == null) return
+  return unwrapOr(graph.value.getMethodAst(methodPointer.value), undefined)
 })
 const markdownDocs = computed(() => signatureAst.value?.mutableDocumentationMarkdown())
 
@@ -109,8 +123,8 @@ watch(historyStack.current, (current) => {
 })
 
 const breadcrumbs = computed<Breadcrumb[]>(() => {
-  if (name.value) {
-    const segments = [...qnSegments(projectNames.printProjectPath(name.value))]
+  if (name.value && projectNames.value) {
+    const segments = [...qnSegments(projectNames.value.printProjectPath(name.value))]
     return segments.slice(1).map((s) => ({ label: s.toLowerCase() }))
   } else {
     return []
@@ -122,7 +136,7 @@ function handleBreadcrumbClick(index: number) {
     const pathSlice = name.value.path ? qnSlice(name.value.path, 0, index) : Ok(undefined)
     if (pathSlice.ok) {
       const projectPathSlice = name.value.withPath(pathSlice.value)
-      const id = db.entries.findByProjectPath(projectPathSlice)
+      const id = db.value?.entries.findByProjectPath(projectPathSlice)
       if (id != null) {
         historyStack.record(id)
       }
@@ -136,7 +150,7 @@ function openDocs(url: string) {
 </script>
 
 <template>
-  <div class="DocumentationPanel scrollable" @wheel.stop.passive>
+  <div class="DocumentationPanel scrollable" :style="style" @wheel.stop.passive>
     <div v-if="!isPlaceholder" class="topBar">
       <Breadcrumbs
         :breadcrumbs="breadcrumbs"
@@ -155,41 +169,46 @@ function openDocs(url: string) {
         @activate="openDocs(documentationUrl)"
       />
     </div>
-    <!-- todo panel -->
     <FunctionSignatureEditor
       v-if="signatureAst"
+      class="self-stretch"
       :functionAst="signatureAst"
       :methodPointer="methodPointer"
       :markdownDocs="markdownDocs"
     ></FunctionSignatureEditor>
-    <DocsTags
-      v-if="sections.tags.length > 0"
-      class="tags"
-      :tags="sections.tags"
-      :groupColor="color"
-    />
-    <div class="sections">
-      <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
-      <span v-if="sections.synopsis.length == 0">No documentation available.</span>
-      <DocsSynopsis :sections="sections.synopsis" />
-      <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
-      <DocsList
-        :items="{ kind: 'Types', items: types }"
-        @linkClicked="historyStack.record($event)"
-      />
-      <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
-      <DocsList
-        :items="{ kind: 'Constructors', items: constructors }"
-        @linkClicked="historyStack.record($event)"
-      />
-      <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
-      <DocsList
-        :items="{ kind: 'Methods', items: methods }"
-        @linkClicked="historyStack.record($event)"
-      />
-      <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
-      <DocsExamples :examples="sections.examples" />
+    <div v-if="rawDocumentation" class="markdownDocs">
+      <MarkdownEditor :content="rawDocumentation" :toolbar="false" />
     </div>
+    <template v-else>
+      <DocsTags
+        v-if="sections.tags.length > 0"
+        class="tags"
+        :tags="sections.tags"
+        :groupColor="color"
+      />
+      <div class="sections">
+        <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
+        <span v-if="sections.synopsis.length == 0">No documentation available.</span>
+        <DocsSynopsis :sections="sections.synopsis" />
+        <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
+        <DocsList
+          :items="{ kind: 'Types', items: types }"
+          @linkClicked="historyStack.record($event)"
+        />
+        <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
+        <DocsList
+          :items="{ kind: 'Constructors', items: constructors }"
+          @linkClicked="historyStack.record($event)"
+        />
+        <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
+        <DocsList
+          :items="{ kind: 'Methods', items: methods }"
+          @linkClicked="historyStack.record($event)"
+        />
+        <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
+        <DocsExamples :examples="sections.examples" />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -212,14 +231,19 @@ function openDocs(url: string) {
   line-height: 160%;
   color: var(--enso-docs-text-color);
   background-color: var(--enso-docs-background-color);
-  padding: 4px 12px var(--doc-panel-bottom-clip, 0) 4px;
+  padding: 4px 4px var(--doc-panel-bottom-clip, 0) 4px;
   white-space: normal;
   clip-path: inset(0 0 var(--doc-panel-bottom-clip, 0) 0);
   height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 4px;
   align-items: flex-start;
+}
+
+.markdownDocs {
+  margin: 4px 0 0 8px;
 }
 
 .tags {

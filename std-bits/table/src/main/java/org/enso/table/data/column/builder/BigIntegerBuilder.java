@@ -15,6 +15,11 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
+  public static BigIntegerStorage makeEmpty(long size) {
+    int intSize = Builder.checkSize(size);
+    return new BigIntegerStorage(new BigInteger[intSize]);
+  }
+
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
 
@@ -25,14 +30,13 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
 
   @Override
   public boolean canRetypeTo(StorageType<?> type) {
-    return type instanceof FloatType
-        || type instanceof BigDecimalType;
+    return type instanceof FloatType || type instanceof BigDecimalType;
   }
 
   @Override
   public Builder retypeTo(StorageType<?> type) {
     switch (type) {
-      case FloatType _ -> {
+      case FloatType floatType -> {
         // Needs to be an InferredDoubleBuilder so we can keep the raw data.
         var res = new InferredDoubleBuilder(currentSize, problemAggregator);
         for (int i = 0; i < currentSize; i++) {
@@ -44,7 +48,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         }
         return res;
       }
-      case BigDecimalType _ -> {
+      case BigDecimalType bigDecimalType -> {
         var res = Builder.getForBigDecimal(data.length);
         for (int i = 0; i < currentSize; i++) {
           if (data[i] == null) {

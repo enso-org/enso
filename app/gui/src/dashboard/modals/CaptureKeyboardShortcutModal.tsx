@@ -1,18 +1,19 @@
 /** @file A modal for capturing an arbitrary keyboard shortcut. */
-import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-
-import { isOnMacOS } from 'enso-common/src/detect'
-
-import { ButtonGroup, Dialog, DialogDismiss, Form, Text } from '#/components/AriaComponents'
-import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
-import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Text } from '#/components/Text'
+import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
+import { unsetModal } from '#/providers/ModalProvider'
 import {
   modifierFlagsForEvent,
   modifiersForModifierFlags,
   normalizedKeyboardSegmentLookup,
 } from '#/utilities/inputBindings'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
+import { isOnMacOS } from 'enso-common/src/detect'
+import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 
 const DISALLOWED_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])
 const DELETE_KEY = isOnMacOS() ? 'Backspace' : 'Delete'
@@ -43,7 +44,6 @@ export interface CaptureKeyboardShortcutModalProps {
 /** A modal for capturing an arbitrary keyboard shortcut. */
 export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShortcutModalProps) {
   const { description, existingShortcuts, onSubmit } = props
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
   const [key, setKey] = useState<string | null>(null)
   const [modifiers, setModifiers] = useState<string>('')
@@ -113,10 +113,10 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         <Text className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
         </Text>
-        <ButtonGroup>
+        <Button.Group>
           <Form.Submit isDisabled={!canSubmit}>{getText('confirm')}</Form.Submit>
-          <DialogDismiss />
-        </ButtonGroup>
+          <Dialog.Dismiss />
+        </Button.Group>
       </Form>
     </Dialog>
   )

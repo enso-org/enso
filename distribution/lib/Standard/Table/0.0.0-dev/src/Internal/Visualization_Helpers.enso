@@ -26,6 +26,13 @@ type Visualization_Helpers
     count_non_trivial_whitespace : Integer -> Integer | Nothing
     count_non_trivial_whitespace self sample_size:Integer=Visualization_Helpers.default_sample_size =
         self.implementation.count_non_trivial_whitespace self.column sample_size
+    
+    ## PRIVATE
+       Counts the number of distinct values
+       Used for determining which filters should be used
+    check_distinct_values : Boolean
+    check_distinct_values self  =
+        self.implementation.check_distinct_values self.column
 
     ## PRIVATE
        Default size for sampling data quality indicators.

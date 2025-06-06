@@ -3,6 +3,7 @@
  * Image.
  */
 module org.enso.os.environment {
+  requires org.enso.persistance;
   requires org.enso.engine.common;
   requires org.graalvm.nativeimage;
   requires org.slf4j;
