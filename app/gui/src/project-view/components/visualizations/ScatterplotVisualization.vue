@@ -8,6 +8,7 @@ import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 import { ToolbarItem } from './toolbar'
+import { createDateTime } from '../shared/AgGridTableView/Utils'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
@@ -143,17 +144,6 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   square: d3.symbolSquare,
   star: d3.symbolStar,
   triangle: d3.symbolTriangle,
-}
-
-const createDateTime = (x: DateObj) => {
-  const dateTime = new Date()
-  if (x.day != null) dateTime.setDate(x.day)
-  if (x.month != null) dateTime.setMonth(x.month - 1)
-  if (x.year != null) dateTime.setFullYear(x.year)
-  if (x.hour != null) dateTime.setHours(x.hour)
-  if (x.minute != null) dateTime.setMinutes(x.minute)
-  if (x.second != null) dateTime.setSeconds(x.second)
-  return dateTime
 }
 
 const data = computed<Data>(() => {
