@@ -3,6 +3,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { AuthStore, useAuth } from '$/providers/auth'
 import { BackendsStore, useBackends } from '$/providers/backends'
 import { useHttpClient } from '$/providers/httpClient'
+import { QueryParams, useQueryParams } from '$/providers/queryParams'
 import {
   BackendsContext,
   ConfigContext,
@@ -12,6 +13,7 @@ import {
   TextContext,
 } from '$/providers/react'
 import { AuthContext } from '$/providers/react/auth'
+import { QueryParamsContext } from '$/providers/react/queryParams'
 import { RouterContext, RouterForReact } from '$/providers/react/router'
 import { SessionStore, useSession } from '$/providers/session'
 import { TextStore, useText } from '$/providers/text'
@@ -30,6 +32,7 @@ interface ContextsForReactProviderProps {
   localStorage: LocalStorage
   session: SessionStore
   auth: AuthStore
+  queryParams: QueryParams
 }
 
 /**
@@ -40,8 +43,18 @@ interface ContextsForReactProviderProps {
  */
 export const ContextsForReactProvider = applyPureReactInVue(
   (props: react.PropsWithChildren<ContextsForReactProviderProps>) => {
-    const { children, router, config, text, httpClient, backends, localStorage, session, auth } =
-      props
+    const {
+      children,
+      router,
+      config,
+      text,
+      httpClient,
+      backends,
+      localStorage,
+      session,
+      auth,
+      queryParams,
+    } = props
     return (
       <RouterContext.Provider value={router}>
         <ConfigContext.Provider value={config}>
@@ -50,7 +63,11 @@ export const ContextsForReactProvider = applyPureReactInVue(
               <LocalStorageContext.Provider value={localStorage}>
                 <SessionContext.Provider value={session}>
                   <AuthContext.Provider value={auth}>
-                    <BackendsContext.Provider value={backends}>{children}</BackendsContext.Provider>
+                    <QueryParamsContext.Provider value={queryParams}>
+                      <BackendsContext.Provider value={backends}>
+                        {children}
+                      </BackendsContext.Provider>
+                    </QueryParamsContext.Provider>
                   </AuthContext.Provider>
                 </SessionContext.Provider>
               </LocalStorageContext.Provider>
@@ -89,6 +106,7 @@ export const ContextsForReactProvider = applyPureReactInVue(
         localStorage: LocalStorage.getInstance(),
         session: useSession(),
         auth: useAuth(),
+        queryParams: useQueryParams(),
       }
     },
   },

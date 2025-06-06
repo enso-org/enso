@@ -23,19 +23,20 @@ export function useInReactFunction<T>(context: react.Context<T | null>) {
  * Returns also a setter if selector returns vue's Ref.
  */
 export function useVueValue<T>(selector: () => T): T {
-  const selectorCb = react.useCallback(selector, [])
-  const initialValue = selectorCb()
+  const initialValue = selector()
   const [state, setState] = react.useState(initialValue)
 
   react.useEffect(
     () =>
       watch(
-        () => selectorCb(),
+        () => selector(),
         (newValue) => {
           setState(newValue)
         },
+        // We need to set state synchronously to make react transitions working properly.
+        { flush: 'sync' },
       ),
-    [selectorCb, setState],
+    [selector, setState],
   )
   return state
 }
