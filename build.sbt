@@ -3998,7 +3998,6 @@ lazy val `engine-runner` = project
               "org.apache",
               "org.openxmlformats",
               "org.jline",
-              "io.methvin.watchservice",
               "zio.internal",
               "zio",
               "org.enso.runner",
