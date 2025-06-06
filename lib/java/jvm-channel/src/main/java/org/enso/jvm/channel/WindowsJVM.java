@@ -1,10 +1,10 @@
-package org.enso.os.environment.jni;
+package org.enso.jvm.channel;
 
 import static org.graalvm.nativeimage.c.function.CFunction.Transition.NO_TRANSITION;
 
 import java.io.File;
 import java.util.List;
-import org.enso.os.environment.jni.JNIBoot.JNICreateJavaVMPointer;
+import org.enso.jvm.channel.JNIBoot.JNICreateJavaVMPointer;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.nativeimage.c.CContext;

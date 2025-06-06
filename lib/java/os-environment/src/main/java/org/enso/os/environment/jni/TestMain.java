@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
 
 final class TestMain {

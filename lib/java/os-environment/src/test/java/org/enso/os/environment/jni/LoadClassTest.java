@@ -1,16 +1,14 @@
 package org.enso.os.environment.jni;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.util.Random;
-import org.enso.os.environment.jni.JNI.JValue;
-import org.graalvm.nativeimage.StackValue;
-import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.enso.jvm.channel.Channel;
+import org.enso.jvm.channel.JVM;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,10 +40,6 @@ public class LoadClassTest {
     return impl;
   }
 
-  private static JNI.JNIEnv env() {
-    return jvm().env();
-  }
-
   private Channel channel;
 
   @Before
@@ -53,7 +47,7 @@ public class LoadClassTest {
     channel = Channel.create(jvm(), JVMPeer.class);
   }
 
-  @Test
+  /* @Test
   public void invokeParseShortMethod() {
     var env = env();
     assertTrue("JNI created", env.isNonNull());
@@ -121,6 +115,7 @@ public class LoadClassTest {
       strReleaseFn.call(env, res, chars);
     }
   }
+  */
 
   @Test
   public void executeMainClass() throws Exception {

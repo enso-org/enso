@@ -347,6 +347,7 @@ lazy val enso = (project in file("."))
     `interpreter-dsl-test`,
     `jna-wrapper`,
     `json-rpc-server`,
+    `jvm-channel`,
     `language-server`,
     `language-server-deps-wrapper`,
     launcher,
@@ -791,6 +792,7 @@ lazy val componentModulesPaths =
     (`logging-utils-akka` / Compile / exportedModuleBin).value,
     (`logging-service` / Compile / exportedModuleBin).value,
     (`logging-service-logback` / Compile / exportedModuleBin).value,
+    (`jvm-channel` / Compile / exportedModuleBin).value,
     (`os-environment` / Compile / exportedModuleBin).value,
     (`pkg` / Compile / exportedModuleBin).value,
     (`refactoring-utils` / Compile / exportedModuleBin).value,
@@ -2789,10 +2791,13 @@ lazy val `runtime-language-epb` =
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies := Seq(
+        (`jvm-channel` / Compile / exportedModule).value,
         (`ydoc-polyfill` / Compile / exportedModule).value,
         (`runtime-utils` / Compile / exportedModule).value
       )
     )
+    .dependsOn(`jvm-channel`)
+    .dependsOn(`persistance-dsl` % "provided")
 
 lazy val `runtime-language-arrow` =
   (project in file("engine/runtime-language-arrow"))
@@ -3865,6 +3870,7 @@ lazy val `engine-runner` = project
       (`profiling-utils` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
       (`cli` / Compile / exportedModule).value,
+      (`jvm-channel` / Compile / exportedModule).value,
       (`os-environment` / Compile / exportedModule).value,
       (`distribution-manager` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value,
@@ -4313,12 +4319,39 @@ lazy val `benchmarks-common` =
     )
     .dependsOn(`polyglot-api`)
 
+lazy val `jvm-channel` =
+  project
+    .in(file("lib/java/jvm-channel"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      customFrgaalJavaCompilerSettings("24"),
+      scalaModuleDependencySetting,
+      libraryDependencies ++= slf4jApi ++ Seq(
+        "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
+        "junit"           % "junit"           % junitVersion              % Test,
+        "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
+      ),
+      Compile / moduleDependencies ++= slf4jApi ++ Seq(
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
+      ),
+      Compile / internalModuleDependencies ++= Seq(
+        (`engine-common` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value
+      )
+    )
+    .dependsOn(`engine-common`)
+    .dependsOn(`persistance`)
+    .dependsOn(`persistance-dsl` % "provided")
+
 lazy val `os-environment` =
   project
     .in(file("lib/java/os-environment"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      customFrgaalJavaCompilerSettings("24"),
+      frgaalJavaCompilerSetting,
       scalaModuleDependencySetting,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
@@ -4337,6 +4370,7 @@ lazy val `os-environment` =
       Compile / internalModuleDependencies ++= Seq(
         (`engine-common` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value,
+        (`jvm-channel` / Compile / exportedModule).value,
         (`logging-utils` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value
       ),
@@ -4391,6 +4425,7 @@ lazy val `os-environment` =
         .value,
       Test / fork := true
     )
+    .dependsOn(`jvm-channel`)
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`engine-common`)

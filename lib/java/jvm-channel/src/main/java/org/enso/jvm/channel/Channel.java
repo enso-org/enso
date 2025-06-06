@@ -1,4 +1,4 @@
-package org.enso.os.environment.jni;
+package org.enso.jvm.channel;
 
 import java.io.IOException;
 import java.lang.foreign.FunctionDescriptor;
@@ -88,18 +88,47 @@ public final class Channel implements AutoCloseable {
   }
 
   /**
+   * Mock constructor. Creates a channel that simulates sending of the messages inside of the same
+   * JVM. Useful for testing.
+   */
+  private Channel(long id, Persistance.Pool pool) {
+    if (ImageInfo.inImageCode()) {
+      throw new IllegalStateException("Only usable in HotSpot");
+    }
+    this.id = id;
+    this.pool = pool;
+    this.isolate = -2;
+    this.callbackFn = null;
+    this.env = null;
+    this.channelClass = null;
+    this.channelHandle = null;
+  }
+
+  /**
    * Factory method to initialize the Channel in the SubstrateVM.
    *
-   * @param jvm instance of HotSpot JVM to connect to
+   * @param jvm instance of HotSpot JVM to connect to (can be {@code null} to create a mock channel
+   *     inside of a single JVM)
    * @param poolClass the class which has public default constructor and can supply an instance of
    *     persistance pool to use for communication
    * @return channel for sending messages to the HotSpot JVM
    */
-  public static synchronized Channel create( //
-      JVM jvm, //
-      Class<? extends Supplier<Persistance.Pool>> poolClass //
-      ) {
+  public static synchronized Channel create(
+      JVM jvm, Class<? extends Supplier<Persistance.Pool>> poolClass) {
+    Persistance.Pool pool;
+    try {
+      pool = poolClass.getConstructor().newInstance().get();
+    } catch (ReflectiveOperationException ex) {
+      throw new IllegalArgumentException(ex);
+    }
     var id = idCounter++;
+    if (jvm == null) {
+      return new Channel(id, pool);
+    }
+
+    if (!ImageInfo.inImageCode()) {
+      throw new IllegalStateException("Only usable from SubstrateVM");
+    }
     var e = jvm.env();
     var classNameWithSlashes = Channel.class.getName().replace('.', '/');
     try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
@@ -119,7 +148,6 @@ public final class Channel implements AutoCloseable {
       var handleMethod =
           fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
 
-      var pool = poolClass.getConstructor().newInstance().get();
       var channel = new Channel(id, pool, e, channelClass, handleMethod);
 
       var arg = StackValue.get(4, JNI.JValue.class);
@@ -133,8 +161,6 @@ public final class Channel implements AutoCloseable {
 
       ID_TO_CHANNEL.put(id, channel);
       return channel;
-    } catch (ReflectiveOperationException ex) {
-      throw new IllegalStateException(ex);
     }
   }
 
@@ -199,12 +225,12 @@ public final class Channel implements AutoCloseable {
     }
   }
 
-  private static long handleWithChannel(Channel channel, ByteBuffer buf) throws Throwable {
+  private static long handleWithChannel(Channel channel, ByteBuffer buf) throws IOException {
     var ref = channel.pool.read(buf, null);
     var msg = ref.get(Function.class);
     @SuppressWarnings("unchecked")
     var res = msg.apply(channel);
-    var bytes = Persistables.POOL.write(res, null);
+    var bytes = channel.pool.write(res, null);
     buf.put(0, bytes);
     return bytes.length;
   }
@@ -230,6 +256,13 @@ public final class Channel implements AutoCloseable {
       printStackTrace(ex, false);
       return -1L;
     }
+  }
+
+  private long toDirectMessage(ByteBuffer buf) throws IOException {
+    buf.position(0);
+    var len = handleWithChannel(this, buf);
+    buf.position(0);
+    return len;
   }
 
   private void checkForException(JNI.JNIEnv e) {
@@ -280,7 +313,7 @@ public final class Channel implements AutoCloseable {
         var memory = MemorySegment.ofBuffer(buffer);
         memory.copyFrom(MemorySegment.ofArray(bytes));
         address = memory.address();
-        len = toSubstrateMessage(memory);
+        len = isolate == -2 ? toDirectMessage(buffer) : toSubstrateMessage(memory);
       }
       if (len == -2) {
         // signals exception
