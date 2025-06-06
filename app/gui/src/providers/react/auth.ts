@@ -7,7 +7,7 @@ import {
 } from '$/providers/auth'
 import * as react from 'react'
 import invariant from 'tiny-invariant'
-import { useInReactFunction } from './common'
+import { useInReactFunction, useVueValue } from './common'
 
 export const AuthContext = react.createContext<AuthStore | null>(null)
 export const useAuth = useInReactFunction(AuthContext)
@@ -17,7 +17,7 @@ export const useAuth = useInReactFunction(AuthContext)
  * for a user that has not yet completed registration.
  */
 export function usePartialUserSession() {
-  const { session } = useAuth()
+  const session = useUserSession()
 
   invariant(session?.type === UserSessionType.partial, 'Expected a partial user session.')
 
@@ -26,12 +26,13 @@ export function usePartialUserSession() {
 
 /** A React context hook returning the user session for a user that may or may not be logged in. */
 export function useUserSession() {
-  return useAuth().session
+  const auth = useAuth()
+  return useVueValue(() => auth.session)
 }
 
 /** A React context hook returning the user session for a user that is fully logged in. */
 export function useFullUserSession(): FullUserSession {
-  const { session } = useAuth()
+  const session = useUserSession()
 
   invariant(session?.type === UserSessionType.full, 'Expected a full user session.')
 

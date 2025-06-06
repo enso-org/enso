@@ -4,10 +4,11 @@
  * if user lost privileges to see them.
  */
 
+import { EnsoDevtools as EnsoDevToolsReact } from '#/components/Devtools'
 import { useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
-import { Dialog, ResultComponent } from '@/util/react'
+import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { computed, watch, watchPostEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -18,6 +19,7 @@ const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const text = useText()
+const EnsoDevtools = reactComponent(EnsoDevToolsReact)
 
 const routeGuardResult = computed(() => auth.routeGuard(route))
 watch(
@@ -67,4 +69,6 @@ const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
   </Dialog>
 
   <RouterView v-if="routeGuardResult.allowed" />
+
+  <EnsoDevtools />
 </template>

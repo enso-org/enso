@@ -23,8 +23,8 @@ import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
   FEATURE_FLAGS_SCHEMA,
 } from '$/providers/featureFlags'
-import { useAuth, useLocalStorage, usePlanOverride, useText } from '$/providers/react'
-import { useSetPlanOverride } from '$/providers/react/auth'
+import { useLocalStorage, usePlanOverride, useText } from '$/providers/react'
+import { useSetPlanOverride, useUserSession } from '$/providers/react/auth'
 import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
@@ -261,7 +261,7 @@ export function EnsoDevtools() {
   const { getText } = useText()
 
   const queryClient = useQueryClient()
-  const { session } = useAuth()
+  const session = useUserSession()
   const { getFeature } = usePaywallFeatures()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
 

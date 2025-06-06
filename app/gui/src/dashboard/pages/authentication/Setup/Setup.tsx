@@ -326,7 +326,7 @@ const BASE_STEPS: Step[] = [
 /** Setup page */
 export function Setup() {
   const { getText } = useText()
-  const { session } = useAuth()
+  const session = useUserSession()
   const isFirstRender = useIsFirstRender()
   const { router, route } = useRouter()
 
