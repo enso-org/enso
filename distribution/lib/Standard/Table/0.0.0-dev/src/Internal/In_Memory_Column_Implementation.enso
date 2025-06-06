@@ -546,13 +546,13 @@ type In_Memory_Column_Implementation
 
     format (this_column : Column & In_Memory_Column) (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column ! Illegal_Argument = case format of
         format_column : Column -> Value_Type.expect_text format_column <|
-            formatter = make_value_for|
+            formatter = make_value_formatter_for_value_type this_column.value_type locale
+            formatter.if_not_error <|
                 formatter_flipped value format = formatter format value
                 Column_Ops.map_2_over_storage this_column format_column formatter_flipped make_string_builder
         _ ->
             formatter = make_value_formatter_for_value_type this_column.value_type locale format
-            Cmatter_for_value_type this_column.value_type locale
-                         formatter.if_not_error <olumn_Ops.map_over_storage this_column formatter make_string_builder on_problems=Problem_Behavior.Report_Error
+            Column_Ops.map_over_storage this_column formatter make_string_builder on_problems=Problem_Behavior.Report_Error
 
     cast (this_column : Column & In_Memory_Column) value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
         Cast_Helpers.check_cast_compatibility this_column.value_type value_type <|
