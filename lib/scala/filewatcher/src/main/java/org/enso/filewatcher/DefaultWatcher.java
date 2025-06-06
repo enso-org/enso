@@ -11,9 +11,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Default directory watcher using JDK's {@link WatchService}. */
 public final class DefaultWatcher implements Watcher {
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWatcher.class);
   private final Path root;
   private final Consumer<Watcher.WatcherEvent> eventCallback;
   private final Consumer<Watcher.WatcherError> exceptionCallback;
@@ -36,7 +39,7 @@ public final class DefaultWatcher implements Watcher {
     if (closed) {
       throw new IllegalStateException("Watcher has already been stopped.");
     }
-    System.out.println("[JWatcher] Starting watcher for root " + root.toAbsolutePath());
+    LOGGER.debug("Starting watcher for root directory {}", root.toAbsolutePath());
     try {
       var watchKey =
           root.register(
@@ -99,15 +102,12 @@ public final class DefaultWatcher implements Watcher {
     var isDir = Files.isDirectory(absolutePath);
     var isRepeated = event.count() > 1;
     var eventType = deduceType(event);
-    System.out.println(
-        "[JWatcher] Received event, kind:"
-            + event.kind()
-            + ", path: "
-            + absolutePath
-            + ", isDir: "
-            + isDir
-            + ", isRepeated: "
-            + isRepeated);
+    LOGGER.trace(
+        "Dispatching event: kind={}, path={}, isDir={}, isRepeated={}",
+        event.kind(),
+        absolutePath,
+        isDir,
+        isRepeated);
     if (isRepeated) {
       return;
     }
@@ -137,7 +137,7 @@ public final class DefaultWatcher implements Watcher {
   }
 
   private void registerWatchService(Path path) {
-    System.out.println("[JWatcher] Registering watch service for " + path);
+    LOGGER.debug("Registering watch service for subdir {}", path);
     try {
       var watchKey =
           path.register(
@@ -153,7 +153,7 @@ public final class DefaultWatcher implements Watcher {
   }
 
   private void cancelWatch(Path path) {
-    System.out.println("[JWatcher] Cancelling watch for " + path);
+    LOGGER.debug("Cancelling watch for subdir {}", path);
     var watchKey = watchedDirs.get(path);
     assert watchKey != null : "No watch key found for path: " + path;
     watchKey.cancel();
