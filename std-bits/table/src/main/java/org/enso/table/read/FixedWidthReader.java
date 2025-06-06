@@ -58,7 +58,7 @@ public class FixedWidthReader {
       boolean warningsAsErrors,
       FixedWidthDecodingProblemAggregator decodingProblemAggregator,
       ProblemAggregator problemAggregator) {
-    
+
     assert layoutEntries == null ^ justification == null : "Exactly one of 'layoutEntries' and 'justification' can be specified";
 
     this.layoutEntries = layoutEntries;
