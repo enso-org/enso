@@ -152,7 +152,6 @@
   "uploadFileStartBackendError": "Could not begin uploading large file",
   "uploadFileChunkBackendError": "Could not upload chunk of large file",
   "uploadFileEndBackendError": "Could not finish uploading large file",
-  "updateFileNotImplementedBackendError": "Files currently cannot be renamed on the Cloud backend",
   "uploadFileWithNameBackendError": "Could not upload file '$0'",
   "getFileDetailsBackendError": "Could not get details of project '$0'",
   "createSecretBackendError": "Could not create secret with name '$0'",

@@ -1,5 +1,4 @@
 /** @file Type definitions common between all backends. */
-
 import { z } from 'zod'
 import { getText, Replacements, resolveDictionary, type TextId } from '../text'
 import * as array from '../utilities/data/array'
@@ -7,14 +6,36 @@ import * as dateTime from '../utilities/data/dateTime'
 import * as newtype from '../utilities/data/newtype'
 import * as permissions from '../utilities/permissions'
 import * as uniqueString from '../utilities/uniqueString'
-import { getFileDetailsPath } from './Backend/remoteBackendPaths'
+import {
+  CREATE_DIRECTORY_PATH,
+  deleteAssetPath,
+  getFileDetailsPath,
+  getProjectContentPath,
+  updateAssetPath,
+  updateDirectoryPath,
+} from './Backend/paths'
 import { HttpClient, ResponseWithTypedJson } from './HttpClient'
+export { prettifyError } from 'zod/v4'
+
+const object = z.object
+const boolean = z.boolean()
+const string = z.string()
 
 /** HTTP status indicating that the request was successful, but the user is not authorized to access. */
 const STATUS_NOT_AUTHORIZED = 401
 
 /** The size, in bytes, of the chunks which the backend accepts. */
 export const S3_CHUNK_SIZE_BYTES = 10_000_000
+
+/** The schema that checks if the error is a duplicate asset error. */
+const DUPLICATE_ASSET_ERROR_SCHEMA = z.object({
+  message: z.string().includes('A resource with that title already exists.'),
+})
+
+/** Check if the error is a duplicate asset error. */
+export function isDuplicateAssetError(error: unknown): error is Error {
+  return DUPLICATE_ASSET_ERROR_SCHEMA.safeParse(error).success
+}
 
 /** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
@@ -43,6 +64,9 @@ export function isUserGroupId(id: unknown): id is UserGroupId {
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<`directory-${string}`, 'DirectoryId'>
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
+const DirectoryIdType = z.custom<DirectoryId>(
+  (x) => typeof x === 'string' && x.startsWith('directory-'),
+)
 
 /** Whether a given {@link unknown} is an {@link DirectoryId}. */
 export function isDirectoryId(id: unknown): id is DirectoryId {
@@ -118,6 +142,7 @@ export const ZipAssetsJobId = newtype.newtypeConstructor<ZipAssetsJobId>()
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
 export const LabelName = newtype.newtypeConstructor<LabelName>()
+const LabelNameType = z.custom<LabelName>((x) => typeof x === 'string')
 
 /** Unique identifier for a label. */
 export type TagId = newtype.Newtype<string, 'TagId'>
@@ -149,6 +174,7 @@ export type UserPermissionIdentifier = UserGroupId | UserId
 /** An filesystem path. Only present on the local backend. */
 export type Path = newtype.Newtype<string, 'Path'>
 export const Path = newtype.newtypeConstructor<Path>()
+const PathType = z.custom<Path>((x) => typeof x === 'string')
 
 /** A project UUID. Only present on the local backend. */
 export type UUID = newtype.Newtype<string, 'UUID'>
@@ -741,6 +767,7 @@ export enum FilterBy {
   recent = 'Recent',
   trashed = 'Trashed',
 }
+const FilterByType = z.nativeEnum(FilterBy)
 
 /** An event in an audit log. */
 export interface AuditLogEvent {
@@ -1109,26 +1136,6 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
   }
 }
 
-/** Creates a {@link DirectoryAsset} using the given values. */
-export function createPlaceholderDirectoryAsset(
-  title: string,
-  parentId: DirectoryId,
-): DirectoryAsset {
-  return {
-    type: AssetType.directory,
-    id: DirectoryId(`directory-${createPlaceholderId()}` as const),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
 /** Creates a {@link SecretAsset} using the given values. */
 export function createPlaceholderSecretAsset(title: string, parentId: DirectoryId): SecretAsset {
   return {
@@ -1443,28 +1450,30 @@ export interface CreatePermissionRequestBody {
   readonly action: permissions.PermissionAction | null
 }
 
+export const CreateDirectoryRequestBody = object({
+  /** Only works on Local backend. DO NOT USE on Remote backend. */
+  title: string.optional(),
+  parentId: DirectoryIdType,
+}).readonly()
+
 /** HTTP request body for the "create directory" endpoint. */
-export interface CreateDirectoryRequestBody {
-  readonly title: string
-  readonly parentId: DirectoryId | null
-}
+export interface CreateDirectoryRequestBody extends z.infer<typeof CreateDirectoryRequestBody> {}
+
+export const UpdateDirectoryRequestBody = object({
+  title: string,
+})
 
 /** HTTP request body for the "update directory" endpoint. */
-export interface UpdateDirectoryRequestBody {
-  readonly title: string
-}
+export interface UpdateDirectoryRequestBody extends z.infer<typeof UpdateDirectoryRequestBody> {}
 
-/** HTTP request body for the "update file" endpoint. */
-export interface UpdateFileRequestBody {
-  readonly title: string
-}
+export const UpdateAssetRequestBody = object({
+  parentDirectoryId: DirectoryIdType.or(z.null()),
+  description: string.or(z.null()),
+  title: string.or(z.null()),
+}).readonly()
 
 /** HTTP request body for the "update asset" endpoint. */
-export interface UpdateAssetRequestBody {
-  readonly parentDirectoryId: DirectoryId | null
-  readonly description: string | null
-  readonly title: string | null
-}
+export interface UpdateAssetRequestBody extends z.infer<typeof UpdateAssetRequestBody> {}
 
 /** HTTP request body for the "delete asset" endpoint. */
 export interface DeleteAssetRequestBody {
@@ -1591,18 +1600,21 @@ export interface GetLogEventsRequestParams {
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
-export interface ListDirectoryRequestParams {
-  readonly parentId: DirectoryId | null
-  readonly filterBy: FilterBy | null
-  readonly labels: LabelName[] | null
-  readonly recentProjects: boolean
+export const ListDirectoryRequestParams = object({
+  parentId: DirectoryIdType.or(z.null()),
+  filterBy: FilterByType.or(z.null()),
+  labels: LabelNameType.array().readonly().or(z.null()),
+  recentProjects: boolean,
   /**
    * The root path of the directory to list.
    * This is used to list a subdirectory of a local root directory,
    * because a root could be any local folder on the machine.
    */
-  readonly rootPath?: Path | undefined
-}
+  rootPath: PathType.or(z.null()).optional(),
+}).readonly()
+
+/** URL query string parameters for the "list directory" endpoint. */
+export interface ListDirectoryRequestParams extends z.infer<typeof ListDirectoryRequestParams> {}
 
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
@@ -2005,23 +2017,73 @@ export default abstract class Backend {
     query: ListDirectoryRequestParams,
     title: string,
   ): Promise<readonly AnyAsset[]>
-  /** Create a directory. */
-  abstract createDirectory(
-    body: CreateDirectoryRequestBody,
-    discardTitle?: boolean,
-  ): Promise<CreatedDirectory>
-  /** Change the name of a directory. */
-  abstract updateDirectory(
-    directoryId: DirectoryId,
-    body: UpdateDirectoryRequestBody,
-    title: string,
-  ): Promise<UpdatedDirectory>
+
+  /**
+   * Create a directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory> {
+    const path = CREATE_DIRECTORY_PATH
+    const response = await this.post<CreatedDirectory>(path, body)
+    if (!response.ok) {
+      return await this.throw(response, 'createFolderBackendError', '(unknown)')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Change the name of a directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async updateDirectory(directoryId: DirectoryId, body: UpdateDirectoryRequestBody, title: string) {
+    const path = updateDirectoryPath(directoryId)
+    // FIXME: Should be `.patch`
+    const response = await this.put<UpdatedDirectory>(path, body)
+    if (!response.ok) {
+      return await this.throw(response, 'updateFolderBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** List previous versions of an asset. */
   abstract listAssetVersions(assetId: AssetId): Promise<AssetVersions>
-  /** Change the parent directory of an asset. */
-  abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string): Promise<void>
-  /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string): Promise<void>
+
+  /**
+   * Change the parent directory or description of an asset.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string) {
+    const path = updateAssetPath(assetId)
+    const response = await this.patch(path, body)
+
+    if (!response.ok) {
+      await this.throw(response, 'updateAssetBackendError', title).catch((error) => {
+        if (isDuplicateAssetError(error)) {
+          throw new DuplicateAssetError(error.message)
+        }
+
+        throw error
+      })
+    }
+  }
+
+  /**
+   * Delete an arbitrary asset.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string) {
+    const paramsString = new URLSearchParams([['force', String(body.force)]]).toString()
+    const path = `${deleteAssetPath(assetId)}?${paramsString}`
+    const response = await this.delete(path)
+    if (!response.ok) {
+      return await this.throw(response, 'deleteAssetBackendError', title)
+    } else {
+      return
+    }
+  }
+
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
@@ -2099,8 +2161,19 @@ export default abstract class Backend {
     body: UpdateProjectRequestBody,
     title: string,
   ): Promise<UpdatedProject>
+
   /** Fetch the content of the `Main.enso` file of a project. */
-  abstract getFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
+  async getFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string> {
+    const path = getProjectContentPath(projectId, versionId)
+    const response = await this.get<string>(path)
+
+    if (!response.ok) {
+      return this.throw(response, 'getFileContentsBackendError')
+    } else {
+      return await response.text()
+    }
+  }
+
   /** Begin uploading a large file. */
   abstract uploadFileStart(
     body: UploadFileRequestParams,
@@ -2110,8 +2183,6 @@ export default abstract class Backend {
   abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
   /** Finish uploading a large file. */
   abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedLargeAsset>
-  /** Change the name of a file. */
-  abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 
   /**
    * Return details for a file.
@@ -2221,6 +2292,11 @@ export default abstract class Backend {
     return response
   }
 
+  /** Send an HTTP HEAD request to the given path. */
+  protected head(path: string) {
+    return this.checkForAuthenticationError(() => this.client.head(`${this.baseUrl}/${path}`))
+  }
+
   /** Send an HTTP GET request to the given path. */
   protected get<T = void>(path: string) {
     return this.checkForAuthenticationError(() => this.client.get<T>(`${this.baseUrl}/${path}`))
@@ -2262,20 +2338,16 @@ export default abstract class Backend {
   }
 
   /** Send an HTTP DELETE request to the given path. */
-  protected delete<T = void>(path: string, payload?: Record<string, unknown>) {
+  delete<T = void>(path: string, payload?: Record<string, unknown>) {
     return this.checkForAuthenticationError(() =>
       this.client.delete<T>(`${this.baseUrl}/${path}`, payload),
     )
   }
 }
 
-/**
- * Error thrown when an asset does not exist.
- */
+/** Error thrown when an asset does not exist. */
 export class AssetDoesNotExistError extends Error {
-  /**
-   * Create a new instance of the {@link AssetDoesNotExistError} class.
-   */
+  /** Create a new {@link AssetDoesNotExistError}. */
   constructor(message: string = 'Asset could not be found.') {
     super(message)
   }
@@ -2283,9 +2355,7 @@ export class AssetDoesNotExistError extends Error {
 
 /** More specific error thrown when a directory does not exist. */
 export class DirectoryDoesNotExistError extends AssetDoesNotExistError {
-  /**
-   * Create a new instance of the {@link DirectoryDoesNotExistError} class.
-   */
+  /** Create a new {@link DirectoryDoesNotExistError}. */
   constructor(message: string = 'Directory does not exist.') {
     super(message)
   }
@@ -2293,9 +2363,7 @@ export class DirectoryDoesNotExistError extends AssetDoesNotExistError {
 
 /** Error thrown when an asset already exists. */
 export class DuplicateAssetError extends Error {
-  /**
-   * Create a new instance of the {@link DuplicateAssetError} class.
-   */
+  /** Create a new {@link DuplicateAssetError}. */
   constructor(message: string = 'Asset already exists.') {
     super(message)
   }

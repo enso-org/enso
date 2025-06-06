@@ -1,21 +1,33 @@
 /**
- * @file This module defines the Project Manager endpoint.
- * @see
- * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
+ * @file The Project Manager endpoint.
+ * @see https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
  */
-import invariant from 'tiny-invariant'
-
 import * as backend from '#/services/Backend'
-import * as newtype from '#/utilities/newtype'
+import { newtypeConstructor, type Newtype } from '#/utilities/newtype'
 import { omit } from '#/utilities/object'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
-import * as dateTime from 'enso-common/src/utilities/data/dateTime'
+import type { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { getFileName } from '../utilities/fileInfo'
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
 /** The maximum amount of time for which the {@link ProjectManager} should try loading. */
 const MAXIMUM_DELAY_MS = 10_000
+
+/** The Project Manager's metadata associated with a project. */
+interface ProjectMetadata {
+  /**
+   * The ID of the project. It is only used in communication with project manager;
+   * it has no semantic meaning.
+   */
+  readonly id: string
+  /** The project variant. This is currently always `UserProject`. */
+  readonly kind: 'UserProject'
+  /** The date at which the project was created, in RFC3339 format. */
+  readonly created: string
+  /** The date at which the project was last opened, in RFC3339 format. */
+  readonly lastOpened: string
+}
 
 /** Possible actions to take when a component is missing. */
 export enum MissingComponentAction {
@@ -54,58 +66,36 @@ export type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T
 /* eslint-disable @typescript-eslint/no-redeclare */
 
 /** A UUID. */
-export type UUID = newtype.Newtype<string, 'UUID'>
+export type UUID = Newtype<string, 'UUID'>
 /** Create a {@link UUID}. */
-export const UUID = newtype.newtypeConstructor<UUID>()
+export const UUID = newtypeConstructor<UUID>()
 /** A filesystem path. */
-export type Path = newtype.Newtype<string, 'Path'>
+export type Path = Newtype<string, 'Path'>
 /** Create a {@link Path}. */
-export const Path = newtype.newtypeConstructor<Path>()
+export const Path = newtypeConstructor<Path>()
 /** An ID of a directory. */
-export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
+export type DirectoryId = Newtype<string, 'DirectoryId'>
 /** Create a {@link DirectoryId}. */
-export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
+export const DirectoryId = newtypeConstructor<DirectoryId>()
 /** A name of a project. */
-export type ProjectName = newtype.Newtype<string, 'ProjectName'>
+export type ProjectName = Newtype<string, 'ProjectName'>
 /** Create a {@link ProjectName}. */
-export const ProjectName = newtype.newtypeConstructor<ProjectName>()
+export const ProjectName = newtypeConstructor<ProjectName>()
 /**
  * The newtype's `TypeName` is intentionally different from the name of this type alias,
  * to match the backend's newtype.
  */
-export type UTCDateTime = dateTime.Rfc3339DateTime
+export type UTCDateTime = Rfc3339DateTime
 /** Create a {@link UTCDateTime}. */
-export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
+export const UTCDateTime = newtypeConstructor<UTCDateTime>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 
-/** Details of a project. */
-interface ProjectMetadata {
-  /** The name of the project. */
-  readonly name: string
-  /** The namespace of the project. */
-  readonly namespace: string
-  /** The project id. */
-  readonly id: UUID
-  /**
-   * The Enso Engine version to use for the project, represented by a semver version
-   * string.
-   *
-   * If the edition associated with the project could not be resolved, the
-   * engine version may be missing.
-   */
-  readonly engineVersion?: string
-  /** The project creation time. */
-  readonly created: dateTime.Rfc3339DateTime
-  /** The last opened datetime. */
-  readonly lastOpened?: dateTime.Rfc3339DateTime
-}
-
 /** Attributes of a file or folder. */
 interface Attributes {
-  readonly creationTime: dateTime.Rfc3339DateTime
-  readonly lastAccessTime: dateTime.Rfc3339DateTime
-  readonly lastModifiedTime: dateTime.Rfc3339DateTime
+  readonly creationTime: Rfc3339DateTime
+  readonly lastAccessTime: Rfc3339DateTime
+  readonly lastModifiedTime: Rfc3339DateTime
   readonly byteSize: number
 }
 
@@ -267,10 +257,7 @@ export enum ProjectManagerEvents {
  * `app/gui/controller/engine-protocol/src/project_manager.rs`.
  */
 export default class ProjectManager {
-  // This is required so that projects get recursively updated (deleted, renamed or moved).
-  private readonly directories = new Map<Path, readonly FileSystemEntry[]>()
-  private readonly projects = new Map<UUID, ProjectState>()
-  private readonly projectIds = new Map<Path, UUID>()
+  private readonly projects = new Map<Path, ProjectState>()
   private id = 0
   private reconnecting = false
   private resolvers = new Map<number, (value: never) => void>()
@@ -352,40 +339,32 @@ export default class ProjectManager {
     socket.close()
   }
 
-  /** Get the id of a project given its path. */
-  getProjectId(projectPath: Path) {
-    const projectId = this.projectIds.get(projectPath)
-    invariant(projectId, `Unknown project path for project '${projectId}'.`)
-    return projectId
-  }
-
   /** Get the state of a project given its path. */
   getProject(projectPath: Path) {
-    const id = this.getProjectId(projectPath)
-    return this.projects.get(id)
+    return this.projects.get(projectPath)
   }
 
   /** Open an existing project. */
   async openProject(params: WithProjectPath<OpenProjectParams>): Promise<OpenProject> {
-    const fullParams: OpenProjectParams = this.paramsWithPathToWithId(params)
-    const cached = this.projects.get(fullParams.projectId)
+    const fullParams: OpenProjectParams = await this.paramsWithPathToWithId(params)
+    const cached = this.projects.get(params.projectPath)
     if (cached) {
       return cached.data
     } else {
       const promise = this.sendRequest<OpenProject>('project/open', fullParams)
-      this.projects.set(fullParams.projectId, {
+      this.projects.set(params.projectPath, {
         state: backend.ProjectState.openInProgress,
         data: promise,
       })
       try {
         const result = await promise
-        this.projects.set(fullParams.projectId, {
+        this.projects.set(params.projectPath, {
           state: backend.ProjectState.opened,
           data: result,
         })
         return result
       } catch (error) {
-        this.projects.delete(fullParams.projectId)
+        this.projects.delete(params.projectPath)
         throw error
       }
     }
@@ -393,8 +372,7 @@ export default class ProjectManager {
 
   /** Close an open project. */
   async closeProject(params: WithProjectPath<CloseProjectParams>): Promise<void> {
-    const id = this.projectIds.get(params.projectPath)
-    const state = id != null ? this.projects.get(id) : null
+    const state = this.projects.get(params.projectPath)
     if (state?.state === backend.ProjectState.openInProgress) {
       // Projects that are not opened cannot be closed.
       // This is the only way to wait until the project is open.
@@ -403,8 +381,8 @@ export default class ProjectManager {
         missingComponentAction: MissingComponentAction.install,
       })
     }
-    const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
-    this.projects.delete(fullParams.projectId)
+    const fullParams: CloseProjectParams = await this.paramsWithPathToWithId(params)
+    this.projects.delete(params.projectPath)
     return this.sendRequest('project/close', fullParams)
   }
 
@@ -429,25 +407,13 @@ export default class ProjectManager {
     return { ...result, projectPath: projectEntry.path }
   }
 
-  /** Return the content of the `Main.enso` file of a project. */
-  async getFileContent(projectPath: Path) {
-    const path = this.getProjectId(projectPath)
-    const res = await this.runStandaloneCommand<string>(
-      null,
-      'filesystem-read-path',
-      'text',
-      path + '/src/Main.enso',
-    )
-    return res
-  }
-
   /** Rename a project. */
   async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
-    const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: RenameProjectParams = await this.paramsWithPathToWithId(params)
     await this.sendRequest('project/rename', fullParams)
-    const state = this.projects.get(fullParams.projectId)
+    const state = this.projects.get(params.projectPath)
     if (state?.state === backend.ProjectState.opened) {
-      this.projects.set(fullParams.projectId, {
+      this.projects.set(params.projectPath, {
         state: state.state,
         data: { ...state.data, projectName: params.name },
       })
@@ -462,7 +428,7 @@ export default class ProjectManager {
   async duplicateProject(
     params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
-    const fullParams: DuplicateProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: DuplicateProjectParams = await this.paramsWithPathToWithId(params)
     const result = await this.sendRequest<Omit<DuplicatedProject, 'projectPath'>>(
       'project/duplicate',
       fullParams,
@@ -483,40 +449,13 @@ export default class ProjectManager {
 
   /** Delete a project. */
   async deleteProject(params: WithProjectPath<DeleteProjectParams>): Promise<void> {
-    const fullParams: DeleteProjectParams = this.paramsWithPathToWithId(params)
-    const cached = this.projects.get(fullParams.projectId)
+    const fullParams: DeleteProjectParams = await this.paramsWithPathToWithId(params)
+    const cached = this.projects.get(params.projectPath)
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
       await this.closeProject({ projectPath: params.projectPath })
     }
     await this.sendRequest('project/delete', fullParams)
-    this.projectIds.delete(params.projectPath)
-    this.projects.delete(fullParams.projectId)
-    const siblings = this.directories.get(fullParams.projectsDirectory)
-    if (siblings != null) {
-      this.directories.set(
-        fullParams.projectsDirectory,
-        siblings.filter(
-          (entry) =>
-            entry.type !== FileSystemEntryType.ProjectEntry ||
-            entry.metadata.id !== fullParams.projectId,
-        ),
-      )
-    }
-  }
-
-  /** Checks if a file or directory exists. */
-  async exists(parentId: Path | null) {
-    /** The type of the response body of this endpoint. */
-    interface ResponseBody {
-      readonly exists: boolean
-    }
-    const response = await this.runStandaloneCommand<ResponseBody>(
-      null,
-      'filesystem-exists',
-      'json',
-      parentId ?? this.rootDirectory,
-    )
-    return response.exists
+    this.projects.delete(params.projectPath)
   }
 
   /** List directories, projects and files in the given folder. */
@@ -547,116 +486,7 @@ export default class ProjectManager {
         path: normalizeSlashes(entry.path),
       }))
 
-    this.directories.set(parentId, result)
-
-    for (const entry of result) {
-      if (entry.type === FileSystemEntryType.ProjectEntry) {
-        this.projectIds.set(entry.path, entry.metadata.id)
-      }
-    }
     return result
-  }
-
-  /** Create a directory. */
-  async createDirectory(path: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-create-directory', 'json', path)
-    this.directories.set(path, [])
-    const directoryPath = getDirectoryAndName(path).directoryPath
-    const siblings = this.directories.get(directoryPath)
-    if (siblings) {
-      const now = dateTime.toRfc3339(new Date())
-      this.directories.set(directoryPath, [
-        ...siblings.filter((sibling) => sibling.type === FileSystemEntryType.DirectoryEntry),
-        {
-          type: FileSystemEntryType.DirectoryEntry,
-          attributes: {
-            byteSize: 0,
-            creationTime: now,
-            lastAccessTime: now,
-            lastModifiedTime: now,
-          },
-          path,
-        },
-        ...siblings.filter((sibling) => sibling.type !== FileSystemEntryType.DirectoryEntry),
-      ])
-    }
-  }
-
-  /** Create a file. */
-  async createFile(path: Path, file: Blob) {
-    await this.runStandaloneCommand(file, 'filesystem-write-path', 'json', path)
-    const directoryPath = getDirectoryAndName(path).directoryPath
-    const siblings = this.directories.get(directoryPath)
-    if (siblings) {
-      const now = dateTime.toRfc3339(new Date())
-      this.directories.set(directoryPath, [
-        ...siblings.filter((sibling) => sibling.type !== FileSystemEntryType.FileEntry),
-        {
-          type: FileSystemEntryType.FileEntry,
-          attributes: {
-            byteSize: file.size,
-            creationTime: now,
-            lastAccessTime: now,
-            lastModifiedTime: now,
-          },
-          path,
-        },
-        ...siblings.filter((sibling) => sibling.type === FileSystemEntryType.FileEntry),
-      ])
-    }
-  }
-
-  /** Move a file or directory. */
-  async moveFile(from: Path, to: Path) {
-    await this.runStandaloneCommand(
-      null,
-      'filesystem-move-from',
-      'json',
-      from,
-      '--filesystem-move-to',
-      to,
-    )
-  }
-
-  /** Delete a file or directory. */
-  async deleteFile(path: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-delete', 'json', path)
-    const children = this.directories.get(path)
-    // Assume a directory needs to be loaded for its children to be loaded.
-    if (children) {
-      const removeChildren = (directoryChildren: readonly FileSystemEntry[]) => {
-        for (const child of directoryChildren) {
-          switch (child.type) {
-            case FileSystemEntryType.DirectoryEntry: {
-              const childChildren = this.directories.get(child.path)
-              if (childChildren) {
-                removeChildren(childChildren)
-              }
-              break
-            }
-            case FileSystemEntryType.ProjectEntry: {
-              this.projects.delete(child.metadata.id)
-              this.projectIds.delete(child.path)
-              break
-            }
-            case FileSystemEntryType.FileEntry: {
-              // No special extra metadata is stored for files.
-              break
-            }
-          }
-        }
-      }
-      removeChildren(children)
-      this.directories.delete(path)
-    }
-    const directoryPath = getDirectoryAndName(path).directoryPath
-    const siblings = this.directories.get(directoryPath)
-    if (siblings) {
-      this.directories.set(
-        directoryPath,
-        siblings.filter((entry) => entry.path !== path),
-      )
-    }
   }
 
   /** Remove all handlers for a specified request ID. */
@@ -669,16 +499,18 @@ export default class ProjectManager {
    * Convert {@link WithProjectPath<T>} to `T`.
    * @throws {Error} when the `id` is not cached.
    */
-  private paramsWithPathToWithId<T>(obj: WithProjectPath<T>) {
+  private async paramsWithPathToWithId<T>(obj: WithProjectPath<T>) {
     const path = obj.projectPath
     const directoryPath = getDirectoryAndName(path).directoryPath
-    const id = this.projectIds.get(path)
-    if (id == null) {
+    const response = await fetch(`/api/project-${path}/metadata`)
+    if (!response.ok) {
       throw new Error(`Project with path '${path}' does not exist`)
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const { id }: ProjectMetadata = await response.json()
     return {
       ...omit(obj, 'projectPath'),
-      projectId: id,
+      projectId: UUID(id),
       projectsDirectory: directoryPath,
     }
   }
@@ -699,37 +531,5 @@ export default class ProjectManager {
         reject(value)
       })
     })
-  }
-
-  /** Run the Project Manager binary with the given command-line arguments. */
-  private async runStandaloneCommand<T = void>(
-    body: BodyInit | null,
-    name: string,
-    responseType: 'json' | 'text',
-    ...cliArguments: string[]
-  ): Promise<T> {
-    const searchParams = new URLSearchParams({
-      // The names come from a third-party API and cannot be changed.
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
-    }).toString()
-    const response = await fetch(`/api/run-project-manager-command?${searchParams}`, {
-      method: 'POST',
-      body,
-    })
-    if (responseType === 'json') {
-      // There is no way to avoid this as `JSON.parse` returns `any`.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const json: JSONRPCResponse<never> = await response.json()
-      if ('result' in json) {
-        return json.result
-      } else {
-        throw new Error(json.error.message)
-      }
-    } else {
-      // This is safe, because the response is expected to be text.
-      // eslint-disable-next-line no-restricted-syntax
-      return (await response.text()) as T
-    }
   }
 }

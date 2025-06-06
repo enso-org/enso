@@ -1,5 +1,5 @@
-import HttpClient from '#/utilities/HttpClient'
 import { createContextStore } from '@/providers'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 
 function generateSessionID() {
   const sessionID = sessionStorage.getItem('sessionID')

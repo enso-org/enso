@@ -372,8 +372,7 @@ class App {
             port: this.args.groups.server.options.port.value,
             externalFunctions: {
               uploadProjectBundle: projectManagement.uploadBundle,
-              runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
-                projectManager.runCommand(this.args, cliArguments, body),
+              runProjectManagerCommand: (...args) => projectManager.runCommand(this.args, ...args),
             },
           })
           this.server = await server.Server.create(serverCfg)

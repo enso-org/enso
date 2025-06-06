@@ -20,8 +20,9 @@ import { PRODUCT_NAME } from 'enso-common'
 import {
   downloadProjectPath,
   EXPORT_ARCHIVE_PATH,
+  fileExistsPath,
   IMPORT_ARCHIVE_PATH,
-} from 'enso-common/src/services/Backend/remoteBackendPaths'
+} from 'enso-common/src/services/Backend/paths'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
@@ -143,13 +144,13 @@ export default class LocalBackend extends Backend {
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
     const { rootPath = this.rootPath() } = query
-    const parentIdRaw = query.parentId == null ? null : extractTypeAndPath(query.parentId).path
+    const parentPath = query.parentId == null ? null : extractTypeAndPath(query.parentId).path
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
     // Catch the case where the directory does not exist.
     let result: backend.AnyAsset[] = []
     try {
-      const entries = await this.projectManager.listDirectory(parentIdRaw)
+      const entries = await this.projectManager.listDirectory(parentPath)
       result = entries
         .map((entry) => {
           const virtualParentsPath = entry.path.replace(rootPath, '').replace(/^[/\\]|[/\\]$/g, '')
@@ -229,12 +230,14 @@ export default class LocalBackend extends Backend {
         })
         .sort(backend.compareAssets)
     } catch {
-      // Failed so check if exists
-      if (!(await this.projectManager.exists(parentIdRaw))) {
-        if (parentIdRaw === this.projectManager.rootDirectory) {
-          // Auto create the root directory
-          await this.projectManager.createDirectory(this.projectManager.rootDirectory)
-
+      // Listing the directory failed so check if it exists.
+      if (parentPath != null && !(await this.head(fileExistsPath(newFileId(parentPath)))).ok) {
+        if (parentPath === this.rootPath()) {
+          // This is the root directory, (re)create it automatically.
+          await this.createDirectory({
+            parentId: newDirectoryId(backend.Path(getFolderPath(parentPath))),
+            title: getFileName(parentPath),
+          })
           result = []
         } else {
           throw new backend.DirectoryDoesNotExistError()
@@ -451,37 +454,6 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /**
-   * Delete an arbitrary asset.
-   * @throws An error if the JSON-RPC call fails.
-   */
-  override async deleteAsset(
-    assetId: backend.AssetId,
-    _body: backend.DeleteAssetRequestBody,
-    title: string | null,
-  ): Promise<void> {
-    const { type, path } = extractTypeAndPath(assetId)
-    switch (type) {
-      case backend.AssetType.directory:
-      case backend.AssetType.file: {
-        await this.projectManager.deleteFile(path)
-        return
-      }
-      case backend.AssetType.project: {
-        try {
-          await this.projectManager.deleteProject({ projectPath: path })
-          return
-        } catch (error) {
-          throw new Error(
-            `Could not delete project ${
-              title != null ? `'${title}'` : `with ID '${path}'`
-            }: ${tryGetMessage(error) ?? 'unknown error'}.`,
-          )
-        }
-      }
-    }
-  }
-
   /** Copy an arbitrary asset to another directory. */
   override async copyAsset(
     assetId: backend.AssetId,
@@ -594,23 +566,6 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Create a directory. */
-  override async createDirectory(
-    body: backend.CreateDirectoryRequestBody,
-  ): Promise<backend.CreatedDirectory> {
-    const parentDirectoryPath =
-      body.parentId == null ?
-        this.projectManager.rootDirectory
-      : extractTypeAndPath(body.parentId).path
-    const path = joinPath(parentDirectoryPath, body.title)
-    await this.projectManager.createDirectory(path)
-    return {
-      id: newDirectoryId(path),
-      parentId: newDirectoryId(parentDirectoryPath),
-      title: body.title,
-    }
-  }
-
   /**
    * Change the parent directory of an asset.
    * Changing the description is NOT supported.
@@ -619,27 +574,10 @@ export default class LocalBackend extends Backend {
     assetId: backend.AssetId,
     body: backend.UpdateAssetRequestBody,
   ): Promise<void> {
-    // Changing description is not supported on the Local Backend.
-    const { parentDirectoryId, title } = body
+    // NOTE: Changing description is not supported on the Local Backend.
+    const { title } = body
     const { type, path } = extractTypeAndPath(assetId)
-    // FIXME: This is the path, not the `currentParentDirectoryPath`, I'm pretty sure
-    const currentParentDirectoryPath = path
-
-    const newParentDirectoryPath = (() => {
-      const fileName = title == null ? getFileName(currentParentDirectoryPath) : title
-
-      if (parentDirectoryId == null) {
-        return joinPath(
-          projectManager.Path(currentParentDirectoryPath.split('/').slice(0, -1).join('/')),
-          fileName,
-        )
-      }
-
-      return joinPath(extractTypeAndPath(parentDirectoryId).path, fileName)
-    })()
-
-    await this.projectManager.moveFile(currentParentDirectoryPath, newParentDirectoryPath)
-
+    await super.updateAsset(assetId, body, title ?? '(unknown)')
     // Changing the folder name for a project is not enough,
     // we also need to change the name in the package.yaml file.
     if (type === backend.AssetType.project && title != null) {
@@ -718,37 +656,9 @@ export default class LocalBackend extends Backend {
     return Promise.resolve(file)
   }
 
-  /** Change the name of a file. */
-  override async updateFile(
-    fileId: backend.FileId,
-    body: backend.UpdateFileRequestBody,
-  ): Promise<void> {
-    const typeAndId = extractTypeAndPath(fileId)
-    const from = typeAndId.path
-    const folderPath = getFolderPath(from)
-    const to = joinPath(projectManager.Path(folderPath), body.title)
-    await this.projectManager.moveFile(from, to)
-  }
-
   /** Construct a new path using the given parent directory and a file name. */
   joinPath(parentId: backend.DirectoryId, fileName: string) {
     return joinPath(extractTypeAndPath(parentId).path, fileName)
-  }
-
-  /** Change the name of a directory. */
-  override async updateDirectory(
-    directoryId: backend.DirectoryId,
-    body: backend.UpdateDirectoryRequestBody,
-  ): Promise<backend.UpdatedDirectory> {
-    const from = extractTypeAndPath(directoryId).path
-    const folderPath = projectManager.Path(getFolderPath(from))
-    const to = joinPath(folderPath, body.title)
-    await this.projectManager.moveFile(from, to)
-    return {
-      id: newDirectoryId(to),
-      parentId: newDirectoryId(folderPath),
-      title: body.title,
-    }
   }
 
   /** Download an asset. */
@@ -883,15 +793,6 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override syncProjectExecution() {
     return this.invalidOperation()
-  }
-
-  /**
-   * Get the content of a file.
-   *
-   * Versioning is not supported on the Local Backend, thus the `versionId` parameter is ignored.
-   */
-  override getFileContent(projectId: backend.ProjectId) {
-    return this.projectManager.getFileContent(extractTypeAndPath(projectId).path)
   }
 
   /**

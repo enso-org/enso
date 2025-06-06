@@ -51,7 +51,6 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'undoDeleteAsset'
   | 'updateAsset'
   | 'updateDirectory'
-  | 'updateFile'
   | 'updateOrganization'
   | 'updateProject'
   | 'updateProjectExecution'
@@ -94,7 +93,6 @@ export const INVALIDATION_MAP: Partial<
   createSecret: ['listDirectory', 'getAssetDetails'],
   updateSecret: ['listDirectory', 'getAssetDetails'],
   updateProject: ['listDirectory', 'getAssetDetails'],
-  updateFile: ['listDirectory', 'getAssetDetails'],
   updateDirectory: ['listDirectory', 'getAssetDetails'],
   createDatalink: ['listDirectory', 'getDatalink', 'getAssetDetails'],
   uploadFileEnd: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],

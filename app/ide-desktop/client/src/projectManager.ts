@@ -9,6 +9,7 @@ import * as util from 'node:util'
 import * as contentConfig from '@/contentConfig'
 
 import type * as config from '@/config'
+import type { Readable } from 'node:stream'
 import { getProjectRoot } from './projectManagement'
 
 const logger = contentConfig.logger
@@ -74,7 +75,7 @@ export function spawn(
 export function runCommand(
   args: config.Args,
   processArgs: string[],
-  body?: NodeJS.ReadableStream,
+  body?: Readable,
   env?: NodeJS.ProcessEnv,
 ) {
   const binPath = pathOrPanic(args)

@@ -15,7 +15,14 @@ import {
   INVALIDATION_MAP,
 } from 'enso-common/src/backendQuery'
 import Backend from 'enso-common/src/services/Backend'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { computed, toValue, type UnwrapRef } from 'vue'
+
+declare module '@vue/reactivity' {
+  interface RefUnwrapBailTypes {
+    guiBailTypes: Backend | HttpClient
+  }
+}
 
 type ExtraOptions = Omit<UseQueryOptions, 'queryKey' | 'queryFn' | 'enabled' | 'networkMode'>
 

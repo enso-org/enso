@@ -115,6 +115,7 @@ export function getProjectContentPath(projectId: ProjectId, versionId?: S3Object
   }
   return HttpsUrl(`projects/${projectId}/files?${searchParams.toString()}`)
 }
+export const GET_PROJECT_CONTENT_REGEX = /^[/]projects[/](?<projectId>[^/]+)[/]files$/
 
 /** Relative HTTP path to the "get project asset" endpoint of the Cloud backend API. */
 export function getProjectAssetPath(projectId: ProjectId, relativePath: string) {
@@ -139,6 +140,7 @@ export function updateAssetPath(assetId: AssetId) {
 export function deleteAssetPath(assetId: AssetId) {
   return HttpsUrl(`assets/${assetId}`)
 }
+export const DELETE_ASSET_REGEX = /^[/]assets[/](?<assetId>[^/]+)$/
 /** Relative HTTP path to the "copy asset" endpoint of the Cloud backend API. */
 export function copyAssetPath(assetId: AssetId) {
   return HttpsUrl(`assets/${assetId}/copy`)
@@ -147,6 +149,7 @@ export function copyAssetPath(assetId: AssetId) {
 export function updateDirectoryPath(directoryId: DirectoryId) {
   return HttpsUrl(`directories/${directoryId}`)
 }
+export const UPDATE_DIRECTORY_REGEX = /^[/]directories[/](?<directoryId>[^/]+)$/
 /** Relative HTTP path to the "close project" endpoint of the Cloud backend API. */
 export function closeProjectPath(projectId: ProjectId) {
   return HttpsUrl(`projects/${projectId}/close`)
@@ -181,6 +184,11 @@ export function openProjectPath(projectId: ProjectId) {
 export function projectUpdatePath(projectId: ProjectId) {
   return HttpsUrl(`projects/${projectId}`)
 }
+/** Relative HTTP path to the "get project metadata" endpoint of the Local backend API. */
+export function getProjectMetadataPath(projectId: ProjectId) {
+  return HttpsUrl(`projects/${projectId}/metadata`)
+}
+export const GET_PROJECT_METADATA_REGEX = /^[/]projects[/](?<projectId>[^/]+)[/]metadata$/
 /** Relative HTTP path to the "list project executions" endpoint of the Cloud backend API. */
 export function listProjectExecutionsPath(projectId: ProjectId) {
   return HttpsUrl(`projects/${projectId}/executions`)
@@ -205,6 +213,11 @@ export function syncProjectExecutionPath(executionId: ProjectExecutionId) {
 export function deleteProjectExecutionPath(executionId: ProjectExecutionId) {
   return HttpsUrl(`executions/${executionId}`)
 }
+/** Relative HTTP path to the "file exists" endpoint of the backend API. */
+export function fileExistsPath(fileId: FileId) {
+  return HttpsUrl(`files/${fileId}`)
+}
+export const FILE_EXISTS_REGEX = /^[/]files[/](?<fileId>[^/]+)$/
 /** Relative HTTP path to the "get file details" endpoint of the backend API. */
 export function getFileDetailsPath(fileId: FileId) {
   return HttpsUrl(`files/${fileId}`)
@@ -268,6 +281,12 @@ export const IMPORT_ARCHIVE_PATH = 'assets/unzip'
 export function getExportArchiveJobStatusPath(jobId: ZipAssetsJobId) {
   return HttpsUrl(`assets/zip/${jobId}`)
 }
+
+export const GET_ROOT_DIRECTORY_PATH = 'root-directory'
+export const GET_DOWNLOAD_DIRECTORY_PATH = 'download-directory'
+export const LOCAL_UPLOAD_FILE_PATH = 'upload-file'
+export const LOCAL_UPLOAD_PROJECT_PATH = 'upload-project'
+export const RUN_PROJECT_MANAGER_COMMAND_PATH = 'run-project-manager-command'
 
 /** The ID of the directory containing the home directories of all users. */
 export const USERS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000users')

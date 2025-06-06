@@ -414,35 +414,18 @@ function useDeleteAsset(backend: Backend, category: Category) {
 }
 
 /** A function to create a new folder. */
-export function useNewFolder(backend: Backend, category: Category) {
-  const ensureListDirectory = useEnsureListDirectory(backend, category)
+export function useNewFolder(backend: Backend) {
   const setNewestFolderId = useSetNewestFolderId()
   const setSelectedAssets = useSetSelectedAssets()
+  const createDirectory = useMutationCallback(backendMutationOptions(backend, 'createDirectory'))
 
-  const createDirectoryMutation = useMutationCallback(
-    backendMutationOptions(backend, 'createDirectory'),
-  )
-
-  return useEventCallback(async (parentId: DirectoryId) => {
-    const siblings = await ensureListDirectory(parentId)
-
-    const directoryIndices = siblings
-      .filter(backendModule.assetIsDirectory)
-      .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
-      .map((match) => match?.groups?.directoryIndex)
-      .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-
-    const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-    const placeholderItem = backendModule.createPlaceholderDirectoryAsset(title, parentId)
-
-    return await createDirectoryMutation([
-      { parentId: placeholderItem.parentId, title: placeholderItem.title },
-    ]).then((result) => {
+  return useEventCallback((parentId: DirectoryId) =>
+    createDirectory([{ parentId }]).then((result) => {
       setNewestFolderId(result.id)
       setSelectedAssets([{ type: AssetType.directory, ...result }])
       return result
-    })
-  })
+    }),
+  )
 }
 
 /** A function to create a new project. */
@@ -451,10 +434,7 @@ export function useNewProject(backend: Backend, category: Category) {
   const openProjectLocally = useOpenProjectLocally()
   const openProjectNatively = useOpenProjectNatively()
   const deleteAsset = useDeleteAsset(backend, category)
-
-  const createProjectMutation = useMutationCallback(
-    backendMutationOptions(backend, 'createProject'),
-  )
+  const createProject = useMutationCallback(backendMutationOptions(backend, 'createProject'))
 
   return useEventCallback(
     async (
@@ -481,7 +461,7 @@ export function useNewProject(backend: Backend, category: Category) {
 
       const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
 
-      return await createProjectMutation([
+      return await createProject([
         {
           parentDirectoryId: placeholderItem.parentId,
           projectName: placeholderItem.title,

@@ -59,7 +59,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     (storeState) => (storeState.pasteData?.data.assets.length ?? 0) > 0,
   )
 
-  const newFolderRaw = useNewFolder(backend, category)
+  const newFolderRaw = useNewFolder(backend)
   const newFolder = useEventCallback(async () => {
     return await newFolderRaw(directoryId ?? currentDirectoryId)
   })

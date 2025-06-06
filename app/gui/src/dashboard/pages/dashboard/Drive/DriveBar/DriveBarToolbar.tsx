@@ -98,7 +98,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     : null
 
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
-  const newFolder = useNewFolder(backend, category)
+  const newFolder = useNewFolder(backend)
   const uploadFilesRaw = useUploadFiles(backend, category)
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
     await uploadFilesRaw(files, currentDirectoryId)

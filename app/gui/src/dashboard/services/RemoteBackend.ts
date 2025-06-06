@@ -17,7 +17,6 @@ import { getFileName } from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
-import { z } from 'zod'
 import { extractTypeAndPath } from './LocalBackend'
 
 /** HTTP status indicating that the resource does not exist. */
@@ -537,46 +536,6 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Create a directory.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async createDirectory(
-    body: backend.CreateDirectoryRequestBody,
-    discardTitle = true,
-  ): Promise<backend.CreatedDirectory> {
-    const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
-
-    // Remote backend doesn't need the title in the body.
-    // It's generated on the server side.
-    const { title, ...rest } = body
-
-    const response = await this.post<backend.CreatedDirectory>(path, discardTitle ? rest : body)
-    if (!response.ok) {
-      return await this.throw(response, 'createFolderBackendError', title)
-    } else {
-      return await response.json()
-    }
-  }
-
-  /**
-   * Change the name of a directory.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async updateDirectory(
-    directoryId: backend.DirectoryId,
-    body: backend.UpdateDirectoryRequestBody,
-    title: string,
-  ) {
-    const path = remoteBackendPaths.updateDirectoryPath(directoryId)
-    const response = await this.put<backend.UpdatedDirectory>(path, body)
-    if (!response.ok) {
-      return await this.throw(response, 'updateFolderBackendError', title)
-    } else {
-      return await response.json()
-    }
-  }
-
   /** List all previous versions of an asset. */
   override async listAssetVersions(
     assetId: backend.DatalinkId | backend.FileId | backend.ProjectId,
@@ -587,63 +546,6 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'listAssetVersionsBackendError')
     } else {
       return await response.json()
-    }
-  }
-
-  /** Fetch the content of the `Main.enso` file of a project. */
-  override async getFileContent(
-    projectId: backend.ProjectId,
-    versionId?: backend.S3ObjectVersionId,
-  ): Promise<string> {
-    const path = remoteBackendPaths.getProjectContentPath(projectId, versionId)
-    const response = await this.get<string>(path)
-
-    if (!response.ok) {
-      return this.throw(response, 'getFileContentsBackendError')
-    } else {
-      return await response.text()
-    }
-  }
-
-  /**
-   * Change the parent directory or description of an asset.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async updateAsset(
-    assetId: backend.AssetId,
-    body: backend.UpdateAssetRequestBody,
-    title: string,
-  ) {
-    const path = remoteBackendPaths.updateAssetPath(assetId)
-    const response = await this.patch(path, body)
-
-    if (!response.ok) {
-      await this.throw(response, 'updateAssetBackendError', title).catch((error) => {
-        if (isDuplicateAssetError(error)) {
-          throw new backend.DuplicateAssetError(error.message)
-        }
-
-        throw error
-      })
-    }
-  }
-
-  /**
-   * Delete an arbitrary asset.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async deleteAsset(
-    assetId: backend.AssetId,
-    body: backend.DeleteAssetRequestBody,
-    title: string,
-  ) {
-    const paramsString = new URLSearchParams([['force', String(body.force)]]).toString()
-    const path = remoteBackendPaths.deleteAssetPath(assetId) + '?' + paramsString
-    const response = await this.delete(path)
-    if (!response.ok) {
-      return await this.throw(response, 'deleteAssetBackendError', title)
-    } else {
-      return
     }
   }
 
@@ -680,7 +582,7 @@ export default class RemoteBackend extends Backend {
 
     if (!response.ok) {
       return await this.throw(response, 'copyAssetBackendError').catch((error) => {
-        if (isDuplicateAssetError(error)) {
+        if (backend.isDuplicateAssetError(error)) {
           throw new backend.DuplicateAssetError(error.message)
         }
 
@@ -1062,11 +964,6 @@ export default class RemoteBackend extends Backend {
     } else {
       return await response.json()
     }
-  }
-
-  /** Change the name of a file. */
-  override async updateFile(): Promise<void> {
-    await this.throw(null, 'updateFileNotImplementedBackendError')
   }
 
   /**
@@ -1617,15 +1514,3 @@ export default class RemoteBackend extends Backend {
 }
 
 markRaw(RemoteBackend.prototype)
-
-/** The schema that checks if the error is a duplicate asset error. */
-const DUPLICATE_ASSET_ERROR_SCHEMA = z.object({
-  message: z.string().includes('A resource with that title already exists.'),
-})
-
-/**
- * Check if the error is a duplicate asset error.
- */
-function isDuplicateAssetError(error: unknown): error is Error {
-  return DUPLICATE_ASSET_ERROR_SCHEMA.safeParse(error).success
-}

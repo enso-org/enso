@@ -152,7 +152,7 @@ export function useUpsertDirectory({
       return
     }
     const action =
-      editedAsset == null ? createDir.mutateAsync([{ title: name, parentId }, false])
+      editedAsset == null ? createDir.mutateAsync([{ title: name, parentId }])
       : editedAsset.title != name ?
         updateDir.mutateAsync([editedAsset.id, { title: name }, editedAsset.title])
       : Promise.resolve(undefined)

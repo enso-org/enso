@@ -37,10 +37,7 @@ import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/react'
 import type { RightPanelData } from '$/providers/rightPanel'
-import {
-  TEAMS_DIRECTORY_ID,
-  USERS_DIRECTORY_ID,
-} from 'enso-common/src/services/Backend/remoteBackendPaths'
+import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from 'enso-common/src/services/Backend/paths'
 import {
   isUploadableAsset,
   useUploadFileToCloudMutation,

@@ -6,7 +6,7 @@ export const FETCH_ERROR_EVENT_NAME = 'fetch-error'
 export const OFFLINE_EVENT_NAME = 'offline'
 
 /** HTTP method variants that can be used in an HTTP request. */
-type HttpMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
+export type HttpMethod = 'DELETE' | 'GET' | 'HEAD' | 'PATCH' | 'POST' | 'PUT'
 
 /** A {@link Response} with a properly typed return type for `response.json()`. */
 export interface ResponseWithTypedJson<U> extends Response {
@@ -39,6 +39,11 @@ export class HttpClient {
      */
     public defaultHeaders: Record<string, string> = {},
   ) {}
+
+  /** Send an HTTP HEAD request to the specified URL. */
+  head(url: string) {
+    return this.request<'HEAD', void>({ method: 'HEAD', url })
+  }
 
   /** Send an HTTP GET request to the specified URL. */
   get<T = void>(url: string) {

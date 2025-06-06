@@ -4,7 +4,7 @@ import { createReadStream, createWriteStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { platform } from 'node:os'
 import { join } from 'node:path'
-import type { Readable, Stream, Writable } from 'node:stream'
+import type { Readable, Writable } from 'node:stream'
 import { createGzip } from 'node:zlib'
 import { extract as tarFsExtract } from 'tar-fs'
 import { extract as tarExtract, pack as tarPack } from 'tar-stream'
@@ -18,9 +18,9 @@ export interface ArchiveEntryMetadata extends FileDataInput {
 }
 
 export interface ArchiveBuilder {
-  readonly stream: Stream
+  readonly stream: Readable
   readonly addFile: (
-    source: Buffer | _Readable.Stream | Stream | string,
+    source: Buffer | Readable | string,
     data: ArchiveEntryMetadata,
   ) => Promise<void>
   readonly addFolder: (data: ArchiveEntryMetadata) => Promise<void>
@@ -110,12 +110,12 @@ export function tarGzWriteStream(): ArchiveBuilder {
 }
 
 /** Exrtract a `.tar` file to the filesystem. */
-async function tarReadStreamToFs(stream: Stream, path: string) {
+async function tarReadStreamToFs(stream: Readable, path: string) {
   return writableStreamToPromise(stream.pipe(tarFsExtract(path)))
 }
 
 /** Exrtract a `.tar.gz` file to the filesystem. */
-export async function tarGzReadStreamToFs(stream: Stream, path: string) {
+export async function tarGzReadStreamToFs(stream: Readable, path: string) {
   await tarReadStreamToFs(stream.pipe(gunzipMaybe()), path)
 }
 
