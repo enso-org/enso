@@ -2,7 +2,7 @@ package org.enso.table.data.column.operation.comparators;
 
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.operation.BinaryOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.NullType;
 

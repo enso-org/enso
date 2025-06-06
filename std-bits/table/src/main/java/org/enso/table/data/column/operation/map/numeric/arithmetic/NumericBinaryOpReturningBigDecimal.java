@@ -8,7 +8,7 @@ import org.enso.table.data.column.builder.BigDecimalBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;

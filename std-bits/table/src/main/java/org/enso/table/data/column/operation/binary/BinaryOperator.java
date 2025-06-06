@@ -11,7 +11,7 @@ import org.enso.table.data.column.operation.BinaryOperationNull;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.operation.StorageIterators;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.text.TextConcatenate;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
@@ -103,6 +103,35 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         }
       };
 
+  private static final NumericOperation MULTIPLY =
+      new NumericOperation() {
+        @Override
+        Double doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          return a * b;
+        }
+
+        @Override
+        Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
+          try {
+            return Math.multiplyExact(a, b);
+          } catch (ArithmeticException e) {
+            problemAggregator.reportOverflow(IntegerType.INT_64, a, "*", b);
+            return null;
+          }
+        }
+
+        @Override
+        BigInteger doBigInteger(BigInteger a, BigInteger b, long ix) {
+          return a.multiply(b);
+        }
+
+        @Override
+        BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+          return a.multiply(b);
+        }
+      };
+
   /**
    * Create a binary operation for addition.
    * @param left the left column
@@ -148,6 +177,33 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
           case DateTimeType dtt -> DateTimeSubtraction.DATE_TIME;
           case TimeOfDayType todt -> DateTimeSubtraction.TIME_OF_DAY;
           case NumericType rnt -> createNumeric(leftStorage.getType(), right, SUBTRACTION);
+          default -> null;
+        };
+      }
+      default -> null;
+    };
+  }
+
+  /**
+   * Create a binary operation for multiplication.
+   * @param left the left column
+   * @param right the right value (can be a column or a scalar)
+   * @return a BinaryOperation that performs multiplication
+   */
+  public static BinaryOperation<?> multiply(Column left, Object right) {
+    return makeNumericBinaryOperation(left, right, MULTIPLY);
+  }
+
+  private static BinaryOperation<?> makeNumericBinaryOperation(Column left, Object right, NumericOperation operation) {
+    var leftStorage = BinaryOperation.getInferredStorage(left);
+    return switch (leftStorage.getType()) {
+      case NumericType nt -> createNumeric(leftStorage.getType(), right, operation);
+      case NullType nt -> {
+        // Work out based on the RHS
+        var rightType = storageTypeForObject(right);
+        yield switch (rightType) {
+          case NullType rnt -> BinaryOperationNull.INSTANCE;
+          case NumericType rnt -> createNumeric(leftStorage.getType(), right, operation);
           default -> null;
         };
       }

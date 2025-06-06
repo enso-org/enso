@@ -1,10 +1,6 @@
-package org.enso.table.data.column.operation.map;
+package org.enso.table.data.table.problems;
 
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.table.problems.ArithmeticError;
-import org.enso.table.data.table.problems.ArithmeticOverflow;
-import org.enso.table.data.table.problems.FloatingPointGrouping;
-import org.enso.table.data.table.problems.IllegalArgumentError;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 

@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -126,7 +126,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
 
   /** A container for names of vectorizable operation. */
   public static final class Maps {
-    public static final String MUL = "*";
     public static final String DIV = "/";
     public static final String MOD = "%";
     public static final String POWER = "^";

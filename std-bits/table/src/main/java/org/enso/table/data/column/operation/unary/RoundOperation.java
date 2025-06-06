@@ -10,7 +10,7 @@ import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.UnaryOperationNumeric;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;

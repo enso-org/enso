@@ -3,6 +3,7 @@ package org.enso.table.data.column.operation.map;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 /**
  * Stores map-like operations that can be performed on a given type.

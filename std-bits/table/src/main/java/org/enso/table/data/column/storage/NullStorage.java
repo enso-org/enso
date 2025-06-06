@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -18,7 +18,6 @@ public class NullStorage extends Storage<Void> {
 
   private static MapOperationStorage<Void, NullStorage> buildOps() {
     MapOperationStorage<Void, NullStorage> ops = new MapOperationStorage<>();
-    ops.add(new NullOp(Maps.MUL));
     ops.add(new NullOp(Maps.DIV));
     ops.add(new NullOp(Maps.MOD));
     ops.add(new NullOp(Maps.POWER));

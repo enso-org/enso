@@ -10,7 +10,7 @@ import org.enso.table.data.column.builder.DoubleBuilder;
 import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;

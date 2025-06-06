@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.map;
 
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 /**
  * A representation of a map-like operation that can be performed on given storage types.

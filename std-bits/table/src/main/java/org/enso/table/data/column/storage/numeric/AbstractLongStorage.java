@@ -3,13 +3,17 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -22,8 +26,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
 
   private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
     MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
-    ops.add(new MulOp<>())
-        .add(new DivideOp<>())
+    ops.add(new DivideOp<>())
         .add(new ModOp<>())
         .add(new PowerOp<>());
     return ops;
