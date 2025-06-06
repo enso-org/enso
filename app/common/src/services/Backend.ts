@@ -1,12 +1,17 @@
 /** @file Type definitions common between all backends. */
 
 import { z } from 'zod'
-import { getText, resolveDictionary, type TextId } from '../text'
+import { getText, Replacements, resolveDictionary, type TextId } from '../text'
 import * as array from '../utilities/data/array'
 import * as dateTime from '../utilities/data/dateTime'
 import * as newtype from '../utilities/data/newtype'
 import * as permissions from '../utilities/permissions'
 import * as uniqueString from '../utilities/uniqueString'
+import { getFileDetailsPath } from './Backend/remoteBackendPaths'
+import { HttpClient, ResponseWithTypedJson } from './HttpClient'
+
+/** HTTP status indicating that the request was successful, but the user is not authorized to access. */
+const STATUS_NOT_AUTHORIZED = 401
 
 /** The size, in bytes, of the chunks which the backend accepts. */
 export const S3_CHUNK_SIZE_BYTES = 10_000_000
@@ -165,22 +170,24 @@ export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
 export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
 export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
 
-const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
-
 /**
- * Whether a given {@link UserGroupId} represents a user group that does not yet exist on the
- * server.
+ * Interface used to log logs, errors, etc.
+ *
+ * In the browser, this is the `Console` interface. In Electron, this is the `Logger` interface
+ * provided by the EnsoGL packager.
  */
-export function isPlaceholderUserGroupId(id: string) {
-  return id.startsWith(PLACEHOLDER_USER_GROUP_PREFIX)
+export interface Logger {
+  /** Log a message to the console. */
+  readonly log: (message: unknown, ...optionalParams: unknown[]) => void
+  /** Log an error message to the console. */
+  readonly error: (message: unknown, ...optionalParams: unknown[]) => void
 }
 
-/**
- * Return a new {@link UserGroupId} that represents a placeholder user group that is yet to finish
- * being created on the backend.
- */
-export function newPlaceholderUserGroupId() {
-  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}` as const)
+type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
+
+/** Options for {@link Backend.post} private method. */
+interface BackendPostOptions {
+  readonly keepalive?: boolean
 }
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
@@ -1895,6 +1902,50 @@ export class NotAuthorizedError extends NetworkError {}
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export default abstract class Backend {
   abstract readonly type: BackendType
+  abstract readonly baseUrl: string
+
+  /** Create a {@link LocalBackend}. */
+  constructor(
+    private readonly logger: Logger,
+    protected getText: GetText,
+    private readonly client: HttpClient,
+  ) {}
+
+  /**
+   * Set `this.getText`. This function is exposed rather than the property itself to make it clear
+   * that it is intended to be mutable.
+   */
+  setGetText(getText: GetText) {
+    this.getText = getText
+  }
+
+  /**
+   * Log an error message and throws an {@link Error} with the specified message.
+   * @throws {Error} Always.
+   */
+  protected async throw<K extends Extract<TextId, `${string}BackendError`>>(
+    response: Response | null,
+    textId: NetworkError | K,
+    ...replacements: Replacements[K]
+  ): Promise<never> {
+    if (textId instanceof NetworkError) {
+      this.logger.error(textId.message)
+
+      throw textId
+    }
+
+    const error =
+      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+        { message: 'unknown error' }
+      : await ((): Promise<Error> => response.json())()
+
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    this.logger.error(message)
+
+    const status = response?.status
+
+    throw new NetworkError(message, status)
+  }
 
   /** The path to the root directory of this {@link Backend}. */
   abstract rootPath(user: User): string
@@ -2061,12 +2112,28 @@ export default abstract class Backend {
   abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedLargeAsset>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
-  /** Return file details. */
-  abstract getFileDetails(
+
+  /**
+   * Return details for a file.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async getFileDetails(
     fileId: FileId,
     title: string,
-    getPresignedUrl?: boolean,
-  ): Promise<FileDetails>
+    getPresignedUrl = false,
+  ): Promise<FileDetails> {
+    const searchParams = new URLSearchParams({
+      presigned: `${getPresignedUrl}`,
+    }).toString()
+    const path = `${getFileDetailsPath(fileId)}?${searchParams}`
+    const response = await this.get<FileDetails>(path)
+    if (!response.ok) {
+      return await this.throw(response, 'getFileDetailsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Create a Datalink. */
   abstract createDatalink(body: CreateDatalinkRequestBody): Promise<DatalinkInfo>
   /** Return a Datalink. */
@@ -2138,6 +2205,68 @@ export default abstract class Backend {
 
   /** Resolve the path of an asset relative to a project. */
   abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
+
+  /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
+  private async checkForAuthenticationError<T>(
+    makeRequest: () => Promise<ResponseWithTypedJson<T>>,
+  ) {
+    const response = await makeRequest()
+    if (response.status === STATUS_NOT_AUTHORIZED) {
+      // User is not authorized, we should redirect to the login page.
+      return await this.throw(
+        response,
+        new NotAuthorizedError(this.getText('notAuthorizedBackendError')),
+      )
+    }
+    return response
+  }
+
+  /** Send an HTTP GET request to the given path. */
+  protected get<T = void>(path: string) {
+    return this.checkForAuthenticationError(() => this.client.get<T>(`${this.baseUrl}/${path}`))
+  }
+
+  /** Send a JSON HTTP POST request to the given path. */
+  protected post<T = void>(path: string, payload: object, options?: BackendPostOptions) {
+    return this.checkForAuthenticationError(() =>
+      this.client.post<T>(`${this.baseUrl}/${path}`, payload, options),
+    )
+  }
+
+  /** Send a binary HTTP POST request to the given path. */
+  protected postBinary<T = void>(path: string, payload: Blob) {
+    return this.checkForAuthenticationError(() =>
+      this.client.postBinary<T>(`${this.baseUrl}/${path}`, payload),
+    )
+  }
+
+  /** Send a JSON HTTP PATCH request to the given path. */
+  protected patch<T = void>(path: string, payload: object) {
+    return this.checkForAuthenticationError(() =>
+      this.client.patch<T>(`${this.baseUrl}/${path}`, payload),
+    )
+  }
+
+  /** Send a JSON HTTP PUT request to the given path. */
+  protected put<T = void>(path: string, payload: object) {
+    return this.checkForAuthenticationError(() =>
+      this.client.put<T>(`${this.baseUrl}/${path}`, payload),
+    )
+  }
+
+  /** Send a binary HTTP PUT request to the given path. */
+  protected putBinary<T = void>(path: string, payload: Blob) {
+    return this.checkForAuthenticationError(() =>
+      this.client.putBinary<T>(`${this.baseUrl}/${path}`, payload),
+    )
+  }
+
+  /** Send an HTTP DELETE request to the given path. */
+  protected delete<T = void>(path: string, payload?: Record<string, unknown>) {
+    return this.checkForAuthenticationError(() =>
+      this.client.delete<T>(`${this.baseUrl}/${path}`, payload),
+    )
+  }
 }
 
 /**

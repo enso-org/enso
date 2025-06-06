@@ -1,6 +1,5 @@
 /** @file HTTP client definition that includes default HTTP headers for all sent requests. */
-import { markRaw } from 'vue'
-import { NetworkError, OfflineError, isNetworkError } from './error'
+import { NetworkError, OfflineError, isNetworkError } from '../utilities/errors'
 
 export const FETCH_SUCCESS_EVENT_NAME = 'fetch-success'
 export const FETCH_ERROR_EVENT_NAME = 'fetch-error'
@@ -29,7 +28,7 @@ export interface HttpClientRequestOptions<Method extends HttpMethod> {
 }
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
-export default class HttpClient {
+export class HttpClient {
   /** Create a new HTTP client with the specified headers to be sent on every request. */
   constructor(
     /**
@@ -110,7 +109,6 @@ export default class HttpClient {
   setSessionToken(token: string) {
     this.defaultHeaders = {
       ...this.defaultHeaders,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       Authorization: `Bearer ${token}`,
     }
   }
@@ -136,7 +134,6 @@ export default class HttpClient {
     try {
       // This is an UNSAFE type assertion, however this is a HTTP client
       // and should only be used to query APIs with known response types.
-      // eslint-disable-next-line no-restricted-syntax
       const response = (await fetch(options.url, {
         method: options.method,
         headers,
@@ -151,7 +148,6 @@ export default class HttpClient {
       // Even though the condition might seem always falsy,
       // offline mode might happen during the request
       // and this case need to be handled
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!navigator.onLine) {
         document.dispatchEvent(new Event(OFFLINE_EVENT_NAME))
         throw new OfflineError('User is offline', { cause: error })
@@ -165,7 +161,3 @@ export default class HttpClient {
     }
   }
 }
-
-markRaw(HttpClient.prototype)
-
-export { NetworkError, OfflineError }

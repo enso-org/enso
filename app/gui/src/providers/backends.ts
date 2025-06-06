@@ -11,7 +11,7 @@ import { createContextStore } from '@/providers'
 import { GuiConfig } from '@/providers/guiConfig'
 import { ToValue } from '@/util/reactivity'
 import invariant from 'tiny-invariant'
-import { computed, proxyRefs, readonly, ref, toValue, watchEffect } from 'vue'
+import { computed, proxyRefs, readonly, ref, toValue, watch, watchEffect } from 'vue'
 import { GetText } from './text'
 
 export type BackendsStore = ReturnType<typeof useBackends>
@@ -34,9 +34,17 @@ function initializeBackends(
     projectManager.value = pm
   })
   const localBackend = computed(() =>
-    projectManager.value ? new LocalBackend(projectManager.value) : null,
+    projectManager.value ? new LocalBackend(console, getText, projectManager.value) : null,
   )
-  const remoteBackend = new RemoteBackend(httpClient, console, getText)
+  const remoteBackend = new RemoteBackend(console, getText, httpClient)
+
+  watch(
+    () => getText,
+    (getText) => {
+      localBackend.value?.setGetText(getText)
+      remoteBackend.setGetText(getText)
+    },
+  )
 
   const backendForType = (projectType: BackendType) => {
     switch (projectType) {

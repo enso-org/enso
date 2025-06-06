@@ -429,9 +429,7 @@ export default class ProjectManager {
     return { ...result, projectPath: projectEntry.path }
   }
 
-  /**
-   * Return the content of the `Main.enso` file of a project.
-   */
+  /** Return the content of the `Main.enso` file of a project. */
   async getFileContent(projectPath: Path) {
     const path = this.getProjectId(projectPath)
     const res = await this.runStandaloneCommand<string>(

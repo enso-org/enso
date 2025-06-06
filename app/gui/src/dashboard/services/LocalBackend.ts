@@ -6,20 +6,23 @@
  * the API.
  */
 import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
+import type { Logger } from '#/providers/LoggerProvider'
 import Backend, * as backend from '#/services/Backend'
 import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
-import HttpClient from '#/utilities/HttpClient'
 import { omit, unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
+import type { GetText } from '$/providers/text'
 import { PRODUCT_NAME } from 'enso-common'
 import {
+  downloadProjectPath,
   EXPORT_ARCHIVE_PATH,
   IMPORT_ARCHIVE_PATH,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
@@ -93,17 +96,20 @@ export function extractTypeAndPath<Id extends backend.AssetId>(id: Id): AssetTyp
  */
 export default class LocalBackend extends Backend {
   static readonly type = backend.BackendType.local
-  readonly type = LocalBackend.type
+  override readonly type = LocalBackend.type
+  override readonly baseUrl = LOCAL_API_URL
   /** All files that have been uploaded to the Project Manager. */
   uploadedFiles: Map<string, backend.UploadedLargeAsset> = new Map()
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
   constructor(
+    logger: Logger,
+    getText: GetText,
     projectManagerInstance: ProjectManager,
-    private readonly client = new HttpClient(),
+    client = new HttpClient(),
   ) {
-    super()
+    super(logger, getText, client)
 
     this.projectManager = projectManagerInstance
   }
@@ -320,7 +326,10 @@ export default class LocalBackend extends Backend {
    * Close the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails.
    */
-  override async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
+  override async getProjectDetails(
+    projectId: backend.ProjectId,
+    _getPresignedUrl = false,
+  ): Promise<backend.Project> {
     const { path } = extractTypeAndPath(projectId)
     const { directoryPath } = getDirectoryAndName(path)
     const state = this.projectManager.getProject(path)
@@ -341,6 +350,7 @@ export default class LocalBackend extends Backend {
           packageName: project.name,
           projectId,
           state: { type: backend.ProjectState.closed, volumeId: '' },
+          url: downloadProjectPath(projectId),
         }
       }
     } else {
@@ -357,6 +367,7 @@ export default class LocalBackend extends Backend {
           type: backend.ProjectState.opened,
           volumeId: '',
         },
+        url: downloadProjectPath(projectId),
       }
     }
   }
@@ -744,26 +755,49 @@ export default class LocalBackend extends Backend {
   override async download(
     id: backend.AssetId,
     title: string,
-    _targetDirectoryId: backend.DirectoryId | null,
+    targetDirectoryId: backend.DirectoryId | null,
     shouldUnpackProject = true,
   ) {
     const asset = backend.extractTypeFromId(id)
-    if (asset.type === backend.AssetType.project) {
-      const { path } = extractTypeAndPath(asset.id)
-      const queryString = new URLSearchParams({
-        projectsDirectory: getDirectoryAndName(path).directoryPath,
-      }).toString()
+    const targetPath = targetDirectoryId ? extractTypeAndPath(targetDirectoryId).path : null
 
-      // FIXME: This is wrong, the `path` segment should contain `uuid` instead.
-      await download({
-        url: `/api/project-manager/projects/${path}/enso-project?${queryString}`,
-        name: `${title}.enso-project`,
-        electronOptions: {
-          shouldUnpackProject,
-        },
-      })
+    switch (asset.type) {
+      case backend.AssetType.project: {
+        const details = await this.getProjectDetails(asset.id, true)
+        invariant(details.url != null, 'The download URL of the project must be present.')
+        await download({
+          url: details.url,
+          name: `${title}.enso-project`,
+          electronOptions: {
+            shouldUnpackProject,
+            path: targetPath,
+          },
+        })
+        break
+      }
+      case backend.AssetType.file: {
+        const details = await this.getFileDetails(asset.id, title, true)
+        invariant(details.url != null, 'The download URL of the file must be present.')
+        await download({
+          url: details.url,
+          name: details.file.fileName ?? '',
+          electronOptions: {
+            path: targetPath,
+          },
+        })
+        break
+      }
+      case backend.AssetType.datalink:
+      case backend.AssetType.secret:
+      case backend.AssetType.directory:
+      case backend.AssetType.specialLoading:
+      case backend.AssetType.specialEmpty:
+      case backend.AssetType.specialError:
+      case backend.AssetType.specialUp: {
+        invariant(`'${asset.type}' assets cannot be downloaded.`)
+        break
+      }
     }
-    await Promise.resolve()
   }
 
   /** Import an archive and unpack into a directory. */
@@ -808,11 +842,6 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override listAssetVersions() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override getFileDetails() {
     return this.invalidOperation()
   }
 
@@ -1000,41 +1029,6 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override createCustomerPortalSession() {
     return this.invalidOperation()
-  }
-
-  /** Send an HTTP GET request to the given path. */
-  private get<T = void>(path: string) {
-    return this.client.get<T>(`${LOCAL_API_URL}/${path}`)
-  }
-
-  /** Send a JSON HTTP POST request to the given path. */
-  private post<T = void>(path: string, payload: object) {
-    return this.client.post<T>(`${LOCAL_API_URL}/${path}`, payload)
-  }
-
-  /** Send a binary HTTP POST request to the given path. */
-  private postBinary<T = void>(path: string, payload: Blob) {
-    return this.client.postBinary<T>(`${LOCAL_API_URL}/${path}`, payload)
-  }
-
-  /** Send a JSON HTTP PATCH request to the given path. */
-  private patch<T = void>(path: string, payload: object) {
-    return this.client.patch<T>(`${LOCAL_API_URL}/${path}`, payload)
-  }
-
-  /** Send a JSON HTTP PUT request to the given path. */
-  private put<T = void>(path: string, payload: object) {
-    return this.client.put<T>(`${LOCAL_API_URL}/${path}`, payload)
-  }
-
-  /** Send a binary HTTP PUT request to the given path. */
-  private putBinary<T = void>(path: string, payload: Blob) {
-    return this.client.putBinary<T>(`${LOCAL_API_URL}/${path}`, payload)
-  }
-
-  /** Send an HTTP DELETE request to the given path. */
-  private delete<T = void>(path: string, payload?: Record<string, unknown>) {
-    return this.client.delete<T>(`${LOCAL_API_URL}/${path}`, payload)
   }
 }
 
