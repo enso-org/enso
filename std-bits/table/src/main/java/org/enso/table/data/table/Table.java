@@ -443,7 +443,7 @@ public class Table {
         return input;
      }
 
-     if (inputSize < newSize) {
+     if (newSize < inputSize) {
        return input.slice(0, newSize);
      }
 
