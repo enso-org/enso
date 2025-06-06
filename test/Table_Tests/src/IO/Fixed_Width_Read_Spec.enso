@@ -270,7 +270,7 @@ add_direct_specs suite_builder =
             Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 3 17 21) t
             t.at "Column 1" . to Vector . should_equal [1234, 2345, 6789, 4343]
             t.at "Column 2" . to Vector . should_equal [98765, 87654, 51122, 1234]
-            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", ""]
+            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", Nothing]
 
         group_builder.specify "Should drop short lines with Invalid_Rows.Drop_Invalid_Rows" <|
             descs = []
