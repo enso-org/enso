@@ -216,7 +216,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
             return null;
           }
 
-          return a.divide(b, MathContext.DECIMAL64);
+          return a.divide(b, MathContext.DECIMAL128);
         }
       };
 
