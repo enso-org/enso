@@ -40,6 +40,11 @@ public record BigDecimalType() implements StorageType<BigDecimal>, NumericType {
       return new BigDecimal(NumericConverter.coerceToBigInteger(value));
     }
 
+    if (NumericConverter.isFloatLike(value)) {
+      double doubleValue = NumericConverter.coerceToDouble(value);
+      return BigDecimal.valueOf(doubleValue);
+    }
+
     return null;
   }
 

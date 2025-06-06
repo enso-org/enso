@@ -16,7 +16,14 @@ import org.enso.table.data.column.operation.text.TextConcatenate;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.NumericType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 
 /** Support the addition operation - Numeric - Text Concatenation - Date + Time => Date Time ?? */
@@ -92,10 +99,10 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
   static BinaryOperation<?> createNumeric(
       StorageType<?> leftType, Object right, NumericOperation operation) {
     var rightType = storageTypeForObject(right);
-    if (leftType instanceof FloatType || rightType instanceof FloatType) {
-      return new BinaryOperatorDouble(operation);
-    } else if (leftType instanceof BigDecimalType || rightType instanceof BigDecimalType) {
+    if (leftType instanceof BigDecimalType || rightType instanceof BigDecimalType) {
       return new BinaryOperatorBigDecimal(operation);
+    } else if (leftType instanceof FloatType || rightType instanceof FloatType) {
+      return new BinaryOperatorDouble(operation);
     } else if (leftType instanceof BigIntegerType || rightType instanceof BigIntegerType) {
       return new BinaryOperatorBigInteger(operation);
     } else if (leftType instanceof IntegerType || rightType instanceof IntegerType) {
