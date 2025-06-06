@@ -380,4 +380,7 @@ _make_json_for_value val level=0 = case val of
         if level != 0 then "DB_Column{"+col.name+"}" else
             "DB_Column{" + col.name + ": " + col.length.to_text + " rows}"
     f : Function -> "[Function "+f.to_text+"]"
+    date : Date -> date.to_js_object
+    date_time : Date_Time -> date_time.to_js_object
+    time : Time_Of_Day -> time.to_js_object
     _ -> val.to_display_text

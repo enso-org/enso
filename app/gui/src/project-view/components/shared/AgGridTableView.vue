@@ -113,6 +113,7 @@ import {
   rowsToTsv,
   tableToEnsoExpression,
 } from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
+import { formatDateLikeValue } from './AgGridTableView/Utils'
 
 const props = defineProps<{
   rowData: TData[]
@@ -252,6 +253,8 @@ function processCellForClipboard({
   formatValue: (arg: any) => string
 }) {
   if (value == null) return ''
+  else if (value?.type === 'Date' || value?.type === 'Date_Time' || value?.type === 'Time_Of_Day')
+      return formatDateLikeValue(value)
   const formatted = formatValue(value)
   if (formatted.match(/[\t\n\r"]/)) {
     return `"${formatted.replaceAll(/"/g, '""')}"`

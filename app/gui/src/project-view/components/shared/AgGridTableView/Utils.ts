@@ -120,3 +120,36 @@ export const getAgGridProperties = (): [Properties, Properties, Properties] => {
 
   return [props, computed, watch]
 }
+
+export function createDateTime(x: {
+  year?: number
+  month?: number
+  day?: number
+  hour?: number
+  minute?: number
+  second?: number
+  type?: string
+}): Date {
+  return new Date(Date.UTC(
+    x.year ?? 1970,
+    (x.month ?? 1) - 1,
+    x.day ?? 1,
+    x.hour ?? 0,
+    x.minute ?? 0,
+    x.second ?? 0
+  ))
+}
+
+export function formatDateLikeValue(value: any): string {
+  const valueType = value?.type
+  const date = createDateTime(value)
+  if (valueType === 'Date') {
+    return date.toISOString().split('T')[0]
+  } else if (valueType === 'Date_Time') {
+    return date.toLocaleString()
+  } else if (valueType === 'Time_Of_Day') {
+    const timeString = date.toISOString().split('T')[1]
+    return timeString ? timeString.replace('Z', '') : ''
+  }
+  return ''
+}
