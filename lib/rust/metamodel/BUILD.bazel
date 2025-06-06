@@ -2,7 +2,7 @@ load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_library")
 
 rust_library(
-    name = "enso-metamodel",
+    name = "enso_metamodel",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
     crate_features = [
@@ -13,6 +13,6 @@ rust_library(
     proc_macro_deps = all_crate_deps(proc_macro = True),
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
-        "//lib/rust/zst:enso-zst",
+        "//lib/rust/zst:enso_zst",
     ],
 )
