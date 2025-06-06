@@ -1,6 +1,7 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("//:bazel_scripts/sbt.bzl", "sbt_path")
 
 npm_link_all_packages()
 
@@ -114,15 +115,20 @@ SRCS = [
     "project/src/**",
 ])
 
-SBT_PATH = "/opt/homebrew/bin/sbt"
+sbt_path(name = "sbt_path", build_setting_default = "")
+
 SBT_COMMAND = "buildEngineDistribution"
+
 SBT_ARGS = "-v -Dsbt.global.base=$$TMPDIR -Dsbt.ivy.home=$$TMPDIR/.ivy2/ -Dsbt.server.autostart=false"
-JAVA_HOME_MODIFICATION = "JAVA_HOME=$(JAVABASE)"
+
 # TODO: do we really need these? Rust build script does use them.
 SBT_SETTINGS = "SBT_SERVER_FORCESTART=1 LC_ALL=C.UTF-8"
-FLATC_PATH = "/Users/ilyabogdanov/Library/Application\\ Support/.enso-ci/cache/ZTNA-iiP6xtfLXPSYIXS32khYmotLUINMg7z2A"
 
-CMD = "PATH={FLATC_PATH}:$$PATH {JAVA_HOME_MODIFICATION} {SBT_SETTINGS} {SBT_PATH} {SBT_ARGS} {SBT_COMMAND}".format(FLATC_PATH=FLATC_PATH, JAVA_HOME_MODIFICATION=JAVA_HOME_MODIFICATION, SBT_SETTINGS=SBT_SETTINGS, SBT_PATH=SBT_PATH, SBT_ARGS=SBT_ARGS, SBT_COMMAND=SBT_COMMAND)
+CMD = "PATH=$(FLATC_PATH):$$PATH JAVA_HOME=$(JAVABASE) {SBT_SETTINGS} $(SBT_BIN) {SBT_ARGS} {SBT_COMMAND}".format(
+    SBT_ARGS = SBT_ARGS,
+    SBT_COMMAND = SBT_COMMAND,
+    SBT_SETTINGS = SBT_SETTINGS,
+)
 
 # TODO: consider using `run_binary` instead, but it does not have `toolchains` attribute, and providing `sbt` is questionable.
 # `genrule` requires `bash` though.
@@ -132,6 +138,10 @@ genrule(
     outs = ["something.txt"],
     cmd = CMD,
     message = "Building engine distribution",
-    toolchains = ["@rules_java//toolchains:current_java_runtime"],
+    toolchains = [
+        "@rules_java//toolchains:current_java_runtime",
+        "@//toolchains/flatc:resolved_toolchain",
+        ":sbt_path",
+    ],
     visibility = ["//visibility:public"],
 )

@@ -215,6 +215,54 @@
         "recordedRepoMappingEntries": []
       }
     },
+    "//toolchains/flatc:extensions.bzl%flatc_toolchain": {
+      "general": {
+        "bzlTransitiveDigest": "Iea/nzx6MDo0gAQWA9KYIMpHqYQd6rU6QVI0xxLoMAg=",
+        "usagesDigest": "XqjWnKlGksmts80IXeg0OVVe2FsMa0RxAOkveX8PhU8=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "flatc_toolchain_macos_aarch64": {
+            "repoRuleId": "@@//toolchains/flatc:extensions.bzl%flatc_toolchain_repo",
+            "attributes": {
+              "url": "https://github.com/google/flatbuffers/releases/download/v24.3.25/Mac.flatc.binary.zip",
+              "sha256": "277274f4e1037dbb57b1b95719721fe3d58c86983d634103284ad8c1d9cf19dd",
+              "os": "macos",
+              "arch": "aarch64"
+            }
+          },
+          "flatc_toolchain_macos_x86_64": {
+            "repoRuleId": "@@//toolchains/flatc:extensions.bzl%flatc_toolchain_repo",
+            "attributes": {
+              "url": "https://github.com/google/flatbuffers/releases/download/v24.3.25/Mac.flatc.binary.zip",
+              "sha256": "277274f4e1037dbb57b1b95719721fe3d58c86983d634103284ad8c1d9cf19dd",
+              "os": "macos",
+              "arch": "x86_64"
+            }
+          },
+          "flatc_toolchain_linux_x86_64": {
+            "repoRuleId": "@@//toolchains/flatc:extensions.bzl%flatc_toolchain_repo",
+            "attributes": {
+              "url": "https://github.com/google/flatbuffers/releases/download/v24.3.25/Linux.flatc.binary.clang++-15.zip",
+              "sha256": "e7ac9c277adbad6a80321108eacf264046d1fba47300a060a6d7d686e7e4d7be",
+              "os": "linux",
+              "arch": "x86_64"
+            }
+          },
+          "flatc_toolchain_windows_x86_64": {
+            "repoRuleId": "@@//toolchains/flatc:extensions.bzl%flatc_toolchain_repo",
+            "attributes": {
+              "url": "https://github.com/google/flatbuffers/releases/download/v24.3.25/Windows.flatc.binary.zip",
+              "sha256": "6455f5b6272b908dad073721e21b11720a9fddbae06e28b5c75f8ec458e7fe30",
+              "os": "windows",
+              "arch": "x86_64"
+            }
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "@@apple_support+//crosstool:setup.bzl%apple_cc_configure_extension": {
       "general": {
         "bzlTransitiveDigest": "xcBTf2+GaloFpg7YEh/Bv+1yAczRkiCt3DGws4K7kSk=",

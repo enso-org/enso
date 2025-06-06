@@ -101,6 +101,16 @@ crate.from_cargo(
 )
 use_repo(crate, "crates")
 
+flatc_ext = use_extension("//toolchains/flatc:extensions.bzl", "flatc_toolchain")
+use_repo(flatc_ext, "flatc_toolchain_linux_x86_64", "flatc_toolchain_macos_aarch64", "flatc_toolchain_macos_x86_64", "flatc_toolchain_windows_x86_64")
+
+register_toolchains(
+    "@flatc_toolchain_macos_x86_64//:toolchain",
+    "@flatc_toolchain_macos_aarch64//:toolchain",
+    "@flatc_toolchain_linux_x86_64//:toolchain",
+    "@flatc_toolchain_windows_x86_64//:toolchain",
+)
+
 ###########
 ### JVM ###
 ###########

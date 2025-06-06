@@ -1,0 +1,16 @@
+"""
+Toolchain for FlatBuffers compiler.
+"""
+
+## Workaround for https://github.com/bazelbuild/bazel/issues/14009, remove when migrating to Bazel 9
+load(":toolchain.bzl", "resolve_toolchain")
+
+toolchain_type(
+    name = "toolchain_type",
+    visibility = ["//visibility:public"],
+)
+
+resolve_toolchain(
+    name = "resolved_toolchain",
+    visibility = ["//visibility:public"],
+)
