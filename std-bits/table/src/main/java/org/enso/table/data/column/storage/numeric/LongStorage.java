@@ -150,20 +150,6 @@ public final class LongStorage extends AbstractLongStorage
   }
 
   @Override
-  public LongStorage appendNulls(int count) {
-    int size = (int) getSize();
-    if (size + count > Builder.MAX_SIZE) {
-      throw new IllegalStateException("Cannot append nulls, storage would exceed maximum size.");
-    }
-
-    BitSet newIsNothing = BitSets.makeDuplicate(getIsNothingMap());
-    newIsNothing.set(size, size + count);
-
-    // No need to copy the data as we are just adding nulls
-    return new LongStorage(data, size + count, newIsNothing, getType());
-  }
-
-  @Override
   public LongStorage slice(List<SliceRange> ranges) {
     BitSet currentMask = getIsNothingMap();
     int newSize = SliceRange.totalLength(ranges);

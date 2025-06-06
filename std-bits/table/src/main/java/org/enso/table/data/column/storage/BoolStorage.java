@@ -198,13 +198,6 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<?> appendNulls(int count) {
-    BitSet isNothing = BitSets.makeDuplicate(this.isNothing);
-    isNothing.set(size, size + count);
-    return new BoolStorage(values, isNothing, size + count, negated);
-  }
-
-  @Override
   public Storage<Boolean> slice(List<SliceRange> ranges) {
     Context context = Context.getCurrent();
     int newSize = SliceRange.totalLength(ranges);

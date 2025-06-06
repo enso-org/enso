@@ -72,6 +72,7 @@ polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.column.storage.StorageListView
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
@@ -632,7 +633,9 @@ type In_Memory_Column_Implementation
         storage_json = Vector.from_polyglot_array storage_proxy
         JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
-    to_table this_column -> Table = from_java_table (this_column:In_Memory_Column).java_column.toTable
+    to_table this_column -> Table =
+        java_table = Java_Table.new ((this_column:In_Memory_Column).java_column)
+        from_java_table java_table
 
     info this_column -> Table = this_column.to_table.column_info
 

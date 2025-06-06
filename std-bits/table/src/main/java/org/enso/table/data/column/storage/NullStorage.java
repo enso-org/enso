@@ -92,11 +92,6 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public Storage<?> appendNulls(int count) {
-    return new NullStorage(size + count);
-  }
-
-  @Override
   public Storage<Void> slice(List<SliceRange> ranges) {
     return new NullStorage(SliceRange.totalLength(ranges));
   }

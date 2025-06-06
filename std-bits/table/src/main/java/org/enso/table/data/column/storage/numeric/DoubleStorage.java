@@ -270,16 +270,6 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public DoubleStorage appendNulls(int count) {
-    BitSet newIsNothing = BitSets.makeDuplicate(isNothing);
-    newIsNothing.set(size, size + count);
-
-    double[] newData = new double[size + count];
-    System.arraycopy(data, 0, newData, 0, size);
-    return new DoubleStorage(newData, size + count, newIsNothing);
-  }
-
-  @Override
   public Storage<Double> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
     double[] newData = new double[newSize];

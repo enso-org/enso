@@ -314,12 +314,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public abstract Storage<T> slice(int offset, int limit);
 
   /**
-   * @return a new storage instance, containing the same elements as this one, with {@code count}
-   *     nulls appended at the end
-   */
-  public abstract Storage<?> appendNulls(int count);
-
-  /**
    * @return a copy of the storage consisting of slices of the original data
    */
   public abstract Storage<T> slice(List<SliceRange> ranges);

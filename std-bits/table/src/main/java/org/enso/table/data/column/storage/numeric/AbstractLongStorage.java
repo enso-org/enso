@@ -241,22 +241,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public Storage<Long> appendNulls(int count) {
-    final AbstractLongStorage parent = this;
-    int size = (int) parent.getSize();
-    return new ComputedNullableLongStorage(size + count) {
-      @Override
-      protected Long computeItem(long idx) {
-        if (idx < size) {
-          return parent.getItemBoxed(idx);
-        } else {
-          return null;
-        }
-      }
-    };
-  }
-
-  @Override
   public ColumnLongStorageIterator iteratorWithIndex() {
     return new BaseLongStorageIterator(this);
   }
