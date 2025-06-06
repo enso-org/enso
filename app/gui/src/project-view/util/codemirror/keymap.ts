@@ -49,10 +49,10 @@ const baseKeymap: KeyBinding[] = [
   handlerToKeyBinding(
     textEditorsCommonBindings.handler(
       bindCommands({
-        moveLeft: commands.cursorCharLeft,
-        moveRight: commands.cursorCharRight,
-        deleteBack: commands.deleteCharBackward,
-        deleteForward: commands.deleteCharForward,
+        'textEditor.moveLeft': commands.cursorCharLeft,
+        'textEditor.moveRight': commands.cursorCharRight,
+        'textEditor.deleteBack': commands.deleteCharBackward,
+        'textEditor.deleteForward': commands.deleteCharForward,
       }),
     ),
     true,
@@ -287,12 +287,12 @@ const stopEvent = (event: Event) => {
 }
 
 const autoOrMultiHandlers = handlerToKeyBinding(
-  textEditorsMultilineBindings.handler({
-    newline: (e) => {
-      e.stopImmediatePropagation()
-      return insertNewlineKeepIndent(e.codemirrorView)
-    },
-  }),
+  textEditorsMultilineBindings.handler(
+    bindCommands({
+      'textEditor.newline': insertNewlineKeepIndent,
+    }),
+  ),
+  true,
 )
 
 const standardBindings: Record<LineMode, KeyBinding[]> = {

@@ -2,10 +2,10 @@
 import ActionMenu from '@/components/ActionMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { type ActionName } from '@/providers/action'
+import { type DisplayableActionName } from '@/providers/action'
 
 const open = defineModel<boolean>('open', { default: false })
-const { actions } = defineProps<{ actions: ActionName[] }>()
+const { actions } = defineProps<{ actions: DisplayableActionName[] }>()
 </script>
 
 <template>

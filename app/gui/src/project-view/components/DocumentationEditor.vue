@@ -5,11 +5,10 @@ import { useRightPanelData } from '$/providers/rightPanel'
 import { documentationEditorBindings } from '@/bindings'
 import { resolveDocImageUrl, useDocumentationImages } from '@/components/DocumentationEditor/images'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
-import FullscreenButton from '@/components/FullscreenButton.vue'
 import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { htmlToMarkdown } from '@/components/MarkdownEditor/htmlToMarkdown'
-import SvgButton from '@/components/SvgButton.vue'
+import { registerHandlers } from '@/providers/action'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { MutableFunctionDef, parseModule } from '@/util/ast/abstract'
 import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
@@ -170,6 +169,13 @@ const displaySignatureEditor = computed(
     openedProject.value?.store.entryPoint &&
     !methodPointerEquals(currentMethodPointer.value, openedProject.value.store.entryPoint),
 )
+
+registerHandlers({
+  'documentationEditor.image': {
+    available: isEditable,
+    action: () => docImagesHandlers.value?.tryUploadImageFile(),
+  },
+})
 </script>
 
 <template>
@@ -186,17 +192,6 @@ const displaySignatureEditor = computed(
       :transformImageUrl="docImagesHandlers?.transformImageUrl"
       contentTestId="documentation-editor-content"
     >
-      <template #toolbarLeft>
-        <FullscreenButton v-model="rightPanel.fullscreen" />
-      </template>
-      <template #toolbarRight>
-        <SvgButton
-          v-if="isEditable"
-          name="image"
-          title="Insert image"
-          @activate="docImagesHandlers?.tryUploadImageFile()"
-        />
-      </template>
       <template #belowToolbar>
         <FunctionSignatureEditor
           v-if="displaySignatureEditor && currentMethodAst.ok && openedProject"
@@ -227,9 +222,5 @@ const displaySignatureEditor = computed(
   width: 100%;
   padding-left: 4px;
   padding-right: 4px;
-}
-
-.FullscreenButton {
-  margin-left: 4px;
 }
 </style>

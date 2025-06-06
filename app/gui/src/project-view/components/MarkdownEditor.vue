@@ -4,7 +4,7 @@ import {
   type UrlTransformer,
 } from '@/components/MarkdownEditor/imageUrlTransformer'
 import { Vec2 } from '@/util/data/vec2'
-import { ComponentInstance, computed, defineAsyncComponent, ref, toRef } from 'vue'
+import { type ComponentInstance, computed, defineAsyncComponent, ref, toRef } from 'vue'
 import * as Y from 'yjs'
 
 const props = withDefaults(

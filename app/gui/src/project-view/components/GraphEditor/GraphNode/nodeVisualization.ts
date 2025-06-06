@@ -21,7 +21,6 @@ interface Emit {
 interface NodeVisualizationOptions {
   vis: ToValue<Opt<VisualizationMetadata>>
   nodeHovered: ToValue<boolean>
-  isComponentMenuVisible: ToValue<boolean>
   nodeRect: ToValue<Rect>
   scale: ToValue<number>
   isFocused: ToValue<boolean>
@@ -34,7 +33,6 @@ interface NodeVisualizationOptions {
 export function useNodeVisualization({
   vis,
   nodeHovered,
-  isComponentMenuVisible,
   nodeRect,
   scale,
   isFocused,
@@ -82,7 +80,6 @@ export function useNodeVisualization({
       nodeSize,
       scale: toValue(scale),
       nodePosition,
-      isComponentMenuVisible: toValue(isComponentMenuVisible),
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
       typename: toValue(typename) ?? undefined,

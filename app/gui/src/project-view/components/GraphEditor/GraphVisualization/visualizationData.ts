@@ -256,7 +256,7 @@ export function useVisualizationData({
     preprocessorLoading.value = false
   })
 
-  const allTypes = computed(() => Array.from(visualizationStore.types(toValue(typename))))
+  const allTypes = computed(() => [...visualizationStore.types(toValue(typename))])
 
   const effectiveVisualization = computed(() => {
     if (

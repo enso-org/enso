@@ -89,7 +89,7 @@ defineExpose({
 <template>
   <div class="MarkdownEditorRoot">
     <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
-      <slot name="toolbarLeft" />
+      <ActionButton action="panel.fullscreen" />
       <template v-if="!readonly">
         <BlockTypeDropdown
           :modelValue="formatting.blockType.value ?? 'Unknown'"
@@ -99,8 +99,8 @@ defineExpose({
         <ActionButton action="documentationEditor.bold" />
         <ActionButton action="documentationEditor.link" />
         <ActionButton action="documentationEditor.code" />
+        <ActionButton action="documentationEditor.image" />
       </template>
-      <slot name="toolbarRight" />
     </div>
     <slot name="belowToolbar" />
     <CodeMirrorRoot

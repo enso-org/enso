@@ -74,7 +74,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   <div class="RightPanel bg-dashboard" data-testid="right-panel">
     <SizeTransition width :duration="250">
       <div v-if="component != null" ref="contentElement" class="content" :style="style">
-        <WithFullscreenMode :fullscreen="data.fullscreen">
+        <WithFullscreenMode v-model="data.fullscreen">
           <WithCurrentProject :id="data.focusedProject">
             <div class="contentInner">
               <component :is="component" />
