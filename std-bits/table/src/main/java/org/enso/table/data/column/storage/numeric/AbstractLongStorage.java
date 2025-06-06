@@ -5,7 +5,6 @@ import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
@@ -26,7 +25,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
 
   private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
     MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
-    ops.add(new DivideOp<>()).add(new ModOp<>()).add(new PowerOp<>());
+    ops.add(new DivideOp<>()).add(new PowerOp<>());
     return ops;
   }
 

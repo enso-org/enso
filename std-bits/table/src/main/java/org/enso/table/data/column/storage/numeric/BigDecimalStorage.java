@@ -5,7 +5,6 @@ import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.BigDecimalDivideOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -20,7 +19,7 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal>
   private static MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> buildOps() {
     MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> ops =
         new MapOperationStorage<>();
-    return ops.add(new BigDecimalDivideOp<>()).add(new PowerOp<>()).add(new ModOp<>());
+    return ops.add(new BigDecimalDivideOp<>()).add(new PowerOp<>());
   }
 
   private final CachedPropertyCheck<Boolean> isNumericFormatRequired;

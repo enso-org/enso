@@ -40,9 +40,11 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
 
     abstract Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator);
 
-    abstract BigInteger doBigInteger(BigInteger a, BigInteger b, long ix);
+    abstract BigInteger doBigInteger(
+        BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator);
 
-    abstract BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix);
+    abstract BigDecimal doBigDecimal(
+        BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator);
   }
 
   private static final NumericOperation ADDITION =
@@ -64,12 +66,14 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         }
 
         @Override
-        BigInteger doBigInteger(BigInteger a, BigInteger b, long ix) {
+        BigInteger doBigInteger(
+            BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a.add(b);
         }
 
         @Override
-        BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+        BigDecimal doBigDecimal(
+            BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a.add(b);
         }
       };
@@ -93,12 +97,14 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         }
 
         @Override
-        BigInteger doBigInteger(BigInteger a, BigInteger b, long ix) {
+        BigInteger doBigInteger(
+            BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a.subtract(b);
         }
 
         @Override
-        BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+        BigDecimal doBigDecimal(
+            BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a.subtract(b);
         }
       };
@@ -122,13 +128,59 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         }
 
         @Override
-        BigInteger doBigInteger(BigInteger a, BigInteger b, long ix) {
+        BigInteger doBigInteger(
+            BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a.multiply(b);
         }
 
         @Override
-        BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+        BigDecimal doBigDecimal(
+            BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
           return a.multiply(b);
+        }
+      };
+
+  private static final NumericOperation MODULUS =
+      new NumericOperation() {
+        @Override
+        Double doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          if (b == 0.0) {
+            problemAggregator.reportDivisionByZero((int) ix);
+          }
+          return a % b;
+        }
+
+        @Override
+        Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
+          if (b == 0) {
+            problemAggregator.reportDivisionByZero((int) ix);
+            return null;
+          }
+
+          return a % b;
+        }
+
+        @Override
+        BigInteger doBigInteger(
+            BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
+          if (b.equals(BigInteger.ZERO)) {
+            problemAggregator.reportDivisionByZero((int) ix);
+            return null;
+          }
+
+          return a.mod(b);
+        }
+
+        @Override
+        BigDecimal doBigDecimal(
+            BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
+          if (b.equals(BigDecimal.ZERO)) {
+            problemAggregator.reportDivisionByZero((int) ix);
+            return null;
+          }
+
+          return a.remainder(b);
         }
       };
 
@@ -195,6 +247,17 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    */
   public static BinaryOperation<?> multiply(Column left, Object right) {
     return makeNumericBinaryOperation(left, right, MULTIPLY);
+  }
+
+  /**
+   * Create a binary operation for modulus.
+   *
+   * @param left the left column
+   * @param right the right value (can be a column or a scalar)
+   * @return a BinaryOperation that performs multiplication
+   */
+  public static BinaryOperation<?> modulus(Column left, Object right) {
+    return makeNumericBinaryOperation(left, right, MODULUS);
   }
 
   private static BinaryOperation<?> makeNumericBinaryOperation(
@@ -320,7 +383,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         BigDecimal right,
         long index,
         MapOperationProblemAggregator problemAggregator) {
-      return operation.doBigDecimal(left, right, index);
+      return operation.doBigDecimal(left, right, index, problemAggregator);
     }
   }
 
@@ -341,7 +404,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         BigInteger right,
         long index,
         MapOperationProblemAggregator problemAggregator) {
-      return operation.doBigInteger(left, right, index);
+      return operation.doBigInteger(left, right, index, problemAggregator);
     }
   }
 
