@@ -24,9 +24,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
   protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> buildOps() {
     MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops =
         new MapOperationStorage<>();
-    return ops.add(new DivideOp<>())
-        .add(new ModOp<>())
-        .add(new PowerOp<>());
+    return ops.add(new DivideOp<>()).add(new ModOp<>()).add(new PowerOp<>());
   }
 
   private final CachedPropertyCheck<Boolean> isNumericFormatRequired;

@@ -3,7 +3,6 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
@@ -18,6 +17,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
@@ -26,9 +26,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
 
   private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
     MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
-    ops.add(new DivideOp<>())
-        .add(new ModOp<>())
-        .add(new PowerOp<>());
+    ops.add(new DivideOp<>()).add(new ModOp<>()).add(new PowerOp<>());
     return ops;
   }
 

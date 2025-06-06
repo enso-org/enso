@@ -11,7 +11,6 @@ import org.enso.table.data.column.operation.BinaryOperationNull;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.operation.StorageIterators;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.text.TextConcatenate;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
@@ -27,6 +26,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 /** Support the addition operation - Numeric - Text Concatenation - Date + Time => Date Time ?? */
 public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
@@ -134,6 +134,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
 
   /**
    * Create a binary operation for addition.
+   *
    * @param left the left column
    * @param right the right value (can be a column or a scalar)
    * @return a BinaryOperation that performs addition or concatenation
@@ -159,6 +160,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
 
   /**
    * Create a binary operation for subtraction.
+   *
    * @param left the left column
    * @param right the right value (can be a column or a scalar)
    * @return a BinaryOperation that performs subtraction
@@ -186,6 +188,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
 
   /**
    * Create a binary operation for multiplication.
+   *
    * @param left the left column
    * @param right the right value (can be a column or a scalar)
    * @return a BinaryOperation that performs multiplication
@@ -194,7 +197,8 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     return makeNumericBinaryOperation(left, right, MULTIPLY);
   }
 
-  private static BinaryOperation<?> makeNumericBinaryOperation(Column left, Object right, NumericOperation operation) {
+  private static BinaryOperation<?> makeNumericBinaryOperation(
+      Column left, Object right, NumericOperation operation) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> createNumeric(leftStorage.getType(), right, operation);
@@ -243,7 +247,10 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
   }
 
   @Override
-  public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<T> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType) {
       return applyNullMap(left, problemAggregator);
     }

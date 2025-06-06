@@ -7,7 +7,6 @@ import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
@@ -24,6 +23,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
@@ -36,9 +36,7 @@ public final class DoubleStorage extends Storage<Double>
 
   private static MapOperationStorage<Double, DoubleStorage> buildOps() {
     MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
-    ops.add(new DivideOp<>())
-        .add(new ModOp<>())
-        .add(new PowerOp<>());
+    ops.add(new DivideOp<>()).add(new ModOp<>()).add(new PowerOp<>());
     return ops;
   }
 

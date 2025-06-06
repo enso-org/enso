@@ -436,23 +436,23 @@ public class Table {
    *
    * <p>If the new length is smaller than the current length, the column is truncated. If the new
    * length is larger than the current length, the column is padded with nulls.
-   **/
-   private static Column resize(Column input, int newSize) {
-     var inputSize = input.getSize();
-     if (inputSize == newSize) {
-        return input;
-     }
+   */
+  private static Column resize(Column input, int newSize) {
+    var inputSize = input.getSize();
+    if (inputSize == newSize) {
+      return input;
+    }
 
-     if (newSize < inputSize) {
-       return input.slice(0, newSize);
-     }
+    if (newSize < inputSize) {
+      return input.slice(0, newSize);
+    }
 
-     var storage = input.getStorage();
-     var builder = storage.getType().makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
-     builder.appendBulkStorage(storage);
-     builder.appendNulls(newSize - inputSize);
-     return new Column(input.getName(), builder.seal());
-   }
+    var storage = input.getStorage();
+    var builder = storage.getType().makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
+    builder.appendBulkStorage(storage);
+    builder.appendNulls(newSize - inputSize);
+    return new Column(input.getName(), builder.seal());
+  }
 
   /**
    * Applies an order mask to all columns and indexes of this array.

@@ -5,12 +5,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 /** A specialized storage that can be used by columns that contain only null values. */
 public class NullStorage extends Storage<Void> {

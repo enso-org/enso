@@ -6,7 +6,6 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.DoubleBuilder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -15,6 +14,7 @@ import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorageFacade;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends Storage<? super T>>
     extends BinaryMapOperation<T, I> {
