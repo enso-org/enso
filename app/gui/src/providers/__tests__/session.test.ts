@@ -60,7 +60,6 @@ class MockAuthService implements ISessionProvider {
 }
 
 describe('SessionProvider', () => {
-  //   const mainPageUrl = new URL('https://enso.dev')
   const registerAuthEventListener = vi.fn()
 
   const authService = new MockAuthService()
@@ -72,11 +71,10 @@ describe('SessionProvider', () => {
   it('Should retrieve the user session', () =>
     withSetup(async () => {
       const session = createSessionStore(authService, registerAuthEventListener, new HttpClient())
-      // One tick for useQuery firing refetch, second for result propagation.
+      // One tick for useQuery firing refetch
       await nextTick()
       expect(authService.userSession).toBeCalled()
-      await nextTick()
-      expect(session.session?.email).toBe('test@test.com')
+      await expect.poll(() => session.session?.email).toBe('test@test.com')
     })[0])
 
   it('Should set the access token on the HTTP client', () =>

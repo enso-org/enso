@@ -4,7 +4,6 @@
  * if user lost privileges to see them.
  */
 
-import { LOGIN_PATH } from '$/appUtils'
 import { useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
@@ -24,9 +23,8 @@ const routeGuardResult = computed(() => auth.routeGuard(route))
 watch(
   routeGuardResult,
   (result) => {
-    if (result !== true) {
-      const redirect = result === false ? { path: LOGIN_PATH } : result
-      router.push(redirect)
+    if (!result.allowed && result.redirect) {
+      router.push(result.redirect)
     }
   },
   { immediate: true },
@@ -68,5 +66,5 @@ const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
     <ResultComponent status="loading" :title="text.getText('loggingOut')" />
   </Dialog>
 
-  <RouterView v-if="routeGuardResult === true" />
+  <RouterView v-if="routeGuardResult.allowed" />
 </template>

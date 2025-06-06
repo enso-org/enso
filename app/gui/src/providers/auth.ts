@@ -265,20 +265,24 @@ function createAuthStore(
 
   /**
    * Check if given route is allowed for the current user.
-   *
-   * @returns boolean specifying if the route is allowed, or necessary redirect.
+   * @returns Information if route is allowed, and expected redirect if any.
    */
   function routeGuard(route: RouteLocation) {
-    if (route.meta.access == null) return true
-    if (route.meta.access === 'guest' && effectiveUserData.value == null) return true
-    if (route.meta.access === 'anyLoggedIn' && effectiveUserData.value != null) return true
-    if (route.meta.access === effectiveUserData.value?.type) return true
+    if (route.meta.access == null) return { allowed: true }
+    if (route.meta.access === 'guest' && effectiveUserData.value == null) return { allowed: true }
+    if (route.meta.access === 'anyLoggedIn' && effectiveUserData.value != null)
+      return { allowed: true }
+    if (route.meta.access === effectiveUserData.value?.type) return { allowed: true }
 
-    if (effectiveUserData.value == null) return { path: LOGIN_PATH }
-    if (effectiveUserData.value.type === UserSessionType.partial) return { path: SETUP_PATH }
+    if (effectiveUserData.value == null) return { allowed: false, redirect: { path: LOGIN_PATH } }
+    if (effectiveUserData.value.type === UserSessionType.partial)
+      return { allowed: false, redirect: { path: SETUP_PATH } }
     if (effectiveUserData.value.type === UserSessionType.full)
-      return { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH }
-    return false
+      return {
+        allowed: false,
+        redirect: { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH },
+      }
+    return { allowed: false }
   }
 
   return proxyRefs({

@@ -116,9 +116,6 @@ export interface AuthService {
  */
 export function useInitAuthService(authConfig: AuthConfig): AuthService {
   const { supportsDeepLinks } = authConfig
-
-  // TODO[ao] Do we want logger in Vue?
-  // const logger = useLogger()
   const router = useRouter()
 
   const amplifyConfig = loadAmplifyConfig(
