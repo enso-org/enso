@@ -27,6 +27,83 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   @Override
   public abstract StorageType<T> getType();
 
+  @Override
+  public abstract boolean isNothing(long index);
+
+  @Override
+  public abstract T getItemBoxed(long index);
+
+  @Override
+  public Iterator<T> iterator() {
+    return new Iterator<>() {
+      private long index = -1;
+
+      @Override
+      public boolean hasNext() {
+        return index + 1 < getSize();
+      }
+
+      @Override
+      public T next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        return getItemBoxed(++index);
+      }
+    };
+  }
+
+  @Override
+  public ColumnStorageIterator<T> iteratorWithIndex() {
+    return new StorageIterator<>(this);
+  }
+
+  public static class StorageIterator<T> implements ColumnStorageIterator<T> {
+    protected final ColumnStorage<T> parent;
+    protected long index = -1;
+
+    public StorageIterator(ColumnStorage<T> parent) {
+      this.parent = parent;
+    }
+
+    @Override
+    public T getItemBoxed() {
+      return parent.getItemBoxed(index);
+    }
+
+    @Override
+    public boolean isNothing() {
+      return parent.isNothing(index);
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index + 1 < parent.getSize();
+    }
+
+    @Override
+    public T next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      return parent.getItemBoxed(++index);
+    }
+
+    @Override
+    public long getIndex() {
+      return index;
+    }
+
+    @Override
+    public boolean moveNext() {
+      if (!hasNext()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
+  }
+
   /**
    * Returns a more specialized storage, if available.
    *
@@ -36,12 +113,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public Storage<?> tryGettingMoreSpecializedStorage() {
     return this;
   }
-
-  @Override
-  public abstract boolean isNothing(long index);
-
-  @Override
-  public abstract T getItemBoxed(long index);
 
   /**
    * @return the type of the values in this column's storage. Most storages just return their type.
@@ -56,7 +127,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   /** A container for names of vectorizable operation. */
   public static final class Maps {
     public static final String MUL = "*";
-    public static final String SUB = "-";
     public static final String DIV = "/";
     public static final String MOD = "%";
     public static final String POWER = "^";
@@ -363,76 +433,5 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     }
 
     return builder.seal();
-  }
-
-  @Override
-  public Iterator<T> iterator() {
-    return new Iterator<>() {
-      private long index = -1;
-
-      @Override
-      public boolean hasNext() {
-        return index + 1 < getSize();
-      }
-
-      @Override
-      public T next() {
-        if (!hasNext()) {
-          throw new NoSuchElementException();
-        }
-        return getItemBoxed(++index);
-      }
-    };
-  }
-
-  @Override
-  public ColumnStorageIterator<T> iteratorWithIndex() {
-    return new StorageIterator<>(this);
-  }
-
-  public static class StorageIterator<T> implements ColumnStorageIterator<T> {
-    protected final ColumnStorage<T> parent;
-    protected long index = -1;
-
-    public StorageIterator(ColumnStorage<T> parent) {
-      this.parent = parent;
-    }
-
-    @Override
-    public T getItemBoxed() {
-      return parent.getItemBoxed(index);
-    }
-
-    @Override
-    public boolean isNothing() {
-      return parent.isNothing(index);
-    }
-
-    @Override
-    public boolean hasNext() {
-      return index + 1 < parent.getSize();
-    }
-
-    @Override
-    public T next() {
-      if (!hasNext()) {
-        throw new NoSuchElementException();
-      }
-      return parent.getItemBoxed(++index);
-    }
-
-    @Override
-    public long getIndex() {
-      return index;
-    }
-
-    @Override
-    public boolean moveNext() {
-      if (!hasNext()) {
-        return false;
-      }
-      index++;
-      return true;
-    }
   }
 }

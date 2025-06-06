@@ -187,9 +187,7 @@ add_expression_specs suite_builder detailed setup =
 
             t.evaluate_expression "not(Nothing)" . to_vector . should_equal nulls
             t.evaluate_expression "Nothing + Nothing" . to_vector . should_equal nulls
-            ## TODO Waiting for a fix on Column to be re-enabled
-            ## https://github.com/enso-org/enso/issues/12315
-            ## t.evaluate_expression "[X] + Nothing" . to_vector . should_equal nulls
+            t.evaluate_expression "[X] + Nothing" . to_vector . should_equal nulls
             t.evaluate_expression "Nothing + [X]" . to_vector . should_equal nulls
 
             t.evaluate_expression "Nothing * Nothing" . to_vector . should_equal nulls
@@ -364,10 +362,7 @@ add_expression_specs suite_builder detailed setup =
         specify_test "should be able to AND booleans" group_builder expression_test->
             expression_test "True && TRUE" True
             expression_test "True AND False" False
-
-            ## Waiting for a fix on Column to be re-enabled
-            ## https://github.com/enso-org/enso/issues/12315
-            ## expression_test "True && Nothing" Nothing
+            expression_test "True && Nothing" Nothing
 
             # This requires Null columns, so it's not generally tested on DB backends.
             if setup.is_database.not || (setup.prefix.contains "SQLite")  then

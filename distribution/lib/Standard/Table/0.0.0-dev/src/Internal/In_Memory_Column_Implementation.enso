@@ -153,11 +153,17 @@ type In_Memory_Column_Implementation
             _call_binary_operator this_column other new_name operation
 
     minus this_column (other : Column | Any) -> Column =
-        Value_Type_Helpers.resolve_subtraction_kind this_column other . if_not_error <|
-            operation = BinaryOperator.minus (this_column:In_Memory_Column).java_column (_java_other other)
-            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported minus operation.")
-            new_name = naming_helper.binary_operation_name "+" this_column other
-            _call_binary_operator this_column other new_name operation
+        kind = Value_Type_Helpers.resolve_subtraction_kind this_column other
+        kind.if_not_error <|
+            new_name = naming_helper.binary_operation_name "-" this_column other
+            case kind of
+                Value_Type_Helpers.Subtraction_Kind.Date_Difference ->
+                    fn = x-> y-> Period.between y x
+                    run_binary_op this_column fn other new_name
+                _ ->
+                    operation = BinaryOperator.minus (this_column:In_Memory_Column).java_column (_java_other other)
+                    if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported minus operation.")
+                    _call_binary_operator this_column other new_name operation
 
     multiply this_column (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_numeric_op this_column other <|

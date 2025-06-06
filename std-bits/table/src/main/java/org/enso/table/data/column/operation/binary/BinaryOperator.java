@@ -16,7 +16,16 @@ import org.enso.table.data.column.operation.text.TextConcatenate;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.NumericType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 
 /** Support the addition operation - Numeric - Text Concatenation - Date + Time => Date Time ?? */
@@ -70,7 +79,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         @Override
         Double doDouble(
             double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
-          return a + b;
+          return a - b;
         }
 
         @Override
@@ -95,9 +104,10 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
       };
 
   /**
-   * @param left
-   * @param right
-   * @return
+   * Create a binary operation for addition.
+   * @param left the left column
+   * @param right the right value (can be a column or a scalar)
+   * @return a BinaryOperation that performs addition or concatenation
    */
   public static BinaryOperation<?> add(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
@@ -119,9 +129,10 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
   }
 
   /**
-   * @param left
-   * @param right
-   * @return
+   * Create a binary operation for subtraction.
+   * @param left the left column
+   * @param right the right value (can be a column or a scalar)
+   * @return a BinaryOperation that performs subtraction
    */
   public static BinaryOperation<?> minus(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
@@ -165,6 +176,23 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
   protected BinaryOperator(NumericColumnAdapter<T> adapter, NumericOperation operation) {
     super(adapter, true, adapter.getValidType());
     this.operation = operation;
+  }
+
+  @Override
+  public boolean canApplyMap(ColumnStorage<?> left, Object right) {
+    if (left.getType() instanceof NullType) {
+      return true; // We can apply null map to any right value
+    }
+    return super.canApplyMap(left, right);
+  }
+
+  @Override
+  public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+    if (left.getType() instanceof NullType) {
+      return applyNullMap(left, problemAggregator);
+    }
+
+    return super.applyZip(left, right, problemAggregator);
   }
 
   private static class BinaryOperatorDouble extends BinaryOperator<Double> {
