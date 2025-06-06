@@ -12,7 +12,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
 
-public final class TextPartOperation extends BinaryOperationBase<String> {
+public final class TextPartOperation extends BinaryOperationBase<String, String> {
   public static final TextPartOperation LEFT = new TextPartOperation(Text_Utils::take_prefix);
   public static final TextPartOperation RIGHT = new TextPartOperation(Text_Utils::take_suffix);
 
@@ -24,7 +24,7 @@ public final class TextPartOperation extends BinaryOperationBase<String> {
   private final TextLongToStringFunction function;
 
   private TextPartOperation(TextLongToStringFunction function) {
-    super(TextType.VARIABLE_LENGTH, true);
+    super(TextType.VARIABLE_LENGTH, TextType.VARIABLE_LENGTH, true);
     this.function = function;
   }
 

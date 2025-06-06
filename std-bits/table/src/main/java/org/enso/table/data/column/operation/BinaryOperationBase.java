@@ -7,12 +7,14 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.ProblemAggregator;
 
-public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
+public abstract class BinaryOperationBase<T, R> implements BinaryOperation<R> {
   protected final StorageType<T> validType;
+  protected final StorageType<R> returnType;
   private final boolean allowNullType;
 
-  protected BinaryOperationBase(StorageType<T> validType, boolean allowNullType) {
+  protected BinaryOperationBase(StorageType<T> validType, StorageType<R> returnType, boolean allowNullType) {
     this.validType = validType;
+    this.returnType = returnType;
     this.allowNullType = allowNullType;
   }
 
@@ -29,7 +31,7 @@ public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
   }
 
   @Override
-  public ColumnStorage<T> applyMap(
+  public ColumnStorage<R> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType) {
       return applyNullMap(left, rightValue, problemAggregator);
@@ -42,20 +44,20 @@ public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
     throw new IllegalArgumentException("Unsupported storage type.");
   }
 
-  protected ColumnStorage<T> applyNullMap(
+  protected ColumnStorage<R> applyNullMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     throw new IllegalArgumentException(
         "applyNullMap has not been implemented. This is a bug in the libraries code.");
   }
 
-  protected ColumnStorage<T> applyTypedMap(
+  protected ColumnStorage<R> applyTypedMap(
       ColumnStorage<T> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     throw new IllegalArgumentException(
         "applyTypedMap has not been implemented. This is a bug in the libraries code.");
   }
 
   @Override
-  public ColumnStorage<T> applyZip(
+  public ColumnStorage<R> applyZip(
       ColumnStorage<?> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
@@ -74,7 +76,7 @@ public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
     throw new IllegalArgumentException("Unsupported storage types.");
   }
 
-  protected ColumnStorage<T> applyTypedZip(
+  protected ColumnStorage<R> applyTypedZip(
       ColumnStorage<T> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
@@ -82,11 +84,11 @@ public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
         "applyTypedZip has not been implemented. This is a bug in the libraries code.");
   }
 
-  protected BuilderForType<T> makeStorageBuilder(
+  protected BuilderForType<R> makeStorageBuilder(
       long size,
       StorageType<?> leftType,
       StorageType<?> rightType,
       ProblemAggregator problemAggregator) {
-    return validType.makeBuilder(size, problemAggregator);
+    return returnType.makeBuilder(size, problemAggregator);
   }
 }

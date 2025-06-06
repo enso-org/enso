@@ -9,7 +9,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.error.UnexpectedTypeException;
 
-public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<Boolean> {
+public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<Boolean, Boolean> {
   public static final BinaryCoalescingOperationBool MIN_INSTANCE =
       new BinaryCoalescingOperationBool() {
         @Override
@@ -41,7 +41,7 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
       };
 
   private BinaryCoalescingOperationBool() {
-    super(BooleanType.INSTANCE, false);
+    super(BooleanType.INSTANCE, BooleanType.INSTANCE, false);
   }
 
   @Override

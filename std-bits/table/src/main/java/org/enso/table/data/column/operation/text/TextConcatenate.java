@@ -9,11 +9,11 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.UnexpectedTypeException;
 
-public class TextConcatenate extends BinaryOperationBase<String> {
+public class TextConcatenate extends BinaryOperationBase<String, String> {
   public static final TextConcatenate INSTANCE = new TextConcatenate();
 
   private TextConcatenate() {
-    super(TextType.VARIABLE_LENGTH, true);
+    super(TextType.VARIABLE_LENGTH, TextType.VARIABLE_LENGTH, true);
   }
 
   @Override

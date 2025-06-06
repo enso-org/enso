@@ -5,12 +5,10 @@ import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -24,9 +22,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
 
   private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
     MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
-    ops.add(new AddOp<>())
-        .add(new SubOp<>())
-        .add(new MulOp<>())
+    ops.add(new MulOp<>())
         .add(new DivideOp<>())
         .add(new ModOp<>())
         .add(new PowerOp<>());

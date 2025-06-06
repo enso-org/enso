@@ -16,14 +16,7 @@ import org.enso.table.data.column.operation.text.TextConcatenate;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.NumericType;
-import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 
 /** Support the addition operation - Numeric - Text Concatenation - Date + Time => Date Time ?? */
@@ -72,12 +65,41 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         }
       };
 
+  private static final NumericOperation SUBTRACTION =
+      new NumericOperation() {
+        @Override
+        Double doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          return a + b;
+        }
+
+        @Override
+        Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
+          try {
+            return Math.subtractExact(a, b);
+          } catch (ArithmeticException e) {
+            problemAggregator.reportOverflow(IntegerType.INT_64, a, "-", b);
+            return null;
+          }
+        }
+
+        @Override
+        BigInteger doBigInteger(BigInteger a, BigInteger b, long ix) {
+          return a.subtract(b);
+        }
+
+        @Override
+        BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix) {
+          return a.subtract(b);
+        }
+      };
+
   /**
    * @param left
    * @param right
    * @return
    */
-  public static BinaryOperation<?> createAddIfSupported(Column left, Object right) {
+  public static BinaryOperation<?> add(Column left, Object right) {
     var leftStorage = BinaryOperation.getInferredStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> createNumeric(leftStorage.getType(), right, ADDITION);
@@ -89,6 +111,32 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
           case NullType rnt -> BinaryOperationNull.INSTANCE;
           case NumericType rnt -> createNumeric(leftStorage.getType(), right, ADDITION);
           case TextType rtt -> TextConcatenate.INSTANCE;
+          default -> null;
+        };
+      }
+      default -> null;
+    };
+  }
+
+  /**
+   * @param left
+   * @param right
+   * @return
+   */
+  public static BinaryOperation<?> minus(Column left, Object right) {
+    var leftStorage = BinaryOperation.getInferredStorage(left);
+    return switch (leftStorage.getType()) {
+      case NumericType nt -> createNumeric(leftStorage.getType(), right, SUBTRACTION);
+      case DateTimeType dtt -> DateTimeSubtraction.DATE_TIME;
+      case TimeOfDayType todt -> DateTimeSubtraction.TIME_OF_DAY;
+      case NullType nt -> {
+        // Work out based on the RHS
+        var rightType = storageTypeForObject(right);
+        yield switch (rightType) {
+          case NullType rnt -> BinaryOperationNull.INSTANCE;
+          case DateTimeType dtt -> DateTimeSubtraction.DATE_TIME;
+          case TimeOfDayType todt -> DateTimeSubtraction.TIME_OF_DAY;
+          case NumericType rnt -> createNumeric(leftStorage.getType(), right, SUBTRACTION);
           default -> null;
         };
       }

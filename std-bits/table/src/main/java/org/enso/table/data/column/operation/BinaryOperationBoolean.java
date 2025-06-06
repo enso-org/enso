@@ -21,7 +21,7 @@ import org.enso.table.problems.ProblemAggregator;
  * NullStorage, override the `applySpecializedMapOverNullStorage` or the
  * `applySpecializedZipOverNullStorage`.
  */
-public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean> {
+public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean, Boolean> {
   private final boolean preserveNulls;
   protected final boolean throwOnOther;
   protected final boolean valueOnOther;
@@ -31,7 +31,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
   }
 
   protected BinaryOperationBoolean(boolean preserveNulls, boolean allowNullType) {
-    super(BooleanType.INSTANCE, allowNullType);
+    super(BooleanType.INSTANCE, BooleanType.INSTANCE, allowNullType);
     this.preserveNulls = preserveNulls;
     this.throwOnOther = true;
     this.valueOnOther = false;
@@ -39,7 +39,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
 
   protected BinaryOperationBoolean(
       boolean preserveNulls, boolean allowNullType, boolean valueOnOther) {
-    super(BooleanType.INSTANCE, allowNullType);
+    super(BooleanType.INSTANCE, BooleanType.INSTANCE, allowNullType);
     this.preserveNulls = preserveNulls;
     this.throwOnOther = false;
     this.valueOnOther = valueOnOther;

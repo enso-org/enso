@@ -9,12 +9,10 @@ import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
@@ -29,7 +27,6 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -40,9 +37,7 @@ public final class DoubleStorage extends Storage<Double>
 
   private static MapOperationStorage<Double, DoubleStorage> buildOps() {
     MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
-    ops.add(new AddOp<>())
-        .add(new SubOp<>())
-        .add(new MulOp<>())
+    ops.add(new MulOp<>())
         .add(new DivideOp<>())
         .add(new ModOp<>())
         .add(new PowerOp<>());

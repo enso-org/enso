@@ -5,12 +5,10 @@ import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.BigDecimalDivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -23,9 +21,7 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal>
   private static MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> buildOps() {
     MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> ops =
         new MapOperationStorage<>();
-    return ops.add(new AddOp<>())
-        .add(new SubOp<>())
-        .add(new MulOp<>())
+    return ops.add(new MulOp<>())
         .add(new BigDecimalDivideOp<>())
         .add(new PowerOp<>())
         .add(new ModOp<>());

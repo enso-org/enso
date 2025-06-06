@@ -147,29 +147,17 @@ type In_Memory_Column_Implementation
 
     add this_column (other : Column | Any) -> Column =
         Value_Type_Helpers.resolve_addition_kind this_column other . if_not_error <|
-            operation = BinaryOperator.createAddIfSupported (this_column:In_Memory_Column).java_column (_java_other other)
+            operation = BinaryOperator.add (this_column:In_Memory_Column).java_column (_java_other other)
             if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported add operation.")
             new_name = naming_helper.binary_operation_name "+" this_column other
             _call_binary_operator this_column other new_name operation
 
     minus this_column (other : Column | Any) -> Column =
-        case Value_Type_Helpers.resolve_subtraction_kind this_column other of
-            Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
-                run_vectorized_binary_op this_column Java_Storage.Maps.SUB other
-            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
-                case this_column.inferred_precise_value_type of
-                    Value_Type.Date ->
-                        ## Special handling for `Period` since it is hard to
-                           vectorize as there is no polyglot handling of it - we
-                           _wrap_ a Java object and the Java wrapper will always
-                           be an Enso callback, at which point its better to do
-                           the whole operation in pure Enso.
-                        fn = x-> y-> Period.between y x
-                        new_name = naming_helper.binary_operation_name "-" this_column other
-                        run_binary_op this_column fn other new_name
-                    _ ->
-                        run_vectorized_binary_op this_column Java_Storage.Maps.SUB other
-            Nothing -> this_column.const Nothing
+        Value_Type_Helpers.resolve_subtraction_kind this_column other . if_not_error <|
+            operation = BinaryOperator.minus (this_column:In_Memory_Column).java_column (_java_other other)
+            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported minus operation.")
+            new_name = naming_helper.binary_operation_name "+" this_column other
+            _call_binary_operator this_column other new_name operation
 
     multiply this_column (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_numeric_op this_column other <|

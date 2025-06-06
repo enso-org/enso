@@ -56,7 +56,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   /** A container for names of vectorizable operation. */
   public static final class Maps {
     public static final String MUL = "*";
-    public static final String ADD = "+";
     public static final String SUB = "-";
     public static final String DIV = "/";
     public static final String MOD = "%";
