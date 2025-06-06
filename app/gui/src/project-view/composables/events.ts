@@ -1,7 +1,7 @@
 /** @file Vue composables for listening to DOM events. */
 
-import type { KeyboardComposable } from '@/composables/keyboard.ts'
-import type { Opt } from '@/util/data/opt'
+import { useRaf } from '@/composables/animation'
+import type { KeyboardComposable } from '@/composables/keyboard'
 import { Vec2 } from '@/util/data/vec2'
 import { type VueInstance } from '@vueuse/core'
 import {
@@ -17,13 +17,6 @@ import {
   type ShallowRef,
   type WatchSource,
 } from 'vue'
-import { useRaf } from './animation'
-
-/** TODO: Add docs */
-export function isTriggeredByKeyboard(e: MouseEvent | PointerEvent) {
-  if (e instanceof PointerEvent) return e.pointerType !== 'mouse'
-  else return false
-}
 
 export function useEvent<K extends keyof DocumentEventMap>(
   target: Document,
@@ -136,14 +129,6 @@ function isEditable(element: HTMLElement) {
 /** Whether focused element is within given element's subtree. */
 export function focusIsIn(el: Element | undefined | null) {
   return el && el.contains(document.activeElement)
-}
-
-/**
- * Whether any element currently has keyboard focus, except for elements within given subtree.
- * When `el` is `null` or `undefined`, the function behaves as `keyboardBusy()`.
- */
-export function keyboardBusyExceptIn(el: Opt<Element>) {
-  return keyboardBusy() && (el == null || !focusIsIn(el))
 }
 
 const hasWindow = typeof window !== 'undefined'

@@ -2,7 +2,6 @@
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
 import { type Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
-import { Action } from '@/providers/action'
 import { useToast } from '@/util/toast'
 import {
   type AnyAsset,
@@ -12,7 +11,6 @@ import {
   assetIsFile,
   assetIsSecret,
   type CreatedDirectory,
-  type DirectoryAsset,
   type DirectoryId,
 } from 'enso-common/src/services/Backend'
 import { computed, reactive, ref, watch } from 'vue'
@@ -97,12 +95,9 @@ const editedAsset = ref<{
   createdId?: DirectoryId
 }>()
 
-const renameAction: Action = {
-  icon: 'edit',
-  description: 'Rename directory',
-  disabled: computed(() => focusedDirectory.value == null || editedAsset.value != null),
-  action: () => focusedDirectory.value && renameDirectory(focusedDirectory.value),
-}
+const renameDirectoryEnabled = computed(
+  () => focusedDirectory.value != null && editedAsset.value == null,
+)
 
 function entryIcon(entry: AnyAsset) {
   return assetIsDirectory(entry) ? 'folder' : 'text2'
@@ -133,20 +128,34 @@ function onClick(entry: AnyAsset, isDouble: boolean) {
   if (assetIsTargetType(entry)) emit('choose', entry, isDouble)
 }
 
-function addNewDirectory() {
-  assert(editedAsset.value == null)
+function addDirectoryAction() {
+  if (editedAsset.value != null) {
+    console.warn('Ignoring attempt to begin creating directory while already editing asset')
+    return
+  }
   keyOverride.set(newDirPlaceholder, nextKeyForNewDir++)
   editedAsset.value = { name: 'New Folder', state: 'editing' }
 }
 
-function renameDirectory(dir: DirectoryAsset) {
-  assert(editedAsset.value == null)
-  editedAsset.value = { asset: dir, name: dir.title, state: 'editing' }
+function renameDirectoryAction() {
+  if (editedAsset.value != null) {
+    console.warn('Ignoring attempt to begin renaming directory while already editing asset')
+    return
+  }
+  if (focusedDirectory.value == null) {
+    errorToast.show('Unable to rename directory: No directory selected')
+    return
+  }
+  editedAsset.value = {
+    asset: focusedDirectory.value,
+    name: focusedDirectory.value.title,
+    state: 'editing',
+  }
 }
 
 async function acceptName(name: string) {
   if (editedAsset.value?.state !== 'editing') {
-    console.error('Accepting edited name without editing')
+    console.error('Ignoring attempt to accept edited name when not in editing state')
     return
   }
   const edited = editedAsset.value
@@ -194,7 +203,13 @@ watch(editingAsset, (editingAsset) => emit('update:editingAsset', editingAsset))
 const isEmpty = computed(() => entries.value.length === 0 && editedAsset.value == null)
 
 defineExpose({
-  addNewDirectory,
+  newDirectory: {
+    action: addDirectoryAction,
+  },
+  renameDirectory: {
+    enabled: renameDirectoryEnabled,
+    action: renameDirectoryAction,
+  },
 })
 </script>
 
@@ -205,7 +220,7 @@ defineExpose({
     @click.stop="focused = undefined"
   >
     <div v-if="isEmpty" class="centerContent">Directory is empty</div>
-    <ContextMenuTrigger v-show="!isEmpty" :actions="[renameAction]">
+    <ContextMenuTrigger v-show="!isEmpty" :actions="['fileBrowser.renameDirectory']">
       <TransitionGroup>
         <FileBrowserEntry
           v-if="editedAsset && editedAsset.asset == null"

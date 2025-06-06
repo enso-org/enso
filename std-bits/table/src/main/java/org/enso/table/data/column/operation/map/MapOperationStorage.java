@@ -19,7 +19,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param n the operation name
    * @return whether the operation is supported
    */
-  public boolean isSupportedBinary(String n) {
+  private boolean isSupportedBinary(String n) {
     return n != null && binaryOps.get(n) != null;
   }
 
@@ -34,11 +34,9 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    */
   public Storage<?> runBinaryMap(
       String n, S storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-    if (!isSupportedBinary(n)) {
-      throw new IllegalStateException(
-          "Requested vectorized binary operation " + n + ", but no such operation is known.");
-    }
-    return binaryOps.get(n).runBinaryMap(storage, arg, problemAggregator);
+    return isSupportedBinary(n)
+        ? binaryOps.get(n).runBinaryMap(storage, arg, problemAggregator)
+        : null;
   }
 
   /**
@@ -53,8 +51,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
   public Storage<?> runZip(
       String n, S storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     if (!isSupportedBinary(n)) {
-      throw new IllegalStateException(
-          "Requested vectorized binary operation " + n + ", but no such operation is known.");
+      return null;
     }
 
     var operation = binaryOps.get(n);

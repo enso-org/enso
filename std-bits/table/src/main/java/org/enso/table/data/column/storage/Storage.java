@@ -57,23 +57,25 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     public static final String DIV = "/";
     public static final String MOD = "%";
     public static final String POWER = "^";
-    public static final String ROUND = "round";
-    public static final String IS_IN = "is_in";
   }
 
-  /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
-  public abstract boolean isBinaryOpVectorized(String name);
-
-  /** Runs a vectorized operation on this storage, taking one scalar argument. */
-  public abstract Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator);
+  /**
+   * Runs a vectorized operation on this storage, taking one scalar argument. Return null is not a
+   * supported operation.
+   */
+  protected Storage<?> runVectorizedBinaryMap(
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return null;
+  }
 
   /**
    * Runs a vectorized operation on this storage, taking a storage as the right argument -
-   * processing row-by-row.
+   * processing row-by-row. Return null is not a supported operation.
    */
-  public abstract Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator);
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return null;
+  }
 
   /**
    * Runs a 2-argument function on each element in this storage.
@@ -170,12 +172,13 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       Object argument,
       boolean skipNulls,
       StorageType<?> expectedResultType) {
-    if (isBinaryOpVectorized(name)) {
-      return runVectorizedBinaryMap(name, argument, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
+    var binaryMap = runVectorizedBinaryMap(name, argument, problemAggregator);
+    if (binaryMap != null) {
+      return binaryMap;
     }
+
+    checkFallback(fallback, expectedResultType, name);
+    return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
   }
 
   /**
@@ -200,12 +203,13 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       Storage<?> other,
       boolean skipNulls,
       StorageType<?> expectedResultType) {
-    if (isBinaryOpVectorized(name)) {
-      return runVectorizedZip(name, other, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return zip(fallback, other, skipNulls, expectedResultType, problemAggregator);
+    var binaryZip = runVectorizedZip(name, other, problemAggregator);
+    if (binaryZip != null) {
+      return binaryZip;
     }
+
+    checkFallback(fallback, expectedResultType, name);
+    return zip(fallback, other, skipNulls, expectedResultType, problemAggregator);
   }
 
   private void checkFallback(Object fallback, StorageType<?> storageType, String operationName)
@@ -366,7 +370,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
 
   @Override
   public Iterator<T> iterator() {
-    return new Iterator<T>() {
+    return new Iterator<>() {
       private long index = -1;
 
       @Override

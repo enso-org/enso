@@ -52,6 +52,7 @@ polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.IfOperation
+polyglot java import org.enso.table.data.column.operation.IsInOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
@@ -512,18 +513,22 @@ type In_Memory_Column_Implementation
                     run_binary_op this_column fn amount new_name
 
     is_in this_column (vector : Vector | Column | Array) -> Column =
-        result_name = naming_helper.concat [naming_helper.to_expression_text this_column, "in", naming_helper.to_expression_text vector]
         as_vector = case vector of
             _ : Vector -> vector
             _ : Array -> Vector.from_polyglot_array vector
             column : Column -> column.to_vector
-        op_name = Java_Storage.Maps.IS_IN
-        case (this_column:In_Memory_Column).java_column.getStorage.isBinaryOpVectorized op_name of
+        new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "in", as_vector.short_display_text 5]
+        java_column = (this_column:In_Memory_Column).java_column
+        case IsInOperation.isSupported java_column of
             True ->
-                run_vectorized_binary_op this_column op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
+                mapped_vector = as_vector.map enso_to_java
+                java_result = Illegal_State.handle_java_exception <|
+                    Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
+                        IsInOperation.apply java_column new_name mapped_vector java_problem_aggregator
+                In_Memory_Column.from_java_column java_result
             False ->
                 set = Hashset.from_vector as_vector error_on_duplicates=False
-                apply_unary_map this_column result_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
+                apply_unary_map this_column new_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
 
     parse this_column (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column =
         if type != Auto && this_column.value_type.is_same_type type then this_column else
