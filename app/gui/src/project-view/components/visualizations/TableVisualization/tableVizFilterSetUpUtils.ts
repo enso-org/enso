@@ -1,5 +1,6 @@
 import { SetFilterValuesFuncParams } from 'ag-grid-community'
 import { isNumericType, ValueType } from './tableVizUtils'
+import { formatDateLikeValue } from '@/components/shared/AgGridTableView/Utils'
 
 export const getFilterParams = (
   isSSRM: boolean,
@@ -45,6 +46,10 @@ export const getFilterType = (valueType: string, usingMultiFilter: boolean) => {
     return 'agNumberColumnFilter'
   } else if (valueType === 'Char') {
     return usingMultiFilter ? 'agMultiColumnFilter' : 'agTextColumnFilter'
+  } else if (valueType === 'Date_Time') {
+    return null
+  } else if (valueType === 'Time_Of_Day') {
+    return null
   } else {
     return 'agSetColumnFilter'
   }

@@ -65,6 +65,7 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizUtils'
 import {
   formatDateLikeValue,
+  ensoDateComparator,
 } from '@/components/shared/AgGridTableView/Utils'
 
 export const name = 'Table'
@@ -665,7 +666,7 @@ function toField(
       `<span style='${styles}'><span data-ref="eLabel" class="ag-header-cell-label" role="presentation" style='${styles}'><span data-ref="eText" class="ag-header-cell-text"></span></span>${menu} ${filterButton} ${sort} ${getSvgTemplate(icon)} ${svgTemplateWarning}</span>`
     : `<span style='${styles}' data-ref="eLabel"><span data-ref="eText" class="ag-header-cell-label"></span> ${menu} ${filterButton} ${sort} ${svgTemplateWarning}</span>`
 
-  return {
+  const colDef = {
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
     filter: filterType,
@@ -684,6 +685,11 @@ function toField(
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,
   }
+  // Attach custom comparator for date-like types
+  if (valueType && ['Date', 'Date_Time', 'Time_Of_Day'].includes(valueType.constructor)) {
+    return { ...colDef, comparator: ensoDateComparator }
+  }
+  return colDef
 }
 
 type ParsedActionTemplate = {

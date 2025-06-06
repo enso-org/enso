@@ -146,10 +146,35 @@ export function formatDateLikeValue(value: any): string {
   if (valueType === 'Date') {
     return date.toISOString().split('T')[0]
   } else if (valueType === 'Date_Time') {
-    return date.toLocaleString()
+    return date.toISOString().replace('T', ' ').replace('Z', '')
   } else if (valueType === 'Time_Of_Day') {
     const timeString = date.toISOString().split('T')[1]
     return timeString ? timeString.replace('Z', '') : ''
   }
   return ''
+}
+
+export function ensoDateComparator(a: any, b: any): number {
+  const isDateLike = (val: any) => {
+    const type = val?.type
+    return type === 'Date' || type === 'Date_Time' || type === 'Time_Of_Day'
+  }
+
+  const fields = ['year', 'month', 'day', 'hour', 'minute', 'second']
+
+  if (isDateLike(a) && isDateLike(b)) {
+    for (const field of fields) {
+      const diff = (a[field] ?? 0) - (b[field] ?? 0)
+      if (diff !== 0) return diff
+    }
+    return 0
+  }
+
+  // Fallback to default JavaScript comparison
+  if (a == null && b == null) return 0
+  if (a == null) return -1
+  if (b == null) return 1
+  if (a < b) return -1
+  if (a > b) return 1
+  return 0
 }
