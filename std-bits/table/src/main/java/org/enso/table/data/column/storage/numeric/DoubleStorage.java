@@ -8,7 +8,6 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
@@ -35,7 +34,7 @@ public final class DoubleStorage extends Storage<Double>
 
   private static MapOperationStorage<Double, DoubleStorage> buildOps() {
     MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
-    ops.add(new DivideOp<>()).add(new PowerOp<>());
+    ops.add(new PowerOp<>());
     return ops;
   }
 

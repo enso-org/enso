@@ -18,7 +18,6 @@ public class NullStorage extends Storage<Void> {
 
   private static MapOperationStorage<Void, NullStorage> buildOps() {
     MapOperationStorage<Void, NullStorage> ops = new MapOperationStorage<>();
-    ops.add(new NullOp(Maps.DIV));
     ops.add(new NullOp(Maps.POWER));
     return ops;
   }

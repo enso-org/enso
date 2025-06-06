@@ -184,6 +184,41 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
         }
       };
 
+  private static final NumericOperation DIVIDE =
+      new NumericOperation() {
+        @Override
+        Double doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          if (b == 0.0) {
+            problemAggregator.reportDivisionByZero((int) ix);
+          }
+          return a % b;
+        }
+
+        @Override
+        Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
+          throw new IllegalStateException("Long division is not supported. Should use Double.");
+        }
+
+        @Override
+        BigInteger doBigInteger(
+            BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
+          throw new IllegalStateException(
+              "BigInteger division is not supported. Should use Double.");
+        }
+
+        @Override
+        BigDecimal doBigDecimal(
+            BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
+          if (b.equals(BigDecimal.ZERO)) {
+            problemAggregator.reportDivisionByZero((int) ix);
+            return null;
+          }
+
+          return a.remainder(b);
+        }
+      };
+
   /**
    * Create a binary operation for addition.
    *
@@ -258,6 +293,38 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    */
   public static BinaryOperation<?> modulus(Column left, Object right) {
     return makeNumericBinaryOperation(left, right, MODULUS);
+  }
+
+  /**
+   * Create a binary operation for division.
+   *
+   * @param left the left column
+   * @param right the right value (can be a column or a scalar)
+   * @return a BinaryOperation that performs division
+   */
+  public static BinaryOperation<?> divide(Column left, Object right) {
+    var leftStorage = BinaryOperation.getInferredStorage(left);
+    return switch (leftStorage.getType()) {
+      case BigDecimalType bdt -> new BinaryOperatorBigDecimal(DIVIDE);
+      case NumericType nt -> {
+        // Work out based on the RHS
+        var rightType = storageTypeForObject(right);
+        yield rightType instanceof BigDecimalType bdt
+            ? new BinaryOperatorBigDecimal(DIVIDE)
+            : new BinaryOperatorDouble(DIVIDE);
+      }
+      case NullType nt -> {
+        // Work out based on the RHS
+        var rightType = storageTypeForObject(right);
+        yield switch (rightType) {
+          case NullType rnt -> BinaryOperationNull.INSTANCE;
+          case BigDecimalType bdt -> new BinaryOperatorBigDecimal(DIVIDE);
+          case NumericType rnt -> new BinaryOperatorDouble(DIVIDE);
+          default -> null;
+        };
+      }
+      default -> null;
+    };
   }
 
   private static BinaryOperation<?> makeNumericBinaryOperation(
