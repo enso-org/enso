@@ -3,7 +3,6 @@ import FullscreenButton from '@/components/FullscreenButton.vue'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
 import SvgButton from '@/components/SvgButton.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
 import {
   isActionButton,
@@ -42,10 +41,7 @@ const nodeShortType = computed(() =>
 )
 
 const interaction = provideInteractionHandler()
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e), {
   capture: true,
 })
 </script>
@@ -75,10 +71,10 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
               :data-testid="item.dataTestid"
               @activate="item.onClick"
             />
-            <ToggleIcon
+            <SvgButton
               v-else-if="isToggleButton(item)"
               v-model="item.toggle.value"
-              :icon="item.icon"
+              :name="item.icon"
               :title="item.title"
               :disabled="item.disabled != null ? toValue(item.disabled) : false"
               :data-testid="item.dataTestid"

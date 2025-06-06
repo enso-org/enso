@@ -46,6 +46,7 @@ const emit = defineEmits<{
   'update:width': [width: number]
   'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
+  'update:hovered': [hovered: boolean]
   createNodes: [options: NodeCreationOptions[]]
 }>()
 
@@ -220,7 +221,13 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 </script>
 
 <template>
-  <div class="GraphVisualization" :style="style" :class="{ isFocused }">
+  <div
+    class="GraphVisualization"
+    :style="style"
+    :class="{ isFocused }"
+    @pointerenter="emit('update:hovered', false)"
+    @pointerleave="emit('update:hovered', true)"
+  >
     <WithFullscreenMode :fullscreen="isFullscreen" @update:animating="fullscreenAnimating = $event">
       <div
         ref="panelElement"

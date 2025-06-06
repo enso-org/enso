@@ -69,10 +69,7 @@ const interactionBindingsHandler = interactionBindings.handler({
 })
 
 useEvent(window, 'keydown', interactionBindingsHandler)
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e), {
   capture: true,
 })
 const httpClient = provideHttpClient()
