@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
-import org.enso.filewatcher.JWatcherEvent.EventType;
+import org.enso.filewatcher.Watcher.WatcherEvent;
 import org.enso.testkit.RetryTestRule;
 import org.junit.After;
 import org.junit.Before;
@@ -31,20 +31,22 @@ public class FileWatcherTest {
 
   private File tmpDir;
   private ExecutorService executor;
-  private BlockingQueue<JWatcherEvent> eventQueue = new LinkedBlockingDeque<>();
-  private JWatcher watcher;
+  private BlockingQueue<WatcherEvent> eventQueue = new LinkedBlockingDeque<>();
+  private Watcher watcher;
 
   @Before
   public void before() throws IOException {
     executor = Executors.newSingleThreadExecutor();
     tmpDir = tmpFolder.newFolder();
     eventQueue = new LinkedBlockingDeque<>();
-    watcher = JWatcher.create(tmpDir.toPath(), this::eventCallback, this::exceptionCallback);
+    watcher =
+        new DefaultWatcherFactory()
+            .build(tmpDir.toPath(), this::eventCallback, this::exceptionCallback);
     watcher.start(executor);
   }
 
   @After
-  public void after() {
+  public void after() throws Exception {
     assertThat(
         "No further events should be in the queue: " + eventQueue, eventQueue.isEmpty(), is(true));
     eventQueue.clear();
@@ -52,7 +54,7 @@ public class FileWatcherTest {
     watcher.close();
   }
 
-  private void eventCallback(JWatcherEvent event) {
+  private void eventCallback(WatcherEvent event) {
     try {
       eventQueue.put(event);
     } catch (InterruptedException e) {
@@ -60,7 +62,7 @@ public class FileWatcherTest {
     }
   }
 
-  private void exceptionCallback(JWatcher.JWatcherError error) {
+  private void exceptionCallback(Watcher.WatcherError error) {
     throw new AssertionError(
         "Unexpected Watcher error: " + error.throwable().getMessage(), error.throwable());
   }
@@ -172,12 +174,12 @@ public class FileWatcherTest {
     Files.writeString(path, content, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
   }
 
-  private void assertNextEventIs(JWatcherEvent expectedEvent) {
+  private void assertNextEventIs(WatcherEvent expectedEvent) {
     var event = pollEvent();
     assertThat(event, is(expectedEvent));
   }
 
-  private JWatcherEvent pollEvent() {
+  private WatcherEvent pollEvent() {
     try {
       return eventQueue.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
@@ -185,15 +187,15 @@ public class FileWatcherTest {
     }
   }
 
-  private static JWatcherEvent createEvent(Path path) {
-    return new JWatcherEvent(path, EventType.CREATE);
+  private static WatcherEvent createEvent(Path path) {
+    return new WatcherEvent(path, Watcher.EventType.CREATE);
   }
 
-  private static JWatcherEvent deleteEvent(Path path) {
-    return new JWatcherEvent(path, EventType.DELETE);
+  private static WatcherEvent deleteEvent(Path path) {
+    return new WatcherEvent(path, Watcher.EventType.DELETE);
   }
 
-  private static JWatcherEvent modifyEvent(Path path) {
-    return new JWatcherEvent(path, EventType.MODIFY);
+  private static WatcherEvent modifyEvent(Path path) {
+    return new WatcherEvent(path, Watcher.EventType.MODIFY);
   }
 }

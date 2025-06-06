@@ -1,7 +1,6 @@
 package org.enso.filewatcher;
 
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
@@ -12,35 +11,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
-import org.enso.filewatcher.JWatcherEvent.EventType;
 
-public final class JWatcher implements AutoCloseable {
+public final class JWatcher implements Watcher {
   private final Path root;
-  private final Consumer<JWatcherEvent> eventCallback;
-  private final Consumer<JWatcherError> exceptionCallback;
+  private final Consumer<Watcher.WatcherEvent> eventCallback;
+  private final Consumer<Watcher.WatcherError> exceptionCallback;
   private final Map<Path, WatchKey> watchedDirs = new ConcurrentHashMap<>();
   private final WatchService watchService;
   private boolean closed = false;
 
-  public static JWatcher create(
-      Path root, Consumer<JWatcherEvent> eventCallback, Consumer<JWatcherError> exceptionCallback) {
-    if (!Files.exists(root) || !Files.isDirectory(root)) {
-      throw new IllegalArgumentException(
-          "Root path must exist and be a directory: " + root.toAbsolutePath());
-    }
-    WatchService watchService;
-    try {
-      watchService = FileSystems.getDefault().newWatchService();
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to create WatchService", e);
-    }
-    return new JWatcher(root, eventCallback, exceptionCallback, watchService);
-  }
-
-  private JWatcher(
+  JWatcher(
       Path root,
-      Consumer<JWatcherEvent> eventCallback,
-      Consumer<JWatcherError> exceptionCallback,
+      Consumer<Watcher.WatcherEvent> eventCallback,
+      Consumer<Watcher.WatcherError> exceptionCallback,
       WatchService watchService) {
     this.root = root;
     this.eventCallback = eventCallback;
@@ -74,7 +57,7 @@ public final class JWatcher implements AutoCloseable {
     try {
       watchService.close();
     } catch (IOException e) {
-      exceptionCallback.accept(new JWatcherError(e));
+      exceptionCallback.accept(new Watcher.WatcherError(e));
     }
     for (var watchKey : watchedDirs.values()) {
       watchKey.cancel();
@@ -99,7 +82,7 @@ public final class JWatcher implements AutoCloseable {
         }
       }
     } catch (Throwable e) {
-      var err = new JWatcherError(e);
+      var err = new Watcher.WatcherError(e);
       exceptionCallback.accept(err);
     }
   }
@@ -127,25 +110,25 @@ public final class JWatcher implements AutoCloseable {
     if (isRepeated) {
       return;
     }
-    if (eventType == EventType.CREATE && isDir) {
+    if (eventType == Watcher.EventType.CREATE && isDir) {
       registerWatchService(absolutePath);
-    } else if (eventType == EventType.DELETE && isDir) {
+    } else if (eventType == Watcher.EventType.DELETE && isDir) {
       cancelWatch(absolutePath);
     }
     if (eventType != null) {
-      var convertedEvent = new JWatcherEvent(absolutePath, eventType);
+      var convertedEvent = new Watcher.WatcherEvent(absolutePath, eventType);
       eventCallback.accept(convertedEvent);
     }
   }
 
-  private EventType deduceType(WatchEvent<?> event) {
+  private Watcher.EventType deduceType(WatchEvent<?> event) {
     return switch (event.kind().name()) {
-      case "ENTRY_CREATE" -> EventType.CREATE;
-      case "ENTRY_MODIFY" -> EventType.MODIFY;
-      case "ENTRY_DELETE" -> EventType.DELETE;
+      case "ENTRY_CREATE" -> Watcher.EventType.CREATE;
+      case "ENTRY_MODIFY" -> Watcher.EventType.MODIFY;
+      case "ENTRY_DELETE" -> Watcher.EventType.DELETE;
       default -> {
         var err = new IllegalArgumentException("Unknown event type: " + event.kind());
-        var watcherErr = new JWatcherError(err);
+        var watcherErr = new Watcher.WatcherError(err);
         exceptionCallback.accept(watcherErr);
         yield null;
       }
@@ -164,7 +147,7 @@ public final class JWatcher implements AutoCloseable {
               StandardWatchEventKinds.OVERFLOW);
       watchedDirs.put(path, watchKey);
     } catch (IOException e) {
-      exceptionCallback.accept(new JWatcherError(e));
+      exceptionCallback.accept(new Watcher.WatcherError(e));
     }
   }
 
