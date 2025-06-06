@@ -4,24 +4,13 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.LongStream;
-import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 /** A specialized storage that can be used by columns that contain only null values. */
 public class NullStorage extends Storage<Void> {
-  private static final MapOperationStorage<Void, NullStorage> OPS = buildOps();
-
-  private static MapOperationStorage<Void, NullStorage> buildOps() {
-    MapOperationStorage<Void, NullStorage> ops = new MapOperationStorage<>();
-    ops.add(new NullOp(Maps.POWER));
-    return ops;
-  }
-
   private final long size;
 
   public NullStorage(long size) {
@@ -60,18 +49,6 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  protected Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  protected Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runZip(name, this, argument, problemAggregator);
-  }
-
-  @Override
   public Storage<Void> applyFilter(BitSet filterMask, int newLength) {
     return new NullStorage(newLength);
   }
@@ -95,26 +72,5 @@ public class NullStorage extends Storage<Void> {
   @Override
   public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     return this;
-  }
-
-  /** A binary operation that always returns null. */
-  private static class NullOp extends BinaryMapOperation<Void, NullStorage> {
-    public NullOp(String name) {
-      super(name);
-    }
-
-    @Override
-    public Storage<?> runBinaryMap(
-        NullStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      // We return the same storage as-is, because all lhs arguments are guaranteed to be null.
-      return storage;
-    }
-
-    @Override
-    public Storage<?> runZip(
-        NullStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      // We return the same storage as-is, because all lhs arguments are guaranteed to be null.
-      return storage;
-    }
   }
 }

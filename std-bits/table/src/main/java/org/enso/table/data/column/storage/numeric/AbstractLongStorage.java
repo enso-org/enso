@@ -3,8 +3,6 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
@@ -15,19 +13,10 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends Storage<Long> implements ColumnLongStorage {
-  private static final MapOperationStorage<Long, AbstractLongStorage> OPS = buildOps();
-
-  private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
-    MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
-    ops.add(new PowerOp<>());
-    return ops;
-  }
-
   private final long size;
   private final IntegerType type;
 
@@ -56,18 +45,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
 
   @Override
   public abstract long getItemAsLong(long index) throws ValueIsNothingException;
-
-  @Override
-  protected Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  protected Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runZip(name, this, argument, problemAggregator);
-  }
 
   @Override
   public StorageType<?> inferPreciseType(PreciseTypeOptions options) {

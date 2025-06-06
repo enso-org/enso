@@ -186,10 +186,12 @@ type In_Memory_Column_Implementation
             new_name = naming_helper.binary_operation_name "%" this_column other
             _call_binary_operator this_column other new_name operation
 
-    power this_column (other : Column | Any) -> Column =
-        Illegal_Argument.handle_java_exception <|
-            Value_Type_Helpers.check_binary_numeric_op this_column other <|
-                run_vectorized_binary_op this_column Java_Storage.Maps.POWER other
+    power this_column (other : Column | Any) -> Column = Illegal_Argument.handle_java_exception <|
+        Value_Type_Helpers.check_binary_numeric_op this_column other <|
+            operation = BinaryOperator.power (this_column:In_Memory_Column).java_column (_java_other other)
+            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported power operation.")
+            new_name = naming_helper.binary_operation_name "^" this_column other
+            _call_binary_operator this_column other new_name operation
 
     and this_column (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_boolean_op this_column other <|

@@ -124,11 +124,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     return getType();
   }
 
-  /** A container for names of vectorizable operation. */
-  public static final class Maps {
-    public static final String POWER = "^";
-  }
-
   /**
    * Runs a vectorized operation on this storage, taking one scalar argument. Return null is not a
    * supported operation.

@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation.binary;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import org.enso.table.data.column.builder.BigDecimalBuilder;
 import org.enso.table.data.column.builder.BigIntegerBuilder;
 import org.enso.table.data.column.builder.DoubleBuilder;
@@ -192,7 +193,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
           if (b == 0.0) {
             problemAggregator.reportDivisionByZero((int) ix);
           }
-          return a % b;
+          return a / b;
         }
 
         @Override
@@ -215,7 +216,33 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
             return null;
           }
 
-          return a.remainder(b);
+          return a.divide(b, MathContext.DECIMAL64);
+        }
+      };
+
+  private static final NumericOperation POWER =
+      new NumericOperation() {
+        @Override
+        Double doDouble(
+            double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
+          return Math.pow(a, b);
+        }
+
+        @Override
+        Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
+          throw new IllegalStateException("Long power is not supported. Should use Double.");
+        }
+
+        @Override
+        BigInteger doBigInteger(
+            BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
+          throw new IllegalStateException("BigInteger power is not supported. Should use Double.");
+        }
+
+        @Override
+        BigDecimal doBigDecimal(
+            BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
+          throw new IllegalStateException("BigDecimal power is not supported. Should use Double.");
         }
       };
 
@@ -320,6 +347,30 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
           case NullType rnt -> BinaryOperationNull.INSTANCE;
           case BigDecimalType bdt -> new BinaryOperatorBigDecimal(DIVIDE);
           case NumericType rnt -> new BinaryOperatorDouble(DIVIDE);
+          default -> null;
+        };
+      }
+      default -> null;
+    };
+  }
+
+  /**
+   * Create a binary operation for power.
+   *
+   * @param left the left column
+   * @param right the right value (can be a column or a scalar)
+   * @return a BinaryOperation that performs division
+   */
+  public static BinaryOperation<?> power(Column left, Object right) {
+    var leftStorage = BinaryOperation.getInferredStorage(left);
+    return switch (leftStorage.getType()) {
+      case NumericType nt -> new BinaryOperatorDouble(POWER);
+      case NullType nt -> {
+        // Work out based on the RHS
+        var rightType = storageTypeForObject(right);
+        yield switch (rightType) {
+          case NullType rnt -> BinaryOperationNull.INSTANCE;
+          case NumericType rnt -> new BinaryOperatorDouble(POWER);
           default -> null;
         };
       }

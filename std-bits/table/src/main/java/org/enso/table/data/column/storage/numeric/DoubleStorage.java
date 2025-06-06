@@ -7,8 +7,6 @@ import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
@@ -21,7 +19,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
@@ -30,14 +27,6 @@ import org.graalvm.polyglot.Value;
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
     implements ColumnDoubleStorage, ColumnStorageWithNothingMap, NumericFormattingStorage {
-  private static final MapOperationStorage<Double, DoubleStorage> OPS = buildOps();
-
-  private static MapOperationStorage<Double, DoubleStorage> buildOps() {
-    MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
-    ops.add(new PowerOp<>());
-    return ops;
-  }
-
   final double[] data;
   final BitSet isNothing;
   private final int size;
@@ -92,18 +81,6 @@ public final class DoubleStorage extends Storage<Double>
       throw new IndexOutOfBoundsException(idx);
     }
     return isNothing.get((int) idx);
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runZip(name, this, argument, problemAggregator);
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
