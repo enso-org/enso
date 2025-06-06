@@ -53,7 +53,9 @@ useEventConditional(
       const delta = new Vec2(e.screenX, e.screenY).sub(
         new Vec2(originEvent.screenX, originEvent.screenY),
       )
-      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) edgeInteractionClick()
+      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) {
+        if (edgeInteractionClick()) e.stopPropagation()
+      }
     }
   },
   { capture: true },

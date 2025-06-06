@@ -93,7 +93,7 @@ function onActivate() {
 .hoverArea {
   position: absolute;
   /*noinspection CssUnresolvedCustomProperty*/
-  inset: calc(var(--extraClickZone) * -1);
+  inset: calc(var(--extraClickZone, 0) * -1);
   cursor: pointer;
 }
 </style>
