@@ -8,7 +8,6 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
@@ -31,7 +30,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
    * <p>Once the specialized storage is first computed, all vectorized operations will be forwarded
    * to it - assuming that it will most likely provide more efficient implementations.
    */
-  private Storage<?> cachedInferredStorage = null;
+  private ColumnStorage<?> cachedInferredStorage = null;
 
   private boolean hasSpecializedStorageBeenInferred = false;
 
@@ -123,7 +122,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     }
   }
 
-  public Storage<?> getInferredStorage() {
+  public ColumnStorage<?> getInferredStorage() {
     if (!hasSpecializedStorageBeenInferred) {
       StorageType<?> inferredType = inferPreciseType(PreciseTypeOptions.DEFAULT);
       if (inferredType instanceof AnyObjectType) {
@@ -142,29 +141,5 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     }
 
     return cachedInferredStorage;
-  }
-
-  @Override
-  protected Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    var inferredStorage = getInferredStorage();
-    return inferredStorage == null
-        ? null
-        : inferredStorage.runVectorizedBinaryMap(name, argument, problemAggregator);
-  }
-
-  @Override
-  protected Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    var inferredStorage = getInferredStorage();
-    return inferredStorage == null
-        ? null
-        : inferredStorage.runVectorizedZip(name, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> tryGettingMoreSpecializedStorage() {
-    var inferredStorage = getInferredStorage();
-    return inferredStorage != null ? inferredStorage : this;
   }
 }

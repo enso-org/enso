@@ -742,41 +742,6 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
             In_Memory_Column.from_java_column folded
 
 ## PRIVATE
-
-   Executes a vectorized binary operation over the provided column.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - name: The name of the vectorized operation.
-   - operand: The operand to apply to the function after `column`.
-   - new_name: The name of the column created as the result of this operation.
-   - fallback_fn: A function used if the vectorized operation isn't available.
-     It should never raise dataflow errors.
-   - expected_result_type: The expected result type of the operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-run_vectorized_binary_op : Column -> Text -> Any -> Text|Nothing -> (Any -> Any -> Any) -> Value_Type -> Boolean -> Column
-run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
-    effective_new_name = new_name.if_nothing <|
-        naming_helper.binary_operation_name name column operand
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        storage_type = resolve_storage_type expected_result_type
-        case operand of
-            operand_column : Column ->
-                s1 = (column:In_Memory_Column).java_column.getStorage
-                s2 = (operand_column:In_Memory_Column).java_column.getStorage
-                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
-                In_Memory_Column.from_storage effective_new_name rs
-            _ ->
-                s1 = (column:In_Memory_Column).java_column.getStorage
-                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn (enso_to_java operand) skip_nulls storage_type
-                In_Memory_Column.from_storage effective_new_name rs
-
-## PRIVATE
    Runs a binary operation over the provided column and operand which may be
    another column or a scalar value.
 
@@ -805,73 +770,10 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
         In_Memory_Column.from_storage new_name new_storage
 
 ## PRIVATE
-
-   Executes a vectorized binary operation over the provided column.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - name: The name of the vectorized operation.
-   - operand: The operand to apply to the function after `column`.
-   - fallback_fn: A function used if the vectorized operation isn't available.
-     It takes a `MapOperationProblemAggregator` as its first argument.
-     It should never raise dataflow errors and use the aggregator builder to
-     report problems. If fatal problems are expected, the fallback should be
-     raising a panic and the user-facing code should ensure such panic is caught
-     and converted to a dataflow error.
-   - expected_result_type: The expected result type of the operation.
-   - new_name: The name of the column created as the result of this operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-run_vectorized_binary_op_with_fallback_problem_handling column name operand fallback_fn new_name expected_result_type=Nothing skip_nulls=True =
-    Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning problem_builder->
-        applied_fn = case fallback_fn of
-            Nothing -> Nothing
-            _ -> fallback_fn problem_builder
-        storage_type = resolve_storage_type expected_result_type
-        case operand of
-            operand_column : Column ->
-                s1 = (column:In_Memory_Column).java_column.getStorage
-                s2 = (operand_column:In_Memory_Column).java_column.getStorage
-                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
-                In_Memory_Column.from_storage new_name rs
-            _ ->
-                s1 = (column:In_Memory_Column).java_column.getStorage
-                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn (enso_to_java operand) skip_nulls storage_type
-                In_Memory_Column.from_storage new_name rs
-
-## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = normalize_ranges ranges
     In_Memory_Column.from_java_column ((column:In_Memory_Column).java_column.slice normalized)
-
-## PRIVATE
-   Helper for case case_sensitivity based text operations.
-   The fallback is needed to handle custom case sensitivity options,
-   until the vectorized operation can take that parameter.
-run_vectorized_binary_case_text_op : Column -> Text -> (Text | Column) -> Case_Sensitivity -> (Text -> Text -> Any) -> Text -> Column
-run_vectorized_binary_case_text_op left op other case_sensitivity fallback new_name =
-    with_checks ~action =
-        Value_Type.expect_text left <|
-            Value_Type.expect_text other <|
-                action
-    result_type = Value_Type.Boolean
-    with_checks <| case case_sensitivity of
-        Case_Sensitivity.Default ->
-            run_vectorized_binary_op left op other new_name result_type
-        Case_Sensitivity.Sensitive ->
-            run_vectorized_binary_op left op other new_name result_type
-        Case_Sensitivity.Insensitive _ ->
-            ## TODO currently this always runs the fallback which is slow due to the
-               cost of Java-to-Enso calls. We want to have a vectorized
-               implementation, but we need to extend the architecture to allow
-               passing the locale to it.
-               See: https://www.pivotaltracker.com/n/projects/2539304/stories/184093260
-            run_binary_op left fallback other new_name=new_name skip_nulls=True expected_result_type=result_type
 
 ## PRIVATE
    Converts the value type to a storage type, passing `Nothing` through.

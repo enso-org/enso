@@ -13,7 +13,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
@@ -105,16 +104,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   /**
-   * Returns a more specialized storage, if available.
-   *
-   * <p>This storage should have the same type as returned by {@code inferPreciseType(DEFAULT)}. See
-   * {@link MixedStorage} for more information.
-   */
-  public Storage<?> tryGettingMoreSpecializedStorage() {
-    return this;
-  }
-
-  /**
    * @return the type of the values in this column's storage. Most storages just return their type.
    *     Mixed storage will try to see if all elements fit some more precise type.
    * @implNote The {@code PreciseTypeOptions.DEFAULT} should either be computable in constant time
@@ -122,24 +111,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    */
   public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
     return getType();
-  }
-
-  /**
-   * Runs a vectorized operation on this storage, taking one scalar argument. Return null is not a
-   * supported operation.
-   */
-  protected Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return null;
-  }
-
-  /**
-   * Runs a vectorized operation on this storage, taking a storage as the right argument -
-   * processing row-by-row. Return null is not a supported operation.
-   */
-  protected Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return null;
   }
 
   /**
@@ -213,93 +184,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       context.safepoint();
     }
     return storageBuilder.seal();
-  }
-
-  /**
-   * Runs a binary operation with a scalar argument.
-   *
-   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not
-   *     available; it should never raise dataflow errors.
-   * @param argument the argument to pass to each run of the function
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedOrFallbackBinaryMap(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      BiFunction<Object, Object, Object> fallback,
-      Object argument,
-      boolean skipNulls,
-      StorageType<?> expectedResultType) {
-    var binaryMap = runVectorizedBinaryMap(name, argument, problemAggregator);
-    if (binaryMap != null) {
-      return binaryMap;
-    }
-
-    checkFallback(fallback, expectedResultType, name);
-    return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
-  }
-
-  /**
-   * Runs a binary operation with a storage argument.
-   *
-   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not
-   *     available; it should never raise dataflow errors.
-   * @param other the other storage to zip with this one
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedOrFallbackZip(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      BiFunction<Object, Object, Object> fallback,
-      Storage<?> other,
-      boolean skipNulls,
-      StorageType<?> expectedResultType) {
-    var binaryZip = runVectorizedZip(name, other, problemAggregator);
-    if (binaryZip != null) {
-      return binaryZip;
-    }
-
-    checkFallback(fallback, expectedResultType, name);
-    return zip(fallback, other, skipNulls, expectedResultType, problemAggregator);
-  }
-
-  private void checkFallback(Object fallback, StorageType<?> storageType, String operationName)
-      throws IllegalArgumentException {
-    if (fallback == null) {
-      if (operationName == null) {
-        throw new IllegalArgumentException(
-            "A function or name of vectorized operation must be specified. This is a bug in the"
-                + " Table library.");
-      } else {
-        String className = this.getClass().getName();
-        throw new IllegalArgumentException(
-            "The operation "
-                + operationName
-                + " has no vectorized implementation for "
-                + className
-                + ", but no fallback function was provided. This is a bug in the Table library.");
-      }
-    }
-
-    if (storageType == null) {
-      throw new IllegalArgumentException(
-          "The expected result type must be specified if a fallback function is used. This is a bug"
-              + " in the Table library.");
-    }
   }
 
   /**
