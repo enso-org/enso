@@ -123,17 +123,29 @@ public final class DefaultWatcher implements Watcher {
   }
 
   private Watcher.EventType deduceType(WatchEvent<?> event) {
-    return switch (event.kind().name()) {
-      case "ENTRY_CREATE" -> Watcher.EventType.CREATE;
-      case "ENTRY_MODIFY" -> Watcher.EventType.MODIFY;
-      case "ENTRY_DELETE" -> Watcher.EventType.DELETE;
-      default -> {
-        var err = new IllegalArgumentException("Unknown event type: " + event.kind());
-        var watcherErr = new Watcher.WatcherError(err);
-        exceptionCallback.accept(watcherErr);
-        yield null;
-      }
-    };
+    var kindName = event.kind().name();
+    if (kindName.equals(StandardWatchEventKinds.ENTRY_CREATE.name())) {
+      return EventType.CREATE;
+    } else if (kindName.equals(StandardWatchEventKinds.ENTRY_MODIFY.name())) {
+      return EventType.MODIFY;
+    } else if (kindName.equals(StandardWatchEventKinds.ENTRY_DELETE.name())) {
+      return EventType.DELETE;
+    } else if (kindName.equals(StandardWatchEventKinds.OVERFLOW.name())) {
+      LOGGER.warn(
+          "Received overflow event for path: {}. This may indicate that some events were lost.",
+          event.context());
+      exceptionCallback(new RuntimeException("Overflow " + event.context()));
+      return null;
+    } else {
+      LOGGER.warn("Received unknown event type: {} for path: {}.", event.kind(), event.context());
+      exceptionCallback(new IllegalArgumentException("Unknown event type: " + event.kind()));
+      return null;
+    }
+  }
+
+  private void exceptionCallback(Throwable cause) {
+    var watcherError = new Watcher.WatcherError(cause);
+    exceptionCallback.accept(watcherError);
   }
 
   private void registerWatchService(Path path) {
