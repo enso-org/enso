@@ -24,6 +24,6 @@ public final class DefaultWatcherFactory implements WatcherFactory {
     } catch (IOException e) {
       throw new IllegalStateException("Failed to create WatchService", e);
     }
-    return new JWatcher(root, eventCallback, exceptionCallback, watchService);
+    return new DefaultWatcher(root, eventCallback, exceptionCallback, watchService);
   }
 }
