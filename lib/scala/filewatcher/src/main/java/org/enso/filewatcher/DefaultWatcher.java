@@ -12,9 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
-/**
- * Default directory watcher using JDK's {@link WatchService}.
- */
+/** Default directory watcher using JDK's {@link WatchService}. */
 public final class DefaultWatcher implements Watcher {
   private final Path root;
   private final Consumer<Watcher.WatcherEvent> eventCallback;
