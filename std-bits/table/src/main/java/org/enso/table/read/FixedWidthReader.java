@@ -59,7 +59,8 @@ public class FixedWidthReader {
       FixedWidthDecodingProblemAggregator decodingProblemAggregator,
       ProblemAggregator problemAggregator) {
 
-    assert layoutEntries == null ^ justification == null : "Exactly one of 'layoutEntries' and 'justification' can be specified";
+    assert layoutEntries == null ^ justification == null
+        : "Exactly one of 'layoutEntries' and 'justification' can be specified";
 
     this.layoutEntries = layoutEntries;
     this.justification = justification;
@@ -125,8 +126,7 @@ public class FixedWidthReader {
       problemAggregator.reportShortLine(sourceLineNumber, trn, lineLength, layoutWidth);
     }
 
-    if (lineLength < layoutWidth
-        && invalidRowsBehavior == InvalidFixedWidthRowsBehavior.DROP) {
+    if (lineLength < layoutWidth && invalidRowsBehavior == InvalidFixedWidthRowsBehavior.DROP) {
       return;
     }
 
@@ -158,10 +158,10 @@ public class FixedWidthReader {
   }
 
   private String decodeSubarray(int start, int width) throws IOException {
-      var baos = new ByteArrayInputStream(readBuffer, start, width);
-      var reportingStreamDecoder =
-          new ReportingStreamDecoder(baos, charset, decodingProblemAggregator, false);
-      return reportingStreamDecoder.readAllIntoMemory();
+    var baos = new ByteArrayInputStream(readBuffer, start, width);
+    var reportingStreamDecoder =
+        new ReportingStreamDecoder(baos, charset, decodingProblemAggregator, false);
+    return reportingStreamDecoder.readAllIntoMemory();
   }
 
   /*
@@ -289,8 +289,8 @@ public class FixedWidthReader {
     DROP,
 
     /**
-     * Keeps rows that are too short for the specified fixed-width layout, keeping partial columns, or
-     * using empty strings for entirely missing columns.
+     * Keeps rows that are too short for the specified fixed-width layout, keeping partial columns,
+     * or using empty strings for entirely missing columns.
      */
     KEEP,
   }
@@ -301,68 +301,68 @@ public class FixedWidthReader {
   }
 
   private List<FixedWidthLayoutEntry> inferHeadersFromLine(int lineLength) throws IOException {
-      var entries = new ArrayList<FixedWidthLayoutEntry>();
+    var entries = new ArrayList<FixedWidthLayoutEntry>();
 
-      switch (justification) {
-          case LEFT -> {
-              var starts = findStarts(lineLength);
-              for (int i = 0; i < starts.size(); ++i) {
-                var start = starts.get(i);
-                var end = i < starts.size()-1 ? starts.get(i+1) : lineLength;
-                var width = end-start;
-                var columnName = decodeSubarray(start, width).trim();
-                entries.add(new FixedWidthLayoutEntry(start, width, columnName));
-              }
-          }
-          case RIGHT -> {
-              var ends = findEnds(lineLength);
-              for (int i = 0; i < ends.size(); ++i) {
-                var start = i == 0 ? 0 : ends.get(i-1) + 1;
-                var end = ends.get(i) + 1;
-                var width = end-start;
-                var columnName = decodeSubarray(start, width).trim();
-                entries.add(new FixedWidthLayoutEntry(start, width, columnName));
-              }
-          }
+    switch (justification) {
+      case LEFT -> {
+        var starts = findStarts(lineLength);
+        for (int i = 0; i < starts.size(); ++i) {
+          var start = starts.get(i);
+          var end = i < starts.size() - 1 ? starts.get(i + 1) : lineLength;
+          var width = end - start;
+          var columnName = decodeSubarray(start, width).trim();
+          entries.add(new FixedWidthLayoutEntry(start, width, columnName));
+        }
       }
-
-      if (entries.isEmpty()) {
-        throw new NoColumnNamesFoundException();
+      case RIGHT -> {
+        var ends = findEnds(lineLength);
+        for (int i = 0; i < ends.size(); ++i) {
+          var start = i == 0 ? 0 : ends.get(i - 1) + 1;
+          var end = ends.get(i) + 1;
+          var width = end - start;
+          var columnName = decodeSubarray(start, width).trim();
+          entries.add(new FixedWidthLayoutEntry(start, width, columnName));
+        }
       }
+    }
 
-      return entries;
+    if (entries.isEmpty()) {
+      throw new NoColumnNamesFoundException();
+    }
+
+    return entries;
   }
 
   private List<Integer> findStarts(int lineLength) {
-      var starts = new ArrayList<Integer>();
+    var starts = new ArrayList<Integer>();
 
-      boolean inWhitespace = true;
-      for (int i = 0; i < lineLength; ++i) {
-          var isWhitespace = readBuffer[i] == 32;
-          if (inWhitespace && !isWhitespace) {
-              starts.add(i);
-          }
-          inWhitespace = isWhitespace;
+    boolean inWhitespace = true;
+    for (int i = 0; i < lineLength; ++i) {
+      var isWhitespace = readBuffer[i] == 32;
+      if (inWhitespace && !isWhitespace) {
+        starts.add(i);
       }
+      inWhitespace = isWhitespace;
+    }
 
-      return starts;
+    return starts;
   }
 
   // Ends are inclusive.
   private List<Integer> findEnds(int lineLength) {
-      var ends = new ArrayList<Integer>();
+    var ends = new ArrayList<Integer>();
 
-      boolean inWhitespace = true;
-      for (int i = 0; i < lineLength; ++i) {
-          var isWhitespace = readBuffer[i] == 32;
-          if (!inWhitespace && isWhitespace) {
-              ends.add(i-1);
-          }
-          inWhitespace = isWhitespace;
+    boolean inWhitespace = true;
+    for (int i = 0; i < lineLength; ++i) {
+      var isWhitespace = readBuffer[i] == 32;
+      if (!inWhitespace && isWhitespace) {
+        ends.add(i - 1);
       }
-      ends.add(lineLength-1);
+      inWhitespace = isWhitespace;
+    }
+    ends.add(lineLength - 1);
 
-      return ends;
+    return ends;
   }
 
   public enum Justification {
