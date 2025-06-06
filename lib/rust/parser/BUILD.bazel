@@ -20,8 +20,8 @@ rust_library(
  
 run_binary(
     name = "generate_java",
-    args = ["$(@)/org/enso/syntax2"],
-    out_dirs = ["target/src_managed"],
+    args = ["$(@)"],
+    out_dirs = ["target"],
     tool = "//lib/rust/parser/generate-java:enso_parser_generate_java",
     visibility = ["//visibility:public"],
 )
