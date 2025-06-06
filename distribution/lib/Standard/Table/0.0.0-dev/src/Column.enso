@@ -6,6 +6,7 @@ import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -2260,3 +2261,34 @@ default_date_period column = if column.value_type.has_date then Date_Period.Day 
    Returns the default row limit for `read` depending on the backend.
 default_row_limit_for_read column =
     column.implementation.default_row_limit_for_read
+
+## PRIVATE
+   A type-class that indicates that a given object _is_ a Column type.
+
+   It is used to mark siblings of the `Column` type that represent the column
+   concept, e.g. `DB_Column`, `Numeric_Column` etc. Any class that implements
+   this type-class must be convertible to `Column`.
+
+   The difference is for entities that are _convertible_ to `Column` but do not
+   represent a Column-like concept themselves, such as `Vector`, `Range`,
+   `Date_Range`, etc.
+
+   Relying only on `Column.from` conversion would not allow to distinguish a
+   `DB_Column` from a `Vector` but there are situations where we do want to
+   treat them differently - e.g. `Column.is_in` operation is a major example of
+   this. This additional marker type-class allows us to mark which classes
+   really represent a column concept, while also allowing us having useful
+   'utility' conversions to `Column` like the one for `Vector`.
+type Is_Column
+    ## PRIVATE
+    Value column
+
+    ## PRIVATE
+       Checks if the given object represents a Column type.
+    is_column object =
+        Panic.catch Type_Error handler=_->False <|
+            object:Is_Column
+            True
+
+## PRIVATE
+Is_Column.from (that : Column) = Is_Column.Value that

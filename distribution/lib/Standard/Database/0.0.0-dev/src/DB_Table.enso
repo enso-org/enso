@@ -20,6 +20,7 @@ from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
+import Standard.Table.Column.Is_Column
 import Standard.Table.Column_Operation.Column_Operation
 import Standard.Table.Columns_To_Add.Columns_To_Add
 import Standard.Table.Columns_To_Keep.Columns_To_Keep
@@ -1265,7 +1266,7 @@ type DB_Table
        Create a constant column from a value.
     make_constant_column : Any -> Column & DB_Column ! Illegal_Argument
     make_constant_column self value =
-        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
+        if Is_Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
             type_mapping = self.connection.dialect.get_type_mapping
             argument_value_type = Value_Type_Helpers.find_argument_type value
             sql_type = case argument_value_type of

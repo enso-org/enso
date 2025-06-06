@@ -25,6 +25,7 @@ from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_ve
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
 import project.Column.Column
+import project.Column.Is_Column
 import project.Column_Ref.Column_Ref
 import project.Columns_To_Add.Columns_To_Add
 import project.Columns_To_Keep.Columns_To_Keep
@@ -2581,7 +2582,7 @@ type Table
        Create a constant column from a value.
     make_constant_column : Any -> Column
     make_constant_column self value =
-        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
+        if Is_Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
             Column.from_repeated_item value.pretty value self.row_count
 
     ## PRIVATE
