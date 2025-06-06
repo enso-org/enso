@@ -520,12 +520,10 @@ filter_blank_rows table when treat_nans_as_blank =
         False -> table
 
 ## PRIVATE
-   Checks if the given object implements a Table interface.
-
-   Currently, it relies on a hack - it checks if the object has a method
-   `is_table` and if it returns `True`.
 is_column obj -> Boolean =
-    obj.is_a Column
+    Panic.catch Type_Error handler=_->False <|
+        _ = obj:Column
+        True
 
 ## PRIVATE
    A helper method that resolves what should be the result type of a particular
