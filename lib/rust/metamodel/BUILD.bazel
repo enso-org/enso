@@ -5,7 +5,10 @@ rust_library(
     name = "enso-metamodel",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
-    crate_features = ["rust", "java"],
+    crate_features = [
+        "rust",
+        "java",
+    ],
     edition = "2021",
     proc_macro_deps = all_crate_deps(proc_macro = True),
     visibility = ["//visibility:public"],

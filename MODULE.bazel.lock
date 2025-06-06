@@ -505,7 +505,7 @@
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
         "bzlTransitiveDigest": "8l/EMdHoiy8puKUbEQdowgxwbJmo2DGpAu+uFKxzsM0=",
-        "usagesDigest": "3QyfiyrJKYb+RnTA85xhz1ecQjw78S7PpkjVgmLoLxA=",
+        "usagesDigest": "yu1iOybuPVuzzpex8/0QYZ4frldFRWd56H3voNZeCWc=",
         "recordedFileInputs": {
           "@@//.cargo/config.toml": "df9e4a90d5b9270ab47b5153d8fb8a6a49f2adfc98672bf649f6be02f008b623",
           "@@//Cargo.lock": "2699cdcdefcea8837bf6034cd6e1bac06c33ba7f0077c12b3f9d944e72da1a08",

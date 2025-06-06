@@ -1,7 +1,4 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
-load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
-load("@aspect_bazel_lib//lib:directory_path.bzl", "make_directory_paths")
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
@@ -15,11 +12,17 @@ ts_config(
     deps = ["//:tsconfig"],
 )
 
-IGNORED_GENERATED_FILES = ["src/generated/parser.ts", "src/generated/parser.terms.ts"]
+IGNORED_GENERATED_FILES = [
+    "src/generated/parser.ts",
+    "src/generated/parser.terms.ts",
+]
 
 ts_project(
     name = "tsc",
-    srcs = glob(["src/**/*.ts"], IGNORED_GENERATED_FILES) + [":generate_parser"],
+    srcs = glob(
+        ["src/**/*.ts"],
+        IGNORED_GENERATED_FILES,
+    ) + [":generate_parser"],
     composite = True,
     out_dir = "dist",
     root_dir = "src",
@@ -45,9 +48,14 @@ npm_package(
 lezer_generator_bin.lezer_generator(
     name = "generate_parser",
     srcs = ["src/expression.grammar"],
-    chdir = package_name(),
     outs = IGNORED_GENERATED_FILES,
-    args = ["src/expression.grammar", "--typeScript", "-o", "src/generated/parser"],
+    args = [
+        "src/expression.grammar",
+        "--typeScript",
+        "-o",
+        "src/generated/parser",
+    ],
+    chdir = package_name(),
     visibility = ["//visibility:public"],
 )
 

@@ -1,3 +1,5 @@
+load("@rules_java//java:java_binary.bzl", "java_binary")
+
 java_binary(
     name = "http-test-helper",
     srcs = glob(["src/main/java/**/*.java"]),

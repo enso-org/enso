@@ -29,7 +29,7 @@ copy_to_directory(
     out = "dist",
     replace_prefixes = {
         "rust_ffi/": "",
-    }
+    },
 )
 
 npm_package(

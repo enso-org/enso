@@ -15,6 +15,7 @@ node.toolchain(node_version = "22.11.0")
 
 tar_toolchain = use_extension("//toolchains:tar/extensions.bzl", "tar_toolchain")
 use_repo(tar_toolchain, "tar_toolchain")
+
 register_toolchains("//toolchains:windows_builtin_tar_toolchain")
 
 ## Npm
@@ -44,25 +45,24 @@ rust.toolchain(
     versions = ["nightly/2024-08-08"],
 )
 use_repo(rust, "rust_toolchains")
+
 register_toolchains("@rust_toolchains//:all")
 
 # Add wasm_bindgen toolchain, patch it to shorten the dirnames and avoid max_path issues
 bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.59.2")
-single_version_override(module_name = "rules_rust_wasm_bindgen", patches = ["wasm_bindgen.patch"])
+single_version_override(
+    module_name = "rules_rust_wasm_bindgen",
+    patches = ["wasm_bindgen.patch"],
+)
+
 register_toolchains("@rules_rust_wasm_bindgen//:default_wasm_bindgen_toolchain")
 
 crate = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
 crate.from_cargo(
     name = "crates",
-    supported_platform_triples = [
-        "aarch64-apple-darwin",
-        "wasm32-unknown-unknown",
-        "x86_64-pc-windows-msvc",
-        "x86_64-unknown-linux-gnu",
-        "x86_64-apple-darwin",
-    ],
     cargo_config = "//:.cargo/config.toml",
     cargo_lockfile = "//:Cargo.lock",
+    isolated = False,
     manifests = [
         "//:build_tools/ci-gen/Cargo.toml",
         "//:build_tools/cli/Cargo.toml",
@@ -91,7 +91,13 @@ crate.from_cargo(
         "//:tools/language-server/wstest/Cargo.toml",
         "//app/rust-ffi:Cargo.toml",
     ],
-    isolated = False,
+    supported_platform_triples = [
+        "aarch64-apple-darwin",
+        "wasm32-unknown-unknown",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu",
+        "x86_64-apple-darwin",
+    ],
 )
 use_repo(crate, "crates")
 
@@ -200,8 +206,7 @@ use_repo(
 ### TODO: This setup is untested and probably does not work.
 
 bazel_dep(name = "platforms", version = "1.0.0")
-
-bazel_dep(name = "rules_scala", repo_name = "io_bazel_rules_scala", version = "7.0.0")
+bazel_dep(name = "rules_scala", version = "7.0.0", repo_name = "io_bazel_rules_scala")
 
 scala_config = use_extension(
     "@io_bazel_rules_scala//scala/extensions:config.bzl",
@@ -213,7 +218,6 @@ scala_deps = use_extension(
     "@io_bazel_rules_scala//scala/extensions:deps.bzl",
     "scala_deps",
 )
-
 scala_deps.scala()
 
 ###################
