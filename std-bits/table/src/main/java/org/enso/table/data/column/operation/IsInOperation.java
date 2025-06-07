@@ -73,6 +73,10 @@ public final class IsInOperation {
       throw new IllegalArgumentException("Argument to `is_in` must be a vector.");
     }
 
+    if (list.isEmpty()) {
+      return new Column(new_name, (Storage<?>) BoolBuilder.makeConstant(left.getSize(), false));
+    }
+
     var leftStorage = BinaryOperation.getInferredStorage(left);
     var result = switch (leftStorage.getType()) {
       case NullType nt -> BoolBuilder.makeEmpty(leftStorage.getSize());
