@@ -9,7 +9,6 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StorageListView;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -74,7 +73,7 @@ public final class IsInOperation {
     }
 
     if (list.isEmpty()) {
-      return new Column(new_name, (Storage<?>) BoolBuilder.makeConstant(left.getSize(), false));
+      return new Column(new_name, BoolBuilder.makeConstant(left.getSize(), false));
     }
 
     var leftStorage = BinaryOperation.getInferredStorage(left);
@@ -94,7 +93,7 @@ public final class IsInOperation {
               "Unsupported StorageType for `is_in`: " + leftStorage.getType());
     };
 
-    return new Column(new_name, (Storage<?>) result);
+    return new Column(new_name, result);
   }
 
   private static BigDecimal tryConvertingToBigDecimal(Object o, MapOperationProblemAggregator problemAggregator) {

@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation;
 
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
@@ -66,7 +65,7 @@ public interface BinaryOperation<T> {
       output = applyMap(leftStorage, right, problemAggregator);
     }
 
-    return new Column(newName, (Storage<?>) output);
+    return new Column(newName, output);
   }
 
   /** Can the map be applied to the pair of ColumnStorage and constant? */

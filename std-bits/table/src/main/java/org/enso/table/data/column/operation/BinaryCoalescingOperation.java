@@ -32,7 +32,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
       String name,
       MapOperationProblemAggregator problemBuilder,
       BinaryOperation<?> operation,
-      Storage<?> leftStorage) {
+      ColumnStorage<?> leftStorage) {
     if (right instanceof Column rightColumn) {
       if (operation != null) {
         var rightStorage = rightColumn.getStorage();
