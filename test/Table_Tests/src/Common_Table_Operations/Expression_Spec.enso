@@ -362,12 +362,13 @@ add_expression_specs suite_builder detailed setup =
         specify_test "should be able to AND booleans" group_builder expression_test->
             expression_test "True && TRUE" True
             expression_test "True AND False" False
-            expression_test "True && Nothing" Nothing
 
             # This requires Null columns, so it's not generally tested on DB backends.
             if setup.is_database.not || (setup.prefix.contains "SQLite")  then
                 expression_test "Nothing && False" False
                 expression_test "Nothing && True" Nothing
+                expression_test "True && Nothing" Nothing
+                expression_test "False && Nothing" False
                 expression_test "Nothing && Nothing" Nothing
 
             expression_test "True && [Bad]] Name]" [True, False, True, False, True]
