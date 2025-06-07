@@ -21,6 +21,7 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -192,7 +193,7 @@ public final class InferredBuilder implements Builder {
   public ColumnStorage<?> seal() {
     if (currentBuilder == null) {
       // If all values that the builder got were nulls, we can return a special null storage.
-      return new NullBuilder().appendNulls(currentSize).seal();
+      return Builder.getForType(NullType.INSTANCE, currentSize, BlackholeProblemAggregator.INSTANCE).appendNulls(currentSize).seal();
     }
     return currentBuilder.seal();
   }
