@@ -1,7 +1,6 @@
 package org.enso.table.data.column.builder;
 
 import java.util.Arrays;
-
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.NullType;

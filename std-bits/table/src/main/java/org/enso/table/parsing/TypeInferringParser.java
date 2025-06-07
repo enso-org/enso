@@ -50,7 +50,7 @@ public class TypeInferringParser extends DatatypeParser {
     boolean hasNoValues = (size == 0) || CountNothing.allNothing(sourceStorage);
     if (hasNoValues) {
       return Builder.getForType(NullType.INSTANCE, size, problemAggregator)
-          .appendNulls((int)size)
+          .appendNulls((int) size)
           .seal();
     }
 

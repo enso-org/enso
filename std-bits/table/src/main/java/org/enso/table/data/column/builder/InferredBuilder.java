@@ -193,7 +193,9 @@ public final class InferredBuilder implements Builder {
   public ColumnStorage<?> seal() {
     if (currentBuilder == null) {
       // If all values that the builder got were nulls, we can return a special null storage.
-      return Builder.getForType(NullType.INSTANCE, currentSize, BlackholeProblemAggregator.INSTANCE).appendNulls(currentSize).seal();
+      return Builder.getForType(NullType.INSTANCE, currentSize, BlackholeProblemAggregator.INSTANCE)
+          .appendNulls(currentSize)
+          .seal();
     }
     return currentBuilder.seal();
   }

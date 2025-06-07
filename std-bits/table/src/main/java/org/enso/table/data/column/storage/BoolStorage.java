@@ -79,7 +79,7 @@ public final class BoolStorage extends Storage<Boolean>
    * accordingly. If `arg` is true, new values are `values || isMissing` and if `arg` is false, new
    * values are `values && (~isMissing)`.
    */
-  public BoolStorage fillMissingBoolean(boolean arg) {
+  public ColumnBooleanStorage fillMissingBoolean(boolean arg) {
     final var newValues = (BitSet) values.clone();
     if (arg != negated) {
       newValues.or(isNothing);
@@ -90,7 +90,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<?> fillMissing(
+  public ColumnStorage<?> fillMissing(
       Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     if (arg.isBoolean()) {
       return fillMissingBoolean(arg.asBoolean());
@@ -100,7 +100,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
       throw new IllegalStateException(
           "Custom missing value semantics are not supported by BoolStorage.");

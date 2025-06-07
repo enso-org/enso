@@ -109,7 +109,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public Storage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null && CountNothing.anyNothing(missingIndicator)) {
       throw new IllegalArgumentException(
           "Missing indicator must not contain missing values itself.");

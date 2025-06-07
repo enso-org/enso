@@ -3,6 +3,7 @@ package org.enso.table_test_helpers;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -51,7 +52,7 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     return null;
   }
 

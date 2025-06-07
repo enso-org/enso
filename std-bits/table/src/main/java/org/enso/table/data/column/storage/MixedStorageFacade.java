@@ -17,8 +17,8 @@ public class MixedStorageFacade extends Storage<Object>
     implements ColumnStorageWithInferredStorage {
   private final Storage<?> underlyingStorage;
 
-  public MixedStorageFacade(Storage<?> storage) {
-    underlyingStorage = storage;
+  public MixedStorageFacade(ColumnStorage<?> storage) {
+    underlyingStorage = (Storage<?>) storage;
   }
 
   @Override
@@ -53,14 +53,14 @@ public class MixedStorageFacade extends Storage<Object>
   }
 
   @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    Storage<?> newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
+  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+    var newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
   public Storage<Object> applyFilter(BitSet filterMask, int newLength) {
-    Storage<?> newStorage = underlyingStorage.applyFilter(filterMask, newLength);
+    var newStorage = underlyingStorage.applyFilter(filterMask, newLength);
     return new MixedStorageFacade(newStorage);
   }
 

@@ -124,7 +124,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @param expectedResultType the expected type for the result storage
    * @return a new storage containing results of the function for each row
    */
-  public final Storage<?> binaryMap(
+  public final ColumnStorage<?> binaryMap(
       BiFunction<Object, Object, Object> function,
       Object argument,
       boolean skipNulls,
@@ -162,7 +162,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    *     operation is vectorized
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage<?> zip(
+  public final ColumnStorage<?> zip(
       BiFunction<Object, Object, Object> function,
       Storage<?> arg,
       boolean skipNa,
@@ -193,7 +193,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @param commonType the common type of this storage and the provided value
    * @return a new storage, with all missing elements replaced by arg
    */
-  public Storage<?> fillMissing(
+  public ColumnStorage<?> fillMissing(
       Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     Builder builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
@@ -214,7 +214,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @param commonType a common type that should fit values from both storages
    * @return a new storage with missing values filled
    */
-  public Storage<?> fillMissingFrom(
+  public ColumnStorage<?> fillMissingFrom(
       Storage<?> other, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     var builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
@@ -235,7 +235,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    *     to just rely on the default semantics of missing values. Some storages may not allow
    *     customizing the semantics.
    */
-  public abstract Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator);
+  public abstract ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator);
 
   /**
    * Return a new storage, containing only the items marked true in the mask.
@@ -268,7 +268,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    *
    * @return a storage counting the number of times each value in this one has been seen before.
    */
-  public Storage<?> duplicateCount() {
+  public ColumnStorage<?> duplicateCount() {
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
     Context context = Context.getCurrent();
     var builder =
@@ -284,7 +284,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   /** Creates a storage containing a single repeated item. */
-  public static Storage<?> fromRepeatedItem(
+  public static ColumnStorage<?> fromRepeatedItem(
       Value item, int repeat, ProblemAggregator problemAggregator) {
     if (repeat < 0) {
       throw new IllegalArgumentException("Repeat count must be non-negative.");

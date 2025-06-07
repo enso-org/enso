@@ -10,6 +10,7 @@ import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
@@ -83,7 +84,7 @@ public final class DoubleStorage extends Storage<Double>
     return isNothing.get((int) idx);
   }
 
-  private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
+  private ColumnStorage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
     long n = getSize();
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
@@ -99,7 +100,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   /** Special handling to ensure loss of precision is reported. */
-  private Storage<?> fillMissingBigInteger(BigInteger arg, ProblemAggregator problemAggregator) {
+  private ColumnStorage<?> fillMissingBigInteger(BigInteger arg, ProblemAggregator problemAggregator) {
     long n = getSize();
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
@@ -115,7 +116,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   /** Special handling to ensure loss of precision is reported. */
-  private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
+  private ColumnStorage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
     long n = getSize();
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
@@ -131,7 +132,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<?> fillMissing(
+  public ColumnStorage<?> fillMissing(
       Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
@@ -147,7 +148,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<Double> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<Double> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
       throw new IllegalStateException(
           "Custom missing value semantics are not supported by DoubleStorage.");

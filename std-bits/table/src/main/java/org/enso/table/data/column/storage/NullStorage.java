@@ -70,7 +70,7 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     return this;
   }
 }
