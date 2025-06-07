@@ -543,11 +543,10 @@ type In_Memory_Column_Implementation
                     _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
                     _ : Data_Formatter -> format
                 parser = formatter.make_value_type_parser type
-                storage = (this_column:In_Memory_Column).java_column.getStorage
 
                 new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                     parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator this_column.name type
-                    parser.parseColumn storage parse_problem_aggregator
+                    parser.parseColumn (this_column:In_Memory_Column).java_column parse_problem_aggregator
                 In_Memory_Column.from_storage this_column.name new_storage
 
     format this_column (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column ! Illegal_Argument = case format of
