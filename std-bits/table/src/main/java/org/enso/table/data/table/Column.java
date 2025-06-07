@@ -79,7 +79,7 @@ public class Column {
    * @param newLength the number of true values in mask
    * @return a new column, masked with the given mask
    */
-  public Column applyFilter(BitSet filterMask, int newLength) {
+  Column applyFilter(BitSet filterMask, int newLength) {
     return new Column(name, storage.applyFilter(filterMask, newLength));
   }
 

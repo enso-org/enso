@@ -49,7 +49,7 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public Storage<Void> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Void> applyFilter(BitSet filterMask, int newLength) {
     return new NullStorage(newLength);
   }
 

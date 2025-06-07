@@ -134,7 +134,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<Boolean> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Boolean> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
     var builder = Builder.getForBoolean(newLength);
     for (int i = 0; i < size; i++) {

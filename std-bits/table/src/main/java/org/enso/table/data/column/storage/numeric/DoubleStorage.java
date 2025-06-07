@@ -182,7 +182,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<Double> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Double> applyFilter(BitSet filterMask, int newLength) {
     var builder =
         Builder.getForDouble(FloatType.FLOAT_64, newLength, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();

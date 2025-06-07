@@ -244,7 +244,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @param newLength the number of true values in mask
    * @return a new storage, filtered with the given mask
    */
-  public abstract Storage<T> applyFilter(BitSet filterMask, int newLength);
+  public abstract ColumnStorage<T> applyFilter(BitSet filterMask, int newLength);
 
   /**
    * Returns a new storage, ordered according to the rules specified in a mask.

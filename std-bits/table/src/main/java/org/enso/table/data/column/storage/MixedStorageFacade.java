@@ -59,26 +59,26 @@ public class MixedStorageFacade extends Storage<Object>
   }
 
   @Override
-  public Storage<Object> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Object> applyFilter(BitSet filterMask, int newLength) {
     var newStorage = underlyingStorage.applyFilter(filterMask, newLength);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
   public Storage<Object> applyMask(OrderMask mask) {
-    Storage<?> newStorage = underlyingStorage.applyMask(mask);
+    var newStorage = underlyingStorage.applyMask(mask);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
   public Storage<Object> slice(int offset, int limit) {
-    Storage<?> newStorage = underlyingStorage.slice(offset, limit);
+    var newStorage = underlyingStorage.slice(offset, limit);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
   public Storage<Object> slice(List<SliceRange> ranges) {
-    Storage<?> newStorage = underlyingStorage.slice(ranges);
+    var newStorage = underlyingStorage.slice(ranges);
     return new MixedStorageFacade(newStorage);
   }
 }

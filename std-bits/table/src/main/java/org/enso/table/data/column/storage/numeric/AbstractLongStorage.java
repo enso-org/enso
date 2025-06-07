@@ -142,7 +142,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   public abstract AbstractLongStorage widen(IntegerType widerType);
 
   @Override
-  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Long> applyFilter(BitSet filterMask, int newLength) {
     var builder = Builder.getForLong(getType(), newLength, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < getSize(); i++) {

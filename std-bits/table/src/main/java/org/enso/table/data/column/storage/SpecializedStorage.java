@@ -54,7 +54,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<T> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(newLength);
     int resIx = 0;
