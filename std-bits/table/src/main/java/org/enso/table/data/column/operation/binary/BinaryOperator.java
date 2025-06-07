@@ -29,7 +29,10 @@ import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-/** Support the addition operation - Numeric - Text Concatenation - Date + Time => Date Time ?? */
+/**
+ * Support binary operator - provides the framework for numeric operators, and an entry point for
+ * all.
+ */
 public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
   /**
    * An abstract class representing a numeric operation. This class defines the methods that must be
