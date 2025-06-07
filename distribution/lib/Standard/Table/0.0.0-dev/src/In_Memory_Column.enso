@@ -16,7 +16,6 @@ from project.Column import column_from_implementation
 from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Value_Type
 from project.Internal.Storage import enso_to_java, java_to_enso
 
-polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 
