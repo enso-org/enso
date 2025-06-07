@@ -48,7 +48,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
         }
 
         var result =
-            leftStorage.zip(
+            ((Storage<?>)leftStorage).zip(
                 fallback, rightColumn.getStorage(), false, leftStorage.getType(), problemBuilder);
         return new Column(name, result);
       }
@@ -68,7 +68,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
         return new Column(name, constantStorage);
       }
 
-      var result = leftStorage.binaryMap(fallback, right, false, fallbackType, problemBuilder);
+      var result = ((Storage<?>)leftStorage).binaryMap(fallback, right, false, fallbackType, problemBuilder);
       return new Column(name, result);
     }
   }
