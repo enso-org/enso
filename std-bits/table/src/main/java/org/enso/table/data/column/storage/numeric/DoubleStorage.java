@@ -100,7 +100,8 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   /** Special handling to ensure loss of precision is reported. */
-  private ColumnStorage<?> fillMissingBigInteger(BigInteger arg, ProblemAggregator problemAggregator) {
+  private ColumnStorage<?> fillMissingBigInteger(
+      BigInteger arg, ProblemAggregator problemAggregator) {
     long n = getSize();
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();

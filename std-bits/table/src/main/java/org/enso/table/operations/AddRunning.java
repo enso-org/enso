@@ -4,7 +4,7 @@ import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.statistics.Statistic;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -16,7 +16,7 @@ import org.enso.table.problems.ProblemAggregator;
 
 public class AddRunning {
 
-  public static Storage<?> create_running(
+  public static ColumnStorage<?> create_running(
       Statistic statistic,
       Column sourceColumn,
       Column[] groupingColumns,
@@ -121,7 +121,7 @@ public class AddRunning {
 
     long typeToRawLongBits(T t);
 
-    Storage<T> createStorage(long[] result, int size, BitSet isNothing);
+    ColumnStorage<T> createStorage(long[] result, int size, BitSet isNothing);
   }
 
   private static class DoubleHandler implements TypeHandler<Double> {
@@ -142,7 +142,7 @@ public class AddRunning {
     }
 
     @Override
-    public Storage<Double> createStorage(long[] result, int size, BitSet isNothing) {
+    public ColumnStorage<Double> createStorage(long[] result, int size, BitSet isNothing) {
       // Have to convert the long[] to double[].
       var builder = Builder.getForDouble(FloatType.FLOAT_64, size, problemAggregator);
 
@@ -177,7 +177,7 @@ public class AddRunning {
     }
 
     @Override
-    public Storage<Long> createStorage(long[] result, int size, BitSet isNothing) {
+    public ColumnStorage<Long> createStorage(long[] result, int size, BitSet isNothing) {
       return new LongStorage(result, size, isNothing, type);
     }
   }
@@ -221,7 +221,7 @@ public class AddRunning {
       }
     }
 
-    public Storage<T> getResult() {
+    public ColumnStorage<T> getResult() {
       return typeHandler.createStorage(result, sourceColumn.getSize(), isNothing);
     }
 
