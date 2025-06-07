@@ -256,12 +256,12 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   /**
    * @return a copy of the storage containing a slice of the original data
    */
-  public abstract Storage<T> slice(int offset, int limit);
+  public abstract ColumnStorage<T> slice(int offset, int limit);
 
   /**
    * @return a copy of the storage consisting of slices of the original data
    */
-  public abstract Storage<T> slice(List<SliceRange> ranges);
+  public abstract ColumnStorage<T> slice(List<SliceRange> ranges);
 
   /**
    * Counts the number of times each value has been seen before in this storage.

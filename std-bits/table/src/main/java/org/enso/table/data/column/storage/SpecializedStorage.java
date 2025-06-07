@@ -85,7 +85,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> slice(int offset, int limit) {
+  public ColumnStorage<T> slice(int offset, int limit) {
     int newSize = Math.min(data.length - offset, limit);
     T[] newData = newUnderlyingArray(newSize);
     System.arraycopy(data, offset, newData, 0, newSize);
@@ -93,7 +93,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> slice(List<SliceRange> ranges) {
+  public ColumnStorage<T> slice(List<SliceRange> ranges) {
     Context context = Context.getCurrent();
     int newSize = SliceRange.totalLength(ranges);
     T[] newData = newUnderlyingArray(newSize);

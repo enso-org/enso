@@ -67,12 +67,12 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Storage<Long> slice(int offset, int limit) {
+  public ColumnStorage<Long> slice(int offset, int limit) {
     return null;
   }
 
   @Override
-  public Storage<Long> slice(List<SliceRange> ranges) {
+  public ColumnStorage<Long> slice(List<SliceRange> ranges) {
     return null;
   }
 }

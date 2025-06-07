@@ -128,7 +128,7 @@ public final class LongStorage extends AbstractLongStorage
   }
 
   @Override
-  public LongStorage slice(int offset, int limit) {
+  public ColumnStorage<Long> slice(int offset, int limit) {
     int size = (int) getSize();
     int newSize = Math.min(size - offset, limit);
     long[] newData;
@@ -149,7 +149,7 @@ public final class LongStorage extends AbstractLongStorage
   }
 
   @Override
-  public LongStorage slice(List<SliceRange> ranges) {
+  public ColumnStorage<Long> slice(List<SliceRange> ranges) {
     BitSet currentMask = getIsNothingMap();
     int newSize = SliceRange.totalLength(ranges);
     long[] newData = new long[newSize];

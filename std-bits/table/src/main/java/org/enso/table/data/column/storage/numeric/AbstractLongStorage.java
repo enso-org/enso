@@ -177,7 +177,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public Storage<Long> slice(int offset, int limit) {
+  public ColumnStorage<Long> slice(int offset, int limit) {
     int size = (int) getSize();
     int newSize = Math.min(size - offset, limit);
     var builder = Builder.getForLong(getType(), newSize, BlackholeProblemAggregator.INSTANCE);
@@ -194,7 +194,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public Storage<Long> slice(List<SliceRange> ranges) {
+  public ColumnStorage<Long> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
     var builder = Builder.getForLong(getType(), newSize, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();

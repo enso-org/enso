@@ -218,7 +218,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<Double> slice(int offset, int limit) {
+  public ColumnStorage<Double> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
     double[] newData;
 
@@ -237,7 +237,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<Double> slice(List<SliceRange> ranges) {
+  public ColumnStorage<Double> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
     double[] newData = new double[newSize];
     BitSet newIsNothing = new BitSet(newSize);
