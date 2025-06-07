@@ -15,7 +15,7 @@ import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.MultiValueIndex;
@@ -234,7 +234,7 @@ public class Table {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
     int n = rowCount();
     Context context = Context.getCurrent();
-    final var storages = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
+    final var storages = Arrays.stream(columns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     OrderedMultiValueKey[] keys = new OrderedMultiValueKey[n];
     for (int i = 0; i < n; i++) {
       keys[i] = new OrderedMultiValueKey(storages, i, directionInts, objectComparator);
