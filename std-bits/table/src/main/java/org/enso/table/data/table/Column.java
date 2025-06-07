@@ -4,6 +4,7 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -24,10 +25,10 @@ public class Column {
    * @param name the column name
    * @param storage the underlying storage
    */
-  public Column(String name, Storage<?> storage) {
+  public Column(String name, ColumnStorage<?> storage) {
     ensureNameIsValid(name);
     this.name = name;
-    this.storage = storage;
+    this.storage = (Storage<?>) storage;
   }
 
   public static boolean isColumnNameValid(String name) {

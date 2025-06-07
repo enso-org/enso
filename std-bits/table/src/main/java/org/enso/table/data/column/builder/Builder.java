@@ -6,7 +6,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Objects;
-import org.enso.table.data.column.storage.Storage;
+
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -191,7 +192,7 @@ public interface Builder {
    * <p>If the provided storage type is not compatible with the type of this builder, a {@code
    * StorageTypeMismatch} exception may be thrown.
    */
-  void appendBulkStorage(Storage<?> storage);
+  void appendBulkStorage(ColumnStorage<?> storage);
 
   /**
    * @return the number of appended elements
@@ -201,7 +202,7 @@ public interface Builder {
   /**
    * @return a storage containing all the items appended so far
    */
-  Storage<?> seal();
+  ColumnStorage<?> seal();
 
   /**
    * @return the current storage type of this builder
