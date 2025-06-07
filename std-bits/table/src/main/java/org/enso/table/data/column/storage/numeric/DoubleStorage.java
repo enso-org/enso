@@ -200,7 +200,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<Double> applyMask(OrderMask mask) {
+  public ColumnStorage<Double> applyMask(OrderMask mask) {
     double[] newData = new double[mask.length()];
     BitSet newIsNothing = new BitSet();
     Context context = Context.getCurrent();

@@ -161,7 +161,7 @@ public class Column {
    * @return a new column, resulting from reordering this column according to {@code mask}.
    */
   public Column applyMask(OrderMask mask) {
-    Storage<?> newStorage = storage.applyMask(mask);
+    var newStorage = storage.applyMask(mask);
     return new Column(name, newStorage);
   }
 

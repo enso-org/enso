@@ -151,7 +151,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<Boolean> applyMask(OrderMask mask) {
+  public ColumnStorage<Boolean> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
     var builder = Builder.getForBoolean(mask.length());
     for (int i = 0; i < mask.length(); i++) {

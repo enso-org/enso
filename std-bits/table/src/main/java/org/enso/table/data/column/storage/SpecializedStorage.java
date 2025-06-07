@@ -69,7 +69,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> applyMask(OrderMask mask) {
+  public ColumnStorage<T> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(mask.length());
     for (int i = 0; i < mask.length(); i++) {

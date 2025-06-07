@@ -160,7 +160,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public Storage<Long> applyMask(OrderMask mask) {
+  public ColumnStorage<Long> applyMask(OrderMask mask) {
     var builder = Builder.getForLong(getType(), mask.length(), BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {

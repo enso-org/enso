@@ -65,7 +65,7 @@ public class MixedStorageFacade extends Storage<Object>
   }
 
   @Override
-  public Storage<Object> applyMask(OrderMask mask) {
+  public ColumnStorage<Object> applyMask(OrderMask mask) {
     var newStorage = underlyingStorage.applyMask(mask);
     return new MixedStorageFacade(newStorage);
   }

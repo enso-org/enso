@@ -54,7 +54,7 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public Storage<Void> applyMask(OrderMask mask) {
+  public ColumnStorage<Void> applyMask(OrderMask mask) {
     return new NullStorage(mask.length());
   }
 

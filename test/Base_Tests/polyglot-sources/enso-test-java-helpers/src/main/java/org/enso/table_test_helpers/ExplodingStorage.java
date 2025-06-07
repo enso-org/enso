@@ -62,7 +62,7 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Storage<Long> applyMask(OrderMask mask) {
+  public ColumnStorage<Long> applyMask(OrderMask mask) {
     return null;
   }
 
