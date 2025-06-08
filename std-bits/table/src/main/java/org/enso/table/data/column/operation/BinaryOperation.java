@@ -22,7 +22,7 @@ public interface BinaryOperation<T> {
    * @param expectedResultType the expected type for the result storage
    * @return a new storage containing results of the function for each row
    */
-  static <T> Column map(
+  static <T> Column mapFunction(
       Column left,
       Object right,
       Boolean skipNulls,
