@@ -76,7 +76,8 @@ object FrgaalJavaCompiler {
     if (frgaalOnClasspath.isEmpty) {
       throw new RuntimeException("Failed to resolve Frgaal compiler. Aborting!")
     }
-    val frgaalJavac = new FrgaalJavaCompiler(
+    val withFrgaalJavac = new FrgaalJavaCompiler(
+      sbtCompilers.javaTools.javac(),
       javaHome,
       frgaalOnClasspath.get,
       javaSourceDir           = javaSourceDir,
@@ -85,24 +86,21 @@ object FrgaalJavaCompiler {
       shouldNotLimitModules   = shouldNotLimitModules
     )
 
-    var javac = if (Integer.parseInt(javaVersion) <= 21) {
-      frgaalJavac
-    } else {
-      sbtCompilers.javaTools.javac()
-    }
     val javadoc   = sbtCompilers.javaTools.javadoc()
-    val javaTools = sbt.internal.inc.javac.JavaTools(javac, javadoc)
+    val javaTools = sbt.internal.inc.javac.JavaTools(withFrgaalJavac, javadoc)
     xsbti.compile.Compilers.of(sbtCompilers.scalac, javaTools)
   }
 
   /** Helper method to launch programs.
     */
   def launch(
+    original: XJavaCompiler,
     javaHome: Option[Path],
     compilerJar: Path,
     sources0: Seq[VirtualFile],
     options: Seq[String],
     output: Output,
+    incToolOptions: IncToolOptions,
     log: Logger,
     reporter: Reporter,
     source: Option[String],
@@ -301,6 +299,17 @@ object FrgaalJavaCompiler {
       )
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ allSources
 
+    if (Integer.parseInt(target) >= 24) {
+      return original.run(
+        sources0.toArray,
+        options.toArray,
+        output,
+        incToolOptions,
+        reporter,
+        log
+      )
+    }
+
     withArgumentFile(allArguments) { argsFile =>
       // List of modules that Frgaal can use for compilation
       val limitModules = Seq(
@@ -404,6 +413,7 @@ object FrgaalJavaCompiler {
 
 /** An implementation of compiling java which forks Frgaal instance. */
 final class FrgaalJavaCompiler(
+  val original: XJavaCompiler,
   javaHome: Option[Path],
   compilerPath: Path,
   target: String,
@@ -421,11 +431,13 @@ final class FrgaalJavaCompiler(
     log: XLogger
   ): Boolean =
     FrgaalJavaCompiler.launch(
+      original,
       javaHome,
       compilerPath,
       sources,
       options,
       output,
+      incToolOptions,
       log,
       reporter,
       source,
