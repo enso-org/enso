@@ -281,10 +281,32 @@ object FrgaalJavaCompiler {
         ensoProperties.setProperty("java.home", v.toString())
       )
 
-      Using(new FileWriter(ensoConfig)) { w =>
-        ensoProperties.store(w, "# Enso compiler configuration")
+      def changeInProperties: Boolean = {
+        if (ensoConfig.exists()) {
+          val original = new java.util.Properties();
+          Using(new java.io.FileReader(ensoConfig)) { r =>
+            original.load(r);
+          }
+          if (original == ensoProperties) {
+            return false
+          }
+        }
+        true
       }
-      Using(new FileWriter(ensoMarker)) { _ => }
+      if (changeInProperties) {
+        Using(new FileWriter(ensoConfig)) { w =>
+          ensoProperties.store(w, "# Enso compiler configuration")
+        }
+        Using(new FileWriter(ensoMarker, true)) { w =>
+          w.write(
+            "Updated " + ensoConfig + " on " + new java.util.Date() + "\n"
+          )
+        }
+      } else {
+        log.debug(
+          s"[FrgaalJavaCompiler] no change in: ${ensoConfig}"
+        )
+      }
     } else {
       throw new IllegalStateException(
         "Cannot write Enso source options to " + shared + " values:\n" +
