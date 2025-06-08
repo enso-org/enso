@@ -9,6 +9,7 @@ import org.enso.base.polyglot.EnsoObjectWrapper;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.table.Column;
 
 /**
  * A multi-value key for unordered operations like group-by or distinct.
@@ -27,6 +28,14 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
   @Override
   public boolean hasAnyNulls() {
     return hasAnyNulls;
+  }
+
+  public UnorderedMultiValueKey(
+      List<Column> columns, int rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
+    this(
+        columns.stream().map(Column::getStorage).toArray(ColumnStorage[]::new),
+        rowIndex,
+        textFoldingStrategy);
   }
 
   public UnorderedMultiValueKey(

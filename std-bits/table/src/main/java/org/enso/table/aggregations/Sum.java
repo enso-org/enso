@@ -29,9 +29,10 @@ public class Sum extends Aggregator {
   public Sum(String name, Column column) {
     super(name);
     this.inputStorage = column.getStorage();
-    inputType = inputStorage instanceof ColumnStorageWithInferredStorage inferredStorage
-        ? inferredStorage.inferPreciseType(PreciseTypeOptions.DEFAULT)
-        : inputStorage.getType();
+    inputType =
+        inputStorage instanceof ColumnStorageWithInferredStorage inferredStorage
+            ? inferredStorage.inferPreciseType(PreciseTypeOptions.DEFAULT)
+            : inputStorage.getType();
   }
 
   @Override

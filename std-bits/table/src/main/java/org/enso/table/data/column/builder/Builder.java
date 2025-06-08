@@ -20,6 +20,7 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
 /** Interface defining a builder for creating columns dynamically. */
@@ -181,6 +182,19 @@ public interface Builder {
    * @param count the number of missing values to append.
    */
   Builder appendNulls(int count);
+
+  /**
+   * Appends the whole contents of some other column.
+   *
+   * <p>This may be used to efficiently copy a whole column into the builder. Used for example when
+   * concatenating columns.
+   *
+   * <p>If the provided storage type is not compatible with the type of this builder, a {@code
+   * StorageTypeMismatch} exception may be thrown.
+   */
+  default void appendBulkStorage(Column column) {
+    appendBulkStorage(column.getStorage());
+  }
 
   /**
    * Appends the whole contents of some other storage.

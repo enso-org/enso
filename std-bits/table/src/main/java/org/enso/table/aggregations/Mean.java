@@ -33,9 +33,10 @@ public class Mean extends KnownTypeAggregator {
   }
 
   private static StorageType<?> resultTypeFromInput(ColumnStorage<?> inputStorage) {
-    var inputType = inputStorage instanceof ColumnStorageWithInferredStorage inferredStorage
-        ? inferredStorage.inferPreciseType(PreciseTypeOptions.DEFAULT)
-        : inputStorage.getType();
+    var inputType =
+        inputStorage instanceof ColumnStorageWithInferredStorage inferredStorage
+            ? inferredStorage.inferPreciseType(PreciseTypeOptions.DEFAULT)
+            : inputStorage.getType();
 
     return switch (inputType) {
       case FloatType floatType -> FloatType.FLOAT_64;

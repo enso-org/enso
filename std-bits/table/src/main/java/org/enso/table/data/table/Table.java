@@ -234,7 +234,8 @@ public class Table {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
     int n = rowCount();
     Context context = Context.getCurrent();
-    final var storages = Arrays.stream(columns).map(Column::getStorage).toArray(ColumnStorage[]::new);
+    final var storages =
+        Arrays.stream(columns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     OrderedMultiValueKey[] keys = new OrderedMultiValueKey[n];
     for (int i = 0; i < n; i++) {
       keys[i] = new OrderedMultiValueKey(storages, i, directionInts, objectComparator);

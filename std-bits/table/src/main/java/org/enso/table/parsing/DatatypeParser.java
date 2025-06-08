@@ -28,7 +28,8 @@ public abstract class DatatypeParser {
       Column sourceColumn, CommonParseProblemAggregator problemAggregator) {
     var storage = sourceColumn.getStorage();
     if (!(storage.getType() instanceof TextType textType)) {
-      throw new IllegalArgumentException("Expected a column of text type, got: " + storage.getType());
+      throw new IllegalArgumentException(
+          "Expected a column of text type, got: " + storage.getType());
     }
     return parseColumn(textType.asTypedStorage(storage), problemAggregator);
   }
