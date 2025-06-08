@@ -47,6 +47,7 @@ from project.Table import from_java_table
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.binary.BinaryOperator
 polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
+polyglot java import org.enso.table.data.column.operation.BinaryOperation
 polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
@@ -97,7 +98,7 @@ type In_Memory_Column_Implementation
         Value_Type.expect_text this_column <|
             Value_Type.expect_text other <|
                 new_name = naming_helper.function_name "equals_ignore_case" [this_column, other]
-                run_binary_op this_column fallback other new_name expected_result_type=Value_Type.Boolean
+                _run_binary_op this_column fallback other new_name expected_result_type=Value_Type.Boolean
 
     not_equals this_column (other : Column | Any) -> Column =
         new_name = naming_helper.binary_operation_name "!=" this_column other
@@ -157,7 +158,7 @@ type In_Memory_Column_Implementation
             case kind of
                 Value_Type_Helpers.Subtraction_Kind.Date_Difference ->
                     fn = x-> y-> Period.between y x
-                    run_binary_op this_column fn other new_name
+                    _run_binary_op this_column fn other new_name
                 _ ->
                     operation = BinaryOperator.minus (this_column:In_Memory_Column).java_column (_java_other other)
                     if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported minus operation.")
@@ -500,7 +501,7 @@ type In_Memory_Column_Implementation
                             start-> end-> Time_Utils.unit_date_difference java_unit start end
                         Value_Type.Time ->
                             start-> end-> Time_Utils.unit_time_difference java_unit start end
-                    run_binary_op this_column fn end new_name
+                    _run_binary_op this_column fn end new_name
 
     date_add this_column (amount : Column | Integer) (period : Date_Period | Time_Period) -> Column ! Invalid_Value_Type | Illegal_Argument =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
@@ -516,7 +517,7 @@ type In_Memory_Column_Implementation
                        Java instance.
                     fn date amount =
                         java_unit.addTo date amount
-                    run_binary_op this_column fn amount new_name
+                    _run_binary_op this_column fn amount new_name
 
     is_in this_column (vector : Vector | Column | Array) -> Column =
         as_vector = case vector of
@@ -753,18 +754,19 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
      handling logic.
    - expected_result_type: The expected result type of the operation. If set to
      `Nothing`, the result type is inferred from the values.
-run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
-    s = (column:In_Memory_Column).java_column.getStorage
+private _run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        new_storage = case operand of
+        case operand of
             other_column : Column ->
-                Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                s = (column:In_Memory_Column).java_column.getStorage
+                new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s.zip function (other_column:In_Memory_Column).java_column.getStorage skip_nulls storage_type problem_builder
+                In_Memory_Column.from_storage new_name new_storage
             _ ->
-                Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s.binaryMap function operand skip_nulls storage_type problem_builder
-        In_Memory_Column.from_storage new_name new_storage
+                new_column = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    BinaryOperation.map (column:In_Memory_Column).java_column (enso_to_java operand) skip_nulls new_name function storage_type problem_builder
+                In_Memory_Column.from_java_column new_column
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
@@ -857,7 +859,7 @@ private _call_comparator left other new_name ~comparator fallback =
         False ->
             Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
                 fallback_fn = fallback java_problem_aggregator
-                run_binary_op left fallback_fn other new_name skip_nulls=True expected_result_type=Value_Type.Boolean
+                _run_binary_op left fallback_fn other new_name skip_nulls=True expected_result_type=Value_Type.Boolean
 
 private _call_binary_operator left:In_Memory_Column other new_name ~operation =
     Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
@@ -871,7 +873,7 @@ private _apply_case_sensitive_text_operation left:Column (other : Column | Text 
         Case_Sensitivity.Insensitive _ -> True
         _ -> operation.canApply (left:In_Memory_Column).java_column java_other . not
     case use_fallback of
-        True -> run_binary_op left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
+        True -> _run_binary_op left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
         _ ->
             Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
                 java_column = operation.apply (left:In_Memory_Column).java_column java_other new_name java_problem_aggregator

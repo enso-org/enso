@@ -1,11 +1,53 @@
 package org.enso.table.data.column.operation;
 
+import java.util.function.BiFunction;
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public interface BinaryOperation<T> {
+  /**
+   * Runs a 2-argument function on each element in the column.
+   *
+   * @param left the first column to run the function on.
+   * @param function the function to run.
+   * @param right the second argument to pass to each run of the function
+   * @param skipNulls specifies whether null values on the input should result in a null result
+   *     without passing them through the function, this is useful if the function does not support
+   *     the null-values, but it needs to be set to false if the function should handle them.
+   * @param expectedResultType the expected type for the result storage
+   * @return a new storage containing results of the function for each row
+   */
+  static <T> Column map(
+      Column left,
+      Object right,
+      Boolean skipNulls,
+      String newName,
+      BiFunction<Object, Object, Object> function,
+      StorageType<T> expectedResultType,
+      MapOperationProblemAggregator problemAggregator) {
+    var size = left.getSize();
+    var builder = expectedResultType.makeBuilder(size, problemAggregator);
+    if (skipNulls && right == null) {
+      builder.appendNulls(size);
+      return new Column(newName, builder.seal());
+    }
+
+    var result =
+        StorageIterators.mapOverStorage(
+            left.getStorage(),
+            skipNulls,
+            builder,
+            (index, value) -> {
+              var converted = Polyglot_Utils.convertPolyglotValue(function.apply(value, right));
+              return converted == null ? null : expectedResultType.valueAsType(converted);
+            });
+    return new Column(newName, result);
+  }
+
   static ColumnStorage<?> getInferredStorage(Column input) {
     var storage = input.getStorage();
     if (storage instanceof ColumnStorageWithInferredStorage withInferredStorage) {

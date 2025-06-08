@@ -73,10 +73,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
         return new Column(name, constantStorage);
       }
 
-      var result =
-          ((Storage<?>) leftStorage)
-              .binaryMap(fallback, right, false, fallbackType, problemBuilder);
-      return new Column(name, result);
+      return BinaryOperation.map(left, right, false, name, fallback, fallbackType, problemBuilder);
     }
   }
 

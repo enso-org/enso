@@ -114,46 +114,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   /**
-   * Runs a 2-argument function on each element in this storage.
-   *
-   * @param function the function to run.
-   * @param argument the argument to pass to each run of the function
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   *     without passing them through the function, this is useful if the function does not support
-   *     the null-values, but it needs to be set to false if the function should handle them.
-   * @param expectedResultType the expected type for the result storage
-   * @return a new storage containing results of the function for each row
-   */
-  public final ColumnStorage<?> binaryMap(
-      BiFunction<Object, Object, Object> function,
-      Object argument,
-      boolean skipNulls,
-      StorageType<?> expectedResultType,
-      ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
-    if (skipNulls && argument == null) {
-      // ToDo: appendNulls should take a long, not an int. Should have a constant Storage for null.
-      storageBuilder.appendNulls((int) getSize());
-      return storageBuilder.seal();
-    }
-
-    Context context = Context.getCurrent();
-    for (long i = 0; i < getSize(); i++) {
-      Object it = getItemBoxed(i);
-      if (skipNulls && it == null) {
-        storageBuilder.appendNulls(1);
-      } else {
-        Object result = function.apply(it, argument);
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.append(converted);
-      }
-
-      context.safepoint();
-    }
-    return storageBuilder.seal();
-  }
-
-  /**
    * Runs a function on each pair of non-missing elements in this and arg.
    *
    * @param function the function to run.
