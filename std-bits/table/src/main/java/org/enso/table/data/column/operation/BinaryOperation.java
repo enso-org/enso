@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation;
 
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -30,20 +31,27 @@ public interface BinaryOperation<T> {
       StorageType<T> expectedResultType,
       MapOperationProblemAggregator problemAggregator) {
     var size = left.getSize();
-    var builder = expectedResultType.makeBuilder(size, problemAggregator);
+    var builder =
+        expectedResultType == null
+            ? Builder.getInferredBuilder(size, problemAggregator)
+            : expectedResultType.makeBuilder(size, problemAggregator);
     if (skipNulls && right == null) {
       builder.appendNulls(size);
       return new Column(newName, builder.seal());
     }
 
     var result =
-        StorageIterators.mapOverStorage(
+        StorageIterators.buildObjectOverStorage(
             left.getStorage(),
             skipNulls,
             builder,
-            (index, value) -> {
+            (b, index, value) -> {
               var converted = Polyglot_Utils.convertPolyglotValue(function.apply(value, right));
-              return converted == null ? null : expectedResultType.valueAsType(converted);
+              if (converted == null) {
+                b.appendNulls(1);
+              } else {
+                b.append(converted);
+              }
             });
     return new Column(newName, result);
   }
