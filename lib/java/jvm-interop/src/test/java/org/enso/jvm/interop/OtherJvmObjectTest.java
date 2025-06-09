@@ -83,12 +83,12 @@ public class OtherJvmObjectTest {
   }
 
   @Test
-  public void classNotFoundError() throws Exception {
+  public void classNotFoundError() {
     var msg = new OtherMessage.LoadClass("java.lang.unknown.Clazz");
     try {
       var shortRaw = CHANNEL.execute(OtherResult.class, msg).value();
       fail("Should yield an exception: " + shortRaw);
-    } catch (IllegalStateException ex) {
+    } catch (ClassNotFoundException ex) {
       assertThat(ex.getMessage(), StringContains.containsString("java.lang.unknown.Clazz"));
     }
   }

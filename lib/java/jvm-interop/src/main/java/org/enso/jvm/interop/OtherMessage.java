@@ -22,18 +22,31 @@ record OtherMessage( // sends a message to the other side
   private static final Map<Long, TruffleObject> OBJECTS = new HashMap<>();
 
   @Persistable(id = 81908, allowInlining = false)
-  record OtherValue<T>(T value) implements OtherResult<T, RuntimeException> {}
+  record ReturnValue<T, E extends Exception>(T value) implements OtherResult<T, E> {
+    static <T, E extends Exception> ReturnValue<T, E> create(T value) {
+      return new ReturnValue<>(value);
+    }
+  }
 
   @Persistable(id = 81909, allowInlining = false)
-  record OtherException<V>(String msg) implements OtherResult<V, IllegalStateException> {
+  record ThrowException<V, E extends Exception>(int kind, String msg) implements OtherResult<V, E> {
 
-    static <T> OtherException<T> create(Exception ex) {
-      return new OtherException<>(ex.getMessage());
+    static <T, E extends Exception> ThrowException<T, E> create(E ex) {
+      var kind =
+          switch (ex.getClass().getName()) {
+            case "java.lang.ClassNotFoundException" -> 1;
+            default -> 0;
+          };
+      return new ThrowException<>(kind, ex.getMessage());
     }
 
     @Override
-    public V value() throws IllegalStateException {
-      throw new IllegalStateException(msg());
+    @SuppressWarnings("unchecked")
+    public V value() throws E {
+      switch (kind) {
+        case 1 -> throw (E) new ClassNotFoundException(msg());
+        default -> throw new IllegalStateException(msg());
+      }
     }
   }
 
@@ -49,22 +62,22 @@ record OtherMessage( // sends a message to the other side
       var receiver = OBJECTS.get(id);
       assert receiver instanceof TruffleObject;
       var res = ReflectionLibrary.getUncached().send(receiver, message, args.toArray());
-      return new OtherValue<>(res);
+      return new ReturnValue<>(res);
     } catch (Exception ex) {
-      return OtherException.create(ex);
+      return ThrowException.create(ex);
     }
   }
 
   @Persistable(id = 81905)
   record LoadClass(String name)
-      implements Function<Channel, OtherResult<TruffleObject, ? extends Exception>> {
+      implements Function<Channel, OtherResult<TruffleObject, ClassNotFoundException>> {
     @Override
-    public OtherResult<TruffleObject, ? extends Exception> apply(Channel t) {
+    public OtherResult<TruffleObject, ClassNotFoundException> apply(Channel t) {
       try {
         var clazzRaw = TruffleClassLoader.loadClass(name);
-        return new OtherValue<>(clazzRaw);
+        return ReturnValue.create(clazzRaw);
       } catch (ClassNotFoundException ex) {
-        return OtherException.create(ex);
+        return ThrowException.create(ex);
       }
     }
   }

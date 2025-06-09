@@ -192,8 +192,9 @@ public final class Channel implements AutoCloseable {
    *     gets serialized and transferred back to us. Deserialized and the value is then returned
    *     from this method
    */
-  public final <R> R execute(Class<R> resultType, Function<Channel, ? extends R> msg) {
-    return executeImpl(pool, resultType, msg);
+  @SuppressWarnings("unchecked")
+  public final <C, R extends C> R execute(Class<C> resultType, Function<Channel, R> msg) {
+    return (R) executeImpl(pool, resultType, msg);
   }
 
   private static final CEntryPointLiteral<CFunctionPointer> CALLBACK_FN =
