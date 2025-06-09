@@ -171,6 +171,4 @@ public final class DefaultWatcher implements Watcher {
     watchKey.cancel();
     watchedDirs.remove(path);
   }
-
-  public record JWatcherError(Throwable throwable) {}
 }
