@@ -348,6 +348,7 @@ lazy val enso = (project in file("."))
     `jna-wrapper`,
     `json-rpc-server`,
     `jvm-channel`,
+    `jvm-interop`,
     `language-server`,
     `language-server-deps-wrapper`,
     launcher,
@@ -793,6 +794,7 @@ lazy val componentModulesPaths =
     (`logging-service` / Compile / exportedModuleBin).value,
     (`logging-service-logback` / Compile / exportedModuleBin).value,
     (`jvm-channel` / Compile / exportedModuleBin).value,
+    (`jvm-interop` / Compile / exportedModuleBin).value,
     (`os-environment` / Compile / exportedModuleBin).value,
     (`pkg` / Compile / exportedModuleBin).value,
     (`refactoring-utils` / Compile / exportedModuleBin).value,
@@ -4322,7 +4324,7 @@ lazy val `jvm-channel` =
     .enablePlugins(JPMSPlugin)
     .settings(
       customFrgaalJavaCompilerSettings("24"),
-      scalaModuleDependencySetting,
+      autoScalaLibrary := false,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
@@ -4343,13 +4345,41 @@ lazy val `jvm-channel` =
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
 
+lazy val `jvm-interop` =
+  project
+    .in(file("lib/java/jvm-interop"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      autoScalaLibrary := false,
+      libraryDependencies ++= slf4jApi ++ Seq(
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk"     % "graal-sdk"             % graalMavenPackagesVersion % Test,
+        "junit"               % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test
+      ),
+      Compile / moduleDependencies ++= slf4jApi ++ Seq(
+        "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
+      ),
+      Compile / internalModuleDependencies ++= Seq(
+        (`jvm-channel` / Compile / exportedModule).value,
+        (`engine-common` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value
+      )
+    )
+    .dependsOn(`jvm-channel`)
+    .dependsOn(`persistance-dsl` % "provided")
+
 lazy val `os-environment` =
   project
     .in(file("lib/java/os-environment"))
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      scalaModuleDependencySetting,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
