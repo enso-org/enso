@@ -10,7 +10,7 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
-import org.enso.filewatcher.DefaultWatcherFactory
+import org.enso.filewatcher.WatcherFactory
 import org.enso.filewatcher.test.NoopWatcherFactory
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
@@ -268,7 +268,7 @@ abstract class BaseServerTest
         s"buffer-registry-${UUID.randomUUID()}"
       )
     val watcherFactory =
-      if (isFileWatcherEnabled) new DefaultWatcherFactory
+      if (isFileWatcherEnabled) WatcherFactory.createDefault()
       else new NoopWatcherFactory
     val fileEventRegistry = system.actorOf(
       ReceivesTreeUpdatesHandler.props(

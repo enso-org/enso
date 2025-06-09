@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 import org.enso.filewatcher.Watcher.WatcherError;
 import org.enso.filewatcher.Watcher.WatcherEvent;
 
-public final class DefaultWatcherFactory implements WatcherFactory {
+final class DefaultWatcherFactory implements WatcherFactory {
 
   @Override
   public Watcher build(
