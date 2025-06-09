@@ -2791,13 +2791,10 @@ lazy val `runtime-language-epb` =
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies := Seq(
-        (`jvm-channel` / Compile / exportedModule).value,
         (`ydoc-polyfill` / Compile / exportedModule).value,
         (`runtime-utils` / Compile / exportedModule).value
       )
     )
-    .dependsOn(`jvm-channel`)
-    .dependsOn(`persistance-dsl` % "provided")
 
 lazy val `runtime-language-arrow` =
   (project in file("engine/runtime-language-arrow"))

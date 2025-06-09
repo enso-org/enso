@@ -1,6 +1,5 @@
 import static org.junit.Assert.fail;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class EpbLanguageDependenciesTest {
@@ -36,7 +35,6 @@ public class EpbLanguageDependenciesTest {
     fail("No class should be found: " + c);
   }
 
-  @Ignore // TBD: brought in by persistance
   @Test(expected = ClassNotFoundException.class)
   public void avoidSlf4j() throws Exception {
     var c = Class.forName("org.slf4j.Logger");

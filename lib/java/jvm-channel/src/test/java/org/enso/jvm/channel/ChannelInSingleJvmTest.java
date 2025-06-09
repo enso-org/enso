@@ -1,10 +1,9 @@
-package org.enso.interpreter.epb;
+package org.enso.jvm.channel;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.function.Function;
-import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
 import org.junit.Test;
 
