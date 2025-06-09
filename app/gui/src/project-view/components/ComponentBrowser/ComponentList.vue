@@ -178,7 +178,7 @@ defineExpose({
       </VirtualizedList>
       <div class="documentation">
         <div class="documentationContent">
-          <!-- eslint-disable vue/no-v-html -->
+          <!-- eslint-disable-next-line vue/no-v-html -->
           <p v-if="documentationSummary" v-html="documentationSummary" />
           <p v-if="selectedSuggestion" v-text="`Returns: ${selectedSuggestionReturnType}`" />
         </div>

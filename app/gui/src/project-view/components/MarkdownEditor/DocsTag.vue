@@ -14,13 +14,7 @@ const text = computed(() => {
 </script>
 
 <template>
-  <div
-    :class="{
-      DocsTag: true,
-      ...(props.class ? { [props.class]: true } : {}),
-    }"
-    v-text="text"
-  ></div>
+  <div :class="`DocsTag ${props.class ?? ''}`" v-text="text"></div>
 </template>
 
 <style scoped>
