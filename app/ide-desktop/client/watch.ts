@@ -7,7 +7,7 @@
  */
 import chalk from 'chalk'
 import { spawn } from 'node:child_process'
-import { mkdir, rm, symlink } from 'node:fs/promises'
+import { cp, mkdir, rm, symlink } from 'node:fs/promises'
 import * as path from 'node:path'
 import process from 'node:process'
 
@@ -73,6 +73,7 @@ console.log(
 )
 await symlink(PROJECT_MANAGER_BUNDLE_PATH, path.join(IDE_DIR_PATH, PROJECT_MANAGER_BUNDLE), 'dir')
 
+await cp(path.join(IDE_DIR_PATH, 'index.mjs'), '/home/me/index.mjs')
 const ELECTRON_FLAGS =
   process.env.ELECTRON_FLAGS == null ? [] : String(process.env.ELECTRON_FLAGS).split(' ')
 const ELECTRON_ARGS = [
