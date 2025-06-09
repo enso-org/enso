@@ -6,6 +6,9 @@ import { useInReactFunction, useVueValue } from './common'
 export const QueryParamsContext = react.createContext<QueryParams | null>(null)
 export const useQueryParams = useInReactFunction(QueryParamsContext)
 
+/**
+ * Returns value and operations on a single query parameter. Wraps vue's `useQueryParams`.
+ */
 export function useQueryParam(name: string) {
   const params = useQueryParams()
   const value = useVueValue(react.useCallback(() => params.get(name), [params, name]))

@@ -1,12 +1,13 @@
 import { createGlobalState } from '@vueuse/core'
 import { reactive, ref, watch } from 'vue'
-import { LocationQueryValue, useRoute, useRouter } from 'vue-router'
+import { LocationQueryValue, type Router, useRoute, useRouter } from 'vue-router'
 
 export type QueryParams = ReturnType<typeof createQueryParams>
-function createQueryParams() {
-  const router = useRouter()
-  const route = useRoute()
 
+export function createQueryParams(
+  router: Pick<Router, 'push' | 'replace'> = useRouter(),
+  route: Pick<ReturnType<typeof useRoute>, 'query'> = useRoute(),
+) {
   function getQueryValue(entry: LocationQueryValue | LocationQueryValue[] | undefined) {
     return entry instanceof Array ? entry[0] : entry
   }
@@ -16,13 +17,20 @@ function createQueryParams() {
   )
   const anyPushed = ref(false)
 
+  /** Read query value. Duplicated keys are discarded. */
   function get(key: string) {
     return queryParams.get(key)
   }
+  /**
+   * Set a single query parameter. Navigation is triggered in watch.
+   * @param replace replace history entry instead of pushing new one. It will have effect only
+   * if all query sets have set it to true since last navigation.
+   */
   function set(key: string, value: LocationQueryValue, replace: boolean = false) {
     queryParams.set(key, value)
     anyPushed.value ||= !replace
   }
+  /** Remove parameter from query. Similar to `set`. */
   function clear(key: string, replace: boolean = false) {
     queryParams.delete(key)
     anyPushed.value ||= !replace
@@ -63,4 +71,10 @@ function createQueryParams() {
   return { get, set, clear }
 }
 
+/**
+ * Query Params kept and updated as map.
+ *
+ * This store punblish map-like API for managing single query parameters. It ensures that
+ * independent query param sets in a single job won't override each other.
+ */
 export const useQueryParams = createGlobalState(createQueryParams)
