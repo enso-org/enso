@@ -98,4 +98,38 @@ record OtherMessage(long id, Message message, List<Object> args)
       return in.readBoolean();
     }
   }
+
+  @Persistable(id = 81905)
+  static final class PersistLong extends Persistance<Long> {
+    public PersistLong() {
+      super(Long.class, true, 81905);
+    }
+
+    @Override
+    protected void writeObject(Long obj, Output out) throws IOException {
+      out.writeLong(obj);
+    }
+
+    @Override
+    protected Long readObject(Input in) throws IOException, ClassNotFoundException {
+      return in.readLong();
+    }
+  }
+
+  @Persistable(id = 81906)
+  static final class PersistString extends Persistance<String> {
+    public PersistString() {
+      super(String.class, true, 81906);
+    }
+
+    @Override
+    protected void writeObject(String obj, Output out) throws IOException {
+      out.writeUTF(obj);
+    }
+
+    @Override
+    protected String readObject(Input in) throws IOException, ClassNotFoundException {
+      return in.readUTF();
+    }
+  }
 }

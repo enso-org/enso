@@ -1,5 +1,6 @@
 package org.enso.jvm.interop;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -40,5 +41,8 @@ public class OtherJvmObjectTest {
     var otherValue = ctx.asValue(other);
 
     assertTrue("Aray is array", otherValue.hasArrayElements());
+    assertEquals("Two elements", 2, otherValue.getArraySize());
+    assertEquals("Ahoj", otherValue.getArrayElement(0).asString());
+    assertEquals("there", otherValue.getArrayElement(1).asString());
   }
 }
