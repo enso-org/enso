@@ -4325,6 +4325,8 @@ lazy val `jvm-channel` =
     .settings(
       customFrgaalJavaCompilerSettings("24"),
       autoScalaLibrary := false,
+      (Test / fork) := true,
+      commands += WithDebugCommand.withDebug,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
@@ -4352,6 +4354,8 @@ lazy val `jvm-interop` =
     .settings(
       frgaalJavaCompilerSetting,
       autoScalaLibrary := false,
+      (Test / fork) := true,
+      commands += WithDebugCommand.withDebug,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
@@ -4373,6 +4377,7 @@ lazy val `jvm-interop` =
     )
     .dependsOn(`jvm-channel`)
     .dependsOn(`persistance-dsl` % "provided")
+    .dependsOn(`test-utils` % Test)
 
 lazy val `os-environment` =
   project

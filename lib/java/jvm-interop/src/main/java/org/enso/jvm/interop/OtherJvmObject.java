@@ -1,5 +1,32 @@
 package org.enso.jvm.interop;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.library.Message;
+import com.oracle.truffle.api.library.ReflectionLibrary;
+import java.util.List;
+import org.enso.jvm.channel.Channel;
 
-final class OtherJvmObject implements TruffleObject {}
+@ExportLibrary(ReflectionLibrary.class)
+final class OtherJvmObject implements TruffleObject {
+  private final Channel channel;
+  private final long id;
+
+  OtherJvmObject(Channel channel, long id) {
+    this.channel = channel;
+    this.id = id;
+  }
+
+  @ExportMessage
+  Object send(Message message, Object[] args) throws Exception {
+    if (message.getLibraryClass() != InteropLibrary.class) {
+      throw UnsupportedMessageException.create();
+    }
+    var msg = new OtherMessage(id, message, List.of(args));
+    var res = channel.execute(OtherResult.class, msg);
+    return res.value();
+  }
+}
