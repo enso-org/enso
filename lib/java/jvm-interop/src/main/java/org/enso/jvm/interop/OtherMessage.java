@@ -82,10 +82,14 @@ record OtherMessage(long id, Message message, List<Object> args)
     }
   }
 
-  @Persistable(id = 81904)
+  //
+  // primitive types
+  //
+
+  @Persistable(id = 101)
   static final class PersistBoolean extends Persistance<Boolean> {
     public PersistBoolean() {
-      super(Boolean.class, true, 81904);
+      super(Boolean.class, true, 101);
     }
 
     @Override
@@ -99,10 +103,61 @@ record OtherMessage(long id, Message message, List<Object> args)
     }
   }
 
-  @Persistable(id = 81905)
+  @Persistable(id = 102)
+  static final class PersistByte extends Persistance<Byte> {
+    public PersistByte() {
+      super(Byte.class, true, 102);
+    }
+
+    @Override
+    protected void writeObject(Byte obj, Output out) throws IOException {
+      out.writeByte(obj);
+    }
+
+    @Override
+    protected Byte readObject(Input in) throws IOException, ClassNotFoundException {
+      return in.readByte();
+    }
+  }
+
+  @Persistable(id = 103)
+  static final class PersistShort extends Persistance<Short> {
+    public PersistShort() {
+      super(Short.class, true, 103);
+    }
+
+    @Override
+    protected void writeObject(Short obj, Output out) throws IOException {
+      out.writeShort(obj);
+    }
+
+    @Override
+    protected Short readObject(Input in) throws IOException, ClassNotFoundException {
+      return in.readShort();
+    }
+  }
+
+  @Persistable(id = 104)
+  static final class PersistInteger extends Persistance<Integer> {
+    public PersistInteger() {
+      super(Integer.class, true, 104);
+    }
+
+    @Override
+    protected void writeObject(Integer obj, Output out) throws IOException {
+      out.writeInt(obj);
+    }
+
+    @Override
+    protected Integer readObject(Input in) throws IOException, ClassNotFoundException {
+      return in.readInt();
+    }
+  }
+
+  @Persistable(id = 105)
   static final class PersistLong extends Persistance<Long> {
     public PersistLong() {
-      super(Long.class, true, 81905);
+      super(Long.class, true, 105);
     }
 
     @Override
@@ -116,10 +171,61 @@ record OtherMessage(long id, Message message, List<Object> args)
     }
   }
 
-  @Persistable(id = 81906)
+  @Persistable(id = 106)
+  static final class PersistFloat extends Persistance<Float> {
+    public PersistFloat() {
+      super(Float.class, true, 106);
+    }
+
+    @Override
+    protected void writeObject(Float obj, Output out) throws IOException {
+      out.writeFloat(obj);
+    }
+
+    @Override
+    protected Float readObject(Input in) throws IOException, ClassNotFoundException {
+      return in.readFloat();
+    }
+  }
+
+  @Persistable(id = 107)
+  static final class PersistDouble extends Persistance<Double> {
+    public PersistDouble() {
+      super(Double.class, true, 107);
+    }
+
+    @Override
+    protected void writeObject(Double obj, Output out) throws IOException {
+      out.writeDouble(obj);
+    }
+
+    @Override
+    protected Double readObject(Input in) throws IOException, ClassNotFoundException {
+      return in.readDouble();
+    }
+  }
+
+  @Persistable(id = 108)
+  static final class PersistCharacter extends Persistance<Character> {
+    public PersistCharacter() {
+      super(Character.class, true, 108);
+    }
+
+    @Override
+    protected void writeObject(Character obj, Output out) throws IOException {
+      out.writeChar(obj);
+    }
+
+    @Override
+    protected Character readObject(Input in) throws IOException, ClassNotFoundException {
+      return in.readChar();
+    }
+  }
+
+  @Persistable(id = 109)
   static final class PersistString extends Persistance<String> {
     public PersistString() {
-      super(String.class, true, 81906);
+      super(String.class, true, 109);
     }
 
     @Override

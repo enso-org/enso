@@ -31,7 +31,10 @@ public class OtherJvmObjectTest {
 
   @Test
   public void wrapArray() {
-    var bigReal = new String[] {"Ahoj", "there"};
+    var bigReal =
+        new Object[] {
+          "Ahoj", 't', (byte) 1, (short) 2, (int) 3, (long) 4, (float) 5, (double) 6, true
+        };
     var bigValue = ctx.asValue(bigReal);
     var bigUnwrap = ctx.unwrapValue(bigValue);
     assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
@@ -41,8 +44,15 @@ public class OtherJvmObjectTest {
     var otherValue = ctx.asValue(other);
 
     assertTrue("Aray is array", otherValue.hasArrayElements());
-    assertEquals("Two elements", 2, otherValue.getArraySize());
+    assertEquals("Few elements", 9, otherValue.getArraySize());
     assertEquals("Ahoj", otherValue.getArrayElement(0).asString());
-    assertEquals("there", otherValue.getArrayElement(1).asString());
+    assertEquals("t", otherValue.getArrayElement(1).asString());
+    assertEquals(1, otherValue.getArrayElement(2).asInt());
+    assertEquals(2, otherValue.getArrayElement(3).asInt());
+    assertEquals(3, otherValue.getArrayElement(4).asInt());
+    assertEquals(4, otherValue.getArrayElement(5).asLong());
+    assertEquals(5.0, otherValue.getArrayElement(6).asFloat(), 0.1);
+    assertEquals(6.0, otherValue.getArrayElement(7).asDouble(), 0.1);
+    assertEquals(true, otherValue.getArrayElement(8).asBoolean());
   }
 }
