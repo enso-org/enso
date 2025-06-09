@@ -20,7 +20,6 @@ import { TextStore, useText } from '$/providers/text'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import * as react from 'react'
 import { applyPureReactInVue } from 'veaury'
-import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 interface ContextsForReactProviderProps {
@@ -82,23 +81,10 @@ export const ContextsForReactProvider = applyPureReactInVue(
       const route = useRoute()
       const router = useRouter()
       return {
-        router: computed(() => {
-          const searchParams = computed(() => {
-            const queryFlatList = Object.entries(route.query).flatMap(([key, value]) => {
-              if (value instanceof Array) {
-                return value.map((singleVal) => [key, singleVal ?? ''])
-              } else {
-                return [[key, value ?? '']]
-              }
-            })
-            return new URLSearchParams(queryFlatList)
-          })
-          return {
-            router,
-            route,
-            searchParams: searchParams.value,
-          }
-        }),
+        router: {
+          router,
+          route,
+        },
         config: injectGuiConfig(),
         text: useText(),
         httpClient: useHttpClient(),

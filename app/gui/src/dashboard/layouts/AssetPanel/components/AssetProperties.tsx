@@ -30,6 +30,7 @@ import {
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
 import { useFeatureFlags } from '$/providers/react/featureFlags'
 import {
   useRightPanelContextCategory,
@@ -86,6 +87,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
   const rightPanel = useRightPanelData()
+  const spotlightOn = useVueValue(
+    React.useCallback(() => rightPanel.context?.spotlightOn, [rightPanel]),
+  )
 
   const closeSpotlight = useEventCallback(() => {
     rightPanel.updateContext('drive', (ctx) => {
@@ -97,8 +101,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
-  const isEditingDescription =
-    isEditingDescriptionRaw || rightPanel.context?.spotlightOn === 'description'
+  const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
   const setIsEditingDescription = useEventCallback(
     (valueOrUpdater: React.SetStateAction<boolean>) => {
       setIsEditingDescriptionRaw((currentValue) => {

@@ -20,6 +20,7 @@ import { PASSWORD_REGEX } from '#/utilities/validation'
 import { unsafeWriteValue } from '#/utilities/write'
 import { LOGIN_PATH } from '$/appUtils'
 import { useBackends, useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { type GetText } from '$/providers/text'
 import { toast } from 'react-toastify'
 import * as z from 'zod'
@@ -53,15 +54,16 @@ const REDIRECT_TIMEOUT = 3000
 export default function ResetPassword() {
   const { resetPassword } = useSession()
   const { getText } = useText()
-  const { router, searchParams } = useRouter()
+  const { router } = useRouter()
 
   const toastAndLog = useToastAndLog()
   const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const defaultEmail = searchParams.get('email')
-  const defaultVerificationCode = searchParams.get('verification_code')
-  const redirectUrl = searchParams.get('redirect_url') ?? 'enso://auth/login'
+  const [defaultEmail] = useQueryParam('email')
+  const [defaultVerificationCode] = useQueryParam('verification_code')
+  const [maybeRedirectUrl] = useQueryParam('redirect_url')
+  const redirectUrl = maybeRedirectUrl ?? 'enso://auth/login'
 
   const { startTimer } = useTimeoutAPI({ ms: REDIRECT_TIMEOUT })
 
