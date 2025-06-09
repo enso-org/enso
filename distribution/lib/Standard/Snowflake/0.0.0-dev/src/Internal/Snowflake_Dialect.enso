@@ -756,7 +756,7 @@ replace args metadata =
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 1, 'i')"
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 1)"
-        DB_Column ->
+        Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
