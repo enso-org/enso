@@ -27,6 +27,7 @@ public class OtherJvmObjectTest {
     var otherValue = ctx.asValue(other);
 
     assertFalse("Decimal isn't array", otherValue.hasArrayElements());
+    assertEquals(bigReal.toPlainString(), otherValue.invokeMember("toPlainString").asString());
   }
 
   @Test

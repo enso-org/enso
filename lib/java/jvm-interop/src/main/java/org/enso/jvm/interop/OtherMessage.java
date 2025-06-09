@@ -57,9 +57,35 @@ record OtherMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81903)
+  static final class PersistObjectArray extends Persistance<Object[]> {
+    public PersistObjectArray() {
+      super(Object[].class, true, 81903);
+    }
+
+    @Override
+    protected void writeObject(Object[] obj, Output out) throws IOException {
+      var size = obj.length;
+      out.writeInt(size);
+      for (var i = 0; i < size; i++) {
+        out.writeObject(obj[i]);
+      }
+    }
+
+    @Override
+    protected Object[] readObject(Input in) throws IOException, ClassNotFoundException {
+      var size = in.readInt();
+      var arr = new Object[size];
+      for (var i = 0; i < size; i++) {
+        arr[i] = in.readObject();
+      }
+      return arr;
+    }
+  }
+
+  @Persistable(id = 81904)
   static final class PersistList extends Persistance<List> {
     public PersistList() {
-      super(List.class, true, 81903);
+      super(List.class, true, 81904);
     }
 
     @Override
