@@ -152,8 +152,9 @@ public class Column {
    * @return a column with given name and items
    */
   public static Column fromRepeatedItem(
-      String name, Value item, int repeat, ProblemAggregator problemAggregator) {
-    return new Column(name, Storage.fromRepeatedItem(item, repeat, problemAggregator));
+      String name, Value item, int repeat) {
+    Object converted = Polyglot_Utils.convertPolyglotValue(item);
+    return new Column(name, Builder.fromRepeatedItem(converted, repeat));
   }
 
   /**

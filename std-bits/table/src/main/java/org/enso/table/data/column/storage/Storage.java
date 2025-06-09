@@ -8,7 +8,6 @@ import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -240,34 +239,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       occurenceCount.put(value, count + 1);
       context.safepoint();
     }
-    return builder.seal();
-  }
-
-  /** Creates a storage containing a single repeated item. */
-  public static ColumnStorage<?> fromRepeatedItem(
-      Value item, int repeat, ProblemAggregator problemAggregator) {
-    if (repeat < 0) {
-      throw new IllegalArgumentException("Repeat count must be non-negative.");
-    }
-
-    Object converted = Polyglot_Utils.convertPolyglotValue(item);
-
-    if (converted == null) {
-      return new NullStorage(repeat);
-    }
-
-    if (converted instanceof Long longValue) {
-      return new LongConstantStorage(longValue, repeat);
-    }
-
-    var storageType = StorageType.forBoxedItem(converted, PreciseTypeOptions.DEFAULT);
-    Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < repeat; i++) {
-      builder.append(converted);
-      context.safepoint();
-    }
-
     return builder.seal();
   }
 }

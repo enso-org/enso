@@ -26,7 +26,6 @@ import project.Fill_With.Fill_With
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Cast_Helpers
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
-import project.Internal.Column_Ops
 import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Offset_Helper
@@ -552,13 +551,16 @@ type In_Memory_Column_Implementation
 
     format this_column (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column ! Illegal_Argument = case format of
         format_column : Column -> Value_Type.expect_text format_column <|
-            formatter = make_value_formatter_for_value_type this_column.value_type locale
-            formatter.if_not_error <|
-                formatter_flipped value format = formatter format value
-                Column_Ops.map_2_over_storage this_column format_column formatter_flipped make_string_builder
+            if format_column.length != this_column.length then Error.throw (Illegal_Argument.Error ("Column lengths differ: " + this_column.length.to_text + " != " + format_column.length.to_text)) else
+                formatter = make_value_formatter_for_value_type this_column.value_type locale
+                formatter.if_not_error <|
+                    formatter_function value format = if value.is_nothing then Nothing else
+                        formatter format value
+                    _apply_binary_map this_column formatter_function format_column this_column.name skip_nulls=False expected_result_type=Value_Type.Char
         _ ->
-            formatter = make_value_formatter_for_value_type this_column.value_type locale format
-            _apply_unary_map this_column this_column.name formatter Value_Type.Char
+            if format==Nothing && locale==Locale.default then In_Memory_Column_Implementation.cast this_column Value_Type.Char else
+                formatter = make_value_formatter_for_value_type this_column.value_type locale format
+                _apply_unary_map this_column this_column.name formatter Value_Type.Char on_problems=..Report_Error
 
     cast this_column value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
         Cast_Helpers.check_cast_compatibility this_column.value_type value_type <|
@@ -843,9 +845,9 @@ apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothi
    - nothing_unchanged: If set to `True`, `Nothing` values will be passed through
      the operation without being changed. If set to `False`, `Nothing` values will
      be passed to the function.
-private _apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
+private _apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
     storage_type = resolve_storage_type expected_result_type
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
+    Java_Problems.with_map_operation_problem_aggregator column.name on_problems java_problem_aggregator->
         map_column = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             UnaryOperation.mapFunction (column:In_Memory_Column).java_column function nothing_unchanged storage_type new_name java_problem_aggregator
         In_Memory_Column.from_java_column map_column

@@ -68,8 +68,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
       // Null on left-hand side so just return the right-hand Column
       if (leftStorage.getType() instanceof NullType) {
         int checkedSize = Builder.checkSize(leftStorage.getSize());
-        var constantStorage =
-            Storage.fromRepeatedItem(Value.asValue(right), checkedSize, problemBuilder);
+        var constantStorage = Builder.fromRepeatedItem(right, checkedSize);
         return new Column(name, constantStorage);
       }
 

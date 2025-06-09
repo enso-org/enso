@@ -73,7 +73,7 @@ public final class IsInOperation {
     }
 
     if (list.isEmpty()) {
-      return new Column(new_name, BoolBuilder.makeConstant(left.getSize(), false));
+      return new Column(new_name, Builder.fromRepeatedItem(false, left.getSize()));
     }
 
     var leftStorage = BinaryOperation.getInferredStorage(left);
@@ -172,7 +172,7 @@ public final class IsInOperation {
     if (result.uniqueValues.isEmpty()) {
       return result.hadNull()
           ? BoolBuilder.makeEmpty(storage.getSize())
-          : BoolBuilder.makeConstant(storage.getSize(), false);
+          : Builder.fromRepeatedItem(false, storage.getSize());
     }
 
     // Scan the storage and build the result
@@ -229,7 +229,7 @@ public final class IsInOperation {
     if (!flags.hadTrue && !flags.hadFalse) {
       return flags.hadNull
           ? BoolBuilder.makeEmpty(boolStorage.getSize())
-          : BoolBuilder.makeConstant(boolStorage.getSize(), false);
+          : Builder.fromRepeatedItem(false, boolStorage.getSize());
     }
 
     // Convert Size
