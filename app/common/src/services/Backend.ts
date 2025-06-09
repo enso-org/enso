@@ -35,6 +35,7 @@ import {
   SecretId,
   SubscriptionId,
   TagId,
+  UnzipAssetsJobId,
   UpAssetId,
   UserGroupId,
   UserId,
@@ -1543,11 +1544,23 @@ interface ImportArchiveResponseWithAssets {
 }
 
 export interface AssetConflict {
-  readonly sourcePath: Path
+  readonly type: AssetType
+  readonly path: Path
   readonly existingAsset: AnyAsset
 }
 
+/** Possible resolutions for a conflict. */
+export type AssetResolution =
+  | { type: 'rename'; path: Path; name: string }
+  | { type: 'replace'; path: Path }
+  | { type: 'skip'; path: Path }
+
+export interface ResolveArchiveRequestBody {
+  readonly resolutions: readonly AssetResolution[]
+}
+
 interface ImportArchiveResponseWithConflicts {
+  readonly jobId: UnzipAssetsJobId
   readonly conflicts: readonly AssetConflict[]
 }
 
@@ -1676,7 +1689,7 @@ export function extractProjectExtension(name: string) {
 }
 
 export interface TitleSchemaOptions {
-  readonly asset: AnyAsset
+  readonly asset: Pick<AnyAsset, 'id' | 'title'>
   readonly siblings?: readonly AnyAsset[] | null
 }
 
@@ -1728,7 +1741,7 @@ export function titleSchema(options: TitleSchemaOptions) {
  * Check whether a new title is unique among the siblings.
  */
 export function isNewTitleUnique(
-  item: AnyAsset,
+  item: Pick<AnyAsset, 'id' | 'title'>,
   newTitle: string,
   siblings?: readonly AnyAsset[] | null,
 ) {
@@ -2055,9 +2068,14 @@ export default abstract class Backend {
     shouldUnpackProject?: boolean,
   ): Promise<void>
   /** Import an archive and unpack into a directory. */
-  abstract importArchive(params: ImportArchiveParams): Promise<readonly AnyAsset[]>
+  abstract importArchive(params: ImportArchiveParams): Promise<ImportArchiveResponse>
   /** Export multiple files and pack into an archive. */
   abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
+  /** Resolve conflicts for an imported archive. */
+  abstract resolveArchiveConflicts(
+    jobId: UnzipAssetsJobId,
+    params: ResolveArchiveRequestBody,
+  ): Promise<void>
 
   /**
    * Get the URL for the customer portal.

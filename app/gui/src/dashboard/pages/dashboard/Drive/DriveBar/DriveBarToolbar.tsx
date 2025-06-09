@@ -16,6 +16,7 @@ import {
 import {
   backendMutationOptions,
   listDirectoryQueryOptions,
+  useListDirectoryRefetchInterval,
   useNewFolder,
   useNewProject,
 } from '#/hooks/backendHooks'
@@ -32,6 +33,7 @@ import {
 } from '#/layouts/CategorySwitcher/Category'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import { resolveConflicts } from '#/modals/ConflictingMultipleUploadModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -74,8 +76,9 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { localBackend = null } = useBackends()
   const canDownload = useCanDownload()
   const canExport = useStore(driveStore, ({ selectedIds }) => selectedIds.size !== 0)
+  const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
 
-  const { currentDirectoryId } = useDirectoryIds({ category })
+  const { queryDirectoryId, currentDirectoryId } = useDirectoryIds({ category })
 
   const shouldBeDisabled = isCloud && isOffline
 
@@ -108,6 +111,9 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
   const importArchive = useMutationCallback(backendMutationOptions(localBackend, 'importArchive'))
+  const resolveArchiveConflicts = useMutationCallback(
+    backendMutationOptions(localBackend, 'resolveArchiveConflicts'),
+  )
   const exportArchive = useExportArchive()
 
   const newProjectMutation = useMutationCallback({
@@ -172,12 +178,28 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     if (!archive) {
       return
     }
-    if ('path' in archive && typeof archive.path === 'string') {
-      // This is a non-standard property that is available in Electron.
-      await importArchive([{ directory: currentDirectoryId, filePath: Path(archive.path) }])
-    } else {
-      await importArchive([{ directory: currentDirectoryId, archive }])
+    const result = await importArchive([
+      'path' in archive && typeof archive.path === 'string' ?
+        // This is a non-standard property that is available in Electron.
+        { directory: currentDirectoryId, filePath: Path(archive.path) }
+      : { directory: currentDirectoryId, archive },
+    ])
+    if (!result) {
+      return
     }
+    if ('assets' in result) {
+      return
+    }
+    const resolutions = await resolveConflicts({
+      conflicts: result.conflicts,
+      parentDirectoryQueryOptions: {
+        backend,
+        parentId: queryDirectoryId,
+        category,
+        refetchInterval: listDirectoryRefetchInterval,
+      },
+    })
+    await resolveArchiveConflicts([result.jobId, { resolutions }])
   })
 
   const downloadFilesCallback = useEventCallback(async () => {

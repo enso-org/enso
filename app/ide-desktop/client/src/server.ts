@@ -39,6 +39,7 @@ import {
   ProjectId,
   ProjectState,
   S3FilePath,
+  UnzipAssetsJobId,
   VirtualParentsPath,
 } from 'enso-common/src/services/Backend'
 import {
@@ -202,7 +203,6 @@ async function findPort(port: number): Promise<number> {
 export class Server {
   private projectsRootDirectory: string
   private devServer?: vite.ViteDevServer
-  private conflictingArchives: Record<string, Path> = {}
 
   /** Create a simple HTTP server. */
   constructor(public config: Config) {
@@ -853,7 +853,8 @@ export class Server {
       const existingAsset = self.apiGetAssetDetailsByPath({ path: entryPath })
       if (existingAsset) {
         const conflict: AssetConflict = {
-          sourcePath: Path(entryPathInArchive),
+          type: existingAsset.type,
+          path: Path(entryPathInArchive),
           existingAsset,
         }
         conflicts.push(conflict)
@@ -926,11 +927,12 @@ export class Server {
           await entry.extract(directory)
         }
       }
+      if (tempDirectory != null) {
+        await rm(tempDirectory, { force: true, recursive: true })
+      }
     }
-    if (tempDirectory != null) {
-      await rm(tempDirectory, { force: true, recursive: true })
-    }
-    const result: ImportArchiveResponse = conflicts.length === 0 ? { assets } : { conflicts }
+    const result: ImportArchiveResponse =
+      conflicts.length === 0 ? { assets } : { jobId: UnzipAssetsJobId(filePath), conflicts }
     this.httpOkJson(response, result)
   }
 

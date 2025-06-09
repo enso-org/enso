@@ -686,11 +686,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
             )
           })}
 
-          <Button.Group
-            className={
-              'fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md'
-            }
-          >
+          <Button.Group className="fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md">
             <Dialog.Close variant="ghost" onPress={props.onCancel} className="mr-auto">
               {getText('cancel')}
             </Dialog.Close>
@@ -741,15 +737,11 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
   )
 }
 
-/**
- * Options for resolving duplicates.
- */
+/** Options for resolving duplicates. */
 export interface ResolveDuplicationsOptions
   extends Omit<ResolveDuplicationsProps, 'onCancel' | 'onSubmit'> {}
 
-/**
- * Function for resolving duplicates.
- */
+/** Function for resolving duplicates. */
 // eslint-disable-next-line react-refresh/only-export-components
 export async function resolveDuplications(options: ResolveDuplicationsOptions) {
   return new Promise<readonly ResolvedDuplication[]>((resolve, reject) => {

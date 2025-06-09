@@ -2,6 +2,7 @@
 import {
   DirectoryId,
   HttpsUrl,
+  UnzipAssetsJobId,
   type AssetId,
   type CheckoutSessionId,
   type CredentialInput,
@@ -267,6 +268,10 @@ export const IMPORT_ARCHIVE_PATH = 'assets/unzip'
 /** Relative HTTP path to the "export archive job status" endpoint of the Cloud backend API. */
 export function getExportArchiveJobStatusPath(jobId: ZipAssetsJobId) {
   return HttpsUrl(`assets/zip/${jobId}`)
+}
+/** Relative HTTP path to the "resolve import archive job" endpoint of the Cloud backend API. */
+export function resolveArchivePath(jobId: UnzipAssetsJobId) {
+  return HttpsUrl(`assets/unzip/${jobId}/resolve`)
 }
 
 /** The ID of the directory containing the home directories of all users. */

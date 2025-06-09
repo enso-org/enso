@@ -2,13 +2,13 @@
 import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { titleSchema, type FileAsset } from '#/services/Backend'
 import { fileIcon } from '#/utilities/fileIcon'
 import { merger } from '#/utilities/object'
 
 /** Props for a {@link FileNameColumn}. */
-export interface FileNameColumnProps extends AssetColumnProps {
+export interface FileNameColumnProps extends AssetNameColumnProps {
   readonly item: FileAsset
 }
 

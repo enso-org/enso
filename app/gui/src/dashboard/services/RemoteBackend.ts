@@ -1561,7 +1561,7 @@ export default class RemoteBackend extends Backend {
    */
   override importArchive(
     _params: backend.ImportArchiveParams,
-  ): Promise<readonly backend.AnyAsset[]> {
+  ): Promise<backend.ImportArchiveResponse> {
     throw new Error('`importArchive` is not implemented on the Remote Backend.')
   }
 
@@ -1588,6 +1588,17 @@ export default class RemoteBackend extends Backend {
       })
       return { filePath }
     }
+  }
+
+  /**
+   * Resolve conflicts for an imported archive.
+   * @throws {Error} always.
+   */
+  override resolveArchiveConflicts(
+    _jobId: backend.UnzipAssetsJobId,
+    _params: backend.ResolveArchiveRequestBody,
+  ): Promise<void> {
+    throw new Error('`resolveArchiveConflicts` is not implemented on the Remote Backend.')
   }
 
   /**
@@ -1623,9 +1634,7 @@ const DUPLICATE_ASSET_ERROR_SCHEMA = z.object({
   message: z.string().includes('A resource with that title already exists.'),
 })
 
-/**
- * Check if the error is a duplicate asset error.
- */
+/** Check if the error is a duplicate asset error. */
 function isDuplicateAssetError(error: unknown): error is Error {
   return DUPLICATE_ASSET_ERROR_SCHEMA.safeParse(error).success
 }

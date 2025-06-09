@@ -9,8 +9,10 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import type { AssetsTableState } from '#/layouts/AssetsTable'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
+import type { AssetColumnProps, AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import DatalinkNameColumn from '#/pages/dashboard/components/column/DatalinkNameColumn'
 import DirectoryNameColumn from '#/pages/dashboard/components/column/DirectoryNameColumn'
 import FileNameColumn from '#/pages/dashboard/components/column/FileNameColumn'
@@ -19,17 +21,20 @@ import SecretNameColumn from '#/pages/dashboard/components/column/SecretNameColu
 import Label from '#/pages/dashboard/components/Label'
 import PermissionDisplay from '#/pages/dashboard/components/PermissionDisplay'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import type { AnyAsset } from '#/services/Backend'
 import {
   AssetType,
   FALLBACK_COLOR,
   getAssetPermissionId,
   getAssetPermissionName,
 } from '#/services/Backend'
+import { noopPromise } from '#/utilities/functions'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { PermissionAction } from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import { noop } from 'motion-v'
 import { useRef, useState } from 'react'
 export { PathColumn } from './PathColumn'
 
@@ -171,7 +176,7 @@ export function ModifiedColumn(props: AssetColumnProps) {
 }
 
 /** The icon and name of an {@link backendModule.Asset}. */
-export function NameColumn(props: AssetColumnProps) {
+export function NameColumn(props: AssetNameColumnProps) {
   const { item } = props
 
   switch (item.type) {
@@ -198,6 +203,37 @@ export function NameColumn(props: AssetColumnProps) {
       return <></>
     }
   }
+}
+
+/** Props for a {@link ReadonlyNameColumn}. */
+export interface ReadonlyNameColumnProps {
+  readonly node: AnyAsset
+  readonly state: Pick<AssetsTableState, 'backend'>
+}
+
+/** A non-interactable name column. */
+export function ReadonlyNameColumn(props: ReadonlyNameColumnProps) {
+  const { node, state } = props
+
+  return (
+    <NameColumn
+      isNavigating={false}
+      item={node}
+      isOpened={false}
+      backendType={state.backend.type}
+      state={state}
+      rowState={INITIAL_ROW_STATE}
+      // The drag placeholder cannot be interacted with.
+      isEditable={false}
+      isPlaceholder={false}
+      setSelected={noop}
+      setRowState={noop}
+      renameAsset={noopPromise}
+      closeProject={noopPromise}
+      openProject={noopPromise}
+      labels={[]}
+    />
+  )
 }
 
 /** A placeholder component for columns which do not yet have corresponding data to display. */
