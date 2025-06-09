@@ -2240,9 +2240,9 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_wit
 ## PRIVATE
 Many_Files_List.from (that : Column) =
     # Ensure that only in-memory columns can be used as Many_Files_List
-    _ = that:In_Memory_Column
-    Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
-        Many_Files_List.Value that that.to_vector
+    (that:In_Memory_Column).if_not_error <|
+        Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
+            Many_Files_List.Value that that.to_vector
 
 ## PRIVATE
    Gets the Visualization helpers for a Column.

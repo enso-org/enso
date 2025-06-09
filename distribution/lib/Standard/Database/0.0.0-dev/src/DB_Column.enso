@@ -64,7 +64,7 @@ type DB_Column
 
     ## ICON convert
        Returns an SQL statement that will be used for materializing this column.
-    to_sql self -> SQL_Statement = self.to_table.to_sql
+    to_sql self -> SQL_Statement = (self:Column).to_table.to_sql
 
     ## PRIVATE
     pretty : Text
