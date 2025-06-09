@@ -15,7 +15,6 @@ import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
-import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
@@ -37,12 +36,23 @@ import org.graalvm.polyglot.Value;
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
     implements ColumnDoubleStorage, ColumnStorageWithNothingMap, NumericFormattingStorage {
+  private static final MapOperationStorage<Double, DoubleStorage> OPS = buildOps();
+
+  private static MapOperationStorage<Double, DoubleStorage> buildOps() {
+    MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
+    ops.add(new AddOp<>())
+        .add(new SubOp<>())
+        .add(new MulOp<>())
+        .add(new DivideOp<>())
+        .add(new ModOp<>())
+        .add(new PowerOp<>());
+    return ops;
+  }
 
   final double[] data;
   final BitSet isNothing;
   private final int size;
-  private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
-  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
+  private final CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -96,20 +106,15 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public boolean isBinaryOpVectorized(String op) {
-    return ops.isSupportedBinary(op);
-  }
-
-  @Override
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runBinaryMap(name, this, argument, problemAggregator);
+    return OPS.runBinaryMap(name, this, argument, problemAggregator);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runZip(name, this, argument, problemAggregator);
+    return OPS.runZip(name, this, argument, problemAggregator);
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
@@ -243,18 +248,6 @@ public final class DoubleStorage extends Storage<Double>
       context.safepoint();
     }
     return new DoubleStorage(newData, newData.length, newIsNothing);
-  }
-
-  private static MapOperationStorage<Double, DoubleStorage> buildOps() {
-    MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
-    ops.add(new AddOp<>())
-        .add(new SubOp<>())
-        .add(new MulOp<>())
-        .add(new DivideOp<>())
-        .add(new ModOp<>())
-        .add(new PowerOp<>())
-        .add(new DoubleIsInOp());
-    return ops;
   }
 
   @Override

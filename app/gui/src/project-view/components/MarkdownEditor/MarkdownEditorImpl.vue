@@ -1,21 +1,19 @@
 <script setup lang="ts">
-import { documentationEditorBindings } from '@/bindings'
+import ActionButton from '@/components/ActionButton.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
 import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
-import SvgButton from '@/components/SvgButton.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
+import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
 import { Vec2 } from '@/util/data/vec2'
-import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
+import { type ComponentInstance, computed, ref, useCssModule, useTemplateRef } from 'vue'
 import * as Y from 'yjs'
 
 const { content, toolbar, contentTestId } = defineProps<{
@@ -27,14 +25,28 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const toastError = useToast.error()
-
-const focused = ref(false)
-const editing = computed(() => !readonly.value && focused.value)
+function useEditorFocus(view: EditorView) {
+  const focused = ref(false)
+  const focusHandlers = {
+    focusin: (event: FocusEvent) => {
+      // Enable rendering the line containing the current cursor in `editing` mode if focus enters
+      // the element *inside* the scroll area--if we handled the event for the editor root, clicking
+      // the scrollbar would cause editing mode to be activated.
+      if (event.target instanceof Node && view.contentDOM.contains(event.target))
+        focused.value = true
+    },
+    focusout: () => {
+      // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
+      // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
+      focused.value = false
+    },
+  }
+  return { focused, focusHandlers }
+}
 
 const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
+const { editorView, readonly, putTextAt, setExtraExtensions } = useCodeMirror(editorRoot, {
   content: () => content,
   extensions: [
     drawSelection(),
@@ -48,48 +60,18 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
   lineMode: 'multi',
   contentTestId,
 })
-const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
 
 useLinkTitles(editorView, { readonly })
 
-onMounted(() => {
-  // Enable rendering the line containing the current cursor in `editing` mode if focus enters the element *inside* the
-  // scroll area--if we attached the handler to the editor root, clicking the scrollbar would cause editing mode to be
-  // activated.
-  editorView.dom
-    .getElementsByClassName('cm-content')[0]!
-    .addEventListener('focusin', () => (focused.value = true))
+const { focused, focusHandlers } = useEditorFocus(editorView)
+const editing = computed(() => !readonly.value && focused.value)
+
+const formatting = useMarkdownFormatting(editorView)
+const { formatBindings } = useFormatActions({
+  formatting,
+  editing,
 })
-
-function reportUnformattable() {
-  toastError.show('The selected text cannot be formated')
-}
-
-function toggleFormat({
-  set,
-  value,
-}: {
-  set: ((value: boolean) => void) | undefined
-  value: boolean
-}) {
-  if (!set) {
-    reportUnformattable()
-    return
-  }
-  set(!value)
-}
-
-function doFormat(action: (() => void) | undefined) {
-  if (!action) {
-    reportUnformattable()
-    return
-  }
-  action()
-}
-
-function binding(binding: keyof typeof documentationEditorBindings.bindings): string {
-  return documentationEditorBindings.bindings[binding].humanReadable
-}
+setExtraExtensions([formatBindings])
 
 defineExpose({
   putText: (text: string) => {
@@ -101,13 +83,6 @@ defineExpose({
     const pos = editorView.posAtCoords(coords, false)
     putTextAt(text, pos, pos)
   },
-  bold: () => toggleFormat(bold),
-  italic: () => toggleFormat(italic),
-  header1: () => blockType.set('ATXHeading1'),
-  header2: () => blockType.set('ATXHeading2'),
-  header3: () => blockType.set('ATXHeading3'),
-  paragraph: () => blockType.set('Paragraph'),
-  link: () => doFormat(insertLink.value),
 })
 </script>
 
@@ -117,35 +92,13 @@ defineExpose({
       <slot name="toolbarLeft" />
       <template v-if="!readonly">
         <BlockTypeDropdown
-          :modelValue="blockType.value ?? 'Unknown'"
-          @update:modelValue="blockType.set($event as BlockType)"
+          :modelValue="formatting.blockType.value ?? 'Unknown'"
+          @update:modelValue="formatting.blockType.set($event as BlockType)"
         />
-        <ToggleIcon
-          icon="italic"
-          :disabled="!editing || !italic.set"
-          :modelValue="italic.value"
-          :title="`Italic (${binding('italic')})`"
-          @update:modelValue="italic.set!"
-        />
-        <ToggleIcon
-          icon="bold"
-          :disabled="!editing || !bold.set"
-          :modelValue="bold.value"
-          :title="`Bold (${binding('bold')})`"
-          @update:modelValue="bold.set!"
-        />
-        <SvgButton
-          name="connector_add"
-          :disabled="insertLink == null"
-          :title="`Insert link (${binding('link')})`"
-          @activate="insertLink?.()"
-        />
-        <SvgButton
-          name="code"
-          :disabled="insertCodeBlock == null"
-          title="Insert code block"
-          @activate="insertCodeBlock?.()"
-        />
+        <ActionButton action="documentationEditor.italic" />
+        <ActionButton action="documentationEditor.bold" />
+        <ActionButton action="documentationEditor.link" />
+        <ActionButton action="documentationEditor.code" />
       </template>
       <slot name="toolbarRight" />
     </div>
@@ -154,7 +107,7 @@ defineExpose({
       ref="editorRoot"
       v-bind="$attrs"
       :class="{ editing }"
-      @focusout="focused = false"
+      v-on="focusHandlers"
       @keydown.enter.stop
     >
       <VueHostRender :host="vueHost" />
@@ -182,6 +135,7 @@ defineExpose({
 
 /*noinspection CssUnusedSymbol*/
 .CodeMirrorRoot {
+  /*noinspection CssUnusedSymbol*/
   & :deep(.cm-content) {
     /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
     font-family: var(--font-sans);

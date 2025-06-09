@@ -101,117 +101,139 @@ test('Text widget: Convert to multiline', async ({ page }) => {
   ])
 })
 
-test('Multi-selection widget', async ({ page }) => {
-  await actions.goToGraph(page)
-  await mockMethodCallInfo(page, 'selected', {
-    methodPointer: {
-      module: 'Standard.Table.Table',
-      definedOnType: 'Standard.Table.Table.Table',
-      name: 'select_columns',
-    },
-    notAppliedArguments: [1],
+test.describe('Multi-selection widget', () => {
+  test.beforeEach(async ({ page }) => {
+    await actions.goToGraph(page)
+
+    await mockMethodCallInfo(page, 'selected', {
+      methodPointer: {
+        module: 'Standard.Table.Table',
+        definedOnType: 'Standard.Table.Table.Table',
+        name: 'select_columns',
+      },
+      notAppliedArguments: [1],
+    })
   })
 
-  // Click the argument to open the dropdown.
-  const node = locate.graphNodeByBinding(page, 'selected')
-  const topLevelArgs = node.locator('.WidgetTopLevelArgument')
-  await expect(topLevelArgs).toHaveCount(1)
-  const columnsArg = topLevelArgs.filter({ has: page.getByText('columns') })
+  async function openAndCheckDropdown(page: Page) {
+    // Click the argument to open the dropdown.
+    const node = locate.graphNodeByBinding(page, 'selected')
+    const topLevelArgs = node.locator('.WidgetTopLevelArgument')
+    await expect(topLevelArgs).toHaveCount(1)
+    const columnsArg = topLevelArgs.filter({ has: page.getByText('columns') })
 
-  // Get the dropdown and corresponding vector; they both have 0 items.
-  const dropDown = new DropDownLocator(columnsArg)
-  await dropDown.clickWidget()
-  await dropDown.expectVisibleWithOptions(['Column A', 'Column B'])
-  await expect(dropDown.rootWidget).toHaveClass(/multiSelect/)
-  const vector = node.locator('.WidgetVector')
-  const vectorItems = vector.getByTestId('list-item-content').getByTestId('widget-text-content')
-  await expect(vector).toBeVisible()
-  await expect(dropDown.selectedItems).toHaveCount(0)
-  await expect(vectorItems).toHaveCount(0)
+    // Get the dropdown and corresponding vector; they both have 0 items.
+    const dropDown = new DropDownLocator(columnsArg)
+    await dropDown.clickWidget()
+    await dropDown.expectVisibleWithOptions(['Column A', 'Column B'])
+    await expect(dropDown.rootWidget).toHaveClass(/multiSelect/)
+    const vector = node.locator('.WidgetVector')
+    const vectorItems = vector.getByTestId('list-item-content').getByTestId('widget-text-content')
+    await expect(vector).toBeVisible()
+    await expect(dropDown.selectedItems).toHaveCount(0)
+    await expect(vectorItems).toHaveCount(0)
 
-  // Enable an item.
-  await dropDown.clickOption('Column A')
-  await expect(dropDown.selectedItem('Column A')).toExist()
-  await expect(vector).toBeVisible()
-  await expect(vectorItems).toHaveCount(1)
-  await expect(vectorItems.first()).toHaveText('Column A')
-  await dropDown.expectVisibleWithOptions(['Column A', 'Column B'])
+    return { dropDown, vector, vectorItems }
+  }
 
-  // Add-item button opens dropdown, after closing with escape.
-  await page.keyboard.press('Escape')
-  await dropDown.expectNotVisible()
-  await locate.addItemButton(vector).click()
-  await expect(dropDown.items).toHaveCount(2)
-  await expect(dropDown.selectedItems).toHaveCount(1)
+  test('Enabling and disabling items', async ({ page }) => {
+    const { dropDown, vector, vectorItems } = await openAndCheckDropdown(page)
 
-  // Enable another item.
-  await dropDown.clickOption('Column B')
-  await expect(vectorItems).toHaveCount(2)
-  await expect(vectorItems.first()).toHaveText('Column A')
-  await expect(vectorItems.nth(1)).toHaveText('Column B')
-  await expect(dropDown.dropDown).toBeVisible()
-  await expect(dropDown.items).toHaveCount(2)
-  await expect(dropDown.selectedItems).toHaveCount(2)
+    // Enable an item.
+    await dropDown.clickOption('Column A')
+    await expect(dropDown.selectedItem('Column A')).toExist()
+    await expect(vector).toBeVisible()
+    await expect(vectorItems).toHaveCount(1)
+    await expect(vectorItems.first()).toHaveText('Column A')
+    await dropDown.expectVisible()
 
-  // Clicking to edit an item opens the dropdown, after closing with escape.
-  await page.keyboard.press('Escape')
-  await dropDown.expectNotVisible()
-  await expect(vectorItems.first()).toHaveText('Column A')
-  await vectorItems.first().click()
-  await expect(vectorItems.first()).toBeFocused()
-  await expect(dropDown.dropDown).toBeVisible()
+    // Enable another item.
+    await dropDown.clickOption('Column B')
+    await expect(vectorItems).toHaveCount(2)
+    await expect(vectorItems.first()).toHaveText('Column A')
+    await expect(vectorItems.nth(1)).toHaveText('Column B')
+    await expect(dropDown.dropDown).toBeVisible()
+    await expect(dropDown.items).toHaveCount(2)
+    await expect(dropDown.selectedItems).toHaveCount(2)
 
-  // Clicking to edit a different item doesn't close the dropdown.
-  await expect(vectorItems.nth(1)).toHaveText('Column B')
-  await vectorItems.nth(1).click()
-  await expect(vectorItems.nth(1)).toBeFocused()
-  await expect(dropDown.dropDown).toBeVisible()
+    // Disable an item.
+    await dropDown.clickOption('Column A')
+    await expect(vectorItems).toHaveCount(1)
+    await expect(vectorItems.first()).toHaveText('Column B')
+    await expect(dropDown.dropDown).toBeVisible()
+    await expect(dropDown.items).toHaveCount(2)
+    await expect(dropDown.selectedItems).toHaveCount(1)
 
-  // Disable an item.
-  await dropDown.clickOption('Column A')
-  await expect(vectorItems).toHaveCount(1)
-  await expect(vectorItems.first()).toHaveText('Column B')
-  await expect(dropDown.dropDown).toBeVisible()
-  await expect(dropDown.items).toHaveCount(2)
-  await expect(dropDown.selectedItems).toHaveCount(1)
-
-  // Disable the last item.
-  await dropDown.clickOption('Column B')
-  await expect(vectorItems).toHaveCount(0)
-  await expect(dropDown.dropDown).toBeVisible()
-  await expect(dropDown.items).toHaveCount(2)
-  await expect(dropDown.selectedItems).toHaveCount(0)
-})
-
-test('Multi-selection widget: Item edits', async ({ page }) => {
-  await actions.goToGraph(page)
-  await mockMethodCallInfo(page, 'selected', {
-    methodPointer: {
-      module: 'Standard.Table.Table',
-      definedOnType: 'Standard.Table.Table.Table',
-      name: 'select_columns',
-    },
-    notAppliedArguments: [1],
+    // Disable the last item.
+    await dropDown.clickOption('Column B')
+    await expect(vectorItems).toHaveCount(0)
+    await expect(dropDown.dropDown).toBeVisible()
+    await expect(dropDown.items).toHaveCount(2)
+    await expect(dropDown.selectedItems).toHaveCount(0)
   })
 
-  // Get the dropdown and set it up by enabling two items.
-  const columnsArg = locate
-    .graphNodeByBinding(page, 'selected')
-    .locator('.WidgetTopLevelArgument')
-    .filter({ has: page.getByText('columns') })
-  const vectorItems = columnsArg.getByTestId('list-item-content').getByTestId('widget-text-content')
-  const dropDown = new DropDownLocator(columnsArg)
-  await dropDown.clickWidget()
-  await dropDown.clickOption('Column A')
-  await dropDown.clickOption('Column B')
+  test('Interactions: Clicking in dropdown after editing item', async ({ page }) => {
+    const { dropDown, vectorItems } = await openAndCheckDropdown(page)
 
-  // Edit an item
-  await expect(dropDown.selectedItem('Column A')).toExist()
-  await expect(dropDown.selectedItem('Column B')).toExist()
-  await expect(vectorItems.first()).toHaveText('Column A')
-  await vectorItems.first().fill('Something Else')
-  await expect(dropDown.selectedItem('Column A')).toBeHidden()
-  await expect(dropDown.selectedItem('Column B')).toExist()
+    // Enable an item.
+    await dropDown.clickOption('Column A')
+    await expect(vectorItems.first()).toHaveText('Column A')
+    await dropDown.expectVisible()
+
+    // Click to edit an item.
+    await vectorItems.first().click()
+    await expect(vectorItems.first()).toBeFocused()
+    await expect(dropDown.dropDown).toBeVisible()
+
+    // Enable another item.
+    // In a bug caught while testing a PR, this step fails to add an item to the vector because the
+    // `pointerdown` in the dropdown closes it before the click is handled.
+    await dropDown.clickOption('Column B')
+    await expect(vectorItems).toHaveCount(2)
+    await expect(dropDown.dropDown).toBeVisible()
+  })
+
+  test('Add-item button', async ({ page }) => {
+    const { dropDown, vector } = await openAndCheckDropdown(page)
+
+    await dropDown.clickOption('Column A')
+    await dropDown.expectVisible()
+    await page.keyboard.press('Escape')
+    await dropDown.expectNotVisible()
+
+    await locate.addItemButton(vector).click()
+    await expect(dropDown.items).toHaveCount(2)
+    await expect(dropDown.selectedItems).toHaveCount(1)
+  })
+
+  test('Editing items', async ({ page }) => {
+    const { dropDown, vectorItems } = await openAndCheckDropdown(page)
+
+    await dropDown.clickOption('Column A')
+    await dropDown.clickOption('Column B')
+    await page.keyboard.press('Escape')
+    await dropDown.expectNotVisible()
+
+    // Clicking to edit an item opens the dropdown.
+    await expect(vectorItems.first()).toHaveText('Column A')
+    await vectorItems.first().click()
+    await expect(vectorItems.first()).toBeFocused()
+    await expect(dropDown.dropDown).toBeVisible()
+
+    // Clicking to edit a different item doesn't close the dropdown.
+    await expect(vectorItems.nth(1)).toHaveText('Column B')
+    await vectorItems.nth(1).click()
+    await expect(vectorItems.nth(1)).toBeFocused()
+    await expect(dropDown.dropDown).toBeVisible()
+
+    // Edit an item.
+    await expect(dropDown.selectedItem('Column A')).toExist()
+    await expect(dropDown.selectedItem('Column B')).toExist()
+    await expect(vectorItems.first()).toHaveText('Column A')
+    await vectorItems.first().fill('Something Else')
+    await expect(dropDown.selectedItem('Column A')).toBeHidden()
+    await expect(dropDown.selectedItem('Column B')).toExist()
+  })
 })
 
 test('Editing list', async ({ page }) => {
@@ -374,7 +396,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await expect(pathArgInput).toHaveText('File 1')
   await expect(pathDropdown.dropDown).not.toBeVisible()
 
-  // Clicking-off and pressing enter should accept text as-is
+  // Clicking-off and pressing Enter should accept text as-is
   await pathArgInput.click()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await page.keyboard.insertText('File')

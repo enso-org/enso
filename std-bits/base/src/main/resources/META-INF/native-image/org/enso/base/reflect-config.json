@@ -70,7 +70,8 @@
         "allPublicConstructors": true
     },
     {
-        "name": "org.enso.base.encoding.DecodingProblem"
+        "name": "org.enso.base.encoding.DecodingProblem",
+        "allPublicMethods": true
     },
     {
         "name": "org.enso.base.encoding.DecodingProblemAggregator"

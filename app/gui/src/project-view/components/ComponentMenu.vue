@@ -14,6 +14,7 @@ const _props = defineProps<{
 const emit = defineEmits<{
   closeColorPicker: []
   setNodeColor: [color: string | undefined]
+  'update:hovered': [hovered: boolean]
 }>()
 
 const isDropdownOpened = ref(false)
@@ -26,6 +27,8 @@ const isDropdownOpened = ref(false)
       menu: !colorPickerOpened,
       openedDropdown: isDropdownOpened,
     }"
+    @pointerenter="emit('update:hovered', true)"
+    @pointerleave="emit('update:hovered', false)"
   >
     <template v-if="!colorPickerOpened">
       <ActionButton action="component.toggleVisualization" class="slotS" />
