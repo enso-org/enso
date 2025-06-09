@@ -19,6 +19,7 @@ ts_project(
     allow_js = True,
     composite = True,
     out_dir = "dist",
+    preserve_jsx = True,
     resolve_json_module = True,
     root_dir = "src",
     tsconfig = ":tsconfig",
