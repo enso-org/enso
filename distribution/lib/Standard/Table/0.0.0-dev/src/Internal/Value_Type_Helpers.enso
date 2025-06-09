@@ -298,7 +298,8 @@ check_multi_argument_comparable_op column arg_or_args ~action =
 raise_unexpected_type expected_type argument =
     error = case Is_Column.is_column argument of
         True ->
-            Invalid_Value_Type.Column expected_type argument.value_type argument.name
+            argument_as_column = argument:Column
+            Invalid_Value_Type.Column expected_type argument_as_column.value_type argument_as_column.name
         False ->
             Invalid_Value_Type.Value expected_type (find_argument_type argument) argument
     Error.throw error
