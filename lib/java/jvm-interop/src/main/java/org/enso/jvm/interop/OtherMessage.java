@@ -16,9 +16,16 @@ import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 
 @Persistable(id = 81901)
-record OtherMessage(long id, Message message, List<Object> args)
-    implements Function<Channel, OtherResult> {
+record OtherMessage( // sends a message to the other side
+    long id, Message message, List<Object> args // with ReflectionLibrary-like arguments
+    ) implements Function<Channel, OtherResult> {
   private static final Map<Long, TruffleObject> OBJECTS = new HashMap<>();
+
+  static synchronized long registerObject(TruffleObject obj) {
+    var size = OBJECTS.size() + 1;
+    OBJECTS.put((long) size, obj);
+    return size;
+  }
 
   @Override
   public OtherResult apply(Channel t) {
@@ -32,15 +39,22 @@ record OtherMessage(long id, Message message, List<Object> args)
     }
   }
 
-  static synchronized long registerObject(TruffleObject obj) {
-    var size = OBJECTS.size() + 1;
-    OBJECTS.put((long) size, obj);
-    return size;
+  @Persistable(id = 81905)
+  record LoadClass(String name) implements Function<Channel, OtherResult> {
+    @Override
+    public OtherResult apply(Channel t) {
+      try {
+        var clazzRaw = TruffleClassLoader.loadClass(name);
+        return new OtherResult(clazzRaw);
+      } catch (ClassNotFoundException ex) {
+        throw new IllegalStateException(ex);
+      }
+    }
   }
 
   @Persistable(id = 1)
   static final class PersistTruffleObject extends Persistance<TruffleObject> {
-    public PersistTruffleObject() {
+    PersistTruffleObject() {
       super(TruffleObject.class, true, 1);
     }
 
@@ -69,7 +83,7 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 81902)
   static final class PersistTruffleMessage extends Persistance<Message> {
-    public PersistTruffleMessage() {
+    PersistTruffleMessage() {
       super(Message.class, true, 81902);
     }
 
@@ -88,7 +102,8 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 81903)
   static final class PersistObjectArray extends Persistance<Object[]> {
-    public PersistObjectArray() {
+
+    PersistObjectArray() {
       super(Object[].class, true, 81903);
     }
 
@@ -114,7 +129,7 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 81904)
   static final class PersistList extends Persistance<List> {
-    public PersistList() {
+    PersistList() {
       super(List.class, true, 81904);
     }
 
@@ -141,10 +156,9 @@ record OtherMessage(long id, Message message, List<Object> args)
   //
   // primitive types
   //
-
   @Persistable(id = 101)
   static final class PersistBoolean extends Persistance<Boolean> {
-    public PersistBoolean() {
+    PersistBoolean() {
       super(Boolean.class, true, 101);
     }
 
@@ -161,7 +175,7 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 102)
   static final class PersistByte extends Persistance<Byte> {
-    public PersistByte() {
+    PersistByte() {
       super(Byte.class, true, 102);
     }
 
@@ -178,7 +192,8 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 103)
   static final class PersistShort extends Persistance<Short> {
-    public PersistShort() {
+
+    PersistShort() {
       super(Short.class, true, 103);
     }
 
@@ -195,7 +210,7 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 104)
   static final class PersistInteger extends Persistance<Integer> {
-    public PersistInteger() {
+    PersistInteger() {
       super(Integer.class, true, 104);
     }
 
@@ -212,7 +227,7 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 105)
   static final class PersistLong extends Persistance<Long> {
-    public PersistLong() {
+    PersistLong() {
       super(Long.class, true, 105);
     }
 
@@ -229,7 +244,7 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 106)
   static final class PersistFloat extends Persistance<Float> {
-    public PersistFloat() {
+    PersistFloat() {
       super(Float.class, true, 106);
     }
 
@@ -246,7 +261,8 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 107)
   static final class PersistDouble extends Persistance<Double> {
-    public PersistDouble() {
+
+    PersistDouble() {
       super(Double.class, true, 107);
     }
 
@@ -263,7 +279,7 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 108)
   static final class PersistCharacter extends Persistance<Character> {
-    public PersistCharacter() {
+    PersistCharacter() {
       super(Character.class, true, 108);
     }
 
@@ -281,10 +297,9 @@ record OtherMessage(long id, Message message, List<Object> args)
   //
   // interop types
   //
-
   @Persistable(id = 111)
   static final class PersistString extends Persistance<String> {
-    public PersistString() {
+    PersistString() {
       super(String.class, true, 109);
     }
 
@@ -301,7 +316,7 @@ record OtherMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 112)
   static final class PersistBigInteger extends Persistance<BigInteger> {
-    public PersistBigInteger() {
+    PersistBigInteger() {
       super(BigInteger.class, true, 112);
     }
 

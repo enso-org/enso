@@ -65,4 +65,17 @@ public class OtherJvmObjectTest {
     assertEquals(6.0, otherValue.getArrayElement(7).asDouble(), 0.1);
     assertEquals(true, otherValue.getArrayElement(8).asBoolean());
   }
+
+  @Test
+  public void loadAClassMessage() {
+    var msg = new OtherMessage.LoadClass("java.lang.Short");
+    var shortRaw = CHANNEL.execute(OtherResult.class, msg).value();
+    if (shortRaw instanceof OtherJvmObject other) {
+      shortRaw = new OtherJvmObject(CHANNEL, other.id());
+    }
+    var shortValue = ctx.asValue(shortRaw);
+
+    var value = shortValue.invokeMember("valueOf", "32531");
+    assertEquals(32531, value.asInt());
+  }
 }
