@@ -398,7 +398,14 @@ public class PersistableProcessor extends AbstractProcessor {
       pkg = new TreeMap<>();
       registeredClasses.put(pkgName, pkg);
     }
-    pkg.put(id, className);
+    var prev = pkg.put(id, className);
+    if (prev != null) {
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Kind.ERROR,
+              "Duplicated registration with id=" + id + " by " + className + " and " + prev);
+    }
   }
 
   private boolean isVisibleFrom(Element e, Element from) {
