@@ -44,8 +44,7 @@
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "git clean -xfd --exclude='.env*'",
     "ci:chromatic:react": "corepack pnpm run -r --filter enso-gui chromatic:react",
-    "ci:chromatic:vue": "corepack pnpm run -r --filter enso-gui chromatic:vue",
-    "postinstall": "bazel run //:write_all --verbose_failures"
+    "ci:chromatic:vue": "corepack pnpm run -r --filter enso-gui chromatic:vue"
   },
   "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
   "pnpm": {

@@ -620,9 +620,6 @@ importers:
       enso-common:
         specifier: workspace:*
         version: link:../../common
-      gunzip-maybe:
-        specifier: ^1.4.2
-        version: 1.4.2
       mime-types:
         specifier: ^2.1.35
         version: 2.1.35
@@ -638,30 +635,15 @@ importers:
       string-length:
         specifier: ^5.0.1
         version: 5.0.1
-      tar:
-        specifier: ^6.2.1
-        version: 6.2.1
-      tar-fs:
-        specifier: ^3.0.9
-        version: 3.0.9
-      tar-stream:
-        specifier: ^3.1.7
-        version: 3.1.7
       yaml:
         specifier: ^2.7.0
         version: 2.7.0
       yargs:
         specifier: 17.6.2
         version: 17.6.2
-      yauzl:
-        specifier: ^3.2.0
-        version: 3.2.0
       ydoc-server:
         specifier: workspace:*
         version: link:../../ydoc-server
-      zip-stream:
-        specifier: ^7.0.2
-        version: 7.0.2
     devDependencies:
       '@babel/plugin-syntax-import-attributes':
         specifier: ^7.26.0
@@ -675,9 +657,6 @@ importers:
       '@playwright/test':
         specifier: ^1.50.1
         version: 1.50.1
-      '@types/gunzip-maybe':
-        specifier: ^1.4.2
-        version: 1.4.2
       '@types/mime-types':
         specifier: ^2.1.4
         version: 2.1.4
@@ -690,21 +669,9 @@ importers:
       '@types/semver':
         specifier: ^7.5.8
         version: 7.5.8
-      '@types/tar':
-        specifier: ^6.1.13
-        version: 6.1.13
-      '@types/tar-stream':
-        specifier: ^3.1.4
-        version: 3.1.4
       '@types/yargs':
         specifier: ^17.0.33
         version: 17.0.33
-      '@types/yauzl':
-        specifier: ^2.10.3
-        version: 2.10.3
-      '@types/zip-stream':
-        specifier: ^7.0.0
-        version: 7.0.0
       babel-plugin-react-compiler:
         specifier: 19.0.0-beta-6fc168f-20241025
         version: 19.0.0-beta-6fc168f-20241025
@@ -809,6 +776,52 @@ importers:
       '@marijn/buildtool':
         specifier: ^0.1.6
         version: 0.1.6
+
+  app/project-manager:
+    dependencies:
+      enso-common:
+        specifier: workspace:*
+        version: link:../common
+      gunzip-maybe:
+        specifier: ^1.4.2
+        version: 1.4.2
+      tar:
+        specifier: ^6.2.1
+        version: 6.2.1
+      tar-fs:
+        specifier: ^3.0.9
+        version: 3.0.9
+      tar-stream:
+        specifier: ^3.1.7
+        version: 3.1.7
+      yaml:
+        specifier: ^2.7.0
+        version: 2.7.0
+      yauzl:
+        specifier: ^3.2.0
+        version: 3.2.0
+      zip-stream:
+        specifier: ^7.0.2
+        version: 7.0.2
+    devDependencies:
+      '@types/gunzip-maybe':
+        specifier: ^1.4.2
+        version: 1.4.2
+      '@types/node':
+        specifier: ^20.11.21
+        version: 20.17.11
+      '@types/tar':
+        specifier: ^6.1.13
+        version: 6.1.13
+      '@types/tar-stream':
+        specifier: ^3.1.4
+        version: 3.1.4
+      '@types/yauzl':
+        specifier: ^2.10.3
+        version: 2.10.3
+      '@types/zip-stream':
+        specifier: ^7.0.0
+        version: 7.0.0
 
   app/rust-ffi: {}
 
@@ -12829,6 +12842,14 @@ snapshots:
       chai: 5.1.2
       tinyrainbow: 2.0.0
 
+  '@vitest/mocker@3.0.5(vite@6.2.5(@types/node@20.17.11)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))':
+    dependencies:
+      '@vitest/spy': 3.0.5
+      estree-walker: 3.0.3
+      magic-string: 0.30.17
+    optionalDependencies:
+      vite: 6.2.5(@types/node@20.17.11)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
+
   '@vitest/mocker@3.0.5(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))':
     dependencies:
       '@vitest/spy': 3.0.5
@@ -18474,7 +18495,7 @@ snapshots:
   vitest@3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0):
     dependencies:
       '@vitest/expect': 3.0.5
-      '@vitest/mocker': 3.0.5(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
+      '@vitest/mocker': 3.0.5(vite@6.2.5(@types/node@20.17.11)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
       '@vitest/pretty-format': 3.0.5
       '@vitest/runner': 3.0.5
       '@vitest/snapshot': 3.0.5

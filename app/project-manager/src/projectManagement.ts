@@ -9,21 +9,18 @@
  * and open it.
  * - if the project is a bundle, we extract it to the Project Manager's location and open it.
  */
+import * as common from 'enso-common'
+import * as buildUtils from 'enso-common/src/buildUtils'
+import { Path } from 'enso-common/src/services/Backend'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as https from 'node:https'
 import * as os from 'node:os'
 import * as pathModule from 'node:path'
 import type * as stream from 'node:stream'
-
 import * as tar from 'tar'
-
-import * as common from 'enso-common'
-import * as buildUtils from 'enso-common/src/buildUtils'
-
-import * as desktopEnvironment from '@/desktopEnvironment'
-import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
-import { Path } from 'enso-common/src/services/Backend'
+import * as desktopEnvironment from './desktopEnvironment'
+import { BUNDLED_PROJECT_SUFFIX } from './fileAssociations'
 
 const logger = console
 
