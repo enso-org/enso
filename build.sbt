@@ -3658,11 +3658,11 @@ lazy val `runtime-instrument-common` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
-        "io.reactivex.rxjava3" % "rxjava"          % rxJavaVersion,
-        "junit"            % "junit"                   % junitVersion       % Test,
-        "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
-        "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % Test
+        "io.reactivex.rxjava3" % "rxjava"                  % rxJavaVersion,
+        "junit"                % "junit"                   % junitVersion       % Test,
+        "com.github.sbt"       % "junit-interface"         % junitIfVersion     % Test,
+        "org.scalatest"       %% "scalatest"               % scalatestVersion   % Test,
+        "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % Test
       ),
       javaModuleName := "org.enso.runtime.instrument.common",
       Compile / moduleDependencies ++= slf4jApi ++ rxJava ++ Seq(
