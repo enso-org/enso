@@ -49,15 +49,8 @@ export function ConflictingMultipleUploadForm(props: ConflictingMultipleUploadFo
         onSubmit(
           conflicts.map((conflict, i) =>
             selection.has(i) ?
-              {
-                type: 'rename',
-                path: conflict.path,
-                name: '',
-              }
-            : {
-                type: 'skip',
-                path: conflict.path,
-              },
+              { type: 'rename', path: conflict.path, name: '' }
+            : { type: 'skip', path: conflict.path },
           ),
         )
       }}

@@ -273,6 +273,7 @@ export function getExportArchiveJobStatusPath(jobId: ZipAssetsJobId) {
 export function resolveArchivePath(jobId: UnzipAssetsJobId) {
   return HttpsUrl(`assets/unzip/${jobId}/resolve`)
 }
+export const RESOLVE_ARCHIVE_PATH_REGEX = /^[/]assets[/]unzip[/](?<jobId>[^/]+)[/]resolve$/
 
 /** The ID of the directory containing the home directories of all users. */
 export const USERS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000users')

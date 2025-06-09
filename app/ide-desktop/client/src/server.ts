@@ -48,6 +48,7 @@ import {
   EXPORT_ARCHIVE_PATH,
   GET_FILE_DETAILS_REGEX,
   IMPORT_ARCHIVE_PATH,
+  RESOLVE_ARCHIVE_PATH_REGEX,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { basenameAndExtension, getFileName, getFolderPath } from 'enso-common/src/utilities/file'
@@ -361,6 +362,14 @@ export class Server {
             await this.httpDownloadProject(request, response, params, [projectId as ProjectId])
             break
           }
+          match = route.pathname.match(RESOLVE_ARCHIVE_PATH_REGEX)
+          if (match?.groups?.['jobId'] != null) {
+            const jobId = match.groups['jobId']
+            await this.httpResolveArchiveConflicts(request, response, params, [
+              jobId as UnzipAssetsJobId,
+            ])
+            break
+          }
           const content = JSON.stringify({
             type: 'error',
             error: `Unknown endpoint '${route.pathname}'`,
@@ -596,6 +605,18 @@ export class Server {
     this.httpOkJson(response, null)
   }
 
+  /**
+   *
+   */
+  async httpResolveArchiveConflicts(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+    [jobId]: [jobId: UnzipAssetsJobId],
+  ) {
+    //
+  }
+
   /** Create an archive stream with the given assets. */
   apiArchiveStream(assets: readonly AssetId[]) {
     const archive = zipWriteStream()
@@ -662,9 +683,6 @@ export class Server {
         // asset types to be handled (by causing a non-exhaustiveness error).
         case AssetType.secret:
         case AssetType.datalink:
-        case AssetType.specialLoading:
-        case AssetType.specialEmpty:
-        case AssetType.specialError:
         case AssetType.specialUp: {
           return
         }
