@@ -12,15 +12,16 @@ import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
 import { omit, unsafeEntries } from '#/utilities/object'
-import { getDirectoryAndName, joinPath } from '#/utilities/path'
+import { getDirectoryAndName, getFolderPath, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
 import { PRODUCT_NAME } from 'enso-common'
+import type { DirectoryId, UUID } from 'enso-common/src/services/Backend'
+import { Path } from 'enso-common/src/services/Backend'
 import {
   downloadProjectPath,
   EXPORT_ARCHIVE_PATH,
-  fileExistsPath,
+  GET_PROJECT_BY_UUID_PATH,
   IMPORT_ARCHIVE_PATH,
 } from 'enso-common/src/services/Backend/paths'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
@@ -137,118 +138,6 @@ export default class LocalBackend extends Backend {
   }
 
   /**
-   * Return a list of assets in a directory.
-   * @throws An error if the JSON-RPC call fails.
-   */
-  override async listDirectory(
-    query: backend.ListDirectoryRequestParams,
-  ): Promise<readonly backend.AnyAsset[]> {
-    const { rootPath = this.rootPath() } = query
-    const parentPath = query.parentId == null ? null : extractTypeAndPath(query.parentId).path
-    const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
-
-    // Catch the case where the directory does not exist.
-    let result: backend.AnyAsset[] = []
-    try {
-      const entries = await this.projectManager.listDirectory(parentPath)
-      result = entries
-        .map((entry) => {
-          const virtualParentsPath = entry.path.replace(rootPath, '').replace(/^[/\\]|[/\\]$/g, '')
-
-          const parentsPath = (() => {
-            const parentsPathArray: backend.DirectoryId[] =
-              entry.path.startsWith(rootPath) ? [newDirectoryId(rootPath)] : []
-            const splitPath = virtualParentsPath.split('/')
-
-            let previousPath = entry.path.startsWith(rootPath) ? rootPath : backend.Path('')
-
-            for (const directory of splitPath) {
-              if (directory === '') {
-                continue
-              }
-
-              previousPath = backend.Path((previousPath + '/' + directory).replace(/\/$/g, ''))
-
-              parentsPathArray.push(newDirectoryId(previousPath))
-            }
-
-            return parentsPathArray.slice(0, -1).join('/')
-          })()
-
-          const ensoPathRaw = normalizePath(entry.path)
-          const ensoPath = backend.EnsoPath(ensoPathRaw)
-          const shared = {
-            permissions: [],
-            projectState: null,
-            extension: null,
-            parentsPath: backend.ParentsPath(parentsPath),
-            virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
-            ensoPath,
-            ensoPathValue: backend.EnsoPathValue(ensoPathRaw),
-          } satisfies Partial<backend.DirectoryAsset>
-
-          switch (entry.type) {
-            case projectManager.FileSystemEntryType.DirectoryEntry: {
-              const id = newDirectoryId(entry.path)
-
-              return {
-                ...shared,
-                id,
-                type: backend.AssetType.directory,
-                modifiedAt: entry.attributes.lastModifiedTime,
-                parentId,
-                title: getFileName(entry.path),
-              } satisfies backend.DirectoryAsset
-            }
-            case projectManager.FileSystemEntryType.ProjectEntry: {
-              return {
-                ...shared,
-                type: backend.AssetType.project,
-                id: newProjectId(entry.path),
-                title: entry.metadata.name,
-                modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
-                parentId,
-                projectState: {
-                  type:
-                    this.projectManager.getProject(entry.path)?.state ??
-                    backend.ProjectState.closed,
-                },
-              } satisfies backend.ProjectAsset
-            }
-            case projectManager.FileSystemEntryType.FileEntry: {
-              return {
-                ...shared,
-                type: backend.AssetType.file,
-                id: newFileId(entry.path),
-                title: getFileName(entry.path),
-                modifiedAt: entry.attributes.lastModifiedTime,
-                parentId,
-                extension: fileExtension(entry.path),
-              } satisfies backend.FileAsset
-            }
-          }
-        })
-        .sort(backend.compareAssets)
-    } catch {
-      // Listing the directory failed so check if it exists.
-      if (parentPath != null && !(await this.head(fileExistsPath(newFileId(parentPath)))).ok) {
-        if (parentPath === this.rootPath()) {
-          // This is the root directory, (re)create it automatically.
-          await this.createDirectory({
-            parentId: newDirectoryId(backend.Path(getFolderPath(parentPath))),
-            title: getFileName(parentPath),
-          })
-          result = []
-        } else {
-          throw new backend.DirectoryDoesNotExistError()
-        }
-      }
-    }
-
-    return result
-  }
-
-  /**
    * Create a project.
    * @throws An error if the JSON-RPC call fails.
    */
@@ -262,10 +151,14 @@ export default class LocalBackend extends Backend {
       missingComponentAction: projectManager.MissingComponentAction.install,
       ...(projectsDirectory == null ? {} : { projectsDirectory }),
     })
+    const projectAsset = await this.getProjectByUuid({
+      uuid: project.projectId,
+      directoryId: newDirectoryId(projectsDirectory ?? this.rootPath()),
+    })
     return {
       name: project.projectName,
       organizationId: backend.OrganizationId('organization-'),
-      projectId: newProjectId(project.projectPath),
+      projectId: projectAsset.id,
       packageName: project.projectName,
       state: { type: backend.ProjectState.closed, volumeId: '' },
     }
@@ -303,13 +196,16 @@ export default class LocalBackend extends Backend {
     const { path } = extractTypeAndPath(assetId)
     const { directoryPath } = getDirectoryAndName(path)
 
-    const directoryContents = await this.listDirectory({
-      parentId: newDirectoryId(directoryPath),
-      filterBy: null,
-      labels: null,
-      recentProjects: false,
-      rootPath: rootPath ?? this.rootPath(),
-    })
+    const directoryContents = await this.listDirectory(
+      {
+        parentId: newDirectoryId(directoryPath),
+        filterBy: null,
+        labels: null,
+        recentProjects: false,
+        rootPath: rootPath ?? this.rootPath(),
+      },
+      '(unknown)',
+    )
 
     const entry = directoryContents.find((content) => content.id === assetId)
 
@@ -334,13 +230,9 @@ export default class LocalBackend extends Backend {
     _getPresignedUrl = false,
   ): Promise<backend.Project> {
     const { path } = extractTypeAndPath(projectId)
-    const { directoryPath } = getDirectoryAndName(path)
-    const state = this.projectManager.getProject(path)
+    const state = this.projectManager.getProjectState(path)
     if (state == null) {
-      const entries = await this.projectManager.listDirectory(directoryPath)
-      const project = entries
-        .filter((entry) => entry.type === projectManager.FileSystemEntryType.ProjectEntry)
-        .find((metadata) => metadata.path === path)?.metadata
+      const project = await this.projectManager.getProjectMetadata(path)
       if (project == null) {
         throw new Error(`Could not get details of project.`)
       } else {
@@ -418,16 +310,7 @@ export default class LocalBackend extends Backend {
         name: projectManager.ProjectName(body.projectName),
       })
     }
-    const parentPath = getDirectoryAndName(path).directoryPath
-    const result = await this.projectManager.listDirectory(parentPath)
-    const project = result.flatMap((listedProject) =>
-      (
-        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
-        listedProject.path === path
-      ) ?
-        [listedProject.metadata]
-      : [],
-    )[0]
+    const project = await this.projectManager.getProjectMetadata(path)
     if (project == null) {
       throw new Error(`The project ID '${projectId}' is invalid.`)
     } else {
@@ -445,8 +328,10 @@ export default class LocalBackend extends Backend {
   override async duplicateProject(projectId: backend.ProjectId): Promise<backend.CreatedProject> {
     const { path } = extractTypeAndPath(projectId)
     const project = await this.projectManager.duplicateProject({ projectPath: path })
+    const directoryId = newDirectoryId(Path(getFolderPath(path)))
+    const projectAsset = await this.getProjectByUuid({ uuid: project.projectId, directoryId })
     return {
-      projectId: newProjectId(project.projectPath),
+      projectId: projectAsset.id,
       name: project.projectName,
       packageName: project.projectNormalizedName,
       organizationId: backend.OrganizationId('organization-'),
@@ -462,18 +347,22 @@ export default class LocalBackend extends Backend {
     const { type, path } = extractTypeAndPath(assetId)
     if (type !== backend.AssetType.project) {
       throw new Error('Only projects can be copied on the Local Backend.')
-    } else {
-      const project = await this.projectManager.duplicateProject({ projectPath: path })
-      const parentPath = getDirectoryAndName(path).directoryPath
-      if (parentPath !== extractTypeAndPath(parentDirectoryId).path) {
-        throw new Error('Cannot duplicate project to a different directory on the Local Backend.')
-      }
-      const asset = {
-        id: newProjectId(project.projectPath),
+    }
+    const project = await this.projectManager.duplicateProject({ projectPath: path })
+    const parentPath = getDirectoryAndName(path).directoryPath
+    if (parentPath !== extractTypeAndPath(parentDirectoryId).path) {
+      throw new Error('Cannot duplicate project to a different directory on the Local Backend.')
+    }
+    const projectAsset = await this.getProjectByUuid({
+      uuid: project.projectId,
+      directoryId: parentDirectoryId,
+    })
+    return {
+      asset: {
+        id: projectAsset.id,
         parentId: parentDirectoryId,
         title: project.projectName,
-      }
-      return { asset }
+      },
     }
   }
 
@@ -700,9 +589,6 @@ export default class LocalBackend extends Backend {
       case backend.AssetType.datalink:
       case backend.AssetType.secret:
       case backend.AssetType.directory:
-      case backend.AssetType.specialLoading:
-      case backend.AssetType.specialEmpty:
-      case backend.AssetType.specialError:
       case backend.AssetType.specialUp: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
@@ -724,9 +610,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** Export multiple files and pack into an archive. */
-  override async exportArchive(
-    params: backend.ExportArchiveParams,
-  ): Promise<backend.ExportedArchive> {
+  override async exportArchive(params: backend.ExportArchiveParams): Promise<void> {
     const entries = unsafeEntries(params).flatMap<[string, string]>(([paramName, v]) =>
       paramName === 'assetIds' ? v.map<[string, string]>((id) => ['asset', id])
       : v != null ? [[paramName, v]]
@@ -735,13 +619,13 @@ export default class LocalBackend extends Backend {
     const searchParams = new URLSearchParams(entries).toString()
     const path = `${EXPORT_ARCHIVE_PATH}?${searchParams}`
     if (params.filePath != null) {
-      const response = await this.post<backend.ExportedArchive>(path, {})
-      return await response.json()
+      await this.post(path, {})
+      return
     } else {
       const secondsString = new Date().getSeconds().toString().padStart(2, '0')
       const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
       await download({ url: path, name: `${PRODUCT_NAME} ${dateString}.zip` })
-      return { filePath: null }
+      return
     }
   }
 
@@ -930,6 +814,23 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override createCustomerPortalSession() {
     return this.invalidOperation()
+  }
+
+  /** Get a project by its UUID and parent directory, */
+  private async getProjectByUuid({
+    uuid,
+    directoryId,
+  }: {
+    readonly uuid: UUID
+    readonly directoryId: DirectoryId
+  }) {
+    const paramsString = new URLSearchParams([
+      ['uuid', uuid],
+      ['directory_id', directoryId],
+    ]).toString()
+    const path = `${GET_PROJECT_BY_UUID_PATH}?${paramsString}`
+    const response = await this.get<backend.ProjectAsset>(path)
+    return await response.json()
   }
 }
 

@@ -14,7 +14,7 @@ import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import { delay } from '#/utilities/async'
 import * as download from '#/utilities/download'
 import { getFileName } from '#/utilities/fileInfo'
-import * as object from '#/utilities/object'
+import type * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { extractTypeAndPath } from './LocalBackend'
@@ -482,58 +482,6 @@ export default class RemoteBackend extends Backend {
     this.user = user
 
     return user
-  }
-
-  /**
-   * Return a list of assets in a directory.
-   * @throws An error if a non-successful status code (not 200-299) was received.
-   */
-  override async listDirectory(
-    query: backend.ListDirectoryRequestParams,
-    title: string,
-  ): Promise<readonly backend.AnyAsset[]> {
-    const path = remoteBackendPaths.LIST_DIRECTORY_PATH
-    const response = await this.get<ListDirectoryResponseBody>(
-      path +
-        '?' +
-        new URLSearchParams(
-          query.recentProjects ?
-            [['recent_projects', String(true)]]
-          : [
-              ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
-              ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
-              ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
-            ],
-        ).toString(),
-    )
-    if (!response.ok) {
-      if (query.parentId != null) {
-        return await this.throw(response, 'listFolderBackendError', title)
-      } else {
-        return await this.throw(response, 'listRootFolderBackendError')
-      }
-    } else {
-      const ret = (await response.json()).assets
-        .map((asset) =>
-          object.merge(asset, {
-            type: backend.getAssetTypeFromId(asset.id),
-            // `Users` and `Teams` folders are virtual, so their children incorrectly have
-            // the organization root id as their parent id.
-            parentId: query.parentId ?? asset.parentId,
-          }),
-        )
-        .map((asset) =>
-          object.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
-            ...(asset.ensoPath != null ?
-              { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
-            : {}),
-          }),
-        )
-        .map((asset) => this.dynamicAssetUser(asset))
-        .sort(backend.compareAssets)
-      return ret
-    }
   }
 
   /** List all previous versions of an asset. */
@@ -1334,9 +1282,6 @@ export default class RemoteBackend extends Backend {
       }
       case backend.AssetType.secret:
       case backend.AssetType.directory:
-      case backend.AssetType.specialLoading:
-      case backend.AssetType.specialEmpty:
-      case backend.AssetType.specialError:
       case backend.AssetType.specialUp: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
@@ -1463,9 +1408,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Export multiple files and pack into an archive. */
-  override async exportArchive(
-    params: backend.ExportArchiveParams,
-  ): Promise<backend.ExportedArchive> {
+  override async exportArchive(params: backend.ExportArchiveParams): Promise<void> {
     const { assetIds, filePath } = params
     const path = remoteBackendPaths.EXPORT_ARCHIVE_PATH
     const response = await this.post<{ readonly jobId: backend.ZipAssetsJobId }>(path, { assetIds })
@@ -1483,33 +1426,8 @@ export default class RemoteBackend extends Backend {
         name: filePath != null ? getFileName(filePath) : undefined,
         electronOptions: { path: filePath },
       })
-      return { filePath }
+      return
     }
-  }
-
-  /**
-   * Replaces the `user` of all permissions for the current user on an asset, so that they always
-   * return the up-to-date user.
-   */
-  private dynamicAssetUser<Asset extends backend.AnyAsset>(asset: Asset) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this
-    let foundSelfPermission = (() => false)()
-    const permissions = asset.permissions?.map((permission) => {
-      if (!('user' in permission) || permission.user.userId !== this.user?.userId) {
-        return permission
-      } else {
-        foundSelfPermission = true
-        return {
-          ...permission,
-          /** Return a dynamic reference to the current user. */
-          get user() {
-            return self.user
-          },
-        }
-      }
-    })
-    return !foundSelfPermission ? asset : { ...asset, permissions }
   }
 }
 

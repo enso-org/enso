@@ -24,14 +24,18 @@ import {
   AssetConflict,
   AssetId,
   AssetType,
+  compareAssets,
   CreateDirectoryRequestBody,
   DirectoryAsset,
   DirectoryId,
-  ExportedArchive,
   extractTypeFromId,
   FileAsset,
   FileDetails,
   FileId,
+  FilterBy,
+  GetProjectByUuidParams,
+  ListDirectoryRequestParams,
+  ListDirectoryResponseBody,
   ParentsPath,
   Path,
   prettifyError,
@@ -42,11 +46,14 @@ import {
   UpdateAssetRequestBody,
   UpdatedDirectory,
   UpdateDirectoryRequestBody,
+  UUID,
   VirtualParentsPath,
   type CreatedDirectory,
   type ImportArchiveResponse,
 } from 'enso-common/src/services/Backend'
 import {
+  CLOUD_DOWNLOAD_PROJECT_PATH,
+  CLOUD_GET_PROJECT_ARCHIVE_PATH,
   CREATE_DIRECTORY_PATH,
   DELETE_ASSET_REGEX,
   DOWNLOAD_FILE_REGEX,
@@ -56,10 +63,12 @@ import {
   FILE_EXISTS_REGEX,
   GET_DOWNLOAD_DIRECTORY_PATH,
   GET_FILE_DETAILS_REGEX,
+  GET_PROJECT_BY_UUID_PATH,
   GET_PROJECT_CONTENT_REGEX,
   GET_PROJECT_METADATA_REGEX,
   GET_ROOT_DIRECTORY_PATH,
   IMPORT_ARCHIVE_PATH,
+  LIST_DIRECTORY_PATH,
   LOCAL_UPLOAD_FILE_PATH,
   LOCAL_UPLOAD_PROJECT_PATH,
   RUN_PROJECT_MANAGER_COMMAND_PATH,
@@ -374,6 +383,18 @@ export class Server {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       const params = route.searchParams
       switch (`${request.method} ${route.pathname}`) {
+        case `GET /${CLOUD_DOWNLOAD_PROJECT_PATH}`: {
+          await this.httpCloudDownloadProject(request, response, params)
+          break
+        }
+        case `GET /${CLOUD_GET_PROJECT_ARCHIVE_PATH}`: {
+          await this.httpCloudGetProjectArchive(request, response, params)
+          break
+        }
+        case `GET /${LIST_DIRECTORY_PATH}`: {
+          await this.httpListDirectory(request, response, params)
+          break
+        }
         case `GET /${GET_ROOT_DIRECTORY_PATH}`: {
           await this.httpGetRootDirectory(request, response, params)
           break
@@ -407,6 +428,10 @@ export class Server {
         }
         case `POST /${RUN_PROJECT_MANAGER_COMMAND_PATH}`: {
           await this.httpRunProjectManagerCommand(request, response, params)
+          break
+        }
+        case `GET /${GET_PROJECT_BY_UUID_PATH}`: {
+          await this.httpGetProjectByUuid(request, response, params)
           break
         }
         default: {
@@ -529,7 +554,7 @@ export class Server {
   }
 
   /** Send a HTTP response with a JSON payload. */
-  httpOkJson(response: http.ServerResponse, body: unknown) {
+  httpOkJson<T = never>(response: http.ServerResponse, body: NoInfer<T>) {
     const content = JSON.stringify(body)
     return response
       .writeHead(HTTP_STATUS_OK, [
@@ -604,10 +629,10 @@ export class Server {
     }
 
     try {
-      this.httpOkJson(
-        response,
-        await this.apiCloudDownloadProject(downloadUrl, projectId as ProjectId),
-      )
+      this.httpOkJson<{
+        readonly targetDirectory: string
+        readonly parentDirectory: string
+      }>(response, await this.apiCloudDownloadProject(downloadUrl, projectId as ProjectId))
     } catch (error) {
       logger.error(error)
       const projectsDirectory = projectManagement.getProjectsDirectory()
@@ -684,8 +709,7 @@ export class Server {
       this.httpError(response, prettifyError(parsed.error))
       return
     }
-    const result = await this.apiCreateDirectory(parsed.data)
-    this.httpOkJson(response, result)
+    this.httpOkJson<CreatedDirectory>(response, await this.apiCreateDirectory(parsed.data))
   }
 
   /** Create a directory. */
@@ -724,7 +748,7 @@ export class Server {
     }
     const result = await this.apiUpdateAsset({ id: assetId, ...parsed.data })
     if (result.type === 'success') {
-      this.httpOkJson(response, result.data)
+      this.httpOkJson<null>(response, result.data)
     } else {
       this.httpError(response, result.message)
     }
@@ -786,10 +810,12 @@ export class Server {
     [fileId]: [fileId: FileId],
   ) {
     const details = await this.apiGetFileDetails(fileId)
-    if (details) {
+    if (!details) {
+      const filePath = extractTypeAndPath(fileId).path
+      this.httpError(response, `File '${filePath}' not found`)
       return
     }
-    this.httpOkJson(response, details)
+    this.httpOkJson<FileDetails>(response, details)
   }
 
   /** HTTP response handler for "download file" endpoint. */
@@ -799,11 +825,8 @@ export class Server {
     _params: URLSearchParams,
     [fileId]: [fileId: FileId],
   ) {
-    const details = await this.apiGetFileDetails(fileId)
-    if (details) {
-      return
-    }
-    this.httpOkStream(response, createReadStream(fileId), { download: true })
+    const filePath = extractTypeAndPath(fileId).path
+    this.httpOkStream(response, createReadStream(filePath), { download: true })
   }
 
   /** Get the project's metadata. */
@@ -821,10 +844,46 @@ export class Server {
   ) {
     const metadata = this.apiGetProjectMetadata({ projectId })
     if (metadata) {
-      this.httpOkJson(response, metadata)
+      this.httpOkJson<typeof metadata>(response, metadata)
     } else {
       const projectPath = extractTypeAndPath(projectId).path
       this.httpError(response, `Could not get metadata of project at '${projectPath}'`)
+    }
+  }
+
+  /** Get the project's metadata. */
+  async apiGetProjectByUuid({ uuid, directoryId }: { uuid: UUID; directoryId: DirectoryId }) {
+    const directoryPath = extractTypeAndPath(directoryId).path
+    for (const entryName of await readdir(directoryPath)) {
+      const entryPath = Path(path.join(directoryPath, entryName))
+      const metadata = projectManagement.getMetadata(entryPath)
+      if (metadata?.id === uuid) {
+        return this.apiGetAssetDetailsByPath({ type: AssetType.project, path: entryPath })
+      }
+    }
+  }
+
+  /** HTTP response handler for "get project by uuid" endpoint. */
+  async httpGetProjectByUuid(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+  ) {
+    const parsed = GetProjectByUuidParams.safeParse({
+      uuid: params.get('uuid'),
+      directoryId: params.get('directory_id'),
+    })
+    if (!parsed.success) {
+      this.httpError(response, prettifyError(parsed.error))
+      return
+    }
+    const { uuid, directoryId } = parsed.data
+    const asset = await this.apiGetProjectByUuid({ uuid, directoryId })
+    if (!asset) {
+      const directoryPath = extractTypeAndPath(directoryId).path
+      this.httpError(response, `Could not find project with UUID '${uuid}' in '${directoryPath}'`)
+    } else {
+      this.httpOkJson<ProjectAsset>(response, asset)
     }
   }
 
@@ -869,7 +928,7 @@ export class Server {
       return
     }
     await promise
-    this.httpOkJson(response, null)
+    this.httpOkJson<null>(response, null)
   }
 
   /** Update a directory. */
@@ -911,7 +970,11 @@ export class Server {
       return
     }
     const data = await this.apiUpdateDirectory({ directoryId, ...parsed.data })
-    if (data.type) this.httpOkJson(response, data)
+    if (data.type === 'error') {
+      this.httpError(response, data.message)
+      return
+    }
+    this.httpOkJson<UpdatedDirectory>(response, data.data)
   }
 
   /** Whether a file exists. */
@@ -982,7 +1045,7 @@ export class Server {
         return result({ type: 'error', message: `Folder '${id}' not found` })
       }
       await archive.addFolder({ name: pathInArchive })
-      const entries = await this.apiListDirectory({ directory: id })
+      const entries = await this.apiListDirectory({ directoryId: id })
       for (const entry of entries) {
         await addAsset(entry.id, rootPath)
       }
@@ -1016,9 +1079,6 @@ export class Server {
         // asset types to be handled (by causing a non-exhaustiveness error).
         case AssetType.secret:
         case AssetType.datalink:
-        case AssetType.specialLoading:
-        case AssetType.specialEmpty:
-        case AssetType.specialError:
         case AssetType.specialUp: {
           return
         }
@@ -1064,8 +1124,7 @@ export class Server {
       return
     }
     await promise
-    const result: ExportedArchive = { filePath: Path(filePath) }
-    this.httpOkJson(response, result)
+    this.httpOkJson<null>(response, null)
   }
 
   /** Get details for an asset by its path. */
@@ -1150,20 +1209,47 @@ export class Server {
   }
 
   /** List a directory. */
-  async apiListDirectory(params: { readonly directory?: DirectoryId }) {
-    const { directory: directoryRaw } = params
-    const directory =
-      directoryRaw ? extractTypeAndPath(directoryRaw).path : this.projectsRootDirectory
+  async apiListDirectory(params: {
+    readonly directoryId?: DirectoryId | null | undefined
+    readonly rootPath?: Path | null | undefined
+  }): Promise<readonly AnyAsset[]> {
+    const { directoryId } = params
+    const directoryPath =
+      directoryId ? extractTypeAndPath(directoryId).path : this.projectsRootDirectory
     const assets: AnyAsset[] = []
-    for (const entryName of await readdir(directory)) {
-      const entryPath = Path(path.join(directory, entryName))
-      const asset = await this.apiGetAssetDetailsByPath({ path: entryPath })
+    for (const entryName of await readdir(directoryPath)) {
+      const entryPath = Path(path.join(directoryPath, entryName))
+      const asset = this.apiGetAssetDetailsByPath({ path: entryPath })
       if (asset == null) {
         throw new Error(`File not found at '${entryPath}'`)
       }
       assets.push(asset)
     }
-    return assets
+    return assets.sort(compareAssets)
+  }
+
+  /** HTTP response handler for "list directory" endpoint. */
+  async httpListDirectory(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+  ) {
+    const parsed = ListDirectoryRequestParams.safeParse({
+      recentProjects: params.get('recent_projects') === String(true),
+      parentId: params.get('parent_id'),
+      filterBy: params.get('filter_by'),
+      labels: params.getAll('label'),
+    })
+    if (!parsed.success) {
+      this.httpError(response, prettifyError(parsed.error))
+      return
+    }
+    const { recentProjects, filterBy, labels, parentId, rootPath } = parsed.data
+    const assets =
+      recentProjects || filterBy !== FilterBy.active || (labels?.length ?? 0) !== 0 ?
+        []
+      : await this.apiListDirectory({ directoryId: parentId, rootPath })
+    return this.httpOkJson<ListDirectoryResponseBody>(response, { assets })
   }
 
   /** HTTP response handler for "upload archive" endpoint. */
@@ -1274,8 +1360,10 @@ export class Server {
     if (tempDirectory != null) {
       await rm(tempDirectory, { force: true, recursive: true })
     }
-    const result: ImportArchiveResponse = conflicts.length === 0 ? { assets } : { conflicts }
-    this.httpOkJson(response, result)
+    this.httpOkJson<ImportArchiveResponse>(
+      response,
+      conflicts.length === 0 ? { assets } : { conflicts },
+    )
   }
 
   /** HTTP response handler for "upload file" endpoint. */

@@ -12,8 +12,7 @@ import * as path from 'node:path'
 import * as tar from 'tar'
 import * as yaml from 'yaml'
 
-import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
-
+import { GET_ROOT_DIRECTORY_PATH } from 'enso-common/src/services/Backend/paths'
 import * as projectManagement from './projectManagement'
 
 // =================
@@ -101,7 +100,7 @@ interface ProjectEntry {
 // === projectManagerShimMiddleware ===
 // ====================================
 
-/** A middleware that handles  */
+/** A middleware that handles Project Manager calls. */
 export default function projectManagerShimMiddleware(
   request: http.IncomingMessage,
   response: http.ServerResponse,
@@ -109,36 +108,7 @@ export default function projectManagerShimMiddleware(
 ) {
   const requestUrl = request.url
   const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
-  if (requestUrl != null && requestUrl.startsWith('/api/project-manager/')) {
-    const actualUrl = new URL(
-      requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
-    )
-    request.pipe(
-      http.request(
-        // `...actualUrl` does NOT work because `URL` properties are not enumerable.
-        {
-          headers: request.headers,
-          host: actualUrl.host,
-          hostname: actualUrl.hostname,
-          method: request.method,
-          path: actualUrl.pathname,
-          port: actualUrl.port,
-          protocol: actualUrl.protocol,
-        },
-        (actualResponse) => {
-          response.writeHead(
-            // This is SAFE. The documentation says:
-            // Only valid for response obtained from ClientRequest.
-            actualResponse.statusCode!,
-            actualResponse.statusMessage,
-            actualResponse.headers,
-          )
-          actualResponse.pipe(response, { end: true })
-        },
-      ),
-      { end: true },
-    )
-  } else if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
+  if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
     switch (requestPath) {
       case '/api/cloud/download-project': {
         const url = new URL(`https://example.com/${requestUrl}`)
@@ -507,7 +477,7 @@ export default function projectManagerShimMiddleware(
         break
       }
     }
-  } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
+  } else if (request.method === 'GET' && requestPath === `/api/${GET_ROOT_DIRECTORY_PATH}`) {
     response
       .writeHead(HTTP_STATUS_OK, {
         'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),

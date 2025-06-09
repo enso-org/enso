@@ -282,11 +282,14 @@ export function getExportArchiveJobStatusPath(jobId: ZipAssetsJobId) {
   return HttpsUrl(`assets/zip/${jobId}`)
 }
 
+export const CLOUD_DOWNLOAD_PROJECT_PATH = 'cloud/download-project'
+export const CLOUD_GET_PROJECT_ARCHIVE_PATH = 'cloud/get-project-archive'
 export const GET_ROOT_DIRECTORY_PATH = 'root-directory'
 export const GET_DOWNLOAD_DIRECTORY_PATH = 'download-directory'
 export const LOCAL_UPLOAD_FILE_PATH = 'upload-file'
 export const LOCAL_UPLOAD_PROJECT_PATH = 'upload-project'
 export const RUN_PROJECT_MANAGER_COMMAND_PATH = 'run-project-manager-command'
+export const GET_PROJECT_BY_UUID_PATH = 'projects/by_uuid'
 
 /** The ID of the directory containing the home directories of all users. */
 export const USERS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000users')

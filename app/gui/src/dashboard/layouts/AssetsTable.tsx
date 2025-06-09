@@ -338,15 +338,9 @@ function AssetsTable(props: AssetsTableProps) {
       addToQuery: (oldQuery) => oldQuery.addToLastTerm({ [key]: [node.title] }),
       deleteFromQuery: (oldQuery) => oldQuery.deleteFromLastTerm({ [key]: [node.title] }),
     })
-    const allVisibleNodes = () =>
-      assets.filter(
-        (asset) => asset.type !== AssetType.specialEmpty && asset.type !== AssetType.specialLoading,
-      )
 
     const allVisible = (negative = false) => {
-      return allVisibleNodes().map((node) =>
-        nodeToSuggestion(node, negative ? 'negativeNames' : 'names'),
-      )
+      return assets.map((node) => nodeToSuggestion(node, negative ? 'negativeNames' : 'names'))
     }
 
     const terms = AssetQuery.terms(query.query)
@@ -389,7 +383,7 @@ function AssetsTable(props: AssetsTableProps) {
         case '-ext':
         case 'extension':
         case '-extension': {
-          const extensions = allVisibleNodes()
+          const extensions = assets
             .filter((node) => node.type === AssetType.file)
             .map((node) => fileExtension(node.title))
           setSuggestions(
@@ -663,9 +657,6 @@ function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case AssetType.file:
-              case AssetType.specialLoading:
-              case AssetType.specialEmpty:
-              case AssetType.specialError:
               case AssetType.specialUp:
               default: {
                 break
@@ -698,25 +689,10 @@ function AssetsTable(props: AssetsTableProps) {
         if (!event.shiftKey) {
           selectionStartIndexRef.current = null
         }
-        let index = prevIndex ?? 0
-        let oldIndex = index
-        if (prevIndex != null) {
-          let itemType = visibleItems[index]?.type
-          do {
-            oldIndex = index
-            index =
-              event.key === 'ArrowUp' ?
-                Math.max(0, index - 1)
-              : Math.min(visibleItems.length - 1, index + 1)
-            itemType = visibleItems[index]?.type
-          } while (
-            index !== oldIndex &&
-            (itemType === AssetType.specialEmpty || itemType === AssetType.specialLoading)
-          )
-          if (itemType === AssetType.specialEmpty || itemType === AssetType.specialLoading) {
-            index = prevIndex
-          }
-        }
+        const index =
+          event.key === 'ArrowUp' ?
+            Math.max(0, (prevIndex ?? 0) - 1)
+          : Math.min(visibleItems.length - 1, (prevIndex ?? 0) + 1)
         setMostRecentlySelectedIndex(index, true)
         if (event.shiftKey) {
           event.preventDefault()

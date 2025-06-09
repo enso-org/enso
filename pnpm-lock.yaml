@@ -12829,14 +12829,6 @@ snapshots:
       chai: 5.1.2
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@3.0.5(vite@6.2.5(@types/node@20.17.11)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))':
-    dependencies:
-      '@vitest/spy': 3.0.5
-      estree-walker: 3.0.3
-      magic-string: 0.30.17
-    optionalDependencies:
-      vite: 6.2.5(@types/node@20.17.11)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
-
   '@vitest/mocker@3.0.5(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))':
     dependencies:
       '@vitest/spy': 3.0.5
@@ -18482,7 +18474,7 @@ snapshots:
   vitest@3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0):
     dependencies:
       '@vitest/expect': 3.0.5
-      '@vitest/mocker': 3.0.5(vite@6.2.5(@types/node@20.17.11)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
+      '@vitest/mocker': 3.0.5(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
       '@vitest/pretty-format': 3.0.5
       '@vitest/runner': 3.0.5
       '@vitest/snapshot': 3.0.5

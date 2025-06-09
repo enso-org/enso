@@ -5,9 +5,8 @@
 import * as backend from '#/services/Backend'
 import { newtypeConstructor, type Newtype } from '#/utilities/newtype'
 import { omit } from '#/utilities/object'
-import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
+import { getDirectoryAndName } from '#/utilities/path'
 import type { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
-import { getFileName } from '../utilities/fileInfo'
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
@@ -146,7 +145,6 @@ export interface ProjectList {
 export interface CreateProject {
   readonly projectId: UUID
   readonly projectName: string
-  readonly projectPath: Path
   readonly projectNormalizedName: string
 }
 
@@ -170,7 +168,6 @@ export interface EngineVersion {
 export interface DuplicatedProject {
   readonly projectId: UUID
   readonly projectName: string
-  readonly projectPath: Path
   readonly projectNormalizedName: string
 }
 
@@ -340,7 +337,7 @@ export default class ProjectManager {
   }
 
   /** Get the state of a project given its path. */
-  getProject(projectPath: Path) {
+  getProjectState(projectPath: Path) {
     return this.projects.get(projectPath)
   }
 
@@ -388,23 +385,10 @@ export default class ProjectManager {
 
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
-    const result = await this.sendRequest<Omit<CreateProject, 'projectPath'>>('project/create', {
+    return await this.sendRequest<CreateProject>('project/create', {
       missingComponentAction: MissingComponentAction.install,
       ...params,
     })
-    const directoryPath = params.projectsDirectory ?? this.rootDirectory
-    // Update `internalDirectories` by listing the project's parent directory, because the
-    // directory name of the project is unknown. Deleting the directory is not an option because
-    // that will prevent ALL descendants of the parent directory from being updated.
-    const siblings = await this.listDirectory(directoryPath)
-    const projectEntry = siblings.find(
-      (entry) =>
-        entry.type === FileSystemEntryType.ProjectEntry && entry.metadata.id === result.projectId,
-    )
-    if (projectEntry == null) {
-      throw new Error('Project failed to be created')
-    }
-    return { ...result, projectPath: projectEntry.path }
   }
 
   /** Rename a project. */
@@ -418,10 +402,6 @@ export default class ProjectManager {
         data: { ...state.data, projectName: params.name },
       })
     }
-    // Update `internalDirectories` by listing the project's parent directory, because the new
-    // directory name of the project is unknown. Deleting the directory is not an option because
-    // that will prevent ALL descendants of the parent directory from being updated.
-    await this.listDirectory(fullParams.projectsDirectory)
   }
 
   /** Duplicate a project. */
@@ -429,22 +409,7 @@ export default class ProjectManager {
     params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
     const fullParams: DuplicateProjectParams = await this.paramsWithPathToWithId(params)
-    const result = await this.sendRequest<Omit<DuplicatedProject, 'projectPath'>>(
-      'project/duplicate',
-      fullParams,
-    )
-    // Update `internalDirectories` by listing the project's parent directory, because the
-    // directory name of the project is unknown. Deleting the directory is not an option because
-    // that will prevent ALL descendants of the parent directory from being updated.
-    const siblings = await this.listDirectory(fullParams.projectsDirectory)
-    const projectEntry = siblings.find(
-      (entry) =>
-        entry.type === FileSystemEntryType.ProjectEntry && entry.metadata.id === result.projectId,
-    )
-    if (projectEntry == null) {
-      throw new Error('Project failed to be created')
-    }
-    return { ...result, projectPath: projectEntry.path }
+    return await this.sendRequest<DuplicatedProject>('project/duplicate', fullParams)
   }
 
   /** Delete a project. */
@@ -458,35 +423,24 @@ export default class ProjectManager {
     this.projects.delete(params.projectPath)
   }
 
-  /** List directories, projects and files in the given folder. */
-  async listDirectory(parentId: Path | null): Promise<readonly FileSystemEntry[]> {
-    /** The type of the response body of this endpoint. */
-    interface ResponseBody {
-      readonly entries: FileSystemEntry[]
+  /** Get a project's metadata by its path. */
+  async getProjectMetadata(path: Path) {
+    const response = await fetch(`/api/project-${encodeURIComponent(path)}/metadata`)
+    if (!response.ok) {
+      return null
     }
-    parentId ??= this.rootDirectory
-    const response = await this.runStandaloneCommand<ResponseBody>(
-      null,
-      'filesystem-list',
-      'json',
-      parentId,
-    )
-    const result = response.entries
-      .filter((entry) => {
-        // Ignore hybrid project directories.
-        if (entry.type === FileSystemEntryType.DirectoryEntry) {
-          const directoryName = getFileName(entry.path)
-          return !backend.HYBRID_PROJECT_DIRECTORY_MASK.test(directoryName)
-        }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const metadata: ProjectMetadata = await response.json()
+    return metadata
+  }
 
-        return true
-      })
-      .map((entry) => ({
-        ...entry,
-        path: normalizeSlashes(entry.path),
-      }))
-
-    return result
+  /** Get a project's metadata by its path, throwing an error if it is not present. */
+  async getProjectMetadataStrict(path: Path) {
+    const metadata = await this.getProjectMetadata(path)
+    if (!metadata) {
+      throw new Error(`Project with path '${path}' does not exist`)
+    }
+    return metadata
   }
 
   /** Remove all handlers for a specified request ID. */
@@ -500,14 +454,8 @@ export default class ProjectManager {
    * @throws {Error} when the `id` is not cached.
    */
   private async paramsWithPathToWithId<T>(obj: WithProjectPath<T>) {
-    const path = obj.projectPath
-    const directoryPath = getDirectoryAndName(path).directoryPath
-    const response = await fetch(`/api/project-${path}/metadata`)
-    if (!response.ok) {
-      throw new Error(`Project with path '${path}' does not exist`)
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const { id }: ProjectMetadata = await response.json()
+    const { id } = await this.getProjectMetadataStrict(obj.projectPath)
+    const directoryPath = getDirectoryAndName(obj.projectPath).directoryPath
     return {
       ...omit(obj, 'projectPath'),
       projectId: UUID(id),

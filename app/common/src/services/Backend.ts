@@ -4,6 +4,7 @@ import { getText, Replacements, resolveDictionary, type TextId } from '../text'
 import * as array from '../utilities/data/array'
 import * as dateTime from '../utilities/data/dateTime'
 import * as newtype from '../utilities/data/newtype'
+import { merge } from '../utilities/data/object'
 import * as permissions from '../utilities/permissions'
 import * as uniqueString from '../utilities/uniqueString'
 import {
@@ -11,6 +12,7 @@ import {
   deleteAssetPath,
   getFileDetailsPath,
   getProjectContentPath,
+  LIST_DIRECTORY_PATH,
   updateAssetPath,
   updateDirectoryPath,
 } from './Backend/paths'
@@ -73,27 +75,9 @@ export function isDirectoryId(id: unknown): id is DirectoryId {
   return typeof id === 'string' && id.startsWith('directory-')
 }
 
-/**
- * Unique identifier for an asset representing the items inside a directory for which the
- * request to retrive the items has not yet completed.
- */
-export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
-export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
-
-/** Unique identifier for an asset representing the nonexistent children of an empty directory. */
-export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
-export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
-
 /** Unique identifier for an asset representing the parent directory. */
 export type UpAssetId = newtype.Newtype<string, 'UpAssetId'>
 export const UpAssetId = newtype.newtypeConstructor<UpAssetId>()
-
-/**
- * Unique identifier for an asset representing the nonexistent children of a directory
- * that failed to fetch.
- */
-export type ErrorAssetId = newtype.Newtype<string, 'ErrorAssetId'>
-export const ErrorAssetId = newtype.newtypeConstructor<ErrorAssetId>()
 
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
@@ -179,6 +163,7 @@ const PathType = z.custom<Path>((x) => typeof x === 'string')
 /** A project UUID. Only present on the local backend. */
 export type UUID = newtype.Newtype<string, 'UUID'>
 export const UUID = newtype.newtypeConstructor<UUID>()
+const UUIDType = z.custom<UUID>((x) => typeof x === 'string')
 
 /** The path of ids to this asset. */
 export type ParentsPath = newtype.Newtype<string, 'ParentsPath'>
@@ -402,6 +387,10 @@ export interface ProjectSession {
   readonly closedAt?: dateTime.Rfc3339DateTime
   readonly userEmail: EmailAddress
 }
+
+export const GetProjectByUuidParams = object({ uuid: UUIDType, directoryId: DirectoryIdType })
+
+export interface GetProjectByUuidParams extends z.infer<typeof GetProjectByUuidParams> {}
 
 export const PROJECT_PARALLEL_MODES = ['ignore', 'restart', 'parallel'] as const
 
@@ -907,12 +896,6 @@ export function findLeastUsedColor(labels: Iterable<Label>) {
   return minColor == null ? COLORS[0] : (COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0])
 }
 
-export enum SpecialAssetType {
-  loading = 'specialLoading',
-  empty = 'specialEmpty',
-  error = 'specialError',
-}
-
 /** All possible types of directory entries. */
 export enum AssetType {
   project = 'project',
@@ -920,15 +903,6 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /**
-   * A special {@link AssetType} representing the unknown items of a directory, before the
-   * request to retrieve the items completes.
-   */
-  specialLoading = 'specialLoading',
-  /** A special {@link AssetType} representing a directory listing that is empty. */
-  specialEmpty = 'specialEmpty',
-  /** A special {@link AssetType} representing a directory listing that errored. */
-  specialError = 'specialError',
   /** A special {@link AssetType} representing a button that navigates to the parent directory. */
   specialUp = 'specialUp',
 }
@@ -938,9 +912,6 @@ export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
   [AssetType.project]: 'projectAssetType',
   [AssetType.file]: 'fileAssetType',
   [AssetType.secret]: 'secretAssetType',
-  [AssetType.specialEmpty]: 'specialEmptyAssetType',
-  [AssetType.specialError]: 'specialErrorAssetType',
-  [AssetType.specialLoading]: 'specialLoadingAssetType',
   [AssetType.specialUp]: 'specialUpAssetType',
   [AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in AssetType]: `${Type}AssetType` }
@@ -979,9 +950,6 @@ export type RealAssetTypeId<Id extends RealAssetId> =
   : AssetType.directory
 
 export interface SpecialAssetIdType {
-  readonly [AssetType.specialLoading]: LoadingAssetId
-  readonly [AssetType.specialEmpty]: EmptyAssetId
-  readonly [AssetType.specialError]: ErrorAssetId
   readonly [AssetType.specialUp]: UpAssetId
 }
 
@@ -995,9 +963,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.file]: 2,
   [AssetType.datalink]: 3,
   [AssetType.secret]: 4,
-  [AssetType.specialLoading]: 1000,
-  [AssetType.specialEmpty]: 1000,
-  [AssetType.specialError]: 1000,
   [AssetType.specialUp]: -1,
 }
 
@@ -1056,15 +1021,6 @@ export type DatalinkAsset = Asset<AssetType.datalink>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export type SecretAsset = Asset<AssetType.secret>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
-export type SpecialLoadingAsset = Asset<AssetType.specialLoading>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
-export type SpecialEmptyAsset = Asset<AssetType.specialEmpty>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialError}>. */
-export type SpecialErrorAsset = Asset<AssetType.specialError>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
 export type SpecialUpAsset = Asset<AssetType.specialUp>
@@ -1173,86 +1129,6 @@ export function createPlaceholderDatalinkAsset(
   }
 }
 
-/**
- * Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
- * values.
- */
-export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
-  return {
-    type: AssetType.specialLoading,
-    title: '',
-    id: LoadingAssetId(createPlaceholderId(`${AssetType.specialLoading}-${directoryId}`)),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Whether a given {@link string} is an {@link LoadingAssetId}. */
-export function isLoadingAssetId(id: string): id is LoadingAssetId {
-  return id.startsWith(`${AssetType.specialLoading}-`)
-}
-
-/**
- * Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
- * values.
- */
-export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
-  return {
-    type: AssetType.specialEmpty,
-    title: '',
-    id: EmptyAssetId(`${AssetType.specialEmpty}-${directoryId}`),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Whether a given {@link string} is an {@link EmptyAssetId}. */
-export function isEmptyAssetId(id: string): id is EmptyAssetId {
-  return id.startsWith(`${AssetType.specialEmpty}-`)
-}
-
-/**
- * Creates a {@link SpecialErrorAsset}, with all irrelevant fields initialized to default
- * values.
- */
-export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorAsset {
-  return {
-    type: AssetType.specialError,
-    title: '',
-    id: ErrorAssetId(`${AssetType.specialError}-${directoryId}`),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Whether a given {@link string} is an {@link ErrorAssetId}. */
-export function isErrorAssetId(id: string): id is ErrorAssetId {
-  return id.startsWith(`${AssetType.specialError}-`)
-}
-
-/** Whether a given {@link string} is a special frontend-only asset id. */
-export function isSpecialAssetId(id: string) {
-  return isLoadingAssetId(id) || isEmptyAssetId(id) || isErrorAssetId(id)
-}
-
 /** Any object with a `type` field matching the given `AssetType`. */
 interface HasType<Type extends AssetType> {
   readonly type: Type
@@ -1260,15 +1136,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  | DatalinkAsset
-  | DirectoryAsset
-  | FileAsset
-  | ProjectAsset
-  | SecretAsset
-  | SpecialEmptyAsset
-  | SpecialErrorAsset
-  | SpecialLoadingAsset
-  | SpecialUpAsset,
+  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset | SpecialUpAsset,
   HasType<Type>
 >
 
@@ -1317,18 +1185,6 @@ export function createPlaceholderAssetId<Type extends AssetType>(
     }
     case AssetType.secret: {
       result = SecretId(id)
-      break
-    }
-    case AssetType.specialLoading: {
-      result = LoadingAssetId(id)
-      break
-    }
-    case AssetType.specialEmpty: {
-      result = EmptyAssetId(id)
-      break
-    }
-    case AssetType.specialError: {
-      result = ErrorAssetId(id)
       break
     }
     case AssetType.specialUp: {
@@ -1616,6 +1472,11 @@ export const ListDirectoryRequestParams = object({
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams extends z.infer<typeof ListDirectoryRequestParams> {}
 
+/** HTTP response body for the "list projects" endpoint. */
+export interface ListDirectoryResponseBody {
+  readonly assets: readonly AnyAsset[]
+}
+
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
   readonly fileId: AssetId | null
@@ -1707,10 +1568,6 @@ export type ImportArchiveResponse =
 export interface ExportArchiveParams {
   readonly assetIds: readonly AssetId[]
   /** The path of the archive to export to. */
-  readonly filePath: Path | null
-}
-
-export interface ExportedArchive {
   readonly filePath: Path | null
 }
 
@@ -2012,11 +1869,57 @@ export default abstract class Backend {
   abstract createPermission(body: CreatePermissionRequestBody): Promise<void>
   /** Return user details for the current user. */
   abstract usersMe(): Promise<User | null>
-  /** Return a list of assets in a directory. */
-  abstract listDirectory(
+
+  /**
+   * Return a list of assets in a directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async listDirectory(
     query: ListDirectoryRequestParams,
     title: string,
-  ): Promise<readonly AnyAsset[]>
+  ): Promise<readonly AnyAsset[]> {
+    const path = LIST_DIRECTORY_PATH
+    const response = await this.get<ListDirectoryResponseBody>(
+      path +
+        '?' +
+        new URLSearchParams(
+          query.recentProjects ?
+            [['recent_projects', String(true)]]
+          : [
+              ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+              ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+              ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
+            ],
+        ).toString(),
+    )
+    if (!response.ok) {
+      if (query.parentId != null) {
+        return await this.throw(response, 'listFolderBackendError', title)
+      } else {
+        return await this.throw(response, 'listRootFolderBackendError')
+      }
+    } else {
+      const ret = (await response.json()).assets
+        .map((asset) =>
+          merge(asset, {
+            type: getAssetTypeFromId(asset.id),
+            // `Users` and `Teams` folders are virtual, so their children incorrectly have
+            // the organization root id as their parent id.
+            parentId: query.parentId ?? asset.parentId,
+          }),
+        )
+        .map((asset) =>
+          merge(asset, {
+            permissions: [...(asset.permissions ?? [])].sort(compareAssetPermissions),
+            ...(asset.ensoPath != null ?
+              { ensoPathValue: EnsoPathValue(String(encodeURI(asset.ensoPath))) }
+            : {}),
+          }),
+        )
+        .sort(compareAssets)
+      return ret
+    }
+  }
 
   /**
    * Create a directory.
@@ -2265,7 +2168,7 @@ export default abstract class Backend {
   /** Import an archive and unpack into a directory. */
   abstract importArchive(params: ImportArchiveParams): Promise<readonly AnyAsset[]>
   /** Export multiple files and pack into an archive. */
-  abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
+  abstract exportArchive(params: ExportArchiveParams): Promise<void>
 
   /**
    * Get the URL for the customer portal.

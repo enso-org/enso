@@ -1,7 +1,4 @@
 /** @file A table row for an arbitrary asset. */
-import BlankIcon from '#/assets/blank.svg'
-import { IndefiniteSpinner } from '#/components/Spinner'
-import { Text } from '#/components/Text'
 import {
   useDeleteAssetsMutationState,
   useMoveAssetsMutationState,
@@ -42,7 +39,7 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import { useRightPanelData, useText } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -90,14 +87,11 @@ export interface AssetRowProps {
 /** A row containing an {@link backendModule.AnyAsset}. */
 
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
-  const { type, columns, id, item } = props
+  const { type, id, item } = props
 
   switch (type) {
-    case backendModule.AssetType.specialLoading:
-    case backendModule.AssetType.specialEmpty:
-    case backendModule.AssetType.specialError:
     case backendModule.AssetType.specialUp: {
-      return <AssetSpecialRow columnsLength={columns.length} type={type} />
+      return <AssetSpecialRow type={type} />
     }
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
@@ -115,63 +109,17 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 /** Props for a {@link AssetSpecialRow}. */
 export interface AssetSpecialRowProps {
   readonly type: backendModule.AssetType
-  readonly columnsLength: number
 }
 
 /** Renders a special asset row. */
 const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
-  const { type, columnsLength } = props
-
-  const { getText } = useText()
+  const { type } = props
 
   switch (type) {
     case backendModule.AssetType.specialUp: {
       // TODO: Implement this.
       // @MrFlashAccount [Cloud v2 #1810](https://github.com/enso-org/cloud-v2/issues/1810)
       return null
-    }
-
-    case backendModule.AssetType.specialLoading: {
-      return (
-        <tr>
-          <td colSpan={columnsLength} className="border-r p-0">
-            <div className="flex h-table-row items-center justify-center rounded-full">
-              <IndefiniteSpinner size={24} />
-            </div>
-          </td>
-        </tr>
-      )
-    }
-    case backendModule.AssetType.specialEmpty: {
-      return (
-        <tr>
-          <td colSpan={columnsLength} className="border-r p-0">
-            <div className="flex h-table-row items-center rounded-full">
-              <img src={BlankIcon} />
-              <Text className="px-name-column-x placeholder" disableLineHeightCompensation>
-                {getText('thisFolderIsEmpty')}
-              </Text>
-            </div>
-          </td>
-        </tr>
-      )
-    }
-    case backendModule.AssetType.specialError: {
-      return (
-        <tr>
-          <td colSpan={columnsLength} className="border-r p-0">
-            <div className="flex h-table-row items-center rounded-full">
-              <img src={BlankIcon} />
-              <Text
-                className="px-name-column-x text-danger placeholder"
-                disableLineHeightCompensation
-              >
-                {getText('thisFolderFailedToFetch')}
-              </Text>
-            </div>
-          </td>
-        </tr>
-      )
     }
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
@@ -542,9 +490,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
       )
     }
     case backendModule.AssetType.specialUp:
-    case backendModule.AssetType.specialLoading:
-    case backendModule.AssetType.specialEmpty:
-    case backendModule.AssetType.specialError:
     default: {
       invariant(
         false,
