@@ -85,6 +85,9 @@ public final class UnusedImports implements IRPass {
 
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
+    if (moduleContext.isSynthetic()) {
+      return ir;
+    }
     var bm = moduleContext.bindingsAnalysis();
     var usedSymbols = UsedSymbolsCollector.collect(ir, bm);
     for (var imp : CollectionConverters.asJava(ir.imports())) {
