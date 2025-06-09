@@ -1,13 +1,11 @@
 /** @file Utilities for working with permissions. */
-import * as backend from '#/services/Backend'
-import { directoryIdToUserGroupId, directoryIdToUserId } from '#/services/RemoteBackend'
+import type * as backend from '#/services/Backend'
 import {
   type AssetPermission,
   compareAssetPermissions,
   type User,
 } from 'enso-common/src/services/Backend'
 import { Permission, PermissionAction } from 'enso-common/src/utilities/permissions'
-import invariant from 'tiny-invariant'
 export * from 'enso-common/src/utilities/permissions'
 
 /** CSS classes for each permission. */
@@ -75,25 +73,6 @@ export function isUserPath(path: string) {
 /** Whether a path is inside a team's home directory. */
 export function isTeamPath(path: string) {
   return TEAM_PATH_REGEX.test(path)
-}
-
-/** Whether a path is inside a user's home directory. */
-export function isUserParentsPath(path: backend.ParentsPath, userIds: readonly backend.UserId[]) {
-  const rootFolder = path.split('/')[0]
-  invariant(backend.isDirectoryId(rootFolder), 'Asset in user folder must have a root folder')
-  const assetUserOrTeamId = directoryIdToUserId(rootFolder)
-  return userIds.includes(assetUserOrTeamId)
-}
-
-/** Whether a path is inside a team's home directory. */
-export function isTeamParentsPath(
-  path: backend.ParentsPath,
-  teamIds: readonly backend.UserGroupId[],
-) {
-  const rootFolder = path.split('/')[0]
-  invariant(backend.isDirectoryId(rootFolder), 'Asset in team folder must have a root folder')
-  const assetUserOrTeamId = directoryIdToUserGroupId(rootFolder)
-  return teamIds.includes(assetUserOrTeamId)
 }
 
 /** Find the new owner of an asset based on the path of its new parent directory. */
