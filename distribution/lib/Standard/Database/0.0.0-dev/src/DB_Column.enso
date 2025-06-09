@@ -97,6 +97,7 @@ Column.from (that : DB_Column) =
 ## PRIVATE
 Is_Column.from (that : DB_Column) = Is_Column.Value that
 
+## PRIVATE
 DB_Column.from (that : Column) =
     underlying_from_column that DB_Column
 
