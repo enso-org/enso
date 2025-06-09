@@ -51,7 +51,7 @@ type DB_Column_Implementation
         IO.println (this_column.display show_rows format_terminal=True)
         IO.println ''
 
-    to_js_object (this_column : Column & DB_Column) = this_column.to_sql.to_js_object
+    to_js_object_implementation (this_column : Column & DB_Column) = this_column.to_sql.to_js_object
 
     to_table (this_column : Column & DB_Column) -> DB_Table =
         DB_Table.new this_column.name this_column.connection [Internal_Column.from this_column] this_column.context

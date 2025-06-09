@@ -629,7 +629,7 @@ type In_Memory_Column_Implementation
     should_be_selected_by_type (this_column : Column & In_Memory_Column) (value_type : Value_Type) -> Boolean =
         this_column.value_type.is_same_type value_type
 
-    to_js_object this_column -> JS_Object =
+    to_js_object_implementation this_column -> JS_Object =
         name = (this_column:In_Memory_Column).java_column.getName
         storage = (this_column:In_Memory_Column).java_column.getStorage
         storage_proxy = Array_Proxy.new storage.getSize i-> storage.getItemBoxed i

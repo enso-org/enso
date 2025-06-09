@@ -1976,7 +1976,7 @@ type Column
 
              example_to_json = Examples.integer_column.to_js_object
     to_js_object self -> JS_Object =
-        self.implementation.to_js_object self
+        self.implementation.to_js_object_implementation self
 
     ## ICON data_input
        Converts this column into a single-column table.
