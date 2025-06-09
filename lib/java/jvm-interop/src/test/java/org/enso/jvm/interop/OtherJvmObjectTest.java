@@ -28,6 +28,10 @@ public class OtherJvmObjectTest {
 
     assertFalse("Decimal isn't array", otherValue.hasArrayElements());
     assertEquals(bigReal.toPlainString(), otherValue.invokeMember("toPlainString").asString());
+
+    var twiceReal = bigReal.add(bigReal);
+    var twiceValue = otherValue.invokeMember("add", otherValue);
+    assertEquals(twiceReal.toBigInteger(), twiceValue.invokeMember("toBigInteger").asBigInteger());
   }
 
   @Test

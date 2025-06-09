@@ -20,6 +20,10 @@ final class OtherJvmObject implements TruffleObject {
     this.id = id;
   }
 
+  long id() {
+    return id;
+  }
+
   @ExportMessage
   Object send(Message message, Object[] args) throws Exception {
     if (message.getLibraryClass() != InteropLibrary.class) {

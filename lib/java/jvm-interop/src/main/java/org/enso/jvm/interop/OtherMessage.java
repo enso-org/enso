@@ -37,6 +37,31 @@ record OtherMessage(long id, Message message, List<Object> args)
     return size;
   }
 
+  @Persistable(id = 1)
+  static final class PersistTruffleObject extends Persistance<TruffleObject> {
+    public PersistTruffleObject() {
+      super(TruffleObject.class, true, 1);
+    }
+
+    @Override
+    protected void writeObject(TruffleObject obj, Output out) throws IOException {
+      if (obj instanceof OtherJvmObject other) {
+        out.writeLong(other.id());
+      } else {
+        var id = registerObject(obj);
+        out.writeLong(id);
+      }
+    }
+
+    @Override
+    protected TruffleObject readObject(Input in) throws IOException, ClassNotFoundException {
+      var id = in.readLong();
+      var cached = OBJECTS.get(id);
+      assert cached != null;
+      return cached;
+    }
+  }
+
   @Persistable(id = 81902)
   static final class PersistTruffleMessage extends Persistance<Message> {
     public PersistTruffleMessage() {
