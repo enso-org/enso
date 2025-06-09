@@ -448,6 +448,31 @@ public class BindingsMapResolutionTest {
     );
   }
 
+  @Test
+  public void noStackOverflow_WhenResolving_StandardBoolean() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Proj",
+        """
+            import Standard.Base.Any
+            """,
+        projDir
+    );
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          var nameToResolve = asScala(List.of(
+              "Standard", "Base", "Data", "Boolean", "boolean"
+          ));
+          var res = bindingsMap.resolveQualifiedName(nameToResolve);
+          assertThat("Resolution method finishes",
+              res, is(notNullValue()));
+        }
+    );
+  }
+
   private Path createProject(String mainModuleSrc) throws IOException {
     var projDir = TMP_DIR.newFolder().toPath();
     var modules =
