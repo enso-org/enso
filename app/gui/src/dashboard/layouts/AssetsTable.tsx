@@ -843,6 +843,7 @@ function AssetsTable(props: AssetsTableProps) {
   const hiddenContextMenu =
     isSingleSelectedDirectoryItem ? null : (
       <AssetsTableContextMenu
+        rootRef={rootRef}
         hidden
         backend={backend}
         category={category}
@@ -1247,6 +1248,7 @@ function AssetsTable(props: AssetsTableProps) {
         renameAsset={doRenameAsset}
         closeProject={closeProjectMutationCallback}
         openProject={doOpenProject}
+        tableRootRef={rootRef}
       />
     )
   })
@@ -1397,6 +1399,7 @@ function AssetsTable(props: AssetsTableProps) {
               event.stopPropagation()
               setModal(
                 <AssetsTableContextMenu
+                  rootRef={rootRef}
                   backend={backend}
                   category={category}
                   event={event}

@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.Encoding.Encoding_Resolver
 import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
@@ -13,6 +15,7 @@ polyglot java import java.io.IOException
 polyglot java import java.io.Reader
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
+polyglot java import org.enso.table.read.FixedWidthDecodingProblemAggregator
 polyglot java import org.enso.table.read.FixedWidthReader
 polyglot java import org.enso.table.read.FixedWidthReader.FixedWidthLayoutEntry
 polyglot java import org.enso.table.read.InvalidFixedWidthRowsBehavior
@@ -48,36 +51,23 @@ read_file format file on_problems:Problem_Behavior =
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
 read_stream : Fixed_Width_Format -> Input_Stream -> Problem_Behavior -> File | Nothing -> Any
-read_stream format stream on_problems:Problem_Behavior related_file=Nothing =
+read_stream format input_stream on_problems:Problem_Behavior related_file=Nothing =
+    # We always ensure the stream is peekable, as that also implies buffering which is supposedly more efficient e.g. when working with files.
     handle_io_exception related_file <|
-        stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
-            read_from_reader format reporting_stream_decoder on_problems
-
-## PRIVATE
-   Reads fixed-width column data from the provided `Reader` according to the
-   provided format.
-
-   The `encoding` parameter is ignored, instead the provided reader should
-   handle any necessary decoding.
-
-   Arguments:
-   - format: The specification of format of the file, including the column
-     layout.
-   - java_reader: A Java `Reader` used as the source of decoded characters.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-read_from_reader : Fixed_Width_Format -> Reader -> Problem_Behavior -> Any
-read_from_reader format java_reader on_problems:Problem_Behavior =
-    Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <|
-        Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-            reader = prepare_reader format on_problems java_problem_aggregator
-            java_table = reader.read java_reader
-            from_java_table java_table
+        buffered_input_stream = input_stream.as_peekable_stream
+        decoding_problem_aggregator = FixedWidthDecodingProblemAggregator.new
+        result = buffered_input_stream.with_java_stream java_stream->
+            Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <|
+                Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                    reader = prepare_reader format format.encoding on_problems decoding_problem_aggregator java_problem_aggregator
+                    java_table = reader.read java_stream
+                    from_java_table java_table
+        problems = Vector.from_polyglot_array decoding_problem_aggregator.summarize . map decoding_problem->
+            Encoding_Error.Error decoding_problem.message
+        on_problems.attach_problems_after result problems
 
 ## Prepare a FixedWidthReader for reading.
-private prepare_reader format:Fixed_Width_Format on_problems:Problem_Behavior java_problem_aggregator =
+private prepare_reader format:Fixed_Width_Format effective_encoding:Encoding on_problems:Problem_Behavior decoding_problem_aggregator java_problem_aggregator =
     warnings_as_errors = on_problems == Problem_Behavior.Report_Error
     row_limit = format.row_limit.rows_to_read.if_nothing -1
     on_invalid_rows_java = case format.on_invalid_rows of
@@ -86,7 +76,7 @@ private prepare_reader format:Fixed_Width_Format on_problems:Problem_Behavior ja
     value_parser = if format.value_formatter.is_nothing then IdentityParser.new else
         wrapped = format.value_formatter.wrap_base_parser IdentityParser.new
         TypeInferringParser.new format.value_formatter.get_specific_type_parsers wrapped
-    FixedWidthReader.new (format_to_java format) row_limit on_invalid_rows_java value_parser warnings_as_errors java_problem_aggregator
+    FixedWidthReader.new (format_to_java format) effective_encoding.to_java_charset row_limit on_invalid_rows_java value_parser warnings_as_errors decoding_problem_aggregator java_problem_aggregator
 
 private format_to_java format =
     format.layout.entries.map e->

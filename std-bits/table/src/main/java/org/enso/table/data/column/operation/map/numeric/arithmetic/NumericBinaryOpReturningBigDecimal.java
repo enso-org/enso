@@ -4,6 +4,7 @@ import static org.enso.table.data.column.operation.map.numeric.arithmetic.Numeri
 
 import java.math.BigDecimal;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.builder.BigDecimalBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -33,7 +34,7 @@ public abstract class NumericBinaryOpReturningBigDecimal<
   public Storage<BigDecimal> runBinaryMap(
       I storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
-      return BigDecimalStorage.makeEmpty(storage.getSize());
+      return BigDecimalBuilder.makeEmpty(storage.getSize());
     }
 
     var lhs = asBigDecimalStorage(storage);

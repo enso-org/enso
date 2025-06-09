@@ -155,7 +155,7 @@ test('Insert link button inserts link and focuses editor', async ({ page }) => {
   await docsContent.blur()
 
   // Push the button
-  await rightDock.getByRole('button', { name: 'Insert link' }).click()
+  await rightDock.getByTestId('action:documentationEditor.link').click()
 
   // The link exists and is being edited
   await expect(docsContent.locator('a')).toExist()
