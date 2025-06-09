@@ -42,6 +42,7 @@ watchPostEffect(() => {
 })
 
 const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
+const displayDevTools = computed(() => auth.session?.type === UserSessionType.full)
 </script>
 
 <template>
@@ -70,5 +71,5 @@ const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
 
   <RouterView v-if="routeGuardResult.allowed" />
 
-  <EnsoDevtools />
+  <EnsoDevtools v-if="displayDevTools" />
 </template>
