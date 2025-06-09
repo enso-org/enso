@@ -138,9 +138,9 @@ type DB_Column_Implementation
         case Value_Type_Helpers.resolve_subtraction_kind this_column other of
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
                 make_binary_op this_column "-" other
-            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
-                Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time value")
             Nothing -> this_column.const Nothing
+            _ ->
+                Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time value")
 
     multiply (this_column : Column & DB_Column) (other : Column | Any) =
         Value_Type_Helpers.check_binary_numeric_op this_column other <|
