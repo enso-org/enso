@@ -1,5 +1,10 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Objects;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -17,19 +22,12 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
-
 /** Interface defining a builder for creating columns dynamically. */
 public interface Builder {
   /**
-   * The maximum size of a builder.
-   * Currently, just the maximum value of an integer, but should be tested and limited.
-   * For array based builders, must be less than the maximum array size.
-   * */
+   * The maximum size of a builder. Currently, just the maximum value of an integer, but should be
+   * tested and limited. For array based builders, must be less than the maximum array size.
+   */
   int MAX_SIZE = Integer.MAX_VALUE;
 
   /** Checks that the size is within the maximum allowed. */
@@ -38,7 +36,7 @@ public interface Builder {
       throw new IllegalArgumentException("Columns cannot exceed " + MAX_SIZE + " rows.");
     }
 
-    return (int)size;
+    return (int) size;
   }
 
   /**
@@ -50,17 +48,17 @@ public interface Builder {
   static Builder getForType(StorageType<?> type, long size, ProblemAggregator problemAggregator) {
     Builder builder =
         switch (type) {
-          case AnyObjectType _ -> getForAnyObject(size);
-          case BooleanType _ -> getForBoolean(size);
-          case DateType _ -> getForDate(size);
-          case DateTimeType _ -> getForDateTime(size);
-          case TimeOfDayType _ -> getForTime(size);
+          case AnyObjectType t -> getForAnyObject(size);
+          case BooleanType t -> getForBoolean(size);
+          case DateType t -> getForDate(size);
+          case DateTimeType t -> getForDateTime(size);
+          case TimeOfDayType t -> getForTime(size);
           case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
           case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
           case TextType textType -> getForText(textType, size);
-          case BigDecimalType _ -> getForBigDecimal(size);
-          case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
-          case NullType x -> new NullBuilder();
+          case BigDecimalType t -> getForBigDecimal(size);
+          case BigIntegerType t -> getForBigInteger(size, problemAggregator);
+          case NullType t -> new NullBuilder();
           case null -> getInferredBuilder(size, problemAggregator);
         };
 
@@ -121,8 +119,7 @@ public interface Builder {
   }
 
   /**
-   * Constructs a builder for storing objects.
-   * No operations will be supported on this builder.
+   * Constructs a builder for storing objects. No operations will be supported on this builder.
    *
    * @param size the initial size of the builder.
    */
@@ -141,7 +138,8 @@ public interface Builder {
     return new BigDecimalBuilder(checkedSize);
   }
 
-  static BuilderForType<BigInteger> getForBigInteger(long size, ProblemAggregator problemAggregator) {
+  static BuilderForType<BigInteger> getForBigInteger(
+      long size, ProblemAggregator problemAggregator) {
     int checkedSize = checkSize(size);
     return new BigIntegerBuilder(checkedSize, problemAggregator);
   }

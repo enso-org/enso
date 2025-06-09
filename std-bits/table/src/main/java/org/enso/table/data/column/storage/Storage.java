@@ -1,10 +1,13 @@
 package org.enso.table.data.column.storage;
 
-import java.util.*;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -23,21 +26,82 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   @Override
   public abstract StorageType<T> getType();
 
-  /**
-   * Returns a more specialized storage, if available.
-   *
-   * <p>This storage should have the same type as returned by {@code inferPreciseType(DEFAULT)}. See
-   * {@link MixedStorage} for more information.
-   */
-  public Storage<?> tryGettingMoreSpecializedStorage() {
-    return this;
-  }
-
   @Override
   public abstract boolean isNothing(long index);
 
   @Override
   public abstract T getItemBoxed(long index);
+
+  @Override
+  public Iterator<T> iterator() {
+    return new Iterator<>() {
+      private long index = -1;
+
+      @Override
+      public boolean hasNext() {
+        return index + 1 < getSize();
+      }
+
+      @Override
+      public T next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        return getItemBoxed(++index);
+      }
+    };
+  }
+
+  @Override
+  public ColumnStorageIterator<T> iteratorWithIndex() {
+    return new StorageIterator<>(this);
+  }
+
+  public static class StorageIterator<T> implements ColumnStorageIterator<T> {
+    protected final ColumnStorage<T> parent;
+    protected long index = -1;
+
+    public StorageIterator(ColumnStorage<T> parent) {
+      this.parent = parent;
+    }
+
+    @Override
+    public T getItemBoxed() {
+      return parent.getItemBoxed(index);
+    }
+
+    @Override
+    public boolean isNothing() {
+      return parent.isNothing(index);
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index + 1 < parent.getSize();
+    }
+
+    @Override
+    public T next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      return parent.getItemBoxed(++index);
+    }
+
+    @Override
+    public long getIndex() {
+      return index;
+    }
+
+    @Override
+    public boolean moveNext() {
+      if (!hasNext()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
+  }
 
   /**
    * @return the type of the values in this column's storage. Most storages just return their type.
@@ -48,65 +112,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
     return getType();
   }
-
-  /**
-   * Returns the smallest type (according to Column.auto_value_type rules) that may still fit all
-   * values in this column.
-   *
-   * <p>It is a sibling of `inferPreciseType` that allows some further shrinking. It is kept
-   * separate, because `inferPreciseType` should be quick to compute (cached if needed) as it is
-   * used in typechecking of lots of operations. This one however, is only used in a specific
-   * `auto_value_type` use-case and rarely will need to be computed more than once.
-   */
-  @Deprecated
-  public StorageType<?> inferPreciseTypeShrunk() {
-    return getType();
-  }
-
-  /** A container for names of vectorizable operation. */
-  public static final class Maps {
-    public static final String EQ = "==";
-    public static final String LT = "<";
-    public static final String LTE = "<=";
-    public static final String GT = ">";
-    public static final String GTE = ">=";
-    public static final String MUL = "*";
-    public static final String ADD = "+";
-    public static final String SUB = "-";
-    public static final String DIV = "/";
-    public static final String MOD = "%";
-    public static final String POWER = "^";
-    public static final String ROUND = "round";
-    public static final String IS_IN = "is_in";
-  }
-
-  /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
-  public abstract boolean isBinaryOpVectorized(String name);
-
-  /** Runs a vectorized operation on this storage, taking one scalar argument. */
-  public abstract Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator);
-
-  /* Specifies if the given ternary operation has a vectorized implementation available for this storage.*/
-  public boolean isTernaryOpVectorized(String name) {
-    return false;
-  }
-
-  /** Runs a vectorized operation on this storage, taking two scalar arguments. */
-  public Storage<?> runVectorizedTernaryMap(
-      String name,
-      Object argument0,
-      Object argument1,
-      MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalArgumentException("Unsupported ternary operation: " + name);
-  }
-
-  /**
-   * Runs a vectorized operation on this storage, taking a storage as the right argument -
-   * processing row-by-row.
-   */
-  public abstract Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator);
 
   /**
    * Runs a 2-argument function on each element in this storage.
@@ -182,119 +187,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   /**
-   * Runs a binary operation with a scalar argument.
-   *
-   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not
-   *     available; it should never raise dataflow errors.
-   * @param argument the argument to pass to each run of the function
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedOrFallbackBinaryMap(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      BiFunction<Object, Object, Object> fallback,
-      Object argument,
-      boolean skipNulls,
-      StorageType<?> expectedResultType) {
-    if (isBinaryOpVectorized(name)) {
-      return runVectorizedBinaryMap(name, argument, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
-    }
-  }
-
-  /**
-   * Runs a ternary operation with two scalar arguments.
-   *
-   * <p>Does not take a fallback function.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param argument0 the first argument to pass to each run of the function
-   * @param argument1 the second argument to pass to each run of the function
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedTernaryMap(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      Object argument0,
-      Object argument1,
-      boolean skipNulls,
-      StorageType<?> expectedResultType) {
-    if (isTernaryOpVectorized(name)) {
-      return runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
-    } else {
-      throw new IllegalArgumentException("Unsupported ternary operation: " + name);
-    }
-  }
-
-  /**
-   * Runs a binary operation with a storage argument.
-   *
-   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not
-   *     available; it should never raise dataflow errors.
-   * @param other the other storage to zip with this one
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedOrFallbackZip(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      BiFunction<Object, Object, Object> fallback,
-      Storage<?> other,
-      boolean skipNulls,
-      StorageType<?> expectedResultType) {
-    if (isBinaryOpVectorized(name)) {
-      return runVectorizedZip(name, other, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return zip(fallback, other, skipNulls, expectedResultType, problemAggregator);
-    }
-  }
-
-  private void checkFallback(Object fallback, StorageType<?> storageType, String operationName)
-      throws IllegalArgumentException {
-    if (fallback == null) {
-      if (operationName == null) {
-        throw new IllegalArgumentException(
-            "A function or name of vectorized operation must be specified. This is a bug in the"
-                + " Table library.");
-      } else {
-        String className = this.getClass().getName();
-        throw new IllegalArgumentException(
-            "The operation "
-                + operationName
-                + " has no vectorized implementation for "
-                + className
-                + ", but no fallback function was provided. This is a bug in the Table library.");
-      }
-    }
-
-    if (storageType == null) {
-      throw new IllegalArgumentException(
-          "The expected result type must be specified if a fallback function is used. This is a bug"
-              + " in the Table library.");
-    }
-  }
-
-  /**
    * Return a new storage, where missing elements have been replaced by arg.
    *
    * @param arg the value to use for missing elements
@@ -367,12 +259,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public abstract Storage<T> slice(int offset, int limit);
 
   /**
-   * @return a new storage instance, containing the same elements as this one, with {@code count}
-   *     nulls appended at the end
-   */
-  public abstract Storage<?> appendNulls(int count);
-
-  /**
    * @return a copy of the storage consisting of slices of the original data
    */
   public abstract Storage<T> slice(List<SliceRange> ranges);
@@ -423,76 +309,5 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     }
 
     return builder.seal();
-  }
-
-  @Override
-  public Iterator<T> iterator() {
-    return new Iterator<T>() {
-      private long index = -1;
-
-      @Override
-      public boolean hasNext() {
-        return index + 1 < getSize();
-      }
-
-      @Override
-      public T next() {
-        if (!hasNext()) {
-          throw new NoSuchElementException();
-        }
-        return getItemBoxed(++index);
-      }
-    };
-  }
-
-  @Override
-  public ColumnStorageIterator<T> iteratorWithIndex() {
-    return new StorageIterator<>(this);
-  }
-
-  public static class StorageIterator<T> implements ColumnStorageIterator<T> {
-    protected final ColumnStorage<T> parent;
-    protected long index = -1;
-
-    public StorageIterator(ColumnStorage<T> parent) {
-      this.parent = parent;
-    }
-
-    @Override
-    public T getItemBoxed() {
-      return parent.getItemBoxed(index);
-    }
-
-    @Override
-    public boolean isNothing() {
-      return parent.isNothing(index);
-    }
-
-    @Override
-    public boolean hasNext() {
-      return index + 1 < parent.getSize();
-    }
-
-    @Override
-    public T next() {
-      if (!hasNext()) {
-        throw new NoSuchElementException();
-      }
-      return parent.getItemBoxed(++index);
-    }
-
-    @Override
-    public long getIndex() {
-      return index;
-    }
-
-    @Override
-    public boolean moveNext() {
-      if (!hasNext()) {
-        return false;
-      }
-      index++;
-      return true;
-    }
   }
 }

@@ -13,17 +13,15 @@ import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphBuilder;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
 import org.enso.persist.Persistance;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import scala.Option;
 
 public class PassPersistanceTest {
-  @BeforeClass
-  public static void initializePersistables() {
-    org.enso.compiler.core.ir.Persistables.initialize();
-    org.enso.compiler.pass.analyse.Persistables.initialize();
-    org.enso.compiler.pass.analyse.alias.graph.Persistables.initialize();
-  }
+  private static final Persistance.Pool POOL =
+      Persistance.Pool.merge(
+          org.enso.compiler.core.ir.Persistables.POOL,
+          org.enso.compiler.pass.analyse.Persistables.POOL,
+          org.enso.compiler.pass.analyse.alias.graph.Persistables.POOL);
 
   @Test
   public void cachePreferences() throws Exception {
@@ -81,11 +79,11 @@ public class PassPersistanceTest {
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize, Function<Object, Object> fn)
       throws IOException {
-    var arr = Persistance.write(l, fn);
+    var arr = POOL.write(l, fn);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
     }
-    var ref = Persistance.read(arr, null);
+    var ref = POOL.read(arr, null);
     return ref.get(clazz);
   }
 }

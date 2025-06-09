@@ -44,7 +44,7 @@ class Runner(
     path: Path,
     name: String,
     engineVersion: SemVer,
-    jvmMode: Boolean,
+    jvm: Option[Option[Path]],
     normalizedName: Option[String],
     projectTemplate: Option[String],
     authorName: Option[String],
@@ -80,7 +80,7 @@ class Runner(
       }
       RunSettings(
         engineVersion,
-        jvmMode,
+        jvm,
         arguments,
         workingDirectory         = None,
         connectLoggerIfAvailable = false
@@ -147,7 +147,7 @@ class Runner(
       val projectDirectory = Path.of(projectPath).toAbsolutePath.normalize
       RunSettings(
         version,
-        options.jvmModeEnabled,
+        options.jvm,
         arguments ++ additionalArguments,
         workingDirectory         = Some(projectDirectory.getParent),
         connectLoggerIfAvailable = true,
@@ -232,13 +232,19 @@ class Runner(
       case None =>
         runtimeVersionManager.withEngineAndRuntime(engineVersion) {
           (engine, runtime) =>
-            val ensoLauncher = Option(System.getenv(Runner.LAUNCHER_ENV_NAME))
-            val requiresJVMRunner =
-              ensoLauncher.exists(_.equals("shell")) || runSettings.jvmMode
-            if (requiresJVMRunner) {
+            if (runSettings.jvm.isDefined) {
+              val javaHome = runSettings.jvm.get
+              val javaExec = javaHome
+                .map(home =>
+                  new JavaExecCommand(
+                    home.resolve("bin").resolve("java").toString,
+                    javaHome.map(_.toString)
+                  )
+                )
+                .getOrElse(JavaExecCommand.forRuntime(runtime))
               prepareAndRunCommand(
                 engine,
-                JavaExecCommand.forRuntime(runtime)
+                javaExec
               )
             } else {
               NativeExecCommand.apply(
@@ -321,9 +327,4 @@ class Runner(
         globalConfigurationManager.defaultVersion
     }
   }
-}
-
-object Runner {
-
-  private val LAUNCHER_ENV_NAME = "ENSO_LAUNCHER"
 }

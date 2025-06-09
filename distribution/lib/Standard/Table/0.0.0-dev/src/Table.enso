@@ -1075,12 +1075,12 @@ type Table
             self.drop (..First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
     ## ALIAS average, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, summarize, variance
-       GROUP Standard.Base.Calculations
-       ICON transform4
-       SUGGESTED 7
        MACRO sum columns=[..Sum]
        MACRO count columns=[..Count]
        MACRO count_distinct columns=[..Count_Distinct]
+       GROUP Standard.Base.Calculations
+       ICON transform4
+       SUGGESTED 7
 
        Aggregates the rows in a table using `group_by` columns.
        The columns argument specifies which additional aggregations to perform
@@ -2056,9 +2056,6 @@ type Table
             Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
     ## ALIAS filter rows, where
-       GROUP Standard.Base.Selections
-       ICON preparation
-       SUGGESTED 2
        MACRO equals filter=..Equal
        MACRO not_equals filter=..Not_Equal
        MACRO not_nothing filter=..Not_Nothing
@@ -2072,6 +2069,9 @@ type Table
        MACRO ends_with filter=..Ends_With
        MACRO like filter=..Like
        MACRO regex_match filter=..Regex_Match
+       GROUP Standard.Base.Selections
+       ICON preparation
+       SUGGESTED 2
 
        Filter is used to select data from a table using a condition. The rows
        that meet the condition will remain after the filter. Filters can compare
@@ -3144,7 +3144,9 @@ type Table
     @tables (Widget.Vector_Editor item_default='_' display=Display.Always)
     @columns_to_keep Columns_To_Keep.default_widget
     union self (tables : Table | Vector = Missing_Argument.throw "tables") columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table =
-        Table.from_union ([self] + Vector.unify_vector_or_element tables) columns_to_keep match_columns on_problems
+        unified = Vector.unify_vector_or_element tables
+        if unified.length == 0 then self else
+            Table.from_union ([self] + unified) columns_to_keep match_columns on_problems
 
     ## ALIAS drop_empty_rows, drop_missing_rows, dropna, filter_empty_rows, remove_blank_rows, remove_empty_rows, remove_missing_rows
        GROUP Standard.Base.Selections
@@ -3949,7 +3951,8 @@ type Table
     from_union (tables : Vector Table) columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Illegal_Argument =
         all_tables = (tables.map t-> Table.from t)
         if all_tables.is_empty then Error.throw (Illegal_Argument.Error "`Table.from_union` needs at least 1 input table.") else
-            Union.make_union all_tables columns_to_keep match_columns on_problems
+            if all_tables.length == 1 then all_tables.first else
+                Union.make_union all_tables columns_to_keep match_columns on_problems
 
     ## PRIVATE
     pretty : Text

@@ -1,7 +1,6 @@
 /** @file A modal opened when uploaded assets. */
 import * as aria from '#/components/aria'
 import { Button } from '#/components/Button'
-import AssetSummary from '#/components/dashboard/AssetSummary'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Form } from '#/components/Form'
 import { Icon } from '#/components/Icon'
@@ -14,6 +13,7 @@ import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/
 import { useMount } from '#/hooks/mountHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategory } from '#/layouts/Drive/Categories'
+import AssetSummary from '#/pages/dashboard/components/AssetSummary'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'

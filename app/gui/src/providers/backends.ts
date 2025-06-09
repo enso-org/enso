@@ -15,7 +15,7 @@ import { computed, proxyRefs, readonly, ref, toValue, watchEffect } from 'vue'
 import { GetText } from './text'
 
 export type BackendsStore = ReturnType<typeof useBackends>
-function useBackends(
+function initializeBackends(
   httpClient: HttpClient,
   config: ToValue<GuiConfig>,
   rootDirPath: ToValue<string | undefined>,
@@ -72,4 +72,4 @@ function useBackends(
   })
 }
 
-export const [provideBackends, injectBackends] = createContextStore('backends', useBackends)
+export const [provideBackends, useBackends] = createContextStore('backends', initializeBackends)

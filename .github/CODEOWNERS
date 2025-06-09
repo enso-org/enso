@@ -42,23 +42,23 @@ tsconfig.json
 /app/ydoc-server-polyglot/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 /app/ydoc-shared/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 # The data-link schema is owned by the libraries team
-/app/gui/src/dashboard/data/datalinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
-/app/gui/src/dashboard/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey @PabloBuchu @indiv0 @somebody1234
+/app/gui/src/dashboard/data/datalinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley
+/app/gui/src/dashboard/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @PabloBuchu @indiv0 @somebody1234
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
 /build.sbt @4e6 @jaroslavtulach @hubertp @Akirathan
-/distribution/ @4e6 @jdunkerley @radeusgd @GregoryTravis @AdRiley @marthasharkey
+/distribution/ @4e6 @jdunkerley @radeusgd @GregoryTravis @AdRiley
 /engine/ @4e6 @jaroslavtulach @hubertp @Akirathan
 /project/ @4e6 @jaroslavtulach @hubertp @Akirathan
 /tools/ @4e6 @jaroslavtulach @radeusgd @hubertp
 
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine
-/distribution/lib/ @jdunkerley @radeusgd @GregoryTravis @AdRiley @marthasharkey
-/std-bits/ @jdunkerley @radeusgd @GregoryTravis @AdRiley @marthasharkey
-/test/ @jdunkerley @radeusgd @GregoryTravis @AdRiley @marthasharkey
-/tools/http-test-helper/ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
+/distribution/lib/ @jdunkerley @radeusgd @GregoryTravis @AdRiley
+/std-bits/ @jdunkerley @radeusgd @GregoryTravis @AdRiley
+/test/ @jdunkerley @radeusgd @GregoryTravis @AdRiley
+/tools/http-test-helper/ @radeusgd @jdunkerley @GregoryTravis @AdRiley
 
 # Licenses
 /distribution/engine/
@@ -67,4 +67,4 @@ tsconfig.json
 /tools/legal-review/
 
 # The default project template is owned by the libraries team
-/lib/scala/pkg/src/main/resources/default/src/ @radeusgd @jdunkerley @GregoryTravis @AdRiley @marthasharkey
+/lib/scala/pkg/src/main/resources/default/src/ @radeusgd @jdunkerley @GregoryTravis @AdRiley

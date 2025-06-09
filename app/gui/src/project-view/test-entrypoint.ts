@@ -31,7 +31,7 @@ const app = createApp(App, {
   projectViewOnly: {
     options: {
       projectId: 'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
-      projectName: 'Mock_Project',
+      projectInitialName: 'Mock_Project',
       projectDisplayedName: 'Mock Project',
       projectNamespace: 'local',
       engine: {
@@ -45,6 +45,7 @@ const app = createApp(App, {
       },
     },
   },
+  rootDirPath: '',
 })
 app.use(VueQueryPlugin)
 app.mount('body')

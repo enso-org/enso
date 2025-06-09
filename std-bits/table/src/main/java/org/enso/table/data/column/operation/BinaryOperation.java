@@ -1,10 +1,10 @@
 package org.enso.table.data.column.operation;
 
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public interface BinaryOperation<T> {
   static ColumnStorage<?> getInferredStorage(Column input) {
