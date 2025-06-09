@@ -567,6 +567,77 @@ public class UnusedImportsTest {
   }
 
   @Test
+  public void usedSymbol_InCaseBranch_TypeConstructor_WithFields() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type T
+                Cons data
+            type S
+                Value data
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import S, T
+            foo x =
+                case x of
+                    T.Cons data -> data
+                    S.Value d -> d
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  @Test
+  public void usedSymbol_InCaseBranch_TypeConstructor_OtherUsages_1() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type T
+                Cons data
+            type S
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import S, T
+            foo x =
+                case x of
+                    T.Cons data -> data
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().head();
+    expectWarning(imp, List.of("local.Proj.Module.S"));
+  }
+
+  @Test
+  public void usedSymbol_InCaseBranch_TypeConstructor_OtherUsages_2() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type T
+                Cons data
+            type S
+            type U
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import S, T, U
+            foo x =
+                case x of
+                    T.Cons data -> data
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().head();
+    expectWarning(imp, List.of("local.Proj.Module.S", "local.Proj.Module.U"));
+  }
+
+  @Test
   public void usedSymbol_InCaseBranch_TypeConstructor_Reexport() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Other_Module"),
