@@ -14,6 +14,7 @@ import { type MethodPointer } from '@/util/methodPointer'
 import { computed, Ref } from 'vue'
 import { newArgumentDefinition } from 'ydoc-shared/ast'
 import { assertUnreachable } from 'ydoc-shared/util/assert'
+import { renameArgumentInDefaultValue } from './WidgetFunctionDef/argumentAst'
 
 const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -96,10 +97,14 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
   if (newName == null) return handleRemove(index)
 
   doEdit((ast, edit) => {
-    const oldName = ast.argumentDefinitions[index]?.pattern.node.code()
-    if (!oldName) return
+    const definition = ast.argumentDefinitions[index]
+    if (!definition) return
+    const oldNameString = definition.pattern.node.code()
+    const newNameString = newName.code()
+    if (newNameString == oldNameString) return
+    renameArgumentInDefaultValue(definition, edit, newNameString)
     ast.visitRecursive((child) => {
-      if (child instanceof Ast.Ident && child.code() === oldName)
+      if (child instanceof Ast.Ident && child.token.code() === oldNameString)
         edit.replaceValue(child.id, newName)
     })
   })

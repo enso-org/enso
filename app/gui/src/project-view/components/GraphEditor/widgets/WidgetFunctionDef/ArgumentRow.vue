@@ -23,6 +23,11 @@ import { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
 import { EnsoExpression } from '../WidgetEnsoExpression.vue'
 import SelectionSubmenu from '../WidgetSelection/SelectionSubmenu.vue'
 import { EnsoTypeExpression } from '../WidgetTypeExpression.vue'
+import {
+  ArgumentDefaultKind,
+  createDefaultExpressionOfKind,
+  getArgumentDefaultKind,
+} from './argumentAst'
 
 const { definition, onUpdate, portIdBase } = defineProps<{
   root: Opt<HTMLElement>
@@ -109,7 +114,7 @@ function resolveType(typeExpr: Ast.Ast) {
 const nodeDefaultPortId = computed(() => syntheticPortId(portIdBase, 'defaultExpr'))
 const nodeDefault = computed((): WidgetProps => {
   let expr = unwrapGroups(definition.defaultValue?.expression?.node)
-  if (expr instanceof Ast.Group) expr = undefined
+  if (expr instanceof Ast.Group || expr instanceof Ast.Invalid) expr = undefined
   const syntheticId = nodeDefaultPortId.value
   const expectedType = mapOrUndefined(definition.type?.type?.node, resolveType)
   return {
@@ -155,49 +160,32 @@ const defaultValueDropdownInteraction = WidgetEditHandler.NewNested(
   }),
 )
 
-type DefaultKey = 'none' | 'default' | 'required'
-
-const defaultEntry = computed<DefaultKey>(() => {
-  if (!definition.defaultValue) return 'none'
-  const expr = definition.defaultValue?.expression.node
-  if (expr.isExpression() && expr.code() === 'required') return 'required'
-  return 'default'
-})
+const defaultKind = computed(() => getArgumentDefaultKind(definition))
 
 function defaultOnClick(entry: (typeof defaultEntries)[number]) {
-  if (entry.value !== defaultEntry.value) {
-    switch (entry.key) {
-      case 'default':
-        emit('updateDefault', Ast.parseExpression('()'))
-        break
-      case 'none':
-        emit('updateDefault', undefined)
-        break
-      case 'required':
-        emit('updateDefault', Ast.parseExpression('required'))
-        break
-    }
+  if (entry.value !== defaultKind.value) {
+    emit('updateDefault', createDefaultExpressionOfKind(entry.key, definition.pattern.node.code()))
   }
   defaultValueDropdownInteraction.value.end()
 }
 
-function mkDefaultEntry(key: DefaultKey, value: string) {
+function mkDefaultEntry(key: ArgumentDefaultKind, value: string) {
   return proxyRefs({
     value,
     key,
-    selected: computed(() => defaultEntry.value === key),
+    selected: computed(() => defaultKind.value === key),
   })
 }
 
 const defaultEntries = [
-  mkDefaultEntry('none', 'optional argument'),
+  mkDefaultEntry('optional', 'optional argument'),
   mkDefaultEntry('required', 'required argument'),
-  mkDefaultEntry('default', 'set default value'),
+  mkDefaultEntry('explicit', 'default value'),
 ] as const satisfies DropdownEntry[]
 </script>
 
 <template>
-  <div class="ArgumentRow">
+  <div class="ArgumentRow pad-right">
     <NodeWidget v-if="nodeSuspension" v-bind="nodeSuspension" />
     <NodeWidget v-if="nodePattern" v-bind="nodePattern" />
     <span class="tokenText">&nbsp;:&nbsp;</span>
@@ -223,14 +211,14 @@ const defaultEntries = [
         :extendUpwards="false"
         @clickedEntry="defaultOnClick"
       />
-      <template v-if="defaultEntry == 'none'">
+      <template v-if="defaultKind == 'optional'">
         <span class="tokenText">optional</span>
       </template>
-      <template v-else-if="defaultEntry == 'required'">
+      <template v-else-if="defaultKind == 'required'">
         <span class="tokenText">required</span>
       </template>
       <template v-else>
-        <span class="tokenText">default</span>
+        <span class="tokenText pad-right">default</span>
         <NodeWidget v-bind="nodeDefault" />
       </template>
     </div>
@@ -246,7 +234,7 @@ const defaultEntries = [
   overflow-x: clip;
 }
 
-.ArgumentRow {
+.pad-right {
   margin-right: 4px;
 }
 
