@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { PortId, syntheticPortId } from '@/providers/portInfo'
 import {
   rewritePortValueUpdate,
@@ -7,18 +9,23 @@ import {
   WidgetInput,
   WidgetUpdate,
 } from '@/providers/widgetRegistry'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
-import { mapOrUndefined } from '@/util/data/opt'
+import { unwrapGroups } from '@/util/ast/abstract'
+import { endOnClick, targetIsOutside } from '@/util/autoBlur'
+import { mapOrUndefined, Opt } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'
-import { computed } from 'vue'
+import { computed, proxyRefs, useTemplateRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 import { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
 import { EnsoExpression } from '../WidgetEnsoExpression.vue'
+import SelectionSubmenu from '../WidgetSelection/SelectionSubmenu.vue'
 import { EnsoTypeExpression } from '../WidgetTypeExpression.vue'
 
 const { definition, onUpdate, portIdBase } = defineProps<{
+  root: Opt<HTMLElement>
   definition: ArgumentDefinition<ConcreteRefs>
   onUpdate: UpdateHandler
   portIdBase: PortId
@@ -26,7 +33,7 @@ const { definition, onUpdate, portIdBase } = defineProps<{
 const emit = defineEmits<{
   rename: [value: Ast.Owned<Ast.MutableExpression>]
   updateType: [value: Ast.Owned<Ast.MutableExpression>]
-  updateDefault: [value: Ast.Owned<Ast.MutableExpression>]
+  updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
 type WidgetProps = ComponentProps<typeof NodeWidget>
 const suggestionDb = useSuggestionDbStore()
@@ -99,14 +106,17 @@ function resolveType(typeExpr: Ast.Ast) {
     : undefined
 }
 
+const nodeDefaultPortId = computed(() => syntheticPortId(portIdBase, 'defaultExpr'))
 const nodeDefault = computed((): WidgetProps => {
-  const expr = definition.defaultValue?.expression?.node
-  const syntheticId = syntheticPortId(portIdBase, 'default')
+  let expr = unwrapGroups(definition.defaultValue?.expression?.node)
+  if (expr instanceof Ast.Group) expr = undefined
+  const syntheticId = nodeDefaultPortId.value
   const expectedType = mapOrUndefined(definition.type?.type?.node, resolveType)
   return {
     input: {
       ...WidgetInput.FromAstOrPlaceholder(expr, () => syntheticId),
       expectedType,
+      editHandler: defaultValueDropdownInteraction.value,
       [EnsoExpression]: {
         weakMatch: true,
       },
@@ -124,24 +134,141 @@ const nodeDefault = computed((): WidgetProps => {
     },
   }
 })
+
+const submenuRef = useTemplateRef('submenuRef')
+const defaultValueRoot = useTemplateRef('defaultValueRoot')
+function isOutsideDropdown(event: Event) {
+  return submenuRef.value?.isTargetOutside(event) ?? false
+}
+
+function isOutsideWidget(event: Event) {
+  return targetIsOutside(event, defaultValueRoot.value)
+}
+
+// Close the dropdown when clicking outside of it, but also end parent interaction when clicking outside of both.
+const defaultValueDropdownInteraction = WidgetEditHandler.NewNested(
+  nodeDefaultPortId,
+  () => undefined,
+  endOnClick((event) => isOutsideDropdown(event) && !isOutsideWidget(event), {
+    end() {},
+    cancel() {},
+  }),
+)
+
+type DefaultKey = 'none' | 'default' | 'required'
+
+const defaultEntry = computed<DefaultKey>(() => {
+  if (!definition.defaultValue) return 'none'
+  const expr = definition.defaultValue?.expression.node
+  if (expr.isExpression() && expr.code() === 'required') return 'required'
+  return 'default'
+})
+
+function defaultOnClick(entry: (typeof defaultEntries)[number]) {
+  if (entry.value !== defaultEntry.value) {
+    switch (entry.key) {
+      case 'default':
+        emit('updateDefault', Ast.parseExpression('()'))
+        break
+      case 'none':
+        emit('updateDefault', undefined)
+        break
+      case 'required':
+        emit('updateDefault', Ast.parseExpression('required'))
+        break
+    }
+  }
+  defaultValueDropdownInteraction.value.end()
+}
+
+function mkDefaultEntry(key: DefaultKey, value: string) {
+  return proxyRefs({
+    value,
+    key,
+    selected: computed(() => defaultEntry.value === key),
+  })
+}
+
+const defaultEntries = [
+  mkDefaultEntry('none', 'optional argument'),
+  mkDefaultEntry('required', 'required argument'),
+  mkDefaultEntry('default', 'set default value'),
+] as const satisfies DropdownEntry[]
 </script>
 
 <template>
   <div class="ArgumentRow">
     <NodeWidget v-if="nodeSuspension" v-bind="nodeSuspension" />
     <NodeWidget v-if="nodePattern" v-bind="nodePattern" />
-    <span class="token"> : </span>
+    <span class="tokenText">&nbsp;:&nbsp;</span>
     <NodeWidget v-bind="nodeType" />
-    <span class="token"> = </span>
-    <NodeWidget v-bind="nodeDefault" />
+    <span class="tokenText">&nbsp;=&nbsp;</span>
+    <div
+      ref="defaultValueRoot"
+      class="defaultValueRoot"
+      @click.stop="defaultValueDropdownInteraction.start()"
+    >
+      <SvgIcon
+        name="arrow_right_head_only"
+        class="dropdownArrow widgetOutOfLayout"
+        :class="{ hovered: false }"
+      />
+      <SelectionSubmenu
+        ref="submenuRef"
+        :rootElement="root"
+        :floatReference="defaultValueRoot"
+        :show="defaultValueDropdownInteraction.isActive()"
+        :entries="defaultEntries"
+        :topLevel="true"
+        :extendUpwards="false"
+        @clickedEntry="defaultOnClick"
+      />
+      <template v-if="defaultEntry == 'none'">
+        <span class="tokenText">optional</span>
+      </template>
+      <template v-else-if="defaultEntry == 'required'">
+        <span class="tokenText">required</span>
+      </template>
+      <template v-else>
+        <span class="tokenText">default</span>
+        <NodeWidget v-bind="nodeDefault" />
+      </template>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.ArgumentRow {
+.ArgumentRow,
+.defaultValueRoot {
   display: flex;
   flex-direction: row;
   place-items: center;
   overflow-x: clip;
+}
+
+.ArgumentRow {
+  margin-right: 4px;
+}
+
+.defaultValueRoot {
+  position: relative;
+}
+
+svg.dropdownArrow {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(90deg) scale(0.7);
+  transform-origin: center;
+  opacity: 0.5;
+  /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
+  pointer-events: none;
+  &.hovered {
+    opacity: 0.9;
+  }
+}
+
+.tokenText {
+  opacity: 0.33;
 }
 </style>

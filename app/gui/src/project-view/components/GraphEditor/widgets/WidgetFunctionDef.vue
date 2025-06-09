@@ -6,6 +6,7 @@ import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
 import { syntheticPortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
@@ -16,6 +17,7 @@ import { assertUnreachable } from 'ydoc-shared/util/assert'
 
 const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
+const tree = injectWidgetTree()
 
 const funcIcon = computed(() => {
   return input[FunctionInfoKey]?.docsData.value?.iconName ?? 'enso_logo'
@@ -56,8 +58,15 @@ function handleRemove(index: number) {
   doEdit((ast) => ast.spliceArgumentDefinitions(index, 1))
 }
 
-function handleUpdateType(index: number, typeExpr: Ast.Owned<Ast.MutableExpression>) {
+function handleUpdateType(index: number, typeExpr: Ast.Owned<Ast.MutableExpression> | undefined) {
   doEdit((ast) => ast.setArgumentType(index, typeExpr))
+}
+
+function handleUpdateDefault(
+  index: number,
+  typeExpr: Ast.Owned<Ast.MutableExpression> | undefined,
+) {
+  doEdit((ast) => ast.setArgumentDefault(index, typeExpr))
 }
 
 function handleReorder(oldIndex: number, newIndex: number) {
@@ -111,11 +120,13 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
     >
       <template #default="{ item, index }">
         <ArgumentRow
+          :root="tree.rootElement"
           :portIdBase="syntheticPortId(input.portId, `argRow:${index}`)"
           :definition="item"
           :onUpdate="onUpdate"
           @rename="handleRename(index, $event)"
           @updateType="handleUpdateType(index, $event)"
+          @updateDefault="handleUpdateDefault(index, $event)"
         />
       </template>
     </DraggableList>

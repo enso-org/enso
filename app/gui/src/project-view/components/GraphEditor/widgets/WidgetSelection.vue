@@ -77,7 +77,7 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
   const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedCode) {
     return (tag: ExpressionTag) =>
-      tag.expression.startsWith(editedCode) ||
+      tag.expression?.startsWith(editedCode) ||
       (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedCode))
   }
   return undefined
@@ -430,7 +430,6 @@ declare module '@/providers/widgetRegistry' {
       :floatReference="floatReference"
       :show="dropDownInteraction.isActive() && activity == null"
       :entries="entries"
-      :isSelected="entryIsSelected"
       :topLevel="true"
       :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"

@@ -2719,6 +2719,23 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
     }
   }
 
+  setArgumentDefault(index: number, defaultExpr: Owned<MutableExpression> | undefined) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    if (defs.length > index) {
+      const def = defs[index]!
+      const defaultValue: ArgumentDefault | undefined =
+        defaultExpr ?
+          {
+            equals:
+              def.defaultValue?.equals ?? unspaced(Token.new('=', TokenType.AssignmentOperator)),
+            expression: concreteChild(this.module, autospaced(defaultExpr), this.id),
+          }
+        : undefined
+      defs[index] = { ...def, defaultValue }
+      this.fields.set('argumentDefinitions', defs)
+    }
+  }
+
   /** Returns the body, after converting it to a block if it was empty or an inline expression. */
   bodyAsBlock(): MutableBodyBlock {
     const oldBody = this.body
