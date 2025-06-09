@@ -5,6 +5,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +33,7 @@ record OtherMessage(long id, Message message, List<Object> args)
   }
 
   static synchronized long registerObject(TruffleObject obj) {
-    var size = OBJECTS.size();
+    var size = OBJECTS.size() + 1;
     OBJECTS.put((long) size, obj);
     return size;
   }
@@ -49,16 +50,20 @@ record OtherMessage(long id, Message message, List<Object> args)
         out.writeLong(other.id());
       } else {
         var id = registerObject(obj);
-        out.writeLong(id);
+        out.writeLong(-id);
       }
     }
 
     @Override
     protected TruffleObject readObject(Input in) throws IOException, ClassNotFoundException {
       var id = in.readLong();
-      var cached = OBJECTS.get(id);
-      assert cached != null;
-      return cached;
+      if (id < 0) {
+        return new OtherJvmObject(null, -id);
+      } else {
+        var cached = OBJECTS.get(id);
+        assert cached != null;
+        return cached;
+      }
     }
   }
 
@@ -273,7 +278,11 @@ record OtherMessage(long id, Message message, List<Object> args)
     }
   }
 
-  @Persistable(id = 109)
+  //
+  // interop types
+  //
+
+  @Persistable(id = 111)
   static final class PersistString extends Persistance<String> {
     public PersistString() {
       super(String.class, true, 109);
@@ -287,6 +296,28 @@ record OtherMessage(long id, Message message, List<Object> args)
     @Override
     protected String readObject(Input in) throws IOException, ClassNotFoundException {
       return in.readUTF();
+    }
+  }
+
+  @Persistable(id = 112)
+  static final class PersistBigInteger extends Persistance<BigInteger> {
+    public PersistBigInteger() {
+      super(BigInteger.class, true, 112);
+    }
+
+    @Override
+    protected void writeObject(BigInteger obj, Output out) throws IOException {
+      var arr = obj.toByteArray();
+      out.writeInt(arr.length);
+      out.write(arr);
+    }
+
+    @Override
+    protected BigInteger readObject(Input in) throws IOException, ClassNotFoundException {
+      var len = in.readInt();
+      var arr = new byte[len];
+      in.readFully(arr);
+      return new BigInteger(arr);
     }
   }
 }

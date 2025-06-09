@@ -16,6 +16,7 @@ final class OtherJvmObject implements TruffleObject {
   private final long id;
 
   OtherJvmObject(Channel channel, long id) {
+    assert id > 0;
     this.channel = channel;
     this.id = id;
   }
@@ -30,7 +31,13 @@ final class OtherJvmObject implements TruffleObject {
       throw UnsupportedMessageException.create();
     }
     var msg = new OtherMessage(id, message, List.of(args));
-    var res = channel.execute(OtherResult.class, msg);
-    return res.value();
+    var reply = channel.execute(OtherResult.class, msg);
+
+    if (reply.value() instanceof OtherJvmObject toBind) {
+      assert toBind.channel == null;
+      return new OtherJvmObject(channel, toBind.id);
+    } else {
+      return reply.value();
+    }
   }
 }

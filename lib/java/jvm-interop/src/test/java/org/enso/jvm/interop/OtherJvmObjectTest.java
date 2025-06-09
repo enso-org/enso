@@ -32,6 +32,11 @@ public class OtherJvmObjectTest {
     var twiceReal = bigReal.add(bigReal);
     var twiceValue = otherValue.invokeMember("add", otherValue);
     assertEquals(twiceReal.toBigInteger(), twiceValue.invokeMember("toBigInteger").asBigInteger());
+    assertTrue("It is OtherJvmObject", ctx.unwrapValue(twiceValue) instanceof OtherJvmObject);
+
+    var minusValue = twiceValue.invokeMember("subtract", otherValue);
+    assertEquals(bigReal.toString(), minusValue.invokeMember("toString").asString());
+    assertTrue("OtherJvmObject for minus", ctx.unwrapValue(minusValue) instanceof OtherJvmObject);
   }
 
   @Test
