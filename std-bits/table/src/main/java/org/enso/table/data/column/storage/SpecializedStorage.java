@@ -109,13 +109,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public Storage<?> appendNulls(int count) {
-    T[] newData = newUnderlyingArray(data.length + count);
-    System.arraycopy(data, 0, newData, 0, data.length);
-    return newInstance(newData);
-  }
-
-  @Override
   public Storage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null && CountNothing.anyNothing(missingIndicator)) {
       throw new IllegalArgumentException(

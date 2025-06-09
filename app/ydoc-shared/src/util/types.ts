@@ -25,7 +25,7 @@ export function mustExtend<T extends U, U>() {} // eslint-disable-line @typescri
  *   return x
  * }
  *
- * // This works, and type sytstem knows that `a` exists in `works`
+ * // This works, and type system knows that `a` exists in `works`
  * const works = specifyOptions({ a: true })
  * // But this still raises a compile error
  * const dont = specifyOptions({ c: true })

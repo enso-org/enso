@@ -1,3 +1,4 @@
+import { Dialog as DialogReact } from '#/components/Dialog'
 import { Result as ResultReact } from '#/components/Result'
 import { Suspense } from '#/components/Suspense'
 import type { ReactNode } from 'react'
@@ -28,3 +29,4 @@ export function suspendedReactComponent<Props extends object>(
 
 // Common components
 export const ResultComponent = reactComponent(ResultReact)
+export const Dialog = reactComponent(DialogReact)

@@ -50,6 +50,7 @@
 
 #### Enso Language & Runtime
 
+- [Allow optional path for `--jvm` option of `project-manager`][13225]
 - [Prevent `Meta` access to private constructors and private fields][12905]
 - [Encapsulating Private_Access constructor][#12976]
 - [Upgrading Truffle][12500] (including its
@@ -61,6 +62,7 @@
 [12976]: https://github.com/enso-org/enso/pull/12976
 [12855]: https://github.com/enso-org/enso/pull/12855
 [12905]: https://github.com/enso-org/enso/pull/12905
+[13225]: https://github.com/enso-org/enso/pull/13225
 
 # Enso 2025.1
 

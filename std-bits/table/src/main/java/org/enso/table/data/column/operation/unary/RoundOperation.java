@@ -10,7 +10,6 @@ import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.UnaryOperationNumeric;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -18,6 +17,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
   /** Minimum value for the `n` parameter to `roundLong`. */

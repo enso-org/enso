@@ -190,10 +190,7 @@ export function NameColumn(props: AssetColumnProps) {
     case AssetType.secret: {
       return <SecretNameColumn {...props} item={item} />
     }
-    case AssetType.specialUp:
-    case AssetType.specialLoading:
-    case AssetType.specialEmpty:
-    case AssetType.specialError: {
+    case AssetType.specialUp: {
       // Special rows do not display columns at all.
       return <></>
     }

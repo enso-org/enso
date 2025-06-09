@@ -12,7 +12,7 @@ const projectNames = useProjectNames()
 const props = defineProps<{
   message: string
   type: MessageType
-  outputPortHovered?: boolean
+  passEvents?: boolean
 }>()
 
 function containsLibraryName(): ProjectPath | null {
@@ -64,7 +64,7 @@ export const colorForMessageType: Record<MessageType, string> = {
 <template>
   <div
     class="GraphNodeMessage"
-    :class="{ passEvents: outputPortHovered }"
+    :class="{ passEvents }"
     :style="{ '--background-color': colorForMessageType[props.type] }"
   >
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />

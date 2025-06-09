@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
+import * as authProvider from '$/providers/react'
 import { useText } from '$/providers/react'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -30,13 +30,13 @@ import {
 import { useNewProject } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
-import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/react'
+import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import type { RightPanelData } from '$/providers/rightPanel'
 import {
   isUploadableAsset,
@@ -60,11 +60,20 @@ export interface AssetContextMenuProps {
     newParentId: backendModule.DirectoryId,
   ) => void
   readonly rightPanel: RightPanelData
+  readonly rootRef?: React.MutableRefObject<HTMLElement | null> | undefined
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, event, hidden = false, triggerRef, currentDirectoryId, rightPanel } = props
+  const {
+    innerProps,
+    event,
+    hidden = false,
+    triggerRef,
+    currentDirectoryId,
+    rightPanel,
+    rootRef,
+  } = props
   const { doCopy, doCut, doPaste } = props
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
@@ -152,6 +161,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const pasteMenuEntry = hasPasteData && canPaste && (
     <ContextMenuEntry
+      bindingFocusScope={rootRef}
       hidden={hidden}
       action="paste"
       doAction={() => {
@@ -167,6 +177,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const copyIdEntry = showDeveloperIds && (
     <ContextMenuEntry
+      bindingFocusScope={rootRef}
       hidden={hidden}
       color="accent"
       action="copyId"
@@ -181,6 +192,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           {copyIdEntry}
 
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="undelete"
             label={getText('restoreFromTrashShortcut')}
@@ -193,6 +205,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
 
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="delete"
             label={getText('deleteForeverShortcut')}
@@ -217,6 +230,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {(asset.type === backendModule.AssetType.datalink ||
           asset.type === backendModule.AssetType.file) && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="useInNewProject"
             doAction={() => {
@@ -232,6 +246,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           !isRunningProject &&
           !isOtherUserUsingProject && (
             <ContextMenuEntry
+              bindingFocusScope={rootRef}
               hidden={hidden}
               action="open"
               isDisabled={!canOpenProjects}
@@ -241,6 +256,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           )}
         {asset.type === backendModule.AssetType.project && isCloud && enableHybridExecution && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden || localBackend == null}
             action="run"
             isDisabled={!canOpenProjects}
@@ -250,6 +266,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         {!isCloud && path != null && systemApi && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="openInFileBrowser"
             doAction={() => {
@@ -262,6 +279,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           isRunningProject &&
           !isOtherUserUsingProject && (
             <ContextMenuEntry
+              bindingFocusScope={rootRef}
               hidden={hidden}
               action="close"
               doAction={() => {
@@ -277,6 +295,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {isUploadableAsset(asset) && !isCloud && localBackend != null && (
           <PaywallContextMenuEntry
             hidden={hidden}
+            bindingFocusScope={rootRef}
             isUnderPaywall={!canUploadToCloud}
             feature="uploadToCloud"
             action="uploadToCloud"
@@ -290,6 +309,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         {isUploadableAsset(asset) && isCloud && localBackend != null && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="downloadToLocal"
             doAction={() => uploadFileToLocal([asset])}
@@ -297,6 +317,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="rename"
             doAction={() => {
@@ -308,6 +329,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           asset.type === backendModule.AssetType.datalink) &&
           canEditThisAsset && (
             <ContextMenuEntry
+              bindingFocusScope={rootRef}
               hidden={hidden}
               action="edit"
               doAction={() => {
@@ -328,6 +350,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           )}
         {isCloud && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             isDisabled
             action="snapshot"
@@ -338,6 +361,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="delete"
             label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
@@ -363,6 +387,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
         {isCloud && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="label"
             doAction={() => {
@@ -373,6 +398,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {isCloud && managesThisAsset && self != null && !hidden && <Separator className="my-0.5" />}
         {asset.type === backendModule.AssetType.project && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="duplicate"
             doAction={async () => {
@@ -380,21 +406,35 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {<ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
+        {
+          <ContextMenuEntry
+            bindingFocusScope={rootRef}
+            hidden={hidden}
+            action="copy"
+            doAction={doCopy}
+          />
+        }
         {path != null && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             action="copyAsPath"
             doAction={() => copyMutation.mutateAsync(path)}
           />
         )}
         {!isRunningProject && !isOtherUserUsingProject && (
-          <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
+          <ContextMenuEntry
+            bindingFocusScope={rootRef}
+            hidden={hidden}
+            action="cut"
+            doAction={doCut}
+          />
         )}
         {(isCloud ?
           asset.type !== backendModule.AssetType.directory
         : asset.type === backendModule.AssetType.project) && (
           <ContextMenuEntry
+            bindingFocusScope={rootRef}
             hidden={hidden}
             isDisabled={asset.type === backendModule.AssetType.secret}
             action="download"
@@ -413,6 +453,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {canAddToThisDirectory && (
           <GlobalContextMenu
             noWrapper
+            bindingFocusScope={rootRef}
             hidden={hidden}
             backend={backend}
             category={category}

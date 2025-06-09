@@ -3,12 +3,12 @@ package org.enso.table.data.column.operation;
 import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.graalvm.polyglot.Value;
 
 /** A UnaryOperation is an operation that can be applied to a single ColumnStorage. */

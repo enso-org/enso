@@ -53,6 +53,13 @@ import * as Y from 'yjs'
 
 const FALLBACK_BINDING_PREFIX = 'node'
 
+const VIS_METADATA_DEFAULTS: VisualizationMetadata = {
+  identifier: null,
+  visible: false,
+  width: null,
+  height: null,
+}
+
 export type {
   Node,
   NodeDataFromAst,
@@ -437,31 +444,13 @@ export function createGraphStore(
     return db.nodeIdToNode.get(node)?.colorOverride ?? undefined
   }
 
-  function normalizeVisMetadata(
-    partial: Partial<VisualizationMetadata>,
-  ): VisualizationMetadata | undefined {
-    const empty: VisualizationMetadata = {
-      identifier: null,
-      visible: false,
-      width: null,
-      height: null,
-    }
-    const vis: VisualizationMetadata = { ...empty, ...partial }
-    if (visMetadataEquals(vis, empty)) return undefined
-    else return vis
-  }
-
-  function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
+  function setNodeVisualization(nodeId: NodeId, update: Partial<VisualizationMetadata>) {
     const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
     if (!nodeAst) return
     const metadata = nodeAst.mutableNodeMetadata()
-    const data: Partial<VisualizationMetadata> = {
-      identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
-      visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
-      width: vis.width ?? metadata.get('visualization')?.width ?? null,
-      height: vis.height ?? metadata.get('visualization')?.height ?? null,
-    }
-    metadata.set('visualization', normalizeVisMetadata(data))
+    const data = Object.assign({ ...VIS_METADATA_DEFAULTS }, metadata.get('visualization'), update)
+    const normalized = visMetadataEquals(data, VIS_METADATA_DEFAULTS) ? undefined : data
+    metadata.set('visualization', normalized)
   }
 
   function setWidgetMetadata(widget: AstId, widgetKey: string, md: unknown) {

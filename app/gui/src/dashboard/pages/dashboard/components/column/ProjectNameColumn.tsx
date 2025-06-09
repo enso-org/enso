@@ -3,12 +3,12 @@ import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useFullUserSession } from '$/providers/react'
 import { isOnMacOS } from 'enso-common/src/detect'
 
 /** Props for a {@link ProjectNameColumn}. */
