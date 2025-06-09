@@ -75,6 +75,22 @@ final class UsedSymbolsCollector {
     irsToProcess.add(root);
     while (!irsToProcess.isEmpty()) {
       var ir = irsToProcess.removeFirst();
+
+      addUsedSymbolForResolution(getGlobalNamesMeta(ir));
+      addUsedSymbolForResolution(getMethodDefinitionsMeta(ir));
+      addUsedSymbolForResolution(getTypeNameMeta(ir));
+      addUsedSymbolForResolution(getPatternsMeta(ir));
+      var typeSig = getTypeSignatureMeta(ir);
+      if (typeSig != null) {
+        var sig = typeSig.signature();
+        irsToProcess.addLast(sig);
+      }
+      var anotMeta = getGenericAnnotationMeta(ir);
+      if (anotMeta != null) {
+        var annotations = asJava(anotMeta.annotations());
+        irsToProcess.addAll(annotations);
+      }
+
       // Application.Prefix (method calls) are handled specifically. GlobalNames pass assigns
       // resolution to the first synthetic self argument.
       if (ir instanceof Application.Prefix app
@@ -106,30 +122,12 @@ final class UsedSymbolsCollector {
             // Add all the children except for the first argument
             asJava(app.arguments()).stream().skip(1).forEach(irsToProcess::addLast);
             irsToProcess.addLast(app.function());
-          } else {
-            irsToProcess.addAll(asJava(ir.children()));
+            continue;
           }
-        } else {
-          irsToProcess.addAll(asJava(ir.children()));
         }
-      } else {
-        addUsedSymbolForResolution(getGlobalNamesMeta(ir));
-        addUsedSymbolForResolution(getMethodDefinitionsMeta(ir));
-        addUsedSymbolForResolution(getTypeNameMeta(ir));
-        addUsedSymbolForResolution(getPatternsMeta(ir));
-        var typeSig = getTypeSignatureMeta(ir);
-        if (typeSig != null) {
-          var sig = typeSig.signature();
-          irsToProcess.addLast(sig);
-        }
-        var anotMeta = getGenericAnnotationMeta(ir);
-        if (anotMeta != null) {
-          var annotations = asJava(anotMeta.annotations());
-          irsToProcess.addAll(annotations);
-        }
-        var children = asJava(ir.children());
-        irsToProcess.addAll(children);
       }
+      var children = asJava(ir.children());
+      irsToProcess.addAll(children);
     }
   }
 

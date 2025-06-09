@@ -202,6 +202,30 @@ public class UsedSymbolsCollectorTest {
   }
 
   @Test
+  public void typeAscription_PartiallyAppliedMethod() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type S
+            type T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import S, T
+
+            add x y = x + y
+
+            main =
+                add_one x = (add 1 x) : S
+                add_one 23
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Module.S");
+  }
+
+  @Test
   public void typeCast_NestedMethodBody() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
