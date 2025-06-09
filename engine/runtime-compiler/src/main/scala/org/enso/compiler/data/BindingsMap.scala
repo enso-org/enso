@@ -427,7 +427,8 @@ case class BindingsMap(
     if (curModName.item == "Main") {
       curModName.path == name.dropRight(1)
     } else {
-      curModName.fullPath() == name.dropRight(1)
+      curModName.fullPath() == name.dropRight(1) ||
+        curModName.fullPath() == name
     }
   }
 
