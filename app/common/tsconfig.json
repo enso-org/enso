@@ -8,7 +8,8 @@
     "noEmit": false,
     "resolveJsonModule": true,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "jsx": "preserve"
   },
   "include": ["src", "./src/text/english.json"],
   "exclude": []
