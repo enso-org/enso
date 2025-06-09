@@ -21,7 +21,6 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.problems.ProblemAggregator;
-import org.graalvm.polyglot.Value;
 
 public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
   private static Column applyOperation(

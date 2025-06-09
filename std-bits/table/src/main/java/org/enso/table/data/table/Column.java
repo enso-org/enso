@@ -151,8 +151,7 @@ public class Column {
    * @param item the item repeated in the column
    * @return a column with given name and items
    */
-  public static Column fromRepeatedItem(
-      String name, Value item, int repeat) {
+  public static Column fromRepeatedItem(String name, Value item, int repeat) {
     Object converted = Polyglot_Utils.convertPolyglotValue(item);
     return new Column(name, Builder.fromRepeatedItem(converted, repeat));
   }

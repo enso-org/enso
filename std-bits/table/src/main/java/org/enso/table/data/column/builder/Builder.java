@@ -7,8 +7,6 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
 import java.util.Objects;
-
-import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.NullStorage;
@@ -31,7 +29,6 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 
 /** Interface defining a builder for creating columns dynamically. */
 public interface Builder {
@@ -58,10 +55,12 @@ public interface Builder {
     return switch (item) {
       case null -> new NullStorage(size);
       case Long longValue -> new LongConstantStorage(longValue, checkSize(size));
-      case Boolean booleanValue -> new BoolStorage(new BitSet(), new BitSet(), checkSize(size), booleanValue);
+      case Boolean booleanValue -> new BoolStorage(
+          new BitSet(), new BitSet(), checkSize(size), booleanValue);
       default -> {
         var storageType = StorageType.forBoxedItem(item, PreciseTypeOptions.DEFAULT);
-        Builder builder = Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
+        Builder builder =
+            Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
         Context context = Context.getCurrent();
         for (long i = 0; i < size; i++) {
           builder.append(item);

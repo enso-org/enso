@@ -1,6 +1,16 @@
 package org.enso.tableau;
 
-import com.tableau.hyperapi.*;
+import com.tableau.hyperapi.Catalog;
+import com.tableau.hyperapi.Connection;
+import com.tableau.hyperapi.CreateMode;
+import com.tableau.hyperapi.HyperException;
+import com.tableau.hyperapi.HyperProcess;
+import com.tableau.hyperapi.Inserter;
+import com.tableau.hyperapi.SchemaName;
+import com.tableau.hyperapi.SqlType;
+import com.tableau.hyperapi.TableDefinition;
+import com.tableau.hyperapi.TableName;
+import com.tableau.hyperapi.Telemetry;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -27,17 +37,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
@@ -411,7 +422,7 @@ public class HyperFormat {
       boolean matchColumnsByName,
       List<String> warningUnmatchedColumns,
       boolean throwDontWarn) {
-    ColumnStorage[] columnStorages =
+    var columnStorages =
         getOrderedStorages(
             table, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
 
@@ -419,7 +430,7 @@ public class HyperFormat {
 
     try (Inserter inserter = new Inserter(connection, tableDef)) {
       for (int row = 0; row < table.rowCount(); ++row) {
-        for (ColumnStorage storage : columnStorages) {
+        for (ColumnStorage<?> storage : columnStorages) {
           addValueToInserter(inserter, storage, row);
         }
         inserter.endRow();
@@ -428,7 +439,7 @@ public class HyperFormat {
     }
   }
 
-  private static ColumnStorage[] getOrderedStorages(
+  private static ColumnStorage<?>[] getOrderedStorages(
       Table table,
       TableDefinition tableDef,
       boolean matchColumnsByName,
@@ -443,15 +454,15 @@ public class HyperFormat {
 
       validateNoExtraColumnsByName(
           table, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
-      return Arrays.stream(existingColumnNames)
-          .map(
-              name ->
-                  Arrays.stream(table.getColumns())
-                      .filter(col -> col.getName().equals(name))
-                      .findFirst()
-                      .map(Column::getStorage)
-                      .orElseGet(() -> new NullStorage(numberOfRows)))
-          .toArray(ColumnStorage[]::new);
+
+      var result = new ColumnStorage[existingColumnNames.length];
+      for (int i = 0; i < result.length; i++) {
+        String name = existingColumnNames[i];
+        var column = table.getColumnByName(name);
+        result[i] =
+            column == null ? Builder.fromRepeatedItem(null, numberOfRows) : column.getStorage();
+      }
+      return result;
     } else { // match by position
       validateNoExtraColumnsByPosition(table, tableDef, warningUnmatchedColumns, throwDontWarn);
       Column[] sourceColumns = table.getColumns();
@@ -462,12 +473,12 @@ public class HyperFormat {
               i ->
                   i < sourceColumns.length
                       ? sourceColumns[i].getStorage()
-                      : new NullStorage(numberOfRows))
+                      : Builder.fromRepeatedItem(null, numberOfRows))
           .toArray(ColumnStorage[]::new);
     }
   }
 
-  private static void addValueToInserter(Inserter inserter, ColumnStorage storage, int row) {
+  private static void addValueToInserter(Inserter inserter, ColumnStorage<?> storage, int row) {
     if (storage.isNothing(row)) {
       inserter.addNull();
     } else {
@@ -550,11 +561,10 @@ public class HyperFormat {
     }
   }
 
-  private static void validateTypesMatch(ColumnStorage[] storages, TableDefinition tableDef) {
+  private static void validateTypesMatch(ColumnStorage<?>[] storages, TableDefinition tableDef) {
     for (int i = 0; i < storages.length; i++) {
-      ColumnStorage storage = storages[i];
-
-      if (storage instanceof NullStorage) {
+      var storage = storages[i];
+      if (storage.getType() instanceof NullType) {
         continue; // Allow NULLs to append to anything
       }
 
