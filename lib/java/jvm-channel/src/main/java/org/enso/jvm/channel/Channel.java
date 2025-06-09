@@ -192,7 +192,7 @@ public final class Channel implements AutoCloseable {
    *     gets serialized and transferred back to us. Deserialized and the value is then returned
    *     from this method
    */
-  public final <R> R execute(Class<R> resultType, Function<Channel, R> msg) {
+  public final <R> R execute(Class<R> resultType, Function<Channel, ? extends R> msg) {
     return executeImpl(pool, resultType, msg);
   }
 
@@ -291,10 +291,10 @@ public final class Channel implements AutoCloseable {
     }
   }
 
-  private <R> R executeImpl( //
-      Persistance.Pool pool, //
-      Class<R> replyType, //
-      Function<Channel, R> msg //
+  private <R> R executeImpl( // handles this.execute
+      Persistance.Pool pool, // the pool with persitance
+      Class<R> replyType, // requested return type
+      Function<Channel, ? extends R> msg // function to serde to the other JVM
       ) {
     var address = 0L;
     try {

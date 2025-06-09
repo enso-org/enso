@@ -1,13 +1,16 @@
 package org.enso.jvm.interop;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.TruffleObject;
 import java.math.BigDecimal;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
+import org.hamcrest.core.StringContains;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -67,7 +70,7 @@ public class OtherJvmObjectTest {
   }
 
   @Test
-  public void loadAClassMessage() {
+  public void loadClassViaMessage() throws Exception {
     var msg = new OtherMessage.LoadClass("java.lang.Short");
     var shortRaw = CHANNEL.execute(OtherResult.class, msg).value();
     if (shortRaw instanceof OtherJvmObject other) {
@@ -77,5 +80,16 @@ public class OtherJvmObjectTest {
 
     var value = shortValue.invokeMember("valueOf", "32531");
     assertEquals(32531, value.asInt());
+  }
+
+  @Test
+  public void classNotFoundError() throws Exception {
+    var msg = new OtherMessage.LoadClass("java.lang.unknown.Clazz");
+    try {
+      var shortRaw = CHANNEL.execute(OtherResult.class, msg).value();
+      fail("Should yield an exception: " + shortRaw);
+    } catch (IllegalStateException ex) {
+      assertThat(ex.getMessage(), StringContains.containsString("java.lang.unknown.Clazz"));
+    }
   }
 }

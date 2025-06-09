@@ -18,8 +18,24 @@ import org.enso.persist.Persistance;
 @Persistable(id = 81901)
 record OtherMessage( // sends a message to the other side
     long id, Message message, List<Object> args // with ReflectionLibrary-like arguments
-    ) implements Function<Channel, OtherResult> {
+    ) implements Function<Channel, OtherResult<? extends Object, ? extends Exception>> {
   private static final Map<Long, TruffleObject> OBJECTS = new HashMap<>();
+
+  @Persistable(id = 81908, allowInlining = false)
+  record OtherValue<T>(T value) implements OtherResult<T, RuntimeException> {}
+
+  @Persistable(id = 81909, allowInlining = false)
+  record OtherException<V>(String msg) implements OtherResult<V, IllegalStateException> {
+
+    static <T> OtherException<T> create(Exception ex) {
+      return new OtherException<>(ex.getMessage());
+    }
+
+    @Override
+    public V value() throws IllegalStateException {
+      throw new IllegalStateException(msg());
+    }
+  }
 
   static synchronized long registerObject(TruffleObject obj) {
     var size = OBJECTS.size() + 1;
@@ -28,26 +44,27 @@ record OtherMessage( // sends a message to the other side
   }
 
   @Override
-  public OtherResult apply(Channel t) {
+  public OtherResult<? extends Object, ? extends Exception> apply(Channel t) {
     try {
       var receiver = OBJECTS.get(id);
       assert receiver instanceof TruffleObject;
       var res = ReflectionLibrary.getUncached().send(receiver, message, args.toArray());
-      return new OtherResult(res);
+      return new OtherValue<>(res);
     } catch (Exception ex) {
-      return new OtherResult(ex);
+      return OtherException.create(ex);
     }
   }
 
   @Persistable(id = 81905)
-  record LoadClass(String name) implements Function<Channel, OtherResult> {
+  record LoadClass(String name)
+      implements Function<Channel, OtherResult<TruffleObject, ? extends Exception>> {
     @Override
-    public OtherResult apply(Channel t) {
+    public OtherResult<TruffleObject, ? extends Exception> apply(Channel t) {
       try {
         var clazzRaw = TruffleClassLoader.loadClass(name);
-        return new OtherResult(clazzRaw);
+        return new OtherValue<>(clazzRaw);
       } catch (ClassNotFoundException ex) {
-        throw new IllegalStateException(ex);
+        return OtherException.create(ex);
       }
     }
   }
