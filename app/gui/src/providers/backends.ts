@@ -5,11 +5,11 @@ import ProjectManager, {
   Path as ProjectManagerPath,
 } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
-import HttpClient from '#/utilities/HttpClient'
 import { useEvent } from '@/composables/events'
 import { createContextStore } from '@/providers'
 import { GuiConfig } from '@/providers/guiConfig'
 import { ToValue } from '@/util/reactivity'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import invariant from 'tiny-invariant'
 import { computed, proxyRefs, readonly, ref, toValue, watch, watchEffect } from 'vue'
 import { GetText } from './text'

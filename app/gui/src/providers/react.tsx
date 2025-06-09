@@ -1,7 +1,7 @@
-import HttpClient from '#/utilities/HttpClient'
 import { useBackends as useBackendsVue, type BackendsStore } from '$/providers/backends'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { assert } from '@/util/assert'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as react from 'react'
 import { applyPureReactInVue, createCrossingProviderForPureReactInVue } from 'veaury'
 import { computed, toRefs } from 'vue'

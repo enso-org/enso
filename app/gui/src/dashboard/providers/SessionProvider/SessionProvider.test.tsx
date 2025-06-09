@@ -8,9 +8,9 @@ import type {
   UserSession,
 } from '#/authentication/cognito'
 import { render, waitFor } from '#/test'
-import HttpClient from '#/utilities/HttpClient'
 import { HTTPClientContext, TextContext } from '$/providers/react'
 import { createTextStore } from '$/providers/text'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
