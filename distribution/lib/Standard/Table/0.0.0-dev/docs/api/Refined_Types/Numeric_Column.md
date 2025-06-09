@@ -3,3 +3,4 @@
 - type Numeric_Column
     - abs self -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Numeric_Column.Numeric_Column)
     - signum self -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Numeric_Column.Numeric_Column)
+- Standard.Table.Column.Is_Column.from that:Standard.Table.Refined_Types.Numeric_Column.Numeric_Column -> Standard.Table.Column.Is_Column

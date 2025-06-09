@@ -99,6 +99,7 @@
     - year self -> Standard.Table.Column.Column!Standard.Table.Errors.Invalid_Value_Type
     - zip self right:(Standard.Table.Column.Column|Standard.Table.Table.Table)= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - || self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
+- Standard.Table.Column.Is_Column.is_column object:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - default_date_period column:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - default_row_limit_for_read column:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Table.Column.Column.from that:Standard.Base.Data.Vector.Vector name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
@@ -106,6 +107,11 @@
 - Standard.Base.Data.Vector.Vector.from that:Standard.Table.Table.Table -> Standard.Base.Data.Vector.Vector
 - Standard.Table.Column.Column.from that:Standard.Base.Data.Range.Range name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
 - Standard.Table.Column.Column.from that:Standard.Base.Data.Time.Date_Range.Date_Range name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
+- type Is_Column
+    - Value column:Standard.Base.Any.Any
+    - is_column object:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text.from that:Standard.Table.Column.Column -> Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text
 - Standard.Base.Data.Read.Many_Files_List.Many_Files_List.from that:Standard.Table.Column.Column -> Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 - Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers.from that:Standard.Table.Column.Column -> Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
+- Standard.Table.Refined_Types.Numeric_Column.Numeric_Column.from that:Standard.Table.Column.Column -> Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
+- Standard.Table.Column.Is_Column.from that:Standard.Table.Column.Column -> Standard.Table.Column.Is_Column
