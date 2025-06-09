@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Default directory watcher using JDK's {@link WatchService}. */
-public final class DefaultWatcher implements Watcher {
+final class DefaultWatcher implements Watcher {
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultWatcher.class);
   private final Path root;
   private final Consumer<Watcher.WatcherEvent> eventCallback;
@@ -35,6 +35,7 @@ public final class DefaultWatcher implements Watcher {
     this.watchService = watchService;
   }
 
+  @Override
   public void start(Executor executor) {
     if (closed) {
       throw new IllegalStateException("Watcher has already been stopped.");
