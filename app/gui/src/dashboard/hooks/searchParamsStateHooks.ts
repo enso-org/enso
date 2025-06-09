@@ -5,7 +5,7 @@
  */
 import * as React from 'react'
 
-import * as appUtils from '#/appUtils'
+import * as appUtils from '$/appUtils'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as lazyMemo from '#/hooks/useLazyMemoHooks'

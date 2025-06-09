@@ -3,7 +3,7 @@ package org.enso.table.data.column.operation;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.unary.NotOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -71,6 +71,10 @@ public final class IsInOperation {
 
     if (!(arg instanceof List<?> list)) {
       throw new IllegalArgumentException("Argument to `is_in` must be a vector.");
+    }
+
+    if (list.isEmpty()) {
+      return new Column(new_name, (Storage<?>) BoolBuilder.makeConstant(left.getSize(), false));
     }
 
     var leftStorage = BinaryOperation.getInferredStorage(left);

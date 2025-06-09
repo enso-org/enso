@@ -6,33 +6,11 @@ import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.operation.CountUntrimmed;
 import org.enso.table.data.column.operation.DistinctValuesCheck;
 import org.enso.table.data.column.operation.SampleOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
-  private static final MapOperationStorage<String, SpecializedStorage<String>> OPS = buildOps();
-
-  private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
-    MapOperationStorage<String, SpecializedStorage<String>> t = new MapOperationStorage<>();
-    t.add(
-        new StringStringOp(Maps.ADD) {
-          @Override
-          protected String doString(String a, String b) {
-            return a + b;
-          }
-
-          @Override
-          protected TextType computeResultType(TextType a, TextType b) {
-            return TextType.concatTypes(a, b);
-          }
-        });
-    return t;
-  }
-
   record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
 
   private final CachedPropertyCheck<DataQualityMetrics> dataQualityMetricsValues;
@@ -56,18 +34,6 @@ public final class StringStorage extends SpecializedStorage<String> {
   public TextType getType() {
     // As the type is fixed, we can safely cast it.
     return (TextType) super.getType();
-  }
-
-  @Override
-  protected Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  protected Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runZip(name, this, argument, problemAggregator);
   }
 
   @Override

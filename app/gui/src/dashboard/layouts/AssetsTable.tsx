@@ -46,7 +46,6 @@ import {
 } from '#/pages/dashboard/components/column/columnUtils'
 import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
 import Label from '#/pages/dashboard/components/Label'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import {
   useDriveStore,
   useSetCanDownload,
@@ -57,7 +56,6 @@ import {
   type SelectedAssetInfo,
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
@@ -85,7 +83,13 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useRightPanelData, useText } from '$/providers/react'
+import {
+  useBackends,
+  useFullUserSession,
+  useLocalStorage,
+  useRightPanelData,
+  useText,
+} from '$/providers/react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Children,
@@ -189,7 +193,7 @@ function AssetsTable(props: AssetsTableProps) {
   const { backendForType, didLoadingProjectManagerFail, reconnectToProjectManager } = useBackends()
   const backend = backendForType(category.backend)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
-  const { localStorage } = useLocalStorage()
+  const localStorage = useLocalStorage()
   const { getText } = useText()
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()

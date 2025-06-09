@@ -5,7 +5,7 @@
  */
 import * as React from 'react'
 
-import * as authProvider from '#/providers/AuthProvider'
+import * as authProvider from '$/providers/react/auth'
 import { useEffect } from 'react'
 import { ensoDevtoolsStore, useShowEnsoDevtools } from './EnsoDevtoolsProvider'
 

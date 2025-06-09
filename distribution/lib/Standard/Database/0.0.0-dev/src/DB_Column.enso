@@ -617,9 +617,9 @@ type DB_Column
         case Value_Type_Helpers.resolve_subtraction_kind self other of
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
                 self.make_binary_op "-" other
-            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
-                Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time value")
             Nothing -> self.const Nothing
+            _ ->
+                Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time value")
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators
