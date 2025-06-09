@@ -13,7 +13,8 @@ import {
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { useEvent } from '@/composables/events'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
-import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
+import { ProjectPath } from '@/util/projectPath'
+import { qnLastSegment } from '@/util/qualifiedName'
 import { computed, toValue } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
@@ -24,9 +25,9 @@ const props = defineProps<{
   showControls: boolean
   hideVisualizationButton: 'show' | 'hide' | 'invisible'
   isFullscreenAllowed: boolean
-  allTypes: Iterable<VisualizationIdentifier>
+  allVisualizations: Iterable<VisualizationIdentifier>
   visualizationDefinedToolbar: Readonly<ToolbarItem[]> | undefined
-  typename: string | undefined
+  typename: ProjectPath | undefined
 }>()
 
 const emit = defineEmits<{
@@ -35,9 +36,7 @@ const emit = defineEmits<{
 
 const UNKNOWN_TYPE = 'Unknown'
 const nodeShortType = computed(() =>
-  props.typename != null && isQualifiedName(props.typename) ?
-    qnLastSegment(props.typename)
-  : UNKNOWN_TYPE,
+  props.typename?.path != null ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE,
 )
 
 const interaction = provideInteractionHandler()
@@ -58,7 +57,7 @@ useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e), {
       </div>
       <div class="toolbar">
         <FullscreenButton v-if="isFullscreenAllowed" v-model="isFullscreen" />
-        <VisualizationSelector v-model="currentVis" :types="allTypes" />
+        <VisualizationSelector v-model="currentVis" :types="allVisualizations" />
       </div>
       <div v-if="visualizationDefinedToolbar" class="visualization-defined-toolbars">
         <div class="toolbar">
@@ -101,7 +100,7 @@ useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e), {
     </template>
     <div
       class="after-toolbars node-type"
-      :title="props.typename ?? UNKNOWN_TYPE"
+      :title="props.typename?.toString() ?? UNKNOWN_TYPE"
       data-testid="visualisationNodeType"
       v-text="nodeShortType"
     />

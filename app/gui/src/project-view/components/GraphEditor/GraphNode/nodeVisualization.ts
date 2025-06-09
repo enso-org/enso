@@ -4,6 +4,7 @@ import { injectKeyboard } from '@/providers/keyboard'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
 import { type Rect } from '@/util/data/rect'
+import { type ProjectPath } from '@/util/projectPath'
 import { type ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 import { type ComponentProps } from 'vue-component-type-helpers'
@@ -25,7 +26,7 @@ interface NodeVisualizationOptions {
   nodeRect: ToValue<Rect>
   scale: ToValue<number>
   isFocused: ToValue<boolean>
-  typename: ToValue<Opt<string>>
+  typename: ToValue<Opt<ProjectPath>>
   dataSource: ToValue<Opt<VisualizationDataSource | RawDataSource>>
   emit: Emit
 }

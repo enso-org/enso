@@ -185,7 +185,7 @@ const {
   nodeRect,
   scale,
   isFocused: isOnlyOneSelected,
-  typename: () => expressionInfo.value?.rawTypename,
+  typename: () => expressionInfo.value?.typeInfo?.primaryType,
   dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
   emit,
 })

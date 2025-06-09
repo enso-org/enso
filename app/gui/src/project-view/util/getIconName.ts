@@ -1,37 +1,39 @@
 import { type NodeId } from '@/stores/graph'
 import { type GraphDb } from '@/stores/graph/graphDatabase'
 import { evaluationProgress } from '@/stores/project/computedValueRegistry'
-import {
-  SuggestionKind,
-  type SuggestionEntry,
-  type Typename,
-} from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { type URLString } from '@/util/data/urlString'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type MethodPointer } from '@/util/methodPointer'
+import { type ProjectPath } from '@/util/projectPath'
+import { QualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
 import { computed, toValue, type ComputedRef } from 'vue'
 import { type ExternalId } from 'ydoc-shared/yjsModel'
 
 const typeNameToIconLookup: Record<string, Icon> = {
-  'Standard.Base.Data.Text.Text': 'text_input',
-  'Standard.Base.Data.Numbers.Integer': 'input_number',
-  'Standard.Base.Data.Numbers.Float': 'input_number',
-  'Standard.Base.Data.Array.Array': 'array_new',
-  'Standard.Base.Data.Vector.Vector': 'array_new',
-  'Standard.Base.Data.Time.Date.Date': 'calendar',
-  'Standard.Base.Data.Time.Date_Time.Date_Time': 'calendar',
-  'Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day': 'time',
+  'Data.Text.Text': 'text_input',
+  'Data.Numbers.Integer': 'input_number',
+  'Data.Numbers.Float': 'input_number',
+  'Data.Array.Array': 'array_new',
+  'Data.Vector.Vector': 'array_new',
+  'Data.Time.Date.Date': 'calendar',
+  'Data.Time.Date_Time.Date_Time': 'calendar',
+  'Data.Time.Time_Of_Day.Time_Of_Day': 'time',
 }
 
 export const DEFAULT_ICON = 'enso_logo'
 
-/** TODO: Add docs */
-export function typeNameToIcon(typeName: string): Icon {
-  return typeNameToIconLookup[typeName] ?? DEFAULT_ICON
+/** Returns an icon override for certain standard library types. */
+export function typeNameToIcon(typePath: ProjectPath): Icon {
+  if (typePath.project === ('Standard.Base' as QualifiedName) && typePath.path != null) {
+    return typeNameToIconLookup[typePath.path] ?? DEFAULT_ICON
+  } else {
+    return DEFAULT_ICON
+  }
 }
 
-/** TODO: Add docs */
+/** Returns an icon override for a suggestion entry kind. */
 export function suggestionEntryToIcon(entry: SuggestionEntry) {
   if (entry.iconName) return entry.iconName
   if (entry.kind === SuggestionKind.Local) return 'local_scope2'
@@ -39,11 +41,11 @@ export function suggestionEntryToIcon(entry: SuggestionEntry) {
   return DEFAULT_ICON
 }
 
-/** TODO: Add docs */
+/** Returns an icon for a suggestion entry or method call. */
 export function displayedIconOf(
   entry?: SuggestionEntry,
   methodCall?: MethodPointer,
-  actualType?: Typename,
+  actualType?: ProjectPath,
 ): Icon {
   if (entry) {
     return suggestionEntryToIcon(entry)
@@ -54,7 +56,7 @@ export function displayedIconOf(
   }
 }
 
-/** TODO: Add docs */
+/** Returns the icon to show on a component. */
 export function iconOfNode(node: NodeId, graphDb: GraphDb) {
   const expressionInfo = graphDb.getExpressionInfo(node)
   const suggestionEntry = graphDb.getNodeMainSuggestion(node)
@@ -65,7 +67,7 @@ export function iconOfNode(node: NodeId, graphDb: GraphDb) {
       return displayedIconOf(
         suggestionEntry,
         expressionInfo?.methodCall?.methodPointer,
-        expressionInfo?.rawTypename ?? 'Unknown',
+        expressionInfo?.typeInfo?.primaryType,
       )
     case 'output':
       return 'data_output'

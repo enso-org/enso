@@ -12,9 +12,7 @@ const { nodeId, syntax, graphDb, suggestionDbStore } = defineProps<{
 }>()
 
 const expressionInfo = computed(() => nodeId && graphDb.getExpressionInfo(nodeId))
-const typeName = computed(
-  () => expressionInfo.value && (expressionInfo.value.typename ?? 'Unknown'),
-)
+const typeName = computed(() => expressionInfo.value?.typeInfo?.primaryType ?? 'Unknown')
 const executionTimeMs = computed(
   () =>
     expressionInfo.value?.profilingInfo[0] &&
