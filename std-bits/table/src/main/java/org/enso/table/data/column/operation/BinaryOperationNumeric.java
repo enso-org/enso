@@ -1,13 +1,13 @@
 package org.enso.table.data.column.operation;
 
 import org.enso.base.CompareException;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R> {
   protected static StorageType<?> storageTypeForObject(Object right) {

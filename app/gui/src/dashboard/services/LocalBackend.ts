@@ -757,7 +757,7 @@ export default class LocalBackend extends Backend {
     id: backend.AssetId,
     title: string,
     targetDirectoryId: backend.DirectoryId | null,
-    shouldUnpackProject = true,
+    shouldUnpackProject = false,
   ) {
     const asset = backend.extractTypeFromId(id)
     const targetPath = targetDirectoryId ? extractTypeAndPath(targetDirectoryId).path : null
@@ -791,9 +791,6 @@ export default class LocalBackend extends Backend {
       case backend.AssetType.datalink:
       case backend.AssetType.secret:
       case backend.AssetType.directory:
-      case backend.AssetType.specialLoading:
-      case backend.AssetType.specialEmpty:
-      case backend.AssetType.specialError:
       case backend.AssetType.specialUp: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break

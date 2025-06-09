@@ -6,7 +6,6 @@ import { merge } from 'enso-common/src/utilities/data/object'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import {
   useAddLaunchedProject,
   useProjectsStore,
@@ -15,14 +14,15 @@ import {
   type LaunchedProject,
   type LaunchedProjectId,
 } from '#/providers/ProjectsProvider'
+import * as authProvider from '$/providers/react'
 
 import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useAddOpeningProject, useRemoveOpeningProject } from '#/providers/ProjectsProvider/hooks'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { useBackends } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { z } from 'zod'
 import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
 

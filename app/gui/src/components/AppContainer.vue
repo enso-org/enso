@@ -8,7 +8,7 @@ import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
-import { RightPanelDataProviderForReact } from '$/providers/react'
+import { RightPanelDataProviderForReact } from '$/providers/react/rightPanel'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
@@ -70,7 +70,6 @@ watch(openedProjects, (openedProjectsList) => {
 })
 
 const onSignOut = () => {
-  tab.value = 'drive'
   void props.closeAllProjects()
 }
 </script>

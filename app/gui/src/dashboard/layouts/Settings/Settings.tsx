@@ -7,18 +7,16 @@ import { useStrictPortalContext } from '#/components/Portal'
 import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import { useDownloadDirectory } from '#/layouts/Drive/useDownloadDirectory'
 import SearchBar from '#/layouts/SearchBar'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useSessionAPI } from '#/providers/SessionProvider'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useSession, useText } from '$/providers/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import {
@@ -44,7 +42,7 @@ export function Settings() {
     includesPredicate(Object.values(SettingsTabType)),
   )
   const { user, accessToken } = useFullUserSession()
-  const { changePassword } = useSessionAPI()
+  const { changePassword } = useSession()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')

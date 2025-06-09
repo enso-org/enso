@@ -679,7 +679,7 @@ object DistributionPackage {
     ensoVersion: String,
     graalVersion: String,
     graalJavaVersion: String,
-    artifactRoot: File
+    val artifactRoot: File
   ) {
 
     def artifactName(

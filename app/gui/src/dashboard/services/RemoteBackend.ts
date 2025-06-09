@@ -24,7 +24,6 @@ import { extractTypeAndPath } from './LocalBackend'
 const STATUS_NOT_FOUND = 404
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
-
 /** The interval between checks for the export status. */
 const EXPORT_STATUS_INTERVAL_MS = 5_000
 
@@ -1437,10 +1436,8 @@ export default class RemoteBackend extends Backend {
       }
       case backend.AssetType.secret:
       case backend.AssetType.directory:
-      case backend.AssetType.specialLoading:
-      case backend.AssetType.specialEmpty:
-      case backend.AssetType.specialError:
-      case backend.AssetType.specialUp: {
+      case backend.AssetType.specialUp:
+      default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
       }

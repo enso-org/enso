@@ -327,7 +327,6 @@ lazy val enso = (project in file("."))
     `common-polyglot-core-utils`,
     `connected-lock-manager`,
     `connected-lock-manager-server`,
-    `directory-watcher-wrapper`,
     `distribution-manager`,
     downloader,
     editions,
@@ -422,6 +421,18 @@ lazy val enso = (project in file("."))
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
     commands ++= Seq(packageBuilder.makePackages, packageBuilder.makeBundles)
+  )
+  .settings(
+    clean := Def.task {
+      val _ = clean.value
+      val filesToDelete = Seq(
+        engineDistributionRoot.value,
+        launcherDistributionRoot.value,
+        projectManagerDistributionRoot.value,
+        packageBuilder.artifactRoot
+      )
+      IO.delete(filesToDelete)
+    }.value
   )
 
 // ============================================================================
@@ -770,7 +781,6 @@ lazy val componentModulesPaths =
     (`akka-wrapper` / Compile / exportedModuleBin).value,
     (`zio-wrapper` / Compile / exportedModuleBin).value,
     (`language-server-deps-wrapper` / Compile / exportedModuleBin).value,
-    (`directory-watcher-wrapper` / Compile / exportedModuleBin).value,
     (`jna-wrapper` / Compile / exportedModuleBin).value,
     (`ydoc-polyfill` / Compile / exportedModuleBin).value,
     (`library-manager` / Compile / exportedModuleBin).value,
@@ -1267,23 +1277,19 @@ lazy val filewatcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaModuleDependencySetting,
-    compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
-      "commons-io"     % "commons-io" % commonsIoVersion,
-      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
+      "junit"          % "junit"           % junitVersion    % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion  % Test,
+      "org.hamcrest"   % "hamcrest-all"    % hamcrestVersion % Test
     ),
     Compile / moduleDependencies ++= slf4jApi,
-    Compile / internalModuleDependencies := Seq(
-      (`directory-watcher-wrapper` / Compile / exportedModule).value
-    ),
     Test / fork := true,
+    commands += WithDebugCommand.withDebug,
     Test / javaOptions ++= testLogProviderOptions
   )
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
-  .dependsOn(`directory-watcher-wrapper`)
   .dependsOn(`jna-wrapper` % Test)
 
 lazy val `logging-truffle-connector` = project
@@ -1469,50 +1475,6 @@ lazy val `runtime-utils` = project
     scalaModuleDependencySetting,
     javaModuleName := "org.enso.runtime.utils"
   )
-
-lazy val `directory-watcher-wrapper` = project
-  .in(file("lib/java/directory-watcher-wrapper"))
-  .enablePlugins(JPMSPlugin)
-  .settings(
-    modularFatJarWrapperSettings,
-    scalaModuleDependencySetting,
-    libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin" % "directory-watcher" % directoryWatcherVersion exclude ("net.java.dev.jna", "jna")
-    ),
-    javaModuleName := "org.enso.directory.watcher.wrapper",
-    assembly / assemblyExcludedJars := {
-      JPMSUtils.filterModulesFromClasspath(
-        (Compile / dependencyClasspath).value,
-        scalaLibrary ++
-        slf4jApi,
-        streams.value.log,
-        moduleName.value,
-        scalaBinaryVersion.value,
-        shouldContainAll = true
-      )
-    },
-    Compile / moduleDependencies ++= slf4jApi,
-    Compile / internalModuleDependencies := Seq(
-      (`jna-wrapper` / Compile / exportedModule).value
-    ),
-    Compile / patchModules := {
-      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
-        update.value,
-        scalaLibrary ++
-        Seq(
-          "io.methvin" % "directory-watcher" % directoryWatcherVersion
-        ),
-        streams.value.log,
-        moduleName.value,
-        scalaBinaryVersion.value,
-        shouldContainAll = true
-      )
-      Map(
-        javaModuleName.value -> scalaLibs
-      )
-    }
-  )
-  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val `fansi-wrapper` = project
   .in(file("lib/java/fansi-wrapper"))
@@ -2396,7 +2358,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`connected-lock-manager-server` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
-      (`directory-watcher-wrapper` / Compile / exportedModule).value,
       (`engine-runner-common` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
@@ -4014,7 +3975,6 @@ lazy val `engine-runner` = project
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
               "-H:+RunReachabilityHandlersConcurrently",
-              "-H:+ForeignAPISupport",
               "-R:-InstallSegfaultHandler",
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
@@ -4046,7 +4006,6 @@ lazy val `engine-runner` = project
               "org.apache",
               "org.openxmlformats",
               "org.jline",
-              "io.methvin.watchservice",
               "zio.internal",
               "zio",
               "org.enso.runner",
@@ -4181,6 +4140,9 @@ lazy val launcher = project
         "ensoup"
       )
       .value,
+    cleanFiles += {
+      new File("ensoup")
+    },
     assembly / test := {},
     assembly / assemblyOutputPath := file("launcher.jar"),
     assembly / assemblyMergeStrategy := {
@@ -4341,7 +4303,6 @@ lazy val `os-environment` =
           additionalOptions = Seq(
             "-ea",
             "--features=org.enso.os.environment.TestCollectorFeature",
-            "-H:+ForeignAPISupport",
             "-R:-InstallSegfaultHandler"
           ) ++ (if (GraalVM.EnsoLauncher.debug) {
                   // useful perf & debug switches:
@@ -4940,7 +4901,11 @@ lazy val `std-base` = project
           previousRun        = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`base-polyglot-root`)
+    }.value
   )
   .dependsOn(`common-polyglot-core-utils`)
 
@@ -5126,7 +5091,11 @@ lazy val `std-table` = project
           previousRun       = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`table-polyglot-root`)
+    }.value
   )
   .dependsOn(`poi-wrapper`)
   .dependsOn(`std-base` % "provided")
@@ -5210,7 +5179,12 @@ lazy val `std-image` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`image-polyglot-root`)
+      IO.delete(`image-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
 
@@ -5243,7 +5217,11 @@ lazy val `std-generic-jdbc` = project
           previousRun = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`generic-jdbc-polyglot-root`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5334,7 +5312,12 @@ lazy val `std-google-api` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`google-api-polyglot-root`)
+      IO.delete(`google-api-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5411,7 +5394,12 @@ lazy val `std-database` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`database-polyglot-root`)
+      IO.delete(`database-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5453,7 +5441,11 @@ lazy val `std-aws` = project
           previousRun = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-aws-polyglot-root`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5537,7 +5529,12 @@ lazy val `std-snowflake` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-snowflake-polyglot-root`)
+      IO.delete(`std-snowflake-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5597,7 +5594,11 @@ lazy val `std-microsoft` = project
           previousRun       = None
         )
       result
-    }
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-microsoft-polyglot-root`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5767,7 +5768,12 @@ lazy val `std-tableau` = project
         result
       }
       .dependsOn(cleanPolyglotRoot)
-      .value
+      .value,
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-tableau-polyglot-root`)
+      IO.delete(`std-tableau-native-libs`)
+    }.value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")

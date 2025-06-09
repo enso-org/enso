@@ -7,15 +7,6 @@ import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
-import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
@@ -30,19 +21,16 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
     implements ColumnDoubleStorage, ColumnStorageWithNothingMap, NumericFormattingStorage {
-
   final double[] data;
   final BitSet isNothing;
   private final int size;
-  private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
-  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
+  private final CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -93,23 +81,6 @@ public final class DoubleStorage extends Storage<Double>
       throw new IndexOutOfBoundsException(idx);
     }
     return isNothing.get((int) idx);
-  }
-
-  @Override
-  public boolean isBinaryOpVectorized(String op) {
-    return ops.isSupportedBinary(op);
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runZip(name, this, argument, problemAggregator);
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
@@ -245,18 +216,6 @@ public final class DoubleStorage extends Storage<Double>
     return new DoubleStorage(newData, newData.length, newIsNothing);
   }
 
-  private static MapOperationStorage<Double, DoubleStorage> buildOps() {
-    MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
-    ops.add(new AddOp<>())
-        .add(new SubOp<>())
-        .add(new MulOp<>())
-        .add(new DivideOp<>())
-        .add(new ModOp<>())
-        .add(new PowerOp<>())
-        .add(new DoubleIsInOp());
-    return ops;
-  }
-
   @Override
   public Storage<Double> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
@@ -274,16 +233,6 @@ public final class DoubleStorage extends Storage<Double>
 
     BitSet newMask = isNothing.get(offset, offset + limit);
     return new DoubleStorage(newData, newSize, newMask);
-  }
-
-  @Override
-  public DoubleStorage appendNulls(int count) {
-    BitSet newIsNothing = BitSets.makeDuplicate(isNothing);
-    newIsNothing.set(size, size + count);
-
-    double[] newData = new double[size + count];
-    System.arraycopy(data, 0, newData, 0, size);
-    return new DoubleStorage(newData, size + count, newIsNothing);
   }
 
   @Override

@@ -4,16 +4,19 @@ import java.io.File
   * @param libs extracted native libs
   */
 case class AnalysisOfExtractedNativeLibs(
-  libs: List[ExtractedNativeLibSummary]
+  libs: Map[String, ExtractedNativeLibSummary]
 ) {
   def first: Option[ExtractedNativeLibSummary] = {
     assert(libs.size == 1)
-    libs.headOption
+    libs.values.headOption
   }
-  def forJar(srcJar: File): Option[ExtractedNativeLibSummary] =
-    libs.find(_.from == srcJar)
 
-  def isOutdated: Boolean = libs.exists(_.isOutdated)
+  def forJar(srcJar: File): Option[ExtractedNativeLibSummary] =
+    libs.values.find(_.from == srcJar)
+
+  def isOutdated: Boolean = libs.values.exists(_.isOutdated)
+
+  def size: Int = libs.size
 
   def appended(
     other: AnalysisOfExtractedNativeLibs
@@ -25,13 +28,13 @@ object AnalysisOfExtractedNativeLibs {
   import sjsonnew.{:*:, LList, LNil}
   import sbt.util.CacheImplicits._
 
-  implicit val encode
-    : sjsonnew.IsoLList.Aux[AnalysisOfExtractedNativeLibs, sjsonnew.LCons[List[
-      ExtractedNativeLibSummary
-    ], sjsonnew.LList.LNil0]] = LList.iso(
+  implicit val encode: sjsonnew.IsoLList.Aux[
+    AnalysisOfExtractedNativeLibs,
+    sjsonnew.LCons[Map[String, ExtractedNativeLibSummary], sjsonnew.LList.LNil0]
+  ] = LList.iso(
     { p: AnalysisOfExtractedNativeLibs => ("libs", p.libs) :*: LNil },
-    { case (_, from: List[ExtractedNativeLibSummary]) :*: LNil =>
-      AnalysisOfExtractedNativeLibs(from)
+    { case (_, libs: Map[String, ExtractedNativeLibSummary]) :*: LNil =>
+      AnalysisOfExtractedNativeLibs(libs)
     }
   )
 
@@ -39,8 +42,10 @@ object AnalysisOfExtractedNativeLibs {
     from: File,
     dynamicLibs: List[File],
     thinTarget: Option[File]
-  ): AnalysisOfExtractedNativeLibs =
+  ): AnalysisOfExtractedNativeLibs = {
+    val fromPath = from.getAbsolutePath
     AnalysisOfExtractedNativeLibs(
-      ExtractedNativeLibSummary(from, dynamicLibs, thinTarget) :: Nil
+      Map(fromPath -> ExtractedNativeLibSummary(from, dynamicLibs, thinTarget))
     )
+  }
 }

@@ -1,12 +1,13 @@
 package org.enso.os.environment.jni;
 
 import java.io.IOException;
-import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -16,11 +17,13 @@ import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.StackValue;
+import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
 import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.graalvm.word.PointerBase;
 import org.graalvm.word.WordFactory;
 
 /** Channel connects two {@link JVM} instances. */
@@ -164,11 +167,7 @@ public final class Channel implements AutoCloseable {
    *     from this method
    */
   public final <R> R execute(Class<R> resultType, Function<Channel, R> msg) {
-    if (this.isolate == -1) {
-      return executeImpl(pool, resultType, msg, this::toHotSpotMessage);
-    } else {
-      return executeImpl(pool, resultType, msg, this::toSubstrateMessage);
-    }
+    return executeImpl(pool, resultType, msg);
   }
 
   private static final CEntryPointLiteral<CFunctionPointer> CALLBACK_FN =
@@ -187,38 +186,36 @@ public final class Channel implements AutoCloseable {
     var channel = ID_TO_CHANNEL.get(id);
     assert channel != null : "There must be a channel " + id + " but " + ID_TO_CHANNEL;
     try {
-      var len = handleWithChannel(channel, data.rawValue(), size);
+      var buf = asNativeByteBuffer(data, size);
+      var len = handleWithChannel(channel, buf);
       return len;
     } catch (Throwable ex) {
       channel.printStackTrace(ex, true);
-      var exceptionMessage =
-          ex.getMessage()
-              .subSequence(0, Math.min(ex.getMessage().length(), (int) Math.min(2048, size)));
-      CTypeConversion.toCString(exceptionMessage, data, WordFactory.unsigned(size));
+      var bytes = ex.getMessage() == null ? new byte[0] : ex.getMessage().getBytes();
+      var buf = asNativeByteBuffer(data, size);
+      buf.putInt(bytes.length);
+      buf.put(bytes);
       return -2L;
     }
   }
 
-  private static long handleWithChannel(Channel channel, long address, long size) throws Throwable {
-    var seg = MemorySegment.ofAddress(address).reinterpret(size);
-    var buf = seg.asByteBuffer();
+  private static long handleWithChannel(Channel channel, ByteBuffer buf) throws Throwable {
     var ref = channel.pool.read(buf, null);
     var msg = ref.get(Function.class);
     @SuppressWarnings("unchecked")
     var res = msg.apply(channel);
     var bytes = Persistables.POOL.write(res, null);
-    seg.copyFrom(MemorySegment.ofArray(bytes));
+    buf.put(0, bytes);
     return bytes.length;
   }
 
-  private long toHotSpotMessage(MemorySegment segment) {
+  private long toHotSpotMessage(long address, long size) {
     var fn = env.getFunctions();
-    long address = segment.address();
     assert address > 0 : "We need an address";
     var arg = StackValue.get(3, JNI.JValue.class);
     arg.addressOf(0).setLong(id);
     arg.addressOf(1).setLong(address);
-    arg.addressOf(2).setLong(segment.byteSize());
+    arg.addressOf(2).setLong(size);
     var replySize = fn.getCallStaticLongMethodA().call(env, channelClass, channelHandle, arg);
     checkForException(env);
     return replySize;
@@ -261,35 +258,62 @@ public final class Channel implements AutoCloseable {
     }
   }
 
-  static <R> R executeImpl(
-      Persistance.Pool pool,
-      Class<R> replyType,
-      Function<Channel, R> msg,
-      Function<MemorySegment, Long> send) {
-    try (var arena = Arena.ofConfined()) {
+  private <R> R executeImpl( //
+      Persistance.Pool pool, //
+      Class<R> replyType, //
+      Function<Channel, R> msg //
+      ) {
+    var address = 0L;
+    try {
       var bytes = pool.write(msg, null);
-      var memory = arena.allocate(Math.max(bytes.length, 4096));
-      memory.copyFrom(MemorySegment.ofArray(bytes));
-      long len = send.apply(memory);
+      var size = Math.max(bytes.length, 4096);
+      long len;
+      ByteBuffer buffer;
+      if (ImageInfo.inImageRuntimeCode()) {
+        var memory = UnmanagedMemory.malloc(size);
+        buffer = asNativeByteBuffer(memory, size);
+        buffer.put(0, bytes);
+        address = memory.rawValue();
+        len = toHotSpotMessage(address, size);
+      } else {
+        buffer = ByteBuffer.allocateDirect(size);
+        var memory = MemorySegment.ofBuffer(buffer);
+        memory.copyFrom(MemorySegment.ofArray(bytes));
+        address = memory.address();
+        len = toSubstrateMessage(memory);
+      }
       if (len == -2) {
         // signals exception
-        var exceptionMessage = memory.getString(0);
+        buffer.position(0);
+        var msgLen = buffer.getInt();
+        var msgBytes = new byte[msgLen];
+        buffer.get(msgBytes);
+        var exceptionMessage = new String(msgBytes);
         throw new IllegalStateException(exceptionMessage);
       }
       assert len >= 0;
-      var reply = memory.asByteBuffer();
-      reply.position(0);
-      reply.limit((int) len);
-      var result = pool.read(reply, null);
+      buffer.position(0);
+      buffer.limit((int) len);
+      var result = pool.read(buffer, null);
       return result.get(replyType);
     } catch (IOException ex) {
       throw new IllegalStateException(ex);
+    } finally {
+      if (ImageInfo.inImageRuntimeCode()) {
+        UnmanagedMemory.free(WordFactory.pointer(address));
+      }
     }
+  }
+
+  private static ByteBuffer asNativeByteBuffer(PointerBase memory, long size) {
+    var bufferSize = Math.toIntExact(size);
+    return CTypeConversion.asByteBuffer(memory, bufferSize).order(ByteOrder.BIG_ENDIAN);
   }
 
   private static long handleJvmMessage(long id, long address, long size) throws Throwable {
     var channel = ID_TO_CHANNEL.get(id);
-    return handleWithChannel(channel, address, size);
+    var seg = MemorySegment.ofAddress(address).reinterpret(size);
+    return handleWithChannel(channel, seg.asByteBuffer());
   }
 
   @Override

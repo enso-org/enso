@@ -4,14 +4,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
-import org.enso.table.data.column.operation.map.numeric.isin.BigIntegerIsInOp;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -20,29 +12,16 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 public class BigIntegerStorage extends SpecializedStorage<BigInteger>
     implements NumericFormattingStorage {
-
-  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
+  private final CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
    */
   public BigIntegerStorage(BigInteger[] data) {
-    super(BigIntegerType.INSTANCE, data, makeOps());
+    super(BigIntegerType.INSTANCE, data);
 
     isNumericFormatRequired =
         new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
-  }
-
-  protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
-    MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops =
-        new MapOperationStorage<>();
-    return ops.add(new AddOp<>())
-        .add(new SubOp<>())
-        .add(new MulOp<>())
-        .add(new DivideOp<>())
-        .add(new ModOp<>())
-        .add(new PowerOp<>())
-        .add(new BigIntegerIsInOp<>());
   }
 
   @Override

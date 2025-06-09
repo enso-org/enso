@@ -31,6 +31,7 @@ export interface GlobalContextMenuProps {
   readonly directoryId: DirectoryId | null
   readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+  readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
 }
 
 /** A context menu available everywhere in the directory. */
@@ -48,6 +49,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     currentDirectoryId,
     event,
     doPaste,
+    bindingFocusScope,
   } = props
 
   const { getText } = useText()
@@ -76,6 +78,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
   const entries = (
     <>
       <ContextMenuEntry
+        bindingFocusScope={bindingFocusScope}
         hidden={hidden}
         action="uploadFiles"
         doAction={async () => {
@@ -84,6 +87,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
         }}
       />
       <ContextMenuEntry
+        bindingFocusScope={bindingFocusScope}
         hidden={hidden}
         action="newProject"
         doAction={() => {
@@ -92,6 +96,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
         }}
       />
       <ContextMenuEntry
+        bindingFocusScope={bindingFocusScope}
         hidden={hidden}
         action="newFolder"
         doAction={() => {
@@ -101,6 +106,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       />
       {isCloud && (
         <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
           hidden={hidden}
           action="newSecret"
           doAction={() => {
@@ -118,6 +124,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       )}
       {isCloud && (
         <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
           hidden={hidden}
           action="newCredential"
           doAction={() => {
@@ -135,6 +142,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       )}
       {isCloud && (
         <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
           hidden={hidden}
           action="newDatalink"
           doAction={() => {
@@ -157,6 +165,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
       )}
       {hasPasteData && directoryId == null && (
         <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
           hidden={hidden}
           action="paste"
           doAction={() => {

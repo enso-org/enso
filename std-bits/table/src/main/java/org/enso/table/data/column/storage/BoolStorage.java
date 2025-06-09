@@ -4,22 +4,17 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
     implements ColumnBooleanStorage, ColumnStorageWithNothingMap {
-  private static final MapOperationStorage<Boolean, BoolStorage> ops = buildOps();
   private final BitSet values;
   private final BitSet isNothing;
   private final int size;
@@ -62,23 +57,6 @@ public final class BoolStorage extends Storage<Boolean>
       throw new IndexOutOfBoundsException(idx);
     }
     return isNothing.get((int) idx);
-  }
-
-  @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return ops.isSupportedBinary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runZip(name, this, argument, problemAggregator);
   }
 
   public boolean isNegated() {
@@ -188,12 +166,6 @@ public final class BoolStorage extends Storage<Boolean>
     return builder.seal();
   }
 
-  private static MapOperationStorage<Boolean, BoolStorage> buildOps() {
-    MapOperationStorage<Boolean, BoolStorage> ops = new MapOperationStorage<>();
-    ops.add(new BooleanIsInOp());
-    return ops;
-  }
-
   /** Creates a mask that selects elements corresponding to true entries in the passed storage. */
   public static BitSet toMask(BoolStorage storage) {
     BitSet mask = storage.normalize();
@@ -222,13 +194,6 @@ public final class BoolStorage extends Storage<Boolean>
         isNothing.get(offset, offset + limit),
         newSize,
         negated);
-  }
-
-  @Override
-  public Storage<?> appendNulls(int count) {
-    BitSet isNothing = BitSets.makeDuplicate(this.isNothing);
-    isNothing.set(size, size + count);
-    return new BoolStorage(values, isNothing, size + count, negated);
   }
 
   @Override

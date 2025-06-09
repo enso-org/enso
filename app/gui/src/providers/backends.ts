@@ -6,13 +6,14 @@ import ProjectManager, {
 } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 import { useEvent } from '@/composables/events'
-import { createContextStore } from '@/providers'
-import { GuiConfig } from '@/providers/guiConfig'
+import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { ToValue } from '@/util/reactivity'
+import { createGlobalState } from '@vueuse/core'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import invariant from 'tiny-invariant'
-import { computed, proxyRefs, readonly, ref, toValue, watch, watchEffect } from 'vue'
-import { GetText } from './text'
+import { computed, inject, proxyRefs, readonly, ref, toValue, watch, watchEffect } from 'vue'
+import { useHttpClient } from './httpClient'
+import { GetText, useText } from './text'
 
 export type BackendsStore = ReturnType<typeof useBackends>
 function initializeBackends(
@@ -80,4 +81,6 @@ function initializeBackends(
   })
 }
 
-export const [provideBackends, useBackends] = createContextStore('backends', initializeBackends)
+export const useBackends = createGlobalState(() =>
+  initializeBackends(useHttpClient(), injectGuiConfig(), inject('rootDirPath'), useText().getText),
+)
