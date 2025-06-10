@@ -33,86 +33,82 @@ export function ConflictingMultipleUploadForm(props: ConflictingMultipleUploadFo
 
   const { data: siblings = null } = useQuery(listDirectoryQueryOptions(parentDirectoryQueryOptions))
 
+  const form = Form.useForm({
+    schema: (z) =>
+      z.object({
+        acceptedConflicts: z.array(z.string()),
+        newPaths: z.object(
+          Object.fromEntries(conflicts.map((conflict) => [conflict.path, z.string().or(z.null())])),
+        ),
+      }),
+    defaultValues: {
+      acceptedConflicts: [],
+      newPaths: Object.fromEntries(conflicts.map((conflict) => [conflict.path, null])),
+    },
+    onSubmit: ({ acceptedConflicts, newPaths }) => {
+      const selection = new Set(acceptedConflicts.map((conflict) => Number(conflict)))
+      onSubmit(
+        conflicts.map((conflict, i) => {
+          const newPath = newPaths[conflict.path]
+          return selection.has(i) && newPath != null ?
+              { type: 'rename', path: conflict.path, newPath: RelativePath(newPath) }
+            : { type: 'skip', path: conflict.path }
+        }),
+      )
+    },
+  })
+  const newPaths = form.watch('newPaths')
+
   return (
-    <Form
-      schema={(z) =>
-        z.object({
-          acceptedConflicts: z.array(z.string()),
-          newPaths: z.object(
-            Object.fromEntries(
-              conflicts.map((conflict) => [conflict.path, z.string().or(z.null())]),
-            ),
-          ),
-        })
-      }
-      defaultValues={{
-        acceptedConflicts: [],
-        newPaths: Object.fromEntries(conflicts.map((conflict) => [conflict.path, null])),
-      }}
-      onSubmit={({ acceptedConflicts, newPaths }) => {
-        const selection = new Set(acceptedConflicts.map((conflict) => Number(conflict)))
-        onSubmit(
-          conflicts.map((conflict, i) => {
-            const newPath = newPaths[conflict.path]
-            return selection.has(i) && newPath != null ?
-                { type: 'rename', path: conflict.path, newPath: RelativePath(newPath) }
-              : { type: 'skip', path: conflict.path }
-          }),
-        )
-      }}
-    >
-      {({ form }) => (
-        <>
-          <Text.Heading>{getText('conflictingAssetsFound')}</Text.Heading>
-          <Checkbox.Group name="acceptedConflicts">
-            {conflicts.map((conflict, i) => (
-              <Checkbox value={String(i)}>
-                <AssetIcon asset={{ type: conflict.type, title: conflict.path }} />
-                <Text>{conflict.path}</Text>
-                <Popover.Trigger>
-                  <Button variant="primary" className="min-w-16">
-                    {getText('rename')}
-                  </Button>
+    <Form form={form}>
+      <Text.Heading>{getText('conflictingAssetsFound')}</Text.Heading>
+      <Checkbox.Group name="acceptedConflicts">
+        {conflicts.map((conflict, i) => (
+          <Checkbox value={String(i)}>
+            <AssetIcon asset={{ type: conflict.type, title: conflict.path }} />
+            <Text>{newPaths[conflict.path] ?? conflict.path}</Text>
+            <Popover.Trigger>
+              <Button variant="primary" className="min-w-16">
+                {getText('rename')}
+              </Button>
 
-                  <Popover placement="bottom start">
-                    <Form
-                      method="dialog"
-                      defaultValues={{
-                        newName: form.getValues('newPaths')[conflict.path] ?? '',
-                      }}
-                      schema={(schema) =>
-                        schema.object({
-                          newName: titleSchema({
-                            asset: conflict.existingAsset,
-                            siblings,
-                          }),
-                        })
-                      }
-                      onSubmit={({ newName }) => {
-                        form.setValue('newPaths', { [conflict.path]: newName })
-                      }}
-                    >
-                      <Text>{getText('newNameDescription')}</Text>
+              <Popover placement="bottom start">
+                <Form
+                  method="dialog"
+                  defaultValues={{
+                    newName: form.getValues('newPaths')[conflict.path] ?? '',
+                  }}
+                  schema={(schema) =>
+                    schema.object({
+                      newName: titleSchema({
+                        asset: conflict.existingAsset,
+                        siblings,
+                      }),
+                    })
+                  }
+                  onSubmit={({ newName }) => {
+                    form.setValue('newPaths', { [conflict.path]: newName })
+                  }}
+                >
+                  <Text>{getText('newNameDescription')}</Text>
 
-                      <Input label={getText('newName')} name="newName" autoFocus="select" />
+                  <Input label={getText('newName')} name="newName" autoFocus="select" />
 
-                      <Form.Submit>{getText('apply')}</Form.Submit>
+                  <Form.Submit>{getText('apply')}</Form.Submit>
 
-                      <Form.FormError />
-                    </Form>
-                  </Popover>
-                </Popover.Trigger>
-              </Checkbox>
-            ))}
-          </Checkbox.Group>
-          <Button.Group className="fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md">
-            <Dialog.Close variant="ghost" onPress={onCancel} className="mr-auto">
-              {getText('cancel')}
-            </Dialog.Close>
-          </Button.Group>
-          <Form.FormError />
-        </>
-      )}
+                  <Form.FormError />
+                </Form>
+              </Popover>
+            </Popover.Trigger>
+          </Checkbox>
+        ))}
+      </Checkbox.Group>
+      <Button.Group className="fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md">
+        <Dialog.Close variant="ghost" onPress={onCancel} className="mr-auto">
+          {getText('cancel')}
+        </Dialog.Close>
+      </Button.Group>
+      <Form.FormError />
     </Form>
   )
 }
