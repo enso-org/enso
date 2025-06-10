@@ -21,7 +21,7 @@ rust_shared_library(
 run_binary(
     name = "generate_java",
     args = ["$(@)"],
-    out_dirs = ["target"],
+    out_dirs = ["target/src_managed/main/org/enso/syntax2"],
     tool = "//lib/rust/parser/generate-java:enso_parser_generate_java",
     visibility = ["//visibility:public"],
 )
