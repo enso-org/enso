@@ -16,6 +16,10 @@ import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
   * The basic support for Bazel was added in https://github.com/enso-org/enso/pull/13239
   */
 object BazelSupport extends AutoPlugin {
+  val ENABLED_PROP = "enso.BazelSupport.enabled"
+  val RUST_PARSER_JAVA_SRC_DIR_PROP = "enso.BazelSupport.parser.javaSrcDir"
+  val RUST_PARSER_LIB_PROP         = "enso.BazelSupport.parser.lib"
+
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
       "True if sbt process was started as bazel's subprocess"
@@ -46,17 +50,15 @@ object BazelSupport extends AutoPlugin {
 
   override lazy val globalSettings: Seq[Setting[_]] = {
     Bazel / wasStartedFromBazel := {
-      System.getenv("BAZEL_SBT_SUBPROCESS") != null
+      System.getProperty(ENABLED_PROP) != null
     }
   }
 
   override lazy val buildSettings: Seq[Setting[_]] = {
     Seq(
       Bazel / rustParserJavaSourceDir := {
-        val rootDir = (LocalProject("enso") / baseDirectory).value
-        val srcDir =
-          rootDir / "bazel-bin" / "lib" / "rust" / "parser" / "target" / "src_managed"
-        srcDir
+        val prop = System.getProperty(RUST_PARSER_JAVA_SRC_DIR_PROP)
+        new File(prop)
       },
       Bazel / rustParserJavaSources := {
         val logger = streams.value.log
@@ -64,17 +66,21 @@ object BazelSupport extends AutoPlugin {
         if (!srcDir.exists()) {
           logger.warn(
             s"Rust parser Java sources not found at $srcDir. " +
-            "Make sure to generate the Java sources with `bazel build //lib/rust/parser:generate_java`."
+            "Make sure to generate the Java sources with `bazel build //lib/rust/parser:generate_java`." +
+            "Passed via system property " + RUST_PARSER_JAVA_SRC_DIR_PROP + "."
           )
         }
         FileUtils.listFiles(srcDir, Array("java"), true).asScala.toSeq
       },
       Bazel / rustParserLib := {
         val logger  = streams.value.log
-        val rootDir = (LocalProject("enso") / baseDirectory).value
-        val libName = System.mapLibraryName("enso_parser")
-        val parserLib =
-          rootDir / "bazel-bin" / "lib" / "rust" / "parser" / libName
+        val prop = System.getProperty(RUST_PARSER_LIB_PROP)
+        if (prop == null) {
+          logger.error(
+            s"Rust parser library not set in ${RUST_PARSER_LIB_PROP} property."
+          )
+        }
+        val parserLib = new File(prop)
         if (!parserLib.exists()) {
           logger.warn(
             s"Rust parser library not found at $parserLib. " +
