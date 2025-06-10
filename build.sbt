@@ -19,6 +19,7 @@ import scala.sys.process._
 // to IntelliJ.
 import JPMSPlugin.autoImport._
 import PackageListPlugin.autoImport._
+import BazelSupport.autoImport._
 
 import java.io.File
 import java.nio.file.Files
@@ -848,82 +849,129 @@ lazy val rustParserTargetDirectory =
 
 val generateRustParserLib =
   TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
-`syntax-rust-definition` / generateRustParserLib := {
-  val log = state.value.log
-  val libGlob =
-    (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
+`syntax-rust-definition` / generateRustParserLib := Def.taskIf {
+  if ((`syntax-rust-definition` / Bazel / wasStartedFromBazel).value) {
+    val libName = System.mapLibraryName("enso_parser")
+    val libDest =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value / libName
+    val libFrombazel =
+      (`syntax-rust-definition` / Bazel / rustParserLib).value
+    IO.copyFile(libFrombazel, libDest)
+    Seq(
+      libDest
+    )
+  } else {
+    val log = state.value.log
+    val libGlob =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
 
-  val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
-  if (
-    sys.env.get("CI").isDefined ||
-    allLibs.isEmpty ||
-    (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
-  ) {
-    val os = System.getProperty("os.name")
-    val target = os.toLowerCase() match {
-      case DistributionPackage.OS.Linux.name =>
-        Some("x86_64-unknown-linux-musl")
-      case _ =>
-        None
+    val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
+    if (
+      sys.env.get("CI").isDefined ||
+      allLibs.isEmpty ||
+      (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
+    ) {
+      val os = System.getProperty("os.name")
+      val target = os.toLowerCase() match {
+        case DistributionPackage.OS.Linux.name =>
+          Some("x86_64-unknown-linux-musl")
+        case _ =>
+          None
+      }
+      target.foreach { t =>
+        Cargo.rustUp(t, log)
+      }
+      val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
+      val arguments = Seq(
+        "build",
+        "-p",
+        "enso-parser-jni",
+        "--profile",
+        profile,
+        "-Z",
+        "unstable-options"
+      ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
+        Seq(
+          "--out-dir",
+          (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
+        )
+      val envVars = target
+        .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
+        .getOrElse(Seq())
+      Cargo.run(arguments, log, envVars)
     }
-    target.foreach { t =>
-      Cargo.rustUp(t, log)
-    }
-    val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
-    val arguments = Seq(
-      "build",
-      "-p",
-      "enso-parser-jni",
-      "--profile",
-      profile,
-      "-Z",
-      "unstable-options"
-    ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
-      Seq(
-        "--out-dir",
-        (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
-      )
-    val envVars = target
-      .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
-      .getOrElse(Seq())
-    Cargo.run(arguments, log, envVars)
+    FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
   }
-  FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
-}
+}.value
 
-`syntax-rust-definition` / generateRustParserLib / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / ** / "*.rs"
-`syntax-rust-definition` / generateRustParserLib / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
+`syntax-rust-definition` / generateRustParserLib / fileInputs := {
+  if ((`syntax-rust-definition` / Bazel / wasStartedFromBazel).value) {
+    Seq.empty
+  } else {
+    Seq(
+      (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / ** / "*.rs",
+      (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
+    )
+  }
+}
 
 val generateParserJavaSources = TaskKey[Seq[File]](
   "generateParserJavaSources",
   "Generates Java sources for Rust parser"
 )
-`syntax-rust-definition` / generateParserJavaSources := {
-  generateRustParser(
-    (`syntax-rust-definition` / Compile / sourceManaged).value,
-    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges,
-    state.value.log
-  )
-}
-`syntax-rust-definition` / generateParserJavaSources / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
-`syntax-rust-definition` / generateParserJavaSources / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
+`syntax-rust-definition` / generateParserJavaSources := Def.taskIf {
+  import scala.jdk.CollectionConverters._
+  if ((`syntax-rust-definition` / Bazel / wasStartedFromBazel).value) {
+    // Copy the generated sources from Bazel directory to our directory
+    val srcsFromBazel =
+      (`syntax-rust-definition` / Bazel / rustParserJavaSources).value
+    val base   = (`syntax-rust-definition` / Compile / sourceManaged).value
+    val outDir = base / "org" / "enso" / "syntax2"
+    if (!outDir.exists()) {
+      outDir.mkdirs()
+      srcsFromBazel.foreach { src =>
+        val fname = src.getName
+        val dest  = outDir / fname
+        IO.copyFile(src, dest)
+      }
+    }
+    FileUtils.listFiles(outDir, Array("scala", "java"), true).asScala.toSeq
+  } else {
+    val base   = (`syntax-rust-definition` / Compile / sourceManaged).value
+    val outDir = base / "org" / "enso" / "syntax2"
+    generateRustParser(
+      outDir,
+      (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges,
+      state.value.log
+    )
+  }
+}.value
 
+`syntax-rust-definition` / generateParserJavaSources / fileInputs := {
+  if ((`syntax-rust-definition` / Bazel / wasStartedFromBazel).value) {
+    Seq.empty
+  } else {
+    Seq(
+      (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs",
+      (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
+    )
+  }
+}
+
+/** Generates Java sources via `enso-parser-generate-java` binary.
+  * That binary must already exist - created via Rust compilation.
+  * @param outDir Base directory where the sources will be put.
+  *             No package hierarchy will be created.
+  */
 def generateRustParser(
-  base: File,
+  outDir: File,
   changes: sbt.nio.FileChanges,
   log: ManagedLogger
 ): Seq[File] = {
   import scala.jdk.CollectionConverters._
-  import java.nio.file.Paths
 
-  val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
-  val fullPkg    = Paths.get(base.toString, syntaxPkgs).toFile
-  if (!fullPkg.exists()) {
-    fullPkg.mkdirs()
+  if (!outDir.exists()) {
+    outDir.mkdirs()
   }
   if (changes.hasChanges) {
     val args = Seq(
@@ -932,16 +980,16 @@ def generateRustParser(
       "enso-parser-generate-java",
       "--bin",
       "enso-parser-generate-java",
-      fullPkg.toString
+      outDir.toString
     )
     Cargo.run(args, log)
   }
-  FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
+  FileUtils.listFiles(outDir, Array("scala", "java"), true).asScala.toSeq
 }
 
 lazy val `syntax-rust-definition` = project
   .in(file("lib/rust/parser"))
-  .enablePlugins(JPMSPlugin)
+  .enablePlugins(BazelSupport && JPMSPlugin)
   .configs(Test)
   .settings(
     javadocSettings,
