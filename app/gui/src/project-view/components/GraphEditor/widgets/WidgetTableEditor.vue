@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import {
   CELLS_LIMIT,
@@ -9,8 +10,6 @@ import {
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
-import { useGraphStore } from '@/stores/graph'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
 import { type IdentifierOrOperatorIdentifier, type QualifiedName } from '@/util/qualifiedName'

@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 
 /** A column storing arbitrary Java objects. */
@@ -12,7 +11,7 @@ public sealed class ObjectStorage extends SpecializedStorage<Object> permits Mix
    * @param data the underlying data
    */
   public ObjectStorage(Object[] data) {
-    super(AnyObjectType.INSTANCE, data, new MapOperationStorage<>());
+    super(AnyObjectType.INSTANCE, data);
   }
 
   @Override

@@ -16,6 +16,7 @@ import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
+import type { ResponseWithTypedJson } from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import type { GetText } from '$/providers/text'
 import invariant from 'tiny-invariant'
@@ -23,10 +24,6 @@ import { markRaw } from 'vue'
 import { z } from 'zod'
 import { extractTypeAndId } from './LocalBackend'
 
-/** HTTP status indicating that the request was successful. */
-const STATUS_SUCCESS_FIRST = 200
-/** HTTP status indicating that the request was successful. */
-const STATUS_SUCCESS_LAST = 299
 /** HTTP status indicating that the resource does not exist. */
 const STATUS_NOT_FOUND = 404
 /** HTTP status indicating that the server encountered a fatal exception. */
@@ -42,11 +39,6 @@ interface RemoteBackendError {
   readonly code: string
   readonly message: string
   readonly param: string
-}
-
-/** Whether a response has a success HTTP status code (200-299). */
-function responseIsSuccessful(response: Response) {
-  return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
 }
 
 /** Whether the given directory is a special directory that cannot be written to. */
@@ -301,7 +293,7 @@ export default class RemoteBackend extends Backend {
     const response = await this.get<ListUsersResponseBody>(path)
     if (response.status === STATUS_NOT_ALLOWED) {
       return []
-    } else if (!responseIsSuccessful(response)) {
+    } else if (!response.ok) {
       return await this.throw(response, 'listUsersBackendError')
     } else {
       return (await response.json()).users
@@ -312,7 +304,7 @@ export default class RemoteBackend extends Backend {
   override async createUser(body: backend.CreateUserRequestBody): Promise<backend.User> {
     const path = remoteBackendPaths.CREATE_USER_PATH
     const response = await this.post<backend.User>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createUserBackendError')
     } else {
       return await response.json()
@@ -323,7 +315,7 @@ export default class RemoteBackend extends Backend {
   override async updateUser(body: backend.UpdateUserRequestBody): Promise<void> {
     const path = remoteBackendPaths.UPDATE_CURRENT_USER_PATH
     const response = await this.put(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return body.username != null ?
           await this.throw(response, 'updateUsernameBackendError')
         : await this.throw(response, 'updateUserBackendError')
@@ -340,7 +332,7 @@ export default class RemoteBackend extends Backend {
     const response = await this.put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH, {
       clearRemoveAt: true,
     })
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'restoreUserBackendError')
     } else {
       return
@@ -350,7 +342,7 @@ export default class RemoteBackend extends Backend {
   /** Delete the current user. */
   override async deleteUser(): Promise<void> {
     const response = await this.delete(remoteBackendPaths.DELETE_USER_PATH)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'deleteUserBackendError')
     } else {
       return
@@ -368,7 +360,7 @@ export default class RemoteBackend extends Backend {
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
     const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'inviteUserBackendError', body.userEmail)
     } else {
       return
@@ -381,7 +373,7 @@ export default class RemoteBackend extends Backend {
       remoteBackendPaths.INVITATION_PATH,
     )
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'listInvitationsBackendError')
     } else {
       return await response.json()
@@ -392,7 +384,7 @@ export default class RemoteBackend extends Backend {
   override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'deleteInvitationBackendError')
     } else {
       return
@@ -407,7 +399,7 @@ export default class RemoteBackend extends Backend {
   /** Accept an invitation to a new organization. */
   override async acceptInvitation(): Promise<void> {
     const response = await this.patch(remoteBackendPaths.ACCEPT_INVITATION_PATH, {})
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'acceptInvitationBackendError')
     } else {
       return
@@ -430,7 +422,7 @@ export default class RemoteBackend extends Backend {
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.User>(path, file)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'uploadUserPictureBackendError')
     } else {
       return await response.json()
@@ -445,7 +437,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.User> {
     const path = remoteBackendPaths.changeUserGroupPath(userId)
     const response = await this.put<backend.User>(path, userGroups)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return this.throw(response, 'changeUserGroupsBackendError', name)
     } else {
       return await response.json()
@@ -466,7 +458,7 @@ export default class RemoteBackend extends Backend {
       return null
     }
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'getOrganizationBackendError')
     }
 
@@ -483,7 +475,7 @@ export default class RemoteBackend extends Backend {
     if (response.status === STATUS_NOT_FOUND) {
       // Organization info has not yet been created.
       return null
-    } else if (!responseIsSuccessful(response)) {
+    } else if (!response.ok) {
       return await this.throw(response, 'updateOrganizationBackendError')
     } else {
       return await response.json()
@@ -501,7 +493,7 @@ export default class RemoteBackend extends Backend {
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.OrganizationInfo>(path, file)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'uploadOrganizationPictureBackendError')
     } else {
       return await response.json()
@@ -512,7 +504,7 @@ export default class RemoteBackend extends Backend {
   override async createPermission(body: backend.CreatePermissionRequestBody): Promise<void> {
     const path = remoteBackendPaths.CREATE_PERMISSION_PATH
     const response = await this.post(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createPermissionBackendError')
     } else {
       return
@@ -531,15 +523,7 @@ export default class RemoteBackend extends Backend {
       return null
     }
 
-    if (response.status === STATUS_NOT_AUTHORIZED) {
-      // User is not authorized, we should redirect to the login page.
-      return await this.throw(
-        response,
-        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError')),
-      )
-    }
-
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       // Arbitrary error, might be a server error or a network error.
       return this.throw(response, 'usersMeBackendError')
     }
@@ -591,7 +575,7 @@ export default class RemoteBackend extends Backend {
             ],
         ).toString(),
     )
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       if (response.status === STATUS_SERVER_ERROR) {
         this.logger.error(
           query.parentId != null ?
@@ -644,7 +628,7 @@ export default class RemoteBackend extends Backend {
     const { title, ...rest } = body
 
     const response = await this.post<backend.CreatedDirectory>(path, discardTitle ? rest : body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createFolderBackendError', title)
     } else {
       return await response.json()
@@ -662,7 +646,7 @@ export default class RemoteBackend extends Backend {
   ) {
     const path = remoteBackendPaths.updateDirectoryPath(directoryId)
     const response = await this.put<backend.UpdatedDirectory>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'updateFolderBackendError', title)
     } else {
       return await response.json()
@@ -675,7 +659,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.AssetVersions> {
     const path = remoteBackendPaths.listAssetVersionsPath(assetId)
     const response = await this.get<backend.AssetVersions>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'listAssetVersionsBackendError')
     } else {
       return await response.json()
@@ -690,7 +674,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.getProjectContentPath(projectId, versionId)
     const response = await this.get<string>(path)
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return this.throw(response, 'getFileContentsBackendError')
     } else {
       return await response.text()
@@ -709,7 +693,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.updateAssetPath(assetId)
     const response = await this.patch(path, body)
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       await this.throw(response, 'updateAssetBackendError', title).catch((error) => {
         if (isDuplicateAssetError(error)) {
           throw new backend.DuplicateAssetError(error.message)
@@ -732,7 +716,7 @@ export default class RemoteBackend extends Backend {
     const paramsString = new URLSearchParams([['force', String(body.force)]]).toString()
     const path = remoteBackendPaths.deleteAssetPath(assetId) + '?' + paramsString
     const response = await this.delete(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'deleteAssetBackendError', title)
     } else {
       return
@@ -750,7 +734,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
     const response = await this.patch(path, { assetId, parentDirectoryId })
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'undoDeleteAssetBackendError')
     } else {
       return
@@ -770,7 +754,7 @@ export default class RemoteBackend extends Backend {
       { parentDirectoryId },
     )
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'copyAssetBackendError').catch((error) => {
         if (isDuplicateAssetError(error)) {
           throw new backend.DuplicateAssetError(error.message)
@@ -796,7 +780,7 @@ export default class RemoteBackend extends Backend {
     const { projectName, ...rest } = body
 
     const response = await this.post<backend.CreatedProject>(path, rest)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createProjectBackendError', projectName)
     } else {
       return await response.json()
@@ -810,7 +794,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<void> {
     const path = remoteBackendPaths.restoreAssetPath(assetId)
     const response = await this.post(path, { versionId })
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'restoreAssetBackendError')
     } else {
       return
@@ -825,7 +809,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.CreatedProject> {
     const path = remoteBackendPaths.duplicateProjectPath(projectId)
     const response = await this.post<backend.CreatedProject>(path, { versionId })
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'duplicateProjectBackendError', title)
     } else {
       return await response.json()
@@ -839,7 +823,7 @@ export default class RemoteBackend extends Backend {
   override async closeProject(projectId: backend.ProjectId, title: string): Promise<void> {
     const path = remoteBackendPaths.closeProjectPath(projectId)
     const response = await this.post(path, {})
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'closeProjectBackendError', title)
     } else {
       return
@@ -857,7 +841,7 @@ export default class RemoteBackend extends Backend {
     const paramsString = new URLSearchParams({ projectId }).toString()
     const path = `${remoteBackendPaths.LIST_PROJECT_SESSIONS_PATH}?${paramsString}`
     const response = await this.get<backend.ProjectSession[]>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'listProjectSessionsBackendError', title)
     } else {
       return await response.json()
@@ -875,7 +859,7 @@ export default class RemoteBackend extends Backend {
     const { projectId, ...rest } = body
     const path = remoteBackendPaths.createProjectExecutionPath(projectId)
     const response = await this.post<backend.ProjectExecution>(path, rest)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createProjectExecutionBackendError', title)
     } else {
       return await response.json()
@@ -892,7 +876,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.ProjectExecution> {
     const path = remoteBackendPaths.getProjectExecutionDetailsPath(executionId)
     const response = await this.get<backend.ProjectExecution>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'getProjectExecutionDetailsBackendError', title)
     } else {
       return await response.json()
@@ -910,7 +894,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.ProjectExecution> {
     const path = remoteBackendPaths.updateProjectExecutionPath(executionId)
     const response = await this.post<backend.ProjectExecution>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'updateProjectExecutionBackendError', projectTitle)
     } else {
       return await response.json()
@@ -927,7 +911,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<void> {
     const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
     const response = await this.delete<backend.ProjectExecution>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
     } else {
       return
@@ -944,7 +928,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<readonly backend.ProjectExecution[]> {
     const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
     const response = await this.get<readonly backend.ProjectExecution[]>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'listProjectExecutionsBackendError', title)
     } else {
       return await response.json()
@@ -962,7 +946,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.syncProjectExecutionPath(executionId)
 
     const response = await this.post<backend.ProjectExecution>(path, {})
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'syncProjectExecutionBackendError', projectTitle)
     } else {
       return await response.json()
@@ -982,7 +966,7 @@ export default class RemoteBackend extends Backend {
     }).toString()
     const path = `${remoteBackendPaths.getProjectDetailsPath(projectId)}?${paramsString}`
     const response = await this.get<backend.ProjectRaw>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'getProjectDetailsBackendError')
     } else {
       const project = await response.json()
@@ -1013,7 +997,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.getAssetDetailsPath(assetId)
     const response = await this.get<backend.Asset<Type> | null>(path)
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       if (response.status === STATUS_NOT_FOUND) {
         if (backend.isDirectoryId(assetId)) {
           throw new backend.DirectoryDoesNotExistError()
@@ -1038,7 +1022,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<string[]> {
     const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
     const response = await this.get<string[]>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'getProjectLogsBackendError', title)
     } else {
       return await response.json()
@@ -1073,7 +1057,7 @@ export default class RemoteBackend extends Backend {
       }
       const response = await this.post(path, filteredBody)
 
-      if (!responseIsSuccessful(response)) {
+      if (!response.ok) {
         return this.throw(response, 'openProjectBackendError', title)
       } else {
         return
@@ -1092,7 +1076,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.UpdatedProject> {
     const path = remoteBackendPaths.projectUpdatePath(projectId)
     const response = await this.put<backend.UpdatedProject>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'updateProjectBackendError', title)
     } else {
       return await response.json()
@@ -1113,7 +1097,7 @@ export default class RemoteBackend extends Backend {
       size: file.size,
     }
     const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'uploadFileStartBackendError')
     } else {
       return await response.json()
@@ -1134,7 +1118,7 @@ export default class RemoteBackend extends Backend {
     const body = file.slice(start, end)
     const response = await fetch(url, { method: 'PUT', body })
     const eTag = response.headers.get('ETag')
-    if (!responseIsSuccessful(response) || eTag == null) {
+    if (!response.ok || eTag == null) {
       return await this.throw(response, 'uploadFileChunkBackendError')
     } else {
       return { eTag, partNumber: index + 1 }
@@ -1150,7 +1134,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.UploadedLargeAsset> {
     const path = remoteBackendPaths.UPLOAD_FILE_END_PATH
     const response = await this.post<backend.UploadedLargeAsset>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'uploadFileEndBackendError')
     } else {
       return await response.json()
@@ -1176,7 +1160,7 @@ export default class RemoteBackend extends Backend {
     }).toString()
     const path = `${remoteBackendPaths.getFileDetailsPath(fileId)}?${searchParams}`
     const response = await this.get<backend.FileDetails>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'getFileDetailsBackendError', title)
     } else {
       return await response.json()
@@ -1192,7 +1176,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.DatalinkInfo> {
     const path = remoteBackendPaths.CREATE_DATALINK_PATH
     const response = await this.post<backend.DatalinkInfo>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createDatalinkBackendError', body.name)
     } else {
       return await response.json()
@@ -1209,7 +1193,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.Datalink> {
     const path = remoteBackendPaths.getDatalinkPath(datalinkId)
     const response = await this.get<backend.Datalink>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'getDatalinkBackendError', title)
     } else {
       return await response.json()
@@ -1223,7 +1207,7 @@ export default class RemoteBackend extends Backend {
   override async deleteDatalink(datalinkId: backend.DatalinkId, title: string): Promise<void> {
     const path = remoteBackendPaths.getDatalinkPath(datalinkId)
     const response = await this.delete(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'deleteDatalinkBackendError', title)
     } else {
       return
@@ -1237,7 +1221,7 @@ export default class RemoteBackend extends Backend {
   override async createSecret(body: backend.CreateSecretRequestBody): Promise<backend.SecretId> {
     const path = remoteBackendPaths.CREATE_SECRET_PATH
     const response = await this.post<backend.SecretId>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createSecretBackendError', body.name)
     } else {
       return await response.json()
@@ -1253,7 +1237,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.SecretId> {
     const path = remoteBackendPaths.CREATE_CREDENTIAL_PATH
     const response = await this.post<backend.SecretId>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createCredentialBackendError', body.name)
     } else {
       return await response.json()
@@ -1267,7 +1251,7 @@ export default class RemoteBackend extends Backend {
   override async getSecret(secretId: backend.SecretId, title: string): Promise<backend.Secret> {
     const path = remoteBackendPaths.getSecretPath(secretId)
     const response = await this.get<backend.Secret>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'getSecretBackendError', title)
     } else {
       return await response.json()
@@ -1285,7 +1269,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<void> {
     const path = remoteBackendPaths.updateSecretPath(secretId)
     const response = await this.put(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'updateSecretBackendError', title)
     } else {
       return
@@ -1299,7 +1283,7 @@ export default class RemoteBackend extends Backend {
   override async listSecrets(): Promise<readonly backend.SecretInfo[]> {
     const path = remoteBackendPaths.LIST_SECRETS_PATH
     const response = await this.get<ListSecretsResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'listSecretsBackendError')
     } else {
       return (await response.json()).secrets
@@ -1313,7 +1297,7 @@ export default class RemoteBackend extends Backend {
   override async createTag(body: backend.CreateTagRequestBody): Promise<backend.Label> {
     const path = remoteBackendPaths.CREATE_TAG_PATH
     const response = await this.post<backend.Label>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createLabelBackendError', body.value)
     } else {
       return await response.json()
@@ -1327,7 +1311,7 @@ export default class RemoteBackend extends Backend {
   override async listTags(): Promise<readonly backend.Label[]> {
     const path = remoteBackendPaths.LIST_TAGS_PATH
     const response = await this.get<ListTagsResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'listLabelsBackendError')
     } else {
       return (await response.json()).tags
@@ -1345,7 +1329,7 @@ export default class RemoteBackend extends Backend {
   ) {
     const path = remoteBackendPaths.associateTagPath(assetId)
     const response = await this.patch<ListTagsResponseBody>(path, { labels })
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'associateLabelsBackendError', title)
     } else {
       return
@@ -1359,7 +1343,7 @@ export default class RemoteBackend extends Backend {
   override async deleteTag(tagId: backend.TagId, value: backend.LabelName): Promise<void> {
     const path = remoteBackendPaths.deleteTagPath(tagId)
     const response = await this.delete(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'deleteLabelBackendError', value)
     } else {
       return
@@ -1372,7 +1356,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.UserGroupInfo> {
     const path = remoteBackendPaths.CREATE_USER_GROUP_PATH
     const response = await this.post<backend.UserGroupInfo>(path, body)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return this.throw(response, 'createUserGroupBackendError', body.name)
     } else {
       return await response.json()
@@ -1383,7 +1367,7 @@ export default class RemoteBackend extends Backend {
   override async deleteUserGroup(userGroupId: backend.UserGroupId, name: string): Promise<void> {
     const path = remoteBackendPaths.deleteUserGroupPath(userGroupId)
     const response = await this.delete(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return this.throw(response, 'deleteUserGroupBackendError', name)
     } else {
       return
@@ -1399,7 +1383,7 @@ export default class RemoteBackend extends Backend {
     const response = await this.get<backend.UserGroupInfo[]>(path)
     if (response.status === STATUS_NOT_ALLOWED) {
       return [] as const
-    } else if (!responseIsSuccessful(response)) {
+    } else if (!response.ok) {
       return this.throw(response, 'listUserGroupsBackendError')
     } else {
       return await response.json()
@@ -1417,7 +1401,7 @@ export default class RemoteBackend extends Backend {
       remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
       params,
     )
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'createCheckoutSessionBackendError', params.plan)
     } else {
       return await response.json()
@@ -1433,7 +1417,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.CheckoutSessionStatus> {
     const path = remoteBackendPaths.getCheckoutSessionPath(sessionId)
     const response = await this.get<backend.CheckoutSessionStatus>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'getCheckoutSessionBackendError', sessionId)
     } else {
       return await response.json()
@@ -1461,7 +1445,7 @@ export default class RemoteBackend extends Backend {
     }).toString()
     const path = `${remoteBackendPaths.GET_LOG_EVENTS_PATH}?${paramsString}`
     const response = await this.get<ResponseBody>(path)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return this.throw(response, 'getLogEventsBackendError')
     } else {
       const json = await response.json()
@@ -1492,7 +1476,7 @@ export default class RemoteBackend extends Backend {
         keepalive: true,
       },
     )
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return this.throw(response, 'logEventBackendError', message)
     }
   }
@@ -1552,9 +1536,6 @@ export default class RemoteBackend extends Backend {
       }
       case backend.AssetType.secret:
       case backend.AssetType.directory:
-      case backend.AssetType.specialLoading:
-      case backend.AssetType.specialEmpty:
-      case backend.AssetType.specialError:
       case backend.AssetType.specialUp:
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
@@ -1585,7 +1566,7 @@ export default class RemoteBackend extends Backend {
     const response = await this.client.get<ResponseBody>(
       `./api/cloud/download-project?${queryString}`,
     )
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
 
@@ -1604,7 +1585,7 @@ export default class RemoteBackend extends Backend {
     })
 
     const response = await this.client.get(`./api/cloud/get-project-archive?${queryString}`)
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
 
@@ -1620,7 +1601,7 @@ export default class RemoteBackend extends Backend {
       {},
     )
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'getCustomerPortalUrlBackendError')
     } else {
       return (await response.json()).url
@@ -1638,7 +1619,7 @@ export default class RemoteBackend extends Backend {
       remoteBackendPaths.getProjectAssetPath(projectId, relativePath),
     )
 
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     } else {
       const blob = await response.blob()
@@ -1650,7 +1631,7 @@ export default class RemoteBackend extends Backend {
   async setHybridOpenInProgress(id: backend.ProjectId, title: string): Promise<void> {
     const path = remoteBackendPaths.getHybridSetOpenInProgress(id)
     const response = await this.post(path, {})
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'openProjectBackendError', title)
     } else {
       return
@@ -1661,7 +1642,7 @@ export default class RemoteBackend extends Backend {
   async setHybridOpened(id: backend.ProjectId, title: string): Promise<void> {
     const path = remoteBackendPaths.getHybridSetOpened(id)
     const response = await this.post(path, {})
-    if (!responseIsSuccessful(response)) {
+    if (!response.ok) {
       return await this.throw(response, 'openProjectBackendError', title)
     } else {
       return
@@ -1699,39 +1680,66 @@ export default class RemoteBackend extends Backend {
     return !foundSelfPermission ? asset : { ...asset, permissions }
   }
 
+  /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
+  private async checkForAuthenticationError<T>(
+    makeRequest: () => Promise<ResponseWithTypedJson<T>>,
+  ) {
+    const response = await makeRequest()
+    if (response.status === STATUS_NOT_AUTHORIZED) {
+      // User is not authorized, we should redirect to the login page.
+      return await this.throw(
+        response,
+        new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError')),
+      )
+    }
+    return response
+  }
+
   /** Send an HTTP GET request to the given path. */
   private get<T = void>(path: string) {
-    return this.client.get<T>(`${$config.API_URL}/${path}`)
+    return this.checkForAuthenticationError(() => this.client.get<T>(`${$config.API_URL}/${path}`))
   }
 
   /** Send a JSON HTTP POST request to the given path. */
   private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
-    return this.client.post<T>(`${$config.API_URL}/${path}`, payload, options)
+    return this.checkForAuthenticationError(() =>
+      this.client.post<T>(`${$config.API_URL}/${path}`, payload, options),
+    )
   }
 
   /** Send a binary HTTP POST request to the given path. */
   private postBinary<T = void>(path: string, payload: Blob) {
-    return this.client.postBinary<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(() =>
+      this.client.postBinary<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 
   /** Send a JSON HTTP PATCH request to the given path. */
   private patch<T = void>(path: string, payload: object) {
-    return this.client.patch<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(() =>
+      this.client.patch<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
-    return this.client.put<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(() =>
+      this.client.put<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 
   /** Send a binary HTTP PUT request to the given path. */
   private putBinary<T = void>(path: string, payload: Blob) {
-    return this.client.putBinary<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(() =>
+      this.client.putBinary<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 
   /** Send an HTTP DELETE request to the given path. */
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
-    return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
+    return this.checkForAuthenticationError(() =>
+      this.client.delete<T>(`${$config.API_URL}/${path}`, payload),
+    )
   }
 }
 

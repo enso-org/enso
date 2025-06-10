@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -18,6 +19,13 @@ import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
 public class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
+  public static LongStorage makeEmpty(long size, IntegerType type) {
+    int intSize = Builder.checkSize(size);
+    var isNothing = new BitSet(intSize);
+    isNothing.set(0, intSize);
+    return new LongStorage(new long[0], intSize, isNothing, type);
+  }
+
   protected final ProblemAggregator problemAggregator;
   protected long[] data;
 

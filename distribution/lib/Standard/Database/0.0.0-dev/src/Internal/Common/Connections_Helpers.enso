@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
+## PRIVATE
 get_table_viz_data tables =
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query"] [tables]

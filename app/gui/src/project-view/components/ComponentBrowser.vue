@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {
+  useGraphStore,
+  useProjectNames,
+  useSuggestionDbStore,
+} from '$/components/WithCurrentProject.vue'
 import { componentBrowserBindings, listBindings } from '@/bindings'
 import { type Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
@@ -12,10 +17,7 @@ import { groupColorStyle } from '@/composables/nodeColors'
 import { Action, registerHandlers } from '@/providers/action'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
-import { injectProjectNames } from '@/stores/projectNames'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { isNodeOutside, targetIsOutside } from '@/util/autoBlur'
@@ -52,13 +54,13 @@ const cssComponentEditorPadding = `${COMPONENT_EDITOR_PADDING}px`
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
 const interaction = injectInteractionHandler()
-const projectNames = injectProjectNames()
+const projectNames = useProjectNames()
 
 const props = defineProps<{
   nodePosition: Vec2
   navigator: ReturnType<typeof useNavigator>
   usage: Usage
-  associatedElements: HTMLElement[]
+  graphEditorRoot: HTMLElement | undefined
 }>()
 
 const emit = defineEmits<{
@@ -75,14 +77,9 @@ const emit = defineEmits<{
 const cbRoot = ref<HTMLElement>()
 const componentList = ref<ComponentInstance<typeof ComponentList>>()
 
-const clickOutsideAssociatedElements = (e: PointerEvent) => {
-  return props.associatedElements.length === 0 ?
-      false
-    : props.associatedElements.every((element) => targetIsOutside(e, element))
-}
 const cbOpen: Interaction = {
   pointerdown: (e: PointerEvent) => {
-    if (clickOutsideAssociatedElements(e)) {
+    if (targetIsOutside(e, cbRoot.value) && !targetIsOutside(e, props.graphEditorRoot)) {
       if (props.usage.type === 'editNode') {
         acceptInput()
       } else {
@@ -317,42 +314,42 @@ function acceptInput() {
 
 // === Action Handlers ===
 
-const outsideComponentBrowsing = computed(() => input.mode.mode != 'componentBrowsing')
+const insideComponentBrowsing = computed(() => input.mode.mode === 'componentBrowsing')
 const actions = registerHandlers({
   'componentBrowser.editSuggestion': {
+    enabled: insideComponentBrowsing,
     action: () => {
       const result = applyComponent()
       if (!result.ok) result.error.log('Cannot apply component')
     },
-    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptSuggestion': {
+    enabled: insideComponentBrowsing,
     action: () => acceptComponent(),
-    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptInputAsCode': {
+    enabled: insideComponentBrowsing,
     action: acceptInput,
-    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.switchToCodeEditMode': {
-    disabled: outsideComponentBrowsing,
+    enabled: insideComponentBrowsing,
     action: input.switchToCodeEditMode,
   },
 })
 
 function performActionIfNotDisabled(action: Action & { action: () => void }) {
-  if (toValue(action.hidden) || toValue(action.disabled)) return false
+  if (!toValue(action.available ?? true) || !toValue(action.enabled ?? true)) return false
   else return action.action()
 }
 
 const handler = componentBrowserBindings.handler({
-  applySuggestion() {
-    return performActionIfNotDisabled(actions['componentBrowser.editSuggestion'])
-  },
-  acceptSuggestion() {
-    return performActionIfNotDisabled(actions['componentBrowser.acceptSuggestion'])
-  },
-  acceptCode() {
+  'componentBrowser.editSuggestion': () =>
+    performActionIfNotDisabled(actions['componentBrowser.editSuggestion']),
+  'componentBrowser.acceptSuggestion': () =>
+    performActionIfNotDisabled(actions['componentBrowser.acceptSuggestion']),
+  'componentBrowser.switchToCodeEditMode': () =>
+    performActionIfNotDisabled(actions['componentBrowser.switchToCodeEditMode']),
+  'componentBrowser.acceptInputAsCode': () => {
     if (input.mode.mode != 'codeEditing') return false
     acceptInput()
   },
@@ -360,9 +357,6 @@ const handler = componentBrowserBindings.handler({
   acceptAIPrompt() {
     if (input.mode.mode == 'aiPrompt') input.applyAIPrompt()
     else return false
-  },
-  switchToCodeEditMode() {
-    return performActionIfNotDisabled(actions['componentBrowser.switchToCodeEditMode'])
   },
   switchPanelFocus() {
     componentList.value?.switchPanelFocus()

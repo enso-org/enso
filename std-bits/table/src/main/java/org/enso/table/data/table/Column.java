@@ -50,15 +50,6 @@ public class Column {
   }
 
   /**
-   * Converts this column to a single-column table.
-   *
-   * @return a table containing only this column
-   */
-  public Table toTable() {
-    return new Table(new Column[] {this});
-  }
-
-  /**
    * @return the column name
    */
   public String getName() {
@@ -192,22 +183,5 @@ public class Column {
    */
   public Column duplicateCount() {
     return new Column(name + "_duplicate_count", storage.duplicateCount());
-  }
-
-  /**
-   * Resizes the given column to the provided new length.
-   *
-   * <p>If the new length is smaller than the current length, the column is truncated. If the new
-   * length is larger than the current length, the column is padded with nulls.
-   */
-  public Column resize(int newSize) {
-    if (newSize == getSize()) {
-      return this;
-    } else if (newSize < getSize()) {
-      return slice(0, newSize);
-    } else {
-      int nullsToAdd = newSize - getSize();
-      return new Column(name, storage.appendNulls(nullsToAdd));
-    }
   }
 }

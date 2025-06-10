@@ -1,19 +1,20 @@
 <script setup lang="ts">
-import Backend from '#/services/Backend'
+import Backend, { ProjectId } from '#/services/Backend'
+import WithCurrentProject from '$/components/WithCurrentProject.vue'
+import { injectOpenedProjects } from '$/providers/openedProjects'
 import GraphEditor from '@/components/GraphEditor.vue'
 import { provideEventLogger } from '@/providers/eventLogging'
 import { provideProjectBackend } from '@/providers/projectBackend'
 import { provideVisibility } from '@/providers/visibility'
-import { type LsUrls, provideProjectStore } from '@/stores/project'
-import { provideProjectNames } from '@/stores/projectNames'
+import { type LsUrls } from '@/stores/project'
 import { provideSettings } from '@/stores/settings'
 import { type Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
-import { markRaw, onActivated, onDeactivated, ref, toRaw, toRef, watch } from 'vue'
+import { markRaw, onActivated, onDeactivated, onScopeDispose, ref, toRaw, toRef, watch } from 'vue'
 
 const props = defineProps<{
-  readonly projectId: string
-  readonly projectName: string
+  readonly projectId: ProjectId
+  readonly projectInitialName: string
   readonly projectDisplayedName: string
   readonly projectNamespace?: string
   readonly engine: LsUrls
@@ -50,30 +51,33 @@ watch(
 
 useEventListener(window, 'beforeunload', () => logger.send('ide_project_closed'))
 
-const projectNames = provideProjectNames(
-  toRef(props, 'projectNamespace'),
-  props.projectName,
-  toRef(props, 'projectDisplayedName'),
-)
-provideProjectStore(props, projectNames)
+const openedProjects = injectOpenedProjects()
 provideSettings()
 
 const visible = ref(false)
 provideVisibility(visible)
+openedProjects.registerProject(props)
+onScopeDispose(() => openedProjects.projectClosed(props.projectId))
+
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))
 </script>
 
 <template>
   <div class="ProjectView">
-    <GraphEditor />
+    <WithCurrentProject :id="projectId">
+      <!-- Key property is needed because of still many usages of deprecated useXStore 
+       (see WithCurrentProject.vue). Once all those usages disappear, fully remouting GraphEditor
+       will be no longer necessary -->
+      <GraphEditor v-if="projectId" :key="projectId" />
+    </WithCurrentProject>
   </div>
 </template>
 
 <style scoped>
 .ProjectView {
   width: 100%;
-  flex: 1;
+  height: 100%;
   color: var(--color-text);
   font-family: var(--font-sans);
   font-weight: 500;

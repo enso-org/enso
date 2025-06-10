@@ -25,20 +25,21 @@ polyglot java import software.amazon.awssdk.services.s3.model.NoSuchBucketExcept
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 
-## ICON data_input
-
+## ---
+   icon: data_input
+   ---
    Gets the list of the S3 bucket names.
 
-   Arguments:
-   - credentials: The credentials to use to access S3. If not specified, the
-     default credentials are used.
+   ## Arguments
+    - `credentials`: The credentials to use to access S3. If not specified, the
+      default credentials are used.
 
-   Returns:
-   - A vector of bucket names (as Text).
+   ## Returns
+    - A vector of bucket names (as Text).
 
-   ! Error Conditions
-   - If the credentials are invalid or access to S3 is denied, then an
-     `AWS_SDK_Error` will be raised.
+   ## Errors
+    - If the credentials are invalid or access to S3 is denied, then an
+      `AWS_SDK_Error` will be raised.
 @credentials AWS_Credential.default_widget
 list_buckets : AWS_Credential -> Vector Text ! S3_Error
 list_buckets credentials:AWS_Credential=..Default = handle_s3_errors <|
@@ -46,26 +47,27 @@ list_buckets credentials:AWS_Credential=..Default = handle_s3_errors <|
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
 
-## ICON data_input
-
+## ---
+   icon: data_input
+   ---
    Gets the list of the items inside a bucket.
 
-   Arguments:
-   - bucket: the name of the bucket.
-   - prefix: the prefix of keys to match.
-   - max_count: the maximum number of items to return. The default is 1000.
-   - credentials: The credentials to use to access the S3 bucket. If not
-     specified, the default credentials are used.
+   ## Arguments
+    - `bucket`: the name of the bucket.
+    - `prefix`: the prefix of keys to match.
+    - `max_count`: the maximum number of items to return. The default is 1000.
+    - `credentials`: The credentials to use to access the S3 bucket. If not
+      specified, the default credentials are used.
 
-   Returns:
-   - A vector of object keys (as Text) (including the prefix).
+   ## Returns
+    - A vector of object keys (as Text) (including the prefix).
 
-   ! Error Conditions
-   - If the credentials are invalid or access to S3 is denied, then an
-     `AWS_SDK_Error` will be raised.
-   - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
-   - If more items are available than the `max_count` parameter, a
-     `More_Records_Available` warning is attached to the result.
+   ## Errors
+    - If the credentials are invalid or access to S3 is denied, then an
+      `AWS_SDK_Error` will be raised.
+    - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
+    - If more items are available than the `max_count` parameter, a
+      `More_Records_Available` warning is attached to the result.
 @bucket (Text_Input display=..Always)
 @credentials AWS_Credential.default_widget
 list_objects : Text -> Text -> AWS_Credential -> Integer -> Vector S3_File ! S3_Error
@@ -73,19 +75,19 @@ list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" cr
     names = read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
     names.map name-> S3_File.new "s3://"+bucket+"/"+name credentials
 
-## PRIVATE
-   ADVANCED
-   ICON data_input
+## ---
+   private: true
+   advanced: true
+   icon: data_input
+   ---
+   Gets an object from an S3 bucket. Returns a raw stream which can be read once.
 
-   Gets an object from an S3 bucket.
-   Returns a raw stream which can be read once.
-
-   Arguments:
-   - bucket: the name of the bucket.
-   - key: the key of the object.
-   - credentials: AWS credentials. If not provided, the default credentials will
-     be used.
-   - delimiter: The delimiter to use for deducing the filename from the path.
+   ## Arguments
+    - `bucket`: the name of the bucket.
+    - `key`: the key of the object.
+    - `credentials`: AWS credentials. If not provided, the default credentials
+      will be used.
+    - `delimiter`: The delimiter to use for deducing the filename from the path.
 get_object : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
 get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = handle_s3_errors bucket=bucket key=key <|
     request = S3Utils.get_object_request bucket key
@@ -103,25 +105,26 @@ get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimite
     input_stream = Input_Stream.new response (handle_io_errors s3_uri)
     Response_Body.Raw_Stream input_stream metadata s3_uri
 
-## ADVANCED
-   ICON data_input
-
+## ---
+   advanced: true
+   icon: data_input
+   ---
    Gets the metadata of a bucket or object.
 
-   Arguments:
-   - bucket: the name of the bucket.
-   - prefix: the prefix of keys to match.
-   - credentials: The credentials to use to access the S3 bucket. If not
-     specified, the default credentials are used.
+   ## Arguments
+    - `bucket`: the name of the bucket.
+    - `prefix`: the prefix of keys to match.
+    - `credentials`: The credentials to use to access the S3 bucket. If not
+      specified, the default credentials are used.
 
-   Returns:
-   - A Dictionary of the associated metadata of a bucket or object.
+   ## Returns
+    - A Dictionary of the associated metadata of a bucket or object.
 
-   ! Error Conditions
-   - If the credentials are invalid or access to S3 is denied, then an
-     `AWS_SDK_Error` will be raised.
-   - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
-   - If the object does not exist, an `S3_Key_Not_Found` error is thrown.
+   ## Errors
+    - If the credentials are invalid or access to S3 is denied, then an
+      `AWS_SDK_Error` will be raised.
+    - If the bucket does not exist, an `S3_Bucket_Not_Found` error is thrown.
+    - If the object does not exist, an `S3_Key_Not_Found` error is thrown.
 @bucket (Text_Input display=..Always)
 @credentials AWS_Credential.default_widget
 head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
@@ -130,13 +133,15 @@ head (bucket : Text = Missing_Argument.throw "bucket") key:Text="" credentials:A
     pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
     Dictionary.from_vector pairs
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Gets the raw metadata of a bucket or object.
 
-   Arguments:
-   - bucket: the name of the bucket.
-   - key: the key of the object.
-   - credentials: AWS credentials.
+   ## Arguments
+    - `bucket`: the name of the bucket.
+    - `key`: the key of the object.
+    - `credentials`: AWS credentials.
 raw_head : Text -> Text -> AWS_Credential -> Dictionary Text Any ! S3_Error
 raw_head bucket key credentials =
     client = make_client_for_bucket bucket credentials
@@ -148,15 +153,17 @@ raw_head bucket key credentials =
             request = S3Utils.head_object_request bucket key
             handle_s3_errors bucket=bucket key=key <| client.headObject request
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reads an S3 bucket returning a pair of vectors, one with common prefixes and
    one with object keys.
 
-   Arguments:
-   - bucket: The name of the bucket.
-   - prefix: The prefix to use when searching for keys to return.
-   - credentials: The credentials for the AWS resource.
-   - delimiter: The delimiter used to deduce common prefixes.
+   ## Arguments
+    - `bucket`: The name of the bucket.
+    - `prefix`: The prefix to use when searching for keys to return.
+    - `credentials`: The credentials for the AWS resource.
+    - `delimiter`: The delimiter used to deduce common prefixes.
 read_bucket : Text -> Text -> AWS_Credential -> Integer -> Text -> Pair Vector Vector ! S3_Error
 read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
     client = make_client_for_bucket bucket credentials
@@ -181,32 +188,41 @@ read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default d
 
     iterator request 0 [] [] True
 
-## PRIVATE
+## ---
+   private: true
+   ---
 put_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default request_body = handle_s3_errors bucket=bucket key=key <|
     client = make_client_for_bucket bucket credentials
     request = S3Utils.put_object_request bucket key
     client.putObject request request_body . if_not_error Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=bucket key=key <|
     request_body = Request_Body.from_local_file local_file
     put_object bucket key credentials request_body
 
-## PRIVATE
-   Deletes the object.
-   It will not raise any errors if the object does not exist.
+## ---
+   private: true
+   ---
+   Deletes the object. It will not raise any errors if the object does not exist.
 delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=bucket key=key <|
     client = make_client_for_bucket bucket credentials
     request = S3Utils.delete_object_request bucket key
     client.deleteObject request . if_not_error Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=source_bucket key=source_key <|
     client = make_client_for_bucket source_bucket credentials
     request = S3Utils.copy_object_request target_bucket target_key source_bucket source_key
     client.copyObject request . if_not_error Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 handle_s3_errors : Any -> Text -> Text -> Any ! S3_Error | AWS_SDK_Error
 handle_s3_errors ~action bucket="" key="" =
     s3_inner_handler caught_panic =
@@ -223,7 +239,9 @@ handle_s3_errors ~action bucket="" key="" =
     s3_handler = Panic.catch S3Exception handler=s3_inner_handler
     AWS_SDK_Error.handle_java_errors <| s3_handler <| action
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Makes a client for the default region.
 make_client : AWS_Credential -> S3ClientWrapper
 make_client credentials:AWS_Credential =
@@ -231,9 +249,11 @@ make_client credentials:AWS_Credential =
     builder = ClientBuilder.new credentials.as_java region
     builder.buildS3Client
 
-## PRIVATE
-   Makes a client using the region in which the specified bucket is located.
-   This is necessary, because if we are fetching the wrong region, we will get
+## ---
+   private: true
+   ---
+   Makes a client using the region in which the specified bucket is located. This
+   is necessary, because if we are fetching the wrong region, we will get
    `PermanentRedirect` errors.
 make_client_for_bucket : Text -> AWS_Credential -> S3ClientWrapper
 make_client_for_bucket bucket_name:Text credentials:AWS_Credential =
@@ -245,14 +265,20 @@ make_client_for_bucket bucket_name:Text credentials:AWS_Credential =
     builder.buildS3Client
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Utility method for running an action with Java exceptions mapping.
 handle_io_errors uri:URI ~action =
     Panic.catch IOException action caught_panic->
         Error.throw (S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 scheme = "s3"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 uri_prefix = scheme + "://"

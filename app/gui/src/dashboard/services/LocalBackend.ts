@@ -820,7 +820,7 @@ export default class LocalBackend extends Backend {
     id: backend.AssetId,
     title: string,
     _targetDirectoryId: backend.DirectoryId | null,
-    shouldUnpackProject = true,
+    shouldUnpackProject = false,
   ) {
     const asset = backend.extractTypeFromId(id)
     if (asset.type === backend.AssetType.project) {

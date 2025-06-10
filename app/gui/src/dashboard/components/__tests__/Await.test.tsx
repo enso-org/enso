@@ -9,7 +9,11 @@ describe('<Await />', (it) => {
     expect,
   }) => {
     const promise = Promise.resolve('Hello')
-    render(<Await promise={promise}>{(value) => <div>{value}</div>}</Await>)
+    render(
+      <TextContext.Provider value={useText()}>
+        <Await promise={promise}>{(value) => <div>{value}</div>}</Await>
+      </TextContext.Provider>,
+    )
 
     expect(screen.queryByText('Hello')).not.toBeInTheDocument()
     expect(screen.getByTestId('spinner')).toBeInTheDocument()
@@ -53,7 +57,11 @@ describe('<Await />', (it) => {
     expect,
   }) => {
     const promise = Promise.resolve('Hello')
-    const { unmount } = render(<Await promise={promise}>{(value) => <div>{value}</div>}</Await>)
+    const { unmount } = render(
+      <TextContext.Provider value={useText()}>
+        <Await promise={promise}>{(value) => <div>{value}</div>}</Await>
+      </TextContext.Provider>,
+    )
 
     await act(() => promise)
 

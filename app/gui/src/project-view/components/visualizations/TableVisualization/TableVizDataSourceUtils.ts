@@ -137,7 +137,7 @@ export const convertFilterModel = (
   const valueList =
     valueMap.length ?
       valueMap.map((value) => {
-        if (value.valType === 'Mixed' && Array.isArray(value.value)) {
+        if (value.action === undefined && Array.isArray(value.value)) {
           const parseValues = value.value.map((val) => {
             return { valueType: getCellValueType(val), value: val }
           })

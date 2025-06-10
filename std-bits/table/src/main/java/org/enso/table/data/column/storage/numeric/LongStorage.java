@@ -16,7 +16,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -45,13 +44,6 @@ public final class LongStorage extends AbstractLongStorage
 
     isNumericFormatRequired =
         new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
-  }
-
-  public static LongStorage makeEmpty(long size, IntegerType type) {
-    int intSize = Builder.checkSize(size);
-    BitSet isNothing = new BitSet(intSize);
-    isNothing.set(0, intSize);
-    return new LongStorage(new long[0], intSize, isNothing, type);
   }
 
   public LongStorage(long[] data, IntegerType type) {
@@ -154,20 +146,6 @@ public final class LongStorage extends AbstractLongStorage
     BitSet currentMask = getIsNothingMap();
     BitSet newMask = currentMask.get(offset, offset + limit);
     return new LongStorage(newData, newSize, newMask, getType());
-  }
-
-  @Override
-  public LongStorage appendNulls(int count) {
-    int size = (int) getSize();
-    if (size + count > Builder.MAX_SIZE) {
-      throw new IllegalStateException("Cannot append nulls, storage would exceed maximum size.");
-    }
-
-    BitSet newIsNothing = BitSets.makeDuplicate(getIsNothingMap());
-    newIsNothing.set(size, size + count);
-
-    // No need to copy the data as we are just adding nulls
-    return new LongStorage(data, size + count, newIsNothing, getType());
   }
 
   @Override

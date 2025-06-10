@@ -7,9 +7,9 @@ import java.time.temporal.TemporalField;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class DatePartOperation implements UnaryOperation {
   public static final String YEAR = "year";

@@ -1,24 +1,24 @@
 /** @file The directory header bar and directory item listing. */
-import * as appUtils from '#/appUtils'
 import Offline from '#/assets/offline_filled.svg'
 import { Button } from '#/components/Button'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import * as result from '#/components/Result'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-import { AssetPanel } from '#/layouts/AssetPanel'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-import * as authProvider from '#/providers/AuthProvider'
 import { DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
+import * as appUtils from '$/appUtils'
+import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import * as React from 'react'
 import { useDeferredValue } from 'react'
@@ -133,6 +133,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
 
   const deferredCategory = useDeferredValue(category)
 
+  const { getText } = useText()
   const { isOffline } = offlineHooks.useOffline()
   const { user } = authProvider.useFullUserSession()
   const { localBackend, backendForType } = useBackends()
@@ -149,20 +150,31 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
     : 'ok'
 
   return (
-    <div className="relative flex grow">
+    <div className="relative flex h-full w-full">
       <div
         data-testid="drive-view"
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
       >
-        <div className="grid flex-1 grid-cols-[180px_minmax(0,1fr)] gap-3 overflow-hidden">
-          <div className="grid-col-1 flex flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
-            <CategorySwitcher category={category} setCategoryId={setCategory} />
+        <div className="grid flex-1 gap-3 overflow-hidden sm:grid-cols-[180px_minmax(0,1fr)]">
+          <div className="grid-col-1 hidden flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1 sm:flex">
+            <div className="flex flex-col gap-2">
+              <Text variant="subtitle" weight="semibold">
+                {getText('category')}
+              </Text>
+              <CategorySwitcher category={category} setCategoryId={setCategory} />
+            </div>
 
             <AssetsTableAssetsUnselector />
           </div>
 
-          <div className="grid-col-2 flex flex-col gap-3">
-            <DriveBar backend={backend} query={query} setQuery={setQuery} category={category} />
+          <div className="grid-col-1 sm:grid-col-2 flex flex-col gap-3">
+            <DriveBar
+              backend={backend}
+              query={query}
+              setQuery={setQuery}
+              category={category}
+              setCategoryId={setCategory}
+            />
 
             {status === 'offline' ?
               <OfflineMessage supportLocalBackend={supportLocalBackend} setCategory={setCategory} />
@@ -180,8 +192,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
           </div>
         </div>
       </div>
-
-      <AssetPanel backendType={backend.type} category={deferredCategory} />
     </div>
   )
 }

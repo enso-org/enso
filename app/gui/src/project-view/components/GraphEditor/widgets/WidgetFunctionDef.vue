@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ArgumentRow from '@/components/GraphEditor/widgets/WidgetFunctionDef/ArgumentRow.vue'
 import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
@@ -7,7 +8,6 @@ import DraggableList from '@/components/widgets/DraggableList.vue'
 import { syntheticPortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { useGraphStore } from '@/stores/graph'
 import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
 import { type MethodPointer } from '@/util/methodPointer'
@@ -17,7 +17,7 @@ import { assertUnreachable } from 'ydoc-shared/util/assert'
 import { renameArgumentInDefaultValue } from './WidgetFunctionDef/argumentAst'
 
 const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
+const openedProject = injectCurrentProject().ref
 const tree = injectWidgetTree()
 
 const funcIcon = computed(() => {
@@ -25,7 +25,8 @@ const funcIcon = computed(() => {
 })
 
 function doEdit(editFn: (ast: Ast.MutableFunctionDef, edit: Ast.MutableModule) => void) {
-  const edit = graph.startEdit()
+  const edit = openedProject.value?.graph.startEdit()
+  if (!edit) return
   editFn(edit.getVersion(input.value), edit)
   onUpdate({ edit, directInteraction: true })
 }

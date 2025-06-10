@@ -60,7 +60,7 @@ public final class JVM {
    * @param classNameWithSlashes class (with `/` as separators) to search main method in
    * @param args arguments to pass to the main method
    */
-  public void executeMain(String classNameWithSlashes, String... args) {
+  public final void executeMain(String classNameWithSlashes, String... args) {
     var e = env();
     try (var className = CTypeConversion.toCString(classNameWithSlashes);
         var mainName = CTypeConversion.toCString("main");

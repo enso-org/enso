@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import {
+  useGraphStore,
+  useProjectNames,
+  useSuggestionDbStore,
+} from '$/components/WithCurrentProject.vue'
 import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
-import { injectProjectNames } from '@/stores/projectNames'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
 import { colorFromString } from '@/util/colors'
 import { Ok } from '@/util/data/result'
@@ -16,23 +18,23 @@ import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
 import { FunctionInfoKey } from './GraphEditor/widgets/WidgetFunctionDef.vue'
 
 const suggestionDb = useSuggestionDbStore()
-const projectNames = injectProjectNames()
+const projectNames = useProjectNames()
 
 const { functionAst, markdownDocs, methodPointer } = defineProps<{
   functionAst: FunctionDef
-  markdownDocs: Y.Text | undefined
+  markdownDocs: Y.Text | string | undefined
   methodPointer: MethodPointer | undefined
 }>()
 
 const docsString = ref<string>()
 
-function updateDocs() {
-  docsString.value = markdownDocs?.toJSON()
-}
-
 watchEffect((onCleanup) => {
   const localMarkdownDocs = markdownDocs
-  if (localMarkdownDocs != null) {
+  if (localMarkdownDocs == null) return
+  if (typeof localMarkdownDocs === 'string') {
+    docsString.value = localMarkdownDocs
+  } else {
+    const updateDocs = () => (docsString.value = localMarkdownDocs.toJSON())
     updateDocs()
     localMarkdownDocs.observe(updateDocs)
     onCleanup(() => localMarkdownDocs.unobserve(updateDocs))

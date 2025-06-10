@@ -1,15 +1,16 @@
 package org.enso.table.data.column.operation.unary;
 
+import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class NotOperation implements UnaryOperation {
   public static final String NAME = "not";
@@ -65,6 +66,6 @@ public class NotOperation implements UnaryOperation {
   }
 
   public static ColumnBooleanStorage applySpecializedNullStorage(ColumnStorage<?> storage) {
-    return BoolStorage.makeEmpty(storage.getSize());
+    return BoolBuilder.makeEmpty(storage.getSize());
   }
 }

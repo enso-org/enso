@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { computed } from 'vue'
 import { EnsoExpression } from './WidgetEnsoExpression.vue'
 import { withDropdownItems } from './WidgetSelection.vue'

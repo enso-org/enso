@@ -12,6 +12,7 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Table import Table
 from Standard.Table.Match_Columns import Match_Columns
 from Standard.Table.Table import to_java_table
+from Standard.Table.Errors import Unmatched_Columns
 
 import project.Hyper_Errors
 import project.Hyper_File.Hyper_File
@@ -92,26 +93,24 @@ type Tableau_Format
        ADVANCED
        Implements the `Table.write` for this `File_Format`.
     write_table self file:Writable_File table:Table on_existing_file match_columns:Match_Columns on_problems:Problem_Behavior =
-        _ = [match_columns, on_problems]
         _check_supported_types table
-        if (on_existing_file == Existing_File_Behavior.Append) then Error.throw (Illegal_Argument.Error "Appending to hyper files is not yet supported.") else
-            if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
-                is_dry_run = Context.Output.is_enabled.not
-                resolved_file = if is_dry_run then (file.file.create_dry_run_file copy_original=True).path else file.file.path
+        if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
+            is_dry_run = Context.Output.is_enabled.not
+            resolved_file = if is_dry_run then (file.file.create_dry_run_file copy_original=True).path else file.file.path
 
-                needs_backup = on_existing_file == Existing_File_Behavior.Backup && is_dry_run.not
-                if needs_backup && file.exists then
-                    backup_file = _find_bak_file file.file
-                    ## We can move instead of copying because right in next line we will overwrite the original file
-                        anyway. And move should be more efficient.
-                    Panic.rethrow <| file.file.move_to backup_file replace_existing=True
+            needs_backup = on_existing_file == Existing_File_Behavior.Backup && is_dry_run.not
+            if needs_backup && file.exists then
+                backup_file = _find_bak_file file.file
+                Panic.rethrow <| file.file.copy_to backup_file replace_existing=True
 
-                resolved_schema = if self.schema == "*" then "Extract" else self.schema
-                resolved_table = case self of
-                    Tableau_Format.Hyper_File _ -> "Extract"
-                    Tableau_Format.Hyper_Table _ t -> t
-                Hyper_Errors.handle_java_exceptions <|
-                    HyperFormat.writeTable resolved_file resolved_schema resolved_table (to_java_table table)
+            resolved_schema = if self.schema == "*" then "Extract" else self.schema
+            resolved_table = case self of
+                Tableau_Format.Hyper_Table _ t -> t
+                _ -> "Extract"
+            warning_unmatched_columns = Hyper_Errors.handle_java_exceptions <|
+                HyperFormat.writeTable resolved_file resolved_schema resolved_table (to_java_table table) (on_existing_file == Existing_File_Behavior.Append) (match_columns == Match_Columns.By_Name) (on_problems == Problem_Behavior.Report_Error)
+            problems = if warning_unmatched_columns.length > 0 then [Unmatched_Columns.Error warning_unmatched_columns.to_vector] else []
+            on_problems.attach_problems_before problems <|
                 File.new resolved_file
 
 private _check_supported_types table:Table =

@@ -15,8 +15,8 @@ import org.graalvm.polyglot.Value;
 
 public final class IfOperation {
   /**
-   * The IfOperation class provides a way to apply a conditional operation on a column. It checks if
-   * the condition is valid.
+   * The IfOperation class provides a way to apply a conditional operation on a column. This
+   * verifies if the condition is valid for the operation.
    */
   private static boolean canApply(ColumnStorage<?> condition) {
     var conditionType = condition.getType();
