@@ -127,16 +127,17 @@ export interface ArchiveEntry {
   readonly metadata: UnpackEntryMetadata
   readonly getDestinationPath: (rootDirectory: string) => string
   /**
-   * @param rootDirectory - The root directory of extraction. This will be joined with the path
+   * `rootDirectory` is the root directory of extraction. This will be joined with the path
    * in the archive to form the destination path.
    */
-  readonly extract: (
-    rootDirectory: string,
+  readonly extract: (options: {
+    rootDirectory: string
+    destinationPath?: string
     transform?: (
       stream: Readable,
       entry: UnpackEntryMetadata,
-    ) => Promise<Readable | null | undefined | false> | Readable | null | undefined | false,
-  ) => Promise<void>
+    ) => Promise<Readable | null | undefined | false> | Readable | null | undefined | false
+  }) => Promise<void>
 }
 
 /** Return an async iterator over the entries of a `.zip` file. */
@@ -163,8 +164,8 @@ export async function unzipEntries(path: string) {
               getDestinationPath(rootDirectory) {
                 return join(rootDirectory, entry.fileName)
               },
-              async extract(rootDirectory, transform) {
-                const destinationPath = archiveEntry.getDestinationPath(rootDirectory)
+              async extract({ rootDirectory, destinationPath, transform }) {
+                destinationPath ??= archiveEntry.getDestinationPath(rootDirectory)
                 if (entry.fileName.endsWith('/')) {
                   await mkdir(destinationPath, { recursive: true })
                   return
@@ -214,8 +215,8 @@ export async function untarGzEntries(path: string) {
           getDestinationPath(rootDirectory) {
             return join(rootDirectory, entry.name)
           },
-          async extract(rootDirectory, transform) {
-            const destinationPath = archiveEntry.getDestinationPath(rootDirectory)
+          async extract({ rootDirectory, destinationPath, transform }) {
+            destinationPath ??= archiveEntry.getDestinationPath(rootDirectory)
             if (entry.type === 'directory') {
               await mkdir(destinationPath, { mode: entry.mode })
               return

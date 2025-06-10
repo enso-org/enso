@@ -119,8 +119,8 @@ importers:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
       zod:
-        specifier: ^3.23.0
-        version: 3.24.1
+        specifier: ^3.25.49
+        version: 3.25.57
 
   app/gui:
     dependencies:
@@ -392,8 +392,8 @@ importers:
         specifier: ^13.6.21
         version: 13.6.21
       zod:
-        specifier: ^3.24.1
-        version: 3.24.1
+        specifier: ^3.25.49
+        version: 3.25.57
       zustand:
         specifier: ^4.5.5
         version: 4.5.5(@types/react@18.3.18)(react@18.3.1)
@@ -693,6 +693,9 @@ importers:
       '@types/tar':
         specifier: ^6.1.13
         version: 6.1.13
+      '@types/tar-fs':
+        specifier: ^2.0.4
+        version: 2.0.4
       '@types/tar-stream':
         specifier: ^3.1.4
         version: 3.1.4
@@ -858,8 +861,8 @@ importers:
         specifier: ^13.6.21
         version: 13.6.21
       zod:
-        specifier: ^3.24.1
-        version: 3.24.1
+        specifier: ^3.25.49
+        version: 3.25.57
     devDependencies:
       '@fast-check/vitest':
         specifier: ^0.0.8
@@ -978,8 +981,8 @@ importers:
         specifier: ^13.6.21
         version: 13.6.21
       zod:
-        specifier: ^3.24.1
-        version: 3.24.1
+        specifier: ^3.25.49
+        version: 3.25.57
     devDependencies:
       '@fast-check/vitest':
         specifier: ^0.0.8
@@ -3424,6 +3427,9 @@ packages:
 
   '@types/shuffle-seed@1.1.3':
     resolution: {integrity: sha512-D05NnrEz9YvwCp8GSzyI/UipvOtmiMbEtLgupa5buU6QJkmelKb7Pwuslsb8C7c+Wkn3qiAAL329+/E2PfUd0A==}
+
+  '@types/tar-fs@2.0.4':
+    resolution: {integrity: sha512-ipPec0CjTmVDWE+QKr9cTmIIoTl7dFG/yARCM5MqK8i6CNLIG1P8x4kwDsOQY1ChZOZjH0wO9nvfgBvWl4R3kA==}
 
   '@types/tar-stream@3.1.4':
     resolution: {integrity: sha512-921gW0+g29mCJX0fRvqeHzBlE/XclDaAG0Ousy1LCghsOhvaKacDeRGEVzQP9IPfKn8Vysy7FEXAIxycpc/CMg==}
@@ -8716,8 +8722,8 @@ packages:
     peerDependencies:
       zod: ^3.18.0
 
-  zod@3.24.1:
-    resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}
+  zod@3.25.57:
+    resolution: {integrity: sha512-6tgzLuwVST5oLUxXTmBqoinKMd3JeesgbgseXeFasKKj8Q1FCZrHnbqJOyiEvr4cVAlbug+CgIsmJ8cl/pU5FA==}
 
   zustand@4.5.5:
     resolution: {integrity: sha512-+0PALYNJNgK6hldkgDq2vLrw5f6g/jCInz52n9RTpropGgeAf/ioFUCdtsjCqu4gNhW9D01rUQBROoRjdzyn2Q==}
@@ -9811,7 +9817,7 @@ snapshots:
   '@hookform/resolvers@3.9.1(react-hook-form@7.54.2(react@18.3.1))':
     dependencies:
       react-hook-form: 7.54.2(react@18.3.1)
-      zod: 3.24.1
+      zod: 3.25.57
 
   '@humanfs/core@0.19.1': {}
 
@@ -12477,6 +12483,11 @@ snapshots:
 
   '@types/shuffle-seed@1.1.3': {}
 
+  '@types/tar-fs@2.0.4':
+    dependencies:
+      '@types/node': 22.10.4
+      '@types/tar-stream': 3.1.4
+
   '@types/tar-stream@3.1.4':
     dependencies:
       '@types/node': 22.10.4
@@ -12631,14 +12642,6 @@ snapshots:
       '@vitest/utils': 3.0.5
       chai: 5.1.2
       tinyrainbow: 2.0.0
-
-  '@vitest/mocker@3.0.5(vite@6.2.5(@types/node@20.17.11)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))':
-    dependencies:
-      '@vitest/spy': 3.0.5
-      estree-walker: 3.0.3
-      magic-string: 0.30.17
-    optionalDependencies:
-      vite: 6.2.5(@types/node@20.17.11)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
 
   '@vitest/mocker@3.0.5(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))':
     dependencies:
@@ -14573,8 +14576,8 @@ snapshots:
       '@babel/plugin-proposal-private-methods': 7.18.6(@babel/core@7.26.8)
       eslint: 9.17.0(jiti@1.21.7)
       hermes-parser: 0.20.1
-      zod: 3.24.1
-      zod-validation-error: 3.4.0(zod@3.24.1)
+      zod: 3.25.57
+      zod-validation-error: 3.4.0(zod@3.25.57)
     transitivePeerDependencies:
       - supports-color
 
@@ -18262,7 +18265,7 @@ snapshots:
   vitest@3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0):
     dependencies:
       '@vitest/expect': 3.0.5
-      '@vitest/mocker': 3.0.5(vite@6.2.5(@types/node@20.17.11)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
+      '@vitest/mocker': 3.0.5(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
       '@vitest/pretty-format': 3.0.5
       '@vitest/runner': 3.0.5
       '@vitest/snapshot': 3.0.5
@@ -18714,11 +18717,11 @@ snapshots:
       normalize-path: 3.0.0
       readable-stream: 4.7.0
 
-  zod-validation-error@3.4.0(zod@3.24.1):
+  zod-validation-error@3.4.0(zod@3.25.57):
     dependencies:
-      zod: 3.24.1
+      zod: 3.25.57
 
-  zod@3.24.1: {}
+  zod@3.25.57: {}
 
   zustand@4.5.5(@types/react@18.3.18)(react@18.3.1):
     dependencies:

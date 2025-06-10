@@ -27,6 +27,8 @@ import {
   ProjectExecutionId,
   ProjectId,
   ProjectSessionId,
+  RelativePath,
+  RelativePathType,
   S3FilePath,
   S3ObjectVersionId,
   SecretId,
@@ -40,6 +42,7 @@ import {
   VirtualParentsPath,
 } from './Backend/types'
 import { HttpClient, ResponseWithTypedJson } from './HttpClient'
+export { prettifyError } from 'zod/v4'
 
 export * from './Backend/types'
 
@@ -1352,15 +1355,38 @@ interface ImportArchiveResponseWithAssets {
 
 export interface AssetConflict {
   readonly type: AssetType
-  readonly path: Path
+  readonly path: RelativePath
   readonly existingAsset: AnyAsset
 }
 
+export const AssetResolution = z.union([
+  z
+    .object({
+      type: z.literal('rename'),
+      path: RelativePathType,
+      newPath: RelativePathType,
+    })
+    .readonly(),
+  z
+    .object({
+      type: z.literal('replace'),
+      path: RelativePathType,
+    })
+    .readonly(),
+  z
+    .object({
+      type: z.literal('skip'),
+      path: RelativePathType,
+    })
+    .readonly(),
+])
+
 /** Possible resolutions for a conflict. */
-export type AssetResolution =
-  | { type: 'rename'; path: Path; name: string }
-  | { type: 'replace'; path: Path }
-  | { type: 'skip'; path: Path }
+export type AssetResolution = z.infer<typeof AssetResolution>
+
+export const ResolveArchiveRequestBody = z
+  .object({ resolutions: z.array(AssetResolution).readonly() })
+  .readonly()
 
 export interface ResolveArchiveRequestBody {
   readonly resolutions: readonly AssetResolution[]

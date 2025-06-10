@@ -35,9 +35,12 @@ import {
   ImportArchiveResponse,
   ParentsPath,
   Path,
+  prettifyError,
   ProjectAsset,
   ProjectId,
   ProjectState,
+  RelativePath,
+  ResolveArchiveRequestBody,
   S3FilePath,
   UnzipAssetsJobId,
   VirtualParentsPath,
@@ -66,6 +69,7 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { json } from 'node:stream/consumers'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
 import { createGzip } from 'node:zlib'
@@ -448,7 +452,7 @@ export class Server {
   }
 
   /** Send a HTTP response with a JSON payload. */
-  httpOkJson(response: http.ServerResponse, body: unknown) {
+  httpOkJson<T = never>(response: http.ServerResponse, body: NoInfer<T>) {
     const content = JSON.stringify(body)
     return response
       .writeHead(HTTP_STATUS_OK, [
@@ -457,6 +461,17 @@ export class Server {
         ...COOP_COEP_CORP_HEADERS,
       ])
       .end(content)
+  }
+
+  /** Send a HTTP error with a text payload. */
+  httpError(response: http.ServerResponse, message: string) {
+    return response
+      .writeHead(HTTP_STATUS_BAD_REQUEST, [
+        ['Content-Length', `${message.length}`],
+        ['Content-Type', 'text/plain'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      .end(message)
   }
 
   /** Response handler for "download project from cloud" endpoint. */
@@ -486,10 +501,10 @@ export class Server {
     }
 
     try {
-      this.httpOkJson(
-        response,
-        await this.apiCloudDownloadProject(downloadUrl, projectId as ProjectId),
-      )
+      this.httpOkJson<{
+        readonly targetDirectory: string
+        readonly parentDirectory: string
+      }>(response, await this.apiCloudDownloadProject(downloadUrl, projectId as ProjectId))
     } catch (error) {
       logger.error(error)
       const projectsDirectory = projectManagement.getProjectsDirectory()
@@ -572,10 +587,12 @@ export class Server {
     [fileId]: [fileId: FileId],
   ) {
     const details = await this.apiGetFileDetails(fileId)
-    if (details) {
+    if (!details) {
+      const filePath = extractTypeAndPath(fileId).path
+      this.httpError(response, `File not found at '${filePath}'`)
       return
     }
-    this.httpOkJson(response, details)
+    this.httpOkJson<FileDetails>(response, details)
   }
 
   /** Response handler for "download project" endpoint. */
@@ -602,19 +619,146 @@ export class Server {
       return
     }
     await promise
-    this.httpOkJson(response, null)
+    this.httpOkJson<null>(response, null)
   }
 
-  /**
-   *
-   */
+  /** Response handler for "resolve archive conflicts" endpoint. */
   async httpResolveArchiveConflicts(
-    _request: http.IncomingMessage,
+    request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
     [jobId]: [jobId: UnzipAssetsJobId],
   ) {
-    //
+    const bodyParsed = ResolveArchiveRequestBody.safeParse(await json(request))
+    if (!bodyParsed.success) {
+      this.httpError(response, prettifyError(bodyParsed.error))
+      return
+    }
+    const { resolutions } = bodyParsed.data
+    const filePath = Path(String(jobId))
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this
+    const directoryParam = params.get('directory') as DirectoryId | null
+    const directory =
+      directoryParam ? extractTypeAndPath(directoryParam).path : this.projectsRootDirectory
+    let tempDirectory: string | undefined
+    const assets: AnyAsset[] = []
+    const conflicts: AssetConflict[] = []
+    const resolutionsByPath = new Map(
+      resolutions.map((resolution) => [resolution.path, resolution]),
+    )
+
+    const getEntryPath = (entryPathInArchive: RelativePath) => {
+      const resolution = resolutionsByPath.get(entryPathInArchive)
+      if (resolution?.type === 'skip') {
+        return
+      }
+      const relativeEntryPath =
+        resolution?.type === 'rename' ? resolution.newPath : entryPathInArchive
+      return Path(path.join(directory, relativeEntryPath))
+    }
+
+    for await (const { metadata } of await unzipEntries(filePath)) {
+      const entryPathInArchive = RelativePath(metadata.name)
+      const destinationPath = getEntryPath(entryPathInArchive)
+      if (destinationPath == null) {
+        continue
+      }
+      const isDirectory = entryPathInArchive.endsWith('/')
+      const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
+      // If directories need to be merged in the future, the 'existing asset' check can be skipped.
+      const existingAsset = self.apiGetAssetDetailsByPath({ path: destinationPath })
+      if (existingAsset) {
+        const conflict: AssetConflict = {
+          type: existingAsset.type,
+          path: entryPathInArchive,
+          existingAsset,
+        }
+        conflicts.push(conflict)
+        continue
+      }
+      const shared = {
+        title: getFileName(destinationPath),
+        modifiedAt: toRfc3339(new Date()),
+        parentId: DirectoryId(`directory-${getFolderPath(destinationPath)}` as const),
+        extension: null,
+        permissions: [],
+        projectState: null,
+        parentsPath: ParentsPath(''),
+        virtualParentsPath: VirtualParentsPath(''),
+      } satisfies Partial<DirectoryAsset>
+      if (isDirectory) {
+        assets.push({
+          ...shared,
+          type: AssetType.directory,
+          id: DirectoryId(`directory-${destinationPath}` as const),
+        })
+      } else if (isProject) {
+        assets.push({
+          ...shared,
+          type: AssetType.project,
+          id: ProjectId(`project-${destinationPath.replace(BUNDLED_PROJECT_SUFFIX, '/')}`),
+          projectState: { type: ProjectState.closed },
+        })
+      } else {
+        assets.push({
+          ...shared,
+          type: AssetType.file,
+          id: FileId(`file-${destinationPath}`),
+          extension: basenameAndExtension(destinationPath).extension,
+        })
+      }
+    }
+    if (conflicts.length === 0) {
+      // Upload; no conflict resolution needed.
+      for await (const entry of await unzipEntries(filePath)) {
+        const entryPathInArchive = RelativePath(entry.metadata.name)
+        const destinationPath = getEntryPath(entryPathInArchive)
+        if (destinationPath == null) {
+          continue
+        }
+        if (entry.metadata.name.endsWith(BUNDLED_PROJECT_SUFFIX)) {
+          await entry.extract({
+            rootDirectory: directory,
+            transform: async (stream) => {
+              await tarGzReadStreamToFs(stream, destinationPath)
+              const entries = await readdir(destinationPath)
+              const originalSingleChild = entries[0]
+              // Unwrap project contents if there is only a single directory inside.
+              if (entries.length === 1 && originalSingleChild != null) {
+                let singleChild = originalSingleChild
+                while (
+                  await fileExists(path.join(destinationPath, originalSingleChild, singleChild))
+                ) {
+                  singleChild += '_'
+                }
+                if (singleChild !== originalSingleChild) {
+                  await rename(
+                    path.join(destinationPath, originalSingleChild),
+                    path.join(destinationPath, singleChild),
+                  )
+                }
+                const childPath = path.join(destinationPath, singleChild)
+                for (const entry of await readdir(childPath)) {
+                  await rename(path.join(childPath, entry), path.join(destinationPath, entry))
+                }
+              }
+              // Prevent default behavior.
+              return false as const
+            },
+          })
+        } else {
+          await entry.extract({ rootDirectory: directory, destinationPath })
+        }
+      }
+      if (tempDirectory != null) {
+        await rm(tempDirectory, { force: true, recursive: true })
+      }
+    }
+    this.httpOkJson<ImportArchiveResponse>(
+      response,
+      conflicts.length === 0 ? { assets } : { jobId, conflicts },
+    )
   }
 
   /** Create an archive stream with the given assets. */
@@ -738,8 +882,9 @@ export class Server {
         .end(content)
     }
     await promise
-    const result: ExportedArchive = { filePath: Path(filePath) }
-    this.httpOkJson(response, result)
+    this.httpOkJson<ExportedArchive>(response, {
+      filePath: Path(filePath),
+    })
   }
 
   /** Get details for an asset by its path. */
@@ -863,7 +1008,7 @@ export class Server {
     const assets: AnyAsset[] = []
     const conflicts: AssetConflict[] = []
     for await (const { metadata } of await unzipEntries(filePath)) {
-      const entryPathInArchive = metadata.name
+      const entryPathInArchive = RelativePath(metadata.name)
       const entryPath = Path(path.join(directory, entryPathInArchive))
       const isDirectory = entryPathInArchive.endsWith('/')
       const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
@@ -872,7 +1017,7 @@ export class Server {
       if (existingAsset) {
         const conflict: AssetConflict = {
           type: existingAsset.type,
-          path: Path(entryPathInArchive),
+          path: entryPathInArchive,
           existingAsset,
         }
         conflicts.push(conflict)
@@ -915,43 +1060,47 @@ export class Server {
       for await (const entry of await unzipEntries(filePath)) {
         if (entry.metadata.name.endsWith(BUNDLED_PROJECT_SUFFIX)) {
           const destinationPath = entry.getDestinationPath(directory)
-          await entry.extract(directory, async (stream) => {
-            await tarGzReadStreamToFs(stream, destinationPath)
-            const entries = await readdir(destinationPath)
-            const originalSingleChild = entries[0]
-            // Unwrap project contents if there is only a single directory inside.
-            if (entries.length === 1 && originalSingleChild != null) {
-              let singleChild = originalSingleChild
-              while (
-                await fileExists(path.join(destinationPath, originalSingleChild, singleChild))
-              ) {
-                singleChild += '_'
+          await entry.extract({
+            rootDirectory: directory,
+            transform: async (stream) => {
+              await tarGzReadStreamToFs(stream, destinationPath)
+              const entries = await readdir(destinationPath)
+              const originalSingleChild = entries[0]
+              // Unwrap project contents if there is only a single directory inside.
+              if (entries.length === 1 && originalSingleChild != null) {
+                let singleChild = originalSingleChild
+                while (
+                  await fileExists(path.join(destinationPath, originalSingleChild, singleChild))
+                ) {
+                  singleChild += '_'
+                }
+                if (singleChild !== originalSingleChild) {
+                  await rename(
+                    path.join(destinationPath, originalSingleChild),
+                    path.join(destinationPath, singleChild),
+                  )
+                }
+                const childPath = path.join(destinationPath, singleChild)
+                for (const entry of await readdir(childPath)) {
+                  await rename(path.join(childPath, entry), path.join(destinationPath, entry))
+                }
               }
-              if (singleChild !== originalSingleChild) {
-                await rename(
-                  path.join(destinationPath, originalSingleChild),
-                  path.join(destinationPath, singleChild),
-                )
-              }
-              const childPath = path.join(destinationPath, singleChild)
-              for (const entry of await readdir(childPath)) {
-                await rename(path.join(childPath, entry), path.join(destinationPath, entry))
-              }
-            }
-            // Prevent default behavior.
-            return false as const
+              // Prevent default behavior.
+              return false as const
+            },
           })
         } else {
-          await entry.extract(directory)
+          await entry.extract({ rootDirectory: directory })
         }
       }
       if (tempDirectory != null) {
         await rm(tempDirectory, { force: true, recursive: true })
       }
     }
-    const result: ImportArchiveResponse =
-      conflicts.length === 0 ? { assets } : { jobId: UnzipAssetsJobId(filePath), conflicts }
-    this.httpOkJson(response, result)
+    this.httpOkJson<ImportArchiveResponse>(
+      response,
+      conflicts.length === 0 ? { assets } : { jobId: UnzipAssetsJobId(filePath), conflicts },
+    )
   }
 
   /** Response handler for "upload file" endpoint. */

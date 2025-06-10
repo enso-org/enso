@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import * as newtype from '../../utilities/data/newtype'
 import { IdType } from '../Backend'
 
@@ -132,6 +133,11 @@ export const Ami = newtype.newtypeConstructor<Ami>()
 
 /** An identifier for an entity with an {@link AssetPermission} for an {@link Asset}. */
 export type UserPermissionIdentifier = UserGroupId | UserId
+
+/** An relative file path. */
+export type RelativePath = newtype.Newtype<string, 'RelativePath'>
+export const RelativePath = newtype.newtypeConstructor<RelativePath>()
+export const RelativePathType = z.custom<RelativePath>((s) => typeof s === 'string')
 
 /** An filesystem path. Only present on the local backend. */
 export type Path = newtype.Newtype<string, 'Path'>
