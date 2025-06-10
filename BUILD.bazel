@@ -121,6 +121,8 @@ SBT_COMMAND = "buildEngineDistribution"
 
 SBT_ARGS = "-v -Dsbt.global.base=$$TMPDIR -Dsbt.ivy.home=$$TMPDIR/.ivy2/ -Dsbt.server.autostart=false"
 
+SBT_ARGS += " --java-home $(JAVABASE)"
+
 # TODO: do we really need these? Rust build script does use them.
 SBT_SETTINGS = "SBT_SERVER_FORCESTART=1 LC_ALL=C.UTF-8"
 
