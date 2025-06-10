@@ -258,6 +258,40 @@ add_specs suite_builder =
             r2 = Column.from_vector "X" [] (Value_Type.Char size=0 variable_length=True)
             r2.should_fail_with Illegal_Argument
 
+        group_builder.specify "should allow to create all-null column" <|
+            # Empty column with no type is also Null
+            r0 = Column.from_vector "X" []
+            r0.length . should_equal 0
+            r0.to_vector . should_equal []
+            r0.value_type . should_equal Value_Type.Null
+
+            r1 = Column.from_vector "X" [Nothing]
+            r1.length . should_equal 1
+            r1.to_vector . should_equal [Nothing]
+            r1.value_type . should_equal Value_Type.Null
+
+            # But if a type is specified, it will be of that type.
+            r2 = Column.from_vector "X" [] Value_Type.Integer
+            r2.length . should_equal 0
+            r2.to_vector . should_equal []
+            r2.value_type . should_equal Value_Type.Integer
+
+            r3 = Column.from_vector "X" [Nothing] Value_Type.Float
+            r3.length . should_equal 1
+            r3.to_vector . should_equal [Nothing]
+            r3.value_type . should_equal Value_Type.Float
+
+        group_builder.specify "should allow to create a column of repeated items" <|
+            r1 = Column.from_repeated_item "X" 123 3
+            r1.length . should_equal 3
+            r1.to_vector . should_equal [123, 123, 123]
+            r1.value_type . should_equal Value_Type.Integer
+
+            r2 = Column.from_repeated_item "X" Nothing 3
+            r2.length . should_equal 3
+            r2.to_vector . should_equal [Nothing, Nothing, Nothing]
+            r2.value_type . should_equal Value_Type.Null
+
         group_builder.specify "should be able to serialize to Enso code" <|
             c1 = Column.from_vector "X" [1, 2] Value_Type.Float
             c1.pretty . should_equal 'Column.from_vector \'X\' [1.0, 2.0]'
@@ -277,7 +311,7 @@ add_specs suite_builder =
             Column.from_vector "foo" [1.2, 2.3, 2.5, 3.6] . round . should_equal (Column.from_vector "round([foo])" [1, 2, 3, 4])
             Column.from_vector "foo" [1.25, 2.33, 3.57] . round 1 . should_equal <| Column.from_vector "round([foo])" [1.3, 2.3, 3.6]
             Column.from_vector "foo" [12.0, 24.0, 25.0, 29.0] . round -1 . should_equal <| Column.from_vector "round([foo])" [10, 20, 30, 30]
-            Column.from_vector "foo" [1.5, 2.5, 3.5] . round use_bankers=True . should_equal <| Column.from_vector "round([foo])" [2, 2, 4]
+            Column.from_vector "foo" [1.5, 2.5, 3.5] . round rounding_mode=Rounding_Mode.Bankers . should_equal <| Column.from_vector "round([foo])" [2, 2, 4]
 
             Column.from_vector "foo" [-1.2, -2.3, -2.5, -3.6] . round . should_equal (Column.from_vector "round([foo])" [-1, -2, -3, -4])
             Column.from_vector "foo" [-1.25, -2.33, -2.45, -3.57] . round 1 . should_equal <| Column.from_vector "round([foo])" [-1.3, -2.3, -2.5, -3.6]
@@ -292,7 +326,7 @@ add_specs suite_builder =
         group_builder.specify "should be able to round a column of integers" <|
             Column.from_vector "foo" [12, 24, 25, 29] . round . should_equal <| Column.from_vector "round([foo])" [12, 24, 25, 29]
             Column.from_vector "foo" [12, 24, 25, 29] . round -1 . should_equal <| Column.from_vector "round([foo])" [10, 20, 30, 30]
-            Column.from_vector "foo" [15, 25, 35] . round -1 use_bankers=True . should_equal <| Column.from_vector "round([foo])" [20, 20, 40]
+            Column.from_vector "foo" [15, 25, 35] . round -1 rounding_mode=Rounding_Mode.Bankers . should_equal <| Column.from_vector "round([foo])" [20, 20, 40]
 
         group_builder.specify "integer rounding should return the correct column type" <|
             col = Column.from_vector "foo" [12, 24, 25, 29]
@@ -316,7 +350,7 @@ add_specs suite_builder =
 
         group_builder.specify "should handle type errors" <|
             col = Column.from_vector "foo" [12, 23, 45]
-            Test.expect_panic_with (col.round use_bankers="string") Type_Error
+            Test.expect_panic_with (col.round rounding_mode="string") Type_Error
             Test.expect_panic_with (col.round decimal_places="string") Type_Error
 
     suite_builder.group "truncate" group_builder->
@@ -360,7 +394,7 @@ add_specs suite_builder =
             col = Column.from_vector "x" [n]
             result = op col
             result.to_vector.at 0
-        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+        do_round n dp=0 rounding_mode=Rounding_Mode.Half_Up = do_op n (_.round dp rounding_mode)
 
         group_builder.specify "round returns the correct type" <|
             do_round 231.2 1 . should_be_a Float

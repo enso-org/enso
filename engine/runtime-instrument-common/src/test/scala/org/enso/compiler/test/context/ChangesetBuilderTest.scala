@@ -37,7 +37,8 @@ class ChangesetBuilderTest
         .get
         .asInstanceOf[Expression.Binding]
       val rhs = ir.expression.asInstanceOf[Application.Prefix]
-      val two = rhs.arguments(1).asInstanceOf[CallArgument.Specified].value
+      val two =
+        rhs.arguments.apply(1).asInstanceOf[CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
         two.getId
@@ -53,7 +54,8 @@ class ChangesetBuilderTest
         .get
         .asInstanceOf[Expression.Binding]
       val rhs = ir.expression.asInstanceOf[Application.Prefix]
-      val two = rhs.arguments(1).asInstanceOf[CallArgument.Specified].value
+      val two =
+        rhs.arguments.apply(1).asInstanceOf[CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
         two.getId
@@ -69,7 +71,8 @@ class ChangesetBuilderTest
         .get
         .asInstanceOf[Expression.Binding]
       val rhs = ir.expression.asInstanceOf[Application.Prefix]
-      val two = rhs.arguments(1).asInstanceOf[CallArgument.Specified].value
+      val two =
+        rhs.arguments.apply(1).asInstanceOf[CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
         two.getId
@@ -87,7 +90,8 @@ class ChangesetBuilderTest
       val x = ir.name
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
-        x.getId
+        x.getId,
+        ir.expression.getId
       )
     }
 
@@ -99,10 +103,12 @@ class ChangesetBuilderTest
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Expression.Binding]
-      val x = ir.name
+      val x   = ir.name
+      val rhs = ir.expression
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
-        x.getId
+        x.getId,
+        rhs.getId
       )
     }
 
@@ -116,7 +122,8 @@ class ChangesetBuilderTest
         .asInstanceOf[Expression.Binding]
       val rhs  = ir.expression.asInstanceOf[Application.Prefix]
       val plus = rhs.function
-      val two  = rhs.arguments(1).asInstanceOf[CallArgument.Specified].value
+      val two =
+        rhs.arguments.apply(1).asInstanceOf[CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
         plus.getId,
@@ -134,11 +141,13 @@ class ChangesetBuilderTest
         .asInstanceOf[Expression.Binding]
       val rhs = ir.expression.asInstanceOf[Application.Prefix]
       val x   = ir.name
-      val one = rhs.arguments(0).asInstanceOf[CallArgument.Specified].value
+      val one =
+        rhs.arguments.apply(0).asInstanceOf[CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
         x.getId,
-        one.getId
+        one.getId,
+        rhs.getId
       )
     }
 
@@ -152,11 +161,13 @@ class ChangesetBuilderTest
         .asInstanceOf[Expression.Binding]
       val x   = ir.name
       val rhs = ir.expression.asInstanceOf[Application.Prefix]
-      val one = rhs.arguments(0).asInstanceOf[CallArgument.Specified].value
+      val one =
+        rhs.arguments.apply(0).asInstanceOf[CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
         x.getId,
-        one.getId
+        one.getId,
+        rhs.getId
       )
     }
 
@@ -186,7 +197,7 @@ class ChangesetBuilderTest
         .asInstanceOf[Expression.Binding]
       val rhs = ir.expression.asInstanceOf[Application.Prefix]
       val undefinedArg =
-        rhs.arguments(1).asInstanceOf[CallArgument.Specified]
+        rhs.arguments.apply(1).asInstanceOf[CallArgument.Specified]
       val undefinedError = undefinedArg.value.asInstanceOf[errors.Resolution]
       val undefinedName  = undefinedError.originalName
 
@@ -209,10 +220,10 @@ class ChangesetBuilderTest
       val secondLine =
         ir.body.children()(1).asInstanceOf[Application.Prefix]
       val y =
-        secondLine.arguments(0).asInstanceOf[CallArgument.Specified].value
+        secondLine.arguments.apply(0).asInstanceOf[CallArgument.Specified].value
       val plus = secondLine.function
       val x =
-        secondLine.arguments(1).asInstanceOf[CallArgument.Specified].value
+        secondLine.arguments.apply(1).asInstanceOf[CallArgument.Specified].value
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
         y.getId,
@@ -238,6 +249,44 @@ class ChangesetBuilderTest
       val zName      = secondLine.name
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
+        zName.getId,
+        secondLine.expression.getId
+      )
+    }
+
+    "multiline swap nodes" in {
+      val code =
+        """x ->
+          |    y = _.abs
+          |    z = 42
+          |    y + x""".stripMargin.linesIterator.mkString("\n")
+      val edits = Seq(
+        TextEdit(Range(Position(1, 4), Position(2, 4)), ""),
+        TextEdit(Range(Position(2, 0), Position(2, 0)), "    y = z.abs\n")
+      )
+
+      val ir = code
+        .preprocessExpression(freshInlineContext)
+        .get
+        .asInstanceOf[Function.Lambda]
+
+      val firstLine = ir.body.children()(0).asInstanceOf[Expression.Binding]
+      val yName     = firstLine.name
+      val yExpr = firstLine.expression
+        .asInstanceOf[Function.Lambda]
+        .body
+        .asInstanceOf[Application.Prefix]
+      val yExprFunction    = yExpr.function
+      val yExprFunctionArg = yExpr.arguments.apply(0).value
+      val secondLine       = ir.body.children()(1).asInstanceOf[Expression.Binding]
+      val zName            = secondLine.name
+
+      invalidated(ir, code, edits: _*) should contain theSameElementsAs Seq(
+        yName.getId,
+        firstLine.expression.getId,
+        secondLine.expression.getId,
+        yExprFunction.getId,
+        yExprFunctionArg.getId,
         zName.getId
       )
     }
@@ -288,12 +337,13 @@ class ChangesetBuilderTest
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Function.Lambda]
+
       val secondLine = ir.body.children()(1).asInstanceOf[Expression.Binding]
       val z          = secondLine.expression.asInstanceOf[Application.Force].target
       val thirdLine =
         ir.body.children()(2).asInstanceOf[Application.Prefix]
       val y =
-        thirdLine.arguments(0).asInstanceOf[CallArgument.Specified].value
+        thirdLine.arguments.apply(0).asInstanceOf[CallArgument.Specified].value
       val plus = thirdLine.function
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
@@ -316,13 +366,15 @@ class ChangesetBuilderTest
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Expression.Binding]
-      val x    = ir.name
-      val rhs  = ir.expression.asInstanceOf[Application.Prefix]
-      val one  = rhs.arguments(0).asInstanceOf[CallArgument.Specified].value
+      val x   = ir.name
+      val rhs = ir.expression.asInstanceOf[Application.Prefix]
+      val one =
+        rhs.arguments.apply(0).asInstanceOf[CallArgument.Specified].value
       val plus = rhs.function
 
       invalidated(ir, code, edits: _*) should contain theSameElementsAs Seq(
         x.getId,
+        rhs.getId,
         one.getId,
         plus.getId
       )
@@ -348,11 +400,12 @@ class ChangesetBuilderTest
       val z          = secondLine.expression.asInstanceOf[Application.Force].target
       val thirdLine  = body.children()(2).asInstanceOf[Application.Prefix]
       val y =
-        thirdLine.arguments(0).asInstanceOf[CallArgument.Specified].value
+        thirdLine.arguments.apply(0).asInstanceOf[CallArgument.Specified].value
       val plus = thirdLine.function
 
       invalidated(ir, code, edits: _*) should contain theSameElementsAs Seq(
         ir.name.getId,
+        ir.expression.getId,
         z.getId,
         y.getId,
         plus.getId
@@ -400,8 +453,8 @@ class ChangesetBuilderTest
         .asInstanceOf[Expression.Block]
       val x     = mainBody.expressions(0).asInstanceOf[Expression.Binding]
       val xExpr = x.expression.asInstanceOf[Application.Prefix]
-      val undefinedName = xExpr
-        .arguments(1)
+      val undefinedName = xExpr.arguments
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[errors.Resolution]
@@ -456,19 +509,61 @@ class ChangesetBuilderTest
       )
     }
 
+    "line swap should invalidate self argument" in {
+      val code =
+        """foo =
+          |    vector1 = [4, 2, 1, 3]
+          |    vector2 = vector1.sort
+          |    vector3 = vector2.filter (..Less 2)
+          |    vector4 = vector2.filter (..Greater 3)"
+          |""".stripMargin.linesIterator.mkString("\n")
+      val edits = Seq(
+        TextEdit(
+          Range(Position(3, 10), Position(3, 11)),
+          "4"
+        ), // Should result in invalidation of the whole vector3 expr
+        TextEdit(Range(Position(3, 32), Position(3, 38)), "Greater 3"),
+        TextEdit(Range(Position(4, 10), Position(4, 11)), "3"),
+        TextEdit(Range(Position(4, 20), Position(4, 21)), "4"),
+        TextEdit(Range(Position(4, 32), Position(4, 41)), "Less 2")
+      )
+
+      val edits2 = Seq(
+        TextEdit(
+          Range(Position(3, 0), Position(3, 0)),
+          "    vector4 = vector2.filter (..Greater 3)\n"
+        ),
+        TextEdit(Range(Position(4, 20), Position(4, 21)), "4"),
+        TextEdit(Range(Position(5, 0), Position(5, 42)), "")
+      )
+
+      val ir = code
+        .preprocessExpression(freshInlineContext)
+        .get
+        .asInstanceOf[Expression.Binding]
+      val body        = ir.expression.asInstanceOf[Expression.Block]
+      val vector3Line = body.children()(2).asInstanceOf[Expression.Binding]
+      val vector3     = vector3Line.expression.asInstanceOf[Application.Prefix]
+      val vector3Self =
+        vector3.arguments().head.asInstanceOf[CallArgument.Specified].value
+      val vector4line = body.children()(3).asInstanceOf[Expression.Binding]
+      val vector4     = vector4line.expression.asInstanceOf[Application.Prefix]
+
+      val invalidated1 = invalidated(ir, code, edits: _*)
+      val invalidated2 = invalidated(ir, code, edits2: _*)
+      invalidated1 should contain(vector3Self.getId) // #12957
+      // The two edits result in the same IR.
+      // We accept a minor difference in `vector4`'s RHS
+      val diff = invalidated2 diff invalidated1
+      diff should contain theSameElementsAs Seq(vector4.function().getId)
+    }
+
   }
 
   def findIR(ir: IR, uuid: String): IR = {
-    val list = ir.preorder.filter(
-      _.location
-        .map(_.id.map(_.toString() == uuid).getOrElse(false))
-        .getOrElse(false)
-    )
-    if (list.isEmpty) {
-      null
-    } else {
-      list.head
-    }
+    ir.preorder
+      .find(_.location.exists(_.id.exists(_.toString == uuid)))
+      .orNull
   }
 
   def findCode(code: String, at: IR): String = {
@@ -477,7 +572,7 @@ class ChangesetBuilderTest
   }
 
   def findCode(code: String, ir: IR, uuid: UUID): String = {
-    val at = findIR(ir, uuid.toString())
+    val at = findIR(ir, uuid.toString)
     if (at == null) {
       uuid.toString
     } else {

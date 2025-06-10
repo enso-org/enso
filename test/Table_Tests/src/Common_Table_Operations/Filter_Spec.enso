@@ -11,7 +11,7 @@ from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
-import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Feature.Feature
 from Standard.Database.Errors import all
 
@@ -226,6 +226,25 @@ add_filter_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Like "%b") . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (Filter_Condition.Like "nana") . at "X" . to_vector . should_equal ["nana"]
             t.filter "Z" (Filter_Condition.Like "[ab]_%") . at "Z" . to_vector . should_equal ["[ab]aaaa", "[ab]ccc"]
+
+        if setup.flagged ..Supports_Regex_Match then group_builder.specify "by text search (regex_match)" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
+
+            t.filter "X" (..Regex_Match ".*an.*") . at "X" . to_vector . should_equal ["banana", "nana"]
+            t.filter "X" (..Regex_Match (regex ".*an.*")) . at "X" . to_vector . should_equal ["banana", "nana"]
+            t.filter "X" (..Regex_Match (regex ".*an.*") keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
+            t.filter "X" (..Regex_Match (regex ".a.*")) . at "X" . to_vector . should_equal ["bacb", "banana", "nana"]
+            t.filter "X" (..Regex_Match (regex ".*b")) . at "X" . to_vector . should_equal ["abb", "bacb"]
+            t.filter "X" (..Regex_Match (regex "^.*b")) . at "X" . to_vector . should_equal ["abb", "bacb"]
+            t.filter "X" (..Regex_Match (regex "(^...)")) . at "X" . to_vector . should_equal ["abb"]
+            t.filter "X" (..Regex_Match (regex ".*b$")) . at "X" . to_vector . should_equal ["abb", "bacb"]
+            t.filter "X" (..Regex_Match (regex "nana")) . at "X" . to_vector . should_equal ["nana"]
+            t.filter "X" (..Regex_Match (regex "^nana$")) . at "X" . to_vector . should_equal ["nana"]
+            t.filter "Z" (..Regex_Match (regex "\[ab\].+")) . at "Z" . to_vector . should_equal ["[ab]aaaa", "[ab]ccc"]
+
+        if setup.flagged ..Supports_Regex_Match . not then group_builder.specify "by text search regex_match unsupported" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
+            t.filter "X" (..Regex_Match ".*an.*") . should_fail_with (Unsupported_Database_Operation.Error "regex_match")
 
         group_builder.specify "text operations should also match newlines" <|
             t = table_builder [["X", ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']]]
@@ -487,9 +506,12 @@ add_filter_specs suite_builder setup =
         group_builder.specify "should not attach a warning when Nothing is not used as a value in a comparison or `is_in` `Filter_Condition`" <|
             t = table_builder [["x", [1, 2, 3]], ["y", [1, Nothing, 2]]]
             Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal 12))
-            Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal [Nothing, Nothing]))
-            if setup.is_operation_supported "IS_IN" then
-                Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
+
+            # Using vectors as values is not often supported in DB backends
+            if setup.is_database.not then
+                Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal [Nothing, Nothing]))
+                if setup.is_operation_supported "IS_IN" then
+                    Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
 
     suite_builder.group prefix+"Table.filter by an expression" group_builder->
         group_builder.specify "by a boolean column" <|

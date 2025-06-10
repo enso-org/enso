@@ -3,8 +3,7 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import java.util.Arrays;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
@@ -49,8 +48,6 @@ import org.enso.polyglot.data.TypeGraph;
   AtomConstructor.class,
   Type.class,
   DataflowError.class,
-  UnresolvedConversion.class,
-  UnresolvedSymbol.class,
   EnsoBigInteger.class,
   ManagedResource.class,
   ModuleScope.class,
@@ -71,6 +68,7 @@ import org.enso.polyglot.data.TypeGraph;
 public class Types {
 
   private static final TypeGraph typeHierarchy = buildTypeHierarchy();
+  private static final String[] PANIC_TYPE = new String[] {ConstantsGen.PANIC};
 
   /**
    * A simple pair type
@@ -119,8 +117,8 @@ public class Types {
   }
 
   /** Check if the given type is a panic. */
-  public static boolean isPanic(String typeName) {
-    return ConstantsGen.PANIC.equals(typeName);
+  public static boolean isPanic(String[] typeNames) {
+    return Arrays.equals(PANIC_TYPE, typeNames);
   }
 
   /**

@@ -8,7 +8,11 @@ import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.compiler.pass.{PassConfiguration, PassManager}
+import org.enso.compiler.pass.{
+  PassConfiguration,
+  PassManager,
+  PassManagerTestUtils
+}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.ModuleTestUtils
 import org.enso.compiler.context.LocalScope
@@ -38,7 +42,17 @@ trait CompilerTestSetup {
       passManager: PassManager,
       moduleContext: ModuleContext
     ): Module = {
-      passManager.runPassesOnModule(ir, moduleContext)
+      val passGroups = PassManagerTestUtils.getPasses(passManager)
+      val runtimeMod = runtime.Module.fromCompilerModule(moduleContext.module)
+      passGroups.foldLeft(ir)((curIr, group) => {
+        // Before a PassGroup is run on a module, we need to explicitly set the
+        // IR on the runtime module, as the pass manager will not do this for us.
+        // This is to ensure consistency between the curIr and IR stored in moduleContext
+        ModuleTestUtils.unsafeSetIr(runtimeMod, curIr)
+        val newIr =
+          passManager.runPassesOnModule(curIr, moduleContext, group, None)
+        newIr
+      })
     }
   }
 
@@ -181,7 +195,7 @@ trait CompilerTestSetup {
       compilerConfig = compilerConfig
     )
     InlineContext(
-      module            = mc,
+      moduleContext     = mc,
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       localScope        = localScope,
@@ -190,5 +204,5 @@ trait CompilerTestSetup {
     )
   }
 
-  val defaultConfig: CompilerConfig = CompilerConfig()
+  val defaultConfig: CompilerConfig = CompilerConfig.createDefault()
 }

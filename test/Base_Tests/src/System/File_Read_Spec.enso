@@ -1,7 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Map_Error
+import Standard.Base.Errors.Common.Failed_To_Load
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
 
@@ -96,39 +98,55 @@ add_specs suite_builder =
             files = [enso_project.data / "sample.json", enso_project.data / "helloworld.txt"]
 
             # Read all files using Auto_Detect - each file is read according to its inferred format.
-            r1 = Data.read_many files
+            # If the return type is not specified, if the input is a Vector, the return type is also Vector:
+            r1 = Data.read_many files return=..As_Vector
             r1.should_equal [js_object, "Hello World!"]
 
             # Read all files using a specified format.
-            r2 = Data.read_many files format=..Plain_Text
+            r2 = Data.read_many files format=..Plain_Text return=..As_Vector
             r2.should_be_a Vector
             r2.should_equal [js_as_text.get, "Hello World!"]
+
+        group_builder.specify "would default to returning as merged Table, but will raise a helpful error if Standard.Table is not loaded" <|
+            is_table_imported = File_Format.all.map .to_text . contains "Delimited_Format"
+            Runtime.assert is_table_imported.not "This test assumes that Base_Tests does not import Standard.Table."
+            files = [enso_project.data / "sample.json"]
+            r1 = Data.read_many files
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text.should_contain "not imported"
+            r1.catch.to_display_text.should_contain "Standard.Table"
+            r1.catch.to_display_text.should_contain "As_Vector"
 
         group_builder.specify "should work with paths as Text" <|
             files = [enso_project.data / "sample.json", enso_project.data / "helloworld.txt"]
             paths = files.map .path
-            r1 = Data.read_many paths return=..Vector
+            r1 = Data.read_many paths return=..As_Vector
             r1.should_equal [js_object, "Hello World!"]
 
         three_files = [enso_project.data / "sample.json", enso_project.data / "nonexistent.txt", enso_project.data / "helloworld.txt"]
         group_builder.specify "should allow to Report_Error if any file fails to load" <|
-            r1 = Data.read_many three_files return=..Vector on_problems=..Report_Error
+            r1 = Data.read_many three_files return=..As_Vector on_problems=..Report_Error
             # The error reports as File_Error
-            r1.should_fail_with File_Error
-            # But it's actually Map_Error with index metadata
-            r1.should_fail_with unwrap_errors=False Map_Error
-            r1.catch.index . should_equal 1
-            r1.catch.inner_error.should_be_a File_Error.Not_Found
+            r1.should_fail_with Failed_To_Load
 
         group_builder.specify "should allow to Ignore errors if any file fails to load" <|
-            r1 = Data.read_many three_files return=..Vector on_problems=..Ignore
+            r1 = Data.read_many three_files return=..As_Vector on_problems=..Ignore
             r1.should_equal [js_object, Nothing, "Hello World!"]
             Problems.assume_no_problems r1
 
         group_builder.specify "should allow to continue loading if errors are encountered, but report them as warnings" <|
-            r1 = Data.read_many three_files return=..Vector on_problems=..Report_Warning
+            r1 = Data.read_many three_files return=..As_Vector on_problems=..Report_Warning
             r1.should_equal [js_object, Nothing, "Hello World!"]
-            Problems.expect_only_warning File_Error r1
+            Problems.expect_only_warning Failed_To_Load r1
+
+        group_builder.specify "should return empty vector if no files were provided" <|
+            r1 = Data.read_many [] return=..As_Vector
+            r1.should_equal []
+            Problems.assume_no_problems r1
+
+        group_builder.specify "should raise an error if input vector contains Nothing" <|
+            r1 = Data.read_many [Nothing] return=..As_Vector
+            r1.should_fail_with Illegal_Argument
 
 main filter=Nothing =
     suite = Test.build suite_builder->

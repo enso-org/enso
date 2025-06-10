@@ -4,10 +4,9 @@ import org.enso.editions.LibraryName
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 
-import java.util.logging.Level
-
 import scala.jdk.CollectionConverters._
 import org.enso.polyglot.Suggestion
+import org.slf4j.LoggerFactory
 
 /** A job responsible for deserializing suggestions of loaded library.
   *
@@ -17,6 +16,8 @@ final class DeserializeLibrarySuggestionsJob(
   val libraryName: LibraryName
 ) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority, true)
     with UniqueJob[Unit] {
+  private def logger: org.slf4j.Logger =
+    LoggerFactory.getLogger(classOf[DeserializeLibrarySuggestionsJob])
 
   /** @inheritdoc */
   override def equalsTo(that: UniqueJob[_]): Boolean =
@@ -28,11 +29,7 @@ final class DeserializeLibrarySuggestionsJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Unit = {
-    ctx.executionService.getLogger.log(
-      Level.FINE,
-      "Deserializing suggestions for library [{}].",
-      libraryName
-    )
+    logger.debug("Deserializing suggestions for library [{}].", libraryName)
     val cc = ctx.executionService.getContext.getCompiler.context
     cc
       .deserializeSuggestions(libraryName)

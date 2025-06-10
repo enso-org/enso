@@ -2,32 +2,46 @@
 import MenuButton from '@/components/MenuButton.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useEventConditional } from '@/composables/events'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { endOnClickOutside } from '@/util/autoBlur'
 import { shift, useFloating, type Placement } from '@floating-ui/vue'
 import { ref, shallowRef } from 'vue'
 
 const open = defineModel<boolean>('open', { default: false })
-const props = defineProps<{
+const {
+  title,
+  placement = 'bottom-start',
+  alwaysShowArrow = false,
+  interaction = true,
+} = defineProps<{
   title?: string | undefined
   placement?: Placement
   alwaysShowArrow?: boolean | undefined
+  interaction?: boolean
 }>()
 
 const rootElement = shallowRef<HTMLElement>()
 const floatElement = shallowRef<HTMLElement>()
 const hovered = ref(false)
 
-injectInteractionHandler().setWhen(
-  open,
-  endOnClickOutside(rootElement, {
-    cancel: () => (open.value = false),
-    end: () => (open.value = false),
-  }),
+const dropDownInteraction = endOnClickOutside(rootElement, {
+  cancel: () => (open.value = false),
+  end: () => (open.value = false),
+})
+
+injectInteractionHandler().setWhen(() => open.value && interaction, dropDownInteraction)
+
+useEventConditional(
+  window,
+  'pointerdown',
+  () => interaction,
+  dropDownInteraction.pointerdown!.bind(dropDownInteraction),
+  { capture: true },
 )
 
 const { floatingStyles } = useFloating(rootElement, floatElement, {
-  placement: props.placement ?? 'bottom-start',
+  placement: () => placement,
   middleware: [shift()],
 })
 </script>
@@ -37,7 +51,7 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
     <MenuButton
       v-model="open"
       class="DropdownMenuButton"
-      :title="props.title"
+      :title="title"
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
     >
@@ -49,8 +63,8 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
       class="arrow"
     />
     <SizeTransition height :duration="100">
-      <div v-if="open" ref="floatElement" class="DropdownMenuContent" :style="floatingStyles">
-        <slot name="entries" />
+      <div v-if="open" ref="floatElement" class="DropDownPanel" :style="floatingStyles">
+        <slot name="menu" />
       </div>
     </SizeTransition>
   </div>
@@ -63,26 +77,22 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
   margin: -4px;
 }
 
-.DropdownMenuContent {
-  display: flex;
-  flex-direction: column;
-  border-radius: 13px;
-  background: var(--color-frame-bg);
+.DropdownMenuButton {
   backdrop-filter: var(--blur-app-bg);
-  margin: 0 -4px;
-  z-index: 1;
-  gap: 4px;
-  padding: 8px;
 }
 
 .arrow {
   position: absolute;
-  bottom: -5px;
+  bottom: calc(-8px - var(--arrow-offset, 0px));
   left: 50%;
-  opacity: 0.5;
+  opacity: 0.8;
   /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
   pointer-events: none;
   --icon-transform: translateX(-50%) rotate(90deg) scale(0.7);
   --icon-transform-origin: center;
+}
+
+.DropDownPanel {
+  z-index: var(--drop-down-panel-z-index, 10);
 }
 </style>

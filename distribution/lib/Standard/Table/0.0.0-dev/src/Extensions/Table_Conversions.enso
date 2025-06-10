@@ -72,7 +72,7 @@ XML_Element.to_table : Table ! Type_Error
 XML_Element.to_table self =
     self.to Table
 
-## GROUP Standard.Base.Constants
+## PRIVATE
    ICON data_input
    Converts an object or a Vector of object into a Table, by looking up the
    requested fields from each item.
@@ -97,7 +97,7 @@ XML_Element.to_table self =
 @fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
 Table.from_objects : Any -> Vector | Nothing -> Table
 Table.from_objects value (fields : Vector | Nothing = Nothing) =
-    Expand_Objects_Helpers.create_table_from_objects value fields
+    Expand_Objects_Helpers.create_table_from_objects value fields treat_dictionary_as_sequence=False
 
 ## GROUP Standard.Base.Conversions
    ICON convert

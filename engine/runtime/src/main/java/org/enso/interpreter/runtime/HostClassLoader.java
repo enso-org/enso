@@ -4,6 +4,8 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.enso.interpreter.runtime.util.TruffleFileSystem;
+import org.enso.pkg.NativeLibraryFinder;
 import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +63,12 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
     if (!isRuntimeModInBootLayer && name.startsWith("org.graalvm")) {
       return polyglotClassLoader.loadClass(name);
     }
+    if (name.startsWith("org.slf4j")) {
+      // Delegating to system class loader ensures that log classes are not loaded again
+      // and do not require special setup. In other words, it is using log configuration that
+      // has been setup by the runner that started the process. See #11641.
+      return polyglotClassLoader.loadClass(name);
+    }
     try {
       l = findClass(name);
       if (resolve) {
@@ -73,6 +81,31 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
       logger.trace("Class {} not found, delegating to super", name);
       return super.loadClass(name, resolve);
     }
+  }
+
+  /**
+   * Find the library with the specified name inside the {@code polyglot/lib} directory of caller's
+   * project. The search inside the {@code polyglot/lib} directory hierarchy is specified by <a
+   * href="https://bits.netbeans.org/23/javadoc/org-openide-modules/org/openide/modules/doc-files/api.html#jni">NetBeans
+   * JNI specification</a>.
+   *
+   * <p>Note: The current implementation iterates all the {@code polyglot/lib} directories of all
+   * the packages.
+   *
+   * @param libname The library name. Without platform-specific suffix or prefix.
+   * @return Absolute path to the library if found, or null.
+   */
+  @Override
+  protected String findLibrary(String libname) {
+    var pkgRepo = EnsoContext.get(null).getPackageRepository();
+    for (var pkg : pkgRepo.getLoadedPackagesJava()) {
+      var libPath = NativeLibraryFinder.findNativeLibrary(libname, pkg, TruffleFileSystem.INSTANCE);
+      if (libPath != null) {
+        return libPath;
+      }
+    }
+    logger.trace("Native library {} not found in any package", libname);
+    return null;
   }
 
   @Override

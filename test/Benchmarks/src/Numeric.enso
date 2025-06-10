@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Bench, Faker
+from Standard.Base.Runtime import assert
 
 
 options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
@@ -40,21 +42,31 @@ collect_benches = Bench.build builder->
             fun = pair.at 1
             group_builder.specify ("integer_" + name) (data.integers.map fun)
 
-        [True, False].each use_bankers->
+        [Rounding_Mode.Half_Up, Rounding_Mode.Bankers].each rounding_mode->
             [0, -2, 2].each decimal_places->
-                name = create_name "round_decimal_places_" decimal_places use_bankers
-                fun = _.round decimal_places use_bankers
+                name = create_name "round_decimal_places_" decimal_places rounding_mode
+                fun = _.round decimal_places rounding_mode
                 group_builder.specify ("float_" + name) (data.floats.map fun)
                 group_builder.specify ("integer_" + name) (data.integers.map fun)
 
+    up_to_options = Bench.options . set_warmup (Bench.phase_conf 5 2) . set_measure (Bench.phase_conf 3 2)
+
+    builder.group "Numeric_Up_To" up_to_options group_builder->
+        group_builder.specify "counting_up_to_1000000" <|
+            cell = Ref.new 0
+            n = 100000000
+            0.up_to n . each _->
+                x = cell.get
+                cell.put x+1
+            assert cell.get==n "Expecting "+n.to_text+" but was "+cell.get.to_text
 
 ## Creates a valid name for the benchmark
 create_name : Text -> Integer -> Boolean -> Text
-create_name prefix dec_places use_bankers =
-    use_bankers_str = "_use_bankers_" + (use_bankers.to_text.to_case Case.Lower)
+create_name prefix dec_places rounding_mode =
+    rounding_mode_str = "_rounding_mode_" + (rounding_mode.to_text.to_case Case.Lower)
     case dec_places >= 0 of
-        True -> prefix + dec_places.to_text + use_bankers_str
-        False -> prefix + "minus_" + (dec_places.abs.to_text) + use_bankers_str
+        True -> prefix + dec_places.to_text + rounding_mode_str 
+        False -> prefix + "minus_" + (dec_places.abs.to_text) + rounding_mode_str 
 
 
 main = collect_benches . run_main

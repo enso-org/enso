@@ -3933,6 +3933,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       val method = suggestions.collectFirst {
         case s: Suggestion.DefinedMethod if s.name == "trim" => s
       }
+      method shouldBe defined
       method.get.arguments.size shouldEqual 3
       val arg1 = method.get.arguments(1)
       arg1.reprType shouldEqual "Location.Start | Location.End | Location.Both"
@@ -3943,6 +3944,169 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       arg2.reprType shouldEqual "Standard.Base.Data.Text.Text | (Standard.Base.Data.Text.Text -> Boolean)"
       arg2.tagValues shouldEqual None
     }
+
+    "parse method with inlined types" in {
+      val code =
+        """|import Standard.Base.Data.Text.Text
+           |import Standard.Base.Data.Numbers.Integer
+           |import Standard.Base.Data.Boolean.Boolean
+           |import Standard.Base.Any.Any
+           |
+           |type Test
+           |    filter self (column : Text | Integer = 42) (fun : Any -> Boolean) (on_problems:Boolean=..False) -> Test = self
+           |""".stripMargin
+      val module      = code.preprocessModule()
+      val suggestions = build(code, module)
+      val method = suggestions.collectFirst {
+        case s: Suggestion.DefinedMethod if s.name == "filter" => s
+      }
+      method shouldBe defined
+      method.get.arguments.size shouldEqual 4
+      val arg1 = method.get.arguments(1)
+      arg1.name shouldEqual "column"
+      arg1.reprType shouldEqual "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer"
+      arg1.tagValues shouldEqual None
+      val arg2 = method.get.arguments(2)
+      arg2.name shouldEqual "fun"
+      arg2.reprType shouldEqual "Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean"
+      arg2.tagValues shouldEqual None
+
+      val arg3 = method.get.arguments(3)
+      arg3.reprType shouldEqual "Standard.Base.Data.Boolean.Boolean"
+      arg3.tagValues shouldEqual Some(List("True", "False"))
+
+      method.get.returnType shouldEqual "Test.Test"
+    }
+  }
+
+  "parse method with partially inlined types" in {
+    val code =
+      """|import Standard.Base.Data.Text.Text
+         |import Standard.Base.Data.Numbers.Integer
+         |import Standard.Base.Data.Boolean.Boolean
+         |
+         |type Test
+         |    filter self (column : Text | Integer = 42) fun (on_problems:Boolean=..False) = self
+         |""".stripMargin
+    val module      = code.preprocessModule()
+    val suggestions = build(code, module)
+    val method = suggestions.collectFirst {
+      case s: Suggestion.DefinedMethod if s.name == "filter" => s
+    }
+    method shouldBe defined
+    method.get.arguments.size shouldEqual 4
+    val arg1 = method.get.arguments(1)
+    arg1.name shouldEqual "column"
+    arg1.reprType shouldEqual "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer"
+    arg1.tagValues shouldEqual None
+    val arg2 = method.get.arguments(2)
+    arg2.name shouldEqual "fun"
+    arg2.reprType shouldEqual "Standard.Base.Any.Any"
+    arg2.tagValues shouldEqual None
+
+    val arg3 = method.get.arguments(3)
+    arg3.reprType shouldEqual "Standard.Base.Data.Boolean.Boolean"
+    arg3.tagValues shouldEqual Some(List("True", "False"))
+
+    method.get.returnType shouldEqual "Standard.Base.Any.Any"
+  }
+
+  "parse method with partially inlined types (2)" in {
+    val code =
+      """|import Standard.Base.Data.Text.Text
+         |import Standard.Base.Data.Numbers.Integer
+         |import Standard.Base.Data.Boolean.Boolean
+         |import Standard.Base.Any.Any
+         |
+         |type Test
+         |    filter self (column : Text | Integer = 42) fun (on_problems:Boolean=..False) -> Test = self
+         |""".stripMargin
+    val module      = code.preprocessModule()
+    val suggestions = build(code, module)
+    val method = suggestions.collectFirst {
+      case s: Suggestion.DefinedMethod if s.name == "filter" => s
+    }
+    method shouldBe defined
+    method.get.arguments.size shouldEqual 4
+    val arg1 = method.get.arguments(1)
+    arg1.name shouldEqual "column"
+    arg1.reprType shouldEqual "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer"
+    arg1.tagValues shouldEqual None
+    val arg2 = method.get.arguments(2)
+    arg2.name shouldEqual "fun"
+    arg2.reprType shouldEqual "Standard.Base.Any.Any"
+    arg2.tagValues shouldEqual None
+
+    val arg3 = method.get.arguments(3)
+    arg3.reprType shouldEqual "Standard.Base.Data.Boolean.Boolean"
+    arg3.tagValues shouldEqual Some(List("True", "False"))
+
+    method.get.returnType shouldEqual "Test.Test"
+  }
+
+  "not parse method with partially inlined types when Any import is missing" in {
+    val code =
+      """|import Standard.Base.Data.Text.Text
+         |import Standard.Base.Data.Numbers.Integer
+         |import Standard.Base.Data.Boolean.Boolean
+         |
+         |type Test
+         |    filter self (column : Text | Integer = 42) fun (on_problems:Boolean=..False) -> Test = self
+         |""".stripMargin
+    val module      = code.preprocessModule()
+    val suggestions = build(code, module)
+    val method = suggestions.collectFirst {
+      case s: Suggestion.DefinedMethod if s.name == "filter" => s
+    }
+    method shouldBe defined
+    method.get.arguments.size shouldEqual 4
+    val arg1 = method.get.arguments(1)
+    arg1.name shouldEqual "column"
+    arg1.reprType shouldEqual "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer"
+    arg1.tagValues shouldEqual None
+    val arg2 = method.get.arguments(2)
+    arg2.name shouldEqual "fun"
+    arg2.reprType shouldEqual "Standard.Base.Any.Any"
+    arg2.tagValues shouldEqual None
+
+    val arg3 = method.get.arguments(3)
+    arg3.reprType shouldEqual "Standard.Base.Data.Boolean.Boolean"
+    arg3.tagValues shouldEqual Some(List("True", "False"))
+
+    method.get.returnType shouldEqual "Standard.Base.Any.Any"
+  }
+
+  "parse method with partially inlined types (3)" in {
+    val code =
+      """|import Standard.Base.Data.Text.Text
+         |import Standard.Base.Data.Numbers.Integer
+         |import Standard.Base.Data.Boolean.Boolean
+         |import Standard.Base.Errors.Common.Forbidden_Operation
+         |
+         |type Test
+         |    filter self (column : Text | Integer = 42) (fun : Integer) (on_problems:Boolean=..False) -> Test ! Forbidden_Operation = self
+         |""".stripMargin
+    val module      = code.preprocessModule()
+    val suggestions = build(code, module)
+    val method = suggestions.collectFirst {
+      case s: Suggestion.DefinedMethod if s.name == "filter" => s
+    }
+    method shouldBe defined
+    method.get.arguments.size shouldEqual 4
+    val arg1 = method.get.arguments(1)
+    arg1.name shouldEqual "column"
+    arg1.reprType shouldEqual "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer"
+    arg1.tagValues shouldEqual None
+    val arg2 = method.get.arguments(2)
+    arg2.name shouldEqual "fun"
+    arg2.reprType shouldEqual "Standard.Base.Data.Numbers.Integer"
+    arg2.tagValues shouldEqual None
+
+    val arg3 = method.get.arguments(3)
+    arg3.reprType shouldEqual "Standard.Base.Data.Boolean.Boolean"
+    arg3.tagValues shouldEqual Some(List("True", "False"))
+
+    method.get.returnType shouldEqual "Test.Test"
   }
 
   private def build(

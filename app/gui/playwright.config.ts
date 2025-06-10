@@ -7,26 +7,32 @@
  * default fonts.
  */
 import { defineConfig } from '@playwright/test'
-import net from 'net'
+import net from 'node:net'
+import path from 'node:path'
+import url from 'node:url'
+import invariant from 'tiny-invariant'
 
-const DEBUG = process.env.DEBUG_E2E === 'true'
+const DEBUG = process.env.DEBUG_TEST === 'true'
 const isCI = process.env.CI === 'true'
 const isProd = process.env.PROD === 'true'
-
-const TIMEOUT_MS =
-  DEBUG ? 100_000_000
-  : isCI ? 60_000
-  : 15_000
+const TIMEOUT_MS = DEBUG ? 100_000_000 : 25_000
 
 // We tend to use less CPU on CI to reduce the number of failures due to timeouts.
 // Instead of using workers on CI, we use shards to run tests in parallel.
 const WORKERS = isCI ? 2 : '35%'
 
+const dirName = path.dirname(url.fileURLToPath(import.meta.url))
+
 async function findFreePortInRange(min: number, max: number) {
-  for (let i = 0; i < 50; i++) {
-    const portToCheck = Math.floor(Math.random() * (max - min + 1)) + min
+  const range = max - min + 1
+
+  invariant(range > 0, 'Minimum port must be less than maximum port.')
+
+  for (let i = 0; i < range; i++) {
+    const portToCheck = min + i
     if (await checkAvailablePort(portToCheck)) return portToCheck
   }
+
   throw new Error('Failed to find a free port.')
 }
 
@@ -35,7 +41,9 @@ function checkAvailablePort(port: number) {
     const server = net.createServer()
     server
       .unref()
-      .on('error', (e: any) => ('EADDRINUSE' === e.code ? resolve(false) : reject(e)))
+      .on('error', (e: any) =>
+        'EADDRINUSE' === e.code ? reject('Port is already in use.') : reject(e),
+      )
       .listen({ host: '0.0.0.0', port }, () => server.close(() => resolve(true)))
   })
 }
@@ -48,7 +56,7 @@ const ports = {
   projectView:
     Number.isFinite(portsFromEnv.projectView) ?
       portsFromEnv.projectView
-    : await findFreePortInRange(4300, 4999),
+    : await findFreePortInRange(5300, 5999),
   dashboard:
     Number.isFinite(portsFromEnv.dashboard) ?
       portsFromEnv.dashboard
@@ -64,8 +72,8 @@ export default defineConfig({
   fullyParallel: true,
   ...(WORKERS ? { workers: WORKERS } : {}),
   forbidOnly: isCI,
-  reporter: isCI ? ([['list'], ['blob']] as const) : ([['list']] as const),
-  retries: isCI ? 3 : 0,
+  reporter: isCI ? [['list'], ['blob']] : [['html']],
+  retries: isCI ? 1 : 0,
   use: {
     headless: !DEBUG,
     actionTimeout: 5000,
@@ -81,9 +89,9 @@ export default defineConfig({
             '--headless=new',
             // Required for `backdrop-filter: blur` to work.
             '--use-angle=swiftshader',
-            // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
-            // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
-            // MUST stay as CI does not have a GPU.
+            // `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
+            // the software (CPU) compositor. This flag MUST stay if screenshot testing/
+            // visual regression testing is needed, as CI does not have a GPU.
             '--disable-gpu',
             // Fully disable GPU process.
             '--disable-software-rasterizer',
@@ -101,17 +109,18 @@ export default defineConfig({
     // Setup project
     {
       name: 'Setup Dashboard',
-      testDir: './e2e/dashboard',
+      testDir: './integration-test/dashboard',
       testMatch: /.*\.setup\.ts/,
       timeout: TIMEOUT_MS,
       use: {
         baseURL: `http://localhost:${ports.dashboard}`,
         actionTimeout: TIMEOUT_MS,
+        offline: false,
       },
     },
     {
       name: 'Dashboard',
-      testDir: './e2e/dashboard',
+      testDir: './integration-test/dashboard',
       testMatch: /.*\.spec\.ts/,
       dependencies: ['Setup Dashboard'],
       expect: {
@@ -122,31 +131,21 @@ export default defineConfig({
       use: {
         baseURL: `http://localhost:${ports.dashboard}`,
         actionTimeout: TIMEOUT_MS,
-        storageState: './playwright/.auth/user.json',
-      },
-    },
-    {
-      name: 'Auth',
-      testDir: './e2e/dashboard/auth',
-      expect: {
-        toHaveScreenshot: { threshold: 0 },
-        timeout: TIMEOUT_MS,
-      },
-      timeout: TIMEOUT_MS,
-      use: {
-        baseURL: `http://localhost:${ports.dashboard}`,
-        actionTimeout: TIMEOUT_MS,
+        offline: false,
+        storageState: path.join(dirName, './playwright/.auth/user.json'),
       },
     },
     {
       name: 'Setup Tests for Project View',
-      testMatch: /e2e\/project-view\/setup\.ts/,
+      testMatch: /integration-test\/project-view\/setup\.ts/,
     },
     {
       name: 'Project View',
       dependencies: ['Setup Tests for Project View'],
-      testDir: './e2e/project-view',
+      testDir: './integration-test/project-view',
       timeout: 60000,
+      repeatEach: 3,
+      retries: 0,
       expect: {
         timeout: 5000,
         toHaveScreenshot: { threshold: 0 },
@@ -159,23 +158,24 @@ export default defineConfig({
   ],
   webServer: [
     {
-      env: { E2E: 'true' },
-      command:
-        isCI || isProd ?
-          `corepack pnpm build && corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`
-        : `corepack pnpm exec vite dev --port ${ports.projectView}`,
+      env: {
+        INTEGRATION_TEST: 'true',
+        ENSO_IDE_PROJECT_MANAGER_URL: 'ws://__HOSTNAME__:30536',
+      },
+      command: `corepack pnpm build && corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`,
       // Build from scratch apparently can take a while on CI machines.
-      timeout: 240 * 1000,
+      timeout: 480 * 1000,
       port: ports.projectView,
       // We use our special, mocked version of server, thus do not want to re-use user's one.
       reuseExistingServer: false,
     },
     {
+      env: { NODE_ENV: 'test' },
       command:
         isCI || isProd ?
           `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
         : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
-      timeout: 240 * 1000,
+      timeout: 480 * 1000,
       port: ports.dashboard,
       reuseExistingServer: false,
     },

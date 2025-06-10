@@ -1,13 +1,11 @@
 /** @file Rendering for an {@link SettingsFormEntryData}. */
-import { ButtonGroup, Form } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { useText } from '$/providers/react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
 import SettingsInput from './Input'
 import type { SettingsContext, SettingsFormEntryData } from './data'
-
-// =========================
-// === SettingsFormEntry ===
-// =========================
 
 /** Props for a {@link SettingsFormEntry}. */
 export interface SettingsFormEntryProps<T extends Record<keyof T, string>> {
@@ -21,46 +19,70 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
 ) {
   const { context, data } = props
   const { schema: schemaRaw, getValue, inputs, onSubmit, getVisible } = data
+
   const { getText } = useText()
+
   const visible = getVisible?.(context) ?? true
   const value = getValue(context)
+
   const [initialValueString] = useState(() => JSON.stringify(value))
   const valueStringRef = useRef(initialValueString)
-  const schema = useMemo(
-    () => (typeof schemaRaw === 'function' ? schemaRaw(context) : schemaRaw),
-    [context, schemaRaw],
+
+  const isEditable = data.inputs.some((inputData) =>
+    typeof inputData.editable === 'boolean' ?
+      inputData.editable
+    : (inputData.editable?.(context) ?? true),
   )
 
   const form = Form.useForm({
     // @ts-expect-error This is SAFE, as the type `T` is statically known.
-    schema,
+    schema: typeof schemaRaw === 'function' ? schemaRaw(context) : schemaRaw,
     defaultValues: value,
-    onSubmit: async (newValue) => {
+    onSubmit: (newValue) => {
       // @ts-expect-error This is SAFE, as the type `T` is statically known.
-      await onSubmit(context, newValue)
-      form.reset(newValue)
-      // The form should not be reset on error.
+      return onSubmit(context, newValue)
     },
   })
 
+  const { isDirty } = Form.useFormState({ form })
+
   useEffect(() => {
     const newValueString = JSON.stringify(value)
+
     if (newValueString !== valueStringRef.current) {
       form.reset(value)
       valueStringRef.current = newValueString
     }
   }, [form, value])
 
-  return !visible ? null : (
-      <Form form={form} gap="none">
-        {inputs.map((input) => (
-          <SettingsInput key={input.name} context={context} data={input} />
-        ))}
-        <ButtonGroup>
-          <Form.Submit isDisabled={!form.formState.isDirty}>{getText('save')}</Form.Submit>
-          <Form.Reset>{getText('cancel')}</Form.Reset>
-        </ButtonGroup>
-        <Form.FormError />
-      </Form>
-    )
+  if (!visible) return null
+
+  const shouldShowSaveButton = isEditable && isDirty
+
+  return (
+    <Form form={form}>
+      {inputs.map((input) => (
+        <SettingsInput key={input.name} context={context} data={input} />
+      ))}
+
+      <AnimatePresence>
+        {shouldShowSaveButton && (
+          <motion.div
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <Button.Group>
+              <Form.Submit>{getText('save')}</Form.Submit>
+              <Form.Reset>{getText('cancel')}</Form.Reset>
+            </Button.Group>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Form.FormError />
+    </Form>
+  )
 }

@@ -8,8 +8,7 @@ import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 const SELECTION_BRUSH_MARGIN_PX = 6
 
-export { injectFn as injectGraphSelection, provideFn as provideGraphSelection }
-const { provideFn, injectFn } = createContextStore(
+export const [provideGraphSelection, injectGraphSelection] = createContextStore(
   'graph selection',
   (
     navigator: NavigatorComposable,

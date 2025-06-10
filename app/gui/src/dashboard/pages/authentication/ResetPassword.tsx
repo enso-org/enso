@@ -2,34 +2,36 @@
  * @file Container responsible for rendering and interactions in second half of forgot password
  * flow.
  */
-import * as React from 'react'
-import * as router from 'react-router-dom'
-
-import isEmail from 'validator/lib/isEmail'
-import * as z from 'zod'
-
-import { LOGIN_PATH } from '#/appUtils'
-import ArrowRightIcon from '#/assets/arrow_right.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import { Form, Input, Password } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input, Password } from '#/components/Inputs'
 import Link from '#/components/Link'
+import { Result } from '#/components/Result'
+import { Stepper } from '#/components/Stepper'
+import { useMount } from '#/hooks/mountHooks'
+import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useAuth } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
-import { type GetText, useText } from '#/providers/TextProvider'
+import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
+import { unsafeWriteValue } from '#/utilities/write'
+import { LOGIN_PATH } from '$/appUtils'
+import { useBackends, useRouter, useSession, useText } from '$/providers/react'
+import { type GetText } from '$/providers/text'
+import { toast } from 'react-toastify'
+import * as z from 'zod'
 
 /** Create the schema for this form. */
 function createResetPasswordFormSchema(getText: GetText) {
   return z
     .object({
-      email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
+      email: z.string().email(getText('invalidEmailValidationError')),
       verificationCode: z.string(),
       newPassword: passwordWithPatternSchema(getText),
-      confirmNewPassword: z.string(),
+      confirmNewPassword: z.string().trim(),
     })
     .superRefine((object, context) => {
       if (
@@ -45,33 +47,37 @@ function createResetPasswordFormSchema(getText: GetText) {
     })
 }
 
-// =====================
-// === ResetPassword ===
-// =====================
+const REDIRECT_TIMEOUT = 3000
 
 /** A form for users to reset their password. */
 export default function ResetPassword() {
-  const { resetPassword } = useAuth()
+  const { resetPassword } = useSession()
   const { getText } = useText()
-  const location = router.useLocation()
-  const navigate = router.useNavigate()
+  const { router, searchParams } = useRouter()
+
   const toastAndLog = useToastAndLog()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const query = new URLSearchParams(location.search)
-  const defaultEmail = query.get('email')
-  const defaultVerificationCode = query.get('verification_code')
+  const defaultEmail = searchParams.get('email')
+  const defaultVerificationCode = searchParams.get('verification_code')
+  const redirectUrl = searchParams.get('redirect_url') ?? 'enso://auth/login'
 
-  React.useEffect(() => {
+  const { startTimer } = useTimeoutAPI({ ms: REDIRECT_TIMEOUT })
+
+  useMount(() => {
     if (defaultEmail == null) {
       toastAndLog('missingEmailError')
-      navigate(LOGIN_PATH)
-    } else if (defaultVerificationCode == null) {
-      toastAndLog('missingVerificationCodeError')
-      navigate(LOGIN_PATH)
+      void router.push(LOGIN_PATH)
     }
-  }, [defaultEmail, navigate, defaultVerificationCode, getText, toastAndLog])
+
+    if (defaultVerificationCode == null) {
+      toastAndLog('missingVerificationCodeError')
+      void router.push(LOGIN_PATH)
+    }
+  })
+
+  const { stepperState } = Stepper.useStepperState({ steps: 2, defaultStep: 0 })
 
   return (
     <AuthenticationPage
@@ -86,56 +92,88 @@ export default function ResetPassword() {
         />
       }
       onSubmit={({ email, verificationCode, newPassword }) =>
-        resetPassword(email, verificationCode, newPassword)
+        resetPassword(email, verificationCode, newPassword).then(() => {
+          toast.success(getText('resetPasswordSuccess'))
+
+          stepperState.nextStep()
+
+          void startTimer()
+            .then(() => {
+              unsafeWriteValue(window.location, 'href', redirectUrl)
+            })
+            .catch(noop)
+        })
       }
     >
-      <Input
-        required
-        readOnly
-        hidden
-        data-testid="email-input"
-        name="email"
-        type="email"
-        autoComplete="email"
-        placeholder={getText('emailPlaceholder')}
-        value={defaultEmail ?? ''}
-      />
-      <Input
-        required
-        readOnly
-        hidden
-        data-testid="verification-code-input"
-        name="verificationCode"
-        type="text"
-        autoComplete="one-time-code"
-        placeholder={getText('confirmationCodePlaceholder')}
-        value={defaultVerificationCode ?? ''}
-      />
-      <Password
-        autoFocus
-        required
-        data-testid="new-password-input"
-        name="newPassword"
-        label={getText('newPasswordLabel')}
-        autoComplete="new-password"
-        icon={LockIcon}
-        placeholder={getText('newPasswordPlaceholder')}
-        description={getText('passwordValidationMessage')}
-      />
-      <Password
-        required
-        data-testid="confirm-new-password-input"
-        name="confirmNewPassword"
-        label={getText('confirmNewPasswordLabel')}
-        autoComplete="new-password"
-        icon={LockIcon}
-        placeholder={getText('confirmNewPasswordPlaceholder')}
-      />
+      <Stepper state={stepperState}>
+        <Stepper.StepContent index={0}>
+          <Input
+            required
+            readOnly
+            hidden
+            data-testid="email-input"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder={getText('emailPlaceholder')}
+            value={defaultEmail ?? ''}
+          />
 
-      <Form.FormError />
-      <Form.Submit size="large" icon={ArrowRightIcon} className="w-full">
-        {getText('reset')}
-      </Form.Submit>
+          <Input
+            required
+            readOnly
+            hidden
+            data-testid="verification-code-input"
+            name="verificationCode"
+            type="text"
+            autoComplete="one-time-code"
+            placeholder={getText('confirmationCodePlaceholder')}
+            value={defaultVerificationCode ?? ''}
+          />
+
+          <Password
+            autoFocus
+            required
+            data-testid="new-password-input"
+            name="newPassword"
+            label={getText('newPasswordLabel')}
+            autoComplete="new-password"
+            icon={LockIcon}
+            placeholder={getText('newPasswordPlaceholder')}
+            description={getText('passwordValidationMessage')}
+          />
+
+          <Password
+            required
+            data-testid="confirm-new-password-input"
+            name="confirmNewPassword"
+            label={getText('confirmNewPasswordLabel')}
+            autoComplete="new-password"
+            icon={LockIcon}
+            placeholder={getText('confirmNewPasswordPlaceholder')}
+          />
+
+          <Form.Submit size="large" icon="arrow_right" fullWidth>
+            {getText('reset')}
+          </Form.Submit>
+
+          <Form.FormError />
+        </Stepper.StepContent>
+
+        <Stepper.StepContent index={1}>
+          <Result
+            title={getText('resetPasswordSuccess')}
+            status="success"
+            subtitle={getText('resetPasswordSuccessSubtitle')}
+          >
+            <Button.Group align="center">
+              <Button href={redirectUrl} size="large" variant="submit" icon="arrow_right" fullWidth>
+                {getText('openInDesktop')}
+              </Button>
+            </Button.Group>
+          </Result>
+        </Stepper.StepContent>
+      </Stepper>
     </AuthenticationPage>
   )
 }

@@ -122,7 +122,7 @@ class ProjectShutdownSpec
     deleteProject(projectId)(client2, implicitly[Position])
   }
 
-  "ensure language server does eventually shutdown after last client disconnects" in {
+  "ensure language server does not shutdown after last client disconnects and can re-connect" in {
     val client    = new WsTestClient(address)
     val projectId = createProject("Foo")(client, implicitly[Position])
     val socket1   = openProject(projectId)(client, implicitly[Position])
@@ -154,7 +154,7 @@ class ProjectShutdownSpec
     )
     val client2 = new WsTestClient(address)
     val socket2 = openProject(projectId)(client2, implicitly[Position])
-    socket2 shouldNot be(socket1)
+    socket2 shouldBe socket1
 
     closeProject(projectId)(client2, implicitly[Position])
     deleteProject(projectId)(client2, implicitly[Position])

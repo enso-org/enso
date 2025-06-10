@@ -10,5 +10,7 @@ interface FunctionInfo {
   outputType: string | undefined
 }
 
-export { injectFn as injectFunctionInfo, provideFn as provideFunctionInfo }
-const { provideFn, injectFn } = createContextStore('Function info', identity<FunctionInfo>)
+export const [provideFunctionInfo, injectFunctionInfo] = createContextStore(
+  'Function info',
+  identity<FunctionInfo>,
+)

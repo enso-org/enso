@@ -8,10 +8,11 @@ import static org.slf4j.event.Level.WARN;
 
 import org.slf4j.event.Level;
 
-public class Converter {
+public final class Converter {
+  private Converter() {}
 
   /** Determines what is the smallest Java level that is still debug and not trace. */
-  private static int defaultLevelDebugCutOff =
+  private static final int defaultLevelDebugCutOff =
       Math.min(java.util.logging.Level.FINE.intValue(), java.util.logging.Level.CONFIG.intValue());
 
   /**
@@ -21,20 +22,14 @@ public class Converter {
    * @return an equivalent in java.util.logging.Level terms
    */
   public static java.util.logging.Level toJavaLevel(Level level) {
-    switch (level) {
-      case ERROR:
-        return java.util.logging.Level.SEVERE;
-      case WARN:
-        return java.util.logging.Level.WARNING;
-      case INFO:
-        return java.util.logging.Level.INFO;
-      case DEBUG:
-        return java.util.logging.Level.FINE;
-      case TRACE:
-        return java.util.logging.Level.FINEST;
-      default:
-        return java.util.logging.Level.ALL;
-    }
+    return switch (level) {
+      case ERROR -> java.util.logging.Level.SEVERE;
+      case WARN -> java.util.logging.Level.WARNING;
+      case INFO -> java.util.logging.Level.INFO;
+      case DEBUG -> java.util.logging.Level.FINE;
+      case TRACE -> java.util.logging.Level.FINEST;
+      default -> java.util.logging.Level.ALL;
+    };
   }
 
   /** Default mapping of Java log levels to our log levels based */

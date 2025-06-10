@@ -1,0 +1,46 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Time.Date_Range
+- type Date_Range
+    - Internal_Constructor start:Standard.Base.Data.Time.Date.Date end:Standard.Base.Data.Time.Date.Date step:Standard.Base.Data.Time.Period.Period increasing:Standard.Base.Data.Boolean.Boolean cached_length:Standard.Base.Data.Numbers.Integer
+    - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - contains self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - default_column_name self -> Standard.Base.Any.Any
+    - each self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - each_with_index self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - filter self filter:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - find self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - first self -> Standard.Base.Any.Any
+    - fold self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - index_of self condition:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - internal_at self i:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_empty self -> Standard.Base.Any.Any
+    - last self -> Standard.Base.Any.Any
+    - last_index_of self condition:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - length self -> Standard.Base.Any.Any
+    - map self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - new start:Standard.Base.Any.Any= end:Standard.Base.Any.Any= step:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - new_internal start:Standard.Base.Any.Any end:Standard.Base.Any.Any increasing:Standard.Base.Any.Any step:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - not_empty self -> Standard.Base.Any.Any
+    - partition self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - pretty self -> Standard.Base.Any.Any
+    - reduce self function:Standard.Base.Any.Any ~if_empty:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - reverse self -> Standard.Base.Any.Any
+    - running_fold self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - second self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+    - with_step self new_step:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Period.Period) -> Standard.Base.Any.Any
+- compute_length_and_verify start:Standard.Base.Any.Any end:Standard.Base.Any.Any step:Standard.Base.Any.Any increasing:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- compute_length_step_brute_force start:Standard.Base.Any.Any end:Standard.Base.Any.Any step:Standard.Base.Any.Any increasing:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- compute_length_step_days start:Standard.Base.Any.Any end:Standard.Base.Any.Any step:Standard.Base.Any.Any increasing:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- compute_length_step_months start:Standard.Base.Any.Any end:Standard.Base.Any.Any step:Standard.Base.Any.Any increasing:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- date_range_default_filter_condition_widget -> Standard.Base.Any.Any
+- is_period_positive period:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- nth_element_of_range start:Standard.Base.Any.Any step:Standard.Base.Any.Any increasing:Standard.Base.Any.Any n:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- unify_condition_for_index_of condition:(Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Function.Function) -> Standard.Base.Any.Any
+- Standard.Base.Data.Vector.Vector.from that:Standard.Base.Data.Time.Date_Range.Date_Range -> Standard.Base.Data.Vector.Vector

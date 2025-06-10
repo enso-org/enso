@@ -16,16 +16,31 @@ import project.Table.Table
 type Convertible_To_Rows
     ## PRIVATE
        Arguments:
+       - original_value: The original value from before conversion.
        - length: The number of rows in the table.
        - getter: Get the value for a specified row.
        - columns: The names for the columns when object is expanded.
          These will be added to the name of the input column.
-    Value length:Integer (getter : Integer->Any) (columns:Vector=["Value"])
+       - is_sequence: Whether the object is a sequence-like aggregate. This will
+         affect the `expand_sequences_only` option of `expand_to_rows` method.
+    Value original_value:Any length:Integer (getter : Integer->Any) (columns:Vector=["Value"]) (is_sequence:Boolean=True)
 
     ## PRIVATE
        Return the iterator values as a `Vector`.
     to_vector : Vector Any
     to_vector self = 0.up_to self.length . map self.getter
+
+    ## PRIVATE
+       Aligns this conversion depending on if we want to only expand sequences
+       or all kinds of objects.
+
+       If `sequence_only` is `False` or the conversion reports `is_sequence=True`, no changes are made.
+       However, `sequence_only` is `True` and the conversion reports `is_sequence=False`,
+       the conversion is replaced with a single row - same as the `Any` fallback.
+    align_sequence_only self sequence_only:Boolean -> Convertible_To_Rows =
+        if sequence_only.not then self else
+            if self.is_sequence then self else
+                _conversion_from_value_as_single_row self.original_value
 
 ## PRIVATE
 Convertible_To_Rows.from that:Table =
@@ -33,39 +48,42 @@ Convertible_To_Rows.from that:Table =
     Convertible_To_Rows.from rows
 
 ## PRIVATE
-Convertible_To_Rows.from that:Column = Convertible_To_Rows.Value that.length (that.get _)
+Convertible_To_Rows.from that:Column = Convertible_To_Rows.Value that that.length (that.get _)
 
 ## PRIVATE
-Convertible_To_Rows.from that:Vector = Convertible_To_Rows.Value that.length (that.get _)
+Convertible_To_Rows.from that:Vector = Convertible_To_Rows.Value that that.length (that.get _)
 
 ## PRIVATE
-Convertible_To_Rows.from that:Array = Convertible_To_Rows.Value that.length (that.get _)
+Convertible_To_Rows.from that:Array = Convertible_To_Rows.Value that that.length (that.get _)
 
 ## PRIVATE
 Convertible_To_Rows.from that:List = Convertible_To_Rows.from that.to_vector
 
 ## PRIVATE
-Convertible_To_Rows.from that:Range = Convertible_To_Rows.Value that.length (that.get _)
+Convertible_To_Rows.from that:Range = Convertible_To_Rows.Value that that.length (that.get _)
 
 ## PRIVATE
-Convertible_To_Rows.from that:Pair = Convertible_To_Rows.Value that.length (that.get _)
+Convertible_To_Rows.from that:Pair = Convertible_To_Rows.Value that that.length (that.get _)
 
 ## PRIVATE
-Convertible_To_Rows.from that:Date_Range = Convertible_To_Rows.Value that.length (that.get _)
+Convertible_To_Rows.from that:Date_Range = Convertible_To_Rows.Value that that.length (that.get _)
 
 ## PRIVATE
 Convertible_To_Rows.from that:Dictionary =
     vals = that.to_vector.map p-> Key_Value.Pair p.first p.second
-    Convertible_To_Rows.Value vals.length (vals.get _) ["Key", "Value"]
+    Convertible_To_Rows.Value that vals.length (vals.get _) ["Key", "Value"] is_sequence=False
 
 ## PRIVATE
 Convertible_To_Rows.from that:JS_Object =
     vals = that.map_with_key k->v-> Key_Value.Pair k v
-    Convertible_To_Rows.Value vals.length (vals.get _) ["Key", "Value"]
+    Convertible_To_Rows.Value that vals.length (vals.get _) ["Key", "Value"] is_sequence=False
 
 ## PRIVATE
 Convertible_To_Rows.from (that:Any) =
-    Convertible_To_Rows.Value 1 (n-> if n==0 then that else Nothing)
+    _conversion_from_value_as_single_row that
+
+private _conversion_from_value_as_single_row value =
+    Convertible_To_Rows.Value value 1 (n-> if n==0 then value else Nothing) is_sequence=False
 
 ## PRIVATE
 type Key_Value

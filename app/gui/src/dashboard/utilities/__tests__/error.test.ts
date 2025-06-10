@@ -3,10 +3,6 @@ import * as v from 'vitest'
 
 import * as error from '#/utilities/error'
 
-// =============
-// === Tests ===
-// =============
-
 const MESSAGE = 'A custom error message.'
 
 v.describe('`error.tryGetMessage`', () => {

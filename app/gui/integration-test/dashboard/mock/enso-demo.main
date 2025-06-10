@@ -1,0 +1,51 @@
+from Standard.Base import all
+from Standard.Table import all
+from Standard.Database import all
+from Standard.AWS import all
+from Standard.Google_Api import all
+from Standard.Snowflake import all
+import Standard.Visualization
+
+## ![image](ea.png)
+   
+   # Project Goal
+   
+   - Rank overall sales performance for the team over the past 3 years. 
+   - The order information lives in the accounting system 
+   - Account Executive information lives in the CRM
+   - Common ID is the EIN, which has some formatting issues.
+   
+   # Enso Benefits
+   
+   - Save an average of **7 hours per week** by not repeating work just because the data changes
+   - Runs locally on Windows, Mac & Linux, as well as in a browser with 100% compabibility.
+   - All of the configuration is visible on each component, making it easy to identify mistakes, and ensuring auditability of the workflows.
+   - Data processing is pushed down into the database engine when connected to database sources, using the same components that you use for files.
+   - Hundreds of components avaiable, ensuring you will have the capabilties to solve any data challenge.
+   
+   # Next Steps
+   
+   - Download Enso Community Edition from [https://ensoanalytics.com](https://ensoanalytics.com)
+   - Join the Enso Community at [https://community.ensoanalytics.com](https://community.ensoanalytics.com)
+   - Spread the word!
+main =
+    node1 = Data.read 'enso:///Teams/Analytics/Demo/Invoice_CRM_Data_June 2024.xlsx' Auto_Detect
+    node2 = node1.read 'Invoice'
+    node3 = node1.read 'CRM'
+    table1 = node2.text_cleanse ['EIN'] [..Symbols]
+    any1 = table1.set (expr 'text_left([EIN],2) + \'-\' + text_right([EIN],7)') 'EIN'
+    table2 = any1.parse ['invoice_date'] ..Date 'dd MMMM, yyyy'
+    any2 = table2.set (..Simple_Expr (..Name 'invoice_date') (..Date ..Year)) 'Year'
+    any3 = any2.distinct on_problems=..Ignore
+    table3 = node3.text_cleanse ['EIN'] [..Symbols]
+    any4 = table3.set (expr 'text_left([EIN],2) + \'-\' + text_right([EIN],7)') 'EIN'
+    table4 = any3.join any4 ..Inner [(..Equals 'EIN')]
+    any5 = table4.cross_tab ['account_owner'] 'Year' (..Sum 'invoice_amount')
+    any6 = any5.sort [(..Name '2024' ..Descending)]
+    any7 = any6.format [(..By_Type ..Float)] '#,##0.00'
+
+
+
+#### METADATA ####
+[[{"index":{"value":1396},"size":{"value":72}},"0a68d440-a0b5-4d6e-ad08-4fb7532a69ce"],[{"index":{"value":1396},"size":{"value":84}},"235c06eb-7293-4675-8d18-1396cc74af6f"],[{"index":{"value":1493},"size":{"value":20}},"71560ce4-47ce-4d5f-9c65-cd338e3becc2"],[{"index":{"value":1526},"size":{"value":16}},"3f4b524f-f08d-4508-91f5-c9dfcfdcf326"],[{"index":{"value":1556},"size":{"value":18}},"9d6c459a-c2c2-42dc-ba66-6054834b04d1"],[{"index":{"value":1556},"size":{"value":26}},"78a8a3ef-b447-40e3-874e-ac9fbc63f01f"],[{"index":{"value":1556},"size":{"value":38}},"01372e20-ea45-43d3-9bea-9c5e64c86ab8"],[{"index":{"value":1606},"size":{"value":10}},"40620ee1-9313-4e6c-ad9a-0e76b9aed728"],[{"index":{"value":1606},"size":{"value":68}},"d0eb641d-185a-4494-8c58-3ec6fa441d08"],[{"index":{"value":1606},"size":{"value":74}},"9028d841-3ba4-4053-9e63-3a4c070d72fa"],[{"index":{"value":1694},"size":{"value":10}},"862d0e1a-1cde-45e0-b5d7-2941f0b76795"],[{"index":{"value":1694},"size":{"value":27}},"64d757cc-e159-4241-b7af-e4d195ec4f8c"],[{"index":{"value":1694},"size":{"value":34}},"6788bc65-cef2-43bb-986e-803ae9310b7d"],[{"index":{"value":1694},"size":{"value":50}},"ac101af3-063a-47d1-a252-61d9d7eb0d2f"],[{"index":{"value":1756},"size":{"value":10}},"d10f6ea6-c042-4ec7-bff1-9d578b104621"],[{"index":{"value":1756},"size":{"value":66}},"4446457b-94af-42bd-ae4c-2fa020491b00"],[{"index":{"value":1756},"size":{"value":73}},"a1f38723-34c0-4f3d-b40a-6f35653c9bb3"],[{"index":{"value":1841},"size":{"value":13}},"a794d437-197d-4928-a258-036d78a68e77"],[{"index":{"value":1841},"size":{"value":34}},"f7e98ff9-c11e-4754-a125-21282765a7ba"],[{"index":{"value":1889},"size":{"value":38}},"3d9e288b-a837-4fe9-8151-00267ba5cd6b"],[{"index":{"value":1939},"size":{"value":74}},"f9a338dc-15f0-4274-9ea3-bbd168cfdb03"],[{"index":{"value":2027},"size":{"value":9}},"bdaa0042-93ba-41b9-b55c-6dca20188d42"],[{"index":{"value":2027},"size":{"value":14}},"c64218cc-371d-4966-9c35-193362232836"],[{"index":{"value":2027},"size":{"value":22}},"b7a59daf-d2c8-48cb-aaae-bde8b2eeade1"],[{"index":{"value":2027},"size":{"value":41}},"53d77b34-d71b-48f1-b861-3f18dfdd3d27"],[{"index":{"value":2080},"size":{"value":16}},"92a346f4-d04e-4a53-a669-d0c4f81bf452"],[{"index":{"value":2080},"size":{"value":34}},"e813c5fa-aa4f-4a06-9aa6-9a5760cae47c"],[{"index":{"value":2080},"size":{"value":41}},"3a5a5a46-8a2e-4169-b3cc-fca88346b5e4"],[{"index":{"value":2080},"size":{"value":66}},"f1bd7270-4511-4d17-bc4f-85ad07b203b3"],[{"index":{"value":2158},"size":{"value":9}},"f7d3bfe7-b250-4eb4-a28c-0020259840ed"],[{"index":{"value":2158},"size":{"value":40}},"432cf088-d60f-4d4d-ae56-bb1535f40830"],[{"index":{"value":2210},"size":{"value":11}},"775d1305-355c-46e2-9f66-032a87877a3d"],[{"index":{"value":2210},"size":{"value":33}},"e30d233d-7cd7-4613-83ea-99088ca9180e"],[{"index":{"value":2210},"size":{"value":44}},"90a4ca5f-3fb8-459f-afca-f16f0212f9c6"]]
+{"ide":{"node":{"235c06eb-7293-4675-8d18-1396cc74af6f":{"position":{"vector":[453,-1215]},"visualization":{"show":true,"fullscreen":false,"project":{"project":"Builtin"},"name":"Table"}},"0a68d440-a0b5-4d6e-ad08-4fb7532a69ce":{"position":{"vector":[453,-1215]},"visualization":{"show":true,"fullscreen":false,"project":{"project":"Builtin"},"name":"Table"}},"71560ce4-47ce-4d5f-9c65-cd338e3becc2":{"position":{"vector":[453,-1473]}},"3f4b524f-f08d-4508-91f5-c9dfcfdcf326":{"position":{"vector":[1345,-1689]}},"01372e20-ea45-43d3-9bea-9c5e64c86ab8":{"position":{"vector":[453,-1545]}},"78a8a3ef-b447-40e3-874e-ac9fbc63f01f":{"position":{"vector":[453,-1731]}},"9d6c459a-c2c2-42dc-ba66-6054834b04d1":{"position":{"vector":[453,-1731]}},"9028d841-3ba4-4053-9e63-3a4c070d72fa":{"position":{"vector":[453,-1617]}},"d0eb641d-185a-4494-8c58-3ec6fa441d08":{"position":{"vector":[453,-1989]}},"40620ee1-9313-4e6c-ad9a-0e76b9aed728":{"position":{"vector":[453,-1989]}},"ac101af3-063a-47d1-a252-61d9d7eb0d2f":{"position":{"vector":[453,-1689]}},"6788bc65-cef2-43bb-986e-803ae9310b7d":{"position":{"vector":[453,-1875]}},"64d757cc-e159-4241-b7af-e4d195ec4f8c":{"position":{"vector":[453,-1875]}},"862d0e1a-1cde-45e0-b5d7-2941f0b76795":{"position":{"vector":[453,-1875]}},"a1f38723-34c0-4f3d-b40a-6f35653c9bb3":{"position":{"vector":[453,-1779]}},"4446457b-94af-42bd-ae4c-2fa020491b00":{"position":{"vector":[453,-1947]}},"d10f6ea6-c042-4ec7-bff1-9d578b104621":{"position":{"vector":[453,-1947]}},"f7e98ff9-c11e-4754-a125-21282765a7ba":{"position":{"vector":[453,-1851]}},"a794d437-197d-4928-a258-036d78a68e77":{"position":{"vector":[453,-2037]}},"3d9e288b-a837-4fe9-8151-00267ba5cd6b":{"position":{"vector":[1345,-1761]}},"f9a338dc-15f0-4274-9ea3-bbd168cfdb03":{"position":{"vector":[1345,-1833]}},"53d77b34-d71b-48f1-b861-3f18dfdd3d27":{"position":{"vector":[761,-1993]},"visualization":{"show":true,"fullscreen":false}},"b7a59daf-d2c8-48cb-aaae-bde8b2eeade1":{"position":{"vector":[757,-2182]}},"c64218cc-371d-4966-9c35-193362232836":{"position":{"vector":[757,-2182]}},"bdaa0042-93ba-41b9-b55c-6dca20188d42":{"position":{"vector":[757,-2182]}},"f1bd7270-4511-4d17-bc4f-85ad07b203b3":{"position":{"vector":[1269,-2155]},"visualization":{"show":true,"fullscreen":false}},"3a5a5a46-8a2e-4169-b3cc-fca88346b5e4":{"position":{"vector":[761,-2251]}},"e813c5fa-aa4f-4a06-9aa6-9a5760cae47c":{"position":{"vector":[761,-2251]}},"92a346f4-d04e-4a53-a669-d0c4f81bf452":{"position":{"vector":[761,-2251]}},"432cf088-d60f-4d4d-ae56-bb1535f40830":{"position":{"vector":[761,-2509]}},"f7d3bfe7-b250-4eb4-a28c-0020259840ed":{"position":{"vector":[761,-2509]}},"90a4ca5f-3fb8-459f-afca-f16f0212f9c6":{"position":{"vector":[1015,-2691]},"visualization":{"show":true,"fullscreen":false,"width":879.59765625,"height":337.29296875}},"e30d233d-7cd7-4613-83ea-99088ca9180e":{"position":{"vector":[761,-2581]}},"775d1305-355c-46e2-9f66-032a87877a3d":{"position":{"vector":[761,-2581]}}},"import":{}}}

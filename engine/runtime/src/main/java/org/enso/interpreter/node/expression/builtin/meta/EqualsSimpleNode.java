@@ -21,6 +21,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
@@ -118,7 +119,7 @@ abstract class EqualsSimpleNode extends Node {
     }
   }
 
-  @Specialization
+  @Specialization(guards = {"isNotMulti(other)", "!isPrimitiveValue(other)"})
   EqualsAndInfo equalsLongInterop(
       long self,
       Object other,
@@ -154,7 +155,7 @@ abstract class EqualsSimpleNode extends Node {
     return EqualsAndInfo.FALSE;
   }
 
-  @Specialization
+  @Specialization(guards = {"!isMulti(other)", "!isPrimitiveValue(other)"})
   EqualsAndInfo equalsDoubleInterop(
       double self,
       Object other,
@@ -227,7 +228,8 @@ abstract class EqualsSimpleNode extends Node {
   }
 
   @TruffleBoundary
-  @Specialization(guards = {"isBigInteger(iop, self)", "!isPrimitiveValue(other)"})
+  @Specialization(
+      guards = {"isBigInteger(iop, self)", "!isPrimitiveValue(other)", "isNotMulti(other)"})
   EqualsAndInfo equalsBigIntInterop(
       Object self,
       Object other,
@@ -266,7 +268,11 @@ abstract class EqualsSimpleNode extends Node {
    * lexicographical order, handling Unicode normalization. See {@code Text_Utils.compare_to}.
    */
   @Specialization(
-      guards = {"selfInterop.isString(selfString)"},
+      guards = {
+        "selfInterop.isString(selfString)",
+        "isNotMulti(selfString)",
+        "isNotMulti(otherString)"
+      },
       limit = "3")
   EqualsAndInfo equalsStrings(
       Object selfString,
@@ -315,6 +321,87 @@ abstract class EqualsSimpleNode extends Node {
     } else {
       return equalsAtomNode.execute(frame, self, other);
     }
+  }
+
+  static boolean isMulti(Object obj) {
+    return obj instanceof EnsoMultiValue;
+  }
+
+  @Specialization
+  EqualsAndInfo equalsMultiValueMultiValue(
+      VirtualFrame frame,
+      EnsoMultiValue self,
+      EnsoMultiValue other,
+      @Shared("multiCast") @Cached EnsoMultiValue.CastToNode castNode,
+      @Shared("multiType") @Cached TypeOfNode typesNode,
+      @Shared("multiEquals") @Cached EqualsSimpleNode delegate) {
+    if (self == other) {
+      return EqualsAndInfo.TRUE;
+    }
+
+    var typesSelf = typesNode.findAllTypesOrNull(self, false);
+    var typesOther = typesNode.findAllTypesOrNull(other, false);
+    assert typesSelf != null;
+    assert typesOther != null;
+    for (var t : typesSelf) {
+      var selfValue = castNode.findTypeOrNull(t, self, false, false);
+      assert selfValue != null;
+      var otherValue = castNode.findTypeOrNull(t, other, false, false);
+      if (otherValue == null) {
+        return EqualsAndInfo.FALSE;
+      }
+      var res = delegate.execute(frame, selfValue, otherValue);
+      if (!res.isTrue()) {
+        return res;
+      }
+    }
+    for (var t : typesOther) {
+      var selfValue = castNode.findTypeOrNull(t, self, false, false);
+      if (selfValue == null) {
+        return EqualsAndInfo.FALSE;
+      }
+      var otherValue = castNode.findTypeOrNull(t, other, false, false);
+      assert otherValue != null;
+      var res = delegate.execute(frame, selfValue, otherValue);
+      if (!res.isTrue()) {
+        return res;
+      }
+    }
+    return EqualsAndInfo.TRUE;
+  }
+
+  @Specialization(guards = "!isMulti(other)")
+  EqualsAndInfo equalsMultiValue(
+      VirtualFrame frame,
+      EnsoMultiValue self,
+      Object other,
+      @Shared("multiCast") @Cached EnsoMultiValue.CastToNode castNode,
+      @Shared("multiType") @Cached TypeOfNode typesNode,
+      @Shared("multiEquals") @Cached EqualsSimpleNode delegate) {
+    var types = typesNode.findAllTypesOrNull(self, false);
+    assert types != null;
+    for (var t : types) {
+      var value = castNode.findTypeOrNull(t, self, false, false);
+      if (value == null) {
+        continue;
+      }
+      var res = delegate.execute(frame, value, other);
+      if (!res.isTrue()) {
+        return res;
+      }
+    }
+    return EqualsAndInfo.TRUE;
+  }
+
+  @Specialization(guards = "!isMulti(self)")
+  EqualsAndInfo equalsMultiValueReversed(
+      VirtualFrame frame,
+      Object self,
+      EnsoMultiValue other,
+      @Shared("multiCast") @Cached EnsoMultiValue.CastToNode castNode,
+      @Shared("multiType") @Cached TypeOfNode typesNode,
+      @Shared("multiEquals") @Cached EqualsSimpleNode delegate) {
+    return equalsMultiValue(frame, other, self, castNode, typesNode, delegate);
   }
 
   @Specialization
@@ -375,7 +462,7 @@ abstract class EqualsSimpleNode extends Node {
       return true;
     }
     if (a instanceof EnsoMultiValue || b instanceof EnsoMultiValue) {
-      return true;
+      return false;
     }
     return !isPrimitive(a, interop) && !isPrimitive(b, interop);
   }
@@ -398,6 +485,14 @@ abstract class EqualsSimpleNode extends Node {
 
   static boolean isPrimitiveValue(Object object) {
     return object instanceof Boolean || object instanceof Long || object instanceof Double;
+  }
+
+  static boolean isEnsoObject(Object v) {
+    return v instanceof EnsoObject;
+  }
+
+  static boolean isNotMulti(Object v) {
+    return !(v instanceof EnsoMultiValue);
   }
 
   static boolean isBigInteger(InteropLibrary iop, Object v) {

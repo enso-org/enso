@@ -8,6 +8,8 @@ order: 15
 
 # References
 
+<!-- Well, these references seem quite useful. Thanks! -->
+
 This file contains a variety of useful references for those wanting to
 understand the concepts and research that underlie Enso's type system and type
 theory.
@@ -44,7 +46,7 @@ theory.
 
 ## Monadic Contexts
 
-- [Supermonads](http://eprints.nottingham.ac.uk/36156/1/paper.pdf)
+- [Supermonads](https://web.archive.org/web/20180719132706/http://eprints.nottingham.ac.uk/36156/1/paper.pdf)
 
 ## Refinement Typing and Compiler Assistance
 

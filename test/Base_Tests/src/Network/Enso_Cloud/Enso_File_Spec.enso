@@ -11,6 +11,7 @@ import Standard.Base.Runtime.Context
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
+import project.Data.Data_Spec
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 
@@ -26,6 +27,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
     group_builder.teardown test_root.cleanup
 
+    add_data_specs suite_builder test_root.get
+
     group_builder.specify "should be able to list a directory" <|
         assets = Enso_File.home.list
         # We don't a priori know the contents, so we can only check very generic properties
@@ -34,6 +37,18 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
         # We know something about contents of our prepared test directory though
         test_root.get.list.map .name . should_contain "test_file.json"
+
+        # Data.list should also work
+        Data.list Enso_File.home . should_be_a Vector
+        Data.list "enso://~" . should_be_a Vector
+        Data.list test_root.get . map .name . should_contain "test_file.json"
+        Data.list test_root.get.path . map .name . should_contain "test_file.json"
+
+    group_builder.specify "list should sort its output" <|
+        r = Enso_File.home.list
+        r.should_be_a Vector
+        as_strings = r.map .to_text
+        as_strings . should_equal as_strings.sort
 
     group_builder.specify "should allow to create and delete a directory" <|
         my_name = "my_test_dir-" + (Random.uuid.take 5)
@@ -226,6 +241,11 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Not_Found
 
+    group_builder.specify "read_many should work with Cloud files" <|
+        paths = [test_root.get / "test_file.json", test_root.get / "test-directory/another.txt"]
+        r = Data.read_many paths return=..As_Vector
+        r.should_equal [[1, 2, 3, "foo"], "Hello Another!"]
+
     group_builder.specify "should be able to open a file as input stream" <|
         test_file = test_root.get / "test_file.json"
         test_file.exists . should_be_true
@@ -376,6 +396,11 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
     Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get
+
+add_data_specs suite_builder root =
+    my_dir = (root / "data_specs-").create_directory
+    file_maker path_element:Text = my_dir / (path_element+".txt")
+    Data_Spec.add_specs "(Enso_File) " suite_builder file_maker
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare

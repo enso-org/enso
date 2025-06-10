@@ -1,0 +1,63 @@
+/** @file A list of previous versions of an asset. */
+import { Result } from '#/components/Result'
+import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
+import type Backend from '#/services/Backend'
+import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
+import { useBackends, useRightPanelData, useText } from '$/providers/react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { ProjectSession } from './ProjectSession'
+
+/** A list of previous versions of an asset. */
+export function ProjectSessions() {
+  const { getText } = useText()
+  const rightPanel = useRightPanelData()
+  const { remoteBackend } = useBackends()
+
+  if (rightPanel.context?.category?.backend !== BackendType.remote) {
+    return <AssetPanelPlaceholder title={getText('assetProjectSessions.localBackend')} />
+  }
+
+  if (rightPanel.focusedAsset == null) {
+    return <AssetPanelPlaceholder title={getText('assetProjectSessions.notSelected')} />
+  }
+
+  if (rightPanel.focusedAsset.type !== AssetType.project) {
+    return <AssetPanelPlaceholder title={getText('assetProjectSessions.notProjectAsset')} />
+  }
+
+  return <AssetProjectSessionsInternal backend={remoteBackend} item={rightPanel.focusedAsset} />
+}
+
+/** Props for a {@link AssetProjectSessionsInternal}. */
+interface AssetProjectSessionsInternalProps {
+  readonly backend: Backend
+  readonly item: ProjectAsset
+}
+
+/** A list of previous versions of an asset. */
+function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) {
+  const { backend, item } = props
+  const { getText } = useText()
+
+  const projectSessionsQuery = useSuspenseQuery({
+    queryKey: ['getProjectSessions', item.id, item.title],
+    queryFn: async () => {
+      const sessions = await backend.listProjectSessions(item.id, item.title)
+      return [...sessions].reverse()
+    },
+  })
+
+  return projectSessionsQuery.data.length === 0 ?
+      <Result status="info" centered title={getText('assetProjectSessions.noSessions')} />
+    : <div className="flex w-full flex-col justify-start">
+        {projectSessionsQuery.data.map((session, i) => (
+          <ProjectSession
+            key={session.projectSessionId}
+            backend={backend}
+            project={item}
+            projectSession={session}
+            index={projectSessionsQuery.data.length - i}
+          />
+        ))}
+      </div>
+}

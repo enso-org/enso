@@ -1,4 +1,5 @@
-node_modules
 dist
 lib/content/assets/
-*.env
+
+# Fail-safe to not commit locally defined env file that used to be here.
+.env

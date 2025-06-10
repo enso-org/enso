@@ -8,7 +8,7 @@ import {
 } from '@/util/ast/raw'
 import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
 import { LazyObject } from 'ydoc-shared/ast/parserSupport'
-import { rangeIsBefore, sourceRangeKey, type SourceRange } from 'ydoc-shared/yjsModel'
+import { SourceRange, sourceRangeKey } from 'ydoc-shared/util/data/text'
 
 const ACCESSOR_OPERATOR = '.'
 
@@ -47,7 +47,7 @@ class Scope {
     const localBinding = this.bindings.get(identifier)
     if (
       localBinding != null &&
-      (location == null || rangeIsBefore(parsedTreeOrTokenRange(localBinding), location))
+      (location == null || parsedTreeOrTokenRange(localBinding).endsBefore(location))
     ) {
       return localBinding
     } else if (this.parent != null) {
@@ -306,13 +306,14 @@ export class AliasAnalyzer {
           const arrow = caseLine.case?.arrow
           const expression = caseLine.case?.expression
           if (pattern) {
-            const armStart = parsedTreeOrTokenRange(pattern)[0]
-            const armEnd =
-              expression ? parsedTreeOrTokenRange(expression)[1]
-              : arrow ? parsedTreeOrTokenRange(arrow)[1]
-              : parsedTreeOrTokenRange(pattern)[1]
-
-            const armRange: SourceRange = [armStart, armEnd]
+            const patternRange = parsedTreeOrTokenRange(pattern)
+            const armRange = SourceRange.unsafeFromBounds(
+              patternRange.from,
+              (expression ? parsedTreeOrTokenRange(expression)
+              : arrow ? parsedTreeOrTokenRange(arrow)
+              : patternRange
+              ).to,
+            )
             this.withNewScopeOver(armRange, () => {
               this.withContext(Context.Pattern, () => {
                 this.processTree(caseLine.case?.pattern)

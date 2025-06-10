@@ -1,0 +1,151 @@
+from Standard.Base import all
+from Standard.Test import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Common.No_Such_Method
+
+import project.Data.Complex.Complex
+
+type A
+    A value
+    a self = "a"
+type B
+    B value
+    b self = "b"
+type C
+    C value
+    c self = "c"
+
+A.from (that:Float) = A.A that
+B.from (that:Float) = B.B that
+C.from (that:Float) = C.C that
+
+type U
+    U value
+    u self = "u"
+type V
+    V v
+
+U.from (that:B) = U.U that.value
+V.from (that:C) = V.V that.value
+
+add_specs suite_builder =
+    suite_builder.group "Convert Multi Value" group_builder->
+
+        group_builder.specify "performs conversion to U&V from B and C" <|
+            abc = 3.14 : A&B&C
+            uv = abc : U&V
+
+            uv.u . should_equal "u"
+            uv.v . should_equal 3.14
+
+            Test.expect_panic No_Such_Method <| uv.a
+            Test.expect_panic No_Such_Method <| uv.b
+            Test.expect_panic No_Such_Method <| uv.c
+            Test.expect_panic Type_Error (uv:A)
+            Test.expect_panic Type_Error (uv:B)
+            Test.expect_panic Type_Error (uv:C)
+
+            uv:U . u . should_equal "u"
+            uv:V . v . should_equal 3.14
+
+            Test.expect_panic No_Such_Method <| (uv:V).u
+            Test.expect_panic No_Such_Method <| (uv:U).v
+
+        group_builder.specify "fails conversion to U&V from A and C as B is missing" <|
+            ac = 3.14 : A&C
+            Test.expect_panic Type_Error <| ac:U&V
+            Test.expect_panic Type_Error <| ac:U
+            ac:V . v . should_equal 3.14
+
+        group_builder.specify "case of first" <|
+            abc = 3.14 : A&B&C
+            c1 = case abc of
+                a:A -> a.a
+                b:B -> b.b
+                c:C -> c.c
+                _ -> "what?"
+            c1 . should_equal "a"
+
+        group_builder.specify "case of second downcasted" <|
+            abc = 3.14 : A&B&C
+            c1 = case abc:B of
+                b:B -> b.b
+                a:A -> a.a
+                c:C -> c.c
+                _ -> "what?"
+            c1 . should_equal "b"
+
+        group_builder.specify "case of third downcasted" <|
+            abc = 3.14 : A&B&C
+            c1 = case abc:C of
+                c:C -> c.c
+                b:B -> b.b
+                a:A -> a.a
+                _ -> "what?"
+            c1 . should_equal "c"
+
+    suite_builder.group "Equals and hash" group_builder->
+        pi = 3.14
+        a = pi : A
+        b = pi : B
+        c = pi : C
+        abc = pi : A&B&C
+        downcast_a = abc : A
+        downcast_ab = abc : A&B
+        downcast_ba = abc : B&A
+        downcast_b = abc : B
+        downcast_c = abc : C
+
+        group_builder.specify "Ordering and multi value" <|
+            Ordering.compare a b . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a b)
+
+            Ordering.compare a downcast_a . should_equal Ordering.Equal
+
+            Ordering.hash a . should_equal (Ordering.hash downcast_a)
+
+            Ordering.compare a downcast_ab . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a downcast_ab)
+            Ordering.compare a abc . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a abc)
+
+            Ordering.compare a downcast_ba . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a downcast_ba)
+            Ordering.compare downcast_ba b . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error downcast_ba b)
+            Ordering.compare a b . catch Any e->
+                e.should_equal (Standard.Base.Errors.Common.Incomparable_Values.Error a b)
+
+        group_builder.specify "Dictionary with value and multi value" <|
+            dict = Dictionary.empty
+                . insert a "A"
+                . insert b "B"
+                . insert c "C"
+                . insert downcast_ab "AB_"
+                . insert downcast_ba "BA_"
+                . insert downcast_a "A_"
+                . insert downcast_b "B_"
+                . insert downcast_c "C_"
+                . insert abc "Multi"
+
+            # downcast single value is equal to the value
+            dict . get downcast_a . should_equal "A_"
+            dict . get downcast_b . should_equal "B_"
+            dict . get downcast_c . should_equal "C_"
+
+            # hence "A" ,"B", "C" were replaced
+            dict . get a . should_equal "A_"
+            dict . get b . should_equal "B_"
+            dict . get c . should_equal "C_"
+
+            # multi value must be equal to all its values
+            dict . get abc . should_equal "Multi"
+
+            # order of types in multi value isn't important
+            dict . get downcast_ab . should_equal "BA_"
+            dict . get downcast_ba . should_equal "BA_"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

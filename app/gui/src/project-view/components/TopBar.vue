@@ -1,48 +1,37 @@
 <script setup lang="ts">
+import ActionButton from '@/components/ActionButton.vue'
+import ControlGroup from '@/components/ControlGroup.vue'
 import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
-import RecordControl from '@/components/RecordControl.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
-import UndoRedoButtons from './UndoRedoButtons.vue'
+import ZoomControl from '@/components/ZoomControl.vue'
+import { type ActionName } from '@/providers/action'
+import { injectGraphSelection } from '@/providers/graphSelection'
 
-const showColorPicker = defineModel<boolean>('showColorPicker', { required: true })
-const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
-const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
-const props = defineProps<{
-  zoomLevel: number
-  componentsSelected: number
-}>()
-const emit = defineEmits<{
-  fitToAllClicked: []
-  zoomIn: []
-  zoomOut: []
-  collapseNodes: []
-  removeNodes: []
-}>()
+const projectNameEdited = defineModel<boolean>('projectNameEdited', { default: false })
+const props = defineProps<{ zoomLevel: number; menuActions: ActionName[] }>()
+const selection = injectGraphSelection()
 </script>
 
 <template>
   <div class="TopBar">
-    <NavBreadcrumbs />
-    <RecordControl />
-    <UndoRedoButtons />
-    <Transition name="selection-menu">
-      <SelectionMenu
-        v-if="componentsSelected > 1"
-        v-model:showColorPicker="showColorPicker"
-        :selectedComponents="componentsSelected"
-        @collapseNodes="emit('collapseNodes')"
-        @removeNodes="emit('removeNodes')"
-      />
-    </Transition>
-    <ExtendedMenu
-      v-model:showCodeEditor="showCodeEditor"
-      v-model:showDocumentationEditor="showDocumentationEditor"
-      :zoomLevel="props.zoomLevel"
-      @fitToAllClicked="emit('fitToAllClicked')"
-      @zoomIn="emit('zoomIn')"
-      @zoomOut="emit('zoomOut')"
-    />
+    <ExtendedMenu :actions="menuActions" />
+    <NavBreadcrumbs v-model:projectNameEdited="projectNameEdited" />
+    <ControlGroup>
+      <ActionButton class="redButton" action="graph.refreshExecution" />
+      <ActionButton class="redButton" action="graph.recomputeAll" />
+    </ControlGroup>
+    <ControlGroup>
+      <ActionButton action="graph.undo" />
+      <ActionButton action="graph.redo" />
+    </ControlGroup>
+    <SelectionMenu v-if="selection.selected.size > 1" />
+    <ControlGroup v-else>
+      <ActionButton action="graph.addComponent" label="Input" data-testid="add-component-button" />
+    </ControlGroup>
+
+    <div class="invisible flex-1"></div>
+    <ZoomControl :zoomLevel="props.zoomLevel" />
   </div>
 </template>
 
@@ -55,23 +44,14 @@ const emit = defineEmits<{
   left: 0;
   right: 0;
   margin-left: 11px;
+  margin-right: 11px;
   pointer-events: none;
   > * {
-    pointer-events: auto;
+    pointer-events: all;
   }
 }
 
-.TopBar.extraRightSpace {
-  right: 32px;
-}
-
-.selection-menu-enter-active,
-.selection-menu-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.selection-menu-enter-from,
-.selection-menu-leave-to {
-  opacity: 0;
+.redButton:active {
+  color: #ba4c40;
 }
 </style>

@@ -7,11 +7,12 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { focusIsIn, useEvent, useResizeObserver } from '@/composables/events'
+import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { type BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
+import { computed, nextTick, onUnmounted, proxyRefs, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /**
@@ -25,7 +26,7 @@ const DEFAULT_CONTENT_HEIGHT_PX = 150
 
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
-  isCircularMenuVisible: boolean
+  isComponentMenuVisible: boolean
   isFullscreenAllowed: boolean
   isResizable: boolean
   isPreview?: boolean
@@ -45,6 +46,7 @@ const emit = defineEmits<{
   'update:width': [width: number]
   'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
+  'update:hovered': [hovered: boolean]
   createNodes: [options: NodeCreationOptions[]]
 }>()
 
@@ -61,6 +63,7 @@ const {
   setToolbarDefinition,
   visualizationDefinedToolbar,
   toolbarOverlay,
+  executeExpression,
 } = useVisualizationData({
   selectedVis: toRef(props, 'currentType'),
   dataSource: toRef(props, 'dataSource'),
@@ -108,7 +111,10 @@ const keydownHandler = visualizationBindings.handler({
   },
 })
 
-useEvent(window, 'keydown', keydownHandler)
+// TODO[ao]: we use `document` to make sure it takes precedence before GraphEditor handlers
+//  (deselectAllNodes in particular). But this is quick workaroung, the proper soloution
+//  should be soon delivered as part of https://github.com/enso-org/enso/issues/10414
+useEvent(document, 'keydown', keydownHandler)
 
 function onWheel(event: WheelEvent) {
   if (
@@ -184,14 +190,16 @@ watch(
   (f) => f && nextTick(() => panelElement.value?.focus()),
 )
 
-const visParams = computed(() => {
-  return {
-    visualization: effectiveVisualization.value,
-    data: effectiveVisualizationData.value,
-    size: contentElementSize.value,
-    nodeType: props.typename,
-  }
+// Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
+const visParams = proxyRefs({
+  visualization: effectiveVisualization,
+  data: effectiveVisualizationData,
+  size: contentElementSize,
+  nodeType: toRef(props, 'typename'),
+  executeExpression,
 })
+
+const resizableWidgets = injectResizableWidgetRegistry(true)
 </script>
 
 <script lang="ts">
@@ -213,7 +221,13 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 </script>
 
 <template>
-  <div class="GraphVisualization" :style="style">
+  <div
+    class="GraphVisualization"
+    :style="style"
+    :class="{ isFocused }"
+    @pointerenter="emit('update:hovered', false)"
+    @pointerleave="emit('update:hovered', true)"
+  >
     <WithFullscreenMode :fullscreen="isFullscreen" @update:animating="fullscreenAnimating = $event">
       <div
         ref="panelElement"
@@ -230,7 +244,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
           :showControls="!isPreview"
           :hideVisualizationButton="
             isFullscreen ? 'hide'
-            : isCircularMenuVisible ? 'invisible'
+            : isComponentMenuVisible ? 'invisible'
             : 'show'
           "
           :isFullscreenAllowed="isFullscreenAllowed"
@@ -265,6 +279,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
       left
       right
       bottom
+      v-on="resizableWidgets?.visResizeHandleEventHandlers"
       @update:resizing="resizing = $event"
     />
   </div>
@@ -278,8 +293,16 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
   position: absolute;
   border-radius: var(--radius-default);
   background: var(--color-visualization-bg);
+  opacity: 0.9;
+}
+
+.content {
   /** Prevent drawing on top of other UI elements (e.g. dropdown widgets). */
   isolation: isolate;
+}
+
+.isFocused {
+  opacity: 1;
 }
 
 .VisualizationPanel {
@@ -298,6 +321,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 .content {
   overflow: auto;
   contain: strict;
+  border-radius: 0 0 var(--radius-default) var(--radius-default);
   height: 100%;
 }
 

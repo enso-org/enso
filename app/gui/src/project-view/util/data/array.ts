@@ -2,12 +2,14 @@
 
 import type { Opt } from '@/util/data/opt'
 
+export { arrayEquals } from '@/util/equals'
+
 /** An array that has at least one element present at all times. */
 export type NonEmptyArray<T> = [T, ...T[]]
 
 /** An equivalent of `Array.prototype.findIndex` method, but returns null instead of -1. */
 export function findIndexOpt<T>(
-  arr: T[],
+  arr: ReadonlyArray<T>,
   pred: (elem: T, index: number) => boolean,
 ): number | null {
   const index = arr.findIndex(pred)
@@ -56,11 +58,6 @@ export function byteArraysEqual(a: Opt<Uint8Array>, b: Opt<Uint8Array>): boolean
   return a === b || (a != null && b != null && indexedDB.cmp(a, b) === 0)
 }
 
-/** TODO: Add docs */
-export function arrayEquals<T>(a: T[], b: T[]): boolean {
-  return a === b || (a.length === b.length && a.every((v, i) => v === b[i]))
-}
-
 /**
  * Return the rightmost index of an array element that passes the predicate. Returns `undefined` if
  * no such element has been found.
@@ -87,4 +84,19 @@ export function partition<T>(array: Iterable<T>, pred: (elem: T) => boolean): [T
   }
 
   return [truthy, falsy]
+}
+
+/**
+ * Find smallest index at which two arrays differ. Returns an index past the array (i.e. array length) when both arrays
+ * are equal. Note that the default comparator uses strict equality, and so `NaN` values will be considered different.
+ */
+export function findDifferenceIndex<T>(
+  lhs: T[],
+  rhs: T[],
+  equals = (a: T, b: T) => a === b,
+): number {
+  return (
+    findIndexOpt(lhs, (item, index) => index >= rhs.length || !equals(item, rhs[index]!)) ??
+    lhs.length
+  )
 }

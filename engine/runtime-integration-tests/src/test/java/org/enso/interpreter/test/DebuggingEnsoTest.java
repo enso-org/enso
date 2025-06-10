@@ -17,10 +17,13 @@ import com.oracle.truffle.api.debug.DebuggerSession;
 import com.oracle.truffle.api.debug.SuspendedCallback;
 import com.oracle.truffle.api.debug.SuspendedEvent;
 import com.oracle.truffle.api.nodes.LanguageInfo;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -39,18 +42,23 @@ import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 public class DebuggingEnsoTest {
-  private Context context;
-  private Engine engine;
-  private Debugger debugger;
+  private static Context context;
+  private static Engine engine;
+  private static Debugger debugger;
+  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-  @Before
-  public void initContext() {
+  @BeforeClass
+  public static void initContext() {
     engine =
         Engine.newBuilder()
             .allowExperimentalOptions(true)
@@ -58,7 +66,9 @@ public class DebuggingEnsoTest {
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
+            .logHandler(out)
+            .err(out)
+            .out(out)
             .build();
 
     context =
@@ -75,13 +85,33 @@ public class DebuggingEnsoTest {
     Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));
   }
 
-  @After
-  public void disposeContext() {
+  @AfterClass
+  public static void disposeContext() throws IOException {
     context.close();
     context = null;
     engine.close();
     engine = null;
+    debugger = null;
+    out.close();
   }
+
+  @Before
+  public void resetOut() {
+    out.reset();
+  }
+
+  /** Only print warnings from the compiler if a test fails. */
+  @Rule
+  public TestWatcher testWatcher =
+      new TestWatcher() {
+        @Override
+        protected void failed(Throwable e, Description description) {
+          System.err.println("Test failed: " + description.getMethodName());
+          System.err.println("Error: " + e.getMessage());
+          System.err.println("Logs from the compiler and the engine: ");
+          System.err.println(out);
+        }
+      };
 
   private static void expectStackFrame(
       DebugStackFrame actualFrame, Map<String, String> expectedValues) {
@@ -244,6 +274,125 @@ public class DebuggingEnsoTest {
       session.suspendNextExecution();
       fooFunc.execute(0);
     }
+  }
+
+  /**
+   * Both {@code Date.new 2024 12 15} and {@code Date.parse "2024-12-15"} should be seen by the
+   * debugger as the exact same objects. Internally, the value from {@code Date.parse} is a host
+   * value.
+   */
+  @Test
+  public void hostValueIsTreatedAsItsEnsoCounterpart() {
+    Value fooFunc =
+        createEnsoMethod(
+            """
+        from Standard.Base import Date, Date_Time, Dictionary
+        polyglot java import java.lang.String
+        polyglot java import java.util.List as JList
+        polyglot java import java.util.Map as JMap
+
+        foreign js js_date = '''
+            return new Date();
+
+        foreign js js_str = '''
+            return "Hello_World";
+
+        foreign js js_list = '''
+            return [1, 2, 3];
+
+        foreign js js_map = '''
+            let m = new Map();
+            m.set('A', 1);
+            m.set('B', 2);
+            return m;
+
+        foreign python py_list = '''
+            return [1, 2, 3]
+
+        foreign python py_dict = '''
+            return {'A': 1, 'B': 2}
+
+        foo _ =
+            d_enso = Date.new 2024 12 15
+            d_java = Date.parse "2024-12-15"
+            dt_enso = Date_Time.now
+            dt_java = Date_Time.parse "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
+            dt_js = js_date
+            str_enso = "Hello_World"
+            str_js = js_str
+            str_java = String.new "Hello_World"
+            list_enso = [1, 2, 3]
+            list_js = js_list
+            list_py = py_list
+            list_java = JList.of 1 2 3
+            dict_enso = Dictionary.from_vector [["A", 1], ["B", 2]]
+            dict_js = js_map
+            dict_py = py_dict
+            dict_java = JMap.of "A" 1 "B" 2
+            end = 42
+        """,
+            "foo");
+
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "end = 42" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+
+                  DebugValue ensoDate = scope.getDeclaredValue("d_enso");
+                  DebugValue javaDate = scope.getDeclaredValue("d_java");
+                  assertSameProperties(ensoDate.getProperties(), javaDate.getProperties());
+
+                  DebugValue ensoDateTime = scope.getDeclaredValue("dt_enso");
+                  DebugValue javaDateTime = scope.getDeclaredValue("dt_java");
+                  DebugValue jsDateTime = scope.getDeclaredValue("dt_js");
+                  assertSameProperties(ensoDateTime.getProperties(), javaDateTime.getProperties());
+                  assertSameProperties(ensoDateTime.getProperties(), jsDateTime.getProperties());
+
+                  DebugValue ensoString = scope.getDeclaredValue("str_enso");
+                  DebugValue javaString = scope.getDeclaredValue("str_java");
+                  DebugValue jsString = scope.getDeclaredValue("str_js");
+                  assertSameProperties(ensoString.getProperties(), javaString.getProperties());
+                  assertSameProperties(ensoString.getProperties(), jsString.getProperties());
+
+                  DebugValue ensoList = scope.getDeclaredValue("list_enso");
+                  DebugValue javaList = scope.getDeclaredValue("list_java");
+                  DebugValue jsList = scope.getDeclaredValue("list_js");
+                  DebugValue pyList = scope.getDeclaredValue("list_py");
+                  assertSameProperties(ensoList.getProperties(), javaList.getProperties());
+                  assertSameProperties(ensoList.getProperties(), jsList.getProperties());
+                  assertSameProperties(ensoList.getProperties(), pyList.getProperties());
+
+                  DebugValue ensoDict = scope.getDeclaredValue("dict_enso");
+                  DebugValue javaDict = scope.getDeclaredValue("dict_java");
+                  DebugValue jsDict = scope.getDeclaredValue("dict_js");
+                  DebugValue pyDict = scope.getDeclaredValue("dict_py");
+                  assertSameProperties(ensoDict.getProperties(), javaDict.getProperties());
+                  assertSameProperties(ensoDict.getProperties(), jsDict.getProperties());
+                  assertSameProperties(ensoDict.getProperties(), pyDict.getProperties());
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
+  /** Asserts that the given values have same property names. */
+  private void assertSameProperties(
+      Collection<DebugValue> expectedProps, Collection<DebugValue> actualProps) {
+    if (expectedProps == null) {
+      assertThat(actualProps, anyOf(empty(), nullValue()));
+      return;
+    }
+    assertThat(actualProps.size(), is(expectedProps.size()));
+    var expectedPropNames =
+        expectedProps.stream().map(DebugValue::getName).collect(Collectors.toUnmodifiableSet());
+    var actualPropNames =
+        actualProps.stream().map(DebugValue::getName).collect(Collectors.toUnmodifiableSet());
+    assertThat(actualPropNames, is(expectedPropNames));
   }
 
   @Test
@@ -495,18 +644,10 @@ public class DebuggingEnsoTest {
                   assertThat(objValue.isInternal(), is(false));
                   assertThat(objValue.hasReadSideEffects(), is(false));
 
-                  var field1Prop = objValue.getProperty("field_1");
-                  assertThat(field1Prop.isReadable(), is(true));
-                  assertThat(field1Prop.isNumber(), is(true));
-                  assertThat(field1Prop.asInt(), is(1));
-
-                  assertThat(objValue.getProperties().size(), is(2));
-                  for (var prop : objValue.getProperties()) {
-                    assertThat(
-                        "Property '" + prop.getName() + "' should be readable",
-                        prop.isReadable(),
-                        is(true));
-                    assertThat(prop.isNumber(), is(true));
+                  for (var propName : List.of("field_1", "field_2")) {
+                    var fieldProp = objValue.getProperty(propName);
+                    assertThat(fieldProp.isReadable(), is(true));
+                    assertThat(fieldProp.isNumber(), is(true));
                   }
                 }
               }
@@ -542,13 +683,10 @@ public class DebuggingEnsoTest {
                   assertThat(objValue.isInternal(), is(false));
                   assertThat(objValue.hasReadSideEffects(), is(false));
 
-                  assertThat("Has fields f1 and f2", objValue.getProperties().size(), is(2));
-                  for (var prop : objValue.getProperties()) {
-                    assertThat(
-                        "Property '" + prop.getName() + "' should be readable",
-                        prop.isReadable(),
-                        is(true));
-                    assertThat(prop.isNumber(), is(true));
+                  for (var propName : List.of("f1", "f2")) {
+                    var fieldProp = objValue.getProperty(propName);
+                    assertThat(fieldProp.isReadable(), is(true));
+                    assertThat(fieldProp.isNumber(), is(true));
                   }
                 }
               }
@@ -712,6 +850,47 @@ public class DebuggingEnsoTest {
         new ArrayDeque<>(
             Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1)));
     testStepping(src, "foo", new Object[] {0}, steps, expectedLineNumbers);
+  }
+
+  @Test
+  public void testEvaluateLazyField() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+        from Standard.Base.Any import all
+
+        type Generator
+            Value n ~next
+
+        natural =
+            gen n = Generator.Value n (gen n+1)
+            gen 2
+
+        foo x =
+            two = natural
+            three = two.next
+            end = 0
+        """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "end = 0" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  var twoValue = scope.getDeclaredValue("two");
+                  assertThat(twoValue.isReadable(), is(true));
+                  var nProp = twoValue.getProperty("n");
+                  assertThat("n property should be readable", nProp.asInt(), is(2));
+                  var nextProp = twoValue.getProperty("next");
+                  assertThat("next property is readable", nextProp.isReadable(), is(true));
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
   }
 
   private static final class FrameEntry {

@@ -18,7 +18,6 @@ import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
-import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.immutable.List;
@@ -69,11 +68,13 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Warning.WrongBuiltinMethod.class, id = 789)
 @Persistable(clazz = Warning.NotInvokable.class, id = 791)
 @Persistable(clazz = Warning.TypeMismatch.class, id = 792)
+@Persistable(clazz = Warning.NoSuchMethod.class, id = 793)
+@Persistable(clazz = Warning.NonUnitTypeUsedOnValueLevel.class, id = 794)
 @Persistable(clazz = Operator.Binary.class, id = 790)
 public final class IrPersistance {
   private IrPersistance() {}
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 11259)
   public static final class PersistIdentifiedLocation extends Persistance<IdentifiedLocation> {
 
     private static final int EMPTY_LOCATION = -1;
@@ -107,7 +108,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 473)
   public static final class PersistUUID extends Persistance<UUID> {
     public PersistUUID() {
       super(UUID.class, false, 473);
@@ -136,7 +137,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4431)
   public static final class PersistScalaOption extends Persistance<Option> {
     public PersistScalaOption() {
       super(Option.class, true, 4431);
@@ -154,7 +155,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4437)
   public static final class PersistString extends Persistance<String> {
     public PersistString() {
       super(String.class, true, 4437);
@@ -172,7 +173,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4438)
   public static final class PersistLong extends Persistance<Long> {
     public PersistLong() {
       super(Long.class, true, 4438);
@@ -190,7 +191,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4439)
   public static final class PersistDouble extends Persistance<Double> {
     public PersistDouble() {
       super(Double.class, true, 4439);
@@ -216,7 +217,7 @@ public final class IrPersistance {
    * implementations, we want to ensure that the format of both is compatible. Seq is generally
    * preferred as it can be lazy.
    */
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4432)
   public static final class PersistScalaList extends Persistance<List> {
     public PersistScalaList() {
       super(List.class, true, 4432);
@@ -248,7 +249,7 @@ public final class IrPersistance {
    *
    * <p>When reading back, the deserialization is done lazily.
    */
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 34011)
   public static final class PersistJavaListLazy extends Persistance<java.util.List> {
     public PersistJavaListLazy() {
       super(java.util.List.class, true, 34011);
@@ -294,7 +295,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4444)
   public static final class PersistScalaMap extends Persistance<scala.collection.immutable.Map> {
     public PersistScalaMap() {
       super(scala.collection.immutable.Map.class, true, 4444);
@@ -323,7 +324,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4949)
   public static final class PersistScalaMutableMap
       extends Persistance<scala.collection.mutable.Map> {
     public PersistScalaMutableMap() {
@@ -359,7 +360,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4445)
   public static final class PersistScalaSet extends Persistance<scala.collection.immutable.Set> {
     public PersistScalaSet() {
       super(scala.collection.immutable.Set.class, true, 4445);
@@ -391,7 +392,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4440)
   public static final class PersistMap extends Persistance<Map> {
     public PersistMap() {
       super(Map.class, true, 4440);
@@ -416,7 +417,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 4433)
   public static final class PersistScalaSeq extends Persistance<Seq> {
     public PersistScalaSeq() {
       super(Seq.class, true, 4433);
@@ -444,7 +445,7 @@ public final class IrPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 302)
   public static final class PersistDiagnosticStorage extends Persistance<DiagnosticStorage> {
     public PersistDiagnosticStorage() {
       super(DiagnosticStorage.class, false, 302);

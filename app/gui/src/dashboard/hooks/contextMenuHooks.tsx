@@ -1,24 +1,19 @@
 /** @file Hooks related to context menus. */
-import * as React from 'react'
-
-import * as modalProvider from '#/providers/ModalProvider'
-
 import ContextMenu from '#/components/ContextMenu'
-import ContextMenus from '#/components/ContextMenus'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
+import { setModal } from '#/providers/ModalProvider'
+import * as React from 'react'
 
 /**
  * Return a ref that attaches a context menu event listener.
  * Should be used ONLY if the element does not expose an `onContextMenu` prop.
  */
 export function useContextMenuRef(
-  key: string,
   label: string,
   createEntries: (position: Pick<React.MouseEvent, 'pageX' | 'pageY'>) => React.JSX.Element | null,
   options: { enabled?: boolean } = {},
 ) {
-  const { setModal } = modalProvider.useSetModal()
   const stableCreateEntries = useEventCallback(createEntries)
   const optionsRef = useSyncRef(options)
   const cleanupRef = React.useRef(() => {})
@@ -38,19 +33,9 @@ export function useContextMenuRef(
               event.preventDefault()
               event.stopPropagation()
               setModal(
-                <ContextMenus
-                  ref={(contextMenusElement) => {
-                    if (contextMenusElement != null) {
-                      const rect = contextMenusElement.getBoundingClientRect()
-                      position.pageX = rect.left
-                      position.pageY = rect.top
-                    }
-                  }}
-                  key={key}
-                  event={event}
-                >
-                  <ContextMenu aria-label={label}>{children}</ContextMenu>
-                </ContextMenus>,
+                <ContextMenu aria-label={label} event={event}>
+                  {children}
+                </ContextMenu>,
               )
             }
           }
@@ -61,6 +46,6 @@ export function useContextMenuRef(
         }
       }
     },
-    [stableCreateEntries, key, label, optionsRef, setModal],
+    [stableCreateEntries, label, optionsRef],
   )
 }

@@ -115,7 +115,8 @@ class ExpressionAnnotationsTest extends CompilerTest {
 
       val correct = items.returnValue
         .asInstanceOf[Application.Prefix]
-        .arguments(0)
+        .arguments
+        .apply(0)
         .value
         .asInstanceOf[Application.Prefix]
       correct.function.asInstanceOf[Name].name shouldEqual "bar"
@@ -131,13 +132,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
     "create an error on a misplaced annotation" in {
       val misplaced = items
         .expressions(4)
-        .asInstanceOf[Application.Prefix]
-        .arguments(0)
-        .value
-      misplaced shouldBe an[errors.Resolution]
-      misplaced
-        .asInstanceOf[errors.Resolution]
-        .reason shouldEqual errors.Resolution.UnexpectedAnnotation
+      misplaced shouldBe an[errors.Syntax]
     }
   }
 

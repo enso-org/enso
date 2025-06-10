@@ -1,0 +1,25 @@
+## Enso Signatures 1.0
+## module Standard.Image.Image
+- type Image
+    - Value opencv_mat:Standard.Base.Any.Any
+    - * self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - + self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - - self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - / self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - channels self -> Standard.Base.Any.Any
+    - columns self -> Standard.Base.Any.Any
+    - from_vector values:Standard.Base.Any.Any rows:Standard.Base.Any.Any= channels:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - get self row:Standard.Base.Any.Any column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - histogram self channel:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - read location:Standard.Base.System.File.File flags:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - rows self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_matrix self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+    - write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File flags:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- type Image_Comparator
+    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- core_op mat:Standard.Base.Any.Any value:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- core_op_handler error:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Image.Image.Image -> Standard.Base.Data.Ordering.Comparable

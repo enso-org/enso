@@ -73,7 +73,7 @@ object Function {
     }
 
     def this(
-      ir: expression.Case.Expr,
+      ir: Expression,
       arguments: List[DefinitionArgument],
       body: Expression,
       identifiedLocation: IdentifiedLocation
@@ -133,6 +133,12 @@ object Function {
         res.id          = id
         res
       } else this
+    }
+
+    def copyWithArguments(
+      arguments: List[DefinitionArgument]
+    ): Lambda = {
+      copy(arguments = arguments)
     }
 
     /** @inheritdoc */

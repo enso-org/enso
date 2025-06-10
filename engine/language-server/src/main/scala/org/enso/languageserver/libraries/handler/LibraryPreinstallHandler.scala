@@ -36,6 +36,7 @@ import org.enso.librarymanager.{
   ResolvedLibrary,
   ResolvingLibraryProvider
 }
+import org.enso.common.HostEnsoUtils
 
 import java.util.concurrent.{ExecutorService, Executors}
 import scala.concurrent.{ExecutionContext, Future}
@@ -223,7 +224,8 @@ class LibraryPreinstallHandler(
         languageHome         = config.installerConfig.languageHome,
         edition              = edition,
         preferLocalLibraries = preferLocalLibraries,
-        projectRoot          = Some(editionReferenceResolver.projectRoot.toPath)
+        projectRoot          = Some(editionReferenceResolver.projectRoot.toPath),
+        checkAot             = HostEnsoUtils.isAot()
       )
       dependencyResolver = new DependencyResolver(
         localLibraryProvider     = config.localLibraryProvider,

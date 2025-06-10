@@ -1,6 +1,6 @@
 package org.enso.launcher.upgrade
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{AccessDeniedException, Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.enso.semver.SemVer
 import org.enso.semver.SemVerOrdering._
@@ -24,7 +24,7 @@ import org.enso.launcher.cli.{
 import org.enso.launcher.releases.launcher.LauncherRelease
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.launcher.releases.LauncherRepository
-import org.enso.launcher.InfoLogger
+import org.enso.launcher.{Constants, InfoLogger}
 import org.enso.launcher.distribution.DefaultManagers
 import org.enso.runtimeversionmanager.locking.Resources
 import org.slf4j.LoggerFactory
@@ -97,12 +97,45 @@ class LauncherUpgrader(
           }
         }
       }
-      if (release.canPerformUpgradeFromCurrentVersion)
+
+      val canPerformDirectUpgrade: Boolean =
+        if (release.canPerformUpgradeFromCurrentVersion) true
+        else if (CurrentVersion.isDevVersion) {
+          logger.warn(
+            s"Cannot upgrade to version ${release.version} directly, because " +
+            s"it requires at least version " +
+            s"${release.minimumVersionToPerformUpgrade}."
+          )
+          if (globalCLIOptions.autoConfirm) {
+            logger.warn(
+              s"However, the current version (${CurrentVersion.version}) is " +
+              s"a development version, so the minimum version check can be " +
+              s"ignored. Since `auto-confirm` is set, the upgrade will " +
+              s"continue. But please be warned that it may fail due to " +
+              s"incompatibility."
+            )
+            true
+          } else {
+            logger.warn(
+              s"Since the current version (${CurrentVersion.version}) is " +
+              s"a development version, the minimum version check can be " +
+              s"ignored. However, please be warned that the upgrade " +
+              s"may fail due to incompatibility."
+            )
+            CLIOutput.askConfirmation(
+              "Do you want to continue upgrading to this version " +
+              "despite the warning?"
+            )
+          }
+        } else false
+
+      if (canPerformDirectUpgrade)
         performUpgradeTo(release)
       else
         performStepByStepUpgrade(release)
 
       runCleanup()
+      logger.debug("Upgrade completed successfully.")
     }
   }
 
@@ -120,16 +153,33 @@ class LauncherUpgrader(
     val temporaryFiles =
       FileSystem.listDirectory(binRoot).filter(isTemporaryExecutable)
     if (temporaryFiles.nonEmpty && isStartup) {
-      logger.debug("Cleaning temporary files from a previous upgrade.")
+      logger.debug(
+        s"Cleaning ${temporaryFiles.size} temporary files from a previous upgrade."
+      )
     }
     for (file <- temporaryFiles) {
       try {
-        Files.delete(file)
+        tryHardToDelete(file)
         logger.debug(s"Upgrade cleanup: removed `$file`.")
       } catch {
         case NonFatal(e) =>
           logger.debug(s"Cannot remove temporary file $file: $e", e)
       }
+    }
+  }
+
+  /** On Windows, deleting an executable immediately after it has exited may fail
+    * and the process may need to wait a few millisecond. This method detects
+    * this kind of failure and retries a few times.
+    */
+  private def tryHardToDelete(file: Path, attempts: Int = 30): Unit = {
+    try {
+      Files.delete(file)
+    } catch {
+      case _: AccessDeniedException if attempts > 0 =>
+        logger.trace(s"Failed to delete file `$file`. Retrying.")
+        Thread.sleep(100)
+        tryHardToDelete(file, attempts - 1)
     }
   }
 
@@ -217,28 +267,53 @@ class LauncherUpgrader(
 
   @scala.annotation.tailrec
   private def nextVersionToUpgradeTo(
-    release: LauncherRelease,
+    currentTargetRelease: LauncherRelease,
     availableVersions: Seq[SemVer]
   ): LauncherRelease = {
-    val recentEnoughVersions =
-      availableVersions.filter(
-        _.isGreaterThanOrEqual(release.minimumVersionToPerformUpgrade)
+    assert(
+      currentTargetRelease.minimumVersionToPerformUpgrade.isGreaterThan(
+        CurrentVersion.version
       )
+    )
+
+    // We look at older versions that are satisfying the minimum version
+    // required to upgrade to currentTargetRelease.
+    val recentEnoughVersions =
+      availableVersions.filter { possibleVersion =>
+        val canUpgradeToTarget = possibleVersion.isGreaterThanOrEqual(
+          currentTargetRelease.minimumVersionToPerformUpgrade
+        )
+        val isEarlierThanTarget =
+          possibleVersion.isLessThan(currentTargetRelease.version)
+        canUpgradeToTarget && isEarlierThanTarget
+      }
+
+    // We take the oldest of these, hoping that it will yield the shortest
+    // upgrade path (perhaps it will be possible to upgrade directly from
+    // current version)
     val minimumValidVersion = recentEnoughVersions.sorted.headOption.getOrElse {
       throw UpgradeError(
-        s"Upgrade failed: To continue upgrade, a version at least " +
-        s"${release.minimumVersionToPerformUpgrade} is required, but no " +
-        s"valid version satisfying this requirement could be found."
+        s"Upgrade failed: To continue upgrade, at least version " +
+        s"${currentTargetRelease.minimumVersionToPerformUpgrade} is required, " +
+        s"but no upgrade path has been found from the current version " +
+        s"${CurrentVersion.version}. " +
+        s"Please manually download a newer release from " +
+        s"${LauncherRepository.websiteUrl}"
       )
     }
-    val nextRelease = releaseProvider.fetchRelease(minimumValidVersion).get
+
+    val newTargetRelease = releaseProvider.fetchRelease(minimumValidVersion).get
+    assert(newTargetRelease.version != currentTargetRelease.version)
     logger.debug(
-      s"To upgrade to ${release.version}, " +
-      s"the launcher will have to upgrade to ${nextRelease.version} first."
+      s"To upgrade to ${currentTargetRelease.version}, " +
+      s"the launcher will have to upgrade to ${newTargetRelease.version} first."
     )
-    if (nextRelease.canPerformUpgradeFromCurrentVersion)
-      nextRelease
-    else nextVersionToUpgradeTo(nextRelease, availableVersions)
+
+    // If the current version cannot upgrade directly to the new target version,
+    // we continue the search looking for an even earlier version that we could
+    // upgrade to.
+    if (newTargetRelease.canPerformUpgradeFromCurrentVersion) newTargetRelease
+    else nextVersionToUpgradeTo(newTargetRelease, availableVersions)
   }
 
   /** Extracts just the launcher executable from the archive.
@@ -331,7 +406,7 @@ class LauncherUpgrader(
 
       val temporaryExecutable = temporaryExecutablePath("new")
       FileSystem.copyFile(
-        extractedRoot / "bin" / OS.executableName("enso"),
+        extractedRoot / "bin" / OS.executableName(Constants.name),
         temporaryExecutable
       )
 

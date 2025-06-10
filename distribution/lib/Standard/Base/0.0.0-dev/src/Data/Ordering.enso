@@ -126,7 +126,6 @@ type Comparable
        ```
 
        Typically used inside of `Comparable.from` method definition.
-
     new value:Any comparator:Any -> Comparable = Comparable.By value comparator
 
 ## PRIVATE

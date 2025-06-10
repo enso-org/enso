@@ -47,6 +47,7 @@ class RuntimeTypesTest
         )
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(RuntimeOptions.STRICT_ERRORS, "false")
@@ -74,9 +75,6 @@ class RuntimeTypesTest
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
 
-    def writeMain(contents: String): File =
-      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
-
     def writeFile(file: File, contents: String): File =
       Files.write(file.toPath, contents.getBytes).toFile
 
@@ -85,16 +83,12 @@ class RuntimeTypesTest
       Files.write(file.toPath, contents.getBytes).toFile
     }
 
-    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
-
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
       result.linesIterator.toList
     }
 
-    def executionComplete(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionComplete(contextId))
   }
 
   override protected def beforeEach(): Unit = {
@@ -370,13 +364,13 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
+        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
         builtin = true
       ),
       TestMessages.panic(
         contextId,
         id_y,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
+        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)
@@ -505,7 +499,7 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
+        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)

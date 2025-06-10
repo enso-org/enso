@@ -1,0 +1,37 @@
+## Enso Signatures 1.0
+## module Standard.Visualization.Scatter_Plot
+- type Extreme
+    - Value min_x:Standard.Base.Any.Any max_x:Standard.Base.Any.Any min_y:Standard.Base.Any.Any max_y:Standard.Base.Any.Any
+- type No_Fallback_Column
+    - to_display_text self -> Standard.Base.Any.Any
+- type Point_Data
+    - Color
+    - Label
+    - Row_Number
+    - Shape
+    - Size
+    - X
+    - Y
+    - Y_multi number:Standard.Base.Data.Numbers.Integer=
+    - all_fields -> Standard.Base.Any.Any
+    - fallback_column self table:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - iota count:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_recognized self column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - lookup_in self table:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Any.Any
+    - recognized_names -> Standard.Base.Any.Any
+- axis_field -> Standard.Base.Any.Any
+- bound_data bounds:Standard.Base.Any.Any data:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- data_field -> Standard.Base.Any.Any
+- get_axes_field number_of_numeric:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- get_x_value_type table:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- index_name -> Standard.Base.Any.Any
+- json_from_table table:Standard.Base.Any.Any bounds:Standard.Base.Any.Any limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- json_from_vector vec:Standard.Base.Any.Any bounds:Standard.Base.Any.Any limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- label_field -> Standard.Base.Any.Any
+- limit_data limit:Standard.Base.Any.Any data:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- process_to_json_text value:Standard.Base.Any.Any bounds:Standard.Base.Any.Any= limit:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Table.Table.Table.axes self all_fields:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Table.Table.Table.numeric_column_count self -> Standard.Base.Any.Any
+- Standard.Table.Table.Table.point_data self all_fields:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Vector.Vector.point_data self -> Standard.Base.Any.Any

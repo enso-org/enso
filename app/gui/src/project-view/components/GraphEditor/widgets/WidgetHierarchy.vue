@@ -7,7 +7,7 @@ import { isToken } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const spanClass = computed(() => props.input.value.typeName())
+const spanClass = computed(() => props.input.value.typeName)
 
 function* expressionChildren(expression: Ast.Expression) {
   for (const child of expression.children()) {

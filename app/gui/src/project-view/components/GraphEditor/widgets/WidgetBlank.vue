@@ -33,7 +33,7 @@ export const widgetDefinition = defineWidget(
     height: 4px;
     border-radius: 2px;
     bottom: 0;
-    background-color: var(--node-color-port);
+    background-color: var(--color-widget);
     transition: background-color 0.2s ease;
   }
 }

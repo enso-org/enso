@@ -5,7 +5,6 @@ import Standard.Table as Table_Module
 
 from Standard.Visualization.Text import get_chunk_from_line
 
-
 ## PRIVATE
 
    Update about the table layout to be sent to the GUI. Updates can be incremental and only contain

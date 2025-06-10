@@ -1,36 +1,57 @@
 <script setup lang="ts">
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
+import { computed, ref } from 'vue'
+import type { ComponentExposed } from 'vue-component-type-helpers'
 
 /**
  * A button. Supports toggling and disabled state.
  *
- * If a boolean model is bound to the primary model, clicking the button will switch between `toggledOn` and
- * `toggledOff` css classes on the slot's root element, as well as updating the model.
+ * If a boolean model is bound to the primary model, clicking the button will switch between
+ * `toggledOn` and `toggledOff` css classes on the slot's root element, as well as updating the
+ * model.
  *
- * If the disabled property is set, the button stops responding to mouse interaction and its contents will have the
- * `disabled` class.
+ * If the disabled property is set, the button stops responding to mouse interaction and its
+ * contents will have the `disabled` class.
  */
 
-const toggledOn = defineModel<boolean>({ default: undefined })
-const props = defineProps<{ disabled?: boolean | undefined; title?: string | undefined }>()
+const toggledOn = defineModel<boolean | undefined>()
+const props = defineProps<{
+  disabled?: boolean | undefined
+  title?: string | undefined
+  extraClickZone?: number | undefined
+}>()
+const tooltipTrigger = ref<ComponentExposed<typeof TooltipTrigger>>()
+const emit = defineEmits<{ activate: [] }>()
 
-function onClick() {
-  if (!props.disabled && toggledOn.value != null) toggledOn.value = !toggledOn.value
+const style = computed(() =>
+  props.extraClickZone != null ? { '--extraClickZone': `${props.extraClickZone}px` } : {},
+)
+
+function onActivate() {
+  if (tooltipTrigger.value) {
+    tooltipTrigger.value.hideTooltip()
+  }
+  if (props.disabled) return
+  if (toggledOn.value != null) toggledOn.value = !toggledOn.value
+  emit('activate')
 }
 </script>
 
 <template>
-  <TooltipTrigger>
+  <TooltipTrigger ref="tooltipTrigger">
     <template #default="triggerProps">
       <button
         class="MenuButton clickable"
         :aria-label="props.title ?? ''"
         :class="{ toggledOn, toggledOff: toggledOn === false, disabled }"
+        :style="style"
         :disabled="disabled ?? false"
         v-bind="triggerProps"
-        @click.stop="onClick"
+        @click.stop="onActivate"
+        @keydown.enter.stop
       >
         <slot />
+        <div v-if="extraClickZone" class="hoverArea" />
       </button>
     </template>
     <template v-if="$slots.tooltip || props.title" #tooltip>
@@ -41,14 +62,20 @@ function onClick() {
 
 <style scoped>
 .MenuButton {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-width: max-content;
-  padding: 4px;
+  padding: var(--button-padding, 4px);
   border-radius: var(--radius-full);
   border: none;
   transition: background-color 0.3s;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  &.toggledOn {
+    background-color: var(--color-menu-entry-selected-bg);
+  }
+
   &:hover,
   &:focus,
   &:active {
@@ -56,9 +83,17 @@ function onClick() {
   }
   &.disabled {
     cursor: default;
+    opacity: 0.4;
     &:hover {
       background-color: unset;
     }
   }
+}
+
+.hoverArea {
+  position: absolute;
+  /*noinspection CssUnresolvedCustomProperty*/
+  inset: calc(var(--extraClickZone, 0) * -1);
+  cursor: pointer;
 }
 </style>

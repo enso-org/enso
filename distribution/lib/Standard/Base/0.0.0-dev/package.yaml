@@ -11,6 +11,10 @@ maintainers:
 component-groups:
   new:
     - Input: { color: oklch(0.464 0.14 170) }
+    - File: { color: oklch(0.464 0.14 170) }
+    - Database: { color: oklch(0.464 0.14 130) }
+    - Web: { color: oklch(0.464 0.14 245) }
+    - EnsoCloud: { color: oklch(0.464 0.14 160) }
     - Constants: { color: oklch(0.464 0.14 145) }
     - Metadata: { color: oklch(0.464 0.14 120) }
     - Output: { color: oklch(0.464 0.14 60) }

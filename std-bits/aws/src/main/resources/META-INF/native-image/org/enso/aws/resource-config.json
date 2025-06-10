@@ -1,0 +1,13 @@
+{
+    "resources":{
+        "includes":[{
+            "pattern":"\\QMETA-INF/services/software.amazon.awssdk.http.SdkHttpService\\E"
+        }, {
+            "pattern":"\\Qsoftware/amazon/awssdk/core/util/mime.types\\E"
+        }, {
+            "pattern":"\\Qsoftware/amazon/awssdk/global/handlers/execution.interceptors\\E"
+        }, {
+            "pattern":"\\Qsoftware/amazon/awssdk/services/s3/execution.interceptors\\E"
+        }]},
+    "bundles":[]
+}

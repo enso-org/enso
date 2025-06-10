@@ -1,15 +1,18 @@
 {
-  "extends": "@tsconfig/node20/tsconfig.json",
   "include": ["*.ts"],
+  "exclude": ["generated"],
   "compilerOptions": {
+    "types": ["node"],
+    "lib": ["es2023"],
+    "target": "es2022",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "noEmit": true,
+    "moduleResolution": "Node",
     "strict": true,
     "verbatimModuleSyntax": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "strictNullChecks": true,
-    "types": ["node"]
+    "strictNullChecks": true
   }
 }

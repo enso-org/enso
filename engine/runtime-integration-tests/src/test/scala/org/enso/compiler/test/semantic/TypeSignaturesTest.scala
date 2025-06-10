@@ -243,7 +243,7 @@ class TypeSignaturesTest
       )
     }
 
-    "XX resolve imported names" in {
+    "resolve imported names" in {
       val code =
         """
           |from project.Util import all

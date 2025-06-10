@@ -27,6 +27,5 @@ as _methods_.
 
 ## Dynamic Dispatch
 
-> The actionables for this section are:
->
-> - Specify the semantics of dynamic dispatch in Enso.
+There is a [decicated page](../types/dynamic-dispatch.md) discussing _dynamic
+dispatch and its semantics_.

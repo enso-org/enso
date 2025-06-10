@@ -1,5 +1,7 @@
 package org.enso.runtimeversionmanager.releases
 
+import org.enso.downloader.http.ResourceNotFound
+
 /** Indicates a release provider failure. */
 sealed class ReleaseProviderException(message: String, cause: Throwable)
     extends RuntimeException(message, cause) {
@@ -30,6 +32,20 @@ case class ReleaseNotFound(
   message: Option[String] = None,
   cause: Throwable        = null
 ) extends ReleaseProviderException(
-      message.getOrElse(s"Cannot find release `$tag`."),
+      ReleaseNotFound.constructMessage(tag, message, cause),
       cause
     )
+
+object ReleaseNotFound {
+  private def constructMessage(
+    tag: String,
+    message: Option[String],
+    cause: Throwable
+  ): String =
+    message.getOrElse {
+      val isCauseInteresting = cause != null && cause != ResourceNotFound()
+      val suffix =
+        if (isCauseInteresting) s" Caused by: ${cause.getMessage}" else ""
+      s"Cannot find release `$tag`.$suffix"
+    }
+}

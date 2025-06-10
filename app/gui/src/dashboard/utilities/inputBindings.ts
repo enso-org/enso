@@ -2,16 +2,12 @@
  * @file Exports `defineKeybinds`, a function to define a namespace containing keyboard and mouse
  * shortcuts.
  */
-import * as detect from 'enso-common/src/detect'
-
+import type { SvgUseIcon } from '#/components/types'
 import * as eventModule from '#/utilities/event'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
-
-// ================
-// === Newtypes ===
-// ================
+import * as detect from 'enso-common/src/detect'
 
 /** A keyboard key obtained from `KeyboardEvent.key`. */
 type KeyName = newtype.Newtype<string, 'keyboard key'>
@@ -25,10 +21,6 @@ const ModifierFlags = newtype.newtypeConstructor<ModifierFlags>()
 type PointerButtonFlags = newtype.Newtype<number, 'pointer button flags'>
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 const PointerButtonFlags = newtype.newtypeConstructor<PointerButtonFlags>()
-
-// =============
-// === Types ===
-// =============
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
@@ -70,10 +62,6 @@ export interface Mousebind {
   readonly key: PointerButtonFlags
   readonly modifierFlags: ModifierFlags
 }
-
-// ======================
-// === Modifier flags ===
-// ======================
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const RAW_MODIFIER_FLAG = {
@@ -186,10 +174,6 @@ function buttonToPointerButtonFlags(button: number) {
     }
   }
 }
-
-// ==========================
-// === Autocomplete types ===
-// ==========================
 
 const ALL_MODIFIERS =
   detect.isOnMacOS() ?
@@ -356,7 +340,6 @@ type AutocompleteKeybinds<T extends readonly string[]> = {
 
 /** A list of keybinds, with metadata describing its purpose. */
 export interface KeybindsWithMetadata {
-  readonly name: string
   readonly bindings: readonly [] | readonly string[]
   readonly description?: string
   readonly icon?: string
@@ -373,10 +356,9 @@ export interface KeybindsWithMetadata {
  * errors.
  */
 export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata> {
-  readonly name: string
   readonly bindings: AutocompleteKeybinds<T['bindings']>
   readonly description?: string
-  readonly icon?: string
+  readonly icon?: SvgUseIcon
   readonly color?: string
   /** Defaults to `true`. */
   readonly rebindable?: boolean
@@ -563,7 +545,8 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
           ]?.[eventModifierFlags]
       let handle = handlers[DEFAULT_HANDLER]
       const isTextInputFocused = eventModule.isElementTextInput(document.activeElement)
-      const isTextInputEvent = 'key' in event && eventModule.isTextInputEvent(event)
+      const isTextInputEvent =
+        'key' in event && (eventModule.isTextInputEvent(event) || event.key === 'Enter')
       const shouldIgnoreEvent = isTextInputFocused && isTextInputEvent
       if (matchingBindings != null && !shouldIgnoreEvent) {
         for (const bindingNameRaw in handlers) {

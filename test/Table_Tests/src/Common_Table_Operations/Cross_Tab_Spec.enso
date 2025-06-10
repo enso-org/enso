@@ -252,7 +252,6 @@ add_specs suite_builder setup =
             r1.catch.to_display_text . should_contain "cannot contain the NUL character"
 
             r2 = data.table2.cross_tab [] "Key" values=[Aggregate_Column.Average "Value" as='x\0']
-            r2.print
             r2.should_fail_with Invalid_Column_Names
             r2.catch.to_display_text . should_contain "cannot contain the NUL character"
 

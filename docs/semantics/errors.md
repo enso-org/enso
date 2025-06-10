@@ -20,12 +20,27 @@ users to deal with errors at runtime in the language.
 
 ## Asynchronous Exceptions
 
-> The actionables for this section are:
+> [!WARNING] The actionables for this section are:
 >
+> - Why do we call it asynchronous, when they are synchronous!?
 > - Specify the semantics of Enso's async exceptions.
 
 ## Broken Values
 
-> The actionables for this section are:
+There is a special [dynamic dispatch](../types/dynamic-dispatch.md) for `Error`
+values. A dataflow error dispatch first checks if it may call a method on
+`Error` type.
+
+> [!WARNING] The actionables for this section are:
 >
 > - Specify the semantics of Enso's broken values.
+
+## Warnings
+
+> [!WARNING] TODO
+>
+> - Values in Enso may have warnings attached
+
+There is a special [dynamic dispatch](../types/dynamic-dispatch.md) for _values
+with warnings_. Before we pass the dispatch to the underlying value, we check if
+warning has a method 'overridden' - this is used for `remove_warnings`, etc.

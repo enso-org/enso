@@ -1,1 +1,1 @@
-export default ['app/gui/vitest.config.ts']
+export default ['app/**/vitest.config.ts']

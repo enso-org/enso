@@ -3,19 +3,30 @@ package org.enso.interpreter.runtime;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import org.enso.interpreter.runtime.data.ManagedResource;
+import org.enso.interpreter.runtime.error.PanicException;
 
-/** Allows the context to attach garbage collection hooks on the removal of certain objects. */
+/**
+ * Allows the context to attach garbage collection hooks on the removal of certain objects.
+ *
+ * <p><Using the same underlying resource with multiple managed resource instances is an error and
+ * will result in an `Illegal_Argument` panic.
+ *
+ * <p>Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be managed resources.
+ */
 public final class ResourceManager {
   /** Amount of milliseconds to wait for another resource when none is pending. */
   private static final long KEEP_ALIVE = 1000;
@@ -27,9 +38,13 @@ public final class ResourceManager {
    * All the items that were issued, but haven't yet arrived at {@link #referenceQueue} for
    * finalization.
    *
+   * <p>This is stored as a map from the underying object to the `Item` that wraps it, to allow
+   * checking for multiple registrations of a single object, which is an error. The value set of
+   * this map is the set of distinct pending items, with distinct underlying objects.
+   *
    * <p>@GuardedBy("this")
    */
-  private final List<Item> pendingItems = new ArrayList<>();
+  private final Map<Object, Item> pendingItems = new IdentityHashMap<>();
 
   private final EnsoContext context;
 
@@ -113,21 +128,45 @@ public final class ResourceManager {
   }
 
   /**
-   * Registers a new resource to the system. {@code function} will be called on {@code object} when
-   * the value returned by this method becomes unreachable.
+   * Registers a new (non-system controlled) resource to the system. Calls {@link
+   * #register(java.lang.Object, java.lang.Object, boolean)} with {@code false} as last argument.
    *
    * @param object the underlying resource
    * @param function the finalizer action to call on the underlying resource
    * @return a wrapper object, containing the resource and serving as a reachability probe
    */
   @CompilerDirectives.TruffleBoundary
-  public synchronized ManagedResource register(Object object, Object function) {
+  public ManagedResource register(TruffleObject object, Object function) {
+    return register(object, function, false);
+  }
+
+  /**
+   * Registers a new resource to the system.{@code function} will be called on {@code object} when
+   * the value returned by this method becomes unreachable.
+   *
+   * @param object the underlying resource
+   * @param function the finalizer action to call on the underlying resource
+   * @param systemResource resource is subject to finalization when {@link
+   *     #scheduleFinalizationOfSystemReferences} is called
+   * @return a wrapper object, containing the resource and serving as a reachability probe
+   */
+  @CompilerDirectives.TruffleBoundary
+  public synchronized ManagedResource register(
+      TruffleObject object, Object function, boolean systemResource) {
+    if (alreadyRegistered(object)) {
+      var error = context.getBuiltins().error();
+      var msg = "Object is already registered as a ManagedResource: " + object;
+      throw new PanicException(msg, null);
+    }
+
     if (CLOSED == processor) {
       throw EnsoContext.get(null)
           .raiseAssertionPanic(
               null, "Can't register new resources after resource manager is closed.", null);
     }
-    var resource = new ManagedResource(object, r -> new Item(r, object, function, referenceQueue));
+    var resource =
+        new ManagedResource(
+            object, r -> new Item(r, object, function, systemResource, referenceQueue));
     var ref = (Item) resource.getPhantomReference();
     addPendingItem(ref);
     return resource;
@@ -148,7 +187,7 @@ public final class ResourceManager {
         // already shut(-ting) down
         return;
       }
-      toFinalize = pendingItems.toArray(Item[]::new);
+      toFinalize = pendingItems.values().toArray(Item[]::new);
       lastProcessor = processor;
       processor = CLOSED;
     }
@@ -171,17 +210,32 @@ public final class ResourceManager {
   @CompilerDirectives.TruffleBoundary
   private synchronized void addPendingItem(Item item) {
     if (processor == null) {
-      processor = new ProcessItems(r -> context.createThread(true, r));
+      processor = new ProcessItems(r -> context.getThreadManager().createThread(true, r));
     }
-    pendingItems.add(item);
+    pendingItems.put(item.underlying, item);
   }
 
   @CompilerDirectives.TruffleBoundary
   private synchronized void removeFromItems(PhantomReference<ManagedResource> it) {
     if (it instanceof Item item) {
-      pendingItems.remove(item);
+      pendingItems.remove(item.underlying);
       if (pendingItems.isEmpty() && processor != null) {
         processor.awake();
+      }
+    }
+  }
+
+  /**
+   * Explicitly schedules all the <em>system references</em> registered with the manager for
+   * finalization.
+   *
+   * @see #register
+   */
+  @CompilerDirectives.TruffleBoundary
+  public final synchronized void scheduleFinalizationOfSystemReferences() {
+    for (var item : pendingItems.values()) {
+      if (item.systemResource) {
+        item.enqueue();
       }
     }
   }
@@ -320,7 +374,7 @@ public final class ResourceManager {
           it.flaggedForFinalization.set(true);
           synchronized (toFinalize) {
             if (safepointRequest == null) {
-              safepointRequest = context.submitThreadLocal(null, this);
+              safepointRequest = context.getThreadManager().submitThreadLocal(null, this);
             }
             toFinalize.add(it);
           }
@@ -358,8 +412,13 @@ public final class ResourceManager {
     }
   }
 
+  private synchronized boolean alreadyRegistered(Object resource) {
+    return pendingItems.containsKey(resource);
+  }
+
   /** A storage representation of a finalizable object handled by this system. */
   private static final class Item extends PhantomReference<ManagedResource> {
+    private final boolean systemResource;
     private final Object underlying;
     private final Object finalizer;
 
@@ -384,19 +443,23 @@ public final class ResourceManager {
     /**
      * Creates a new finalizable item.
      *
+     * @param referent the ManagedResource that wraps the underlying object
      * @param underlying the underlying object that should be finalized
      * @param finalizer the finalizer to run on the underlying object
-     * @param reference a phantom reference used for tracking the reachability status of the
-     *     resource.
+     * @param systemResource resource is subject to finalization when {@link
+     *     #scheduleFinalizationOfSystemReferences} is called
+     * @param queue the reference queue used to register this PhantomResource
      */
     private Item(
         ManagedResource referent,
         Object underlying,
         Object finalizer,
+        boolean systemResource,
         ReferenceQueue<ManagedResource> queue) {
       super(referent, queue);
       this.underlying = underlying;
       this.finalizer = finalizer;
+      this.systemResource = systemResource;
     }
 
     /**
@@ -408,6 +471,7 @@ public final class ResourceManager {
     @CompilerDirectives.TruffleBoundary
     private void finalizeNow(EnsoContext context) {
       try {
+        clear();
         InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
       } catch (Exception e) {
         context.getErr().println("Exception in finalizer: " + e.getMessage());

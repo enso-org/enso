@@ -2,7 +2,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Private_Access
 from Standard.Test import all
-from enso_dev.Helpers import Priv_Type
+from enso_dev.Helpers import Public_Type
 
 polyglot java import org.enso.base_test_helpers.CallbackHelper
 
@@ -17,8 +17,11 @@ add_specs spec_builder =
         "Can't run JavaScript tests, language `js` is not installed."
 
     spec_builder.group "Private constructors" group_builder->
+        group_builder.specify "can get on hold of private constructor" <|
+            Public_Type.cons . is_nothing . should_be_false
+
         group_builder.specify "cannot directly call private constructor" <|
-            Test.expect_panic Private_Access <| Priv_Type.Cons 42
+            Test.expect_panic Private_Access <| Public_Type.cons 42
 
         # Optimally, we want `Priv_Type.Cons` expression to result in a compilation error.
         # All the references to private methods/constructors are theoretically resolvable
@@ -26,43 +29,43 @@ add_specs spec_builder =
         # allow us to do that easily.
         # For more info, see https://github.com/enso-org/enso/issues/6729
         group_builder.specify "can get reference to private constructor, but cannot call it" <|
-            cons_fn data = Priv_Type.Cons data
+            cons_fn data = Public_Type.cons data
             Test.expect_panic Private_Access <| cons_fn 42
 
         group_builder.specify "can call private constructor via public factory method" <|
-            obj = Priv_Type.create 42
+            obj = Public_Type.create 42
             obj.is_nothing . should_be_false
 
         group_builder.specify "cannot get private field" <|
-            obj = Priv_Type.create 42
+            obj = Public_Type.create 42
             Test.expect_panic Private_Access <| obj.data
 
         group_builder.specify "can get private field via public accessor" <|
-            obj = Priv_Type.create 42
+            obj = Public_Type.create 42
             obj.get_data . should_equal 42
 
         group_builder.specify "can get private field from JS" pending=pending_js_missing <|
-            obj = Priv_Type.create 42
+            obj = Public_Type.create 42
             ret = js_access_field obj
             ret.should_equal 42
 
         group_builder.specify "can call private constructor via public factory method from JS" pending=pending_js_missing <|
-            create_fn x = Priv_Type.create x
+            create_fn x = Public_Type.create x
             obj = js_create_obj create_fn
             obj.is_nothing . should_be_false
 
         group_builder.specify "can get private field via public accessor from JS" pending=pending_js_missing <|
-            obj = Priv_Type.create 42
+            obj = Public_Type.create 42
             js_access_field_via_getter obj . should_equal 42
 
         group_builder.specify "cannot call private constructor from Java" <|
-            cons_fn data = Priv_Type.Cons data
+            cons_fn data = Public_Type.cons data
             Test.expect_panic Private_Access <| CallbackHelper.runCallbackInt cons_fn 42
 
         group_builder.specify "cannot call private constructor from a lambda method" <|
             Test.expect_panic Private_Access <|
-                Priv_Type.in_ctx <|
-                    Priv_Type.Cons 42
+                Public_Type.in_ctx <|
+                    Public_Type.cons 42
 
         # Note that pattern matching on project-private constructor from a different project
         # is a compilation error. So we can only test it for the same project.
@@ -79,20 +82,20 @@ add_specs spec_builder =
             priv_method 1 . should_equal 1
 
         group_builder.specify "cannot call private method from different project" <|
-            obj = Priv_Type.create 42
+            obj = Public_Type.create 42
             Test.expect_panic Private_Access <|
                 obj.priv_method
 
         group_builder.specify "cannot call private static method from different project" <|
-            obj = Priv_Type.create 42
+            obj = Public_Type.create 42
             Test.expect_panic Private_Access <|
-                Priv_Type.priv_method obj
+                Public_Type.priv_method obj
 
         group_builder.specify "cannot call private method from a lambda method" <|
-            obj = Priv_Type.create 42
+            obj = Public_Type.create 42
             Test.expect_panic Private_Access <|
-                Priv_Type.in_ctx <|
-                    Priv_Type.priv_method obj
+                Public_Type.in_ctx <|
+                    Public_Type.priv_method obj
 
         group_builder.specify "extension methods can be specified as private" <|
             obj = My_Priv_Type.Cons 42

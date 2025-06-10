@@ -1,7 +1,6 @@
 /**
  * @file
- *
- * `<AnimatedBackground />` component visually highlights selected items by sliding a background into view when hovered over or clicked.
+ * Visually highlight selected items by sliding a background into view when hovered over or clicked.
  */
 import type { Transition, Variants } from 'framer-motion'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -27,17 +26,15 @@ const AnimatedBackgroundContext = createContext<{
   layoutId: string
 } | null>(null)
 
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 const DEFAULT_TRANSITION: Transition = {
   type: 'spring',
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  stiffness: 300,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  stiffness: 350,
   damping: 20,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  mass: 0.5,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  mass: 0.3,
   velocity: 8,
 }
+/* eslint-enable @typescript-eslint/no-magic-numbers */
 
 /** `<AnimatedBackground />` component visually highlights selected items by sliding a background into view when hovered over or clicked. */
 export function AnimatedBackground(props: AnimatedBackgroundProps) {
@@ -45,21 +42,14 @@ export function AnimatedBackground(props: AnimatedBackgroundProps) {
 
   const layoutId = useId()
 
-  const contextValue = useMemo(
-    () => ({ value, transition, layoutId }),
-    [value, transition, layoutId],
-  )
-
   return (
-    <AnimatedBackgroundContext.Provider value={contextValue}>
+    <AnimatedBackgroundContext.Provider value={{ value, transition, layoutId }}>
       {children}
     </AnimatedBackgroundContext.Provider>
   )
 }
 
-/**
- * Props for {@link AnimatedBackground.Item}.
- */
+/** Props for {@link AnimatedBackground.Item}. */
 type AnimatedBackgroundItemProps = PropsWithChildren<
   AnimatedBackgroundItemPropsWithSelected | AnimatedBackgroundItemPropsWithValue
 > & {
@@ -68,17 +58,13 @@ type AnimatedBackgroundItemProps = PropsWithChildren<
   readonly underlayElement?: React.ReactNode
 }
 
-/**
- * Props for {@link AnimatedBackground.Item} with a `value` prop.
- */
+/** Props for {@link AnimatedBackground.Item} with a `value` prop. */
 interface AnimatedBackgroundItemPropsWithValue {
   readonly value: string
   readonly isSelected?: never
 }
 
-/**
- * Props for {@link AnimatedBackground.Item} with a `isSelected` prop.
- */
+/** Props for {@link AnimatedBackground.Item} with a `isSelected` prop. */
 interface AnimatedBackgroundItemPropsWithSelected {
   readonly isSelected: boolean
   readonly value?: never
@@ -114,7 +100,7 @@ AnimatedBackground.Item = memo(function AnimatedBackgroundItem(props: AnimatedBa
   const isActive = isSelected ?? activeValue === value
 
   return (
-    <div className={twJoin('relative', className)}>
+    <div className={twJoin('relative *:isolate', className)}>
       <AnimatedBackgroundItemUnderlay
         isActive={isActive}
         underlayElement={underlayElement}
@@ -122,14 +108,12 @@ AnimatedBackground.Item = memo(function AnimatedBackgroundItem(props: AnimatedBa
         transition={transition}
       />
 
-      <div className="isolate contents">{children}</div>
+      <div className="isolate contents *:isolate">{children}</div>
     </div>
   )
 })
 
-/**
- * Props for {@link AnimatedBackgroundItemUnderlay}.
- */
+/** Props for {@link AnimatedBackgroundItemUnderlay}. */
 interface AnimatedBackgroundItemUnderlayProps {
   readonly isActive: boolean
   readonly underlayElement: React.ReactNode
@@ -142,10 +126,8 @@ const VARIANTS: Variants = {
   visible: { opacity: 1 },
 }
 
-/**
- * Underlay for {@link AnimatedBackground.Item}.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** Underlay for {@link AnimatedBackground.Item}. */
+
 const AnimatedBackgroundItemUnderlay = memo(function AnimatedBackgroundItemUnderlay(
   props: AnimatedBackgroundItemUnderlayProps,
 ) {
@@ -155,7 +137,7 @@ const AnimatedBackgroundItemUnderlay = memo(function AnimatedBackgroundItemUnder
     <AnimatePresence initial={!isActive}>
       {isActive && (
         <motion.div
-          layout="position"
+          layout
           layoutId={`background-${layoutId}`}
           className="pointer-events-none absolute inset-0 isolate"
           transition={transition}

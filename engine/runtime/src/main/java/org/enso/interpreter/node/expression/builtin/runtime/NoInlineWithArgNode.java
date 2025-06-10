@@ -7,8 +7,8 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Runtime",
@@ -29,16 +29,18 @@ public class NoInlineWithArgNode extends Node {
     invokeCallableNode.setTailStatus(TailStatus.NOT_TAIL);
   }
 
-  Object execute(VirtualFrame frame, State state, Object action, Object argument) {
+  Object execute(VirtualFrame frame, Object action, Object argument) {
     MaterializedFrame materializedFrame = null;
     if (frame != null) {
       materializedFrame = frame.materialize();
     }
-    return doInvoke(materializedFrame, state, action, argument);
+    return doInvoke(materializedFrame, action, argument);
   }
 
   @CompilerDirectives.TruffleBoundary
-  Object doInvoke(MaterializedFrame frame, State state, Object action, Object argument) {
+  Object doInvoke(MaterializedFrame frame, Object action, Object argument) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     return invokeCallableNode.execute(action, frame, state, new Object[] {argument});
   }
 }

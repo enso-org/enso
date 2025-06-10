@@ -5,17 +5,15 @@ import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
-import * as searchParamsState from '#/hooks/searchParamsStateHooks'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import * as backendModule from '#/services/Backend'
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 
+const TAB_TYPES = ['drive', 'settings'] as const
+
 /** Main content of the screen. Only one should be visible at a time. */
-export enum TabType {
-  drive = 'drive',
-  settings = 'settings',
-}
+export type TabType = (typeof TAB_TYPES)[number]
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -26,14 +24,27 @@ declare module '#/utilities/LocalStorage' {
   }
 }
 
+const PROJECT_ID_SCHEMA = z.custom<backendModule.ProjectId>(
+  (x) => typeof x === 'string' && x.startsWith('project-'),
+)
+const DIRECTORY_ID_SCHEMA = z.custom<backendModule.DirectoryId>(
+  (x) => typeof x === 'string' && x.startsWith('directory-'),
+)
 const PROJECT_SCHEMA = z
   .object({
-    id: z.custom<backendModule.ProjectId>((x) => typeof x === 'string' && x.startsWith('project-')),
-    parentId: z.custom<backendModule.DirectoryId>(
-      (x) => typeof x === 'string' && x.startsWith('directory-'),
-    ),
+    id: PROJECT_ID_SCHEMA,
+    parentId: DIRECTORY_ID_SCHEMA,
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
+    preventAutoReopen: z.boolean().optional(),
+    hybrid: z.optional(
+      z.object({
+        cloudProjectId: PROJECT_ID_SCHEMA,
+        cloudParentId: DIRECTORY_ID_SCHEMA,
+        parentId: DIRECTORY_ID_SCHEMA,
+        cloudProjectDirectoryPath: z.string(),
+      }),
+    ),
   })
   .readonly()
 const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
@@ -48,8 +59,9 @@ LocalStorage.registerKey('launchedProjects', {
   schema: LAUNCHED_PROJECT_SCHEMA,
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const PAGES_SCHEMA = z
-  .nativeEnum(TabType)
+  .enum(TAB_TYPES)
   .or(
     z.custom<LaunchedProjectId>(
       (value) => typeof value === 'string' && value.startsWith('project-'),
@@ -68,13 +80,10 @@ export interface ProjectsContextType {
   ) => void
   readonly getState: () => {
     readonly launchedProjects: readonly LaunchedProject[]
-    readonly page: LaunchedProjectId | TabType
   }
-  readonly setPage: (page: LaunchedProjectId | TabType) => void
 }
 
 const ProjectsContext = React.createContext<ProjectsContextType | null>(null)
-const PageContext = React.createContext<LaunchedProjectId | TabType | null>(null)
 const LaunchedProjectsContext = React.createContext<readonly LaunchedProject[] | null>(null)
 
 /** Props for a {@link ProjectsProvider}. */
@@ -87,18 +96,19 @@ export type ProjectsProviderProps = Readonly<React.PropsWithChildren>
 export default function ProjectsProvider(props: ProjectsProviderProps) {
   const { children } = props
 
-  const [launchedProjects, setLaunchedProjects] = localStorageProvider.useLocalStorageState(
+  const [launchedProjects, setLaunchedProjects] = useLocalStorageState(
     'launchedProjects',
     array.EMPTY_ARRAY,
-  )
-  const [page, setPage] = searchParamsState.useSearchParamsState(
-    'page',
-    () => TabType.drive,
-    (value: unknown): value is LaunchedProjectId | TabType => {
-      return (
-        array.includes(Object.values(TabType), value) ||
-        launchedProjects.some((p) => p.id === value)
-      )
+    {
+      sanitize: (savedLaunchedProjects) =>
+        savedLaunchedProjects.map((project) => {
+          if (project.type === backendModule.BackendType.local && project.hybrid == null) {
+            return project
+          } else {
+            // Disallow Cloud projects and Hybrid projects from auto-opening
+            return { ...project, preventAutoReopen: true }
+          }
+        }),
     },
   )
 
@@ -106,7 +116,9 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
     setLaunchedProjects((current) => [...current, project])
   })
   const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
-    setLaunchedProjects((current) => current.filter(({ id }) => id !== projectId))
+    setLaunchedProjects((current) =>
+      current.filter(({ id, hybrid }) => id !== projectId && hybrid?.cloudProjectId !== projectId),
+    )
   })
   const updateLaunchedProjects = eventCallbacks.useEventCallback(
     (update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[]) => {
@@ -116,40 +128,27 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 
   const getState = eventCallbacks.useEventCallback(() => ({
     launchedProjects,
-    page,
   }))
 
-  const projectsContextValue = React.useMemo(
-    () => ({
-      updateLaunchedProjects,
-      addLaunchedProject,
-      removeLaunchedProject,
-      setLaunchedProjects,
-      setPage,
-      getState,
-    }),
-    [
-      updateLaunchedProjects,
-      addLaunchedProject,
-      removeLaunchedProject,
-      setLaunchedProjects,
-      setPage,
-      getState,
-    ],
-  )
+  const projectsContextValue = {
+    updateLaunchedProjects,
+    addLaunchedProject,
+    removeLaunchedProject,
+    setLaunchedProjects,
+    getState,
+  }
 
   return (
     <ProjectsContext.Provider value={projectsContextValue}>
-      <PageContext.Provider value={page}>
-        <LaunchedProjectsContext.Provider value={launchedProjects}>
-          {children}
-        </LaunchedProjectsContext.Provider>
-      </PageContext.Provider>
+      <LaunchedProjectsContext.Provider value={launchedProjects}>
+        {children}
+      </LaunchedProjectsContext.Provider>
     </ProjectsContext.Provider>
   )
 }
 
 /** The projects store. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useProjectsStore() {
   const context = React.useContext(ProjectsContext)
 
@@ -158,24 +157,8 @@ export function useProjectsStore() {
   return context
 }
 
-/** The page context. */
-export function usePage() {
-  const context = React.useContext(PageContext)
-
-  invariant(context != null, 'Page context can only be used inside an `ProjectsProvider`.')
-
-  return context
-}
-
-/** A function to set the current page. */
-export function useSetPage() {
-  const { setPage } = useProjectsStore()
-  return eventCallbacks.useEventCallback((page: LaunchedProjectId | TabType) => {
-    setPage(page)
-  })
-}
-
 /** Returns the launched projects context. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLaunchedProjects() {
   const context = React.useContext(LaunchedProjectsContext)
 
@@ -188,24 +171,28 @@ export function useLaunchedProjects() {
 }
 
 /** A function to update launched projects. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useUpdateLaunchedProjects() {
   const { updateLaunchedProjects } = useProjectsStore()
   return updateLaunchedProjects
 }
 
 /** A function to add a new launched project. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAddLaunchedProject() {
   const { addLaunchedProject } = useProjectsStore()
   return addLaunchedProject
 }
 
 /** A function to remove a launched project. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useRemoveLaunchedProject() {
   const { removeLaunchedProject } = useProjectsStore()
   return removeLaunchedProject
 }
 
 /** A function to remove all launched projects. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useClearLaunchedProjects() {
   const { setLaunchedProjects } = useProjectsStore()
 

@@ -5,10 +5,7 @@ import { fileURLToPath } from 'node:url'
 import type * as esbuild from 'esbuild'
 import { wasmLoader } from 'esbuild-plugin-wasm'
 
-import * as appConfig from 'enso-common/src/appConfig'
 import * as paths from './paths'
-
-await appConfig.readEnvironmentFromFile()
 
 /**
  * Get the bundler options using the environment.
@@ -50,6 +47,8 @@ export function bundlerOptions(
       'process.env.PROJECT_MANAGER_IN_BUNDLE_PATH': JSON.stringify(projectManagerInBundlePath),
       'process.env.ELECTRON_DEV_MODE': JSON.stringify(String(devMode)),
       'process.env.GUI_CONFIG_PATH': JSON.stringify(path.resolve('../../gui/vite.config.ts')),
+      'process.env.ENSO_IDE_VERSION': JSON.stringify(process.env.ENSO_IDE_VERSION),
+      'process.env.ENSO_IDE_COMMIT_HASH': JSON.stringify(process.env.ENSO_IDE_COMMIT_HASH),
     },
     sourcemap: 'linked',
     external: ['electron', 'vite', 'lightningcss'],

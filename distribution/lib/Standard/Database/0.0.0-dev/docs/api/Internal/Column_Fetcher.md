@@ -1,0 +1,21 @@
+## Enso Signatures 1.0
+## module Standard.Database.Internal.Column_Fetcher
+- type Column_Fetcher
+    - Value fetch_value:Standard.Base.Any.Any make_builder:Standard.Base.Any.Any
+- type Column_Fetcher_Builder
+    - Value append:Standard.Base.Any.Any make_column:Standard.Base.Any.Any
+- big_decimal_fetcher -> Standard.Base.Any.Any
+- big_integer_fetcher -> Standard.Base.Any.Any
+- boolean_fetcher -> Standard.Base.Any.Any
+- date_fetcher -> Standard.Base.Any.Any
+- date_time_fetcher -> Standard.Base.Any.Any
+- default_fetcher_for_value_type value_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- double_fetcher -> Standard.Base.Any.Any
+- fallback_fetcher -> Standard.Base.Any.Any
+- fetch_big_integer rs:Standard.Base.Any.Any i:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- local_date_time_fetcher -> Standard.Base.Any.Any
+- long_fetcher bits:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_builder_from_java_object_builder java_builder:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- seal_java_builder java_builder:Standard.Base.Any.Any column_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- text_fetcher value_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- time_fetcher -> Standard.Base.Any.Any

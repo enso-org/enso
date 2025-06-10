@@ -16,6 +16,7 @@ import org.graalvm.nativeimage.hosted.RuntimeReflection;
 public final class EnsoLibraryFeature implements Feature {
   @Override
   public void beforeAnalysis(BeforeAnalysisAccess access) {
+
     var libs = new LinkedHashSet<Path>();
     for (var p : access.getApplicationClassPath()) {
       var p1 = p.getParent();
@@ -83,10 +84,11 @@ public final class EnsoLibraryFeature implements Feature {
               }
             }
           }
+          pkg.markAotReady();
         }
       }
     } catch (Exception ex) {
-      ex.printStackTrace();
+      ex.printStackTrace(System.err);
       throw new IllegalStateException(ex);
     }
     System.err.println("Summary for polyglot import java:");

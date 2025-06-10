@@ -102,29 +102,25 @@ case object FullyQualifiedNames extends IRPass {
               val allStarting = moduleContext.pkgRepo
                 .map(
                   _.getLoadedModules.filter(m =>
-                    exportedModuleRef.getName != m.getName && m
-                      .getName()
-                      .toString
+                    exportedModuleRef.getName != m.getName && m.getName.toString
                       .startsWith(exportedModuleRef.getName.toString + ".")
                   )
                 )
                 .getOrElse(Nil)
               if (allStarting.nonEmpty) {
-                ir.exports.foreach { export =>
-                  export match {
-                    case m: Export.Module
-                        if m.name.name == resolution.qualifiedName.toString =>
-                      m.addDiagnostic(
-                        warnings.Shadowed.TypeInModuleNameConflicts(
-                          exportedModule.getName.toString,
-                          tpeName,
-                          allStarting.head.getName.toString,
-                          m,
-                          m.identifiedLocation
-                        )
+                ir.exports.foreach {
+                  case m: Export.Module
+                      if m.name.name == resolution.qualifiedName.toString =>
+                    m.addDiagnostic(
+                      warnings.Shadowed.TypeInModuleNameConflicts(
+                        exportedModule.getName.toString,
+                        tpeName,
+                        allStarting.head.getName.toString,
+                        m,
+                        m.identifiedLocation
                       )
-                    case _ =>
-                  }
+                    )
+                  case _ =>
                 }
               }
             }
@@ -181,7 +177,10 @@ case object FullyQualifiedNames extends IRPass {
       case asc: Type.Ascription => asc
       case method: definition.Method =>
         val resolution = method.methodReference.typePointer.flatMap(
-          _.getMetadata(MethodDefinitions)
+          _.getMetadata(
+            MethodDefinitions.INSTANCE,
+            classOf[BindingsMap.Resolution]
+          )
         )
         method.mapExpressions(
           processExpression(
@@ -232,16 +231,12 @@ case object FullyQualifiedNames extends IRPass {
   ): Expression =
     ir.transformExpressions {
       case lit: Name.Literal =>
-        val isTypeName = typeParams.find(_.name == lit.name).nonEmpty
+        val isTypeName = typeParams.exists(_.name == lit.name)
         if (!lit.isMethod && !isLocalVar(lit) && !isTypeName) {
           val resolution = bindings.resolveName(lit.name)
           resolution match {
             case Left(_) =>
-              if (
-                pkgRepo
-                  .map(_.isNamespaceRegistered(lit.name))
-                  .getOrElse(false)
-              ) {
+              if (pkgRepo.exists(_.isNamespaceRegistered(lit.name))) {
                 lit.updateMetadata(
                   new MetadataPair(
                     this,
@@ -257,7 +252,7 @@ case object FullyQualifiedNames extends IRPass {
         } else {
           lit
         }
-      case app @ Application.Prefix(_, List(_), _, _, _) =>
+      case app: Application.Prefix if app.arguments.nonEmpty =>
         app.function match {
           case lit: Name.Literal =>
             if (lit.isMethod)

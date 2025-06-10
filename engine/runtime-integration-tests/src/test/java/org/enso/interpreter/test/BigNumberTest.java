@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -10,26 +12,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class BigNumberTest {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void evaluation() throws Exception {
@@ -83,7 +72,7 @@ public class BigNumberTest {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);
     final Source src = Source.newBuilder("enso", code, testName).uri(testUri).buildLiteral();
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var powers = module.invokeMember("eval_expression", methodName);
     return powers;
   }
@@ -176,5 +165,40 @@ public class BigNumberTest {
   public void doubleBigInteger() throws Exception {
     var fourtyTwo = assertMul(6.0, new BigInteger("7"));
     assertEquals(42, fourtyTwo.asInt());
+  }
+
+  @Test
+  public void everyValueSmallerThanIntegerMaxVal_IsPrimitiveInt() {
+    var almostMaxInt = Integer.toString(Integer.MAX_VALUE - 1);
+    var intVal = ctxRule.evalModule("main = " + almostMaxInt);
+    assertThat("Is a number", intVal.isNumber(), is(true));
+    assertThat("Fits in int", intVal.fitsInInt(), is(true));
+    assertThat("Fits in long", intVal.fitsInLong(), is(true));
+    assertThat("Fits in double", intVal.fitsInDouble(), is(true));
+    assertThat("Fits in big int", intVal.fitsInBigInteger(), is(true));
+  }
+
+  @Test
+  public void everyValueSmallerThanLongMaxVal_IsPrimitiveLong() {
+    var almostMaxLong = Long.toString(Long.MAX_VALUE - 1);
+    var longVal = ctxRule.evalModule("main = " + almostMaxLong);
+    assertThat("Is a number", longVal.isNumber(), is(true));
+    assertThat("Does not fit in int", longVal.fitsInInt(), is(false));
+    assertThat("Fits in long", longVal.fitsInLong(), is(true));
+    // Does not fit in double, because it is not a power of 2 and therefore a precision would
+    // be lost if converted to double.
+    assertThat("Does not fit in double", longVal.fitsInDouble(), is(false));
+    assertThat("Fits in big int", longVal.fitsInBigInteger(), is(true));
+  }
+
+  @Test
+  public void everyValueBiggerThanLongMaxVal_IsEnsoBigInt() {
+    // This number is bigger than Long.MAX_VALUE, and not a power of 2.
+    var bigIntVal = ctxRule.evalModule("main = 9223372036854775808");
+    assertThat("Is a number", bigIntVal.isNumber(), is(true));
+    assertThat("Does not fit in int", bigIntVal.fitsInInt(), is(false));
+    assertThat("Does not fit in long", bigIntVal.fitsInLong(), is(false));
+    assertThat("Does not fit in double (not a power of 2)", bigIntVal.fitsInDouble(), is(false));
+    assertThat("Fits in big int", bigIntVal.fitsInBigInteger(), is(true));
   }
 }

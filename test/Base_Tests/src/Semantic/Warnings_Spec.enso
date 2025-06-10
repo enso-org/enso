@@ -277,11 +277,16 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
 
         res . should_equal [1, 0, 1, 0]
         Warning.get_all res wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 'warn4'), (Map_Error.Error 2 'warn3'), (Map_Error.Error 1 'warn2'), (Map_Error.Error 0 'warn1')]
-        res.at 0 . should_equal 1
-        Warning.get_all (res.at 0) . map .value . should_equal ['warn4', 'warn3', 'warn2', 'warn1']
+        elem0 = res.at 0
+        elem0 . should_equal 1
+        four_raw = Warning.get_all elem0
+        four_map = four_raw . map .value
+        four_map . should_equal ['warn4', 'warn3', 'warn2', 'warn1']
 
         slice = res.slice 1 4
-        Warning.get_all slice wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 'warn4'), (Map_Error.Error 2 'warn3'), (Map_Error.Error 1 'warn2'), (Map_Error.Error 0 'warn1')]
+        slice_warn = Warning.get_all slice wrap_errors=True
+        slice_map = slice_warn . map
+        slice_map .value . should_equal [(Map_Error.Error 3 'warn4'), (Map_Error.Error 2 'warn3'), (Map_Error.Error 1 'warn2'), (Map_Error.Error 0 'warn1')]
 
         zero = even 0
         Warning.get_all zero wrap_errors=True . map .value . should_equal ["warn"+0.to_text]
@@ -450,6 +455,11 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         res2 = vec.contains elem2
         res2 . should_equal True
         Warning.get_all res2 . map .value . should_equal ["WARNING2"]
+
+    group_builder.specify "warning & panic" <|
+        panic_text = Panic.catch Standard.Base.Errors.Common.Type_Error (Warning.set 1 2) caught_panic->
+            caught_panic.payload.to_text
+        panic_text . should_equal "Type error: expected `warnings` to be Vector, but got Integer."
 
 main filter=Nothing =
     suite = Test.build suite_builder->

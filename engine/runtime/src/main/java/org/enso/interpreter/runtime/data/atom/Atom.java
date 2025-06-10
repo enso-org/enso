@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.enso.interpreter.node.callable.InteropApplicationNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -58,8 +60,10 @@ public abstract class Atom extends EnsoObject {
    * Creates a new Atom for a given constructor.
    *
    * @param constructor the Atom's constructor
+   * @param skipCheck don't assert whether the arity is non-zero
    */
-  Atom(AtomConstructor constructor) {
+  Atom(AtomConstructor constructor, boolean skipCheck) {
+    assert skipCheck || constructor.getArity() != 0;
     this.constructor = constructor;
   }
 
@@ -155,7 +159,7 @@ public abstract class Atom extends EnsoObject {
 
   /**
    * Returns list of fields of the Atom. If {@code includeInternal} is true, all methods, including
-   * project-private, are included. Fields are returned as filed getters, i.e., methods. Only fields
+   * project-private, are included. Fields are returned as field getters, i.e., methods. Only fields
    * for the constructor that was used to construct this atom are returned.
    */
   @ExportMessage
@@ -174,19 +178,9 @@ public abstract class Atom extends EnsoObject {
 
     String[] filteredMembers =
         allMembers.stream()
-            .filter(
-                method -> {
-                  if (includeInternal) {
-                    return true;
-                  } else {
-                    return !method.getSchema().isProjectPrivate();
-                  }
-                })
-            .map(
-                func -> {
-                  var funcNameItems = func.getName().split("\\.");
-                  return funcNameItems[funcNameItems.length - 1];
-                })
+            .filter(method -> includeInternal || !method.getSchema().isProjectPrivate())
+            .map(method -> method.getName())
+            .map(fullName -> fullName.substring(fullName.lastIndexOf('.') + 1))
             .distinct()
             .toArray(String[]::new);
     return ArrayLikeHelpers.wrapStrings(filteredMembers);
@@ -196,15 +190,12 @@ public abstract class Atom extends EnsoObject {
   private Set<Function> getInstanceMethods() {
     var methodsFromCtorScope =
         constructor.getDefinitionScope().getMethodsForType(constructor.getType());
-    var methodsFromTypeScope =
-        constructor.getType().getDefinitionScope().getMethodsForType(constructor.getType());
     var allMethods = new HashSet<Function>();
     if (methodsFromCtorScope != null) {
       allMethods.addAll(methodsFromCtorScope);
     }
-    if (methodsFromTypeScope != null) {
-      allMethods.addAll(methodsFromTypeScope);
-    }
+    var methodsFromType = constructor.getType().getMethods(false);
+    allMethods.addAll(methodsFromType.values());
     return allMethods.stream()
         .filter(method -> !isFieldGetter(method))
         .collect(Collectors.toUnmodifiableSet());
@@ -293,7 +284,10 @@ public abstract class Atom extends EnsoObject {
    */
   @ExportMessage
   @ExplodeLoop
-  final Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
+  final Object readMember(
+      String member,
+      @CachedLibrary(limit = "3") StructsLibrary structs,
+      @Cached InteropApplicationNode preApplySelf)
       throws UnknownIdentifierException, UnsupportedMessageException {
     if (!isMemberReadable(member)) {
       throw UnknownIdentifierException.create(member);
@@ -305,7 +299,10 @@ public abstract class Atom extends EnsoObject {
     }
     var method = findMethod(member);
     if (method != null) {
-      return method;
+      var ctx = EnsoContext.get(preApplySelf);
+      var state = ctx.currentState();
+      var methodWithSelfApplied = preApplySelf.execute(method, state, new Object[] {this});
+      return methodWithSelfApplied;
     }
     throw UnknownIdentifierException.create(member);
   }
@@ -451,6 +448,6 @@ public abstract class Atom extends EnsoObject {
   }
 
   private boolean hasProjectPrivateConstructor() {
-    return constructor.getType().isProjectPrivate();
+    return constructor.getType().hasAllConstructorsPrivate();
   }
 }

@@ -1,0 +1,56 @@
+## Enso Signatures 1.0
+## module Standard.Database.Errors
+- type Aggregagtion_Requires_Order
+    - Error op_name:Standard.Base.Data.Text.Text
+    - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_text self -> Standard.Base.Data.Text.Text
+- type Different_Connections
+    - Error
+    - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_text self -> Standard.Base.Data.Text.Text
+- type Integrity_Error
+    - Error object_description:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type Invariant_Violation
+    - Error message:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) original_cause:Standard.Database.Errors.SQL_Error
+    - to_display_text self -> Standard.Base.Any.Any
+- type Multiple_Target_Rows_Matched_For_Update
+    - Error example_key:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) example_count:Standard.Base.Data.Numbers.Integer
+    - to_display_text self -> Standard.Base.Any.Any
+- type Rows_Already_Present
+    - Error count:Standard.Base.Data.Numbers.Integer
+    - to_display_text self -> Standard.Base.Any.Any
+- type SQL_Error
+    - Error java_exception:Standard.Base.Any.Any related_query:Standard.Base.Any.Any=
+    - throw_sql_error message:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type SQL_Timeout
+    - Error java_exception:Standard.Base.Any.Any related_query:Standard.Base.Any.Any=
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type SQL_Warning
+    - Warning java_exception:Standard.Base.Any.Any
+    - message self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Table_Already_Exists
+    - Error table_name:Standard.Base.Data.Text.Text
+    - to_display_text self -> Standard.Base.Any.Any
+- type Table_Not_Found
+    - Error name:Standard.Base.Data.Text.Text
+    - to_display_text self -> Standard.Base.Any.Any
+- type Unmatched_Rows
+    - Error count:Standard.Base.Data.Numbers.Integer
+    - to_display_text self -> Standard.Base.Any.Any
+- type Unsupported_Database_Encoding
+    - Warning message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Unsupported_Database_Operation
+    - Error operation:Standard.Base.Data.Text.Text
+    - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_text self -> Standard.Base.Data.Text.Text
+- type Unsupported_Database_Type
+    - Error type:Standard.Base.Data.Text.Text db:Standard.Base.Data.Text.Text
+    - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_text self -> Standard.Base.Data.Text.Text

@@ -8,9 +8,9 @@ import project.Blank_Selector.Blank_Selector
 import project.Column.Column
 import project.Expression.Expression
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+import project.Internal.Match_Columns_Helpers.Column_Set
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Value_Type_Helpers
-import project.Match_Columns.Column_Set
 import project.Position.Position
 import project.Set_Mode.Set_Mode
 import project.Sort_Column.Sort_Column
@@ -18,8 +18,10 @@ import project.Table.Table
 import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, No_Such_Column, Too_Many_Column_Names_Provided
+from project.Table import from_java_table
 
 polyglot java import java.util.HashSet
+polyglot java import org.enso.table.data.mask.OrderMask
 
 type Table_Column_Helper
     ## PRIVATE
@@ -83,7 +85,7 @@ type Table_Column_Helper
          specified types will also be selected (i.e. ignore size, precision).
     select_by_type : Vector Value_Type -> Boolean -> Vector
     select_by_type self types:Vector strict:Boolean=False =
-        parsed_types = types.map t->t:Value_Type
+        parsed_types = types.map t-> t:Value_Type
         selected_columns = if strict then self.columns.filter c-> parsed_types.contains c.value_type else
             self.columns.filter c-> parsed_types.any t-> c.value_type.is_same_type t
         if selected_columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
@@ -324,7 +326,6 @@ read_name_mapping_from_table column_map:Table = case column_map.column_count of
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-rename_columns : Column_Naming_Helper -> Vector -> Dictionary (Text | Integer | Regex) Text | Vector Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Dictionary Text Text
 rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) (mapping:(Dictionary | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
     ## Convert Vector of Pairs to Dictionary
     is_vec_pairs = mapping.is_a Vector && mapping.length > 0 && (mapping.first.is_a Text . not)
@@ -524,7 +525,7 @@ filter_blank_rows table when treat_nans_as_blank =
    `is_table` and if it returns `True`.
 is_column obj =
     known_types = ["Standard.Table.Column.Column", "Standard.Database.DB_Column.DB_Column"]
-    known_types.contains (Meta.get_qualified_type_name obj)
+    known_types.contains (obj.to Meta.Type . qualified_name)
 
 ## PRIVATE
    A helper method that resolves what should be the result type of a particular
@@ -584,3 +585,16 @@ replace_columns_with_transformed_columns table selectors transformer error_on_mi
     columns = internal_columns.map table.columns_helper.make_column
     new_columns = columns.map on_problems=No_Wrap.Value transformer
     replace_columns_with_columns table columns new_columns
+
+
+## PRIVATE
+   Takes a table and a list of counts and returns a new table with the rows
+   duplicated according to the counts.
+   The vector should have the same number of elements as the number of rows in the table.
+duplicate_rows (table : Table) (counts : Vector Integer) -> Table =
+    Runtime.assert (table.row_count == counts.length) "The number of counts ("+counts.length.to_text+") must match the number of rows in the table ("+table.row_count.to_text+")."
+    mask_array = counts
+        . map_with_index ix-> count-> Vector.fill count ix
+        . flatten
+    mask = OrderMask.fromArray mask_array
+    from_java_table (table.java_table.applyMask mask)

@@ -16,12 +16,14 @@ import scala.concurrent.duration.FiniteDuration
   * @param name a name of the LS
   * @param rootId a content root id
   * @param rootPath a path to the content root
+  * @param projectId an id of the project
   * @param networkConfig a network config
   * @param distributionConfiguration configuration of current distribution, used
   *                                  to find installed (or install new) engine
   *                                  versions
   * @param engineVersion version of the langauge server's engine to use
   * @param jvmSettings settings to use for the JVM that will host the engine
+  * @param jvm use JVM - default or provided one
   * @param discardOutput specifies if the process output should be discarded or
   *                      printed to parent's streams
   * @param profilingPath the language server profiling file path
@@ -31,20 +33,23 @@ import scala.concurrent.duration.FiniteDuration
   *                                       if the child component should connect
   *                                       to the logging service, it should
   *                                       contain the URI to connect to
-  * @param skipGraalVMUpdater indicates if the check and installation of GraalVM
-  *                              should be skipped
+  * @param skipGraalVMUpdater indicates if the check and installation of GraalVM should be skipped
+  * @param extraEnv extra environment variables
   */
 case class LanguageServerDescriptor(
   name: String,
   rootId: UUID,
   rootPath: String,
+  projectId: UUID,
   networkConfig: NetworkConfig,
   distributionConfiguration: DistributionConfiguration,
   engineVersion: SemVer,
   jvmSettings: JVMSettings,
+  jvm: Option[Option[Path]],
   discardOutput: Boolean,
   profilingPath: Option[Path],
   profilingTime: Option[FiniteDuration],
   deferredLoggingServiceEndpoint: Future[Option[URI]],
-  skipGraalVMUpdater: Boolean
+  skipGraalVMUpdater: Boolean,
+  extraEnv: Seq[(String, String)]
 )

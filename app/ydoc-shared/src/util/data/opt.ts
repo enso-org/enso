@@ -31,3 +31,11 @@ export function isNone(value: Opt<any>): value is null | undefined {
 export function mapOr<T, R>(optional: Opt<T>, fallback: R, mapper: (value: T) => R): R {
   return isSome(optional) ? mapper(optional) : fallback
 }
+
+/**
+ * Map the value inside the given {@link Opt} if it is not nullish,
+ * else return undefined.
+ */
+export function mapOrUndefined<T, R>(optional: Opt<T>, mapper: (value: T) => Opt<R>): Opt<R> {
+  return mapOr(optional, undefined, mapper)
+}

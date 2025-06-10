@@ -7,6 +7,7 @@ import { Pattern } from '@/util/ast/match'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { ToolbarItem } from './toolbar'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
@@ -147,7 +148,7 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
 const createDateTime = (x: DateObj) => {
   const dateTime = new Date()
   if (x.day != null) dateTime.setDate(x.day)
-  if (x.month != null) dateTime.setMonth(x.month)
+  if (x.month != null) dateTime.setMonth(x.month - 1)
   if (x.year != null) dateTime.setFullYear(x.year)
   if (x.hour != null) dateTime.setHours(x.hour)
   if (x.minute != null) dateTime.setMinutes(x.minute)
@@ -161,7 +162,7 @@ const data = computed<Data>(() => {
     Array.isArray(rawData) ?
       // eslint-disable-next-line camelcase
       rawData.map((y, index) => ({ x: index, y, row_number: index }))
-    : rawData.data ?? []
+    : (rawData.data ?? [])
   let data: Point[]
   const isTimeSeries: boolean =
     'x_value_type' in rawData ?
@@ -507,6 +508,7 @@ const brush = computed(() => {
     ])
     .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
+      createNewFilterNodeEnabled.value = true
     })
 })
 
@@ -526,7 +528,7 @@ watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
 /** Helper function to match a d3 shape from its name. */
 function matchShape(d: Point) {
-  return d.shape != null ? SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle : d3.symbolCircle
+  return d.shape != null ? (SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle) : d3.symbolCircle
 }
 
 watchEffect(() => {
@@ -680,7 +682,7 @@ function formatXPoint(x: Date | number | DateObj) {
       case 'Time':
         return x.toTimeString()
       case 'Date':
-        return x.toDateString()
+        return x.toISOString()
       default:
         return x.toString()
     }
@@ -707,12 +709,12 @@ watchPostEffect(() => {
   const yScale_ = yScale.value
   const plotData = getPlotData(data.value) as Point[]
   const series = Object.keys(data.value.axis).filter((s) => s != 'x')
-  const colorScale = (d: string) => {
+  const colorScale = (d: Point) => {
     const color = d3.scaleOrdinal(d3.schemeCategory10).domain(series)
     if (data.value.is_multi_series) {
-      return color(d)
+      return color(d.series ?? '')
     }
-    return DEFAULT_FILL_COLOR
+    return d.color ?? DEFAULT_FILL_COLOR
   }
   d3Points.value
     .selectAll<SVGPathElement, unknown>('path')
@@ -726,11 +728,12 @@ watchPostEffect(() => {
     })
     .transition()
     .duration(animationDuration.value)
+    .attr('class', 'scatterPoint')
     .attr(
       'd',
       symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
-    .style('fill', (d) => colorScale(d.series || ''))
+    .style('--color', (d) => colorScale(d))
     .attr('transform', (d) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
@@ -748,7 +751,7 @@ watchPostEffect(() => {
 watchPostEffect(() => {
   if (data.value.is_multi_series) {
     const formatLabel = (string: string) =>
-      string.length > 10 ? `${string.substr(0, 10)}...` : string
+      string.length > 15 ? `${string.substr(0, 15)}...` : string
 
     const color = d3
       .scaleOrdinal<string>()
@@ -756,31 +759,26 @@ watchPostEffect(() => {
       .range(d3.schemeCategory10)
       .domain(seriesLabels.value)
 
-    d3Legend.value.selectAll('circle').remove()
-    d3Legend.value.selectAll('text').remove()
-
     d3Legend.value
-      .selectAll('dots')
+      .selectAll('circle')
       .data(seriesLabels.value)
-      .enter()
-      .append('circle')
+      .join((enter) => enter.append('circle'))
       .attr('cx', function (d, i) {
         return 90 + i * 120
       })
-      .attr('cy', 10)
-      .attr('r', 6)
+      .attr('cy', 9)
+      .attr('r', 5)
       .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
     d3Legend.value
-      .selectAll('labels')
+      .selectAll('text')
       .data(seriesLabels.value)
-      .enter()
-      .append('text')
+      .join((enter) => enter.append('text'))
       .attr('x', function (d, i) {
         return 100 + i * 120
       })
       .attr('y', 10)
-      .style('font-size', '15px')
+      .style('font-size', LABEL_FONT_STYLE)
       .text((d) => formatLabel(d))
       .attr('alignment-baseline', 'middle')
       .call((labels) => labels.append('title').text((d) => d))
@@ -865,42 +863,49 @@ const makeSeriesLabelOptions = () => {
   return seriesOptions
 }
 
-config.setToolbar([
-  {
-    icon: 'select',
-    title: 'Enable Selection',
-    toggle: selectionEnabled,
-  },
-  {
-    icon: 'show_all',
-    title: 'Fit All',
-    onClick: () => zoomToSelected(false),
-  },
-  {
-    icon: 'zoom',
-    title: 'Zoom to Selected',
-    disabled: () => brushExtent.value == null,
-    onClick: zoomToSelected,
-  },
-  {
-    icon: 'add_to_graph_editor',
-    title: 'Create component of selected points',
-    disabled: () => !createNewFilterNodeEnabled.value,
-    onClick: createNewFilterNode,
-  },
-  {
-    type: 'textSelectionMenu',
-    selectedTextOption: yAxisSelected,
-    title: 'Choose Y Axis Label',
-    heading: 'Y Axis Label: ',
-    options: {
-      none: {
-        label: 'No Label',
-      },
-      ...makeSeriesLabelOptions(),
+const createTextSelectionButton = (): ToolbarItem => ({
+  type: 'textSelectionMenu',
+  selectedTextOption: yAxisSelected,
+  title: 'Choose Y Axis Label',
+  heading: 'Y Axis Label: ',
+  options: {
+    none: {
+      label: 'No Label',
     },
+    ...makeSeriesLabelOptions(),
   },
-])
+})
+
+function useScatterplotVizToolbar() {
+  const textSelectionButton = createTextSelectionButton()
+  return computed<ToolbarItem[]>(() => [
+    {
+      icon: 'select',
+      title: 'Enable Selection',
+      toggle: selectionEnabled,
+    },
+    {
+      icon: 'zoom',
+      title: 'Zoom to Selected',
+      disabled: () => brushExtent.value == null,
+      onClick: zoomToSelected,
+    },
+    {
+      icon: 'refresh',
+      title: 'Reset scatterplot view',
+      onClick: () => zoomToSelected(false),
+    },
+    {
+      icon: 'add_to_graph_editor',
+      title: 'Create component of selected points',
+      disabled: () => !createNewFilterNodeEnabled.value,
+      onClick: createNewFilterNode,
+    },
+    ...(data.value.is_multi_series ? [textSelectionButton] : []),
+  ])
+}
+
+config.setToolbar(useScatterplotVizToolbar())
 </script>
 
 <template>
@@ -947,6 +952,16 @@ config.setToolbar([
   user-select: none;
   display: flex;
   flex-direction: column;
+
+  &:deep(path.scatterPoint) {
+    fill: var(--color);
+    stroke: transparent;
+    stroke-width: 5px;
+    transition: stroke 200ms;
+    &:hover {
+      stroke: color-mix(in srgb, var(--color) 50%, transparent 50%);
+    }
+  }
 }
 
 .WarningsScatterplotVisualization {

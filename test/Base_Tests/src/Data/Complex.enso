@@ -10,7 +10,7 @@ import project.Data.Complex_Helpers.Complex_Comparator
 type Complex
     private Value re:Float im:Float
 
-    new re=0:Float im=0:Float =
+    new re=0:Float im=0:Float -> Complex =
         c = Complex.Value re im
         if im != 0 then c:Complex else
             c.as_complex_and_float

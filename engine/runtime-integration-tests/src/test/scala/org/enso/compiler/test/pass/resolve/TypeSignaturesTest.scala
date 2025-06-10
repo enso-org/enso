@@ -271,7 +271,8 @@ class TypeSignaturesTest extends CompilerTest {
     }
 
     "work recursively" in {
-      val arg2Value     = ir.asInstanceOf[Application.Prefix].arguments(1).value
+      val arg2Value =
+        ir.asInstanceOf[Application.Prefix].arguments.apply(1).value
       val arg2Signature = arg2Value.getMetadata(TypeSignatures)
       arg2Signature shouldBe defined
       arg2Signature.get.signature.showCode() shouldEqual "Int"
@@ -279,7 +280,8 @@ class TypeSignaturesTest extends CompilerTest {
       // But arg1 has no signature:
       val arg1Signature = ir
         .asInstanceOf[Application.Prefix]
-        .arguments(0)
+        .arguments
+        .apply(0)
         .value
         .getMetadata(TypeSignatures)
       arg1Signature shouldBe empty

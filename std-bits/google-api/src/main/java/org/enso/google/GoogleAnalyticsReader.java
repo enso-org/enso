@@ -12,7 +12,6 @@ import com.google.analytics.data.v1beta.GetMetadataRequest;
 import com.google.analytics.data.v1beta.Metadata;
 import com.google.analytics.data.v1beta.Metric;
 import com.google.analytics.data.v1beta.RunReportRequest;
-import com.google.api.gax.core.CredentialsProvider;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -26,7 +25,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.IntStream;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -50,7 +48,7 @@ public class GoogleAnalyticsReader {
       String apiName, String displayName, String category, String description) {}
 
   private static AnalyticsAdminServiceClient createAdminClient(
-      CredentialsProvider credentialsProvider) throws IOException {
+      GoogleCredentialsProvider credentialsProvider) throws IOException {
     if (credentialsProvider == null) {
       // Default Credentials Path
       return AnalyticsAdminServiceClient.create();
@@ -58,26 +56,28 @@ public class GoogleAnalyticsReader {
 
     var settings =
         AnalyticsAdminServiceSettings.newBuilder()
-            .setCredentialsProvider(credentialsProvider)
+            .setCredentialsProvider(GoogleCredentialsProvider.underlying(credentialsProvider))
             .build();
     return AnalyticsAdminServiceClient.create(settings);
   }
 
-  private static BetaAnalyticsDataClient createDataClient(CredentialsProvider credentialsProvider)
-      throws IOException {
+  private static BetaAnalyticsDataClient createDataClient(
+      GoogleCredentialsProvider credentialsProvider) throws IOException {
     if (credentialsProvider == null) {
       // Default Credentials Path
       return BetaAnalyticsDataClient.create();
     }
 
     var settings =
-        BetaAnalyticsDataSettings.newBuilder().setCredentialsProvider(credentialsProvider).build();
+        BetaAnalyticsDataSettings.newBuilder()
+            .setCredentialsProvider(GoogleCredentialsProvider.underlying(credentialsProvider))
+            .build();
     return BetaAnalyticsDataClient.create(settings);
   }
 
   /** Lists all Google Analytics accounts. */
   public static AnalyticsAccount[] listAccounts(
-      CredentialsProvider credentialsProvider, int limit, boolean includeDeleted)
+      GoogleCredentialsProvider credentialsProvider, int limit, boolean includeDeleted)
       throws IOException {
     int pageSize = getPageSize(limit);
 
@@ -128,7 +128,7 @@ public class GoogleAnalyticsReader {
    * @return an array of properties
    */
   public static AnalyticsProperty[] listProperties(
-      CredentialsProvider credentialsProvider,
+      GoogleCredentialsProvider credentialsProvider,
       AnalyticsAccount[] parents,
       int limit,
       boolean includeDeleted)
@@ -184,7 +184,8 @@ public class GoogleAnalyticsReader {
    * @return an array of metrics
    */
   public static AnalyticDimension[] listMetrics(
-      CredentialsProvider credentialsProvider, AnalyticsProperty property) throws IOException {
+      GoogleCredentialsProvider credentialsProvider, AnalyticsProperty property)
+      throws IOException {
     var metadata = getMetadata(credentialsProvider, property.id());
     return metadata.getMetricsList().stream()
         .map(
@@ -203,7 +204,8 @@ public class GoogleAnalyticsReader {
    * @return an array of dimensions
    */
   public static AnalyticDimension[] listDimensions(
-      CredentialsProvider credentialsProvider, AnalyticsProperty property) throws IOException {
+      GoogleCredentialsProvider credentialsProvider, AnalyticsProperty property)
+      throws IOException {
     var metadata = getMetadata(credentialsProvider, property.id());
     return metadata.getDimensionsList().stream()
         .map(
@@ -218,7 +220,7 @@ public class GoogleAnalyticsReader {
 
   /** Caches metadata requests for Google Analytics properties. */
   private static synchronized Metadata getMetadata(
-      CredentialsProvider credentialsProvider, String propertyId) throws IOException {
+      GoogleCredentialsProvider credentialsProvider, String propertyId) throws IOException {
     if (metadataCache.containsKey(propertyId)) {
       return metadataCache.get(propertyId);
     }
@@ -249,7 +251,7 @@ public class GoogleAnalyticsReader {
    * @return a Table with the report data
    */
   public static Table runReport(
-      CredentialsProvider credentialsProvider,
+      GoogleCredentialsProvider credentialsProvider,
       AnalyticsProperty property,
       LocalDate startDate,
       LocalDate endDate,
@@ -278,7 +280,7 @@ public class GoogleAnalyticsReader {
 
       var builders = new Builder[dimensions.size() + metrics.size()];
       for (int i = 0; i < dimensions.size() + metrics.size(); i++) {
-        builders[i] = new StringBuilder(rowCount, TextType.VARIABLE_LENGTH);
+        builders[i] = Builder.getForText(TextType.VARIABLE_LENGTH, rowCount);
       }
 
       // Load the data

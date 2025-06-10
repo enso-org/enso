@@ -90,6 +90,7 @@ class TestSyncRemoteCache(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(cache_dir.is_dir())
         self.assertTrue(remote_cache.engine_index_html().exists())
         self.assertTrue(remote_cache.stdlib_index_html().exists())
+        self.assertTrue(cache_dir.joinpath("index.json").exists())
 
     async def test_clone_sync_remote_cache(self):
         self.skipTest("TODO: Takes too long")

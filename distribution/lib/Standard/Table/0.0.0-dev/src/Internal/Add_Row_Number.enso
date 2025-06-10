@@ -3,6 +3,7 @@ import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
@@ -36,12 +37,12 @@ create_column table name from step grouping_columns ordering on_problems =
     case no_order_no_group of
         True -> make_range_column name from step table.row_count
         False ->
-            ordering_columns = ordering.map c->c.column.java_column
+            ordering_columns = ordering.map c->(c.column:In_Memory_Column).java_column
             directions = ordering.map c->c.associated_selector.direction.to_sign
-            grouping_java_columns = grouping_columns.map c->c.java_column
+            grouping_java_columns = grouping_columns.map c->(c:In_Memory_Column).java_column
             new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 AddRowNumber.create_numbering from step grouping_java_columns ordering_columns directions java_problem_aggregator
-            Column.from_storage name new_storage
+            In_Memory_Column.from_storage name new_storage
 
 ## PRIVATE
    If the table already contains a column called `name` it will be renamed to a
@@ -65,4 +66,4 @@ nth_index start step n =
 ## PRIVATE
 make_range_column name start step length =
     storage = LongRangeStorage.new start step length
-    Column.from_storage name storage
+    In_Memory_Column.from_storage name storage

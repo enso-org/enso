@@ -57,7 +57,9 @@ public abstract class MiniIRPass {
    *
    * @param parent the the parent of the edge
    * @param child the child expression element to be be processed.
-   * @return an instance of the pass to process the child's element subtree
+   * @return an instance of the pass to process the child's element subtree. If null is returned,
+   *     the subtree of the child element is not processed, including {@code child} (i.e. {@code
+   *     child} is not processed as well).
    */
   public MiniIRPass prepare(IR parent, Expression child) {
     return this;
@@ -103,8 +105,9 @@ public abstract class MiniIRPass {
    * Combines two mini IR passes into one that delegates to both of them.
    *
    * @param first first mini pass (can be {@code null})
-   * @param second second mini pass
-   * @return a combined pass that calls both non-{@code null} of the provided passes
+   * @param second second mini pass (can be {@code null})
+   * @return a combined pass that calls both non-{@code null} of the provided passes. {@code null}
+   *     if both provided passes are {@code null}.
    */
   public static MiniIRPass combine(MiniIRPass first, MiniIRPass second) {
     return ChainedMiniPass.chain(first, second);

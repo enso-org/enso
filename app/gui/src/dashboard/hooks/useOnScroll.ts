@@ -3,10 +3,6 @@ import * as React from 'react'
 
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
-// ===================
-// === useOnScroll ===
-// ===================
-
 /** Execute a function on scroll. */
 export default function useOnScroll(callback: () => void, dependencies: React.DependencyList) {
   const callbackTrampoline = eventCallbackHooks.useEventCallback(callback)

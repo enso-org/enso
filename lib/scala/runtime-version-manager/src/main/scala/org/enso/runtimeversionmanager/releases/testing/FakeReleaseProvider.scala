@@ -118,7 +118,7 @@ case class FakeAsset(
     */
   private def maybeWaitForAsset(): Unit =
     lockManagerForAssets.foreach { lockManager =>
-      val name     = "testasset-" + fileName
+      val name     = FakeAsset.lockNameForAsset(fileName)
       val lockType = LockType.Shared
       val lock = lockManager.tryAcquireLock(
         name,
@@ -185,4 +185,10 @@ case class FakeAsset(
         listener.done(txt)
       }
     }
+}
+
+object FakeAsset {
+
+  /** Name for the lock used for synchronizing access to asset, used when instrumenting tests. */
+  def lockNameForAsset(assetName: String): String = s"testasset-$assetName"
 }

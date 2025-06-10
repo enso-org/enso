@@ -1,0 +1,25 @@
+from Standard.Base import Boolean, False, True
+
+## Describes what to do with rows that have unexpected number of columns.
+type Invalid_Rows
+    ## Rows that contain too few or too many columns are dropped.
+    Drop_Invalid_Rows
+
+    ## Rows that contain too few or too many columns are kept
+
+       - If a row has too few columns, the missing columns are filled with `Nothing`.
+       - If it has too many, the extra columns are dropped.
+    Keep_Invalid_Rows
+
+    ## Rows that contain more columns than expected are kept, and the extra columns are added.
+
+       - If a row has too few columns, the missing columns are filled with `Nothing`.
+       - If it has too many, the extra columns are kept. The previous rows that
+         had less columns are filled with `Nothing`.
+    Add_Extra_Columns
+
+## PRIVATE
+   A conversion for backward compatibility.
+Invalid_Rows.from (that : Boolean) = case that of
+    True -> Invalid_Rows.Keep_Invalid_Rows
+    False -> Invalid_Rows.Drop_Invalid_Rows

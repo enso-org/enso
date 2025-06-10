@@ -18,7 +18,6 @@ import org.enso.compiler.data.BindingsMap.{
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.persist.Persistance
 
 class BindingAnalysisTest extends CompilerTest {
 
@@ -67,7 +66,7 @@ class BindingAnalysisTest extends CompilerTest {
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
       metadata.definedEntities should contain theSameElementsAs List(
-        Type("My_Type", List(), List(), false),
+        Type("My_Type", List(), List(), false, false),
         ExtensionMethod("extension_method", "My_Type")
       )
 
@@ -93,8 +92,8 @@ class BindingAnalysisTest extends CompilerTest {
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
       metadata.definedEntities should contain theSameElementsAs List(
-        Type("My_Type", List(), List(), false),
-        Type("Other_Type", List(), List(), false),
+        Type("My_Type", List(), List(), false, false),
+        Type("Other_Type", List(), List(), false, false),
         ExtensionMethod("extension_method", "My_Type"),
         ExtensionMethod("extension_method", "Other_Type")
       )
@@ -124,8 +123,8 @@ class BindingAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessModule.analyse
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
       metadata.definedEntities should contain theSameElementsAs List(
-        Type("Source", List(), List(), false),
-        Type("Target", List(), List(), false),
+        Type("Source", List(), List(), false, false),
+        Type("Target", List(), List(), false, false),
         ConversionMethod("from", "Source", "Target"),
         ConversionMethod("from", "Target", "Source")
       )
@@ -168,27 +167,25 @@ class BindingAnalysisTest extends CompilerTest {
               List(
                 Argument(
                   "a",
-                  hasDefaultValue = false,
-                  Persistance.Reference.none()
+                  hasDefaultValue = false
                 ),
                 Argument(
                   "b",
-                  hasDefaultValue = false,
-                  Persistance.Reference.none()
+                  hasDefaultValue = false
                 ),
                 Argument(
                   "c",
-                  hasDefaultValue = false,
-                  Persistance.Reference.none()
+                  hasDefaultValue = false
                 )
               ),
               isProjectPrivate = false
             )
           ),
-          builtinType = false
+          builtinType = false,
+          false
         ),
-        Type("Bar", List(), List(), builtinType         = false),
-        Type("Baz", List("x", "y"), List(), builtinType = false),
+        Type("Bar", List(), List(), builtinType         = false, false),
+        Type("Baz", List("x", "y"), List(), builtinType = false, false),
         ExtensionMethod("foo", "Baz"),
         ExtensionMethod("baz", "Bar"),
         ConversionMethod("from", "Bar", "Foo"),

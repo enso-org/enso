@@ -1,5 +1,5 @@
 import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import type { ToValue } from '@/util/reactivity'
 import type { Ref } from 'vue'
 
@@ -21,7 +21,14 @@ export interface ToggleButton extends Button {
 }
 
 export interface SelectionMenuOption extends Button {
-  label?: string
+  label?: string | undefined
+  labelExtension?: string | undefined
+  disabled?: ToValue<boolean> | undefined
+  /**
+   * If `true`, the option will never be shown in the list, but can be rendered as the heading if it
+   * is the current model-value.
+   */
+  hidden?: ToValue<boolean> | undefined
 }
 
 export interface SelectionMenu {

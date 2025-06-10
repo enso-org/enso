@@ -5,13 +5,23 @@ name: Nightly Release
 on:
   schedule:
     - cron: 0 2 * * *
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      ydoc:
+        description: What kind of Ydoc image to build.
+        required: false
+        type: choice
+        default: nodejs
+        options:
+          - nodejs
+          - polyglot
 jobs:
   promote-nightly:
     name: Promote nightly
     uses: ./.github/workflows/promote.yml
     with:
       designator: nightly
+      ydoc: ${{ inputs.ydoc || 'nodejs' }}
     secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

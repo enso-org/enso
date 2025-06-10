@@ -1,14 +1,9 @@
 /** @file ESLint configuration file. */
+
 /**
  * NOTE: The "Experimental: Use Flat Config" option must be enabled.
  * Flat config is still not quite mature, so is disabled by default.
  */
-import * as path from 'node:path'
-import * as url from 'node:url'
-
-// The preferred syntax is `import * as name`, however these modules do not support it.
-// This is specialcased in other files, but these modules shouldn't be used in other files anyway.
-
 import eslintJs from '@eslint/js'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
@@ -16,12 +11,11 @@ import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
 import reactCompiler from 'eslint-plugin-react-compiler'
 import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
 import pluginVue from 'eslint-plugin-vue'
 import globals from 'globals'
-
-// =================
-// === Constants ===
-// =================
+import * as path from 'node:path'
+import * as url from 'node:url'
 
 const DEBUG_STATEMENTS_MESSAGE = 'Avoid leaving debugging statements when committing code'
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
@@ -36,7 +30,7 @@ const NAME = 'enso'
  * `node:process` is here because `process.on` does not exist on the namespace import.
  */
 const DEFAULT_IMPORT_ONLY_MODULES =
-  '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json$'
+  '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|react-keyed-flatten-children|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json|.*[.]svg|.*[.]vue$'
 const RELATIVE_MODULES =
   'projectManager|server|configParser|authentication|config|debug|detect|fileAssociations|index|ipc|log|naming|paths|preload|projectManagement|security|urlAssociations|contentConfig|desktopEnvironment|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
@@ -102,7 +96,7 @@ const RESTRICTED_SYNTAXES = [
   },
   {
     // Matches non-functions.
-    selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
+    selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], [init.callee.object.name=React][init.callee.property.name=memo], :has(CallExpression[callee.name=memo]), :has(CallExpression[callee.name=forwardRef]), :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor]), :has(CallExpression[callee.name=newtypeConstructor])))`,
     message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
   },
   {
@@ -186,24 +180,35 @@ const RESTRICTED_SYNTAXES = [
 // === ESLint configuration ===
 // ============================
 
-export default [
+const config = [
   {
     // Playwright build cache and Vite build directory.
     ignores: [
       '**/.cache/**',
       '**/playwright-report',
       '**/dist',
+      '**/test-results',
       '**/mockDist',
       '**/build.mjs',
       '**/*.timestamp-*.mjs',
       '**/node_modules',
       '**/generated',
+      '**/*.json',
       'app/rust-ffi/pkg/',
     ],
+  },
+  {
+    // Based on a 3rd party library that doesn't use ESLint.
+    ignores: ['app/lang-markdown/', 'app/lezer-markdown/'],
   },
   eslintJs.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   ...vueTsEslintConfig(),
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
+  },
   {
     // files: ['{**,src}/*.{vue,js,jsx,cjs,mjs,ts,tsx,cts,mts}'],
     languageOptions: {
@@ -213,8 +218,10 @@ export default [
         extraFileExtensions: ['.vue'],
         projectService: {
           allowDefaultProject: [
-            'app/ydoc-server/vitest.config.ts',
+            'eslint.config.mjs',
+            // 'app/ydoc-server/vitest.config.ts',
             'app/ydoc-shared/vitest.config.ts',
+            'app/ide-desktop/icons/src/index.js',
           ],
         },
       },
@@ -231,6 +238,11 @@ export default [
           varsIgnorePattern: '^_',
           argsIgnorePattern: '^_',
         },
+      ],
+      'no-restricted-properties': [
+        'warn',
+        { object: 'console', property: 'debug', message: DEBUG_STATEMENTS_MESSAGE },
+        { object: 'console', property: 'trace', message: DEBUG_STATEMENTS_MESSAGE },
       ],
       '@typescript-eslint/no-namespace': 'off',
       // Empty interfaces have valid uses; e.g. although an empty interface extending a class is semantically equivalent
@@ -284,14 +296,11 @@ export default [
 
   // === Dashboard Rules ===
   {
-    files: [
-      'app/gui/src/dashboard/**/*.ts',
-      'app/gui/src/dashboard/**/*.mts',
-      'app/gui/src/dashboard/**/*.cts',
-      'app/gui/src/dashboard/**/*.tsx',
-      'app/gui/src/dashboard/**/*.mtsx',
-      'app/gui/src/dashboard/**/*.ctsx',
-    ],
+    ...reactRefresh.configs.vite,
+    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
+  },
+  {
+    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
     settings: {
       react: {
         version: '18.2',
@@ -302,7 +311,6 @@ export default [
       '@typescript-eslint': tsEslint,
       react: react,
       'react-hooks': reactHooks,
-      'react-compiler': reactCompiler,
     },
     languageOptions: {
       parserOptions: {
@@ -386,10 +394,6 @@ export default [
       'react-hooks/exhaustive-deps': ['error', { additionalHooks: 'useOnScroll|useLazyMemoHooks' }],
       'react/jsx-pascal-case': ['error', { allowNamespace: true }],
 
-      // We use warnings instead of errors because we want to gradually migrate the codebase to the new compiler.
-      // see: https://github.com/reactwg/react-compiler/discussions/8
-      'react-compiler/react-compiler': 'warn',
-
       // Prefer `interface` over `type`.
       '@typescript-eslint/consistent-type-definitions': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
@@ -462,7 +466,10 @@ export default [
       '@typescript-eslint/restrict-template-expressions': 'error',
       '@typescript-eslint/sort-type-constituents': 'error',
       '@typescript-eslint/strict-boolean-expressions': 'error',
-      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/switch-exhaustiveness-check': [
+        'error',
+        { allowDefaultCaseForExhaustiveSwitch: true },
+      ],
       'default-param-last': 'off',
       '@typescript-eslint/default-param-last': 'error',
       'no-invalid-this': 'off',
@@ -502,7 +509,6 @@ export default [
       'jsdoc/no-defaults': 'error',
       'jsdoc/no-multi-asterisks': 'error',
       'jsdoc/no-types': 'error',
-      'jsdoc/no-undefined-types': 'error',
       'jsdoc/require-asterisk-prefix': 'error',
       'jsdoc/require-description': 'error',
       // This rule does not handle `# Heading`s and "etc.", "e.g.", "vs." etc.
@@ -565,6 +571,63 @@ export default [
       'jsdoc/require-file-overview': 'off',
       '@typescript-eslint/no-magic-numbers': 'off',
       '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/naming-convention': 'off',
+      'react-hooks/rules-of-hooks': 'off',
     },
   },
+  {
+    files: ['app/gui/src/dashboard/**/*.test.tsx', 'app/gui/src/dashboard/**/*.test.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
+      'jsdoc/require-jsdoc': 'off',
+      'jsdoc/require-param-type': 'off',
+      'jsdoc/require-file-overview': 'off',
+      '@typescript-eslint/no-magic-numbers': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/naming-convention': 'off',
+    },
+  },
+  // === EnsoDevtools Rules ===
+  // Allow JSX strings in EnsoDevtools.tsx.
+  {
+    files: ['app/gui/src/dashboard/**/EnsoDevtools*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...RESTRICTED_SYNTAXES.filter(
+          (syntax) =>
+            syntax.message !== 'Use a `getText()` from `useText` instead of a literal string',
+        ),
+      ],
+    },
+  },
+  // === React Compiler Rules ===
+  {
+    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
+    ignores: [
+      '**/*.d.ts',
+      '**/*.spec.ts',
+      '**/*.stories.tsx',
+      '**/*.test.tsx',
+      '**/*.test.ts',
+      '**/utilities/*.ts',
+      '**/services/*.ts',
+      '**/assets/*',
+      '**/authentication/*',
+      '**/configuration/*',
+      '**/index.ts',
+    ],
+    plugins: { 'react-compiler': reactCompiler },
+    rules: {
+      'react-compiler/react-compiler': 'error',
+    },
+  },
+  // === Index Files ===
+  {
+    files: ['**/index.ts'],
+    // Index files should not have file overviews, because their purpose is obvious.
+    rules: { 'jsdoc/require-file-overview': 'off' },
+  },
 ]
+
+export default config

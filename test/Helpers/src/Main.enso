@@ -1,17 +1,15 @@
+import project.Internal.Priv_Type
+import project.Internal.Implicitly_Private
 
-type Priv_Type
-    ## Both constructor `Cons` and field `data` are private
-    private Cons data
+## Provides access to the methods of the Priv_Type
+type Public_Type
+    private Hidden_Cons data
 
-    ## Public factory method
-    create data = Priv_Type.Cons data
+    new d = Public_Type.Hidden_Cons d
 
-    ## Public accessor for the private `data` field
-    get_data self = self.data
+    cons = Priv_Type.Cons
+    implicit_cons = Implicitly_Private.Cons
 
-    in_ctx ~action =
-        result = action
-        result
-
-    private priv_method self = self.data
-
+    create data = Priv_Type.create data
+    in_ctx ~action = Priv_Type.in_ctx action...
+    private priv_method self = Priv_Type.priv_method

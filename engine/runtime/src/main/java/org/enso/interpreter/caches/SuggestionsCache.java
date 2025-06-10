@@ -7,7 +7,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
@@ -15,7 +15,6 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.caches.SuggestionsCache.CachedSuggestions;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.persist.Persistable;
-import org.enso.persist.Persistance;
 import org.enso.polyglot.Suggestion;
 import org.enso.version.BuildVersion;
 
@@ -71,22 +70,22 @@ public final class SuggestionsCache
 
   @Override
   public byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
-    return Persistance.write(entry, CacheUtils.writeReplace(context.getCompiler().context(), true));
+    return PersistUtils.POOL.write(
+        entry, CacheUtils.writeReplace(context.getCompiler().context(), true));
   }
 
   @Override
   public CachedSuggestions deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws IOException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var ref = PersistUtils.POOL.read(data, CacheUtils.readResolve(context.getCompiler().context()));
     var cachedSuggestions = ref.get(CachedSuggestions.class);
     return cachedSuggestions;
   }
 
   @Override
-  public Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
-      throws IOException {
-    return Optional.of(Metadata.read(bytes));
+  public Metadata metadataFromBytes(byte[] bytes, TruffleLogger logger) throws IOException {
+    return Metadata.read(bytes);
   }
 
   @Override
@@ -141,7 +140,7 @@ public final class SuggestionsCache
    * @param libraryName
    * @param suggestions Must not be null.
    */
-  public record CachedSuggestions(LibraryName libraryName, ArrayList<Suggestion> suggestions) {}
+  public record CachedSuggestions(LibraryName libraryName, List<Suggestion> suggestions) {}
 
   public record Metadata(String sourceHash, String blobHash) {
     byte[] toBytes() throws IOException {

@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.immutable;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
@@ -18,7 +19,7 @@ public class AtVectorNode extends Node {
   private @Child ArrayLikeAtNode at = ArrayLikeAtNode.create();
   private @Child ArrayLikeLengthNode length;
 
-  Object execute(Object arrayLike, long index) {
+  Object execute(@AcceptsWarning Object arrayLike, long index) {
     try {
       long actualIndex = index < 0 ? index + len(arrayLike) : index;
       return at.executeAt(arrayLike, actualIndex);

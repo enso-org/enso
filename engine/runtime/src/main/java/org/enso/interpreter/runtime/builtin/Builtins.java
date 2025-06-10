@@ -82,6 +82,7 @@ public final class Builtins {
     }
   }
 
+  private final EnsoContext context;
   private final Map<Class<? extends Builtin>, Builtin> builtins;
   private final Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> builtinMethodNodes;
   private final Map<String, Builtin> builtinsByName;
@@ -97,7 +98,6 @@ public final class Builtins {
   private final Comparable comparable;
   private final DefaultComparator defaultComparator;
   private final System system;
-  private final Special special;
 
   // Builtin types
   private final Builtin any;
@@ -123,6 +123,7 @@ public final class Builtins {
   private final NoWrap noWrap;
   private final ProblemBehavior problemBehavior;
   private final AdditionalWarnings additionalWarnings;
+  private final Builtin instrumentor;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -130,10 +131,11 @@ public final class Builtins {
    * @param context the current {@link EnsoContext} instance
    */
   public Builtins(EnsoContext context) {
+    this.context = context;
     EnsoLanguage language = context.getLanguage();
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
     module.compileScope(context); // Dummy compilation for an empty module
-    ModuleScope.Builder scopeBuilder = module.newScopeBuilder(false);
+    ModuleScope.Builder scopeBuilder = module.newScopeBuilder();
 
     builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scopeBuilder);
     builtinsByName =
@@ -177,11 +179,11 @@ public final class Builtins {
     noWrap = getBuiltinType(NoWrap.class);
     problemBehavior = getBuiltinType(ProblemBehavior.class);
     additionalWarnings = getBuiltinType(AdditionalWarnings.class);
+    instrumentor = builtins.get(org.enso.interpreter.node.expression.builtin.Instrumentor.class);
 
     error = new Error(this, context);
     system = new System(this);
     number = new Number(this);
-    special = new Special(language);
     scope = scopeBuilder.build();
   }
 
@@ -525,6 +527,15 @@ public final class Builtins {
     return t;
   }
 
+  public Builtin getByRepresentationType(Class<?> clazz) {
+    for (var b : builtins.values()) {
+      if (b.isRepresentedBy(clazz)) {
+        return b;
+      }
+    }
+    return null;
+  }
+
   public Builtin getBuiltinType(String name) {
     return builtinsByName.get(name);
   }
@@ -769,8 +780,11 @@ public final class Builtins {
     return dataflowError.getType();
   }
 
-  public Special special() {
-    return special;
+  /**
+   * @return represents the Instrumentor type
+   */
+  public Type instrumentor() {
+    return instrumentor.getType();
   }
 
   /**
@@ -784,6 +798,10 @@ public final class Builtins {
 
   public Module getModule() {
     return module;
+  }
+
+  public EnsoLanguage getLanguage() {
+    return context.getLanguage();
   }
 
   private static class LoadedBuiltinMetaMethod {

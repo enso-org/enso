@@ -30,4 +30,3 @@ main filter=Nothing =
         Visualization_Spec.add_specs suite_builder
         Widgets_Spec.add_specs suite_builder
     suite.run_with_filter filter
-

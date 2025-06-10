@@ -25,6 +25,32 @@ object Warning {
     override def diagnosticKeys(): Array[Any] = Array()
   }
 
+  /** Warning about unused symbols from an import.
+    * Only relevant for imports of form `from M import A,B,C`.
+    */
+  case class UnusedSymbolsFromImport(
+    override val identifiedLocation: IdentifiedLocation,
+    unusedSymbols: List[String]
+  ) extends Warning {
+
+    override def message(source: IdentifiedLocation => String): String = {
+      val unusedSymbolsRepr = unusedSymbols.sorted.mkString(", ")
+      s"Following symbols are not used in this import: [$unusedSymbolsRepr]."
+    }
+
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
+  case class UnusedImport(
+    override val identifiedLocation: IdentifiedLocation
+  ) extends Warning {
+    override def message(source: IdentifiedLocation => String): String = {
+      "The import is not used"
+    }
+
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
   /** A warning about a `@Tail_Call` annotation placed in a non-tail
     * position.
     *
@@ -71,6 +97,35 @@ object Warning {
   ) extends Warning {
     override def message(source: (IdentifiedLocation => String)): String =
       s"Got an expression of type $actualType that will never match $expectedType. This will always result in a Type_Error in runtime."
+
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
+  /** A warning about calling a method (or field getter) that is not defined on the given type.
+    *
+    * This warning indicates a place that will result in a No_Such_Method error in runtime.
+    *
+    * @param identifiedLocation the location of the call
+    * @param methodDescription the description of the method
+    */
+  case class NoSuchMethod(
+    override val identifiedLocation: IdentifiedLocation,
+    methodDescription: String
+  ) extends Warning {
+    override def message(source: (IdentifiedLocation => String)): String = {
+      s"Calling $methodDescription will result in a No_Such_Method error in runtime."
+    }
+
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
+  case class DiscardedValue(
+    override val identifiedLocation: IdentifiedLocation,
+    discardedType: String
+  ) extends Warning {
+    override def message(source: (IdentifiedLocation => String)): String = {
+      s"A value of type $discardedType is discarded."
+    }
 
     override def diagnosticKeys(): Array[Any] = Array()
   }

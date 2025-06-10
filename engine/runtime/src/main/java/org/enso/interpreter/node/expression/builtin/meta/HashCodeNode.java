@@ -40,11 +40,13 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoFile;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -106,7 +108,7 @@ public abstract class HashCodeNode extends Node {
     return hashCodeForDouble(bigInteger.getValue().doubleValue());
   }
 
-  @Specialization(guards = {"interop.fitsInBigInteger(v)"})
+  @Specialization(guards = {"interop.fitsInBigInteger(v)", "!isMulti(v)"})
   @TruffleBoundary
   long hashCodeForBigInteger(
       Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
@@ -451,6 +453,29 @@ public abstract class HashCodeNode extends Node {
     }
   }
 
+  @Specialization
+  long hashCodeForMultiValue(
+      EnsoMultiValue value,
+      @Cached TypeOfNode typesNode,
+      @Cached EnsoMultiValue.CastToNode castNode,
+      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
+    // multi value with single "has been cast to value"
+    // needs the same hash as the "has been cast to value"
+    // hence the sum has to start from 0L
+    var hash = 0L;
+    var types = typesNode.findAllTypesOrNull(value, false);
+    assert types != null;
+    for (var t : types) {
+      var v = castNode.findTypeOrNull(t, value, false, false);
+      assert v != null;
+      var vHash = hashCodeNode.execute(v);
+      // ordering of types in multivalue doesn't matter
+      // need commutative operation here
+      hash = hash + vHash;
+    }
+    return hash;
+  }
+
   @TruffleBoundary
   @Specialization(
       guards = {"interop.isString(selfStr)"},
@@ -635,5 +660,9 @@ public abstract class HashCodeNode extends Node {
 
   boolean isJavaFunction(Object object) {
     return EnsoContext.get(this).isJavaPolyglotFunction(object);
+  }
+
+  static boolean isMulti(Object obj) {
+    return obj instanceof EnsoMultiValue;
   }
 }

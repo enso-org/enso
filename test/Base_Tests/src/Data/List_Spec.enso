@@ -168,6 +168,8 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         txt.filter (..Less than="a") . should_equal List.Nil
         txt.filter (..Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"].to_list
         txt.filter (..Between "b" "c") . should_equal ["bbb", "baaa"].to_list
+        txt.filter (..Regex_Match "b{3}") . should_equal ["bbb"].to_list
+        txt.filter (..Regex_Match (regex "b{3}")) . should_equal ["bbb"].to_list
         Test.expect_panic Type_Error (txt.filter (..Starts_With 42))
 
         ["", Nothing, " ", "a"].to_list.filter (..Is_Empty) . should_equal ["", Nothing].to_list

@@ -1,49 +1,42 @@
 package org.enso.interpreter.runtime.data.text;
 
+import java.util.ArrayDeque;
+
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
+
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.api.strings.TruffleString.Encoding;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.polyglot.common_utils.Core_Text_Utils;
 
-/** The main runtime type for Enso's Text. */
+/** Runtime representation of Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
-public final class Text extends EnsoObject {
-  private static final Lock LOCK = new ReentrantLock();
+public final class Text extends BuiltinObject {
   private static final Text EMPTY = new Text("");
-  private volatile Object contents;
-  private volatile int length = -1;
-  private volatile FcdNormalized fcdNormalized = FcdNormalized.UNKNOWN;
-
-  private enum FcdNormalized {
-    YES,
-    NO,
-    UNKNOWN
-  }
+  private Object contents;
+  private int length = -1;
+  private byte fcdNormalized;
 
   private Text(String string) {
+    assert string != null;
     this.contents = string;
   }
 
   private Text(ConcatRope contents) {
+    assert contents != null;
     this.contents = contents;
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Text";
   }
 
   @Builtin.Method(
@@ -64,10 +57,10 @@ public final class Text extends EnsoObject {
   public long length() {
     int l = length;
     if (l == -1) {
-      l = computeLength();
-      length = l;
+      return computeAndSetLength();
+    } else {
+      return l;
     }
-    return l;
   }
 
   @Builtin.Method(
@@ -80,23 +73,21 @@ public final class Text extends EnsoObject {
 
         "14.95€".is_normalized
   """)
-  @CompilerDirectives.TruffleBoundary
   public boolean is_normalized() {
-    switch (fcdNormalized) {
-      case YES -> {
-        return true;
-      }
-      case NO -> {
-        return false;
-      }
-      case UNKNOWN -> {
-        Normalizer2 normalizer = Normalizer2.getNFDInstance();
-        boolean isNormalized = normalizer.isNormalized(toString());
-        setFcdNormalized(isNormalized);
-        return isNormalized;
-      }
-    }
-    return false;
+    return switch (fcdNormalized) {
+      case 1 -> true;
+      case -1 -> false;
+      case 0 -> computeAndSetFcd();
+      default -> false;
+    };
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private boolean computeAndSetFcd() {
+    var normalizer = Normalizer2.getNFDInstance();
+    var isNormalized = normalizer.isNormalized(toString());
+    fcdNormalized = (byte) (isNormalized ? 1 : -1);
+    return isNormalized;
   }
 
   public static Text empty() {
@@ -193,8 +184,10 @@ public final class Text extends EnsoObject {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private int computeLength() {
-    return Core_Text_Utils.computeGraphemeLength(toString());
+  private int computeAndSetLength() {
+    var l = Core_Text_Utils.computeGraphemeLength(toString());
+    length = l;
+    return l;
   }
 
   @Override
@@ -212,83 +205,39 @@ public final class Text extends EnsoObject {
     return Core_Text_Utils.prettyPrint(str);
   }
 
-  @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().text();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  private void setContents(String contents) {
-    assert length == -1 || length == contents.length();
-    this.contents = contents;
-  }
-
-  private void setFcdNormalized(boolean flag) {
-    if (flag) {
-      fcdNormalized = FcdNormalized.YES;
-    } else {
-      fcdNormalized = FcdNormalized.NO;
-    }
-  }
-
   @Override
   public String toString() {
-    Object c = this.contents;
-    if (c instanceof String s) {
-      return s;
-    } else {
-      return flattenIfNecessary(this);
-    }
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().text();
+    return switch (this.contents) {
+        case String s -> s;
+        case ConcatRope r -> flattenAndSetContent(r);
+        case null, default -> throw new NullPointerException();
+    };
   }
 
   /**
    * Converts text to a Java String. For use outside of Truffle Nodes.
    *
-   * @param text the text to convert.
+   * @param c the content to flatten
    * @return the result of conversion.
    */
   @CompilerDirectives.TruffleBoundary
-  private static String flattenIfNecessary(Text text) {
-    LOCK.lock();
-    String result;
-    try {
-      Object c = text.contents;
-      if (c instanceof String s) {
-        result = s;
-      } else {
-        Deque<Object> workStack = new ArrayDeque<>();
-        StringBuilder bldr = new StringBuilder();
-        workStack.push(c);
-        while (!workStack.isEmpty()) {
-          Object item = workStack.pop();
-          if (item instanceof String) {
-            bldr.append((String) item);
-          } else {
-            ConcatRope rope = (ConcatRope) item;
-            workStack.push(rope.getRight());
-            workStack.push(rope.getLeft());
+  private String flattenAndSetContent(Object c) {
+    var workStack = new ArrayDeque<Object>();
+    StringBuilder bldr = new StringBuilder();
+    workStack.push(c);
+    while (!workStack.isEmpty()) {
+      switch (workStack.pop()) {
+          case String s -> bldr.append(s);
+          case ConcatRope rope -> {
+            workStack.push(rope.right());
+            workStack.push(rope.left());
           }
-        }
-        result = bldr.toString();
-        text.setContents(result);
+          case null, default -> throw new NullPointerException();
       }
-    } finally {
-      LOCK.unlock();
     }
+    var result = bldr.toString();
+    assert length == -1 || length == result.length();
+    this.contents = result;
     return result;
   }
 
@@ -308,4 +257,6 @@ public final class Text extends EnsoObject {
     }
     return false;
   }
+
+  private record ConcatRope(Object left, Object right) {}
 }

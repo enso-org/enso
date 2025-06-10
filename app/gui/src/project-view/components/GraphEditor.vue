@@ -1,99 +1,89 @@
 <script setup lang="ts">
 import {
-  codeEditorBindings,
-  documentationEditorBindings,
-  graphBindings,
-  interactionBindings,
-  undoBindings,
-} from '@/bindings'
+  useGraphStore,
+  useProjectNames,
+  useProjectStore,
+  useSuggestionDbStore,
+  useWidgetRegistry,
+} from '$/components/WithCurrentProject.vue'
+import { useRightPanelData } from '$/providers/rightPanel'
+import { graphBindings, panelsBindings, undoBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import type { Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
-import ComponentDocumentation from '@/components/ComponentDocumentation.vue'
-import DockPanel from '@/components/DockPanel.vue'
-import DocumentationEditor from '@/components/DocumentationEditor.vue'
+import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { selectionActionHandlers } from '@/components/GraphEditor/selectionActions'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
-import PlusButton from '@/components/PlusButton.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
-import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
-import { groupColorVar } from '@/composables/nodeColors'
+import { keyboardBusy, unrefElement, useEvent } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
-import { provideFullscreenContext } from '@/providers/fullscreenContext'
+import { ActionName, registerHandlers, toggledAction } from '@/providers/action'
+import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
-import { provideInteractionHandler } from '@/providers/interactionHandler'
-import { provideKeyboard } from '@/providers/keyboard'
-import { injectVisibility } from '@/providers/visibility'
-import { provideWidgetRegistry } from '@/providers/widgetRegistry'
-import type { NodeId } from '@/stores/graph'
-import { provideGraphStore } from '@/stores/graph'
+import { injectKeyboard } from '@/providers/keyboard'
+import type { Node, NodeId } from '@/stores/graph'
+import { isInputNode, nodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
-import { useProjectStore } from '@/stores/project'
+import { providePersisted } from '@/stores/persisted'
 import { provideNodeExecution } from '@/stores/project/nodeExecution'
-import { useSettings } from '@/stores/settings'
-import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
-import { bail } from '@/util/assert'
+import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
-import { Err, Ok } from '@/util/data/result'
+import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import { computedFallback, useSelectRef } from '@/util/reactivity'
-import { until } from '@vueuse/core'
+import { isDef, VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { encoding, set } from 'lib0'
+import * as objects from 'enso-common/src/utilities/data/object'
+import { set } from 'lib0'
 import {
   computed,
   onMounted,
   onUnmounted,
   ref,
-  shallowRef,
   toRaw,
   toRef,
+  useTemplateRef,
   watch,
-  type ComponentInstance,
+  watchEffect,
 } from 'vue'
-import { encodeMethodPointer } from 'ydoc-shared/languageServerTypes'
-import { isDevMode } from 'ydoc-shared/util/detect'
 
-const rootNode = ref<HTMLElement>()
-
-const keyboard = provideKeyboard()
+const keyboard = injectKeyboard()
+const rightPanel = useRightPanelData()
 const projectStore = useProjectStore()
-const suggestionDb = provideSuggestionDbStore(projectStore)
-const graphStore = provideGraphStore(projectStore, suggestionDb)
-const widgetRegistry = provideWidgetRegistry(graphStore.db)
+const projectNames = useProjectNames()
+const graphStore = useGraphStore()
+const widgetRegistry = useWidgetRegistry()
+const suggestionDb = useSuggestionDbStore()
 const _visualizationStore = provideVisualizationStore(projectStore)
-const visible = injectVisibility()
-provideFullscreenContext(rootNode)
-provideNodeExecution(projectStore)
+
+const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
-  if (isDevMode) {
+  if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
 })
@@ -103,107 +93,41 @@ onUnmounted(() => {
 
 // === Navigator ===
 
-const viewportNode = ref<HTMLElement>()
-onMounted(() => viewportNode.value?.focus())
+const viewportNode = useTemplateRef<VueInstance>('viewportNode')
+const viewportElem = computed(() => unrefElement<HTMLElement>(viewportNode))
+onMounted(() => viewportElem.value?.focus())
 const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
 
 // === Client saved state ===
 
-const storedShowRightDock = ref()
-const storedRightDockTab = ref()
-const rightDockWidth = ref<number>()
+providePersisted(
+  () => projectStore.id,
+  graphStore,
+  graphNavigator,
+  () => zoomToAll(true),
+)
 
-/**
- * JSON serializable representation of graph state saved in localStorage. The names of fields here
- * are kept relatively short, because it will be common to store hundreds of them within one big
- * JSON object, and serialize it quite often whenever the state is modified. Shorter keys end up
- * costing less localStorage space and slightly reduce serialization overhead.
- */
-interface GraphStoredState {
-  /** Navigator position X */
-  x: number
-  /** Navigator position Y */
-  y: number
-  /** Navigator scale */
-  s: number
-  /** Whether or not the documentation panel is open. */
-  doc: boolean
-  /** The selected tab in the right-side panel. */
-  rtab: string
-  /** Width of the right dock. */
-  rwidth: number | null
-}
+// === Zoom/pan ===
 
-const visibleAreasReady = computed(() => {
-  const nodesCount = graphStore.db.nodeIdToNode.size
-  const visibleNodeAreas = graphStore.visibleNodeAreas
-  return nodesCount > 0 && visibleNodeAreas.length == nodesCount
-})
-
-const { user: userSettings } = useSettings()
-
-useSyncLocalStorage<GraphStoredState>({
-  storageKey: 'enso-graph-state',
-  mapKeyEncoder: (enc) => {
-    // Client graph state needs to be stored separately for:
-    // - each project
-    // - each function within the project
-    encoding.writeVarString(enc, projectStore.id)
-    const methodPtr = graphStore.currentMethodPointer()
-    if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
-  },
-  debounce: 200,
-  captureState() {
-    return {
-      x: graphNavigator.targetCenter.x,
-      y: graphNavigator.targetCenter.y,
-      s: graphNavigator.targetScale,
-      doc: storedShowRightDock.value,
-      rtab: storedRightDockTab.value,
-      rwidth: rightDockWidth.value ?? null,
-    }
-  },
-  async restoreState(restored, abort) {
-    if (restored) {
-      const pos = new Vec2(restored.x ?? 0, restored.y ?? 0)
-      const scale = restored.s ?? 1
-      graphNavigator.setCenterAndScale(pos, scale)
-      storedShowRightDock.value = restored.doc ?? undefined
-      storedRightDockTab.value = restored.rtab ?? undefined
-      rightDockWidth.value = restored.rwidth ?? undefined
-    } else {
-      await until(visibleAreasReady).toBe(true)
-      await until(visible).toBe(true)
-      if (!abort.aborted) zoomToAll(true)
-    }
-  },
-})
+const scrollBounds = computed(() => Rect.Bounding(...graphStore.visibleNodeAreas) ?? Rect.Zero)
 
 function nodesBounds(nodeIds: Iterable<NodeId>) {
-  let bounds = Rect.Bounding()
-  for (const id of nodeIds) {
-    const rect = graphStore.visibleArea(id)
-    if (rect) bounds = Rect.Bounding(bounds, rect)
-  }
-  if (bounds.isFinite()) return bounds
+  return Rect.Bounding(...Array.from(nodeIds, (id) => graphStore.visibleArea(id)).filter(isDef))
 }
 
 function selectionBounds() {
-  const selected = nodeSelection.selected
-  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIds() : selected
-  return nodesBounds(nodesToCenter)
+  return nodesBounds(nodeSelection.selected) ?? scrollBounds.value
 }
 
-function zoomToSelected(skipAnimation: boolean = false) {
+function zoomToSelected() {
   const bounds = selectionBounds()
-  if (bounds)
-    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
+  if (bounds) graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
 }
 
 function zoomToAll(skipAnimation: boolean = false) {
-  const bounds = nodesBounds(graphStore.db.nodeIds())
+  const bounds = scrollBounds.value
   if (bounds)
     graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
@@ -216,8 +140,11 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
-const stackNavigator = provideStackNavigator(projectStore, graphStore)
-const graphMissing = computed(() => graphStore.moduleRoot != null && !graphStore.methodAst.ok)
+const projectNameEdited = ref(false)
+const stackNavigator = provideStackNavigator(projectStore, graphStore, projectNames)
+const graphMissing = computed(
+  () => graphStore.moduleRoot != null && !graphStore.currentMethod.ast.ok,
+)
 
 // === Toasts ===
 
@@ -232,6 +159,21 @@ const nodeSelection = provideGraphSelection(
   {
     isValid: (id) => graphStore.db.isNodeId(id),
     onSelected: (id) => graphStore.db.moveNodeToTop(id),
+    onSoleSelected: (id) => graphStore.db.moveNodeToTop(id),
+    toSorted: (ids) => {
+      const idsSet = new Set(ids)
+      const inputNodes = [
+        ...iter.filter(
+          iter.filterDefined(
+            iter.map(idsSet, graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode)),
+          ),
+          isInputNode,
+        ),
+      ]
+      inputNodes.sort((a, b) => a.argIndex - b.argIndex)
+      const nonInputNodeIds = graphStore.pickInCodeOrder(idsSet)
+      return iter.chain(inputNodes.map(nodeId), nonInputNodeIds)
+    },
   },
 )
 
@@ -254,123 +196,98 @@ const { scheduleCreateNode, createNodes, placeNode } = provideNodeCreation(
   toRef(graphNavigator, 'sceneMousePos'),
   (nodes) => {
     clearFocus()
-    nodeSelection.setSelection(nodes)
-    panToSelected()
+    if (nodes.size > 0) {
+      nodeSelection.setSelection(nodes)
+      panToSelected()
+    }
   },
 )
 
 // === Clipboard Copy/Paste ===
 
-const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
-  graphStore,
-  toRef(nodeSelection, 'selected'),
-  createNodes,
-)
+const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(createNodes)
 
-// === Interactions ===
+// === Action Handlers ===
 
-const interaction = provideInteractionHandler()
-const interactionBindingsHandler = interactionBindings.handler({
-  cancel: () => interaction.handleCancel(),
+const actionHandlers = registerHandlers({
+  'graphEditor.showHelp': {
+    action: () => rightPanel.toggleTab('help'),
+    toggled: computed(() => rightPanel.tab === 'help'),
+  },
+  'graph.renameProject': toggledAction(projectNameEdited),
+  'graph.addComponent': {
+    action: (ctx) => {
+      nodeSelection.deselectAll()
+      const clientPos = ctx?.openPosition
+      const placement: PlacementStrategy =
+        clientPos ?
+          { type: 'fixed', position: graphNavigator.clientToScenePos(Vec2.FromXY(clientPos)) }
+        : { type: 'viewport' }
+      createWithComponentBrowser({ placement })
+    },
+  },
+  'graph.toggleCodeEditor': {
+    action: () => (showCodeEditor.value = !showCodeEditor.value),
+    toggled: () => showCodeEditor.value,
+  },
+  'graph.toggleDocumentationEditor': {
+    action: () => rightPanel.toggleTab('documentation'),
+    toggled: () => rightPanel.tab === 'documentation',
+  },
+  'graph.refreshExecution': {
+    action: () => nodeExecution.recomputeAll(),
+  },
+  'graph.recomputeAll': {
+    action: () => nodeExecution.recomputeAll('Live'),
+  },
+  'graph.undo': {
+    enabled: graphStore.undoManager.canUndo,
+    action: () => graphStore.undoManager.undo(),
+  },
+  'graph.redo': {
+    enabled: graphStore.undoManager.canRedo,
+    action: () => graphStore.undoManager.redo(),
+  },
+  'graph.fitAll': {
+    action: zoomToSelected,
+  },
+  'graph.zoomIn': {
+    action: () => graphNavigator.stepZoom(+1),
+  },
+  'graph.zoomOut': {
+    action: () => graphNavigator.stepZoom(-1),
+  },
+  'graph.navigateUp': {
+    available: stackNavigator.hasBreadcrumbsBeyondRoot,
+    enabled: stackNavigator.allowNavigationLeft,
+    action: () => stackNavigator.exitNode(),
+  },
+  ...selectionActionHandlers(
+    () =>
+      iter.filterDefined(
+        iter.map(
+          nodeSelection.selected,
+          graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
+        ),
+      ),
+    {
+      collapseNodes,
+      copyNodesToClipboard,
+      deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
+    },
+  ),
 })
 
+// See also https://github.com/enso-org/enso/issues/10414
 useEvent(
   window,
   'keydown',
   (event) =>
-    interactionBindingsHandler(event) ||
-    (!keyboardBusyExceptIn(documentationEditorArea.value) && undoBindingsHandler(event)) ||
+    panelsHandler(event) ||
+    (!keyboardBusy() && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
-    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
-    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
     (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
 )
-
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
-  capture: true,
-})
-
-// === Keyboard/Mouse bindings ===
-
-const undoBindingsHandler = undoBindings.handler({
-  undo() {
-    graphStore.undoManager.undo()
-  },
-  redo() {
-    graphStore.undoManager.redo()
-  },
-})
-
-const graphBindingsHandler = graphBindings.handler({
-  startProfiling() {
-    projectStore.lsRpcConnection.profilingStart(true)
-  },
-  stopProfiling() {
-    projectStore.lsRpcConnection.profilingStop()
-  },
-  openComponentBrowser() {
-    if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
-    }
-  },
-  deleteSelected,
-  zoomToSelected() {
-    zoomToSelected()
-  },
-  selectAll() {
-    nodeSelection.selectAll()
-  },
-  deselectAll() {
-    nodeSelection.deselectAll()
-    clearFocus()
-    graphStore.undoManager.undoStackBoundary()
-  },
-  toggleVisualization() {
-    const selected = nodeSelection.selected
-    const allVisible = iter.every(
-      selected,
-      (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
-    )
-    graphStore.batchEdits(() => {
-      for (const nodeId of selected) {
-        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
-      }
-    })
-  },
-  copyNode() {
-    copySelectionToClipboard()
-  },
-  pasteNode() {
-    createNodesFromClipboard()
-  },
-  collapse() {
-    collapseNodes()
-  },
-  enterNode() {
-    const selectedNode = set.first(nodeSelection.selected)
-    if (selectedNode) {
-      stackNavigator.enterNode(selectedNode)
-    }
-  },
-  exitNode() {
-    stackNavigator.exitNode()
-  },
-  changeColorSelectedNodes() {
-    showColorPicker.value = true
-  },
-  openDocumentation() {
-    const result = tryGetSelectionDocUrl()
-    if (!result.ok) {
-      toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
-      return
-    }
-    window.open(result.value, '_blank')
-  },
-})
 
 function tryGetSelectionDocUrl() {
   const selected = nodeSelection.tryGetSoleSelection()
@@ -392,107 +309,127 @@ const { handleClick } = useDoubleClick(
   },
 )
 
-function deleteSelected() {
-  graphStore.deleteNodes(nodeSelection.selected)
-}
+// === Keyboard/Mouse bindings ===
+
+const undoBindingsHandler = undoBindings.handler(
+  objects.mapEntries(undoBindings.bindings, (actionName) => actionHandlers[actionName].action),
+)
+
+const graphBindingsHandler = graphBindings.handler({
+  ...objects.unsafeFromEntries<Partial<Record<ActionName, () => void>>>(
+    (
+      [
+        'components.deleteSelected',
+        'components.copy',
+        'components.collapse',
+        'components.pickColorMulti',
+        'graph.fitAll',
+        'graph.navigateUp',
+      ] as const
+    ).map((actionName) => [actionName, actionHandlers[actionName].action]),
+  ),
+  startProfiling() {
+    projectStore.lsRpcConnection.profilingStart(true)
+  },
+  stopProfiling() {
+    projectStore.lsRpcConnection.profilingStop()
+  },
+  openComponentBrowser() {
+    if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
+      createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
+    }
+  },
+  selectAll() {
+    nodeSelection.selectAll()
+  },
+  deselectAll() {
+    nodeSelection.deselectAll()
+    clearFocus()
+    graphStore.undoManager.undoStackBoundary()
+  },
+  toggleVisualization() {
+    const selected = nodeSelection.selected
+    const allVisible = iter.every(
+      selected,
+      (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
+    )
+    graphStore.batchEdits(() => {
+      for (const nodeId of selected) {
+        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
+      }
+    })
+  },
+  pasteNode() {
+    createNodesFromClipboard()
+  },
+  enterNode() {
+    const selectedNode = set.first(nodeSelection.selected)
+    if (selectedNode) {
+      stackNavigator.enterNode(selectedNode)
+    }
+  },
+  openDocumentation() {
+    const result = tryGetSelectionDocUrl()
+    if (!result.ok) {
+      toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
+      return
+    }
+    window.open(result.value, '_blank')
+  },
+})
 
 // === Code Editor ===
 
-const codeEditor = shallowRef<ComponentInstance<typeof CodeEditor>>()
-const codeEditorArea = computed(() => unrefElement(codeEditor))
 const showCodeEditor = ref(false)
-const codeEditorHandler = codeEditorBindings.handler({
-  toggle() {
-    showCodeEditor.value = !showCodeEditor.value
-  },
-})
+const panelsHandler = panelsBindings.handler(
+  objects.mapEntries(panelsBindings.bindings, (actionName) => actionHandlers[actionName].action),
+)
 
 // === Documentation Editor ===
 
-const displayedDocs = ref<SuggestionId | null>(null)
+const overrideDisplayedDocs = ref<SuggestionId>()
 const aiMode = ref<boolean>(false)
-
-const docEditor = shallowRef<ComponentInstance<typeof DocumentationEditor>>()
-const documentationEditorArea = computed(() => unrefElement(docEditor))
-const showRightDock = computedFallback(
-  storedShowRightDock,
-  // Show documentation editor when documentation exists on first graph visit.
-  () => (markdownDocs.value?.length ?? 0) > 0,
+const docsForSelection = computed(() => {
+  const selected = nodeSelection.tryGetSoleSelection()
+  if (!selected.ok) return Err('Select a single component to display help')
+  const suggestionId = graphStore.db.nodeMainSuggestionId.lookup(selected.value)
+  if (suggestionId == null) return Err('No documentation available for selected component')
+  return Ok(suggestionId)
+})
+const displayedDocs = computed(() =>
+  overrideDisplayedDocs.value ? Ok(overrideDisplayedDocs.value) : docsForSelection.value,
 )
-const rightDockTab = computedFallback(storedRightDockTab, () => 'docs')
 
-/* Separate Dock Panel state when Component Browser is opened. */
-const rightDockTabForCB = ref('help')
-const rightDockVisibleForCB = ref(true)
-
-const documentationEditorHandler = documentationEditorBindings.handler({
-  toggle() {
-    rightDockVisible.value = !rightDockVisible.value
-  },
+watchEffect(() => {
+  const projectId = projectStore.id
+  rightPanel.setContext(projectId, {
+    item: projectId,
+    help: { item: displayedDocs.value, aiMode: aiMode.value },
+  })
 })
 
-const markdownDocs = computed(() => {
-  const currentMethod = graphStore.methodAst
-  if (!currentMethod.ok) return
-  return currentMethod.value.mutableDocumentationMarkdown()
-})
+function toggleRightDockHelpPanel() {
+  rightPanel.tab = 'help'
+}
 
 // === Component Browser ===
 
-const componentBrowserVisible = ref(false)
+const { componentBrowserOpened } = provideGraphEditorState({
+  componentBrowserOpened: ref(false),
+})
 const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 
 function openComponentBrowser(usage: Usage, position: Vec2) {
   componentBrowserUsage.value = usage
   componentBrowserNodePosition.value = position
-  componentBrowserVisible.value = true
+  componentBrowserOpened.value = true
 }
 
 function hideComponentBrowser() {
   graphStore.editedNodeInfo = undefined
-  componentBrowserVisible.value = false
-  displayedDocs.value = null
-}
-
-const rightDockDisplayedTab = useSelectRef(
-  componentBrowserVisible,
-  computed({
-    get() {
-      if (userSettings.value.showHelpForCB) {
-        return 'help'
-      } else {
-        return showRightDock.value ? rightDockTab.value : rightDockTabForCB.value
-      }
-    },
-    set(tab) {
-      rightDockTabForCB.value = tab
-      userSettings.value.showHelpForCB = tab === 'help'
-      if (showRightDock.value) rightDockTab.value = tab
-    },
-  }),
-  rightDockTab,
-)
-
-const rightDockVisible = useSelectRef(
-  componentBrowserVisible,
-  computed({
-    get() {
-      return userSettings.value.showHelpForCB || rightDockVisibleForCB.value || showRightDock.value
-    },
-    set(vis) {
-      rightDockVisibleForCB.value = vis
-      userSettings.value.showHelpForCB = vis
-      if (!vis) showRightDock.value = false
-    },
-  }),
-  showRightDock,
-)
-
-/** Show help panel if it is not visible. If it is visible, close the right dock. */
-function toggleRightDockHelpPanel() {
-  rightDockVisible.value = !rightDockVisible.value || rightDockDisplayedTab.value !== 'help'
-  rightDockDisplayedTab.value = 'help'
+  componentBrowserOpened.value = false
+  overrideDisplayedDocs.value = undefined
 }
 
 function editWithComponentBrowser(node: NodeId, cursorPos: number) {
@@ -541,24 +478,13 @@ watch(
   },
 )
 
-const componentBrowser = ref()
-const docPanel = ref()
-
-const componentBrowserElements = computed(() => [
-  componentBrowser.value?.cbRoot,
-  docPanel.value?.root,
-])
+const root = ref<HTMLElement>()
 
 // === Node Creation ===
 
 interface NewNodeOptions {
   placement: PlacementStrategy
   sourcePort?: Ast.AstId | undefined
-}
-
-function addNodeDisconnected() {
-  nodeSelection.deselectAll()
-  createWithComponentBrowser({ placement: { type: 'viewport' } })
 }
 
 function fromSelection(): NewNodeOptions | undefined {
@@ -583,7 +509,8 @@ function clearFocus() {
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
   if (sourcePort == null) return
-  const sourcePortAst = graphStore.viewModule.get(sourcePort) as Ast.Expression
+  const sourcePortAst = graphStore.viewModule.get(sourcePort)
+  assert(sourcePortAst.isExpression())
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
     toCommit.map((options: NodeCreationOptions) => ({
@@ -610,11 +537,11 @@ function handleEdgeDrop(source: Ast.AstId, position: Vec2) {
 
 // === Node Collapsing ===
 
-function collapseNodes() {
+function collapseNodes(nodes: Node[]) {
   const selected = new Set(
-    iter.filter(
-      nodeSelection.selected,
-      (id) => graphStore.db.nodeIdToNode.get(id)?.type === 'component',
+    iter.map(
+      iter.filter(nodes, ({ type }) => type === 'component'),
+      nodeId,
     ),
   )
   if (selected.size == 0) return
@@ -624,10 +551,9 @@ function collapseNodes() {
       toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
       return
     }
-    const currentMethod = projectStore.executionContext.getStackTop()
-    const currentMethodName = graphStore.db.stackItemToMethodName(currentMethod)
+    const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
     if (currentMethodName == null) {
-      bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
+      bail(`Cannot get the method name for the current execution stack item.`)
     }
     const topLevel = graphStore.moduleRoot
     if (!topLevel) {
@@ -666,6 +592,7 @@ async function handleFileDrop(event: DragEvent) {
   if (!event.dataTransfer?.items) return
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
     if (item.kind === 'file') {
+      if (!graphStore.currentMethod.ast.ok) return
       const file = item.getAsFile()
       if (!file) return
       const clientPos = new Vec2(event.clientX, event.clientY)
@@ -677,7 +604,7 @@ async function handleFileDrop(event: DragEvent) {
         pos,
         projectStore.isOnLocalBackend,
         event.shiftKey,
-        projectStore.executionContext.getStackTop(),
+        graphStore.currentMethod.ast.value.externalId,
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
@@ -695,33 +622,37 @@ async function handleFileDrop(event: DragEvent) {
 // === Color Picker ===
 
 provideNodeColors(graphStore, (variable) =>
-  viewportNode.value ? getComputedStyle(viewportNode.value).getPropertyValue(variable) : '',
+  viewportElem.value ? getComputedStyle(viewportElem.value).getPropertyValue(variable) : '',
 )
 
-const showColorPicker = ref(false)
-
-const groupColors = computed(() => {
-  const styles: { [key: string]: string } = {}
-  for (const group of suggestionDb.groups) {
-    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
-  }
-  return styles
-})
-
-const documentationEditorFullscreen = ref(false)
+const contextMenuActions: ActionName[] = [
+  'graph.navigateUp',
+  'graph.renameProject',
+  'graph.refreshExecution',
+  'graph.recomputeAll',
+  'graph.undo',
+  'graph.redo',
+  'graph.addComponent',
+  'graph.fitAll',
+  'graph.toggleCodeEditor',
+  'graph.toggleDocumentationEditor',
+]
 </script>
 
 <template>
   <div
-    ref="rootNode"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
-    :style="groupColors"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
     <div class="vertical">
-      <div ref="viewportNode" class="viewport" @click="handleClick">
+      <ContextMenuTrigger
+        ref="viewportNode"
+        class="viewport"
+        :actions="contextMenuActions"
+        @click="handleClick"
+      >
         <GraphMissingView v-if="graphMissing" />
         <template v-else>
           <GraphNodes
@@ -729,77 +660,47 @@ const documentationEditorFullscreen = ref(false)
             @enterNode="(id) => stackNavigator.enterNode(id)"
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
+            @contextmenu.stop.prevent
           />
-          <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
+          <GraphEdges
+            :navigator="graphNavigator"
+            @createNodeFromEdge="handleEdgeDrop"
+            @createNodeFromPort="createNodesFromSource"
+            @outputPortDoubleClick="handleNodeOutputPortDoubleClick"
+          />
           <ComponentBrowser
-            v-if="componentBrowserVisible"
+            v-if="componentBrowserOpened"
             ref="componentBrowser"
             :navigator="graphNavigator"
             :nodePosition="componentBrowserNodePosition"
             :usage="componentBrowserUsage"
-            :associatedElements="componentBrowserElements"
+            :graphEditorRoot="root"
             @accepted="commitComponentBrowser"
             @canceled="hideComponentBrowser"
-            @selectedSuggestionId="displayedDocs = $event"
+            @selectedSuggestionId="overrideDisplayedDocs = $event"
             @isAiPrompt="aiMode = $event"
           />
-          <PlusButton title="Add Component" @click.stop="addNodeDisconnected()" />
         </template>
         <TopBar
-          v-model:recordMode="projectStore.recordMode"
-          v-model:showColorPicker="showColorPicker"
-          v-model:showCodeEditor="showCodeEditor"
-          v-model:showDocumentationEditor="rightDockVisible"
+          v-model:projectNameEdited="projectNameEdited"
           :zoomLevel="100.0 * graphNavigator.targetScale"
-          :componentsSelected="nodeSelection.selected.size"
-          :class="{ extraRightSpace: !rightDockVisible }"
-          @fitToAllClicked="zoomToSelected"
-          @zoomIn="graphNavigator.stepZoom(+1)"
-          @zoomOut="graphNavigator.stepZoom(-1)"
-          @collapseNodes="collapseNodes"
-          @removeNodes="deleteSelected"
+          :menuActions="contextMenuActions"
+          @contextmenu.stop.prevent
         />
-        <SceneScroller
-          :navigator="graphNavigator"
-          :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
-        />
+        <SceneScroller :navigator="graphNavigator" :scrollableArea="scrollBounds" />
         <GraphMouse />
-      </div>
+      </ContextMenuTrigger>
       <BottomPanel v-model:show="showCodeEditor">
-        <Suspense>
-          <CodeEditor ref="codeEditor" />
-        </Suspense>
+        <CodeEditor />
       </BottomPanel>
     </div>
-    <DockPanel
-      ref="docPanel"
-      v-model:show="rightDockVisible"
-      v-model:size="rightDockWidth"
-      v-model:tab="rightDockDisplayedTab"
-      :contentFullscreen="documentationEditorFullscreen"
-    >
-      <template #docs>
-        <DocumentationEditor
-          v-if="markdownDocs"
-          ref="docEditor"
-          :yText="markdownDocs"
-          @update:fullscreen="documentationEditorFullscreen = $event"
-        />
-      </template>
-      <template #help>
-        <ComponentDocumentation v-model="displayedDocs" :aiMode="aiMode" />
-      </template>
-    </DockPanel>
   </div>
 </template>
 
 <style scoped>
 .GraphEditor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  width: 100%;
+  height: 100%;
   contain: layout;
   user-select: none;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
@@ -812,7 +713,7 @@ const documentationEditorFullscreen = ref(false)
   }
   & .vertical {
     flex: auto;
-    min-width: 0;
+    overflow-x: hidden;
   }
 }
 
@@ -828,12 +729,12 @@ const documentationEditorFullscreen = ref(false)
   }
 }
 
-.viewport {
+.viewport.viewport {
   position: relative; /* Needed for safari when using contain: layout */
+  display: block;
   contain: layout;
   overflow: clip;
   touch-action: none;
-  --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
   --output-node-color: #006b8a;
 }

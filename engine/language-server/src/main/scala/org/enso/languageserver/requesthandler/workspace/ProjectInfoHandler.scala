@@ -22,7 +22,7 @@ class ProjectInfoHandler(languageServerConfig: Config)
 
   override def receive: Receive = { case Request(ProjectInfo, id, _) =>
     val projectRoot = languageServerConfig.directories.root.toPath.toFile
-    val configFile  = new File(projectRoot, Config.ensoPackageConfigName)
+    val configFile  = new File(projectRoot, PkgConfig.ensoPackageConfigName)
 
     if (configFile.exists()) {
       val projectConfig = PkgConfig.fromYaml(

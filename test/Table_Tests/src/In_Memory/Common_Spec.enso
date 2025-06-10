@@ -41,7 +41,7 @@ in_memory_setup =
         True
     flagged_fn flag:Dialect_Flag =
         case flag of
-            Dialect_Flag.Case_Insensitive_Ordering -> False
+            Dialect_Flag.Case_Insensitive_Ordering_By_Default -> False
             Dialect_Flag.Removes_Trailing_Whitespace_Casting_From_Char_To_Varchar -> False
             _ -> True
 

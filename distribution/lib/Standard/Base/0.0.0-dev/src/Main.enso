@@ -8,6 +8,7 @@ export project.Data.Boolean.Boolean.True
 export project.Data.Decimal.dec
 export project.Data.Decimal.Decimal
 export project.Data.Dictionary.Dictionary
+export project.Data.Download.Download_Mode.Download_Mode
 export project.Data.Filter_Condition.Filter_Action
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Hashset.Hashset
@@ -91,9 +92,7 @@ export project.Data.Text.Extensions.repeat
 export project.Data.Text.Extensions.replace
 export project.Data.Text.Extensions.reverse
 export project.Data.Text.Extensions.second
-export project.Data.Text.Extensions.slice_text
 export project.Data.Text.Extensions.split
-export project.Data.Text.Extensions.split_find_delimiters
 export project.Data.Text.Extensions.starts_with
 export project.Data.Text.Extensions.substring
 export project.Data.Text.Extensions.take
@@ -126,6 +125,7 @@ export project.Data.Time.Period.Period
 export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
+export project.Data.Vector.Report_Unmatched
 export project.Data.Vector.Vector
 export project.Data.XML.XML_Document
 export project.Data.XML.XML_Element

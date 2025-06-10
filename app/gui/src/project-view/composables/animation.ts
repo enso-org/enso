@@ -1,13 +1,16 @@
 /** @file Vue composables for running a callback on every frame, and smooth interpolation. */
 
 import type { Vec2 } from '@/util/data/vec2'
-import { watchSourceToRef } from '@/util/reactivity'
+import { watchSourceToRef, type ToValue } from '@/util/reactivity'
 import {
+  computed,
+  nextTick,
   onScopeDispose,
   proxyRefs,
   readonly,
   ref,
   shallowRef,
+  toValue,
   watch,
   type Ref,
   type WatchSource,
@@ -142,27 +145,32 @@ function useApproachBase<T>(
   const target = watchSourceToRef(to)
   const current: Ref<T> = shallowRef(target.value)
 
-  useRaf(
-    () => !stable(target.value, current.value),
-    (_, dt) => {
-      current.value = update(target.value, current.value, dt)
-    },
-  )
+  const active = computed(() => !stable(target.value, current.value))
+
+  useRaf(active, (_, dt) => {
+    current.value = update(target.value, current.value, dt)
+  })
 
   function skip() {
     current.value = target.value
   }
 
-  return readonly(proxyRefs({ value: current, skip }))
+  return readonly(proxyRefs({ value: current, skip, active }))
 }
 
-/** TODO: Add docs */
+/**
+ * Create `events` to check if any CSS transitions of declared properties
+ * within a DOM subtree are currently in progress.
+ *
+ * The state is reported back using the `active` property.
+ */
 export function useTransitioning(observedProperties?: Set<string>) {
-  const hasActiveAnimations = ref(false)
+  const hasActiveTransitions = ref(false)
+
   let numActiveTransitions = 0
   function onTransitionStart(e: TransitionEvent) {
     if (!observedProperties || observedProperties.has(e.propertyName)) {
-      if (numActiveTransitions == 0) hasActiveAnimations.value = true
+      if (numActiveTransitions == 0) hasActiveTransitions.value = true
       numActiveTransitions += 1
     }
   }
@@ -170,16 +178,34 @@ export function useTransitioning(observedProperties?: Set<string>) {
   function onTransitionEnd(e: TransitionEvent) {
     if (!observedProperties || observedProperties.has(e.propertyName)) {
       numActiveTransitions -= 1
-      if (numActiveTransitions == 0) hasActiveAnimations.value = false
+      if (numActiveTransitions == 0) hasActiveTransitions.value = false
     }
   }
 
   return {
-    active: hasActiveAnimations,
+    active: readonly(hasActiveTransitions),
     events: {
       transitionstart: onTransitionStart,
       transitionend: onTransitionEnd,
       transitioncancel: onTransitionEnd,
     },
   }
+}
+
+/**
+ * Given a watch source `stateId`, creates a value `isTransitionalFrame` that will be `true` for one
+ * frame when `stateId` changes.
+ *
+ * `stateId` values are compared only for distinctness. `stateId` should never change to a value it
+ * has previously held.
+ *
+ * If `stateId` is `undefined`, `isTransitionalFrame` will be `true` for one frame and then will be
+ * `false`.
+ */
+export function useTransitionalFrame(stateId: ToValue<number> | undefined) {
+  const currentStateId = computed(() => (stateId != null ? toValue(stateId) : 1))
+  const lastStateId = ref<number>()
+  watch(currentStateId, (stateId) => (lastStateId.value = stateId), { flush: 'post' })
+  nextTick(() => (lastStateId.value = currentStateId.value)).then()
+  return { isTransitionalFrame: computed(() => lastStateId.value != currentStateId.value) }
 }

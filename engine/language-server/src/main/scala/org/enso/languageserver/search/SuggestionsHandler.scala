@@ -98,8 +98,6 @@ final class SuggestionsHandler(
       suggestionsRepo
     )
     context.system.eventStream
-      .subscribe(self, classOf[Api.ExpressionUpdates])
-    context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseModuleUpdateNotification])
     context.system.eventStream.subscribe(
       self,
@@ -251,54 +249,6 @@ final class SuggestionsHandler(
             logger.error(
               "Error applying suggestion database updates [{}]",
               msg.module,
-              ex
-            )
-            self ! SuggestionsHandler.SuggestionUpdatesCompleted
-        }
-      context.become(
-        initialized(
-          projectName,
-          graph,
-          clients,
-          state.suggestionUpdatesRunning()
-        )
-      )
-
-    case msg: Api.ExpressionUpdates if state.isSuggestionUpdatesRunning =>
-      state.suggestionUpdatesQueue.enqueue(msg)
-
-    case Api.ExpressionUpdates(_, updates) =>
-      logger.debug(
-        "Received expression updates [{}]",
-        updates.map(u => (u.expressionId, u.expressionType))
-      )
-      val types = updates.toSeq
-        .filter(_.typeChanged)
-        .flatMap(update => update.expressionType.map(update.expressionId -> _))
-      suggestionsRepo
-        .updateAll(types)
-        .map { case (version, updatedIds) =>
-          val updates = types.zip(updatedIds).collect {
-            case ((_, typeValue), Some(suggestionId)) =>
-              SuggestionsDatabaseUpdate.Modify(
-                id         = suggestionId,
-                returnType = Some(fieldUpdate(typeValue))
-              )
-          }
-          SuggestionsDatabaseUpdateNotification(version, updates)
-        }
-        .onComplete {
-          case Success(notification) =>
-            if (notification.updates.nonEmpty) {
-              clients.foreach { clientId =>
-                sessionRouter ! DeliverToJsonController(clientId, notification)
-              }
-            }
-            self ! SuggestionsHandler.SuggestionUpdatesCompleted
-          case Failure(ex) =>
-            logger.error(
-              "Error applying changes from computed values [{}]",
-              updates.map(_.expressionId),
               ex
             )
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
@@ -470,10 +420,10 @@ final class SuggestionsHandler(
     * @param state current initialization state
     */
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
-    logger.debug("Trying to initialize with state [{}]", state)
+    logger.debug("Initializing suggestions...")
     state.initialized.fold(context.become(initializing(state))) {
       case (projectName, graph) =>
-        logger.debug("Initialized with state [{}]", state)
+        logger.debug("Initialized suggestions")
         context.become(initialized(projectName, graph, Set(), new State()))
         unstashAll()
     }

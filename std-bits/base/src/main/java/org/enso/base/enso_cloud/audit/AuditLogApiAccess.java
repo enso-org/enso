@@ -16,6 +16,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import org.enso.base.cache.ReloadDetector;
 import org.enso.base.enso_cloud.AuthenticationProvider;
 import org.enso.base.enso_cloud.CloudAPI;
 
@@ -23,7 +24,7 @@ import org.enso.base.enso_cloud.CloudAPI;
  * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
  * the logs.
  */
-class AuditLogApiAccess {
+public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache {
   private static final Logger logger = Logger.getLogger(AuditLogApiAccess.class.getName());
 
   /**
@@ -45,9 +46,12 @@ class AuditLogApiAccess {
     // If the thread is idle for 60 seconds, it will be shut down.
     backgroundThreadService =
         new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    ReloadDetector.register(this);
   }
 
   public Future<Void> logWithConfirmation(LogMessage message) {
+    ReloadDetector.clearOnReload(this);
+
     var currentRequestConfig = getRequestConfig();
     CompletableFuture<Void> completionNotification = new CompletableFuture<>();
     enqueueJob(new LogJob(message, completionNotification, currentRequestConfig));
@@ -55,6 +59,8 @@ class AuditLogApiAccess {
   }
 
   public void logWithoutConfirmation(LogMessage message) {
+    ReloadDetector.clearOnReload(this);
+
     var currentRequestConfig = getRequestConfig();
     enqueueJob(new LogJob(message, null, currentRequestConfig));
   }
@@ -195,7 +201,7 @@ class AuditLogApiAccess {
     }
 
     var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
-    var config = new RequestConfig(uri, AuthenticationProvider.getAccessToken());
+    var config = new RequestConfig(uri, AuthenticationProvider.INSTANCE.getAccessToken());
     cachedRequestConfig = config;
     return config;
   }
@@ -212,6 +218,14 @@ class AuditLogApiAccess {
    * by sending the last message in synchronous mode.
    */
   private record RequestConfig(URI apiUri, String accessToken) {}
+
+  public String getAccessTokenTestOnly() {
+    if (cachedRequestConfig == null) {
+      return null;
+    } else {
+      return cachedRequestConfig.accessToken();
+    }
+  }
 
   private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
     try {
@@ -264,5 +278,10 @@ class AuditLogApiAccess {
 
   void resetCache() {
     cachedRequestConfig = null;
+  }
+
+  @Override /* HasClearableCache */
+  public void clearCache() {
+    resetCache();
   }
 }

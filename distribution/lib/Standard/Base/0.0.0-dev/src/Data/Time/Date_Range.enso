@@ -11,6 +11,7 @@ import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Not_Found
 import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
@@ -418,7 +419,7 @@ type Date_Range
     @condition date_range_default_filter_condition_widget
     any : (Filter_Condition | (Date -> Boolean)) -> Boolean
     any self (condition : Filter_Condition | (Date -> Boolean)) =
-        self.find condition . is_nothing . not
+        self.find condition if_missing=Nothing . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -438,7 +439,7 @@ type Date_Range
                 (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . find (d-> d.day_of_week == Day_Of_Week.Monday)
     @condition date_range_default_filter_condition_widget
     find : (Filter_Condition | (Date -> Boolean)) -> Integer -> Any -> Any
-    find self (condition : Filter_Condition | (Date -> Boolean)) (start : Integer = 0) ~if_missing=Nothing =
+    find self (condition : Filter_Condition | (Date -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         predicate = unify_condition_or_predicate condition
         index = self.index_of predicate start
         case index of

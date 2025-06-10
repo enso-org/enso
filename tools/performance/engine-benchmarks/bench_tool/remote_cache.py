@@ -98,6 +98,13 @@ class SyncRemoteCache(RemoteCache):
         assert self._repo_root_dir.exists()
         assert self._repo_root_dir.is_dir()
         self._cache_dir = self._repo_root_dir.joinpath(CACHE_REMOTE_DIR)
+        self._index_json = self._cache_dir.joinpath("index.json")
+        self._index: Dict[str, str] = {}
+        """
+        Maps names of json files in cache to their timestamps.
+        The key is of format "cache/3686412302.json" and the value is the timestamp in ISO format.
+        Is stored in a special `cache/index.json` file which is expected to exist.
+        """
 
     def repo_root_dir(self) -> Path:
         return self._repo_root_dir
@@ -122,6 +129,10 @@ class SyncRemoteCache(RemoteCache):
             await git.pull(self._repo_root_dir)
         assert self._repo_root_dir.exists()
         assert self._cache_dir.exists()
+        assert self._index_json.exists()
+        with self._index_json.open("r") as f:
+            self._index = json.load(f)
+        assert len(self._index) > 0, "Empty index"
 
     async def fetch(self, bench_id: str) -> Optional[JobReport]:
         assert self._cache_dir.exists()
@@ -142,6 +153,12 @@ class SyncRemoteCache(RemoteCache):
                 ensure_ascii=True,
                 indent=2
             )
+        # Put the timestamp to the index
+        timestamp = job_report.bench_run.head_commit.timestamp
+        path_as_key = str(path.relative_to(self._repo_root_dir))
+        assert path_as_key not in self._index
+        self._index[path_as_key] = timestamp
+        self._write_index()
 
     async def sync(self) -> None:
         """
@@ -165,6 +182,17 @@ class SyncRemoteCache(RemoteCache):
                 commit_msg += "."
             await git.commit(self._repo_root_dir, commit_msg)
             await git.push(self._repo_root_dir)
+    
+    def _write_index(self) -> None:
+        assert self._index_json.exists()
+        assert len(self._index) != 0, "Empty index"
+        with self._index_json.open("w") as f:
+            json.dump(
+                self._index,
+                f,
+                ensure_ascii=True,
+                indent=2
+            )
 
 
 def _is_benchrun_id(name: str) -> bool:

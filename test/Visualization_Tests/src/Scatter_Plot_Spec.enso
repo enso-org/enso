@@ -80,6 +80,21 @@ add_specs suite_builder =
             table = Table.from_rows header [row_1, row_2]
             expect table (labels index 'y') '[{"size":40,"x":0,"y":10, "row_number": 0},{"size":50,"x":1,"y":20, "row_number": 1}]' '"get_row"'
 
+        group_builder.specify "recognises color and colour for the colour column, colour" <|
+            header = [ 'u'  , 'k' , 'size', 'colour']
+            row_1 =  [ 10   , 3  , 40, 'black']
+            row_2 =  [ 20   , 4  , 50, 'white']
+            table = Table.from_rows header [row_1, row_2]
+            expect table (labels 'u' 'k') '[{"x":10,"y":3,"color":"black","size":40,"row_number":0},{"x":20,"y":4,"color":"white","size":50,"row_number":1}]' '"get_row"'
+
+        group_builder.specify "recognizes color and colour for the colour column, color" <|
+            header = [ 'u'  , 's' , 'size', 'color']
+            row_1 =  [ 10   , 3  , 40, 'red']
+            row_2 =  [ 20   , 4  , 50, 'white']
+            row_3 =  [ 30   , 5  , 50, 'blue']
+            table = Table.from_rows header [row_1, row_2, row_3]
+            expect table (labels 'u' 's') '[{"x":10,"y":3,"color":"red", "size":40,"row_number": 0},{"x":20,"y":4,"color":"white", "size":50,"row_number": 1}, {"x":30,"y":5,"color":"blue", "size":50,"row_number": 2}]' '"get_row"'
+            
         group_builder.specify "using indices for x if given a vector" <|
             vector = [0,10,20]
             expect vector no_labels '[{"x":0,"y":0, "row_number": 0},{"x":1,"y":10, "row_number": 1},{"x":2,"y":20, "row_number": 2}]' '"at"'

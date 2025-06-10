@@ -5,23 +5,18 @@
  * The paywall is shown if the user's plan does not include the feature.
  * The feature is determined by the `isFeatureUnderPaywall` hook.
  */
-
-import * as React from 'react'
-
-import type * as billingHooks from '#/hooks/billing'
-
-import * as paywallComponents from '#/components/Paywall'
-
-import * as twv from '#/utilities/tailwindVariants'
+import { PaywallScreen } from '#/components/Paywall'
+import type { PaywallFeatureName } from '#/hooks/billing'
+import { tv } from '#/utilities/tailwindVariants'
 
 /** Props for a {@link SettingsPaywall}. */
 export interface SettingsPaywallProps {
-  readonly feature: billingHooks.PaywallFeatureName
+  readonly feature: PaywallFeatureName
   readonly className?: string | undefined
   readonly onInteracted?: () => void
 }
 
-const PAYWALL_LAYOUT_STYLES = twv.tv({ base: 'mt-1' })
+const PAYWALL_LAYOUT_STYLES = tv({ base: 'mt-1' })
 
 /** A layout that shows a paywall for a feature. */
 export default function SettingsPaywall(props: SettingsPaywallProps) {
@@ -34,7 +29,7 @@ export default function SettingsPaywall(props: SettingsPaywallProps) {
       onPointerDown={onInteracted}
       onFocus={onInteracted}
     >
-      <paywallComponents.PaywallScreen feature={feature} />
+      <PaywallScreen feature={feature} />
     </div>
   )
 }

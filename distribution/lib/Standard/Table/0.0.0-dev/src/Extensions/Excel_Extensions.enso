@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 polyglot java import org.enso.table.excel.ExcelUtils
 
 ## GROUP Standard.Base.Conversions
-   ICON date_and_time
+   ICON calendar
    Converts an Excel date to a `Date`.
 Date.from_excel : Integer -> Date
 Date.from_excel excel_date:Integer = case excel_date of
@@ -13,7 +13,7 @@ Date.from_excel excel_date:Integer = case excel_date of
     _ -> ExcelUtils.fromExcelDateTime excel_date
 
 ## GROUP Standard.Base.Conversions
-   ICON date_and_time
+   ICON time
    Converts an Excel date time to a `Date_Time`.
 Date_Time.from_excel : Number -> Date_Time
 Date_Time.from_excel excel_date:Number =

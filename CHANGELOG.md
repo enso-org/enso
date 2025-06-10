@@ -2,6 +2,266 @@
 
 #### Enso IDE
 
+- [Add syntax highlighting for Table expressions][12778]
+- [Allow adding and reordering component group arguments][12850]
+- [Display component evaluation progress][12913]
+- [Editing multiline text literals is now supported][12774]
+- [Type annotations are now visible in the graph editor][12751]
+- [Component Browser shows methods with respect to possible type casts][12751]
+- [Add option to browse cloud for secret values][12953]
+- [Add option to create a new secret in the graph editor's cloud browser][12985]
+- [Allow editing grouped component argument names.][13014]
+- [Add ability to inspect column, row and value from right click on table
+  viz][12986]
+- [Add option to browse cloud for folders][13117]
+- [File Browser Widget: Add ability to filter files by extension][13048]
+- [Add keyboard shortcuts for formatting documentation][13134]
+- [New right-side panel][13135], unified between tabs.
+- [Allow selecting expected types for arguments of grouped components.][13161]
+
+[12774]: https://github.com/enso-org/enso/pull/12774
+[12778]: https://github.com/enso-org/enso/pull/12778
+[12850]: https://github.com/enso-org/enso/pull/12850
+[12913]: https://github.com/enso-org/enso/pull/12913
+[12751]: https://github.com/enso-org/enso/pull/12751
+[12953]: https://github.com/enso-org/enso/pull/12953
+[12985]: https://github.com/enso-org/enso/pull/12985
+[13014]: https://github.com/enso-org/enso/pull/13014
+[12986]: https://github.com/enso-org/enso/pull/12986
+[13117]: https://github.com/enso-org/enso/pull/13117
+[13048]: https://github.com/enso-org/enso/pull/13048
+[13134]: https://github.com/enso-org/enso/pull/13134
+[13135]: https://github.com/enso-org/enso/pull/13135
+[13161]: https://github.com/enso-org/enso/pull/13161
+
+#### Enso Standard Library
+
+- [Support for reading fixed-width-column data files.][12726]
+- [Added `row_limit` parameter to the `Fixed_Width` format.][12950]
+- [Add Tableau Hyper write support][12900]
+- [Support character encodings when reading fixed-width files.][13138]
+- [Initial Microsoft Azure support][13144]
+
+[12726]: https://github.com/enso-org/enso/pull/12726
+[12950]: https://github.com/enso-org/enso/pull/12950
+[12900]: https://github.com/enso-org/enso/pull/12900
+[13138]: https://github.com/enso-org/enso/pull/13138
+[13144]: https://github.com/enso-org/enso/pull/13144
+
+#### Enso Language & Runtime
+
+- [Allow optional path for `--jvm` option of `project-manager`][13225]
+- [Prevent `Meta` access to private constructors and private fields][12905]
+- [Encapsulating Private_Access constructor][#12976]
+- [Upgrading Truffle][12500] (including its
+  [JavaScript](https://www.graalvm.org/javascript/) and
+  [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
+- [Upgrade GraalVM from JDK 21 to JDK 24][12855]
+
+[12500]: https://github.com/enso-org/enso/pull/12500
+[12976]: https://github.com/enso-org/enso/pull/12976
+[12855]: https://github.com/enso-org/enso/pull/12855
+[12905]: https://github.com/enso-org/enso/pull/12905
+[13225]: https://github.com/enso-org/enso/pull/13225
+
+# Enso 2025.1
+
+#### Enso IDE
+
+- [ENSO_IDE_MAPBOX_API_TOKEN environment variable should be provided to enable
+  GeoMap visualization][11889].
+- [Round ‘Add component’ button under the component menu replaced by a small
+  button protruding from the output port.][11836].
+- [Quick Fix Import Button][12051].
+- [Fixed nodes being selected after deleting other nodes or connections.][11902]
+- [Redo stack is no longer lost when interacting with text literals][11908].
+- [Copy button on error message is fixed][12133].
+- [Tooltips are hidden when clicking on a button][12067].
+- [Fixed bug when clicking header in Table Editor Widget didn't start editing
+  it][12064]
+- [When editing cells or header names in Table Editor Widget, `tab` and `enter`
+  keys jumps to next cell/ next row respectively.][12129]
+- [Fixed bugs occurring after renaming project from within graph editor][12106].
+- [Users having "Team" plan or above may now access shared directories in Cloud
+  File Browser][12208]
+- [Added support for rendering numbered and nested lists][12190].
+- [Added buttons for editing top-level markdown elements in the documentation
+  panel][12217].
+- [Removed `#` from default colum name][12222]
+- [Cloud File Browser will display input for file name in components writing to
+  (new) files.][12228]
+- [Cloud File Browser allows adding new directory in "writing"
+  components][12275]
+- [In the documentation panel, text can now be made bold or italic using
+  buttons][12341]
+- [Cloud File Browser allows renaming existing directories in "writing"
+  components][12323]
+- [New Component Browser displaying list of groups][12386]
+- ["Insert link" button added to documentation panel][12365]
+- [Cloud File Browser, when opened first time after opening project, shows and
+  highlights the currently set file][12184]
+- [It's easier to write numeric/text nodes in Component Browser][12420]. When
+  typing digits only, any names containing digits are not the best match
+  anymore. Also unclosed text literals will be automatically closed.
+- [Use server side filtering and sorting in table viz][12272]. Table viz rows
+  are lazly loaded and filtering/sorting is done serverside improving experience
+  for large datasets.
+- [Disable heatmap and histogram viz][12475].
+- [Component Browser displays short summary of component's documentation][12459]
+- [Fixed color picker for selected nodes][12508]
+- [Updated Top Bar actions menu and made zoom controls always visible.][12496]
+- [Warning and Error messages does not obstruct output port][12482] - they
+  become semi-transparent on port hover and pass all mouse interactions.
+- [For some types, Component Browser display special "suggestions" group][12477]
+- [Nested dropdowns are supported for Selection widget.][12548]
+- [Native Image mode is now on by default][12515]
+- [join_kind dropdown has icons to show how joins work][12502]
+- [Output port ‘plus’ button is hidden if there are existing outgoing
+  connections][12576]
+- [Navigate up button for file browser and collapsed components][12603]
+- [Resizing visualization in Table.input component resizes the table widget
+  too][12643]
+- [File Browser Widget warns when trying to override an existing file][12644]
+- [Add right-click context menu to the graph editor background][12601]
+- [Fixed appearance of Cloud Browser scrollbars][12831]
+
+[11889]: https://github.com/enso-org/enso/pull/11889
+[11836]: https://github.com/enso-org/enso/pull/11836
+[12051]: https://github.com/enso-org/enso/pull/12051
+[11902]: https://github.com/enso-org/enso/pull/11902
+[11908]: https://github.com/enso-org/enso/pull/11908
+[12133]: https://github.com/enso-org/enso/pull/12133
+[12067]: https://github.com/enso-org/enso/pull/12067
+[12064]: https://github.com/enso-org/enso/pull/12064
+[12129]: https://github.com/enso-org/enso/pull/12129
+[12106]: https://github.com/enso-org/enso/pull/12106
+[12208]: https://github.com/enso-org/enso/pull/12208
+[12190]: https://github.com/enso-org/enso/pull/12190
+[12222]: https://github.com/enso-org/enso/pull/12222
+[12228]: https://github.com/enso-org/enso/pull/12228
+[12217]: https://github.com/enso-org/enso/pull/12217
+[12275]: https://github.com/enso-org/enso/pull/12275
+[12341]: https://github.com/enso-org/enso/pull/12341
+[12323]: https://github.com/enso-org/enso/pull/12323
+[12386]: https://github.com/enso-org/enso/pull/12386
+[12365]: https://github.com/enso-org/enso/pull/12365
+[12184]: https://github.com/enso-org/enso/pull/12184
+[12420]: https://github.com/enso-org/enso/pull/12420
+[12272]: https://github.com/enso-org/enso/pull/12272
+[12475]: https://github.com/enso-org/enso/pull/12475
+[12459]: https://github.com/enso-org/enso/pull/12459
+[12508]: https://github.com/enso-org/enso/pull/12508
+[12496]: https://github.com/enso-org/enso/pull/12496
+[12482]: https://github.com/enso-org/enso/pull/12482
+[12477]: https://github.com/enso-org/enso/pull/12477
+[12548]: https://github.com/enso-org/enso/pull/12548
+[12515]: https://github.com/enso-org/enso/pull/12515
+[12502]: https://github.com/enso-org/enso/pull/12502
+[12576]: https://github.com/enso-org/enso/pull/12576
+[12603]: https://github.com/enso-org/enso/pull/12603
+[12643]: https://github.com/enso-org/enso/pull/12643
+[12644]: https://github.com/enso-org/enso/pull/12644
+[12601]: https://github.com/enso-org/enso/pull/12603
+[12831]: https://github.com/enso-org/enso/pull/12831
+
+#### Enso Standard Library
+
+- [Allow using `/` to access files inside a directory reached through a data
+  link.][11926]
+- [Reducing helper methods in `Standard.Base.Meta`.][12031]
+- [Added Table.offset][12071]
+- [Implemented Generic JDBC connections.][12073]
+- [Added Column.offset][12092]
+- [Progress API][12163]
+- [When reading a Delimited file, if a row with more columns than expected is
+  encountered, extra columns can be added to the result.][12231]
+  - In `Delimited` format, the `keep_invalid_rows` setting has been renamed to
+    `on_invalid_rows`. The default behaviour was also changed to add any extra
+    columns instead of discarding them.
+- [Added DB_Table.offset for SQLServer][12206]
+- [Added DB_Table.offset for Snowflake, Postgres, SQLite][12251]
+- [Support for key-pair authentication in Snowflake connector.][12247]
+- [Support for generic JDBC connections through external drivers.][12300]
+- [Support for basic arithmetic operations as numbers in Expressions.][12297]
+- [Support for Regular Expressions in Enso Expressions.][12320]
+- [Support for pi() and e() in Enso Expressions.][12367]
+- [xlsx reader now does not read empty rows from the end of a worksheet][12345]
+- [Generic JDBC connections can be created with `Database.connect`.][12331]
+- [Added Table.generate_rows][12413]
+- [Added Regex_match to filter. Added Column.regex_match. Support for
+  regex_match in the expression language][12492]
+- [Added `add_group_number` for Postgres and SQLite.][12574]
+- [Added `add_group_number` for Snowflake and SQLServer.][12590]
+- [Added `skip_nothing` and `report_unmatched` arguments to `Vector.zip`][12626]
+- [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function`
+  parameter][12626]
+- [Added Regex_match for Postgres][12663]
+- [Added Regex_match for Snowflake][12671]
+- [Replace `use_bankers` flag with `Rounding_Mode` in all `round`
+  methods][12641]
+
+[11926]: https://github.com/enso-org/enso/pull/11926
+[12031]: https://github.com/enso-org/enso/pull/12031
+[12071]: https://github.com/enso-org/enso/pull/12071
+[12073]: https://github.com/enso-org/enso/pull/12073
+[12092]: https://github.com/enso-org/enso/pull/12092
+[12163]: https://github.com/enso-org/enso/pull/12163
+[12231]: https://github.com/enso-org/enso/pull/12231
+[12206]: https://github.com/enso-org/enso/pull/12206
+[12251]: https://github.com/enso-org/enso/pull/12251
+[12247]: https://github.com/enso-org/enso/pull/12247
+[12300]: https://github.com/enso-org/enso/pull/12300
+[12297]: https://github.com/enso-org/enso/pull/12297
+[12320]: https://github.com/enso-org/enso/pull/12320
+[12331]: https://github.com/enso-org/enso/pull/12331
+[12367]: https://github.com/enso-org/enso/pull/12367
+[12345]: https://github.com/enso-org/enso/pull/12345
+[12413]: https://github.com/enso-org/enso/pull/12413
+[12492]: https://github.com/enso-org/enso/pull/12492
+[12574]: https://github.com/enso-org/enso/pull/12574
+[12590]: https://github.com/enso-org/enso/pull/12590
+[12626]: https://github.com/enso-org/enso/pull/12626
+[12663]: https://github.com/enso-org/enso/pull/12663
+[12671]: https://github.com/enso-org/enso/pull/12671
+[12641]: https://github.com/enso-org/enso/pull/12641
+
+#### Enso Language & Runtime
+
+- [Promote broken values instead of ignoring them][11777].
+- [Intersection types & type checks][11600]
+- A constructor or type definition with a single inline argument definition was
+  previously allowed to use spaces in the argument definition without
+  parentheses. [This is now a syntax error.][11856]
+- [Native libraries of projects can be added to `polyglot/lib` directory][11874]
+- [Prefer module methods over `Any` instance ones][12048]
+- [Keep intersection type's self when dispatching Any instance methods][12170]
+- [Types without constructors can be public][12052]
+- Symetric, transitive and reflexive [equality for intersection types][11897]
+- [IR definitions are generated by an annotation processor][11770]
+- [Use fn... to reference any module function][12128]
+- [Improve error message for mismatched named argument application][12238]
+- [Registering a value as multiple managed resources is now an error.][12395]
+- [An operator block now applies to the whole preceding expression][12505],
+  rather than the last term on the line.
+
+[11777]: https://github.com/enso-org/enso/pull/11777
+[11600]: https://github.com/enso-org/enso/pull/11600
+[11856]: https://github.com/enso-org/enso/pull/11856
+[11874]: https://github.com/enso-org/enso/pull/11874
+[12048]: https://github.com/enso-org/enso/pull/12048
+[12170]: https://github.com/enso-org/enso/pull/12170
+[12052]: https://github.com/enso-org/enso/pull/12052
+[11897]: https://github.com/enso-org/enso/pull/11897
+[11770]: https://github.com/enso-org/enso/pull/11770
+[12128]: https://github.com/enso-org/enso/pull/12128
+[12238]: https://github.com/enso-org/enso/pull/12238
+[12395]: https://github.com/enso-org/enso/pull/12395
+[12505]: https://github.com/enso-org/enso/pull/12505
+
+# Enso 2024.5
+
+#### Enso IDE
+
 - [Rows and Columns may be now removed in Table Input Widget][11151]. The option
   is available in right-click context menu.
 - [Rows and Columns may be now reordered by dragging in Table Input
@@ -34,6 +294,30 @@
 - [Table Input Widget is now matched for Table.input method instead of
   Table.new. Values must be string literals, and their content is parsed to the
   suitable type][11612].
+- [Added dedicated function signature viewer and editor in the right-side
+  panel][11655].
+- [Visualizations on components are slightly transparent when not
+  focused][11582].
+- [New design for vector-editing widget][11620]
+- [The component menu can be opened by right-click; supports operations on
+  multiple components; has a 'Copy Component' button][11690]
+- [New design for vector-editing widget][11620].
+- [Default values on widgets are displayed in italic][11666].
+- [Fixed bug causing Table Visualization to show wrong data][11684].
+- [Pasting tabular data now creates Table.input expressions][11695].
+- [No halo is displayed around components when hovering][11715].
+- [The hover area of the component output port extended twice its size][11715].
+- [The documentation editor and comment documentation support opening links with
+  a key pressed, or via a popup when editing][11753].
+- [Fixed a rare bug where the component position wasn't persisted after closing
+  project][11761]
+- [In the table visualization and table widget, the table context menu can now
+  be opened on OS X][11755].
+- [Fix some UI elements drawing on top of visualization toolbar dropdown
+  menus][11768].
+- [Edges are now colored based on their source component.][11810]
+- [Highlight missing required arguments][11803].
+- [Arrows in some drop-down buttons are now clearly visible][11800]
 
 [11151]: https://github.com/enso-org/enso/pull/11151
 [11271]: https://github.com/enso-org/enso/pull/11271
@@ -53,8 +337,24 @@
 [11547]: https://github.com/enso-org/enso/pull/11547
 [11523]: https://github.com/enso-org/enso/pull/11523
 [11564]: https://github.com/enso-org/enso/pull/11564
+[11582]: https://github.com/enso-org/enso/pull/11582
 [11597]: https://github.com/enso-org/enso/pull/11597
 [11612]: https://github.com/enso-org/enso/pull/11612
+[11655]: https://github.com/enso-org/enso/pull/11655
+[11582]: https://github.com/enso-org/enso/pull/11582
+[11620]: https://github.com/enso-org/enso/pull/11620
+[11666]: https://github.com/enso-org/enso/pull/11666
+[11690]: https://github.com/enso-org/enso/pull/11690
+[11684]: https://github.com/enso-org/enso/pull/11684
+[11695]: https://github.com/enso-org/enso/pull/11695
+[11715]: https://github.com/enso-org/enso/pull/11715
+[11753]: https://github.com/enso-org/enso/pull/11753
+[11755]: https://github.com/enso-org/enso/pull/11755
+[11761]: https://github.com/enso-org/enso/pull/11761
+[11768]: https://github.com/enso-org/enso/pull/11768
+[11810]: https://github.com/enso-org/enso/pull/11810
+[11803]: https://github.com/enso-org/enso/pull/11803
+[11800]: https://github.com/enso-org/enso/pull/11800
 
 #### Enso Standard Library
 
@@ -68,6 +368,16 @@
   operation.][11490]
 - [Added `Table.input` allowing creation of typed tables from vectors of data,
   including auto parsing text columns.][11562]
+- [Enhance Managed_Resource to allow implementation of in-memory caches][11577]
+- [Added `add_group_number` to the in-memory database.[11818]
+- [The reload button clears the HTTP cache.][11673]
+- [SQL Server Support for Aggregate][11811]
+- [Added `Download_Mode` parameter to `Data.download`.][12017]
+- [Added `Table.geo_distance` to calculate the distance between two
+  points.][12393]
+- [The reload button clears the Enso Cloud request cache.][12526]
+- [The reload button clears the AuthenticationProvider, EnsoSecretReader and
+  AuditLog caches.][12541]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -75,12 +385,22 @@
 [11373]: https://github.com/enso-org/enso/pull/11373
 [11490]: https://github.com/enso-org/enso/pull/11490
 [11562]: https://github.com/enso-org/enso/pull/11562
+[11577]: https://github.com/enso-org/enso/pull/11577
+[11818]: https://github.com/enso-org/enso/pull/11818
+[11673]: https://github.com/enso-org/enso/pull/11673
+[11811]: https://github.com/enso-org/enso/pull/11811
+[12017]: https://github.com/enso-org/enso/pull/12017
+[12393]: https://github.com/enso-org/enso/pull/12393
+[12526]: https://github.com/enso-org/enso/pull/12526
+[12541]: https://github.com/enso-org/enso/pull/12526
 
 #### Enso Language & Runtime
 
 - [Arguments in constructor definitions may now be on their own lines][11374]
+- [The `:` type operator can now be chained][11671].
 
 [11374]: https://github.com/enso-org/enso/pull/11374
+[11671]: https://github.com/enso-org/enso/pull/11671
 
 # Enso 2024.4
 

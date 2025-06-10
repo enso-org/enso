@@ -3,7 +3,8 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code.
  */
-import * as buildJson from './../../build.json' with { type: 'json' }
+
+import type { FileFilter } from './fileBrowser'
 
 // =============
 // === Types ===
@@ -92,9 +93,18 @@ interface MenuApi {
 // === System API ===
 // ==================
 
+/** Options for downloading a URL. */
+export type DownloadUrlOptions = {
+  url: string
+  path?: string | null
+  name?: string | null
+  shouldUnpackProject?: boolean
+  showFileDialog?: boolean
+}
+
 /** `window.systemApi` exposes functionality related to the operating system. */
 interface SystemApi {
-  readonly downloadURL: (url: string, headers?: Record<string, string>) => void
+  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
 }
 
@@ -107,6 +117,7 @@ interface FileBrowserApi {
   readonly openFileBrowser: (
     kind: 'any' | 'directory' | 'file' | 'filePath',
     defaultPath?: string,
+    filters?: FileFilter[],
   ) => Promise<unknown>
 }
 
@@ -158,6 +169,7 @@ declare global {
     readonly fileBrowserApi?: FileBrowserApi
     readonly projectManagementApi?: ProjectManagementApi
     readonly versionInfo?: VersionInfo
+    readonly mapBoxApiToken: () => string
     toggleDevtools: () => void
   }
 
@@ -195,6 +207,7 @@ declare global {
       // === Integration test variables ===
 
       readonly ENSO_TEST?: string
+      readonly ENSO_TEST_PROJECTS_DIR?: string
       readonly ENSO_TEST_APP_ARGS?: string
       readonly ENSO_TEST_USER?: string
       readonly ENSO_TEST_USER_PASSWORD?: string
@@ -208,7 +221,6 @@ declare global {
       readonly GUI_CONFIG_PATH?: string
     }
   }
-
-  // These are used in other files (because they're globals)
-  const BUILD_INFO: buildJson.BuildInfo
 }
+
+export {}

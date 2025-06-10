@@ -13,7 +13,7 @@ import org.graalvm.polyglot.Context;
 /**
  * Aggregate Column finding the minimum (minOrMax = -1) or maximum (minOrMax = 1) entry in a group.
  */
-public class MinOrMax extends Aggregator {
+public class MinOrMax extends KnownTypeAggregator {
   public static final int MIN = -1;
   public static final int MAX = 1;
 

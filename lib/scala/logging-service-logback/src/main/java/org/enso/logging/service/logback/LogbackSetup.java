@@ -12,27 +12,25 @@ import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.helpers.NOPAppender;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
+import ch.qos.logback.core.spi.FilterReply;
 import ch.qos.logback.core.util.Duration;
 import ch.qos.logback.core.util.FileSize;
-import io.sentry.SentryLevel;
-import io.sentry.SentryOptions;
-import io.sentry.SystemOutLogger;
-import io.sentry.logback.SentryAppender;
 import java.io.File;
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import org.enso.logging.config.Appender;
-import org.enso.logging.config.BaseConfig;
-import org.enso.logging.config.LoggerSetup;
-import org.enso.logging.config.LoggersLevels;
-import org.enso.logging.config.LoggingServiceConfig;
-import org.enso.logging.config.MissingConfigurationField;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.enso.logging.config.*;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 @org.openide.util.lookup.ServiceProvider(service = LoggerSetup.class)
 public final class LogbackSetup extends LoggerSetup {
+
+  private static final String CONSOLE_APPENDER_NAME = "enso-console";
 
   private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
     this.config = config;
@@ -133,14 +131,15 @@ public final class LogbackSetup extends LoggerSetup {
 
     org.enso.logging.config.SocketAppender appenderConfig = config.getSocketAppender();
 
-    SocketAppender socketAppender = new SocketAppender();
+    SocketAppender socketAppender = new DeferredProcessingSocketAppender();
     socketAppender.setName("enso-socket");
     socketAppender.setIncludeCallerData(false);
     socketAppender.setRemoteHost(hostname);
     socketAppender.setPort(port);
-    if (appenderConfig != null)
+    if (appenderConfig != null) {
       socketAppender.setReconnectionDelay(
           Duration.buildByMilliseconds(appenderConfig.getReconnectionDelay()));
+    }
 
     env.finalizeAppender(socketAppender);
     return true;
@@ -239,7 +238,7 @@ public final class LogbackSetup extends LoggerSetup {
     encoder.start();
 
     ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
-    consoleAppender.setName("enso-console");
+    consoleAppender.setName(CONSOLE_APPENDER_NAME);
     consoleAppender.setEncoder(encoder);
     return consoleAppender;
   }
@@ -266,40 +265,76 @@ public final class LogbackSetup extends LoggerSetup {
   }
 
   @Override
-  public boolean setupSentryAppender(Level logLevel, Path logRoot) {
-    // TODO: handle proxy
-    // TODO: shutdown timeout configuration
+  public boolean setupTelemetryAppender(URI logsEndpoint, boolean logConnectionFailures) {
+    LoggerAndContext env = contextInit(Level.DEBUG, config, false);
+    AbstractRemoteAppender telemetryAppender;
     try {
-      LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
-
-      org.enso.logging.config.SentryAppender appenderConfig = config.getSentryAppender();
-      if (appenderConfig == null) {
-        throw new MissingConfigurationField(org.enso.logging.config.SentryAppender.appenderName);
+      telemetryAppender = AbstractRemoteAppender.loadTelemetryAppender();
+      if (telemetryAppender == null) {
+        return false;
       }
-      SentryAppender appender = new SentryAppender();
-      SentryOptions opts = new SentryOptions();
-      if (appenderConfig.isDebugEnabled()) {
-        opts.setDebug(true);
-        opts.setLogger(new SystemOutLogger());
-        opts.setDiagnosticLevel(SentryLevel.ERROR);
-      }
-      if (logRoot == null) {
-        opts.setCacheDirPath("sentry");
-      } else {
-        opts.setCacheDirPath(logRoot.resolve(".sentry").toAbsolutePath().toString());
-      }
-      if (appenderConfig.getFlushTimeoutMs() != null) {
-        opts.setFlushTimeoutMillis(appenderConfig.getFlushTimeoutMs());
-      }
-      appender.setMinimumEventLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(logLevel));
-      opts.setDsn(appenderConfig.getDsn());
-      appender.setOptions(opts);
-
-      env.finalizeAppender(appender);
-    } catch (Throwable e) {
-      e.printStackTrace();
+    } catch (Exception e) {
       return false;
     }
+    var rootLogger = env.logger;
+    if (rootLogger.getAppender(CONSOLE_APPENDER_NAME) == null) {
+      // Console appender must be setup as a fallback first.
+      return false;
+    }
+
+    telemetryAppender.setName("telemetry");
+    telemetryAppender.setEndpoint(logsEndpoint);
+    telemetryAppender.setLogConnectionFailures(logConnectionFailures);
+
+    // We set-up a thread 'pool' that will contain at most one thread.
+    // If the thread is idle for 60 seconds, it will be shut down.
+    var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    telemetryAppender.setExecutor(executor);
+
+    var telemetryLogger = env.ctx.getLogger("org.enso.telemetry");
+    telemetryLogger.addAppender(telemetryAppender);
+    telemetryLogger.setLevel(ch.qos.logback.classic.Level.ALL);
+
+    telemetryAppender.setContext(env.ctx);
+    telemetryAppender.start();
+    return true;
+  }
+
+  @Override
+  public boolean setupOpenSearchAppender(
+      Level logLevel, URI logsEndpoint, boolean logConnectionFailures) {
+    LoggerAndContext env = contextInit(logLevel, config, false);
+    AbstractRemoteAppender openSearchAppender;
+    try {
+      openSearchAppender = AbstractRemoteAppender.loadGenericRemoteAppender();
+      if (openSearchAppender == null) {
+        return false;
+      }
+    } catch (Exception e) {
+      return false;
+    }
+    openSearchAppender.setName("engine-remote");
+    openSearchAppender.setEndpoint(logsEndpoint);
+    openSearchAppender.setLogConnectionFailures(logConnectionFailures);
+
+    // We set-up a thread 'pool' that will contain at most one thread.
+    // If the thread is idle for 60 seconds, it will be shut down.
+    var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    openSearchAppender.setExecutor(executor);
+    var filter =
+        new Filter<ILoggingEvent>() {
+          @Override
+          public FilterReply decide(ILoggingEvent event) {
+            var exclude =
+                event.getLoggerName().startsWith("org.enso.telemetry")
+                    || event.getLoggerName().startsWith("org.enso.logging.service");
+            return exclude ? FilterReply.DENY : FilterReply.NEUTRAL;
+          }
+        };
+    filter.setContext(env.ctx);
+    filter.start();
+    openSearchAppender.addFilter(filter);
+    env.finalizeAppender(openSearchAppender);
     return true;
   }
 
@@ -316,8 +351,10 @@ public final class LogbackSetup extends LoggerSetup {
 
   @Override
   public void teardown() {
-    // TODO: disable whatever appender is now in place and replace it with console
     context().stop();
+    var logLevelOnShutdown =
+        config.getLogLevel().map(name -> Level.valueOf(name.toUpperCase())).orElse(Level.ERROR);
+    setupConsoleAppender(logLevelOnShutdown);
   }
 
   private LoggerAndContext contextInit(

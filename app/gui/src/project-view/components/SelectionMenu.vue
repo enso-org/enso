@@ -1,34 +1,33 @@
 <script setup lang="ts">
+import ActionButton from '@/components/ActionButton.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
-import SvgButton from './SvgButton.vue'
+import { resolveAction } from '@/providers/action'
+import { injectGraphSelection } from '@/providers/graphSelection'
+import { toValue } from 'vue'
 
-const showColorPicker = defineModel<boolean>('showColorPicker', { required: true })
-const _props = defineProps<{ selectedComponents: number }>()
-const emit = defineEmits<{
-  collapseNodes: []
-  removeNodes: []
-}>()
+const selection = injectGraphSelection()
+const pickColorMulti = resolveAction('components.pickColorMulti')
 </script>
 
 <template>
   <div class="SelectionMenu">
-    <span
-      v-text="`${selectedComponents} component${selectedComponents === 1 ? '' : 's'} selected`"
-    />
-    <SvgButton name="group" title="Group Selected Components" @click.stop="emit('collapseNodes')" />
-    <ToggleIcon
-      v-model="showColorPicker"
-      title="Color Selected Components"
-      icon="paint_palette"
+    <span v-text="`${selection.selected.size} components selected`" />
+    <ActionButton action="components.collapse" />
+    <ActionButton
+      action="components.pickColorMulti"
       :class="{
         // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
         // picker is open, so that it isn't toggled back open.
-        disableInput: showColorPicker,
+        disableInput: toValue(pickColorMulti.toggled),
       }"
     />
-    <SvgButton name="trash" title="Delete Selected Components" @click.stop="emit('removeNodes')" />
-    <ColorPickerMenu v-if="showColorPicker" class="submenu" @close="showColorPicker = false" />
+    <ActionButton action="components.copy" />
+    <ActionButton action="components.deleteSelected" />
+    <ColorPickerMenu
+      v-if="toValue(pickColorMulti.toggled)"
+      class="submenu"
+      @close="pickColorMulti.action?.()"
+    />
   </div>
 </template>
 
@@ -41,10 +40,7 @@ const emit = defineEmits<{
   backdrop-filter: var(--blur-app-bg);
   place-items: center;
   gap: 12px;
-  padding-left: 10px;
-  padding-right: 10px;
-  padding-top: 4px;
-  padding-bottom: 4px;
+  padding: 4px 10px;
 }
 
 .submenu {

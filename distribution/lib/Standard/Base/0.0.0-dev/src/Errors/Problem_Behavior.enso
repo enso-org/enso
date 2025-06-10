@@ -75,7 +75,6 @@ type Problem_Behavior
              problems = preflight_checks
              problem_behavior.attach_problems_before problems <|
                  expensive_computation
-
     attach_problems_before : Vector -> Any -> Any
     attach_problems_before self problems ~decorated_value = case self of
         Problem_Behavior.Ignore ->

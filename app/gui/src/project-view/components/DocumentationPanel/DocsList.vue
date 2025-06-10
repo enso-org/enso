@@ -56,7 +56,7 @@ const annotations = computed<Array<string | undefined>>(() => {
         class="link clickable"
         @click.stop="emit('linkClicked', item.id)"
       >
-        <span class="entryName">{{ qnSplit(item.name)[1] }}</span>
+        <span class="entryName">{{ qnSplit(item.name.path ?? item.name.project!)[1] }}</span>
         <span class="arguments">{{ ' ' + argumentsList(item.arguments) }}</span>
       </a>
       <!-- eslint-disable vue/no-v-html -->

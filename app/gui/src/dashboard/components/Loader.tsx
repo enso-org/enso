@@ -2,28 +2,30 @@
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 
 import * as twv from '#/utilities/tailwindVariants'
-
-// =================
-// === Constants ===
-// =================
+import { memo } from 'react'
 
 const STYLES = twv.tv({
   base: 'animate-appear-delayed flex h-full w-full items-center justify-center duration-200',
   variants: {
     minHeight: {
       full: 'h-full',
-      h6: 'h-6',
-      h8: 'h-8',
-      h10: 'h-10',
-      h12: 'h-12',
-      h16: 'h-16',
-      h20: 'h-20',
-      h24: 'h-24',
-      h32: 'h-32',
-      h40: 'h-40',
-      h48: 'h-48',
-      h56: 'h-56',
-      h64: 'h-64',
+      h6: 'min-h-6',
+      h8: 'min-h-8',
+      h10: 'min-h-10',
+      h12: 'min-h-12',
+      h16: 'min-h-16',
+      h20: 'min-h-20',
+      h24: 'min-h-24',
+      h32: 'min-h-32',
+      h40: 'min-h-40',
+      h48: 'min-h-48',
+      h56: 'min-h-56',
+      h64: 'min-h-64',
+      screen: 'min-h-screen',
+      custom: '',
+    },
+    height: {
+      full: 'h-full',
       screen: 'h-screen',
       custom: '',
     },
@@ -42,16 +44,8 @@ const SIZE_MAP: Record<Size, number> = {
   small: 16,
 }
 
-// ============
-// === Size ===
-// ============
-
 /** The possible sizes for a {@link Loader}. */
 export type Size = 'large' | 'medium' | 'small'
-
-// ==============
-// === Loader ===
-// ==============
 
 /** Props for a {@link Loader}. */
 export interface LoaderProps extends twv.VariantProps<typeof STYLES> {
@@ -61,20 +55,22 @@ export interface LoaderProps extends twv.VariantProps<typeof STYLES> {
 }
 
 /** A full-screen loading spinner. */
-export function Loader(props: LoaderProps) {
+
+export const Loader = memo(function Loader(props: LoaderProps) {
   const {
     className,
     size: sizeRaw = 'medium',
     state = 'loading-fast',
     minHeight = 'full',
     color = 'primary',
+    height = 'full',
   } = props
 
   const size = typeof sizeRaw === 'number' ? sizeRaw : SIZE_MAP[sizeRaw]
 
   return (
-    <div className={STYLES({ minHeight, className, color })}>
-      <StatelessSpinner size={size} state={state} className="text-current" />
+    <div className={STYLES({ minHeight, className, color, height })}>
+      <StatelessSpinner size={size} phase={state} className="text-current" />
     </div>
   )
-}
+})

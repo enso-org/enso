@@ -3,41 +3,24 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ConversionMethodTests {
-  private static Context ctx;
-
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @BeforeClass
-  public static void initCtx() {
-    ctx = ContextUtils.createDefaultContext(out);
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @After
   public void resetOutput() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
   private String getStdOut() {
-    return out.toString(StandardCharsets.UTF_8);
+    return ctxRule.getOut();
   }
 
   @Test
@@ -56,7 +39,7 @@ public class ConversionMethodTests {
 
        main = (Foo.from (Baz.Mk_Baz 10)).foo + (Foo.from (Bar.Mk_Bar 20)).foo
         """;
-    Value res = ContextUtils.evalModule(ctx, src);
+    Value res = ctxRule.evalModule(src);
     assertEquals(30, res.asInt());
   }
 
@@ -76,7 +59,7 @@ public class ConversionMethodTests {
            jmap = Java_Map.of "A" 1 "B" 2 "C" 3
            Foo.from jmap . data . size
        """;
-    Value res = ContextUtils.evalModule(ctx, src);
+    Value res = ctxRule.evalModule(src);
     assertEquals(3, res.asInt());
   }
 
@@ -100,7 +83,7 @@ public class ConversionMethodTests {
        main =
            Foo.from js_map . data . size
        """;
-    Value res = ContextUtils.evalModule(ctx, src);
+    Value res = ctxRule.evalModule(src);
     assertEquals(2, res.asInt());
   }
 
@@ -121,7 +104,7 @@ public class ConversionMethodTests {
        main =
           Foo.from (js_date 2023 2 7 23 59 0 10) . data . day
        """;
-    Value res = ContextUtils.evalModule(ctx, src);
+    Value res = ctxRule.evalModule(src);
     assertEquals(7, res.asInt());
   }
 
@@ -140,7 +123,7 @@ public class ConversionMethodTests {
        main = 42
        """;
     try {
-      Value res = ContextUtils.evalModule(ctx, src);
+      Value res = ctxRule.evalModule(src);
       fail("Expected an exception, but got " + res);
     } catch (Exception e) {
       MatcherAssert.assertThat(e.getMessage(), Matchers.containsString("Ambiguous conversion:"));

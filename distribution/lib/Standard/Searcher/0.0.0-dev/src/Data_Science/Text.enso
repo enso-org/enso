@@ -24,3 +24,4 @@
      Replace letters in the text "aaa".
 
          'aaa'.replace 'aa' 'b' == 'ba'
+

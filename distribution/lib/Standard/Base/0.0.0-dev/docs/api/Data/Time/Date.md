@@ -1,0 +1,44 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Time.Date
+- type Date
+    - + self amount:(Standard.Base.Data.Time.Period.Period|Standard.Base.Data.Time.Date_Period.Date_Period) -> Standard.Base.Any.Any
+    - - self amount:(Standard.Base.Data.Time.Period.Period|Standard.Base.Data.Time.Date_Period.Date_Period) -> Standard.Base.Any.Any
+    - add_work_days self days:Standard.Base.Any.Any= holidays:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - century self -> Standard.Base.Any.Any
+    - date_add self amount:Standard.Base.Data.Numbers.Integer period:Standard.Base.Data.Time.Date_Period.Date_Period -> Standard.Base.Any.Any
+    - date_diff self end:Standard.Base.Data.Time.Date.Date period:Standard.Base.Data.Time.Date_Period.Date_Period -> Standard.Base.Any.Any
+    - date_part self period:Standard.Base.Data.Time.Date_Period.Date_Period -> Standard.Base.Any.Any
+    - day self -> Standard.Base.Any.Any
+    - day_of_week self -> Standard.Base.Any.Any
+    - day_of_year self -> Standard.Base.Any.Any
+    - days_until self end:Standard.Base.Any.Any include_end_date:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - default_widget include_today:Standard.Base.Data.Boolean.Boolean= display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+    - down_to self end:Standard.Base.Data.Time.Date.Date include_end:Standard.Base.Data.Boolean.Boolean= step:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Period.Period)= -> Standard.Base.Any.Any
+    - end_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - format self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
+    - internal_add_work_days self days:Standard.Base.Any.Any= holidays:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - is_leap_year self -> Standard.Base.Any.Any
+    - length_of_month self -> Standard.Base.Any.Any
+    - length_of_year self -> Standard.Base.Any.Any
+    - month self -> Standard.Base.Any.Any
+    - new year:Standard.Base.Data.Numbers.Integer month:Standard.Base.Data.Numbers.Integer= day:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - next self period:Standard.Base.Data.Time.Date_Period.Date_Period= -> Standard.Base.Any.Any
+    - parse text:Standard.Base.Data.Text.Text format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
+    - pretty self -> Standard.Base.Any.Any
+    - previous self period:Standard.Base.Data.Time.Date_Period.Date_Period= -> Standard.Base.Any.Any
+    - quarter self -> Standard.Base.Any.Any
+    - start_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - to_date_time self time_of_day:Standard.Base.Any.Any= zone:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - today -> Standard.Base.Any.Any
+    - until self end:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - up_to self end:Standard.Base.Data.Time.Date.Date include_end:Standard.Base.Data.Boolean.Boolean= step:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Period.Period)= -> Standard.Base.Any.Any
+    - week_of_year self locale:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - work_days_until self end:Standard.Base.Any.Any holidays:Standard.Base.Any.Any= include_end_date:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - year self -> Standard.Base.Any.Any
+- fits_in_range start:Standard.Base.Any.Any end:Standard.Base.Any.Any date:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- is_weekend date:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- new_builtin year:Standard.Base.Any.Any month:Standard.Base.Any.Any day:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- week_days_between start:Standard.Base.Any.Any end:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Time.Date.Date.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.Data.Time.Date.Date

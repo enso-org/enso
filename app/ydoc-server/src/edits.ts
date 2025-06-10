@@ -38,6 +38,7 @@ const MAX_SIZE_FOR_NORMAL_DIFF = 30000
 interface AppliedUpdates {
   newCode: string | undefined
   newIdMap: IdMap | undefined
+  newPersistedIdMap: IdMap | undefined
   newMetadata: fileFormat.IdeMetadata | undefined
 }
 
@@ -62,22 +63,23 @@ export function applyDocumentUpdates(
   }
 
   let newIdMap = undefined
+  let newPersistedIdMap = undefined
   let newCode = undefined
   let newMetadata: fileFormat.IdeMetadata | undefined = undefined
 
   const syncModule = new MutableModule(doc.ydoc)
   const root = syncModule.root()
   assert(root != null)
-  if (codeChanged || idsChanged || synced.idMapJson == null) {
-    const { code, info } = printWithSpans(root)
-    if (codeChanged) newCode = code
-    newIdMap = spanMapToIdMap(info)
-  }
+
   if (codeChanged || idsChanged || metadataChanged) {
     // Update the metadata object.
     // Depth-first key order keeps diffs small.
-    newMetadata = { node: {}, widget: {} }
-    root.visitRecursive(ast => {
+    newMetadata = {
+      node: {},
+      widget: {},
+      import: {}, // "import" is required by older versions (even though they don't use it)
+    }
+    root.visitRecursive((ast) => {
       let pos = ast.nodeMetadata.get('position')
       const vis = ast.nodeMetadata.get('visualization')
       const colorOverride = ast.nodeMetadata.get('colorOverride')
@@ -99,7 +101,28 @@ export function applyDocumentUpdates(
     })
   }
 
-  return { newCode, newIdMap, newMetadata }
+  if (codeChanged || idsChanged || metadataChanged || synced.idMapJson == null) {
+    const { code, info } = printWithSpans(root)
+    if (codeChanged) newCode = code
+    const idMap = spanMapToIdMap(info)
+    if (codeChanged || idsChanged || synced.idMapJson == null) newIdMap = idMap
+    newPersistedIdMap = newMetadata && getIdMapToPersist(idMap, newMetadata)
+  }
+
+  return { newCode, newIdMap, newPersistedIdMap, newMetadata }
+}
+
+/**
+ * Get the subset of idMap which should be persisted in file.
+ */
+export function getIdMapToPersist(
+  idMap: IdMap,
+  metadata: fileFormat.IdeMetadata,
+): IdMap | undefined {
+  const entriesIntersection = idMap
+    .entries()
+    .filter(([, id]) => id in metadata.node || id in (metadata.widget ?? {}))
+  return new IdMap(entriesIntersection)
 }
 
 function translateVisualizationToFile(
@@ -163,7 +186,7 @@ export function translateVisualizationFromFile(
  * A simplified diff algorithm.
  *
  * The `fast-diff` package uses Myers' https://neil.fraser.name/writing/diff/myers.pdf with some
- * optimizations to generate minimal diff. Unfortunately, event this algorithm is still too slow
+ * optimizations to generate minimal diff. Unfortunately, even this algorithm is still too slow
  * for our metadata. Therefore we need to use faster algorithm which will not produce theoretically
  * minimal diff.
  *

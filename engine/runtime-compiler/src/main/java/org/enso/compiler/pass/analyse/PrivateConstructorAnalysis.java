@@ -9,16 +9,19 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
 import org.enso.compiler.core.ir.expression.errors.Syntax.InconsistentConstructorVisibility$;
 import org.enso.compiler.core.ir.module.scope.Definition;
-import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.IRProcessingPass;
+import org.enso.compiler.pass.MiniIRPass;
+import org.enso.compiler.pass.MiniPassFactory;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Ensures that all type definitions have either all constructors public, or all constructors
  * private.
+ *
+ * <p>Does not support inline compilation.
  */
-public final class PrivateConstructorAnalysis implements IRPass {
+public final class PrivateConstructorAnalysis implements MiniPassFactory {
   public static final PrivateConstructorAnalysis INSTANCE = new PrivateConstructorAnalysis();
 
   private PrivateConstructorAnalysis() {}
@@ -36,47 +39,50 @@ public final class PrivateConstructorAnalysis implements IRPass {
     return (scala.collection.immutable.List<IRProcessingPass>) obj;
   }
 
+  public MiniIRPass createForModuleCompilation(ModuleContext moduleContext) {
+    return new Mini();
+  }
+
   @Override
-  public Module runModule(Module ir, ModuleContext moduleContext) {
-    var newBindings =
-        ir.bindings()
-            .map(
-                binding -> {
-                  if (binding instanceof Definition.Type type) {
-                    var partitions = type.members().partition(Definition.Data::isPrivate);
-                    var privateCtorsCnt = partitions._1.size();
-                    var publicCtorsCnt = partitions._2.size();
-                    var ctorsCnt = type.members().size();
-                    if (!(privateCtorsCnt == ctorsCnt || publicCtorsCnt == ctorsCnt)) {
-                      assert type.location().isDefined();
-                      return new Syntax(
-                          type.location().get(),
-                          InconsistentConstructorVisibility$.MODULE$,
-                          type.passData(),
-                          type.diagnostics());
+  public MiniIRPass createForInlineCompilation(InlineContext inlineContext) {
+    return null;
+  }
+
+  private static final class Mini extends MiniIRPass {
+    @Override
+    public Expression transformExpression(Expression expr) {
+      throw new IllegalStateException("Should not be called - prepare returns null");
+    }
+
+    @Override
+    public MiniIRPass prepare(IR parent, Expression child) {
+      return null;
+    }
+
+    @Override
+    public Module transformModule(Module moduleIr) {
+      var newBindings =
+          moduleIr
+              .bindings()
+              .map(
+                  binding -> {
+                    if (binding instanceof Definition.Type type) {
+                      var partitions = type.members().partition(Definition.Data::isPrivate);
+                      var privateCtorsCnt = partitions._1.size();
+                      var publicCtorsCnt = partitions._2.size();
+                      var ctorsCnt = type.members().size();
+                      if (!(privateCtorsCnt == ctorsCnt || publicCtorsCnt == ctorsCnt)) {
+                        assert type.location().isDefined();
+                        return new Syntax(
+                            type.location().get(),
+                            InconsistentConstructorVisibility$.MODULE$,
+                            type.passData(),
+                            type.diagnostics());
+                      }
                     }
-                  }
-                  return binding;
-                });
-    return ir.copy(
-        ir.copy$default$1(),
-        ir.copy$default$2(),
-        newBindings,
-        ir.copy$default$4(),
-        ir.copy$default$5(),
-        ir.copy$default$6(),
-        ir.copy$default$7(),
-        ir.copy$default$8());
-  }
-
-  /** Not supported on a single expression. */
-  @Override
-  public Expression runExpression(Expression ir, InlineContext inlineContext) {
-    return ir;
-  }
-
-  @Override
-  public <T extends IR> T updateMetadataInDuplicate(T sourceIr, T copyOfIr) {
-    return IRPass.super.updateMetadataInDuplicate(sourceIr, copyOfIr);
+                    return binding;
+                  });
+      return moduleIr.copyWithBindings(newBindings);
+    }
   }
 }

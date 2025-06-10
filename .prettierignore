@@ -4,16 +4,17 @@ mockDist
 target
 
 # Release body template should not be auto-formatted, as the word wrap does not really looks good in the GitHub UI.
-build/build/release-body.md
+build_tools/build/release-body.md
 
 .github/PULL_REQUEST_TEMPLATE.md
 .github/ISSUE_TEMPLATE
 distribution/launcher/THIRD-PARTY
 distribution/engine/THIRD-PARTY
 distribution/project-manager/THIRD-PARTY
-tools/legal-review
+tools
 distribution/lib/Standard/*/*/manifest.yaml
 distribution/lib/Standard/*/*/polyglot
+distribution/lib/Standard/*/*/docs/api
 distribution/lib/Standard/*/*/THIRD-PARTY
 distribution/docs-js
 
@@ -45,6 +46,11 @@ app/gui/src/project-view/assets/font-*.css
 Cargo.lock
 build.json
 app/gui/playwright-report/
+maven_install.json
+
+# Git-subtree, upstream doesn't use prettier
+app/lang-markdown
+app/lezer-markdown
 
 # Engine Builds can leave these nested working copies.
 # TODO [mwu]: Adjust Engine build to not leave them.

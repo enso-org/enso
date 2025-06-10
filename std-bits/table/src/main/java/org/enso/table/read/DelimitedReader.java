@@ -10,7 +10,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
-import org.enso.table.data.column.builder.StringBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
@@ -59,7 +60,7 @@ public class DelimitedReader {
   private final CsvParser parser;
   private final DatatypeParser valueParser;
   private final TypeInferringParser cellTypeGuesser;
-  private final boolean keepInvalidRows;
+  private final InvalidRowsBehavior keepInvalidRows;
   private String newlineSetting;
   private final NoOpParseProblemAggregator noOpProblemAggregator = new NoOpParseProblemAggregator();
   private long targetTableIndex = 0;
@@ -67,7 +68,8 @@ public class DelimitedReader {
   /** The line number of the start of the current row in the input file. */
   private long currentLine = 0;
 
-  private StringBuilder[] builders = null;
+  private List<BuilderForType<String>> builders = null;
+  private int initialColumnCount = 0;
   private final DelimitedReaderProblemAggregator problemAggregator;
 
   /**
@@ -110,7 +112,7 @@ public class DelimitedReader {
       int maxColumns,
       DatatypeParser valueParser,
       TypeInferringParser cellTypeGuesser,
-      boolean keepInvalidRows,
+      InvalidRowsBehavior keepInvalidRows,
       String newline,
       String commentCharacter,
       boolean warningsAsErrors,
@@ -264,30 +266,60 @@ public class DelimitedReader {
     assert builders != null;
     assert canFitMoreRows();
 
-    if (row.length != builders.length) {
-      problemAggregator.reportInvalidRow(
-          currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.length);
+    if (row.length != builders.size()) {
+      boolean isRowKept =
+          switch (keepInvalidRows) {
+            case DROP -> false;
+            case KEEP, ADD_EXTRA_COLUMNS -> true;
+          };
 
-      if (keepInvalidRows) {
-        for (int i = 0; i < builders.length && i < row.length; i++) {
-          builders[i].append(row[i]);
+      // The error is only reported if the column count does not match the initial column count.
+      // Otherwise, a single row with more columns in ADD_EXTRA_COLUMNS mode will expand the
+      // builders and all subsequent rows (that had original column count) would turn into warnings.
+      // Such flood of warnings is not useful. Instead, we only warn on the occurrences that expand
+      // the column count, or that have fewer columns than originally expected.
+      if (row.length != initialColumnCount) {
+        problemAggregator.reportInvalidRow(
+            currentLine, isRowKept ? targetTableIndex : null, row, builders.size());
+      }
+
+      if (isRowKept) {
+        // If the current row had more columns than expected, they are either discarded or added as
+        // extra columns.
+        if (keepInvalidRows == InvalidRowsBehavior.ADD_EXTRA_COLUMNS
+            && row.length > builders.size()) {
+          addExtraColumns(row.length - builders.size());
+        }
+
+        for (int i = 0; i < builders.size() && i < row.length; i++) {
+          builders.get(i).append(row[i]);
         }
 
         // If the current row had fewer columns than expected, nulls are inserted for the missing
         // values.
-        // If it had more columns, the excess columns are discarded.
-        for (int i = row.length; i < builders.length; i++) {
-          builders[i].append(null);
+        for (int i = row.length; i < builders.size(); i++) {
+          builders.get(i).appendNulls(1);
         }
 
         targetTableIndex++;
       }
     } else {
-      for (int i = 0; i < builders.length; i++) {
-        builders[i].append(row[i]);
+      for (int i = 0; i < builders.size(); i++) {
+        builders.get(i).append(row[i]);
       }
 
       targetTableIndex++;
+    }
+  }
+
+  private void addExtraColumns(int count) {
+    for (int i = 0; i < count; i++) {
+      int columnIndex = builders.size() + 1;
+      effectiveColumnNames.add(COLUMN_NAME + " " + columnIndex);
+      var builder = constructBuilder(targetTableIndex);
+      // We ensure the new builder has the same length as the previous ones by padding with nulls.
+      builder.appendNulls(Math.toIntExact(targetTableIndex));
+      builders.add(builder);
     }
   }
 
@@ -295,19 +327,12 @@ public class DelimitedReader {
     return rowLimit < 0 || targetTableIndex < rowLimit;
   }
 
-  private void appendRowIfLimitPermits(String[] row) {
-    if (canFitMoreRows()) {
-      appendRow(row);
-    }
-  }
-
   private List<String> headersFromRow(String[] row) {
     List<String> preprocessedHeaders =
         Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
 
     NameDeduplicator deduplicator = NameDeduplicator.createDefault(problemAggregator);
-    List<String> names = deduplicator.makeUniqueList(preprocessedHeaders);
-    return names;
+    return deduplicator.makeUniqueList(preprocessedHeaders);
   }
 
   private List<String> generateDefaultHeaders(int columnCount) {
@@ -330,7 +355,7 @@ public class DelimitedReader {
   }
 
   /** The column names as defined in the input (if applicable, otherwise null). */
-  private String[] definedColumnNames = null;
+  private List<String> definedColumnNames = null;
 
   /**
    * The effective column names.
@@ -338,10 +363,10 @@ public class DelimitedReader {
    * <p>If {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers are found,
    * this will be populated with automatically generated column names.
    */
-  private String[] effectiveColumnNames;
+  private List<String> effectiveColumnNames;
 
   private int getColumnCount() {
-    return effectiveColumnNames.length;
+    return effectiveColumnNames.size();
   }
 
   /**
@@ -386,7 +411,7 @@ public class DelimitedReader {
     }
 
     if (firstRow == null) {
-      effectiveColumnNames = new String[0];
+      effectiveColumnNames = List.of();
       return;
     }
 
@@ -429,9 +454,11 @@ public class DelimitedReader {
       default -> throw new IllegalStateException("Impossible branch.");
     }
 
-    effectiveColumnNames = headerNames.toArray(new String[0]);
+    effectiveColumnNames = headerNames;
     if (wereHeadersDefined) {
-      definedColumnNames = effectiveColumnNames;
+      // We need a copy of the defined column names, as the effective column names may be modified
+      // later.
+      definedColumnNames = new ArrayList<>(effectiveColumnNames);
     }
   }
 
@@ -451,6 +478,7 @@ public class DelimitedReader {
         throw new EmptyFileException();
       }
 
+      initialColumnCount = columnCount;
       initBuilders(columnCount);
       while (canFitMoreRows()) {
         var currentRow = readNextRow();
@@ -465,17 +493,17 @@ public class DelimitedReader {
       parser.stopParsing();
     }
 
-    Column[] columns = new Column[builders.length];
-    for (int i = 0; i < builders.length; i++) {
-      String columnName = effectiveColumnNames[i];
-      Storage<String> col = builders[i].seal();
+    Column[] columns = new Column[builders.size()];
+    for (int i = 0; i < builders.size(); i++) {
+      String columnName = effectiveColumnNames.get(i);
+      var stringStorage = builders.get(i).seal();
 
       // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type
       // that we expect, so it can safely be null.
       Value expectedEnsoValueType = Value.asValue(null);
       CommonParseProblemAggregator parseProblemAggregator =
           ParseProblemAggregator.make(problemAggregator, columnName, expectedEnsoValueType);
-      Storage<?> storage = valueParser.parseColumn(col, parseProblemAggregator);
+      Storage<?> storage = valueParser.parseColumn(stringStorage, parseProblemAggregator);
       columns[i] = new Column(columnName, storage);
       context.safepoint();
     }
@@ -497,10 +525,14 @@ public class DelimitedReader {
   private static final int INITIAL_ROW_CAPACITY = 100;
 
   private void initBuilders(int count) {
-    builders = new StringBuilder[count];
+    builders = new ArrayList<>(count);
     for (int i = 0; i < count; i++) {
-      builders[i] = new StringBuilder(INITIAL_ROW_CAPACITY, TextType.VARIABLE_LENGTH);
+      builders.add(constructBuilder(INITIAL_ROW_CAPACITY));
     }
+  }
+
+  private BuilderForType<String> constructBuilder(long initialCapacity) {
+    return Builder.getForText(TextType.VARIABLE_LENGTH, initialCapacity);
   }
 
   /** Specifies how to set the headers for the returned table. */
@@ -515,5 +547,17 @@ public class DelimitedReader {
      * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
      */
     GENERATE_HEADERS
+  }
+
+  /** Specifies how to handle rows with unexpected number of columns. */
+  public enum InvalidRowsBehavior {
+    /** Discards rows with unexpected number of columns. */
+    DROP,
+
+    /** Keeps rows with unexpected number of columns, but the additional columns are discarded. */
+    KEEP,
+
+    /** Keeps rows with unexpected number of columns, adding extra columns. */
+    ADD_EXTRA_COLUMNS
   }
 }

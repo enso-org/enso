@@ -1,12 +1,10 @@
 /** @file Utilities for working with permissions. */
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import * as backend from '#/services/Backend'
+import type * as backend from '#/services/Backend'
 import {
   type AssetPermission,
   compareAssetPermissions,
   type User,
 } from 'enso-common/src/services/Backend'
-import { merge } from 'enso-common/src/utilities/data/object'
 import { Permission, PermissionAction } from 'enso-common/src/utilities/permissions'
 export * from 'enso-common/src/utilities/permissions'
 
@@ -24,43 +22,6 @@ export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
 export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 /** CSS classes for the execute permission. */
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
-
-// ================================
-// === tryCreateOwnerPermission ===
-// ================================
-
-/**
- * Return an array containing the owner permission if `owner` is not `null`,
- * else return an empty array (`[]`).
- */
-export function tryCreateOwnerPermission(
-  path: string,
-  category: Category,
-  user: backend.User,
-  users: readonly backend.User[],
-  userGroups: readonly backend.UserGroupInfo[],
-): readonly backend.AssetPermission[] {
-  switch (category.type) {
-    case 'team': {
-      return [{ userGroup: category.team, permission: PermissionAction.own }]
-    }
-    default: {
-      const isFreeOrSolo =
-        user.plan == null || user.plan === backend.Plan.free || user.plan === backend.Plan.solo
-      const owner = isFreeOrSolo ? user : newOwnerFromPath(path, users, userGroups) ?? user
-      if ('userId' in owner) {
-        const { organizationId, userId, name, email } = owner
-        return [{ user: { organizationId, userId, name, email }, permission: PermissionAction.own }]
-      } else {
-        return [{ userGroup: owner, permission: PermissionAction.own }]
-      }
-    }
-  }
-}
-
-// ==========================
-// === findSelfPermission ===
-// ==========================
 
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
@@ -87,10 +48,6 @@ export function tryFindSelfPermission(
   return selfPermission
 }
 
-// ============================================
-// === canPermissionModifyDirectoryContents ===
-// ============================================
-
 /** Whether the given permission means the user can edit the list of assets of the directory. */
 export function canPermissionModifyDirectoryContents(permission: PermissionAction) {
   return (
@@ -100,38 +57,9 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
   )
 }
 
-// ==============================
-// === replaceOwnerPermission ===
-// ==============================
-
 /** Replace the first owner permission with the permission of a new user or team. */
-export function replaceOwnerPermission(
-  asset: backend.AnyAsset,
-  newOwner: backend.User | backend.UserGroupInfo,
-) {
-  let found = false
-  const newPermissions =
-    asset.permissions?.map((permission) => {
-      if (found || permission.permission !== PermissionAction.own) {
-        return permission
-      } else {
-        found = true
-        if ('userId' in newOwner) {
-          const newPermission: backend.UserPermission = {
-            user: newOwner,
-            permission: PermissionAction.own,
-          }
-          return newPermission
-        } else {
-          const newPermission: backend.UserGroupPermission = {
-            userGroup: newOwner,
-            permission: PermissionAction.own,
-          }
-          return newPermission
-        }
-      }
-    }) ?? null
-  return merge(asset, { permissions: newPermissions })
+export function tryGetOwnerPermission(asset: backend.AnyAsset) {
+  return asset.permissions?.find((permission) => permission.permission === PermissionAction.own)
 }
 
 const USER_PATH_REGEX = /^enso:[/][/][/]Users[/]([^/]+)/
@@ -151,7 +79,7 @@ export function isTeamPath(path: string) {
 export function newOwnerFromPath(
   path: string,
   users: readonly backend.User[],
-  userGroups: readonly backend.UserGroupInfo[],
+  userGroups: readonly backend.UserGroup[],
 ) {
   const [, userName] = path.match(USER_PATH_REGEX) ?? []
   if (userName != null) {
@@ -161,7 +89,7 @@ export function newOwnerFromPath(
     const [, teamName] = path.match(TEAM_PATH_REGEX) ?? []
     if (teamName != null) {
       const teamNameLowercase = teamName.toLowerCase()
-      return userGroups.find((userGroup) => userGroup.groupName === teamNameLowercase)
+      return userGroups.find((userGroup) => userGroup.name === teamNameLowercase)
     } else {
       return
     }

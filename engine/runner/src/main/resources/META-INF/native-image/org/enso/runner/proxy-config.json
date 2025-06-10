@@ -1,5 +1,5 @@
 [
   {
-    "interfaces":["org.jline.terminal.impl.jna.linux.CLibrary"]
+    "interfaces":["org.jline.terminal.impl.jna.linux.CLibrary", "org.jline.terminal.impl.jna.osx.CLibrary", "org.jline.terminal.impl.jna.win.CLibrary"]
   }
 ]

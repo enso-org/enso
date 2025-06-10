@@ -4,11 +4,7 @@
     "Enso Team <contact@enso.org>"
   ],
   "version": "0.1.0",
-  "scripts": {
-    "compile": "wasm-pack build . --release --out-dir pkg --target bundler",
-    "postinstall": "corepack pnpm compile"
-  },
-  "exports": {
-    ".": "./pkg/rust_ffi.js"
-  }
+  "type": "module",
+  "main": "./dist/rust_ffi.js",
+  "typings": "./dist/rust_ffi.d.ts"
 }

@@ -63,7 +63,7 @@ new_builtin year month day = @Builtin_Method "Date.new_builtin"
 type Date
     ## ALIAS current date, now
        GROUP DateTime
-       ICON time
+       ICON calendar
 
        Obtains the current date from the system clock in the system timezone.
 
@@ -74,8 +74,8 @@ type Date
     today : Date
     today = @Builtin_Method "Date.today"
 
-    ## GROUP DateTime
-       ICON time
+    ## GROUP Constants
+       ICON calendar
        Constructs a new Date from a year, month, and day.
 
        Arguments:

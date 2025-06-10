@@ -37,8 +37,8 @@ export function Ok<T>(data?: T): Result<T | undefined, never> {
 }
 
 /** Constructor of error {@link Result}. */
-export function Err<E>(error: E): Result<never, E> {
-  return { ok: false, error: new ResultError(error) }
+export function Err<E>(error: E) {
+  return { ok: false, error: new ResultError(error) } as const satisfies Result<never, E>
 }
 
 /** Helper function for converting optional value to {@link Result}. */
@@ -78,6 +78,15 @@ export function mapOk<T, U, E>(result: Result<T, E>, f: (value: T) => U): Result
   else return result
 }
 
+/** Maps the {@link Result} value with a function that returns a result. */
+export function andThen<T, U, E>(
+  result: Result<T, E>,
+  f: (value: T) => Result<U, E>,
+): Result<U, E> {
+  if (result.ok) return f(result.value)
+  else return result
+}
+
 /** If the value is nullish, returns {@link Ok} with it. */
 export function transposeResult<T, E>(value: Opt<Result<T, E>>): Result<Opt<T>, E>
 /** If any of the values is an error, the first error is returned. */
@@ -86,9 +95,9 @@ export function transposeResult<T, E>(value: Result<T, E>[]): Result<T[], E>
 export function transposeResult<T, E>(value: Opt<Result<T, E>> | Result<T, E>[]) {
   if (value == null) return Ok(value)
   if (value instanceof Array) {
-    const error = value.find(x => !x.ok)
+    const error = value.find((x) => !x.ok)
     if (error) return error
-    else return Ok(Array.from(value, x => (x as { ok: true; value: T }).value))
+    else return Ok(Array.from(value, (x) => (x as { ok: true; value: T }).value))
   }
   return value
 }
@@ -127,8 +136,8 @@ export class ResultError<E = unknown> {
    */
   message(preamble: string = 'error') {
     const ctx =
-      this.context.length > 0 ? `\n${Array.from(this.context, ctx => ctx()).join('\n')}` : ''
-    return `${preamble}: ${this.payload}${ctx}`
+      this.context.length > 0 ? `\n${Array.from(this.context, (ctx) => ctx()).join('\n')}` : ''
+    return `${preamble}${preamble ? ': ' : ''}${this.payload}${ctx}`
   }
 }
 
@@ -199,7 +208,7 @@ export function rejectionToResult<ErrorKind extends new (...args: any[]) => any>
   errorKinds: ErrorKind | ErrorKind[],
 ): <T>(promise: Promise<T>) => Promise<Result<T, InstanceType<ErrorKind>>> {
   const errorKindArray = Array.isArray(errorKinds) ? errorKinds : [errorKinds]
-  return async promise => {
+  return async (promise) => {
     try {
       return Ok(await promise)
     } catch (error) {

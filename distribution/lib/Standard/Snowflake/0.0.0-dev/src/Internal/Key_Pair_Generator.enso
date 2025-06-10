@@ -1,0 +1,20 @@
+private
+
+from Standard.Base import all
+
+polyglot java import org.enso.snowflake.KeyPairHelper
+
+public_key_prefix = "-----BEGIN PUBLIC KEY-----"
+public_key_suffix = "-----END PUBLIC KEY-----"
+
+type Key_Pair
+    ## A pair of RSA keys stored as base64 encoded strings.
+    Value raw_private_key:Text raw_public_key:Text
+
+    formatted_public_key self -> Text =
+        crlf = '\r\n'
+        public_key_prefix + crlf + self.raw_public_key + crlf + public_key_suffix + crlf
+
+generate =
+    key_pair = KeyPairHelper.generate "RSA" 2048
+    Key_Pair.Value key_pair.encodedPrivateKey key_pair.encodedPublicKey

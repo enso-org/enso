@@ -1,4 +1,11 @@
 /** @file A select menu with a dropdown. */
+import CloseIcon from '#/assets/cross.svg'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
+import FocusRing from '#/components/styled/FocusRing'
+import { Text } from '#/components/Text'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import {
   useMemo,
   useRef,
@@ -8,27 +15,14 @@ import {
   type MutableRefObject,
 } from 'react'
 
-import CloseIcon from '#/assets/cross.svg'
-import { Button, Input, Text } from '#/components/AriaComponents'
-import FocusRing from '#/components/styled/FocusRing'
-import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-
-// =================
-// === Constants ===
-// =================
-
 /** A zero-width space. Useful to make a `div` take up at least one line. */
 const ZWSP = '\u200b'
-
-// ====================
-// === Autocomplete ===
-// ====================
 
 /** Base props for a {@link Autocomplete}. */
 interface InternalBaseAutocompleteProps<T> {
   readonly multiple?: boolean
   readonly type?: HTMLInputTypeAttribute
-  readonly inputRef?: MutableRefObject<HTMLFieldSetElement | null>
+  readonly inputRef?: MutableRefObject<HTMLDivElement | null>
   readonly placeholder?: string
   readonly values: readonly T[]
   readonly autoFocus?: boolean
@@ -58,7 +52,7 @@ interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteP
    * This is `null` when multiple values are selected, causing the input to switch to a
    * {@link HTMLTextAreaElement}.
    */
-  readonly inputRef?: MutableRefObject<HTMLFieldSetElement | null>
+  readonly inputRef?: MutableRefObject<HTMLDivElement | null>
   readonly setValues: (value: readonly T[]) => void
   readonly itemsToString: (items: readonly T[]) => string
 }
@@ -97,7 +91,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     [items, matches, text],
   )
 
-  const fallbackInputRef = useRef<HTMLFieldSetElement>(null)
+  const fallbackInputRef = useRef<HTMLDivElement>(null)
   const inputRef = rawInputRef ?? fallbackInputRef
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -185,60 +179,70 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
           : '',
         )}
       >
-        <FocusRing within>
-          <div className="relative z-1 flex flex-1 items-center gap-2 rounded-full px-2">
-            {canEditText ?
-              <Input
-                name="autocomplete"
-                type={type}
-                ref={inputRef}
-                autoFocus={autoFocus}
-                size="custom"
-                variant="custom"
-                value={text ?? ''}
-                autoComplete="off"
-                {...(placeholder == null ? {} : { placeholder })}
-                onFocus={() => {
+        <Form
+          className="w-full"
+          schema={(z) =>
+            z.object({
+              autocomplete: z.string(),
+            })
+          }
+        >
+          <FocusRing within>
+            <div className="relative z-1 flex w-full flex-1 items-center gap-2 overflow-hidden rounded-full px-2">
+              {canEditText ?
+                <Input
+                  className="w-full"
+                  name="autocomplete"
+                  type={type}
+                  ref={inputRef}
+                  autoFocus={autoFocus}
+                  size="custom"
+                  variant="custom"
+                  value={text ?? ''}
+                  autoComplete="off"
+                  {...(placeholder == null ? {} : { placeholder })}
+                  onFocus={() => {
+                    setIsDropdownVisible(true)
+                  }}
+                  onBlur={() => {
+                    window.setTimeout(() => {
+                      setIsDropdownVisible(false)
+                    })
+                  }}
+                  onChange={(event) => {
+                    setIsDropdownVisible(true)
+                    setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
+                  }}
+                />
+              : <Text
+                  tabIndex={-1}
+                  truncate="1"
+                  tooltipPlacement="left"
+                  onClick={() => {
+                    setIsDropdownVisible(true)
+                  }}
+                  onBlur={() => {
+                    window.setTimeout(() => {
+                      setIsDropdownVisible(false)
+                    })
+                  }}
+                >
+                  {itemsToString?.(values) ?? (values[0] != null ? children(values[0]) : ZWSP)}
+                </Text>
+              }
+              <Button
+                size="medium"
+                variant="icon"
+                icon={CloseIcon}
+                onPress={() => {
+                  setValues([])
                   setIsDropdownVisible(true)
-                }}
-                onBlur={() => {
-                  window.setTimeout(() => {
-                    setIsDropdownVisible(false)
-                  })
-                }}
-                onChange={(event) => {
-                  setIsDropdownVisible(true)
-                  setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
+                  setText?.('')
                 }}
               />
-            : <Text
-                tabIndex={-1}
-                truncate="1"
-                tooltipPlacement="left"
-                onClick={() => {
-                  setIsDropdownVisible(true)
-                }}
-                onBlur={() => {
-                  window.setTimeout(() => {
-                    setIsDropdownVisible(false)
-                  })
-                }}
-              >
-                {itemsToString?.(values) ?? (values[0] != null ? children(values[0]) : ZWSP)}
-              </Text>
-            }
-            <Button
-              size="medium"
-              variant="icon"
-              icon={CloseIcon}
-              onPress={() => {
-                setValues([])
-                // setIsDropdownVisible(true)
-                setText?.('')
-              }}
-            />
-          </div>
-        </FocusRing>
+            </div>
+          </FocusRing>
+        </Form>
         <div
           className={twMerge(
             'relative z-1 grid h-max w-full rounded-b-xl transition-grid-template-rows duration-200',

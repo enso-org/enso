@@ -1,30 +1,35 @@
-import { findIndexOpt } from '@/util/data/array'
+import { type ProjectNameStore } from '@/stores/projectNames'
+import { assert } from '@/util/assert'
+import { findDifferenceIndex } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
-import { Err, Ok, type Result } from '@/util/data/result'
-import { AsyncQueue, type AbortScope } from '@/util/net'
-import {
-  qnReplaceProjectName,
-  tryIdentifier,
-  tryQualifiedName,
-  type Identifier,
-} from '@/util/qualifiedName'
-import * as array from 'lib0/array'
-import { ObservableV2 } from 'lib0/observable'
-import * as random from 'lib0/random'
-import { reactive } from 'vue'
-import type { LanguageServer } from 'ydoc-shared/languageServer'
+import { Err, Ok, ResultError, type Result } from '@/util/data/result'
 import {
   methodPointerEquals,
   stackItemsEqual,
-  type ContextId,
-  type Diagnostic,
-  type ExecutionEnvironment,
   type ExplicitCall,
-  type ExpressionId,
-  type ExpressionUpdate,
+  type MethodPointer,
   type StackItem,
-  type Uuid,
-  type VisualizationConfiguration,
+} from '@/util/methodPointer'
+import { AsyncQueue, type AbortScope } from '@/util/net'
+import * as array from 'lib0/array'
+import { ObservableV2 } from 'lib0/observable'
+import { reactive } from 'vue'
+import {
+  ErrorCode,
+  LsRpcError,
+  RemoteRpcError,
+  type LanguageServer,
+} from 'ydoc-shared/languageServer'
+import type {
+  ContextId,
+  Diagnostic,
+  ExecutionEnvironment,
+  ExpressionId,
+  ExpressionUpdate,
+  LSMethodPointer,
+  StackItem as LSStackItem,
+  VisualizationConfiguration as LSVisualizationConfiguration,
+  Uuid,
 } from 'ydoc-shared/languageServerTypes'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
@@ -32,6 +37,11 @@ import type { ExternalId } from 'ydoc-shared/yjsModel'
 // This constant should be synchronized with EXECUTION_ENVIRONMENT constant in
 // engine/runtime/src/main/java/org/enso/interpreter/EnsoLanguage.java
 const DEFAULT_ENVIRONMENT: ExecutionEnvironment = 'Design'
+
+export type VisualizationConfiguration = Omit<LSVisualizationConfiguration, 'expression'> & {
+  /** An expression that creates a visualization. */
+  expression: string | MethodPointer
+}
 
 export type NodeVisualizationConfiguration = Omit<
   VisualizationConfiguration,
@@ -97,6 +107,7 @@ type ExecutionContextNotification = {
 enum SyncStatus {
   NOT_SYNCED,
   QUEUED,
+  CREATING,
   SYNCING,
   SYNCED,
 }
@@ -111,7 +122,7 @@ enum SyncStatus {
  * run only when the previous call is done.
  */
 export class ExecutionContext extends ObservableV2<ExecutionContextNotification> {
-  readonly id: ContextId = random.uuidv4() as ContextId
+  readonly id: ContextId = crypto.randomUUID() as ContextId
   private queue: AsyncQueue<ExecutionContextState>
   private syncStatus = SyncStatus.NOT_SYNCED
   private clearScheduled = false
@@ -124,6 +135,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     private lsRpc: LanguageServer,
     entryPoint: EntryPoint,
     private abort: AbortScope,
+    private readonly projectNames: ProjectNameStore,
   ) {
     super()
     this.abort.handleDispose(this)
@@ -163,38 +175,19 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
       // Connection closed: the created execution context is no longer available
       // There is no point in any scheduled action until resynchronization
       this.queue.clear()
-      this.syncStatus = SyncStatus.NOT_SYNCED
-      this.queue.pushTask(() => {
-        this.clearScheduled = false
-        this.sync()
-        return Promise.resolve({ status: 'not-created' })
-      })
-      this.clearScheduled = true
-    })
-    this.lsRpc.on('refactoring/projectRenamed', ({ oldNormalizedName, newNormalizedName }) => {
-      const newIdent = tryIdentifier(newNormalizedName)
-      if (!newIdent.ok) {
-        console.error(
-          `Cannot update project name in execution stack: new name ${newNormalizedName} is not a valid identifier!`,
-        )
-        return
-      }
-      ExecutionContext.replaceProjectNameInStack(
-        this._desiredStack,
-        oldNormalizedName,
-        newIdent.value,
-      )
-      if (this.syncStatus === SyncStatus.SYNCED) {
-        this.queue.pushTask((state) => {
-          if (state.status !== 'created') return Promise.resolve(state)
-          ExecutionContext.replaceProjectNameInStack(state.stack, oldNormalizedName, newIdent.value)
-          return Promise.resolve(state)
+      // If syncing is at the first step (creating missing execution context), it is
+      // effectively waiting for reconnection to recreate the execution context.
+      // We should not clear it's outcome, as it's likely the context will be created after
+      // reconnection (so it's valid).
+      if (this.syncStatus !== SyncStatus.CREATING) {
+        // In other cases, any created context is destroyed after losing connection.
+        // The status should be cleared to 'not-created'.
+        this.queue.pushTask(() => {
+          this.clearScheduled = false
+          this.sync()
+          return Promise.resolve({ status: 'not-created' })
         })
-      } else {
-        // Engine updates project name in its execution context frames by itself. But if we are out
-        // of sync, we have no guarantee if the stack wasn't set with old name after project rename.
-        // It's safer to just re-sync the stack.
-        this.sync()
+        this.clearScheduled = true
       }
     })
   }
@@ -204,34 +197,18 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.sync()
   }
 
-  private static replaceProjectNameInStack(
-    stack: StackItem[],
-    oldName: string,
-    newName: Identifier,
-  ) {
-    const updatedField = (value: string) => {
-      const qn = tryQualifiedName(value)
-      if (qn.ok) {
-        return qnReplaceProjectName(qn.value, oldName, newName)
-      } else {
-        console.warn(`Invalid qualified name in execution context stack: ${value}`)
-        return value
-      }
-    }
-    for (const item of stack) {
-      if (item.type === 'ExplicitCall') {
-        item.methodPointer.module = updatedField(item.methodPointer.module)
-        item.methodPointer.definedOnType = updatedField(item.methodPointer.definedOnType)
-      }
-    }
-  }
-
-  /** TODO: Add docs */
+  /**
+   * The stack of execution frames that we want to currently inspect. The actual stack
+   * state in the language server can differ, since it is updated asynchronously.
+   */
   get desiredStack() {
     return this._desiredStack
   }
 
-  /** TODO: Add docs */
+  /**
+   * Set the currently desired stack of excution frames. This will cause appropriate
+   * stack push/pop operations to be sent to the language server.
+   */
   set desiredStack(stack: StackItem[]) {
     this._desiredStack.length = 0
     this._desiredStack.push(...stack)
@@ -246,7 +223,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   /** TODO: Add docs */
   pop() {
     if (this._desiredStack.length === 1) {
-      console.debug('Cannot pop last item from execution context stack')
+      console.info('Cannot pop last item from execution context stack')
       return
     }
     this._desiredStack.pop()
@@ -327,7 +304,12 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   private sync() {
-    if (this.syncStatus === SyncStatus.QUEUED || this.abort.signal.aborted) return
+    if (
+      this.syncStatus === SyncStatus.QUEUED ||
+      this.syncStatus === SyncStatus.CREATING ||
+      this.abort.signal.aborted
+    )
+      return
     this.syncStatus = SyncStatus.QUEUED
     this.queue.pushTask(this.syncTask())
   }
@@ -346,15 +328,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
 
   private syncTask() {
     return async (state: ExecutionContextState) => {
-      this.syncStatus = SyncStatus.SYNCING
-      if (this.abort.signal.aborted) return state
       let newState = { ...state }
 
-      const create = () => {
+      const ensureCreated = () => {
         if (newState.status === 'created') return Ok()
-        // if (newState.status === 'broken') {
-        //   this.withBackoff(() => this.lsRpc.destroyExecutionContext(this.id), 'Failed to destroy broken execution context')
-        // }
         return this.withBackoff(async () => {
           const result = await this.lsRpc.createExecutionContext(this.id)
           if (!result.ok) return result
@@ -386,28 +363,40 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
         const state = newState
         if (state.status !== 'created')
           return Err('Cannot sync stack when execution context is not created')
-        const firstDifferent =
-          findIndexOpt(this._desiredStack, (item, index) => {
-            const stateStack = state.stack[index]
-            return stateStack == null || !stackItemsEqual(item, stateStack)
-          }) ?? this._desiredStack.length
-        for (let i = state.stack.length; i > firstDifferent; --i) {
-          const popResult = await this.withBackoff(
-            () => this.lsRpc.popExecutionContextItem(this.id),
-            'Failed to pop execution stack frame',
+        while (true) {
+          // Since this is an async function, the desired state can change inbetween individual API calls.
+          // We need to compare the desired stack state against current state on every loop iteration.
+
+          const firstDifferent = findDifferenceIndex(
+            this._desiredStack,
+            state.stack,
+            stackItemsEqual,
           )
-          if (popResult.ok) state.stack.pop()
-          else return popResult
+
+          if (state.stack.length > firstDifferent) {
+            // Found a difference within currently set stack context. We need to pop our way up to it.
+            const popResult = await this.withBackoff(
+              () => this.lsRpc.popExecutionContextItem(this.id),
+              'Failed to pop execution stack frame',
+            )
+            if (popResult.ok) state.stack.pop()
+            else return popResult
+          } else if (state.stack.length < this._desiredStack.length) {
+            // Desired stack is matching current state, but it is longer. We need to push the next item.
+            const newItem = this._desiredStack[state.stack.length]!
+            const pushResult = await this.withBackoff(
+              () =>
+                this.lsRpc.pushExecutionContextItem(
+                  this.id,
+                  serializeStackItem(newItem, this.projectNames),
+                ),
+              'Failed to push execution stack frame',
+            )
+            if (pushResult.ok) state.stack.push(newItem)
+            else return pushResult
+          } else break
         }
-        for (let i = state.stack.length; i < this._desiredStack.length; ++i) {
-          const newItem = this._desiredStack[i]!
-          const pushResult = await this.withBackoff(
-            () => this.lsRpc.pushExecutionContextItem(this.id, newItem),
-            'Failed to push execution stack frame',
-          )
-          if (pushResult.ok) state.stack.push(newItem)
-          else return pushResult
-        }
+
         return Ok()
       }
 
@@ -422,7 +411,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
             () =>
               this.lsRpc.attachVisualization(id, config.expressionId, {
                 executionContextId: this.id,
-                expression: config.expression,
+                expression:
+                  typeof config.expression === 'string' ?
+                    config.expression
+                  : serializeMethodPointer(config.expression, this.projectNames),
                 visualizationModule: config.visualizationModule,
                 ...(config.positionalArgumentsExpressions ?
                   { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
@@ -439,7 +431,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
             () =>
               this.lsRpc.modifyVisualization(id, {
                 executionContextId: this.id,
-                expression: config.expression,
+                expression:
+                  typeof config.expression === 'string' ?
+                    config.expression
+                  : serializeMethodPointer(config.expression, this.projectNames),
                 visualizationModule: config.visualizationModule,
                 ...(config.positionalArgumentsExpressions ?
                   { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
@@ -487,25 +482,81 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           .map((result) => (result.status === 'rejected' ? result.reason : null))
           .filter(isSome)
         if (errors.length > 0) {
-          console.error('Failed to synchronize visualizations:', errors)
+          const result = Err(`Failed to synchronize visualizations: ${errors}`)
+          result.error.log()
+          return result
+        }
+        return Ok()
+      }
+
+      const handleError = (error: ResultError): ExecutionContextState => {
+        // If error tells us that the execution context is missing, we schedule
+        // another sync to re-create it, and set proper state.
+        if (
+          error.payload instanceof LsRpcError &&
+          error.payload.cause instanceof RemoteRpcError &&
+          error.payload.cause.code === ErrorCode.CONTEXT_NOT_FOUND
+        ) {
+          this.sync()
+          return { status: 'not-created' }
+        } else {
+          return newState
         }
       }
 
-      const createResult = await create()
-      if (!createResult.ok) return newState
-      const syncStackResult = await syncStack()
-      if (!syncStackResult.ok) return newState
-      const syncEnvResult = await syncEnvironment()
-      if (!syncEnvResult.ok) return newState
-      this.emit('newVisualizationConfiguration', [new Set(this.visualizationConfigs.keys())])
-      await syncVisualizations()
-      this.emit('visualizationsConfigured', [
-        new Set(state.status === 'created' ? state.visualizations.keys() : []),
-      ])
-      if (this.syncStatus === SyncStatus.SYNCING) {
+      this.syncStatus = SyncStatus.CREATING
+      try {
+        if (this.abort.signal.aborted) return newState
+        const createResult = await ensureCreated()
+        if (!createResult.ok) return newState
+
+        DEV: assert(this.syncStatus === SyncStatus.CREATING)
+        this.syncStatus = SyncStatus.SYNCING
+
+        const syncStackResult = await syncStack()
+        if (!syncStackResult.ok) return handleError(syncStackResult.error)
+        if (this.syncStatus !== SyncStatus.SYNCING || this.clearScheduled) return newState
+
+        const syncEnvResult = await syncEnvironment()
+        if (!syncEnvResult.ok) return handleError(syncEnvResult.error)
+        if (this.syncStatus !== SyncStatus.SYNCING || this.clearScheduled) return newState
+
+        this.emit('newVisualizationConfiguration', [new Set(this.visualizationConfigs.keys())])
+        const syncVisResult = await syncVisualizations()
+        this.emit('visualizationsConfigured', [
+          new Set(state.status === 'created' ? state.visualizations.keys() : []),
+        ])
+        if (!syncVisResult.ok) return handleError(syncVisResult.error)
+        if (this.syncStatus !== SyncStatus.SYNCING || this.clearScheduled) return newState
+
         this.syncStatus = SyncStatus.SYNCED
+        return newState
+      } finally {
+        // On any exception or early return we assme we're not fully synced.
+        if (this.syncStatus === SyncStatus.SYNCING || this.syncStatus === SyncStatus.CREATING) {
+          this.syncStatus = SyncStatus.NOT_SYNCED
+        }
       }
-      return newState
     }
+  }
+}
+
+function serializeStackItem(stackItem: StackItem, projectNames: ProjectNameStore): LSStackItem {
+  return stackItem.type === 'ExplicitCall' ?
+      {
+        ...stackItem,
+        methodPointer: serializeMethodPointer(stackItem.methodPointer, projectNames),
+      }
+    : stackItem
+}
+
+function serializeMethodPointer(
+  methodPointer: MethodPointer,
+  projectNames: ProjectNameStore,
+): LSMethodPointer {
+  return {
+    module: projectNames.serializeProjectPathForBackend(methodPointer.module),
+    definedOnType: projectNames.serializeProjectPathForBackend(methodPointer.definedOnType),
+    name: methodPointer.name,
   }
 }

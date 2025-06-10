@@ -1,7 +1,7 @@
 use crate::syntax::token::*;
 
 use crate::lexer::analyze_non_syntactic_operator;
-use crate::syntax::operator::SectionTermination;
+use crate::syntax::expression::SectionTermination;
 
 
 
@@ -22,10 +22,41 @@ pub struct OperatorProperties {
 
 pub fn is_syntactic_binary_operator(variant: &Variant) -> bool {
     use Variant::*;
-    matches!(
-        variant,
-        AssignmentOperator(_) | TypeAnnotationOperator(_) | ArrowOperator(_) | CommaOperator(_)
-    )
+    match variant {
+        AssignmentOperator(_) | TypeAnnotationOperator(_) | ArrowOperator(_) | CommaOperator(_) =>
+            true,
+        Operator(_)
+        | DotOperator(_)
+        | UnaryOperator(_)
+        | AnnotationOperator(_)
+        | AutoscopeOperator(_)
+        | LambdaOperator(_)
+        | SuspensionOperator(_)
+        | NegationOperator(_)
+        | Newline(_)
+        | OpenSymbol(_)
+        | CloseSymbol(_)
+        | BlockStart(_)
+        | BlockEnd(_)
+        | Wildcard(_)
+        | SuspendedDefaultArguments(_)
+        | Ident(_)
+        | Digits(_)
+        | NumberBase(_)
+        | PrivateKeyword(_)
+        | TypeKeyword(_)
+        | ForeignKeyword(_)
+        | AllKeyword(_)
+        | CaseKeyword(_)
+        | OfKeyword(_)
+        | TextStart(_)
+        | TextEnd(_)
+        | TextSection(_)
+        | TextEscape(_)
+        | TextInitialNewline(_)
+        | TextNewline(_)
+        | Invalid(_) => false,
+    }
 }
 
 impl OperatorProperties {
@@ -45,17 +76,12 @@ impl OperatorProperties {
     }
 
     /// Return a copy of this operator, with the given binary infix precedence.
-    pub fn with_binary_infix_precedence(self, value: u8) -> Self {
-        let precedence = Precedence { value };
-        debug_assert!(precedence > Precedence::min());
-        debug_assert!(value & 0x80 == 0);
-        debug_assert!((value + 1) & 0x80 == 0);
+    pub fn with_binary_infix_precedence(self, precedence: Precedence) -> Self {
         Self { binary_infix_precedence: Some(precedence), ..self }
     }
 
     /// Return a copy of this operator, with unary prefix parsing allowed.
     pub fn with_unary_prefix_mode(self, precedence: Precedence) -> Self {
-        debug_assert!(precedence > Precedence::min());
         Self { unary_prefix_precedence: Some(precedence), ..self }
     }
 
@@ -159,7 +185,7 @@ impl<'s> TokenOperatorProperties for Token<'s> {
 impl HasOperatorProperties for variant::AssignmentOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
-            binary_infix_precedence: Some(Precedence { value: 1 }),
+            binary_infix_precedence: Some(Precedence::Assignment),
             lhs_section_termination: Some(SectionTermination::Unwrap),
             is_right_associative: true,
             is_compile_time: true,
@@ -171,9 +197,8 @@ impl HasOperatorProperties for variant::AssignmentOperator {
 impl HasOperatorProperties for variant::TypeAnnotationOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
-            binary_infix_precedence: Some(Precedence { value: 2 }),
+            binary_infix_precedence: Some(Precedence::TypeAnnotation),
             lhs_section_termination: Some(SectionTermination::Reify),
-            is_right_associative: true,
             is_compile_time: true,
             rhs_is_non_expression: true,
             ..default()
@@ -184,7 +209,7 @@ impl HasOperatorProperties for variant::TypeAnnotationOperator {
 impl HasOperatorProperties for variant::ArrowOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
-            binary_infix_precedence: Some(Precedence { value: 2 }),
+            binary_infix_precedence: Some(Precedence::Arrow),
             lhs_section_termination: Some(SectionTermination::Unwrap),
             is_right_associative: true,
             is_compile_time: true,
@@ -196,7 +221,7 @@ impl HasOperatorProperties for variant::ArrowOperator {
 impl HasOperatorProperties for variant::AnnotationOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
-            unary_prefix_precedence: Some(Precedence::max()),
+            unary_prefix_precedence: Some(Precedence::Annotation),
             is_right_associative: true,
             is_compile_time: true,
             rhs_is_non_expression: true,
@@ -208,7 +233,7 @@ impl HasOperatorProperties for variant::AnnotationOperator {
 impl HasOperatorProperties for variant::AutoscopeOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
-            unary_prefix_precedence: Some(Precedence::min_valid()),
+            unary_prefix_precedence: Some(Precedence::Assignment),
             is_compile_time: true,
             rhs_is_non_expression: true,
             ..default()
@@ -220,7 +245,7 @@ impl HasOperatorProperties for variant::NegationOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
             is_value_operation: true,
-            unary_prefix_precedence: Some(Precedence::unary_minus()),
+            unary_prefix_precedence: Some(Precedence::Negation),
             ..default()
         }
     }
@@ -229,7 +254,7 @@ impl HasOperatorProperties for variant::NegationOperator {
 impl HasOperatorProperties for variant::LambdaOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
-            unary_prefix_precedence: Some(Precedence::min_valid()),
+            unary_prefix_precedence: Some(Precedence::Assignment),
             is_compile_time: true,
             ..default()
         }
@@ -238,14 +263,14 @@ impl HasOperatorProperties for variant::LambdaOperator {
 
 impl HasOperatorProperties for variant::DotOperator {
     fn operator_properties(&self) -> OperatorProperties {
-        OperatorProperties { binary_infix_precedence: Some(Precedence { value: 80 }), ..default() }
+        OperatorProperties { binary_infix_precedence: Some(Precedence::Application), ..default() }
     }
 }
 
 impl HasOperatorProperties for variant::SuspensionOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
-            unary_prefix_precedence: Some(Precedence::max()),
+            unary_prefix_precedence: Some(Precedence::Annotation),
             is_compile_time: true,
             rhs_is_non_expression: true,
             ..default()
@@ -256,7 +281,7 @@ impl HasOperatorProperties for variant::SuspensionOperator {
 impl HasOperatorProperties for variant::CommaOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
-            binary_infix_precedence: Some(Precedence { value: 1 }),
+            binary_infix_precedence: Some(Precedence::Assignment),
             is_compile_time: true,
             rhs_is_non_expression: true,
             ..default()
@@ -267,50 +292,33 @@ impl HasOperatorProperties for variant::CommaOperator {
 /// Value that can be compared to determine which operator will bind more tightly within an
 /// expression.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Precedence {
-    /// A numeric value determining precedence order.
-    pub(super) value: u8,
+#[repr(u8)]
+#[allow(missing_docs)]
+pub enum Precedence {
+    Assignment = 1,
+    TypeAnnotation,
+    Arrow,
+    Not,
+    Logical,
+    Equality,
+    Functional,
+    BitwiseOr,
+    BitwiseAnd,
+    Inequality,
+    Addition,
+    Multiplication,
+    Exponentiation,
+    OtherUserOperator,
+    Negation,
+    Application,
+    Annotation,
+    // NOTE: The highest value must not exceed 0x7e--see usage of `into_u8`.
 }
 
 impl Precedence {
-    /// Return a precedence that is lower than the precedence of any operator.
-    pub fn min() -> Self {
-        Precedence { value: 0 }
-    }
-
-    /// Return the precedence for any operator.
-    pub fn min_valid() -> Self {
-        Precedence { value: 1 }
-    }
-
-    /// Return a precedence that is not lower than any other precedence.
-    pub fn max() -> Self {
-        Precedence { value: 100 }
-    }
-
-    /// Return the precedence of application.
-    pub fn application() -> Self {
-        Precedence { value: 80 }
-    }
-
-    /// Return the precedence of @annotations.
-    pub fn annotation() -> Self {
-        Precedence { value: 79 }
-    }
-
-    /// Return the precedence of unary minus.
-    pub fn unary_minus() -> Self {
-        Precedence { value: 79 }
-    }
-
-    /// Return the precedence of unary minus when applied to a numeric literal.
-    pub fn unary_minus_numeric_literal() -> Self {
-        Precedence { value: 80 }
-    }
-
     /// Return the value as a number.
     pub fn into_u8(self) -> u8 {
-        self.value
+        self as u8
     }
 }
 

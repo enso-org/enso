@@ -123,19 +123,19 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = ..Empty) 
    action and caches it for future use.
    If `cache_duration` is set to `Nothing`, then the cache is always skipped.
 get_cached (key : Text) ~action (cache_duration : Duration | Nothing = Duration.new seconds=60) =
-    CloudRequestCache.getOrCompute key (_->action) cache_duration
+    CloudRequestCache.INSTANCE.getOrCompute key (_->action) cache_duration
 
 ## PRIVATE
    Invalidates the cache entry for the given key.
 invalidate_cache (key : Text) =
-    CloudRequestCache.invalidateEntry key
+    CloudRequestCache.INSTANCE.invalidateEntry key
 
 ## PRIVATE
    Invalidates all cache entries that share a common prefix.
 invalidate_caches_with_prefix (prefix : Text) =
-    CloudRequestCache.invalidatePrefix prefix
+    CloudRequestCache.INSTANCE.invalidatePrefix prefix
 
 ## PRIVATE
    If `cache_duration` is set to `Nothing`, then this action does not do anything.
 set_cached (key : Text) value (cache_duration : Duration | Nothing = Duration.new seconds=60) =
-    CloudRequestCache.put key value cache_duration
+    CloudRequestCache.INSTANCE.put key value cache_duration

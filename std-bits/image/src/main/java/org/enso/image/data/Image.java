@@ -11,7 +11,7 @@ import org.opencv.imgproc.Imgproc;
 public class Image {
 
   static {
-    OpenCV.loadLocally();
+    OpenCV.loadShared();
   }
 
   private static final byte MAX_SIGNED_BYTE = -1;

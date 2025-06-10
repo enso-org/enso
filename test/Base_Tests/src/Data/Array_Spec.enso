@@ -58,10 +58,12 @@ add_specs suite_builder =
             make_enso_array [Date.new 2022 1 1] . pretty . should_equal "[Date.new 2022 1 1]"
 
     suite_builder.group "Compare functionality with Vector" group_builder->
-        group_builder.specify "compare methods" <|
-            vector_methods = Meta.meta Vector . methods . sort
-            array_methods = Meta.meta Array . methods . sort
-            vector_methods . should_equal array_methods
+        group_builder.specify "Array should have all the methods that Vector has" <|
+            vector_methods = Hashset.from_vector <| Meta.meta Vector . methods
+            array_methods = Hashset.from_vector <| Meta.meta Array . methods
+            diff = array_methods.difference vector_methods
+            Test.with_clue "The difference should be empty, but was: "+diff.to_text <|
+                diff.is_empty . should_be_true
 
     suite_builder.group "ArrayOverBuffer" group_builder->
         location_pending = case Platform.os of

@@ -38,142 +38,51 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 import * as z from 'zod'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as appUtils from '#/appUtils'
-
-import * as inputBindingsModule from '#/configurations/inputBindings'
-
-import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
-import DriveProvider from '#/providers/DriveProvider'
-import { useHttpClient } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
-import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
-import { useLogger } from '#/providers/LoggerProvider'
-import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-import SessionProvider from '#/providers/SessionProvider'
-import * as textProvider from '#/providers/TextProvider'
-import type { Spring } from 'framer-motion'
-import { MotionConfig } from 'framer-motion'
+import ModalProvider, { setModal } from '#/providers/ModalProvider'
 
-import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import ForgotPassword from '#/pages/authentication/ForgotPassword'
-import Login from '#/pages/authentication/Login'
-import Registration from '#/pages/authentication/Registration'
-import ResetPassword from '#/pages/authentication/ResetPassword'
-import RestoreAccount from '#/pages/authentication/RestoreAccount'
-import * as setup from '#/pages/authentication/Setup'
-import Dashboard from '#/pages/dashboard/Dashboard'
-import * as subscribe from '#/pages/subscribe/Subscribe'
-import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
-
-import type * as editor from '#/layouts/Editor'
-import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
-
-import { RouterProvider } from '#/components/aria'
-import * as devtools from '#/components/Devtools'
-import * as errorBoundary from '#/components/ErrorBoundary'
-import * as suspense from '#/components/Suspense'
+import { RouterProvider } from 'react-aria-components'
 
 import AboutModal from '#/modals/AboutModal'
-import { AgreementsModal } from '#/modals/AgreementsModal'
-import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 
-import LocalBackend from '#/services/LocalBackend'
-import ProjectManager, * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
-import { FeatureFlagsProvider } from '#/providers/FeatureFlagsProvider'
-import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as object from '#/utilities/object'
 import { Path } from '#/utilities/path'
-import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
-import { useInitAuthService } from '#/authentication/service'
-import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
+import { useLocalStorageState } from '#/hooks/localStoreState'
+import { useOffline } from '#/hooks/offlineHooks'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { unsafeWriteValue } from '#/utilities/write'
+import { useBackends, useRouter, useText } from '$/providers/react'
 
-// ============================
-// === Global configuration ===
-// ============================
-
-const DEFAULT_TRANSITION_OPTIONS: Spring = {
-  type: 'spring',
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  stiffness: 200,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  damping: 30,
-  mass: 1,
-  velocity: 0,
-}
+window.menuApi?.setShowAboutModalHandler(() => {
+  setModal(<AboutModal />)
+})
 
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly inputBindings: Readonly<Record<string, readonly string[]>>
     readonly localRootDirectory: string
+    readonly preferredTimeZone: string
   }
 }
-
-LocalStorage.registerKey('inputBindings', {
-  schema: z.record(z.string().array().readonly()).transform((value) =>
-    Object.fromEntries(
-      Object.entries<unknown>({ ...value }).flatMap((kv) => {
-        const [k, v] = kv
-        return Array.isArray(v) && v.every((item): item is string => typeof item === 'string') ?
-            [[k, v]]
-          : []
-      }),
-    ),
-  ),
-})
-
 LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
-
-// ======================
-// === getMainPageUrl ===
-// ======================
-
-/** Returns the URL to the main page. This is the current URL, with the current route removed. */
-function getMainPageUrl() {
-  const mainPageUrl = new URL(window.location.href)
-  mainPageUrl.pathname = mainPageUrl.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
-  return mainPageUrl
-}
-
-// ===========
-// === App ===
-// ===========
+LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
-  readonly vibrancy: boolean
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
-  /** If true, the app can only be used in offline mode. */
-  readonly isAuthenticationDisabled: boolean
   /**
    * Whether the application supports deep links. This is only true when using
    * the installed app on macOS and Windows.
    */
-  readonly supportsDeepLinks: boolean
-  /** Whether the dashboard should be rendered. */
-  readonly shouldShowDashboard: boolean
-  /** The name of the project to open on startup, if any. */
-  readonly initialProjectName: string | null
-  readonly onAuthenticated: (accessToken: string | null) => void
-  readonly projectManagerUrl: string | null
-  readonly ydocUrl: string | null
-  readonly appRunner: editor.GraphEditorRunner | null
-  readonly queryClient: reactQuery.QueryClient
 }
 
 /**
@@ -183,72 +92,30 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
-export default function App(props: AppProps) {
-  const {
-    data: { projectManagerRootDirectory, projectManagerInstance },
-  } = reactQuery.useSuspenseQuery<{
-    projectManagerInstance: ProjectManager | null
-    projectManagerRootDirectory: projectManager.Path | null
-  }>({
-    queryKey: [
-      'root-directory',
-      {
-        projectManagerUrl: props.projectManagerUrl,
-        supportsLocalBackend: props.supportsLocalBackend,
-      },
-    ] as const,
-    networkMode: 'always',
-    ...STATIC_QUERY_OPTIONS,
-    behavior: {
-      onFetch: ({ state }) => {
-        const instance = state.data?.projectManagerInstance ?? null
+export default function App(props: React.PropsWithChildren<AppProps>) {
+  const { isOffline } = useOffline()
+  const { getText } = useText()
+  const queryClient = reactQuery.useQueryClient()
 
-        if (instance != null) {
-          void instance.dispose()
-        }
-      },
-    },
-    queryFn: async () => {
-      if (props.supportsLocalBackend && props.projectManagerUrl != null) {
-        const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
-        const text = await response.text()
-        const rootDirectory = projectManager.Path(text)
-
-        return {
-          projectManagerInstance: new ProjectManager(props.projectManagerUrl, rootDirectory),
-          projectManagerRootDirectory: rootDirectory,
-        }
-      } else {
-        return {
-          projectManagerInstance: null,
-          projectManagerRootDirectory: null,
-        }
-      }
+  const executeBackgroundUpdate = useMutationCallback({
+    mutationKey: ['refetch-queries', { isOffline }],
+    scope: { id: 'refetch-queries' },
+    mutationFn: () => queryClient.refetchQueries({ type: 'all', queryKey: [RemoteBackend.type] }),
+    networkMode: 'online',
+    onError: () => {
+      toastify.toast.error(getText('refetchQueriesError'), {
+        position: 'bottom-right',
+      })
     },
   })
 
-  const queryClient = props.queryClient
+  React.useEffect(() => {
+    if (!isOffline) {
+      void executeBackgroundUpdate()
+    }
+  }, [executeBackgroundUpdate, isOffline])
 
-  // Force all queries to be stale
-  // We don't use the `staleTime` option because it's not performant
-  // and triggers unnecessary setTimeouts.
-  reactQuery.useQuery({
-    queryKey: ['refresh'],
-    queryFn: () => {
-      queryClient
-        .getQueryCache()
-        .getAll()
-        .forEach((query) => {
-          query.isStale = () => true
-        })
-
-      return null
-    },
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    refetchInterval: 2 * 60 * 1000,
-  })
-
-  // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
+  // `InputBindingsProvider` depends on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
@@ -259,32 +126,14 @@ export default function App(props: AppProps) {
         closeOnClick={false}
         draggable={false}
         toastClassName="text-sm leading-cozy bg-selected-frame rounded-lg backdrop-blur-default"
-        transition={toastify.Zoom}
+        transition={toastify.Slide}
         limit={3}
       />
-      <router.BrowserRouter basename={getMainPageUrl().pathname}>
-        <LocalStorageProvider>
-          <ModalProvider>
-            <AppRouter
-              {...props}
-              projectManagerInstance={projectManagerInstance}
-              projectManagerRootDirectory={projectManagerRootDirectory}
-            />
-          </ModalProvider>
-        </LocalStorageProvider>
-      </router.BrowserRouter>
+      <ModalProvider>
+        <AppRouter {...props} />
+      </ModalProvider>
     </>
   )
-}
-
-// =================
-// === AppRouter ===
-// =================
-
-/** Props for an {@link AppRouter}. */
-export interface AppRouterProps extends AppProps {
-  readonly projectManagerRootDirectory: projectManager.Path | null
-  readonly projectManagerInstance: ProjectManager | null
 }
 
 /**
@@ -294,130 +143,15 @@ export interface AppRouterProps extends AppProps {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider.
  */
-function AppRouter(props: AppRouterProps) {
-  const { isAuthenticationDisabled, shouldShowDashboard } = props
-  const { onAuthenticated, projectManagerInstance } = props
-  const httpClient = useHttpClient()
-  const logger = useLogger()
-  const navigate = router.useNavigate()
-
-  const { getText } = textProvider.useText()
-  const { localStorage } = localStorageProvider.useLocalStorage()
-  const { setModal } = modalProvider.useSetModal()
-
-  const navigator2D = navigator2DProvider.useNavigator2D()
-
-  const localBackend = React.useMemo(
-    () => (projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null),
-    [projectManagerInstance],
-  )
-
-  const remoteBackend = React.useMemo(
-    () => new RemoteBackend(httpClient, logger, getText),
-    [httpClient, logger, getText],
-  )
+function AppRouter(props: React.PropsWithChildren<AppProps>) {
+  const { children } = props
+  const { router } = useRouter()
+  const navigate = router.push.bind(router)
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
-    window.navigate = navigate
+    unsafeWriteValue(window, 'navigate', navigate)
   }
-
-  const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
-
-  React.useEffect(() => {
-    const savedInputBindings = localStorage.get('inputBindings')
-    if (savedInputBindings != null) {
-      const filteredInputBindings = object.mapEntries(
-        inputBindingsRaw.metadata,
-        (k) => savedInputBindings[k],
-      )
-      for (const [bindingKey, newBindings] of object.unsafeEntries(filteredInputBindings)) {
-        for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings) {
-          inputBindingsRaw.delete(bindingKey, oldBinding)
-        }
-        for (const newBinding of newBindings ?? []) {
-          inputBindingsRaw.add(bindingKey, newBinding)
-        }
-      }
-    }
-  }, [localStorage, inputBindingsRaw])
-
-  const inputBindings = React.useMemo(() => {
-    const updateLocalStorage = () => {
-      localStorage.set(
-        'inputBindings',
-        Object.fromEntries(
-          Object.entries(inputBindingsRaw.metadata).map((kv) => {
-            const [k, v] = kv
-            return [k, v.bindings]
-          }),
-        ),
-      )
-    }
-    return {
-      /** Transparently pass through `handler()`. */
-      get handler() {
-        return inputBindingsRaw.handler.bind(inputBindingsRaw)
-      },
-      /** Transparently pass through `attach()`. */
-      get attach() {
-        return inputBindingsRaw.attach.bind(inputBindingsRaw)
-      },
-      reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
-        inputBindingsRaw.reset(bindingKey)
-        updateLocalStorage()
-      },
-      add: (bindingKey: inputBindingsModule.DashboardBindingKey, binding: string) => {
-        inputBindingsRaw.add(bindingKey, binding)
-        updateLocalStorage()
-      },
-      delete: (bindingKey: inputBindingsModule.DashboardBindingKey, binding: string) => {
-        inputBindingsRaw.delete(bindingKey, binding)
-        updateLocalStorage()
-      },
-      /** Transparently pass through `metadata`. */
-      get metadata() {
-        return inputBindingsRaw.metadata
-      },
-      /** Transparently pass through `register()`. */
-      get register() {
-        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
-      },
-      /** Transparently pass through `unregister()`. */
-      get unregister() {
-        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
-      },
-    }
-  }, [localStorage, inputBindingsRaw])
-
-  const mainPageUrl = getMainPageUrl()
-
-  // Subscribe to `localStorage` updates to trigger a rerender when the terms of service
-  // or privacy policy have been accepted.
-  localStorageProvider.useLocalStorageState('termsOfService')
-  localStorageProvider.useLocalStorageState('privacyPolicy')
-
-  const authService = useInitAuthService(props)
-
-  const userSession = authService.cognito.userSession.bind(authService.cognito)
-  const refreshUserSession = authService.cognito.refreshUserSession.bind(authService.cognito)
-  const registerAuthEventListener = authService.registerAuthEventListener
-
-  React.useEffect(() => {
-    if ('menuApi' in window) {
-      window.menuApi.setShowAboutModalHandler(() => {
-        setModal(<AboutModal />)
-      })
-    }
-  }, [setModal])
-
-  React.useEffect(() => {
-    const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [navigator2D])
 
   React.useEffect(() => {
     let isClick = false
@@ -459,133 +193,27 @@ function AppRouter(props: AppRouterProps) {
     }
   }, [])
 
-  const routes = (
-    <router.Routes>
-      {/* Login & registration pages are visible to unauthenticated users. */}
-      <router.Route element={<authProvider.GuestLayout />}>
-        <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-        <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
-      </router.Route>
-
-      {/* Protected pages are visible to authenticated users. */}
-      <router.Route element={<authProvider.NotDeletedUserLayout />}>
-        <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<AgreementsModal />}>
-            <router.Route element={<SetupOrganizationAfterSubscribe />}>
-              <router.Route element={<InvitedToOrganizationModal />}>
-                <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                  <router.Route
-                    path={appUtils.DASHBOARD_PATH}
-                    element={shouldShowDashboard && <Dashboard {...props} />}
-                  />
-
-                  <router.Route
-                    path={appUtils.SUBSCRIBE_PATH}
-                    element={
-                      <errorBoundary.ErrorBoundary>
-                        <suspense.Suspense>
-                          <subscribe.Subscribe />
-                        </suspense.Suspense>
-                      </errorBoundary.ErrorBoundary>
-                    }
-                  />
-                </router.Route>
-              </router.Route>
-            </router.Route>
-          </router.Route>
-
-          <router.Route
-            path={appUtils.SUBSCRIBE_SUCCESS_PATH}
-            element={
-              <errorBoundary.ErrorBoundary>
-                <suspense.Suspense>
-                  <subscribeSuccess.SubscribeSuccess />
-                </suspense.Suspense>
-              </errorBoundary.ErrorBoundary>
-            }
-          />
-        </router.Route>
-      </router.Route>
-
-      <router.Route element={<AgreementsModal />}>
-        <router.Route element={<authProvider.NotDeletedUserLayout />}>
-          <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
-        </router.Route>
-      </router.Route>
-
-      {/* Other pages are visible to unauthenticated and authenticated users. */}
-      <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
-      <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
-      <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
-
-      {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
-      <router.Route element={<authProvider.ProtectedLayout />}>
-        <router.Route element={<authProvider.SoftDeletedUserLayout />}>
-          <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
-        </router.Route>
-      </router.Route>
-
-      {/* 404 page */}
-      <router.Route path="*" element={<router.Navigate to="/" replace />} />
-    </router.Routes>
-  )
-
   return (
-    <FeatureFlagsProvider>
-      <MotionConfig reducedMotion="user" transition={DEFAULT_TRANSITION_OPTIONS}>
-        <RouterProvider navigate={navigate}>
-          <SessionProvider
-            saveAccessToken={authService.cognito.saveAccessToken.bind(authService.cognito)}
-            mainPageUrl={mainPageUrl}
-            userSession={userSession}
-            registerAuthEventListener={registerAuthEventListener}
-            refreshUserSession={refreshUserSession}
-          >
-            <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-              <AuthProvider
-                shouldStartInOfflineMode={isAuthenticationDisabled}
-                authService={authService}
-                onAuthenticated={onAuthenticated}
-              >
-                <InputBindingsProvider inputBindings={inputBindings}>
-                  {/* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
-                   * due to modals being in `TheModal`. */}
-                  <DriveProvider>
-                    <errorBoundary.ErrorBoundary>
-                      <LocalBackendPathSynchronizer />
-                      <VersionChecker />
-                      {routes}
-                      <suspense.Suspense>
-                        <errorBoundary.ErrorBoundary>
-                          <devtools.EnsoDevtools />
-                        </errorBoundary.ErrorBoundary>
-                      </suspense.Suspense>
-                    </errorBoundary.ErrorBoundary>
-                  </DriveProvider>
-                </InputBindingsProvider>
-              </AuthProvider>
-            </BackendProvider>
-          </SessionProvider>
-        </RouterProvider>
-      </MotionConfig>
-    </FeatureFlagsProvider>
+    <RouterProvider navigate={navigate}>
+      <InputBindingsProvider>
+        <LocalBackendPathSynchronizer />
+        <VersionChecker />
+        {children}
+      </InputBindingsProvider>
+    </RouterProvider>
   )
 }
 
-// ====================================
-// === LocalBackendPathSynchronizer ===
-// ====================================
-
 /** Keep `localBackend.rootPath` in sync with the saved root path state. */
 function LocalBackendPathSynchronizer() {
-  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
-  const localBackend = useLocalBackend()
-  if (localBackend) {
-    if (localRootDirectory != null) {
-      localBackend.setRootPath(Path(localRootDirectory))
-    } else {
-      localBackend.resetRootPath()
-    }
+  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
+  const { localBackend } = useBackends()
+
+  if (localRootDirectory != null) {
+    localBackend?.setRootPath(Path(localRootDirectory))
+  } else {
+    localBackend?.resetRootPath()
   }
+
   return null
 }

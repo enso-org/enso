@@ -1,0 +1,23 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Regression
+- type Fit_Error
+    - Error message:Standard.Base.Any.Any
+    - handle_java_exception -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Fitted_Model
+    - Exponential a:Standard.Base.Data.Numbers.Number b:Standard.Base.Data.Numbers.Number r_squared:Standard.Base.Data.Numbers.Number=
+    - Linear slope:Standard.Base.Data.Numbers.Number intercept:Standard.Base.Data.Numbers.Number r_squared:Standard.Base.Data.Numbers.Number=
+    - Logarithmic a:Standard.Base.Data.Numbers.Number b:Standard.Base.Data.Numbers.Number r_squared:Standard.Base.Data.Numbers.Number=
+    - Power a:Standard.Base.Data.Numbers.Number b:Standard.Base.Data.Numbers.Number r_squared:Standard.Base.Data.Numbers.Number=
+    - predict self x:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type Model
+    - Exponential intercept:(Standard.Base.Data.Numbers.Number|Standard.Base.Nothing.Nothing)=
+    - Linear intercept:(Standard.Base.Data.Numbers.Number|Standard.Base.Nothing.Nothing)=
+    - Logarithmic
+    - Power
+    - fitted_model_with_r_squared constructor:Standard.Base.Any.Any a:Standard.Base.Any.Any b:Standard.Base.Any.Any known_xs:Standard.Base.Any.Any known_ys:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - ln_series xs:Standard.Base.Any.Any series_name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- fit_least_squares known_xs:Standard.Base.Any.Any known_ys:Standard.Base.Any.Any model:Standard.Base.Any.Any= -> Standard.Base.Any.Any

@@ -18,6 +18,7 @@ import org.enso.interpreter.node.expression.builtin.error.MapError;
 import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
 import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
 import org.enso.interpreter.node.expression.builtin.error.NoConversionCurrying;
+import org.enso.interpreter.node.expression.builtin.error.NoSuchArgument;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchConversion;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchField;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
@@ -61,6 +62,7 @@ public final class Error {
   private final UnsupportedArgumentTypes unsupportedArgumentsError;
   private final ModuleDoesNotExist moduleDoesNotExistError;
   private final NotInvokable notInvokable;
+  private final NoSuchArgument noSuchArgument;
   private final PrivateAccess privateAccessError;
   private final InvalidConversionTarget invalidConversionTarget;
   private final NoSuchField noSuchField;
@@ -100,6 +102,7 @@ public final class Error {
     unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
     notInvokable = builtins.getBuiltinType(NotInvokable.class);
+    noSuchArgument = builtins.getBuiltinType(NoSuchArgument.class);
     privateAccessError = builtins.getBuiltinType(PrivateAccess.class);
     invalidConversionTarget = builtins.getBuiltinType(InvalidConversionTarget.class);
     noSuchField = builtins.getBuiltinType(NoSuchField.class);
@@ -296,7 +299,7 @@ public final class Error {
    */
   public Atom makeUnsupportedArgumentsError(Object[] args, String message) {
     return unsupportedArgumentsError.newInstance(
-        ArrayLikeHelpers.wrapObjectsWithCheckAt(args), message);
+        ArrayLikeHelpers.wrapObjectsWithCheckAt(args), Text.create(message));
   }
 
   /**
@@ -312,23 +315,48 @@ public final class Error {
    * @return a not invokable error
    */
   public Atom makeNotInvokable(Object target) {
-    return notInvokable.newInstance(target);
+    return notInvokable.newInstance(target, context.getNothing());
+  }
+
+  /**
+   * @param target the target attempted to be invoked
+   * @param cause additional information on what caused the error
+   * @return a not invokable error
+   */
+  public Atom makeNotInvokableWithCause(Object target, Object cause) {
+    if (cause == null) {
+      cause = context.getNothing();
+    }
+    return notInvokable.newInstance(target, cause);
+  }
+
+  /**
+   * Constructs an error that indicates that a named argument application could not find a matching
+   * parameter.
+   *
+   * @param argumentName name of the named argument being applied
+   * @return a no such argument error
+   */
+  public Atom makeNoSuchArgument(String argumentName) {
+    return noSuchArgument.newInstance(Text.create(argumentName));
   }
 
   /**
    * @param thisProjectName Current project name. May be null.
    * @param targetProjectName Target method project name. May be null.
    * @param targetMethodName Name of the method that is project-private and cannot be accessed.
+   * @param msg special message or {@code null} to construct default message
    */
   public Atom makePrivateAccessError(
-      String thisProjectName, String targetProjectName, String targetMethodName) {
+      String thisProjectName, String targetProjectName, String targetMethodName, String msg) {
     assert targetMethodName != null;
     EnsoObject thisProjName =
         thisProjectName != null ? Text.create(thisProjectName) : context.getNothing();
     EnsoObject targetProjName =
         targetProjectName != null ? Text.create(targetProjectName) : context.getNothing();
+    EnsoObject msgOrNothing = msg != null ? Text.create(msg) : context.getNothing();
     return privateAccessError.newInstance(
-        thisProjName, targetProjName, Text.create(targetMethodName));
+        thisProjName, targetProjName, Text.create(targetMethodName), msgOrNothing);
   }
 
   public ForbiddenOperation getForbiddenOperation() {

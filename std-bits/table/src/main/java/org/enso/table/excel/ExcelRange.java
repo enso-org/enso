@@ -181,7 +181,8 @@ public class ExcelRange {
    * @param sheet ExcelSheet containing the range refers to.
    * @return Expanded range covering the connected table of cells.
    */
-  public static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet) {
+  public static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet)
+      throws InterruptedException {
     ExcelRow currentRow = sheet.get(excelRange.getTopRow());
     if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
       return new ExcelRange(
@@ -197,7 +198,7 @@ public class ExcelRange {
 
     Context context = Context.getCurrent();
     while (currentRow != null && !currentRow.isEmpty(excelRange.getLeftColumn(), rightColumn)) {
-      rightColumn = currentRow.findEndRight(rightColumn);
+      rightColumn = findEndRight(currentRow, rightColumn);
       bottomRow++;
       currentRow = sheet.get(bottomRow);
 
@@ -210,6 +211,16 @@ public class ExcelRange {
         excelRange.getTopRow(),
         rightColumn,
         bottomRow - 1);
+  }
+
+  private static int findEndRight(ExcelRow row, int start) {
+    Context context = Context.getCurrent();
+    int column = start;
+    while (!row.isEmpty(column + 1)) {
+      column++;
+      context.safepoint();
+    }
+    return column;
   }
 
   /**
@@ -327,7 +338,7 @@ public class ExcelRange {
     return isWholeColumn() ? Integer.MAX_VALUE : bottomRow - topRow + 1;
   }
 
-  public int getLastNonEmptyRow(ExcelSheet sheet) {
+  public int getLastNonEmptyRow(ExcelSheet sheet) throws InterruptedException {
     int lastRow =
         Math.min(sheet.getLastRow(), isWholeColumn() ? sheet.getLastRow() : bottomRow) + 1;
 

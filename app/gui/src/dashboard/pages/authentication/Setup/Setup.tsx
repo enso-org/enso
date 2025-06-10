@@ -2,34 +2,25 @@
  * @file
  * Setup page
  */
-import * as React from 'react'
-
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import invariant from 'tiny-invariant'
-
-import type * as text from 'enso-common/src/text'
-
-import ArrowRight from '#/assets/arrow_right.svg'
-
-import { DASHBOARD_PATH, LOGIN_PATH } from '#/appUtils'
-
-import { useIsFirstRender } from '#/hooks/mountHooks'
-
-import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
-import { useRemoteBackend } from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import Page from '#/components/Page'
+import { Separator } from '#/components/Separator'
 import * as stepper from '#/components/Stepper'
-
-import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetupOrganizationAfterSubscribe'
-
+import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useIsFirstRender } from '#/hooks/mountHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
+import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
+import { UserSessionType } from '$/providers/auth'
+import { useAuth, useBackends, useRouter, useText, useUserSession } from '$/providers/react'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import type * as text from 'enso-common/src/text'
+import * as React from 'react'
+import invariant from 'tiny-invariant'
 
 /** Step in the setup process */
 interface Step {
@@ -60,14 +51,14 @@ const BASE_STEPS: Step[] = [
     component: function SetUsernameStep({ session, goToNextStep }) {
       const { setUsername } = useAuth()
       const userSession = useUserSession()
-      const { getText } = textProvider.useText()
+      const { getText } = useText()
 
       const isUserCreated = userSession?.type === UserSessionType.full
       const defaultName =
-        session && 'user' in session ? session.user.name : userSession?.email ?? ''
+        session && 'user' in session ? session.user.name : (userSession?.email ?? '')
 
       return (
-        <ariaComponents.Form
+        <Form
           className="max-w-96"
           schema={(z) =>
             z.object({
@@ -88,19 +79,17 @@ const BASE_STEPS: Step[] = [
             goToNextStep()
           }}
         >
-          <ariaComponents.Input
+          <Input
             name="username"
             label={getText('userNameSettingsInput')}
             placeholder={getText('usernamePlaceholder')}
             description="Minimum 3 characters, maximum 48 characters"
           />
 
-          <ariaComponents.Form.Submit variant="primary">
-            {getText('next')}
-          </ariaComponents.Form.Submit>
+          <Form.Submit variant="primary">{getText('next')}</Form.Submit>
 
-          <ariaComponents.Form.FormError />
-        </ariaComponents.Form>
+          <Form.FormError />
+        </Form>
       )
     },
   },
@@ -141,8 +130,8 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for setting organization name. */
     component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep, session }) {
-      const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackend()
+      const { getText } = useText()
+      const { remoteBackend } = useBackends()
       const userId = session && 'user' in session ? session.user.userId : null
 
       const { data: defaultOrgName } = useSuspenseQuery({
@@ -160,7 +149,7 @@ const BASE_STEPS: Step[] = [
       )
 
       return (
-        <ariaComponents.Form
+        <Form
           schema={(z) =>
             z.object({ organizationName: z.string().min(1).max(ORGANIZATION_NAME_MAX_LENGTH) })
           }
@@ -172,7 +161,7 @@ const BASE_STEPS: Step[] = [
             }
           }}
         >
-          <ariaComponents.Input
+          <Input
             name="organizationName"
             autoComplete="off"
             label={getText('organizationNameSettingsInput')}
@@ -182,18 +171,16 @@ const BASE_STEPS: Step[] = [
             )}
           />
 
-          <ariaComponents.ButtonGroup align="start">
-            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+          <Button.Group align="start">
+            <Button variant="outline" onPress={goToPreviousStep}>
               {getText('back')}
-            </ariaComponents.Button>
+            </Button>
 
-            <ariaComponents.Form.Submit variant="primary">
-              {getText('next')}
-            </ariaComponents.Form.Submit>
-          </ariaComponents.ButtonGroup>
+            <Form.Submit variant="primary">{getText('next')}</Form.Submit>
+          </Button.Group>
 
-          <ariaComponents.Form.FormError />
-        </ariaComponents.Form>
+          <Form.FormError />
+        </Form>
       )
     },
   },
@@ -212,21 +199,21 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for inviting users to the organization. */
     component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = textProvider.useText()
+      const { getText } = useText()
 
       return (
         <div className="max-w-96">
           <InviteUsersForm onSubmitted={goToNextStep} />
 
-          <ariaComponents.ButtonGroup align="start" className="mt-4">
-            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+          <Button.Group align="start" className="mt-4">
+            <Button variant="outline" onPress={goToPreviousStep}>
               {getText('back')}
-            </ariaComponents.Button>
+            </Button>
 
-            <ariaComponents.Button variant="ghost-fading" onPress={goToNextStep}>
+            <Button variant="ghost-fading" onPress={goToNextStep}>
               {getText('skip')}
-            </ariaComponents.Button>
-          </ariaComponents.ButtonGroup>
+            </Button>
+          </Button.Group>
         </div>
       )
     },
@@ -246,8 +233,8 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for creating the first user group. */
     component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackend()
+      const { getText } = useText()
+      const { remoteBackend } = useBackends()
 
       const defaultUserGroupMaxLength = 64
 
@@ -279,30 +266,28 @@ const BASE_STEPS: Step[] = [
       )
 
       return (
-        <ariaComponents.Form
+        <Form
           schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
           className="max-w-96"
           onSubmit={({ groupName }) => createUserGroupMutation.mutateAsync([{ name: groupName }])}
         >
-          <ariaComponents.Input
+          <Input
             name="groupName"
             autoComplete="off"
             label={getText('groupNameSettingsInput')}
             description={getText('groupNameSettingsInputDescription', defaultUserGroupMaxLength)}
           />
 
-          <ariaComponents.ButtonGroup align="start">
-            <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+          <Button.Group align="start">
+            <Button variant="outline" onPress={goToPreviousStep}>
               {getText('back')}
-            </ariaComponents.Button>
+            </Button>
 
-            <ariaComponents.Form.Submit variant="primary">
-              {getText('next')}
-            </ariaComponents.Form.Submit>
-          </ariaComponents.ButtonGroup>
+            <Form.Submit variant="primary">{getText('next')}</Form.Submit>
+          </Button.Group>
 
-          <ariaComponents.Form.FormError />
-        </ariaComponents.Form>
+          <Form.FormError />
+        </Form>
       )
     },
   },
@@ -313,34 +298,26 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Final setup step. */
     component: function AllSetStep({ goToPreviousStep }) {
-      const { getText } = textProvider.useText()
-      const navigate = useNavigate()
+      const { getText } = useText()
+      const { router } = useRouter()
       const queryClient = useQueryClient()
 
       return (
-        <ariaComponents.ButtonGroup align="start">
-          <ariaComponents.Button variant="outline" onPress={goToPreviousStep}>
+        <Button.Group align="start">
+          <Button variant="outline" onPress={goToPreviousStep}>
             {getText('back')}
-          </ariaComponents.Button>
+          </Button>
 
-          <ariaComponents.Button
+          <Button
             variant="primary"
             size="medium"
-            icon={ArrowRight}
+            icon="arrow_right"
             iconPosition="end"
-            onPress={() =>
-              queryClient.invalidateQueries().then(() => {
-                navigate(
-                  DASHBOARD_PATH +
-                    '?' +
-                    new URLSearchParams({ startModalDefaultOpen: 'true' }).toString(),
-                )
-              })
-            }
+            onPress={() => queryClient.invalidateQueries().then(() => router.push(DASHBOARD_PATH))}
           >
             {getText('goToDashboard')}
-          </ariaComponents.Button>
-        </ariaComponents.ButtonGroup>
+          </Button>
+        </Button.Group>
       )
     },
   },
@@ -348,16 +325,15 @@ const BASE_STEPS: Step[] = [
 
 /** Setup page */
 export function Setup() {
-  const { getText } = textProvider.useText()
-  const { session } = useAuth()
+  const { getText } = useText()
+  const session = useUserSession()
   const isFirstRender = useIsFirstRender()
+  const { router, route } = useRouter()
 
-  const [searchParams] = useSearchParams()
-
-  const userPlan = session && 'user' in session ? session.user.plan ?? Plan.free : Plan.free
+  const userPlan = session && 'user' in session ? session.user.plan : Plan.free
 
   const steps = BASE_STEPS
-  const isDebug = searchParams.get('__qd-debg__') === 'true'
+  const isDebug = route.query['__qd-debg__'] === 'true'
 
   const { stepperState, nextStep, previousStep, currentStep } = stepper.useStepperState({
     steps: steps.length,
@@ -401,29 +377,30 @@ export function Setup() {
   }
 
   if (session?.type !== UserSessionType.full && session?.type !== UserSessionType.partial) {
-    return <Navigate to={LOGIN_PATH} />
+    void router.push(LOGIN_PATH)
+    return
   }
 
   const hideNext =
     typeof currentScreen.hideNext === 'function' ?
       currentScreen.hideNext(context)
-    : currentScreen.hideNext ?? false
+    : (currentScreen.hideNext ?? false)
   const canSkip =
     typeof currentScreen.canSkip === 'function' ?
       currentScreen.canSkip(context)
-    : currentScreen.canSkip ?? false
+    : (currentScreen.canSkip ?? false)
   const hidePrevious =
     typeof currentScreen.hidePrevious === 'function' ?
       currentScreen.hidePrevious(context)
-    : currentScreen.hidePrevious ?? false
+    : (currentScreen.hidePrevious ?? false)
 
   return (
     <Page>
       <div className="flex flex-1 flex-col overflow-y-auto">
         <div className="mx-auto my-24 w-full max-w-screen-xl px-8 py-6">
-          <ariaComponents.Text.Heading level="1" className="mb-4">
+          <Text.Heading level="1" className="mb-4">
             {getText('setupEnso')}
-          </ariaComponents.Text.Heading>
+          </Text.Heading>
 
           <stepper.Stepper
             state={stepperState}
@@ -439,38 +416,36 @@ export function Setup() {
                   description={step.description && getText(step.description)}
                   isDisabled={step.ignore?.(context) ?? false}
                 >
-                  {!stepProps.isLast && <ariaComponents.Separator variant="current" />}
+                  {!stepProps.isLast && <Separator variant="current" />}
                 </stepper.Stepper.Step>
               )
             }}
           >
             {({ isLast, isFirst }) => (
               <div className="flex w-full flex-col gap-6">
-                {currentScreen.text && (
-                  <ariaComponents.Text>{getText(currentScreen.text)}</ariaComponents.Text>
-                )}
+                {currentScreen.text && <Text>{getText(currentScreen.text)}</Text>}
 
                 {currentScreen.component && <currentScreen.component {...context} />}
 
-                <ariaComponents.ButtonGroup align="start">
+                <Button.Group align="start">
                   {isFirst || hidePrevious ? null : (
-                    <ariaComponents.Button variant="outline" onPress={previousStep}>
+                    <Button variant="outline" onPress={previousStep}>
                       {getText('back')}
-                    </ariaComponents.Button>
+                    </Button>
                   )}
 
                   {canSkip && (
-                    <ariaComponents.Button variant="ghost" onPress={nextStep}>
+                    <Button variant="ghost" onPress={nextStep}>
                       {getText('skip')}
-                    </ariaComponents.Button>
+                    </Button>
                   )}
 
                   {!hideNext && !isLast && (
-                    <ariaComponents.Button variant="primary" onPress={nextStep}>
+                    <Button variant="primary" onPress={nextStep}>
                       {getText('next')}
-                    </ariaComponents.Button>
+                    </Button>
                   )}
-                </ariaComponents.ButtonGroup>
+                </Button.Group>
               </div>
             )}
           </stepper.Stepper>

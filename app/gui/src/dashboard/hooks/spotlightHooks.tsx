@@ -62,6 +62,7 @@ interface SpotlightProps {
 }
 
 /** A spotlight element. */
+// eslint-disable-next-line react-refresh/only-export-components
 function Spotlight(props: SpotlightProps) {
   const { element, close, paddingPx = 0 } = props
 
@@ -129,7 +130,7 @@ function Spotlight(props: SpotlightProps) {
     <Portal>
       <div
         onClick={close}
-        className="absolute inset-0 z-20 h-full w-full bg-primary/25 contain-strict"
+        className="absolute inset-0 h-full w-full bg-primary/25 contain-strict"
         style={{ clipPath }}
       />
     </Portal>

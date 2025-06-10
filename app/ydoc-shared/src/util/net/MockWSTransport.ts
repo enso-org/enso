@@ -46,7 +46,7 @@ export class MockWebSocketTransport extends ReconnectingWebSocketTransport {
    * Returns a rejected {@link Promise} if there is no corresponding mock implementation.
    */
   override sendData(data: JSONRPCRequestData, timeout?: number | null): Promise<any> {
-    if (Array.isArray(data)) return Promise.all(data.map(d => this.sendData(d.request, timeout)))
+    if (Array.isArray(data)) return Promise.all(data.map((d) => this.sendData(d.request, timeout)))
     return (
       MockWebSocketTransport.mocks.get(this.name)?.(
         data.request.method,

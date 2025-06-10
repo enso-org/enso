@@ -1,5 +1,7 @@
 package org.enso.table.read;
 
+import java.util.List;
+
 /**
  * Metadata that can be detected by the DelimitedReader.
  *
@@ -14,6 +16,6 @@ package org.enso.table.read;
  */
 public record DelimitedFileMetadata(
     long columnCount,
-    String[] definedColumnNames,
+    List<String> definedColumnNames,
     boolean hasAnyContent,
     String effectiveLineSeparator) {}

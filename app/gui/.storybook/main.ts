@@ -21,12 +21,32 @@ const sharedConfig: Partial<ReactStorybookConfig> = {
   env: { FRAMEWORK: framework },
 
   previewHead: (head) => {
-    return `
+    return /*html*/ `
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap"
+      rel="preload"
+      as="style"
+      crossorigin
+    />
+
     <script>
       window.global = window;
+
+      // Pass environment variables to the storybook
       window.ENV = {
+        // The framework used to render the story
+        // Used by the preview to determine which framework to use
         FRAMEWORK: '${framework}',
       }
+
+      // Allow React DevTools to work in Storybook
+      if (window.parent !== window) {
+        window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = window.parent.__REACT_DEVTOOLS_GLOBAL_HOOK__
+      }
+
+      document.documentElement.classList.add('macos')
     </script>
     ${head}
     `

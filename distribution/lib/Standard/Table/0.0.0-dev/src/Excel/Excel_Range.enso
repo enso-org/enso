@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Metadata import Widget
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 
@@ -115,6 +116,7 @@ type Excel_Range
 
     ## ICON data_input
        Create a Range for a single cell.
+    @column Widget.Text_Input display=..Always
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
     for_cell sheet column row =
         col_index = Excel_Range.column_index column
@@ -127,6 +129,8 @@ type Excel_Range
 
     ## ICON data_input
        Create an Excel_Range for a range of cells.
+    @left Widget.Text_Input display=..Always
+    @right Widget.Text_Input
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range
     for_range sheet left top right bottom =
         left_index = Excel_Range.column_index left
@@ -142,6 +146,8 @@ type Excel_Range
 
     ## ICON data_input
        Create an Excel_Range for a set of columns.
+    @left Widget.Text_Input display=..Always
+    @right Widget.Text_Input
     for_columns : Text -> (Text|Integer) -> (Text|Integer) -> Excel_Range
     for_columns sheet left (right=left) =
         left_index = Excel_Range.column_index left
@@ -162,3 +168,23 @@ type Excel_Range
 
         top_valid <| bottom_valid <|
             Excel_Range.Value (Java_Range.forRows sheet top bottom)
+
+    ## ICON data_input
+       Convert an index (1-based) to a column name
+    column_name_for_index index:Integer -> Text =
+        if index <= 0 || index > excel_2007_column_limit then Error.throw (Illegal_Argument.Error "Invalid column index.") else
+            shift = index - 1
+            a = (shift % 26) + 65
+            b = if index > 26 then ((shift.div 26) - 1) % 26 + 65 else 0
+            c = if index > 702 then (shift.div 676) + 64 else 0
+            bytes = if c > 0 then [c,b,a] else (if b > 0 then [b,a] else [a])
+            Text.from_bytes bytes
+
+    ## ICON data_input
+       Convert a column name to an index (1-based)
+    column_index_for_name name:Text -> Integer =
+        bytes = name.bytes
+        if bytes.length < 1 || bytes.length > 3 then Error.throw (Illegal_Argument.Error "Invalid column name "+name.pretty+".") else
+            bytes.fold 0 current->value->
+                if value < 65 || value > 90 then Error.throw (Illegal_Argument.Error "Invalid column name "+name.pretty+".") else
+                    current * 26 + (value - 64)

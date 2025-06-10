@@ -26,10 +26,11 @@ import project.Database.Common.Audit_Spec
 import project.Database.Common.Common_Spec
 import project.Database.Common.IR_Spec
 import project.Database.Common.Save_Connection_Data_Link
-import project.Database.Transaction_Spec
-import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
+import project.Database.JDBC.Generic_JDBC_Postgres_Spec
+import project.Database.Transaction_Spec
 import project.Database.Types.Postgres_Type_Mapping_Spec
+import project.Database.Upload_Spec
 import project.Common_Table_Operations
 from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
@@ -37,6 +38,8 @@ from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
+import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
+import enso_dev.Table_Tests
 
 
 type Basic_Test_Data
@@ -643,9 +646,9 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             col . cast Value_Type.Integer . round 1 . value_type . should_equal Value_Type.Decimal
             col . cast Value_Type.Decimal . round 1 . value_type . should_equal Value_Type.Decimal
 
-            col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Decimal
+            col . cast Value_Type.Float . round rounding_mode=Rounding_Mode.Bankers . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round rounding_mode=Rounding_Mode.Bankers . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round rounding_mode=Rounding_Mode.Bankers . value_type . should_equal Value_Type.Decimal
 
             col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Float
@@ -664,7 +667,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             result = table.at "x" |> op
             result.to_vector.at 0
 
-        do_round data n dp=0 use_bankers=False = do_op data n (_.round dp use_bankers)
+        do_round data n dp=0 rounding_mode=Rounding_Mode.Half_Up = do_op data n (_.round dp rounding_mode)
 
         ## column expressions
         group_builder.specify "Can round correctly near the precision limit" <|
@@ -675,10 +678,10 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
 
         ## column expressions
         group_builder.specify "Can round correctly near the precision limit, using banker's rounding" <|
-            do_round data 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
-            do_round data -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
-            do_round data 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
-            do_round data -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+            do_round data 1.2222222222222225 15 rounding_mode=Rounding_Mode.Bankers . should_equal 1.222222222222222
+            do_round data -1.2222222222222225 15 rounding_mode=Rounding_Mode.Bankers . should_equal -1.222222222222222
+            do_round data 1.2222222222222235 15 rounding_mode=Rounding_Mode.Bankers . should_equal 1.222222222222224
+            do_round data -1.2222222222222235 15 rounding_mode=Rounding_Mode.Bankers . should_equal -1.222222222222224
 
         ## input/output
         group_builder.specify "Can handle NaN/Infinity" <|
@@ -697,7 +700,6 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
 
         ## column expressions
         group_builder.specify "round returns the correct type" <|
-            # TODO https://github.com/enso-org/enso/issues/10345
             do_round data 231 1 . should_be_a Decimal
             do_round data 231 0 . should_be_a Float
             do_round data 231 . should_be_a Float
@@ -806,6 +808,7 @@ add_table_specs suite_builder =
         connection_builder ->
             add_postgres_specs suite_builder connection_builder db_name
             Postgres_Type_Mapping_Spec.add_specs suite_builder connection_builder
+            Generic_JDBC_Postgres_Spec.add_specs suite_builder get_configured_connection_details
 
             Transaction_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
 
@@ -1063,6 +1066,13 @@ add_data_link_specs suite_builder =
             r3 = data_link_file.get.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
             r3.should_be_a Vector
 
+            # The Postgres connection is neither a directory nor a file:
+            data_link_file.get.is_directory . should_be_false
+            data_link_file.get.is_regular_file . should_be_false
+
+            # We also cannot check its size
+            data_link_file.get.size.should_fail_with Illegal_Argument
+
         ## datalink support
         group_builder.specify "does not allow to write 'byte' data to a database data link" <|
             r = "foobar".write data_link_file.get
@@ -1081,7 +1091,6 @@ add_data_link_specs suite_builder =
     prefix = "[PostgreSQL] "
     Audit_Spec.add_specs suite_builder prefix data_link_file.get database_pending=pending
     Save_Connection_Data_Link.add_specs suite_builder prefix connection_details pending
-
 
 add_specs suite_builder =
     add_table_specs suite_builder

@@ -62,6 +62,7 @@ make_filter_column source_column filter_condition on_problems:Problem_Behavior =
         Is_Empty -> source_column.is_empty
         Not_Empty -> source_column.is_empty.not
         Like pattern _ -> source_column.like pattern
+        Regex_Match pattern _ -> source_column.regex_match pattern
         # Numeric
         Is_Nan -> source_column.is_nan
         Not_Nan -> source_column.is_nan.not

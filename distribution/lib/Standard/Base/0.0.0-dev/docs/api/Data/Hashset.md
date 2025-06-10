@@ -1,0 +1,21 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Hashset
+- type Hashset
+    - Value underlying_dictionary:(Standard.Base.Data.Dictionary.Dictionary Standard.Base.Any.Any Standard.Base.Nothing.Nothing)
+    - contains self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - contains_relational self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - difference self other:Standard.Base.Data.Hashset.Hashset -> Standard.Base.Any.Any
+    - empty -> Standard.Base.Any.Any
+    - from_vector vector:Standard.Base.Data.Vector.Vector error_on_duplicates:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - insert self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - intersection self other:Standard.Base.Data.Hashset.Hashset -> Standard.Base.Any.Any
+    - is_empty self -> Standard.Base.Any.Any
+    - length self -> Standard.Base.Any.Any
+    - not_empty self -> Standard.Base.Any.Any
+    - size self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+    - union self other:Standard.Base.Data.Hashset.Hashset -> Standard.Base.Any.Any
+- type Hashset_Comparator
+    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any

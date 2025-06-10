@@ -1,45 +1,30 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
-import * as router from 'react-router-dom'
 
-import { CLOUD_DASHBOARD_DOMAIN } from 'enso-common'
-
-import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
-import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
-import GithubIcon from '#/assets/github_color.svg'
-import GoogleIcon from '#/assets/google_color.svg'
 import LockIcon from '#/assets/lock.svg'
-import type { CognitoUser } from '#/authentication/cognito'
-import { Button, Form, Input, OTPInput, Password, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { Input, OTPInput, Password } from '#/components/Inputs'
 import Link from '#/components/Link'
 import { Stepper } from '#/components/Stepper'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
-import { useAuth } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
+import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUtils'
+import type { CognitoUser } from '$/authentication/cognito'
+import { useRouter, useSession, useText } from '$/providers/react'
+import { isOnElectron } from 'enso-common/src/detect'
 import { useState } from 'react'
-
-// eslint-disable-next-line no-restricted-syntax
-const GOOGLE_ICON = <img src={GoogleIcon} alt="" />
-// eslint-disable-next-line no-restricted-syntax
-const GITHUB_ICON = <img src={GithubIcon} alt="" />
-
-// =============
-// === Login ===
-// =============
 
 /** A form for users to log in. */
 export default function Login() {
-  const location = router.useLocation()
-  const navigate = router.useNavigate()
-  const { signInWithGoogle, signInWithGitHub, signInWithPassword, cognito } = useAuth()
+  const { router, searchParams } = useRouter()
+  const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSession()
   const { getText } = useText()
 
-  const query = new URLSearchParams(location.search)
-  const initialEmail = query.get('email') ?? ''
+  const initialEmail = searchParams.get('email') ?? ''
 
   const form = Form.useForm({
     schema: (z) =>
@@ -55,25 +40,26 @@ export default function Login() {
       const res = await signInWithPassword(email, password)
 
       switch (res.challenge) {
-        case 'NO_CHALLENGE':
-          navigate(DASHBOARD_PATH)
-          break
         case 'SMS_MFA':
         case 'SOFTWARE_TOKEN_MFA':
           setUser(res.user)
           nextStep()
           break
+        case 'NO_CHALLENGE':
+        case 'CUSTOM_CHALLENGE':
+        case 'MFA_SETUP':
+        case 'NEW_PASSWORD_REQUIRED':
+        case 'SELECT_MFA_TYPE':
         default:
-          throw new Error('Unsupported challenge')
+          await router.push(DASHBOARD_PATH)
       }
     },
   })
 
-  const [emailInput, setEmailInput] = useState(initialEmail)
-
   const [user, setUser] = useState<CognitoUser | null>(null)
-  const localBackend = useLocalBackend()
-  const supportsOffline = localBackend != null
+
+  const isElectron = isOnElectron()
+  const supportsOffline = isElectron
 
   const { nextStep, stepperState, previousStep } = Stepper.useStepperState({
     steps: 2,
@@ -93,27 +79,35 @@ export default function Login() {
       title={getText('loginToYourAccount')}
       supportsOffline={supportsOffline}
       footer={
-        <Link
-          openInBrowser={localBackend != null}
-          to={(() => {
-            const newQuery = new URLSearchParams({ email: emailInput }).toString()
-            return localBackend != null ?
-                `https://${CLOUD_DASHBOARD_DOMAIN}${REGISTRATION_PATH}?${newQuery}`
-              : `${REGISTRATION_PATH}?${newQuery}`
-          })()}
-          icon={CreateAccountIcon}
-          text={getText('dontHaveAnAccount')}
-        />
+        <Form.FieldValue form={form} name="email">
+          {(email) => (
+            <Link
+              to={`${REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`}
+              icon={CreateAccountIcon}
+              text={getText('dontHaveAnAccount')}
+            />
+          )}
+        </Form.FieldValue>
       }
     >
       <Stepper state={stepperState} renderStep={() => null}>
         <Stepper.StepContent index={0}>
           {() => (
             <div className="flex flex-col gap-auth">
-              <Button size="large" variant="outline" icon={GOOGLE_ICON} onPress={handleGooglePress}>
+              <Button
+                size="large"
+                variant="outline"
+                icon="google_color"
+                onPress={handleGooglePress}
+              >
                 {getText('signUpOrLoginWithGoogle')}
               </Button>
-              <Button size="large" variant="outline" icon={GITHUB_ICON} onPress={handleGitHubPress}>
+              <Button
+                size="large"
+                variant="outline"
+                icon="github_color"
+                onPress={handleGitHubPress}
+              >
                 {getText('signUpOrLoginWithGitHub')}
               </Button>
 
@@ -129,9 +123,6 @@ export default function Login() {
                   autoComplete="email"
                   icon={AtIcon}
                   placeholder={getText('emailPlaceholder')}
-                  onChange={(event) => {
-                    setEmailInput(event.currentTarget.value)
-                  }}
                 />
 
                 <div className="flex w-full flex-col">
@@ -146,17 +137,21 @@ export default function Login() {
                     placeholder={getText('passwordPlaceholder')}
                   />
 
-                  <Button
-                    variant="link"
-                    href={`${FORGOT_PASSWORD_PATH}?${new URLSearchParams({ email: emailInput }).toString()}`}
-                    size="small"
-                    className="self-end"
-                  >
-                    {getText('forgotYourPassword')}
-                  </Button>
+                  <Form.FieldValue form={form} name="email">
+                    {(email) => (
+                      <Button
+                        variant="link"
+                        href={`${FORGOT_PASSWORD_PATH}?${new URLSearchParams({ email }).toString()}`}
+                        size="small"
+                        className="self-end"
+                      >
+                        {getText('forgotYourPassword')}
+                      </Button>
+                    )}
+                  </Form.FieldValue>
                 </div>
 
-                <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
+                <Form.Submit size="large" icon="arrow_right" iconPosition="end" fullWidth>
                   {getText('login')}
                 </Form.Submit>
 
@@ -173,10 +168,10 @@ export default function Login() {
               schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
               onSubmit={async ({ otp }, formInstance) => {
                 if (user) {
-                  const res = await cognito.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+                  const res = await confirmSignIn(user, otp)
 
                   if (res.ok) {
-                    navigate(DASHBOARD_PATH)
+                    await router.push(DASHBOARD_PATH)
                   } else {
                     switch (res.val.code) {
                       case 'NotAuthorizedException':
@@ -205,7 +200,7 @@ export default function Login() {
                 maxLength={6}
               />
 
-              <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
+              <Form.Submit size="large" icon="arrow_right" iconPosition="end" fullWidth>
                 {getText('login')}
               </Form.Submit>
 

@@ -2,10 +2,6 @@
 
 import * as aria from '#/components/aria'
 
-// =================
-// === FocusRing ===
-// =================
-
 /** Which pseudo-element to place the focus ring on (if any). */
 export type FocusRingPlacement = 'after' | 'before' | 'outset'
 
@@ -22,6 +18,7 @@ export interface FocusRingProps extends Readonly<Pick<aria.FocusRingProps, 'chil
 
 /** A styled focus ring. */
 export default function FocusRing(props: FocusRingProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { within = false, placement, children } = props
   const focusClass =
     placement === 'outset' ? 'focus-ring-outset'

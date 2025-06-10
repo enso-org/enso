@@ -19,18 +19,19 @@ import project.Internal.Base_Generator
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Error_Mapper.Error_Mapper
-import project.Internal.IR.Context.Context
-import project.Internal.IR.Context.Context_Extension
-import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.Internal.Replace_Params.Replace_Params
+import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
@@ -72,7 +73,7 @@ type Postgres_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> SQL_Statement
+    generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
@@ -86,7 +87,15 @@ type Postgres_Dialect
        Generates SQL modifier for limiting the number of rows and its position in the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
-        [700, SQL_Builder.code (" LIMIT " + limit.to_text)]
+        case limit of
+            Nothing -> ""
+            _ : Integer -> SQL_Builder.code (" LIMIT " + limit.to_text)
+
+    ## PRIVATE
+       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
+       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
+    get_part_order self part:SQL_Part -> Integer =
+        [SQL_Part.Select, SQL_Part.Extension "postgres_distinct", SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Order, SQL_Part.Limit] . index_of part
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
@@ -133,7 +142,7 @@ type Postgres_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
+        new_context = SQL_IR_Source.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -147,18 +156,18 @@ type Postgres_Dialect
     get_statement_setter self = Statement_Setter.default
 
     ## PRIVATE
-    make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self (column : Internal_Column) (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_Expression -> SQL_Type_Reference) =
+    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self (column : Internal_Column) (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_IR_Expression -> SQL_Type_Reference) =
         mapping = self.get_type_mapping
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
         target_value_type = mapping.sql_type_to_value_type target_type
         # Boolean to Numeric casts need special handling:
         transformed_expression = case source_type.is_boolean && target_value_type.is_numeric of
-            True ->
-                SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
-            False -> column.expression
+            True -> SQL_IR_Expression.Operation "IIF" [column.expression, SQL_IR_Expression.Literal "1", SQL_IR_Expression.Literal "0"]
+            False -> if target_value_type.is_boolean.not || source_type.is_numeric.not then column.expression else
+                SQL_IR_Expression.Operation "!=" [column.expression, SQL_IR_Expression.Literal "0"]
         target_type_sql_text = mapping.sql_type_to_text target_type
-        new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
+        new_expression = SQL_IR_Expression.Operation "CAST" [transformed_expression, SQL_IR_Expression.Literal target_type_sql_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
@@ -179,7 +188,7 @@ type Postgres_Dialect
        be a **fixed-length** column of length max_int4. This is wrong, and in
        practice the column is just a variable-length text. This method detects
        this situations and overrides the type to make it correct.
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         needs_char_length_override_check = case approximate_result_type of
             Value_Type.Char _ _ -> True
@@ -211,7 +220,7 @@ type Postgres_Dialect
        In most cases this method will just return the expression unchanged, it
        is used only to override the type in cases where the default one that the
        database uses is not what we want.
-    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
         is_int8 ic = ic.sql_type_reference.get.typeid == Types.BIGINT
         is_int ic =
             typeid = ic.sql_type_reference.get.typeid
@@ -229,10 +238,16 @@ type Postgres_Dialect
             _ -> Nothing
 
         if cast_to.is_nothing then expression else
-            SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal cast_to]
+            SQL_IR_Expression.Operation "CAST" [expression, SQL_IR_Expression.Literal cast_to]
 
     ## PRIVATE
-    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+       Add an extra cast to adjust the output type of aggregate operations.
+       Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
+    cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
+        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->c.expression))
+
+    ## PRIVATE
+    prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Base_Generator.default_fetch_types_query self expression context
 
@@ -253,8 +268,9 @@ type Postgres_Dialect
     ## PRIVATE
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
-        _ = feature
-        True
+        case feature of
+            Feature.Generate_Rows -> False
+            _ -> True
 
     ## PRIVATE
        Checks a dialect flag
@@ -270,8 +286,10 @@ type Postgres_Dialect
             Dialect_Flag.Supports_Infinity -> True
             Dialect_Flag.Case_Sensitive_Text_Comparison -> True
             Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
-            Dialect_Flag.Case_Insensitive_Ordering -> True
+            Dialect_Flag.Supports_Case_Insensitive_Ordering -> True
             Dialect_Flag.Order_By_Unicode_Normalization_By_Default -> True
+            Dialect_Flag.Order_By_Unicode_Normalization_When_Case_Insensitive -> True
+            Dialect_Flag.Case_Insensitive_Ordering_By_Default -> True
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
             Dialect_Flag.Supports_Unicode_Normalization -> False
             Dialect_Flag.NaN_Non_Comparable -> False
@@ -289,6 +307,7 @@ type Postgres_Dialect
             Dialect_Flag.Supports_Nanoseconds_In_Time -> False
             Dialect_Flag.Supports_Mixed_Columns -> False
             Dialect_Flag.Supports_Date_Time_Without_Timezone -> True
+            Dialect_Flag.Supports_Regex_Match -> True
 
     ## PRIVATE
        The default table types to use when listing tables.
@@ -351,7 +370,7 @@ type Postgres_Dialect
         False
 
     ## PRIVATE
-    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
+    generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = for_select
         base_gen.generate_expression self expr
 
@@ -363,7 +382,7 @@ type Postgres_Dialect
 ## PRIVATE
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -392,7 +411,7 @@ make_dialect_operations =
    that is the expected result of `NULL IS NULL`.
 
    With the IR refactor, this should be done in some preprocess pass that still
-   works on SQL_Expression and not raw SQL.
+   works on SQL_IR_Expression and not raw SQL.
 is_null = Base_Generator.lift_unary_op "IS_NULL" arg->
     if represents_an_untyped_null_expression arg then SQL_Builder.code "TRUE" else
         SQL_Builder.code "(" ++ arg.paren ++ " IS NULL)"
@@ -550,6 +569,10 @@ ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
     res.paren
 
 ## PRIVATE
+regex_match = Base_Generator.lift_binary_op "REGEX_MATCH" str-> pattern->
+    str ++ " ~ " ++ pattern
+
+## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
     SQL_Builder.code "((" ++ arg ++ ') COLLATE "ucs_basic")'
 
@@ -588,8 +611,8 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         False ->
                             Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
                         True ->
-                            upper = SQL_Expression.Operation "UPPER" [internal_column.expression]
-                            folded_expression = SQL_Expression.Operation "LOWER" [upper]
+                            upper = SQL_IR_Expression.Operation "UPPER" [internal_column.expression]
+                            folded_expression = SQL_IR_Expression.Operation "LOWER" [upper]
                             Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
 
 ## PRIVATE
@@ -816,7 +839,7 @@ as_int32 expr =
 make_distinct_extension expressions =
     run_generator sql_expressions =
         SQL_Builder.code "DISTINCT ON (" ++ (SQL_Builder.join ", " sql_expressions) ++ ") "
-    Context_Extension.Value position=120 expressions=expressions run_generator=run_generator
+    SQL_IR_Source_Extension.Value part_name=(SQL_Part.Extension "postgres_distinct") expressions=expressions run_generator=run_generator
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it

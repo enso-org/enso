@@ -51,7 +51,7 @@ public class CrashingTestHandler extends SimpleHttpHandler {
           break;
         } else {
           requests += 1;
-          throw new RuntimeException("This handler crashes on purpose.");
+          throw new ExpectedException(false);
         }
 
       case STREAM:
@@ -66,8 +66,16 @@ public class CrashingTestHandler extends SimpleHttpHandler {
             }
           } else {
             requests += 1;
+            // This intentionally writes insufficient amount of data.
             try (OutputStream os = exchange.getResponseBody()) {
               os.write(responseData, 0, responseData.length / 2);
+            } catch (IOException e) {
+              if (e.getMessage().contains("insufficient bytes written to stream")) {
+                throw new ExpectedException(true);
+              } else {
+                // Unexpected exception - rethrow.
+                throw e;
+              }
             }
           }
         } finally {

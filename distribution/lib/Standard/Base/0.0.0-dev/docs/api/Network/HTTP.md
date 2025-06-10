@@ -1,0 +1,22 @@
+## Enso Signatures 1.0
+## module Standard.Base.Network.HTTP
+- type HTTP
+    - clear_response_cache -> Standard.Base.Nothing.Nothing
+    - fetch uri:(Standard.Base.Network.URI.URI|Standard.Base.Data.Text.Text) method:Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method= headers:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= cache_policy:Standard.Base.Network.HTTP.Cache_Policy.Cache_Policy= -> Standard.Base.Any.Any
+    - new timeout:Standard.Base.Data.Time.Duration.Duration= follow_redirects:Standard.Base.Data.Boolean.Boolean= proxy:Standard.Base.Network.Proxy.Proxy= version:Standard.Base.Network.HTTP.HTTP_Version.HTTP_Version= -> Standard.Base.Any.Any
+    - post uri:(Standard.Base.Network.URI.URI|Standard.Base.Data.Text.Text) body:Standard.Base.Network.HTTP.Request_Body.Request_Body= method:Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method= headers:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= -> Standard.Base.Any.Any
+    - request self req:Standard.Base.Any.Any error_on_failure_code:Standard.Base.Any.Any= cache_policy:Standard.Base.Network.HTTP.Cache_Policy.Cache_Policy= -> Standard.Base.Any.Any
+    - set_custom_ssl_context self ssl_context:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type Request_Error
+    - Error error_type:Standard.Base.Any.Any message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Resolved_Body
+- _get_follow_redirects http:Standard.Base.Network.HTTP.HTTP -> Standard.Base.Any.Any
+- _get_proxy http:Standard.Base.Network.HTTP.HTTP -> Standard.Base.Any.Any
+- _get_timeout http:Standard.Base.Network.HTTP.HTTP -> Standard.Base.Any.Any
+- _get_version http:Standard.Base.Network.HTTP.HTTP -> Standard.Base.Any.Any
+- _resolve_headers req:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- if_fetch_method method:Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method ~action:Standard.Base.Any.Any ~if_not:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- if_post_method method:Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method ~action:Standard.Base.Any.Any ~if_not:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- internal_http_client http:Standard.Base.Any.Any hash:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- with_hash_and_client http:Standard.Base.Any.Any hash_method:Standard.Base.Any.Any make_client:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -2,26 +2,24 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { subtreeRoots } from '.'
 import { assert, assertDefined } from '../util/assert'
-import type { SourceRangeEdit } from '../util/data/text'
-import { defaultLocalOrigin, tryAsOrigin, type ExternalId, type Origin } from '../yjsModel'
+import { type SourceRangeEdit } from '../util/data/text'
+import { type Origin, defaultLocalOrigin, tryAsOrigin } from '../yjsModel'
 import { newExternalId } from './idMap'
 import { parseModule } from './parse'
-import type { SyncTokenId } from './token'
-import { Token, isTokenId } from './token'
-import type {
-  AstFields,
-  AstId,
-  BodyBlock,
-  FixedMap,
-  Mutable,
-  MutableAst,
-  MutableBodyBlock,
-  MutableInvalid,
-  NodeChild,
-  Owned,
-  RawNodeChild,
-} from './tree'
+import { type SyncTokenId, Token, isTokenId } from './token'
 import {
+  type AstFields,
+  type AstId,
+  type AstType,
+  type BodyBlock,
+  type FixedMap,
+  type Mutable,
+  type MutableAst,
+  type MutableBodyBlock,
+  type MutableInvalid,
+  type NodeChild,
+  type Owned,
+  type RawNodeChild,
   Ast,
   Wildcard,
   asOwned,
@@ -111,7 +109,7 @@ export class MutableModule implements Module {
       if (rootPointer) {
         rootPointer.expression.replace(newRoot)
       } else {
-        invalidFields(this, this.baseObject('Invalid', undefined, ROOT_ID), {
+        invalidFields(this, this.baseObject('Invalid', ROOT_ID), {
           whitespace: '',
           node: newRoot,
         })
@@ -160,7 +158,7 @@ export class MutableModule implements Module {
 
   /** Copy the given node into the module. */
   copy<T extends Ast>(ast: T): Owned<Mutable<T>> {
-    const id = newAstId(ast.typeName())
+    const id = newAstId(ast.typeName)
     const fields = ast.fields.clone()
     this.nodes.set(id, fields as any)
     fields.set('id', id)
@@ -173,9 +171,22 @@ export class MutableModule implements Module {
   /** @internal */
   importCopy<T extends Ast>(ast: T): Owned<Mutable<T>> {
     assert(ast.module !== this)
-    ast.visitRecursive(ast => this.nodes.set(ast.id, ast.fields.clone() as any))
+    ast.visitRecursive((ast) => this.nodes.set(ast.id, ast.fields.clone() as any))
     const fields = this.nodes.get(ast.id)
     assertDefined(fields)
+    fields.set('parent', undefined)
+    return materializeMutable(this, fields) as Owned<Mutable<typeof ast>>
+  }
+
+  /**
+   * Copy the node into the module *without copying children*. The returned object, and the module containing it, may be
+   * in an invalid state until the callee has ensured all references are resolvable, e.g. by recursing into children.
+   * @internal
+   */
+  splice<T extends Ast>(ast: T): Owned<Mutable<T>> {
+    assert(ast.module !== this)
+    const fields = ast.fields.clone() as any
+    this.nodes.set(ast.id, fields)
     fields.set('parent', undefined)
     return materializeMutable(this, fields) as Owned<Mutable<typeof ast>>
   }
@@ -360,13 +371,13 @@ export class MutableModule implements Module {
   }
 
   /** @internal */
-  baseObject(type: string, externalId?: ExternalId, overrideId?: AstId): FixedMap<AstFields> {
+  baseObject(type: AstType, overrideId?: AstId): FixedMap<AstFields> {
     const map = new Y.Map()
     const map_ = map as unknown as FixedMap<object>
     const id = overrideId ?? newAstId(type)
     const metadata = new Y.Map() as unknown as FixedMap<object>
     const metadataFields = setAll(metadata, {
-      externalId: externalId ?? newExternalId(),
+      externalId: newExternalId(),
       widget: new Y.Map<unknown>(),
     })
     const fields = setAll(map_, {
@@ -520,7 +531,7 @@ class UpdateBuilder {
 
   finish(): ModuleUpdate {
     const dirtyNodes = new Set(this.nodesUpdated)
-    this.nodesAdded.forEach(node => dirtyNodes.add(node))
+    this.nodesAdded.forEach((node) => dirtyNodes.add(node))
     const updateRoots = subtreeRoots(this.module, dirtyNodes)
     return { ...this, updateRoots }
   }

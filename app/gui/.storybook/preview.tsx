@@ -4,14 +4,19 @@
 import type { Preview as ReactPreview } from '@storybook/react'
 import type { Preview as VuePreview } from '@storybook/vue3'
 import isChromatic from 'chromatic/isChromatic'
-import { useLayoutEffect, useState } from 'react'
+import { StrictMode, useLayoutEffect, useState } from 'react'
 
+import UIProviders from '#/components/UIProviders'
 import invariant from 'tiny-invariant'
-import UIProviders from '../src/dashboard/components/UIProviders'
 
+import '#/tailwind.css'
+import { TextContext } from '$/providers/react'
+import { useText } from '$/providers/text'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { createQueryClient } from 'enso-common/src/queryClient'
 import { MotionGlobalConfig } from 'framer-motion'
 import z from 'zod'
-import '../src/dashboard/tailwind.css'
+import './storybook.css'
 
 if (isChromatic()) {
   MotionGlobalConfig.skipAnimations = true
@@ -44,29 +49,60 @@ const reactPreview: ReactPreview = {
   // Decorators are applied in the reverse order they are defined
   decorators: [
     (Story, context) => {
-      const [portalRoot, setPortalRoot] = useState<Element | null>(null)
+      const [roots, setRoots] = useState<{ appRoot: HTMLElement; portalRoot: HTMLElement } | null>(
+        null,
+      )
 
       useLayoutEffect(() => {
-        const portalRoot = document.querySelector('#enso-portal-root')
-        invariant(portalRoot, 'PortalRoot element not found')
+        const appRoot = document.querySelector('#enso-app')
+        invariant(appRoot instanceof HTMLElement, 'AppRoot element not found')
 
-        setPortalRoot(portalRoot)
+        const portalRoot = document.querySelector('#enso-portal-root')
+        invariant(portalRoot instanceof HTMLElement, 'PortalRoot element not found')
+
+        setRoots({ appRoot, portalRoot })
       }, [])
 
-      if (!portalRoot) return <></>
+      if (!roots) return <></>
 
       return (
-        <UIProviders locale="en-US" portalRoot={portalRoot}>
-          {Story(context)}
+        <UIProviders locale="en-US" {...roots}>
+          <Story {...context} />
         </UIProviders>
       )
     },
 
     (Story, context) => (
       <>
-        <div className="enso-dashboard">{Story(context)}</div>
+        <div id="enso-app" className="enso-app">
+          <Story {...context} />
+        </div>
+
         <div id="enso-portal-root" className="enso-portal-root" />
       </>
+    ),
+
+    (Story, context) => {
+      const [queryClient] = useState(() => createQueryClient())
+      return (
+        <QueryClientProvider client={queryClient}>
+          <Story {...context} />
+        </QueryClientProvider>
+      )
+    },
+
+    (Story, context) => {
+      return (
+        <TextContext.Provider value={useText()}>
+          <Story {...context} />
+        </TextContext.Provider>
+      )
+    },
+
+    (Story, context) => (
+      <StrictMode>
+        <Story {...context} />
+      </StrictMode>
     ),
   ],
 }

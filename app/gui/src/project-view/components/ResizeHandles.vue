@@ -2,11 +2,12 @@
 import { usePointer } from '@/composables/events'
 import { selectFields } from '@/util/data/object'
 import { Rect, type BoundsSet } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 
-const bounds = defineModel<Rect>({ required: true })
-const props = defineProps<BoundsSet>()
+const props = defineProps<BoundsSet & { modelValue: Rect }>()
 const emit = defineEmits<{
   'update:resizing': [BoundsSet]
+  'update:modelValue': [Rect, delta: Vec2]
 }>()
 
 let initialBounds: Rect | undefined = undefined
@@ -20,25 +21,27 @@ function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: 'top' | 'bott
   return usePointer((pos, _, type) => {
     switch (type) {
       case 'start':
-        initialBounds = bounds.value
+        initialBounds = props.modelValue
         emit('update:resizing', resizing)
         break
       case 'move':
-        if (!initialBounds) break
-        bounds.value = initialBounds.withBoundsClamped(
-          selectFields(resizing, {
-            top: initialBounds.top + pos.relative.y,
-            bottom: initialBounds.bottom + pos.relative.y,
-            left: initialBounds.left + pos.relative.x,
-            right: initialBounds.right + pos.relative.x,
-          }),
-        )
+        if (initialBounds) {
+          const newBounds = initialBounds.withBoundsClamped(
+            selectFields(resizing, {
+              top: initialBounds.top + pos.relative.y,
+              bottom: initialBounds.bottom + pos.relative.y,
+              left: initialBounds.left + pos.relative.x,
+              right: initialBounds.right + pos.relative.x,
+            }),
+          )
+          emit('update:modelValue', newBounds, pos.relative)
+        }
         break
       case 'stop':
         emit('update:resizing', {})
         break
       case 'cancel':
-        if (initialBounds) bounds.value = initialBounds
+        if (initialBounds) emit('update:modelValue', initialBounds, Vec2.Zero)
         emit('update:resizing', {})
         break
     }
@@ -56,14 +59,22 @@ const handler = {
 </script>
 
 <template>
-  <div v-if="props.left" class="left" v-on="handler.left" />
-  <div v-if="props.right" class="right" v-on="handler.right" />
-  <div v-if="props.top" class="top" v-on="handler.top" />
-  <div v-if="props.bottom" class="bottom" v-on="handler.bottom" />
-  <svg v-if="props.bottom && props.left" class="corner bottom left" v-on="handler.bottomLeft">
+  <div v-if="props.left" class="ResizeHandle left" v-on="handler.left" />
+  <div v-if="props.right" class="ResizeHandle right" v-on="handler.right" />
+  <div v-if="props.top" class="ResizeHandle top" v-on="handler.top" />
+  <div v-if="props.bottom" class="ResizeHandle bottom" v-on="handler.bottom" />
+  <svg
+    v-if="props.bottom && props.left"
+    class="ResizeHandle corner bottom left"
+    v-on="handler.bottomLeft"
+  >
     <circle />
   </svg>
-  <svg v-if="props.bottom && props.right" class="corner bottom right" v-on="handler.bottomRight">
+  <svg
+    v-if="props.bottom && props.right"
+    class="ResizeHandle corner bottom right"
+    v-on="handler.bottomRight"
+  >
     <circle />
   </svg>
 </template>
@@ -112,8 +123,8 @@ const handler = {
   & circle {
     pointer-events: all;
     r: calc(
-      var(--resize-handle-radius, 0) + (var(--resize-handle-outside) - var(--resize-handle-inside)) /
-        2
+      var(--resize-handle-radius, 0) +
+        (var(--resize-handle-outside) - var(--resize-handle-inside)) / 2
     );
     stroke: transparent;
     stroke-width: calc(var(--resize-handle-inside) + var(--resize-handle-outside));

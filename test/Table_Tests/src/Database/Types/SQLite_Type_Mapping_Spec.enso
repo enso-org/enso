@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Aggregate_Column, Value_Type, Table, Bits
 from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
@@ -119,7 +120,9 @@ add_specs suite_builder =
         group_builder.specify "does not support creating tables with date/time values" <|
             t = Table.new [["a", [Date.today]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
             r1 = t.select_into_database_table data.connection table_name=(Name_Generator.random_name "date-time-table") temporary=True
-            r1.should_fail_with Unsupported_Database_Type
+            r1.should_fail_with Illegal_Argument
+            r1.to_display_text . should_contain "Definition for column [a] is invalid"
+            r1.to_display_text . should_contain "do not support Date/time types"
 
         group_builder.specify "should be able to infer types for all supported operations" <|
             dialect = Dialect.sqlite
@@ -127,4 +130,3 @@ add_specs suite_builder =
             operation_type_mapping = SQLite_Type_Mapping.operations_dict
 
             operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort
-

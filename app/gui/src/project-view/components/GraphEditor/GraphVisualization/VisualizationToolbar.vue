@@ -3,7 +3,6 @@ import FullscreenButton from '@/components/FullscreenButton.vue'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
 import SvgButton from '@/components/SvgButton.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
 import {
   isActionButton,
@@ -42,10 +41,7 @@ const nodeShortType = computed(() =>
 )
 
 const interaction = provideInteractionHandler()
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e), {
   capture: true,
 })
 </script>
@@ -58,7 +54,7 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
         class="toolbar"
         :class="{ invisible: hideVisualizationButton === 'invisible' }"
       >
-        <SvgButton name="eye" title="Hide visualization" @click.stop="emit('hide')" />
+        <SvgButton name="eye" title="Hide visualization" @activate="emit('hide')" />
       </div>
       <div class="toolbar">
         <FullscreenButton v-if="isFullscreenAllowed" v-model="isFullscreen" />
@@ -71,14 +67,14 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
               v-if="isActionButton(item)"
               :name="item.icon"
               :title="item.title"
-              :onClick="item.onClick"
               :disabled="item.disabled != null ? toValue(item.disabled) : false"
               :data-testid="item.dataTestid"
+              @activate="item.onClick"
             />
-            <ToggleIcon
+            <SvgButton
               v-else-if="isToggleButton(item)"
               v-model="item.toggle.value"
-              :icon="item.icon"
+              :name="item.icon"
               :title="item.title"
               :disabled="item.disabled != null ? toValue(item.disabled) : false"
               :data-testid="item.dataTestid"
@@ -106,6 +102,7 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
     <div
       class="after-toolbars node-type"
       :title="props.typename ?? UNKNOWN_TYPE"
+      data-testid="visualisationNodeType"
       v-text="nodeShortType"
     />
   </div>
@@ -126,11 +123,10 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
 .after-toolbars {
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-left: auto;
   margin-right: 8px;
   overflow: hidden;
-  width: calc(var(--node-size-x) - var(--permanent-toolbar-width));
 }
 
 .node-type {

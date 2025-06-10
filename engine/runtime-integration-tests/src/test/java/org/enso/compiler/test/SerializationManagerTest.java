@@ -15,10 +15,10 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.test.InterpreterContext;
-import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.Suggestion;
+import org.enso.scala.wrapper.ScalaConversions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -34,7 +34,7 @@ public class SerializationManagerTest {
 
   @Before
   public void setup() {
-    packageManager = new PackageManager<>(new TruffleFileSystem());
+    packageManager = new PackageManager<>(TruffleFileSystem.INSTANCE);
     interpreterContext = new InterpreterContext(x -> x);
     ensoContext =
         interpreterContext
@@ -89,7 +89,7 @@ public class SerializationManagerTest {
     Object result =
         ensoContext
             .getCompiler()
-            .compile(false, false)
+            .compile(false, true, false, scala.Option.empty())
             .get(COMPILE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     Assert.assertEquals(Boolean.TRUE, result);
 

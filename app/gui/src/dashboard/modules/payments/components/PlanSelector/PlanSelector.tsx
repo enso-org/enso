@@ -1,14 +1,12 @@
 /** @file Plan selector component. */
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
+import { DIALOG_BACKGROUND } from '#/components/Dialog/variants'
 import { usePaywall } from '#/hooks/billing'
-import { useAuth } from '#/providers/AuthProvider'
-import { useRemoteBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
 import { Plan, PLANS } from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useAuth, useBackends, useText } from '$/providers/react'
 import { Card } from './components'
 import { getComponentPerPlan } from './getComponentForPlan'
 
@@ -25,9 +23,9 @@ interface CreateCheckoutSessionMutation {
 
 /** Props for {@link PlanSelector} */
 export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STYLES> {
+  readonly userPlan: Plan
   readonly showFreePlan?: boolean
   readonly hasTrial?: boolean
-  readonly userPlan?: Plan | undefined
   readonly isOrganizationAdmin?: boolean
   readonly plan?: Plan | null | undefined
   readonly onSubscribeSuccess?: (plan: Plan, paymentMethodId: string) => void
@@ -71,7 +69,7 @@ export function PlanSelector(props: PlanSelectorProps) {
   } = props
 
   const { getText } = useText()
-  const backend = useRemoteBackend()
+  const { remoteBackend: backend } = useBackends()
   const { refetchSession } = useAuth()
   const { getPaywallLevel } = usePaywall({ plan: userPlan })
 
@@ -107,8 +105,7 @@ export function PlanSelector(props: PlanSelectorProps) {
           const planProps = getComponentPerPlan(newPlan, getText)
 
           if (showFreePlan || newPlan !== Plan.free) {
-            const isCurrentPlan =
-              newPlan === userPlan || (newPlan === Plan.free && userPlan === undefined)
+            const isCurrentPlan = newPlan === userPlan
 
             return (
               <Card
@@ -154,7 +151,7 @@ export function PlanSelector(props: PlanSelectorProps) {
                       }
                     }}
                     plan={newPlan}
-                    userHasSubscription={userPlan != null && userPlan !== Plan.free}
+                    userHasSubscription={userPlan !== Plan.free}
                     isCurrent={isCurrentPlan}
                     isDowngrade={userPaywallLevel > paywallLevel}
                     defaultOpen={newPlan === plan}

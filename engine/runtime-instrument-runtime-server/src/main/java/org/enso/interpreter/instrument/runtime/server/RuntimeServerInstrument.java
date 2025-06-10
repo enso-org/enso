@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import org.enso.distribution.locking.LockManager;
 import org.enso.interpreter.instrument.Handler;
 import org.enso.interpreter.instrument.HandlerFactory;
@@ -25,7 +26,6 @@ import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.polyglot.io.MessageEndpoint;
 import org.graalvm.polyglot.io.MessageTransport;
-import org.openide.util.Lookup;
 
 /**
  * An instrument exposing a server for other services to connect to, in order to control the current
@@ -108,24 +108,26 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   @Override
   protected void onCreate(Env env) {
     this.env = env;
-    env.registerService(this);
+
     if (TruffleOptions.AOT) {
       this.handler = HandlerFactoryImpl.create();
     } else {
-      var loadedHandler = Lookup.getDefault().lookup(HandlerFactory.class);
-      this.handler = loadedHandler != null ? loadedHandler.create() : HandlerFactoryImpl.create();
+      var loadedHandler = ServiceLoader.load(HandlerFactory.class).findFirst();
+      this.handler =
+          loadedHandler.isPresent() ? loadedHandler.get().create() : HandlerFactoryImpl.create();
     }
 
     try {
       MessageEndpoint client =
           env.startServer(URI.create(RuntimeServerInfo.URI), this.handler.endpoint());
       if (client != null) {
+        env.registerService(this);
         this.handler.endpoint().setClient(client);
       } else {
         env.getLogger(RuntimeServerInstrument.class)
-            .warning(
-                "The client endpoint has not been initialized. The Runtime "
-                    + "Server Instrument may very likely not function properly.");
+            .severe(
+                "The client endpoint has not been initialized. The Runtime will not function"
+                    + " properly.");
       }
     } catch (MessageTransport.VetoException | IOException e) {
       throw new RuntimeException(e);

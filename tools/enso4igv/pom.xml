@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.41-SNAPSHOT</version>
+    <version>1.42-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -80,10 +80,9 @@
                 <configuration>
                     <compilerId>frgaal</compilerId>
                     <source>21</source>
-                    <target>1.8</target>
+                    <target>17</target>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
-                        <arg>-XDignore.symbol.file</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

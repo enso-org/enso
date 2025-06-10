@@ -19,60 +19,56 @@ public class AddRowNumber {
       throw new IllegalArgumentException("At least one grouping or ordering column is required.");
     }
     var sourceColumn = groupingColumns.length > 0 ? groupingColumns[0] : orderingColumns[0];
-    var numberingStatistic = new NumberingStatistic(start, step, sourceColumn, problemAggregator);
-    RunningLooper.loop(
+    var rowNumberFactory =
+        new RowNumberRowVisitorFactory(start, step, sourceColumn.getSize(), problemAggregator);
+    GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
         directions,
         problemAggregator,
-        numberingStatistic,
+        rowNumberFactory,
         sourceColumn.getSize());
-    return numberingStatistic.getResult();
+    return new LongStorage(rowNumberFactory.numbers, IntegerType.INT_64);
   }
 
-  private static class NumberingStatistic implements RunningStatistic<Long> {
+  private static class RowNumberRowVisitorFactory implements RowVisitorFactory {
 
     private final long start;
     private final long step;
     long[] numbers;
 
-    NumberingStatistic(
-        long start, long step, Column sourceColumn, ProblemAggregator problemAggregator) {
+    RowNumberRowVisitorFactory(
+        long start, long step, int size, ProblemAggregator problemAggregator) {
       this.start = start;
       this.step = step;
-      int n = sourceColumn.getSize();
-      numbers = new long[n];
+      numbers = new long[size];
     }
 
     @Override
-    public RunningIterator<Long> getNewIterator() {
-      return new RangeIterator(start, step);
+    public GroupRowVisitor getNewRowVisitor() {
+      return new RowNumberRowVisitor(start, step, numbers);
     }
 
-    @Override
-    public void calculateNextValue(int i, RunningIterator<Long> it) {
-      numbers[i] = it.next(0l);
-    }
-
-    @Override
-    public Storage<Long> getResult() {
-      return new LongStorage(numbers, IntegerType.INT_64);
-    }
-
-    private static class RangeIterator implements RunningIterator<Long> {
+    private static class RowNumberRowVisitor implements GroupRowVisitor {
 
       private final long start;
       private final long step;
       private long current;
       private boolean isFirst = true;
+      private final long[] numbers;
 
-      RangeIterator(long start, long step) {
+      RowNumberRowVisitor(long start, long step, long[] numbers) {
         this.start = start;
         this.step = step;
+        this.numbers = numbers;
       }
 
       @Override
-      public Long next(Long value) throws ArithmeticException {
+      public void visit(int row) {
+        numbers[row] = next();
+      }
+
+      public Long next() throws ArithmeticException {
         if (isFirst) {
           isFirst = false;
           current = start;
@@ -80,11 +76,6 @@ public class AddRowNumber {
           current = Math.addExact(current, step);
         }
 
-        return current;
-      }
-
-      @Override
-      public Long currentValue() {
         return current;
       }
     }

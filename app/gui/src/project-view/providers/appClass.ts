@@ -2,8 +2,8 @@ import { createContextStore } from '@/providers'
 import type { Opt } from '@/util/data/opt'
 import { reactive, watch, type WatchSource } from 'vue'
 
-export { provideFn as provideAppClassSet }
-const { provideFn, injectFn: injectAppClassSet } = createContextStore('App Class Set', () => {
+export { provideAppClassSet }
+const [provideAppClassSet, injectAppClassSet] = createContextStore('App Class Set', () => {
   return reactive(new Map<string, number>())
 })
 

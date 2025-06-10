@@ -144,6 +144,17 @@ run_union_tests group_builder setup call_union =
         m.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
         m.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
 
+    group_builder.specify "table with 0 rows will still influence the output structure with its columns" <|
+        t1 = table1.get
+        t2 = table2.get.filter "A" (..Greater 100)
+
+        table = call_union [t1, t2]
+        m = materialize_and_maybe_sort table
+        expect_column_names ["A", "B", "C"] m
+        m.at "A" . to_vector . should_equal [1, 2, 3]
+        m.at "B" . to_vector . should_equal ["a", "b", "c"]
+        m.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing]
+
     group_builder.specify "should drop unmatched columns and warn, if In_All is selected" <|
         t1 = table1.get                             # A, B
         t2 = table2.get                             # C, A
@@ -518,6 +529,57 @@ run_union_tests group_builder setup call_union =
             m.at "D" . value_type . is_text . should_be_true
         problems = [No_Common_Type.Warning_Convert_To_Text [Value_Type.Time, Value_Type.Date] "D"]
         Problems.test_problem_handling action problems tester
+
+    # This test is not run on DB as all-null columns will not be Mixed there.
+    if setup.is_database.not then group_builder.specify "if no common type can be found, will fall back to converting all types to text and warn (all-null columns edge case)" <|
+        # If a column is all-null, it will often have Mixed type. But that should not prevent the union from falling into the mixed type.
+        t1 = table_builder [["A", [Nothing]]]
+        t2 = table_builder [["A", [2, 3]]]
+        t3 = table_builder [["A", [Nothing, Nothing]]]
+        t4 = table_builder [["A", ['a', 'b']]]
+        t5 = table_builder [["A", [Nothing]]]
+
+        t1.at "A" . value_type . should_equal Value_Type.Null
+        setup.expect_integer_type <| t2.at "A"
+
+        r1 = call_union [t1, t2, t3, t4, t5]
+        expect_column_names ["A"] r1
+        r1.at "A" . to_vector . should_equal [Nothing, '2', '3', Nothing, Nothing, 'a', 'b', Nothing]
+        r1.at "A" . value_type . is_text . should_be_true
+
+        # Edge case tests - check what happens if string column is first, followed by Null column.
+        # This checks that various ordering combinations work correctly (subtle bugs sometimes would make this fail).
+        r2 = call_union [t4, t1]
+        expect_column_names ["A"] r2
+        r2.at "A" . to_vector . should_equal ['a', 'b', Nothing]
+        r2.at "A" . value_type . is_text . should_be_true
+
+        # Same for other types.
+        r3 = call_union [t2, t1]
+        expect_column_names ["A"] r3
+        r3.at "A" . to_vector . should_equal [2, 3, Nothing]
+
+        r4 = call_union [(table_builder [["A", [1.5]]]), t1]
+        expect_column_names ["A"] r4
+        r4.at "A" . to_vector . should_equal [1.5, Nothing]
+
+        r5 = call_union [(table_builder [["A", [True]]]), t1]
+        expect_column_names ["A"] r5
+        r5.at "A" . to_vector . should_equal [True, Nothing]
+
+    if setup.is_database.not then group_builder.specify "all-Nothing column should not influence result type, unless it had a type explicitly given to it" <|
+        t1 = table_builder [["A", [Nothing]]]
+        t2 = table_builder [["A", [2, 3]]]
+
+        t3 = call_union [t1, t2]
+        expect_column_names ["A"] t3
+        t3.at "A" . to_vector . should_equal [Nothing, 2, 3]
+        setup.expect_integer_type <| t3.at "A"
+
+        t4 = call_union [(t1.cast "A" Value_Type.Char), t2]
+        expect_column_names ["A"] t4
+        t4.at "A" . to_vector . should_equal [Nothing, '2', '3']
+        t4.at "A" . value_type . should_equal Value_Type.Char
 
     group_builder.specify "will use the _output_ column name in the warnings when matching by position (so input names may differ)" <|
         t1 = table_builder [["A", [1]]]

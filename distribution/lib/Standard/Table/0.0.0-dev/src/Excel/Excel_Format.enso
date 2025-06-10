@@ -17,6 +17,7 @@ import project.Headers.Headers
 import project.Internal.Excel_Reader
 import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Excel_Writer
+import project.Internal.Telemetry
 import project.Match_Columns.Match_Columns
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
@@ -118,8 +119,16 @@ type Excel_Format
     read self file on_problems:Problem_Behavior =
         format = should_treat_as_xls_format self.xls_format file
         case self of
-            Excel_Format.Workbook _ _ -> Excel_Workbook.new file format
-            _ -> Excel_Reader.read_file file (as_section self) on_problems format
+            Excel_Format.Workbook _ _ ->
+                result = Excel_Workbook.new file format
+                result.if_not_error <|
+                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, sheet_count={}, xls_format={}" ["Excel_Format", "Excel_Workbook", result.sheet_count, format]
+                    result
+            _ ->
+                result = Excel_Reader.read_file file (as_section self) on_problems format
+                result.if_not_error <|
+                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, format]
+                    result
 
     ## PRIVATE
        Implements decoding the format from a stream.

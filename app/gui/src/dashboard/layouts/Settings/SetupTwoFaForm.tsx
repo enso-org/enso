@@ -5,26 +5,20 @@
  */
 import ShieldCheck from '#/assets/shield_check.svg'
 import ShieldCrossed from '#/assets/shield_crossed.svg'
-import type { MfaType } from '#/authentication/cognito'
-import {
-  Alert,
-  Button,
-  ButtonGroup,
-  CopyBlock,
-  Dialog,
-  DialogDismiss,
-  DialogTrigger,
-  Form,
-  OTPInput,
-  Selector,
-  Switch,
-  Text,
-} from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { Button } from '#/components/Button'
+import { CopyBlock } from '#/components/CopyBlock'
+import { Dialog } from '#/components/Dialog'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { Form } from '#/components/Form'
+import { OTPInput, Selector } from '#/components/Inputs'
 import { Suspense } from '#/components/Suspense'
-import { useAuth } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { Switch } from '#/components/Switch'
+import { Text } from '#/components/Text'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import type { MfaType } from '$/authentication/cognito'
+import { useSession, useText } from '$/providers/react'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
 
 const LazyQRCode = lazy(() =>
@@ -39,31 +33,17 @@ const LazyQRCode = lazy(() =>
  */
 export function SetupTwoFaForm() {
   const { getText } = useText()
-  const { cognito } = useAuth()
+  const { getMFAPreference, updateMFAPreference, verifyTotpToken } = useSession()
 
   const { data } = useSuspenseQuery({
     queryKey: ['twoFaPreference'],
-    queryFn: () =>
-      cognito.getMFAPreference().then((res) => {
-        if (res.err) {
-          throw res.val
-        } else {
-          return res.unwrap()
-        }
-      }),
+    queryFn: () => getMFAPreference(),
   })
 
   const MFAEnabled = data !== 'NOMFA'
 
-  const updateMFAPreferenceMutation = useMutation({
-    mutationFn: (preference: MfaType) =>
-      cognito.updateMFAPreference(preference).then((res) => {
-        if (res.err) {
-          throw res.val
-        } else {
-          return res.unwrap()
-        }
-      }),
+  const updateMFAPreferenceMutation = useMutationCallback({
+    mutationFn: (preference: MfaType) => updateMFAPreference(preference),
     meta: { invalidates: [['twoFaPreference']] },
   })
 
@@ -88,7 +68,7 @@ export function SetupTwoFaForm() {
             {getText('disable2FADescription')}
           </Text>
 
-          <DialogTrigger>
+          <Dialog.Trigger>
             <Button variant="delete" className="self-start" icon={ShieldCrossed}>
               {getText('disable2FA')}
             </Button>
@@ -100,11 +80,11 @@ export function SetupTwoFaForm() {
                 formOptions={{ mode: 'onSubmit' }}
                 method="dialog"
                 onSubmit={({ otp }) =>
-                  cognito.verifyTotpToken(otp).then((res) => {
-                    if (res.ok) {
-                      return updateMFAPreferenceMutation.mutateAsync('NOMFA')
+                  verifyTotpToken(otp).then((passed) => {
+                    if (passed) {
+                      return updateMFAPreferenceMutation('NOMFA')
                     } else {
-                      throw res.val
+                      throw new Error('Invalid OTP')
                     }
                   })
                 }
@@ -113,87 +93,79 @@ export function SetupTwoFaForm() {
 
                 <OTPInput autoFocus name="otp" maxLength={6} label={getText('verificationCode')} />
 
-                <ButtonGroup>
+                <Button.Group>
                   <Form.Submit variant="delete">{getText('disable')}</Form.Submit>
-                  <DialogDismiss />
-                </ButtonGroup>
+                  <Dialog.Dismiss />
+                </Button.Group>
 
                 <Form.FormError />
               </Form>
             </Dialog>
-          </DialogTrigger>
+          </Dialog.Trigger>
         </div>
       </div>
     )
-  } else {
-    return (
-      <Form
-        schema={(z) =>
-          z.object({
-            enabled: z.boolean(),
-            display: z.string(),
-            /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
-            otp: z.string().min(6).max(6),
+  }
+  return (
+    <Form
+      schema={(z) =>
+        z.object({
+          enabled: z.boolean(),
+          display: z.string(),
+          /* eslint-disable-next-line @typescript-eslint/no-magic-numbers */
+          otp: z.string().min(6).max(6),
+        })
+      }
+      defaultValues={{ enabled: false, display: 'QR' }}
+      onSubmit={async ({ enabled, otp }) => {
+        if (enabled) {
+          return verifyTotpToken(otp).then((passed) => {
+            if (passed) {
+              return updateMFAPreferenceMutation('TOTP')
+            } else {
+              throw new Error('Invalid OTP')
+            }
           })
         }
-        defaultValues={{ enabled: false, display: 'qr' }}
-        onSubmit={async ({ enabled, otp }) => {
-          if (enabled) {
-            return cognito.verifyTotpToken(otp).then((res) => {
-              if (res.ok) {
-                return updateMFAPreferenceMutation.mutateAsync('TOTP')
-              } else {
-                throw res.val
-              }
-            })
-          }
-        }}
-      >
-        <>
-          <Switch
-            name="enabled"
-            description={getText('enable2FADescription')}
-            label={getText('enable2FA')}
-          />
+      }}
+    >
+      <>
+        <Switch
+          name="enabled"
+          description={getText('enable2FADescription')}
+          label={getText('enable2FA')}
+        />
 
-          <ErrorBoundary>
-            <Suspense>
-              <Form.FieldValue name="enabled">
-                {(enabled) => enabled === true && <TwoFa />}
-              </Form.FieldValue>
-            </Suspense>
-          </ErrorBoundary>
-        </>
-      </Form>
-    )
-  }
+        <ErrorBoundary>
+          <Suspense>
+            <Form.FieldValue name="enabled">
+              {(enabled) => enabled === true && <TwoFa />}
+            </Form.FieldValue>
+          </Suspense>
+        </ErrorBoundary>
+      </>
+    </Form>
+  )
 }
 
 /** Two Factor Authentication Setup Form. */
 function TwoFa() {
-  const { cognito } = useAuth()
+  const { setupTOTP } = useSession()
   const { getText } = useText()
 
   const { data } = useSuspenseQuery({
     queryKey: ['setupTOTP'],
-    queryFn: () =>
-      cognito.setupTOTP().then((res) => {
-        if (res.err) {
-          throw res.val
-        } else {
-          return res.unwrap()
-        }
-      }),
+    queryFn: () => setupTOTP(),
   })
 
   return (
     <>
       <div className="flex w-full flex-col gap-4">
-        <Selector name="display" items={['qr', 'text']} aria-label={getText('display')} />
+        <Selector name="display" items={['QR', 'Text']} aria-label={getText('display')} />
 
         <Form.FieldValue name="display">
           {(display) =>
-            display === 'qr' && (
+            display === 'QR' && (
               <>
                 <Alert key="alert" variant="neutral" icon={ShieldCheck}>
                   <Text.Group>
@@ -218,9 +190,10 @@ function TwoFa() {
             )
           }
         </Form.FieldValue>
+
         <Form.FieldValue name="display">
           {(display) =>
-            display === 'text' && (
+            display === 'Text' && (
               <>
                 <Alert key="alert" variant="neutral" icon={ShieldCheck}>
                   <Text.Group>
@@ -238,7 +211,6 @@ function TwoFa() {
         </Form.FieldValue>
 
         <OTPInput
-          className="max-w-96"
           label={getText('verificationCode')}
           name="otp"
           maxLength={6}
@@ -246,11 +218,11 @@ function TwoFa() {
         />
       </div>
 
-      <ButtonGroup>
+      <Button.Group>
         <Form.Submit>{getText('enable')}</Form.Submit>
 
         <Form.Reset>{getText('cancel')}</Form.Reset>
-      </ButtonGroup>
+      </Button.Group>
 
       <Form.FormError />
     </>

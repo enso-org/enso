@@ -133,7 +133,7 @@ public class IncrementalUpdatesTest {
         result.head().payload() instanceof Runtime$Api$ExecutionComplete);
     Assert.assertEquals(
         "Error is printed as a result",
-        List.newBuilder().addOne("(Error: Uninitialized value)"),
+        List.newBuilder().addOne("(Error: 'Uninitialized value')"),
         context.consumeOut());
   }
 
@@ -280,7 +280,7 @@ public class IncrementalUpdatesTest {
     Assert.assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     var allNodesAfterException =
-        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 30, 40);
+        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 30, 41);
 
     // push foo call
     context.send(

@@ -1,10 +1,12 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import assert from 'assert'
+import * as iter from 'enso-common/src/utilities/data/iter'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
-import type { AstId } from 'ydoc-shared/ast'
-import { IdMap, type ExternalId, type SourceRange } from 'ydoc-shared/yjsModel'
+import { type AstId } from 'ydoc-shared/ast'
+import { SourceRange } from 'ydoc-shared/util/data/text'
+import { IdMap, type ExternalId } from 'ydoc-shared/yjsModel'
 
 /** TODO: Add docs */
 export function parseWithSpans<T extends Record<string, SourceRange>>(code: string, spans: T) {
@@ -15,6 +17,7 @@ export function parseWithSpans<T extends Record<string, SourceRange>>(code: stri
   let nextIndex = 0
   for (const name in spans) {
     const span = spans[name]!
+    assertDefined(span)
     const indexStr = `${nextIndex++}`
     const eid =
       idMap.getIfExist(span) ??
@@ -37,27 +40,28 @@ test('Reading graph from definition', () => {
   const code = `function a =
     node1 = a + 4
     node2 = node1 + 4
-    node3 = node2 + 1`
+    node3 = node2 + 1
+    node3`
   const spans = {
-    functionName: [0, 8] as [number, number],
-    parameter: [9, 10] as [number, number],
-    node1Id: [17, 22] as [number, number],
-    node1Content: [25, 30] as [number, number],
-    node1LParam: [25, 26] as [number, number],
-    node1RParam: [29, 30] as [number, number],
-    node2Id: [35, 40] as [number, number],
-    node2Content: [43, 52] as [number, number],
-    node2LParam: [43, 48] as [number, number],
-    node2RParam: [51, 52] as [number, number],
-    node3Id: [57, 62] as [number, number],
-    node3Content: [65, 74] as [number, number],
-  }
+    functionName: SourceRange.unsafeFromBounds(0, 8),
+    parameter: SourceRange.unsafeFromBounds(9, 10),
+    node1Id: SourceRange.unsafeFromBounds(17, 22),
+    node1Content: SourceRange.unsafeFromBounds(25, 30),
+    node1LParam: SourceRange.unsafeFromBounds(25, 26),
+    node1RParam: SourceRange.unsafeFromBounds(29, 30),
+    node2Id: SourceRange.unsafeFromBounds(35, 40),
+    node2Content: SourceRange.unsafeFromBounds(43, 52),
+    node2LParam: SourceRange.unsafeFromBounds(43, 48),
+    node2RParam: SourceRange.unsafeFromBounds(51, 52),
+    node3Id: SourceRange.unsafeFromBounds(57, 62),
+    node3Content: SourceRange.unsafeFromBounds(65, 74),
+    output: SourceRange.unsafeFromBounds(79, 84),
+  } satisfies Record<string, SourceRange>
 
   const { ast, id, eid, getSpan } = parseWithSpans(code, spans)
 
   const db = GraphDb.Mock()
-  const expressions = Array.from(ast.statements())
-  const func = expressions[0]
+  const func = iter.first(ast.statements())
   assert(func instanceof Ast.FunctionDef)
   db.updateExternalIds(ast)
   db.updateNodes(func, { watchEffect })
@@ -68,6 +72,7 @@ test('Reading graph from definition', () => {
     eid('node1Content'),
     eid('node2Content'),
     eid('node3Content'),
+    eid('output'),
   ])
   expect(db.getExpressionNodeId(id('node1Content'))).toBe(eid('node1Content'))
   expect(db.getExpressionNodeId(id('node1LParam'))).toBe(eid('node1Content'))
@@ -96,9 +101,11 @@ test('Reading graph from definition', () => {
     id('parameter'),
     id('node1Id'),
     id('node2Id'),
+    id('node3Id'),
   ])
   expect(Array.from(db.connections.lookup(id('parameter')))).toEqual([id('node1LParam')])
   expect(Array.from(db.connections.lookup(id('node1Id')))).toEqual([id('node2LParam')])
+  expect(Array.from(db.connections.lookup(id('node3Id')))).toEqual([id('output')])
   expect(db.getOutputPortIdentifier(id('parameter'))).toBe('a')
   expect(db.getOutputPortIdentifier(id('node1Id'))).toBe('node1')
   expect(Array.from(db.nodeDependents.lookup(asNodeId(eid('node1Content'))))).toEqual([
@@ -107,5 +114,7 @@ test('Reading graph from definition', () => {
   expect(Array.from(db.nodeDependents.lookup(asNodeId(eid('node2Content'))))).toEqual([
     eid('node3Content'),
   ])
-  expect(Array.from(db.nodeDependents.lookup(asNodeId(eid('node3Content'))))).toEqual([])
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(eid('node3Content'))))).toEqual([
+    eid('output'),
+  ])
 })

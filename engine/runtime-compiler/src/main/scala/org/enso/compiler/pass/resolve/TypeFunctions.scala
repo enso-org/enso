@@ -125,8 +125,8 @@ case object TypeFunctions extends IRPass {
     */
   private def resolveApplication(app: Application): Expression = {
     app match {
-      case pre @ Application.Prefix(fn, arguments, _, _, _) =>
-        fn match {
+      case pre: Application.Prefix =>
+        pre.function match {
           case name: Name if name.name == `type`.Set.Union.name =>
             val members = flattenUnion(app).map(resolveExpression)
             `type`.Set.Union(members, app.identifiedLocation())
@@ -139,19 +139,19 @@ case object TypeFunctions extends IRPass {
             )
           case _ =>
             pre.copy(
-              function  = resolveExpression(fn),
-              arguments = arguments.map(resolveCallArgument)
+              function  = resolveExpression(pre.function),
+              arguments = pre.arguments.map(resolveCallArgument)
             )
         }
-      case force @ Application.Force(target, _, _) =>
-        force.copy(target = resolveExpression(target))
-      case seq @ Application.Sequence(items, _, _) =>
-        seq.copy(
-          items = items.map(resolveExpression)
+      case force: Application.Force =>
+        force.copyWithTarget(resolveExpression(force.target))
+      case seq: Application.Sequence =>
+        seq.copyWithItems(
+          seq.items.map(resolveExpression)
         )
-      case tSet @ Application.Typeset(expr, _, _) =>
-        tSet.copy(
-          expression = expr.map(resolveExpression)
+      case tSet: Application.Typeset =>
+        tSet.copyWithExpression(
+          tSet.expression.map(resolveExpression)
         )
       case _: Operator =>
         throw new CompilerError(
@@ -162,9 +162,10 @@ case object TypeFunctions extends IRPass {
 
   private def flattenUnion(expr: Expression): List[Expression] = {
     expr match {
-      case Application.Prefix(n: Name, args, _, _, _)
-          if n.name == `type`.Set.Union.name =>
-        args.flatMap(arg => flattenUnion(arg.value))
+      case app: Application.Prefix
+          if app.function.isInstanceOf[Name] &&
+          app.function.asInstanceOf[Name].name == `type`.Set.Union.name =>
+        app.arguments.flatMap(arg => flattenUnion(arg.value))
       case _ => List(expr)
     }
   }
@@ -221,7 +222,7 @@ case object TypeFunctions extends IRPass {
     arg match {
       case spec: CallArgument.Specified =>
         spec.copy(
-          value = resolveExpression(spec.value)
+          resolveExpression(spec.value)
         )
     }
   }

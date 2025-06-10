@@ -3,6 +3,7 @@
 import { useApproach, useApproachVec } from '@/composables/animation'
 import {
   PointerButtonMask,
+  unrefElement,
   useArrows,
   useResizeObserver,
   useWheelActions,
@@ -10,8 +11,9 @@ import {
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { useEventListener } from '@vueuse/core'
+import { useEventListener, type VueInstance } from '@vueuse/core'
 import { useGesture, type Handler } from '@vueuse/gesture'
+import { clamp } from 'enso-common/src/utilities/data/math'
 import {
   computed,
   onScopeDispose,
@@ -55,7 +57,7 @@ export interface NavigatorOptions {
 export type NavigatorComposable = ReturnType<typeof useNavigator>
 /** TODO: Add docs */
 export function useNavigator(
-  viewportNode: Ref<HTMLElement | undefined>,
+  viewportNode: Ref<HTMLElement | VueInstance | null | undefined>,
   keyboard: KeyboardComposable,
   options: NavigatorOptions = {},
 ) {
@@ -65,8 +67,9 @@ export function useNavigator(
   const center = useApproachVec(targetCenter, 100, 0.02)
 
   const viewportRect = shallowRef<Rect>(Rect.Zero)
+  const viewportElem = computed(() => unrefElement(viewportNode))
   function updateViewportRect() {
-    viewportRect.value = elemRect(viewportNode.value)
+    viewportRect.value = elemRect(viewportElem.value)
   }
 
   const dragPredicate = (e: PointerEvent) => e.target === e.currentTarget && predicate(e)
@@ -94,6 +97,7 @@ export function useNavigator(
   }
 
   function handleDragZooming(state: DragState) {
+    if (state.delta[1] != 0) preventContextMenu = true
     const prevScale = scale.value
     updateScale((oldValue) => oldValue * Math.exp(-state.delta[1] / 100))
     scrollTo(center.value.scaleAround(prevScale / scale.value, gesturePivot))
@@ -124,6 +128,18 @@ export function useNavigator(
     longpressTimer = null
   }
 
+  useEventListener(viewportElem, 'contextmenu', contextMenuHandler, { capture: true })
+  let preventContextMenu = false
+  function contextMenuHandler(event: MouseEvent) {
+    if (preventContextMenu) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+  }
+
+  const dragActive = ref(false)
+  const pinchActive = ref(false)
+
   useGesture(
     {
       onMove(state) {
@@ -135,7 +151,11 @@ export function useNavigator(
           holdDragStarted = false
         }
 
-        if (!dragPredicate(state.event) || state.pinching) return
+        if (!dragPredicate(state.event) || state.pinching) {
+          dragActive.value = false
+          return
+        }
+        dragActive.value = state.dragging && !state.last
         const isTouch = eventIsTouch(state.event)
         const mainDown = (state.buttons & PointerButtonMask.Main) != 0
         const secondaryDown = (state.buttons & PointerButtonMask.Secondary) != 0
@@ -149,12 +169,18 @@ export function useNavigator(
 
         if (state.last && longpressTimer) cancelLongpress()
         if (state.last && holdDragStarted) holdDragStarted = false
+        // Using 10ms instead of 0 here, because otherwise the expected `contextmenu` event is not consistently fired before the timer.
+        if (state.last && preventContextMenu) setTimeout(() => (preventContextMenu = false), 10)
       },
       onPinch(state) {
         // A started longpress touch can transform into pinch without warning, make sure to clear the timeout.
         cancelLongpress()
 
-        if (state.ctrlKey) return // We do our own touchpad handling below
+        if (state.ctrlKey) {
+          pinchActive.value = false
+          return // We do our own touchpad handling below
+        }
+        pinchActive.value = !state.last
 
         const currentOrigin = Vec2.FromTuple(state.origin)
         gesturePivot = clientToScenePos(currentOrigin)
@@ -181,7 +207,7 @@ export function useNavigator(
       },
     },
     {
-      domTarget: viewportNode,
+      domTarget: viewportElem,
       eventOptions: {
         passive: false,
       },
@@ -244,14 +270,14 @@ export function useNavigator(
     skipAnimation = false,
   ) {
     resetTargetFollowing()
-    if (!viewportNode.value) return
-    targetScale.value = Math.max(
-      minScale,
+    if (!viewportElem.value) return
+    targetScale.value = clamp(
       Math.min(
-        maxScale,
-        viewportNode.value.clientHeight / rect.height,
-        viewportNode.value.clientWidth / rect.width,
+        viewportElem.value.clientHeight / rect.height,
+        viewportElem.value.clientWidth / rect.width,
       ),
+      minScale,
+      maxScale,
     )
     targetCenter.value = rect.center().finiteOrZero()
     if (skipAnimation) {
@@ -345,6 +371,9 @@ export function useNavigator(
     return new Vec2(-x + w / 2, -y + h / 2)
   })
 
+  const transformChanging = computed(
+    () => scale.active || center.active || dragActive.value || pinchActive.value,
+  )
   const transform = computed(
     () => `scale(${scale.value}) translate(${translate.value.x}px, ${translate.value.y}px)`,
   )
@@ -359,12 +388,12 @@ export function useNavigator(
   )
 
   /**
-   * Clamp the value to the given bounds, except if it is already outside the bounds allow the new value to be less
-   *  outside the bounds.
+   * Clamp the value to the given bounds, except if it is already outside the bounds allow the new
+   * value to be less outside the bounds.
    */
   function directedClamp(oldValue: number, newValue: number, [min, max]: ScaleRange): number {
     if (!Number.isFinite(newValue)) return oldValue
-    else if (!Number.isFinite(oldValue)) return Math.max(min, Math.min(newValue, max))
+    else if (!Number.isFinite(oldValue)) return clamp(newValue, min, max)
     else if (newValue > oldValue) return Math.min(max, newValue)
     else return Math.max(min, newValue)
   }
@@ -433,9 +462,9 @@ export function useNavigator(
     },
   )
 
-  useEventListener(viewportNode, 'wheel', wheelEvents.wheel)
-  useEventListener(viewportNode, 'wheel', wheelEventsCapture.wheel, { capture: true })
-  useEventListener(viewportNode, 'pointermove', wheelEventsCapture.pointermove, { capture: true })
+  useEventListener(viewportElem, 'wheel', wheelEvents.wheel)
+  useEventListener(viewportElem, 'wheel', wheelEventsCapture.wheel, { capture: true })
+  useEventListener(viewportElem, 'pointermove', wheelEventsCapture.pointermove, { capture: true })
 
   return proxyRefs({
     keyboardEvents: panArrows.events,
@@ -445,6 +474,7 @@ export function useNavigator(
     scale: readonly(toRef(scale, 'value')),
     viewBox: readonly(viewBox),
     transform: readonly(transform),
+    transformChanging: readonly(transformChanging),
     /**
      * Add handler for "hold" events - a drag action that doesn't move the navigator viewport, but
      * is supposed to represent holding the viewport contents itself. For desktop, this is the

@@ -45,3 +45,4 @@
          import Standard.Base.Network.URI.URI
 
          example_parse = URI.parse "http://example.com"
+

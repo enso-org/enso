@@ -16,16 +16,14 @@ BENCH_REPO = "enso-org/engine-benchmark-results"
 BRANCH_DEVELOP = "develop"
 DATE_FORMAT = "%Y-%m-%d"
 GH_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
-ENGINE_BENCH_WORKFLOW_ID = 29450898
+ENGINE_BENCH_WORKFLOW_ID = 67075764
 """
 Workflow ID of engine benchmarks, got via `gh api 
 '/repos/enso-org/enso/actions/workflows'`.
-The name of the workflow is 'Benchmark Engine'
-"""
-NEW_ENGINE_BENCH_WORKFLOW_ID = 67075764
-"""
-Workflow ID for 'Benchmark Engine' workflow, which is the new workflow
-since 2023-08-22.
+The name of the workflow is 'Benchmark Engine'.
+This workflow was created at 2023-08-22.
+There is an older workflow with the same name, but it is not used anymore, with
+the ID 29450898
 """
 STDLIBS_BENCH_WORKFLOW_ID = 66661001
 """
@@ -52,7 +50,7 @@ class Source(Enum):
 
     def workflow_ids(self) -> List[int]:
         if self == Source.ENGINE:
-            return [ENGINE_BENCH_WORKFLOW_ID, NEW_ENGINE_BENCH_WORKFLOW_ID]
+            return [ENGINE_BENCH_WORKFLOW_ID]
         elif self == Source.STDLIB:
             return [STDLIBS_BENCH_WORKFLOW_ID]
         else:
@@ -60,9 +58,9 @@ class Source(Enum):
 
     def artifact_names(self) -> List[str]:
         if self == Source.ENGINE:
-            return ["Runtime Benchmark Report"]
+            return ["Runtime Benchmark Report", "benchmark-results.xml"]
         elif self == Source.STDLIB:
-            return ["Enso JMH Benchmark Report"]
+            return ["Enso JMH Benchmark Report", "benchmark-results.xml"]
         else:
             raise ValueError(f"Unknown source {self}")
 

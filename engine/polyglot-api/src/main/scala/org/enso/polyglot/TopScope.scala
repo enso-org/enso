@@ -34,7 +34,26 @@ class TopScope(private val value: Value) {
     value.invokeMember(UNREGISTER_MODULE, qualifiedName): Unit
   }
 
-  def compile(shouldCompileDependencies: Boolean): Unit = {
-    value.invokeMember(COMPILE, shouldCompileDependencies)
+  def compile(
+    shouldCompileDependencies: Boolean
+  ): Unit = {
+    compile(shouldCompileDependencies, None)
   }
+  def compile(
+    shouldCompileDependencies: Boolean,
+    generateDocs: Option[String]
+  ): Unit = {
+    val docsArg = generateDocs.map {
+      case "api" => "api"
+      case "md"  => "md"
+      case other =>
+        throw new IllegalStateException("Invalid docs format: " + other)
+    }
+    value.invokeMember(
+      COMPILE,
+      shouldCompileDependencies,
+      docsArg.getOrElse(false)
+    )
+  }
+
 }

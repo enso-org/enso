@@ -31,15 +31,12 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.polyglot.debugger.IdExecutionService;
@@ -165,7 +162,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             new CallerInfo(
                 materializedFrame, ensoRootNode.getLocalScope(), ensoRootNode.getModuleScope());
 
-        return evalNode.execute(callerInfo, State.create(EnsoContext.get(null)), Text.create(code));
+        return evalNode.execute(callerInfo, Text.create(code));
       }
 
       private static UUID getNodeId(Node node) {
@@ -267,18 +264,19 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       @Override
       public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
         if (exception instanceof TailCallException) {
-          onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()));
-        } else if (exception instanceof PanicException panicException) {
-          onReturnValue(frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
-        } else if (exception instanceof AbstractTruffleException) {
+          onTailCallReturn(exception);
+        } else if (exception instanceof PanicSentinel) {
           onReturnValue(frame, exception);
+        } else if (exception instanceof AbstractTruffleException ex) {
+          onReturnValue(frame, new PanicSentinel(ex, context.getInstrumentedNode()));
         }
       }
 
       @CompilerDirectives.TruffleBoundary
-      private void onTailCallReturn(Throwable exception, State state) {
+      private void onTailCallReturn(Throwable exception) {
         try {
           TailCallException tailCallException = (TailCallException) exception;
+          var state = EnsoContext.get(this).currentState();
           FunctionCallInstrumentationNode.FunctionCall functionCall =
               new FunctionCallInstrumentationNode.FunctionCall(
                   tailCallException.getFunction(), state, tailCallException.getArguments());

@@ -69,7 +69,10 @@ object Patterns extends IRPass {
       case method: definition.Method.Explicit =>
         val resolution = method.methodReference.typePointer
           .flatMap(
-            _.getMetadata(MethodDefinitions)
+            _.getMetadata(
+              MethodDefinitions.INSTANCE,
+              classOf[BindingsMap.Resolution]
+            )
           )
           .map(_.target)
         val newBody = doExpression(method.body, bindings, resolution)
@@ -333,12 +336,12 @@ object Patterns extends IRPass {
           case other => other
         }
         branch.copy(
-          pattern = resolvedPattern,
-          expression =
-            doExpression(branch.expression, bindings, selfTypeResolution)
+          resolvedPattern,
+          doExpression(branch.expression, bindings, selfTypeResolution),
+          branch.terminalBranch()
         )
       }
-      caseExpr.copy(branches = newBranches)
+      caseExpr.copy(newBranches)
 
     }
   }

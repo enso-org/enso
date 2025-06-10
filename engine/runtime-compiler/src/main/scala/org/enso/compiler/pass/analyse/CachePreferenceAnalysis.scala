@@ -151,7 +151,7 @@ case object CachePreferenceAnalysis extends IRPass {
         app.arguments match {
           case self :: rest =>
             val newSelf = analyseSelfCallArgument(self, weights)
-            app.copy(arguments = newSelf :: rest)
+            app.copyWithArguments(newSelf :: rest)
           case _ =>
             app
         }
@@ -170,7 +170,7 @@ case object CachePreferenceAnalysis extends IRPass {
       .foreach(weights.update(_, CachePreferences.Kind.SELF_ARGUMENT))
     callArgument match {
       case arg: Specified =>
-        arg.copy(value =
+        arg.copy(
           analyseExpression(arg.value, weights)
             .updateMetadata(new MetadataPair(this, weights))
         )
@@ -188,9 +188,12 @@ case object CachePreferenceAnalysis extends IRPass {
     weights: WeightInfo
   ): DefinitionArgument = {
     argument match {
-      case spec @ DefinitionArgument.Specified(_, _, defValue, _, _, _) =>
+      case spec: DefinitionArgument.Specified =>
+        val defValue = spec.defaultValue
         spec
-          .copy(defaultValue = defValue.map(analyseExpression(_, weights)))
+          .copyWithDefaultValue(
+            defValue.map(analyseExpression(_, weights))
+          )
           .updateMetadata(new MetadataPair(this, weights))
     }
   }

@@ -2,50 +2,34 @@
  * @file Container responsible for rendering and interactions in first half of forgot password
  * flow.
  */
-import { useState } from 'react'
-
-import isEmail from 'validator/lib/isEmail'
-import * as z from 'zod'
-
-import { LOGIN_PATH } from '#/appUtils'
-import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
-import { Form, Input } from '#/components/AriaComponents'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-import { useAuth } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
-import { type GetText, useText } from '#/providers/TextProvider'
-import { useLocation } from 'react-router'
-
-/** Create the schema for this form. */
-function createForgotPasswordFormSchema(getText: GetText) {
-  return z.object({
-    email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
-  })
-}
-
-// ======================
-// === ForgotPassword ===
-// ======================
+import { LOGIN_PATH } from '$/appUtils'
+import { useBackends, useRouter, useSession, useText } from '$/providers/react'
+import { useState } from 'react'
+import { toast } from 'react-toastify'
 
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
-  const { forgotPassword } = useAuth()
-  const location = useLocation()
+  const { forgotPassword } = useSession()
   const { getText } = useText()
-  const localBackend = useLocalBackend()
+
+  const { router, searchParams } = useRouter()
+
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const query = new URLSearchParams(location.search)
-  const initialEmail = query.get('email')
+  const initialEmail = searchParams.get('email')
   const [emailInput, setEmailInput] = useState(initialEmail ?? '')
 
   return (
     <AuthenticationPage
       title={getText('forgotYourPassword')}
-      schema={createForgotPasswordFormSchema(getText)}
+      schema={(z) => z.object({ email: z.string().email() })}
       footer={
         <Link
           to={`${LOGIN_PATH}?${new URLSearchParams({ email: emailInput }).toString()}`}
@@ -54,7 +38,12 @@ export default function ForgotPassword() {
         />
       }
       supportsOffline={supportsOffline}
-      onSubmit={({ email }) => forgotPassword(email)}
+      onSubmit={({ email }) =>
+        forgotPassword(email).then(() => {
+          void router.push(LOGIN_PATH)
+          toast.success(getText('forgotPasswordSuccess'))
+        })
+      }
     >
       <Input
         autoFocus
@@ -72,7 +61,7 @@ export default function ForgotPassword() {
         }}
       />
 
-      <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
+      <Form.Submit size="large" icon="arrow_right" iconPosition="end" fullWidth>
         {getText('sendLink')}
       </Form.Submit>
 

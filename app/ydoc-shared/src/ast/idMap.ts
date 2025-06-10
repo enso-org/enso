@@ -1,9 +1,12 @@
-import * as random from 'lib0/random'
-import { assert } from '../util/assert'
-import type { ExternalId, SourceRange, SourceRangeKey } from '../yjsModel'
-import { IdMap, isUuid, sourceRangeFromKey, sourceRangeKey } from '../yjsModel'
-import type { Token } from './token'
-import type { Ast, AstId } from './tree'
+import {
+  SourceRange,
+  type SourceRangeKey,
+  sourceRangeFromKey,
+  sourceRangeKey,
+} from '../util/data/text'
+import { type ExternalId, IdMap } from '../yjsModel'
+import { type Token, type TokenId } from './token'
+import { type Ast, type AstId, ExpressionStatement } from './tree'
 
 declare const nodeKeyBrand: unique symbol
 /** A source-range key for an `Ast`. */
@@ -13,11 +16,11 @@ declare const tokenKeyBrand: unique symbol
 export type TokenKey = SourceRangeKey & { [tokenKeyBrand]: never }
 /** Create a source-range key for an `Ast`. */
 export function nodeKey(start: number, length: number): NodeKey {
-  return sourceRangeKey([start, start + length]) as NodeKey
+  return sourceRangeKey(SourceRange.fromStartAndLength(start, length)) as NodeKey
 }
 /** Create a source-range key for a `Token`. */
 export function tokenKey(start: number, length: number): TokenKey {
-  return sourceRangeKey([start, start + length]) as TokenKey
+  return sourceRangeKey(SourceRange.fromStartAndLength(start, length)) as TokenKey
 }
 
 /** Maps from source ranges to `Ast`s. */
@@ -33,32 +36,38 @@ export interface SpanMap {
 
 /** Create a new random {@link ExternalId}. */
 export function newExternalId(): ExternalId {
-  return random.uuidv4() as ExternalId
+  return crypto.randomUUID() as ExternalId
 }
 
 /** Generate an `IdMap` from a `SpanMap`. */
 export function spanMapToIdMap(spans: SpanMap): IdMap {
   const idMap = new IdMap()
   for (const [key, token] of spans.tokens.entries()) {
-    assert(isUuid(token.id))
     idMap.insertKnownId(sourceRangeFromKey(key), token.id)
   }
   for (const [key, asts] of spans.nodes.entries()) {
     for (const ast of asts) {
-      assert(isUuid(ast.externalId))
+      if (ast instanceof ExpressionStatement && asts.length > 1) continue
       idMap.insertKnownId(sourceRangeFromKey(key), ast.externalId)
     }
   }
   return idMap
 }
 
-/** Given a `SpanMap`, return a function that can look up source ranges by AST ID. */
-export function spanMapToSpanGetter(spans: SpanMap): (id: AstId) => SourceRange | undefined {
+/** Returns a function that can look up source ranges by AST ID. */
+export function spanMapToSpanGetter(spans: NodeSpanMap): (id: AstId) => SourceRange | undefined {
   const reverseMap = new Map<AstId, SourceRange>()
-  for (const [key, asts] of spans.nodes) {
+  for (const [key, asts] of spans) {
     for (const ast of asts) {
       reverseMap.set(ast.id, sourceRangeFromKey(key))
     }
   }
-  return id => reverseMap.get(id)
+  return (id) => reverseMap.get(id)
+}
+
+/** Returns a function that can look up token source ranges. */
+export function tokenSpanGetter(spans: TokenSpanMap): (token: Token) => SourceRange | undefined {
+  const reverseMap = new Map<TokenId, SourceRange>()
+  for (const [key, token] of spans) reverseMap.set(token.id, sourceRangeFromKey(key))
+  return ({ id }) => reverseMap.get(id)
 }

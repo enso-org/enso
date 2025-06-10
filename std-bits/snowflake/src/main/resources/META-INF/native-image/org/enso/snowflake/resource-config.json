@@ -1,0 +1,32 @@
+{
+    "resources": {
+        "includes": [
+            {
+                "pattern": "\\Qnet/snowflake/client/jdbc/internal/apache/arrow/memory/DefaultAllocationManagerFactory.class\\E"
+            },
+            {
+                "pattern": "\\Qnet/snowflake/client/jdbc/internal/apache/http/client/version.properties\\E"
+            }
+        ]
+    },
+    "bundles": [
+        {
+            "name": "net.snowflake.client.jdbc.version",
+            "locales": [
+                ""
+            ]
+        },
+        {
+            "name": "net.snowflake.client.jdbc.jdbc_error_messages",
+            "locales": [
+                ""
+            ]
+        },
+        {
+            "name": "net.snowflake.client.jdbc.internal.snowflake.common.version",
+            "locales": [
+                ""
+            ]
+        }
+    ]
+}

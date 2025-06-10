@@ -1,13 +1,14 @@
 package org.enso.interpreter.runtime;
 
-import static org.enso.interpreter.util.ScalaConversions.cons;
-import static org.enso.interpreter.util.ScalaConversions.nil;
+import static org.enso.scala.wrapper.ScalaConversions.cons;
+import static org.enso.scala.wrapper.ScalaConversions.nil;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -128,13 +133,20 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public Thread createThread(Runnable r) {
-    return context.createThread(false, r);
+  public ExecutorService newParsingPool() {
+    return new ThreadPoolExecutor(
+        Compiler.startingThreadCount(),
+        Compiler.maximumThreadCount(),
+        Compiler.threadKeepalive(),
+        TimeUnit.SECONDS,
+        new LinkedBlockingDeque<>(),
+        (runnable) -> {
+          return context.getThreadManager().createThread(true, runnable);
+        });
   }
 
-  @Override
-  public Thread createSystemThread(Runnable r) {
-    return context.createThread(true, r);
+  final ExecutorService newSerializationPool() {
+    return context.getThreadManager().newFixedThreadPool(1, "SerializationPool background thread");
   }
 
   @Override
@@ -152,24 +164,10 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   // module related
-  @Override
-  public QualifiedName getModuleName(CompilerContext.Module module) {
-    return module.getName();
-  }
-
-  @Override
-  public CharSequence getCharacters(CompilerContext.Module module) throws IOException {
-    return module.getCharacters();
-  }
 
   @Override
   public IdMap getIdMap(CompilerContext.Module module) {
     return module.getIdMap();
-  }
-
-  @Override
-  public boolean isSynthetic(CompilerContext.Module module) {
-    return module.isSynthetic();
   }
 
   @Override
@@ -187,16 +185,6 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public boolean wasLoadedFromCache(CompilerContext.Module module) {
     return ((Module) module).unsafeModule().wasLoadedFromCache();
-  }
-
-  @Override
-  public org.enso.compiler.core.ir.Module getIr(CompilerContext.Module module) {
-    return module.getIr();
-  }
-
-  @Override
-  public CompilationStage getCompilationStage(CompilerContext.Module module) {
-    return module.getCompilationStage();
   }
 
   final TypeGraph getTypeHierarchy() {
@@ -300,13 +288,17 @@ final class TruffleCompilerContext implements CompilerContext {
           throw new AssertionError(e);
         }
         assert source != null;
-        diagnosticFormatter = new DiagnosticFormatter(diagnostic, source, isOutputRedirected);
+        diagnosticFormatter =
+            DiagnosticFormatter.create(
+                diagnostic, source, isOutputRedirected, context.isColorTerminalOutput());
         return new CompilationAbortedException(
             diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
     var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
-    diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
+    diagnosticFormatter =
+        DiagnosticFormatter.create(
+            diagnostic, emptySource, isOutputRedirected, context.isColorTerminalOutput());
     return new CompilationAbortedException(diagnosticFormatter.format(), null);
   }
 
@@ -488,11 +480,18 @@ final class TruffleCompilerContext implements CompilerContext {
   private boolean deserializeModuleDirect(CompilerContext.Module module)
       throws InterruptedException {
     var pool = serializationPool;
-    if (pool.isWaitingForSerialization(module.getName())) {
-      pool.abort(module.getName());
+    var moduleName = module.getName();
+    var awaitingSerialization = pool.isWaitingForSerialization(moduleName);
+    logSerializationManager(
+        Level.FINE,
+        "deserializing module [{0}]. Awaiting serialization: {1}",
+        moduleName,
+        awaitingSerialization);
+    if (awaitingSerialization) {
+      pool.abort(moduleName);
       return false;
     } else {
-      pool.waitWhileSerializing(module.getName());
+      pool.waitWhileSerializing(moduleName);
 
       var loaded = loadCache(((Module) module).getCache());
       if (loaded.isPresent()) {
@@ -506,12 +505,11 @@ final class TruffleCompilerContext implements CompilerContext {
         logSerializationManager(
             Level.FINE,
             "Restored IR from cache for module [{0}] at stage [{1}].",
-            module.getName(),
+            moduleName,
             loaded.get().compilationStage());
         return true;
       } else {
-        logSerializationManager(
-            Level.FINE, "Unable to load a cache for module [{0}].", module.getName());
+        logSerializationManager(Level.FINE, "Unable to load a cache for module [{0}].", moduleName);
         return false;
       }
     }
@@ -743,7 +741,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.newScopeBuilder(true);
+        module.module.newScopeBuilder();
       }
       if (invalidateCache) {
         module.module.getCache().invalidate(context);
@@ -792,7 +790,9 @@ final class TruffleCompilerContext implements CompilerContext {
           var meta = module.getIr().passData();
           var pass = meta.get(BindingAnalysis$.MODULE$);
           emitIOException();
-          return (BindingsMap) pass.get();
+          if (pass.isDefined()) {
+            return (BindingsMap) pass.get();
+          }
         } catch (IOException ex) {
           var logger =
               TruffleLogger.getLogger(LanguageInfo.ID, org.enso.interpreter.runtime.Module.class);
@@ -851,7 +851,7 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public ModuleScopeBuilder newScopeBuilder() {
       return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
-          module.newScopeBuilder(false));
+          module.newScopeBuilder());
     }
 
     @Override
@@ -883,6 +883,21 @@ final class TruffleCompilerContext implements CompilerContext {
       sb.append("module=").append(module);
       sb.append('}');
       return sb.toString();
+    }
+
+    @Override
+    public int findLine(IdentifiedLocation loc) {
+      var ss = module.createSection(loc.start(), loc.length());
+      return ss.getStartLine();
+    }
+
+    @Override
+    public URI getUri() {
+      try {
+        return module.getSource().getURI();
+      } catch (IOException ex) {
+        return null;
+      }
     }
   }
 

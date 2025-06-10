@@ -3,20 +3,25 @@
 
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
+import MenuPanel from '@/components/MenuPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { SelectionMenuOption } from '@/components/visualizations/toolbar'
-import { ref } from 'vue'
+import { ref, toValue } from 'vue'
 
 type Key = number | string | symbol
 const selected = defineModel<Key>({ required: true })
 const _props = defineProps<{
   options: Record<Key, SelectionMenuOption>
   title?: string | undefined
-  labelButton?: boolean
-  alwaysShowArrow?: boolean
+  labelButton?: boolean | undefined
+  alwaysShowArrow?: boolean | undefined
 }>()
 
 const open = ref(false)
+
+function onClick(option: SelectionMenuOption) {
+  if (!(option.disabled && toValue(option.disabled))) open.value = false
+}
 </script>
 
 <template>
@@ -31,18 +36,28 @@ const open = ref(false)
         />
       </template>
     </template>
-    <template #entries>
-      <MenuButton
-        v-for="[key, option] in Object.entries(options)"
-        :key="key"
-        :title="option.title"
-        :modelValue="selected === key"
-        @update:modelValue="$event && (selected = key)"
-        @click="open = false"
-      >
-        <SvgIcon :name="option.icon" :style="option.iconStyle" :data-testid="option.dataTestid" />
-        <div v-if="option.label" class="iconLabel" v-text="option.label" />
-      </MenuButton>
+    <template #menu>
+      <MenuPanel>
+        <MenuButton
+          v-for="[key, option] in Object.entries(options).filter(
+            ([_key, { hidden }]) => !hidden || !toValue(hidden),
+          )"
+          :key="key"
+          :title="option.title"
+          :modelValue="selected === key"
+          :disabled="option.disabled && toValue(option.disabled)"
+          @update:modelValue="$event && (selected = key)"
+          @click="() => onClick(option)"
+        >
+          <SvgIcon :name="option.icon" :style="option.iconStyle" :data-testid="option.dataTestid" />
+          <div v-if="option.label" class="iconLabel" v-text="option.label" />
+          <div
+            v-if="option.labelExtension"
+            class="iconLabel labelExtension"
+            v-text="option.labelExtension"
+          />
+        </MenuButton>
+      </MenuPanel>
     </template>
   </DropdownMenu>
 </template>
@@ -51,10 +66,16 @@ const open = ref(false)
 .MenuButton {
   margin: -4px;
   justify-content: unset;
+  &:has(.iconLabel) {
+    padding-right: 4px;
+  }
 }
 
 .iconLabel {
-  margin-left: 4px;
-  padding-right: 4px;
+  padding-left: 4px;
+}
+
+.labelExtension {
+  font-size: smaller;
 }
 </style>

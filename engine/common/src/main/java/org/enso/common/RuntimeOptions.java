@@ -1,6 +1,7 @@
 package org.enso.common;
 
 import java.util.Arrays;
+import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
@@ -33,6 +34,11 @@ public final class RuntimeOptions {
   public static final OptionKey<Boolean> ENABLE_STATIC_ANALYSIS_KEY = new OptionKey<>(false);
   private static final OptionDescriptor ENABLE_STATIC_ANALYSIS_DESCRIPTOR =
       OptionDescriptor.newBuilder(ENABLE_STATIC_ANALYSIS_KEY, ENABLE_STATIC_ANALYSIS).build();
+
+  public static final String TREAT_WARNINGS_AS_ERRORS = optionName("treatWarningsAsErrors");
+  public static final OptionKey<Boolean> TREAT_WARNINGS_AS_ERRORS_KEY = new OptionKey<>(false);
+  private static final OptionDescriptor TREAT_WARNINGS_AS_ERRORS_DESCRIPTOR =
+      OptionDescriptor.newBuilder(TREAT_WARNINGS_AS_ERRORS_KEY, TREAT_WARNINGS_AS_ERRORS).build();
 
   public static final String ENABLE_AUTO_PARALLELISM = optionName("withAutoParallelism");
   public static final OptionKey<Boolean> ENABLE_AUTO_PARALLELISM_KEY = new OptionKey<>(false);
@@ -81,6 +87,13 @@ public final class RuntimeOptions {
   public static final OptionDescriptor JOB_PARALLELISM_DESCRIPTOR =
       OptionDescriptor.newBuilder(JOB_PARALLELISM_KEY, JOB_PARALLELISM).build();
 
+  public static final String GUEST_PARALLELISM = interpreterOptionName("guestParallelism");
+  public static final OptionKey<Integer> GUEST_PARALLELISM_KEY = new OptionKey<>(1);
+  public static final OptionDescriptor GUEST_PARALLELISM_DESCRIPTOR =
+      OptionDescriptor.newBuilder(GUEST_PARALLELISM_KEY, GUEST_PARALLELISM)
+          .category(OptionCategory.EXPERT)
+          .build();
+
   public static final String ENABLE_PROJECT_SUGGESTIONS = optionName("enableProjectSuggestions");
   public static final OptionKey<Boolean> ENABLE_PROJECT_SUGGESTIONS_KEY = new OptionKey<>(true);
   private static final OptionDescriptor ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR =
@@ -91,6 +104,11 @@ public final class RuntimeOptions {
   public static final OptionKey<Boolean> ENABLE_GLOBAL_SUGGESTIONS_KEY = new OptionKey<>(true);
   private static final OptionDescriptor ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR =
       OptionDescriptor.newBuilder(ENABLE_GLOBAL_SUGGESTIONS_KEY, ENABLE_GLOBAL_SUGGESTIONS).build();
+
+  public static final String ENABLE_PROGRESS_REPORT = optionName("enableProgressReport");
+  public static final OptionKey<Boolean> ENABLE_PROGRESS_REPORT_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor ENABLE_PROGRESS_REPORT_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_PROGRESS_REPORT_KEY, ENABLE_PROGRESS_REPORT).build();
 
   public static final String LANGUAGE_HOME_OVERRIDE = optionName("languageHomeOverride");
   public static final OptionKey<String> LANGUAGE_HOME_OVERRIDE_KEY = new OptionKey<>("");
@@ -142,6 +160,10 @@ public final class RuntimeOptions {
   private static final OptionDescriptor WARNINGS_LIMIT_DESCRIPTOR =
       OptionDescriptor.newBuilder(WARNINGS_LIMIT_KEY, WARNINGS_LIMIT).build();
 
+  public static final String IR_DUMPER_SYSTEM_PROP = "enso.compiler.dumpIr";
+  public static final String REMOVE_UNUSED_IMPORTS_SYSTEM_PROP =
+      "enso.compiler.removeUnusedImports";
+
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
           Arrays.asList(
@@ -151,9 +173,11 @@ public final class RuntimeOptions {
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               DISABLE_PRIVATE_CHECK_DESCRIPTOR,
               ENABLE_STATIC_ANALYSIS_DESCRIPTOR,
+              TREAT_WARNINGS_AS_ERRORS_DESCRIPTOR,
               ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
+              ENABLE_PROGRESS_REPORT_DESCRIPTOR,
               INTERACTIVE_MODE_DESCRIPTOR,
               DISABLE_LINTING_DESCRIPTOR,
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
@@ -161,6 +185,7 @@ public final class RuntimeOptions {
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_DESCRIPTOR,
               JOB_PARALLELISM_DESCRIPTOR,
+              GUEST_PARALLELISM_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
               PREINITIALIZE_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,

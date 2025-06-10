@@ -53,7 +53,7 @@ public abstract class TypeOfNode extends Node {
    */
   public final TruffleObject findTypeOrError(Object value) {
     try {
-      var types = executeTypes(value);
+      var types = executeTypes(value, false);
       return types[0];
     } catch (NonTypeResult plain) {
       return plain.result;
@@ -76,11 +76,13 @@ public abstract class TypeOfNode extends Node {
    * that the returned array is going to have at least one element, if it is non-{@code null}.
    *
    * @param value the value to check
+   * @param includeExtraTypes specify {@code false} to return only <em>types value has already been
+   *     case to</em>, specify {@code true} to return all <em>types value can be cast to</em>
    * @return either types associated with the value or {@code null} if there is no such type
    */
-  public final Type[] findAllTypesOrNull(Object value) {
+  public final Type[] findAllTypesOrNull(Object value, boolean includeExtraTypes) {
     try {
-      var types = executeTypes(value);
+      var types = executeTypes(value, includeExtraTypes);
       assert types != null && types.length > 0;
       return types;
     } catch (NonTypeResult ex) {
@@ -92,11 +94,13 @@ public abstract class TypeOfNode extends Node {
    * Internal implementation call to delegate to various {@link Specialization} methods.
    *
    * @param value the value to find type for
+   * @param includeExtraTypes {@code false} to return only <em>types value has already been case
+   *     to</em>, {@code true} to return all <em>types value can be cast to</em>
    * @return array of types with at least one element, but possibly more
    * @throws NonTypeResult when there is a <em>interop value</em> result, but it is not a {@link
    *     Type}
    */
-  abstract Type[] executeTypes(Object value) throws NonTypeResult;
+  abstract Type[] executeTypes(Object value, boolean includeExtraTypes) throws NonTypeResult;
 
   /**
    * Creates new optimizing instance of this node.
@@ -123,38 +127,39 @@ public abstract class TypeOfNode extends Node {
   }
 
   @Specialization
-  Type[] doUnresolvedSymbol(UnresolvedSymbol value) {
+  Type[] doUnresolvedSymbol(UnresolvedSymbol value, boolean allTypes) {
     return fromType(EnsoContext.get(this).getBuiltins().function());
   }
 
   @Specialization
-  Type[] doDouble(double value) {
+  Type[] doDouble(double value, boolean allTypes) {
     return fromType(EnsoContext.get(this).getBuiltins().number().getFloat());
   }
 
   @Specialization
-  Type[] doLong(long value) {
+  Type[] doLong(long value, boolean allTypes) {
     return fromType(EnsoContext.get(this).getBuiltins().number().getInteger());
   }
 
   @Specialization
-  Type[] doBigInteger(EnsoBigInteger value) {
+  Type[] doBigInteger(EnsoBigInteger value, boolean allTypes) {
     return fromType(EnsoContext.get(this).getBuiltins().number().getInteger());
   }
 
   @Specialization
-  Type[] doPanicException(PanicException value) {
+  Type[] doPanicException(PanicException value, boolean allTypes) {
     return fromType(EnsoContext.get(this).getBuiltins().panic());
   }
 
   @Specialization
-  Type[] doPanicSentinel(PanicSentinel value) {
+  Type[] doPanicSentinel(PanicSentinel value, boolean allTypes) {
     return fromType(EnsoContext.get(this).getBuiltins().panic());
   }
 
   @Specialization
-  Type[] doWarning(WithWarnings value, @Cached TypeOfNode withoutWarning) throws NonTypeResult {
-    return withoutWarning.executeTypes(value.getValue());
+  Type[] doWarning(WithWarnings value, boolean includeExtraTypes, @Cached TypeOfNode withoutWarning)
+      throws NonTypeResult {
+    return withoutWarning.executeTypes(value.getValue(), includeExtraTypes);
   }
 
   static boolean isWithType(Object value, TypesLibrary types, InteropLibrary iop) {
@@ -180,6 +185,7 @@ public abstract class TypeOfNode extends Node {
   @Specialization(guards = {"isWithoutType(value, types)"})
   Type[] withoutType(
       Object value,
+      boolean allTypes,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached WithoutType delegate)
@@ -201,14 +207,15 @@ public abstract class TypeOfNode extends Node {
   @Specialization(guards = {"isWithType(value, types, interop)"})
   Type[] doType(
       Object value,
+      boolean includeExtraTypes,
       @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
       @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types) {
-    return types.allTypes(value);
+    return types.allTypes(value, includeExtraTypes);
   }
 
   @Fallback
   @CompilerDirectives.TruffleBoundary
-  Type[] doAny(Object value) throws NonTypeResult {
+  Type[] doAny(Object value, boolean allTypes) throws NonTypeResult {
     var err =
         DataflowError.withDefaultTrace(
             EnsoContext.get(this)

@@ -7,8 +7,9 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "bit_not", description = "Bitwise negation.")
-public abstract class BitNotNode extends IntegerNode {
-  abstract Object execute(Object own);
+public abstract class BitNotNode extends IntegerNode.Unary {
+  @Override
+  abstract Object executeUnary(Object own);
 
   static BitNotNode build() {
     return BitNotNodeGen.create();

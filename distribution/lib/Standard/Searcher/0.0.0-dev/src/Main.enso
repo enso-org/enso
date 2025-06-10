@@ -1,6 +1,3 @@
-from Standard.Base import all
-import Standard.Base.Errors.Unimplemented.Unimplemented
-
 ## A library that defines the documentation for the hand-curated searcher
    categories.
 
@@ -9,6 +6,8 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
    simple mechanism for placing documentation for these categories within the
    suggestions database.
 
+from Standard.Base import all
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 ## ALIAS text input
    GROUP Standard.Base.Constants

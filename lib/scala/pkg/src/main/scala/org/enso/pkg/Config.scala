@@ -5,6 +5,7 @@ import org.enso.semver.SemVer
 import org.enso.editions.{EditionName, Editions}
 import org.enso.pkg.validation.NameValidation
 import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
+import org.enso.version.BuildVersion
 import org.yaml.snakeyaml.{DumperOptions, Yaml}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
@@ -94,10 +95,8 @@ object Contact {
   *                             local libraries over what is defined in the
   *                             edition
   * @param componentGroups the description of component groups provided by this
-  *                        package
-  * @param originalJson a Json object holding the original values that this
-  *                     Config was created from, used to preserve configuration
-  *                     keys that are not known
+  *                        package,
+  * @param jvm determines whether JVM mode should be enabled for the project
   */
 case class Config(
   name: String,
@@ -110,12 +109,25 @@ case class Config(
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
   componentGroups: Option[ComponentGroups],
-  requires: List[String]
+  requires: List[String],
+  jvm: Option[Boolean]
 ) {
 
   /** Converts the configuration into a YAML representation. */
   def toYaml: String = {
-    val node          = implicitly[YamlEncoder[Config]].encode(this)
+    val config: Config = this
+    val noDevEdition: Config =
+      if (
+        config.edition.exists(
+          _.parent
+            .exists(p => p.toString == BuildVersion.defaultDevEnsoVersion())
+        )
+      ) {
+        config.copy(edition = None)
+      } else {
+        config
+      }
+    val node          = implicitly[YamlEncoder[Config]].encode(noDevEdition)
     val dumperOptions = new DumperOptions()
     dumperOptions.setIndent(2)
     dumperOptions.setPrettyFlow(true)
@@ -149,6 +161,7 @@ object Config {
     val Edition: String        = "edition"
     val PreferLocalLibraries   = "prefer-local-libraries"
     val ComponentGroups        = "component-groups"
+    val Jvm: String            = "jvm"
   }
 
   implicit val yamlDecoder: YamlDecoder[Config] =
@@ -227,6 +240,11 @@ object Config {
               .get(JsonFields.ComponentGroups)
               .map(componentGroups.decode)
               .getOrElse(Right(None))
+            jvmMode <- clazzMap
+              .get(JsonFields.Jvm)
+              .flatMap(v => booleanDecoder.decode(v).toOption)
+              .map(v => Right(Some(v)))
+              .getOrElse(Right(None))
           } yield Config(
             name,
             normalizedName,
@@ -238,7 +256,8 @@ object Config {
             edition,
             preferLocalLibraries,
             componentGroups,
-            requires
+            requires,
+            jvmMode
           )
       }
     }
@@ -301,6 +320,11 @@ object Config {
             (JsonFields.ComponentGroups, componentGroupsEncoder.encode(v))
           )
         )
+        if (value.jvm.nonEmpty) {
+          elements.add(
+            (JsonFields.Jvm, booleanEncoder.encode(value.jvm.get))
+          )
+        }
 
         toMap(elements)
       }
@@ -341,4 +365,6 @@ object Config {
     repositories  = Map(),
     libraries     = Map()
   )
+
+  def ensoPackageConfigName: String = "package.yaml"
 }

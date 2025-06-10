@@ -1,18 +1,19 @@
 <script setup lang="ts">
+import { useProjectStore } from '$/components/WithCurrentProject.vue'
+import ActionButton from '@/components/ActionButton.vue'
 import NavBreadcrumb from '@/components/NavBreadcrumb.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { injectStackNavigator } from '@/providers/graphStackNavigator'
-import { useProjectStore } from '@/stores/project'
 import { useToast } from '@/util/toast'
-import { ref } from 'vue'
 
 export interface BreadcrumbItem {
   label: string
   active: boolean
   isCurrentTop: boolean
 }
+
 const renameError = useToast.error()
-const projectNameEdited = ref(false)
+const projectNameEdited = defineModel<boolean>('projectNameEdited', { default: false })
 
 const stackNavigator = injectStackNavigator()
 const project = useProjectStore()
@@ -31,11 +32,11 @@ async function renameBreadcrumb(index: number, newName: string) {
 <template>
   <div class="NavBar">
     <div class="NavBreadcrumbs">
-      <SvgButton name="edit" title="Edit Project Name" @click.stop="projectNameEdited = true" />
+      <ActionButton action="graph.navigateUp" />
       <template v-for="(breadcrumb, index) in stackNavigator.breadcrumbLabels.value" :key="index">
         <SvgButton
           v-if="index > 0"
-          name="arrow_right_head_only"
+          name="navigate_breadcrumb"
           :disabled="!breadcrumb.active"
           :class="{ nonInteractive: breadcrumb.isCurrentTop }"
           class="arrow"

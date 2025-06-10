@@ -3,7 +3,6 @@ import {
   isSpreadsheetTsv,
   nodesFromClipboardContent,
   nodesToClipboardData,
-  tsvTableToEnsoExpression,
 } from '@/components/GraphEditor/clipboard'
 import { type Node } from '@/stores/graph'
 import { Ast } from '@/util/ast'
@@ -12,36 +11,6 @@ import { Blob } from 'node:buffer'
 import { expect, test } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
 import { type VisualizationMetadata } from 'ydoc-shared/yjsModel'
-
-test.each([
-  {
-    description: 'Unpaired surrogate',
-    tableData: '𝌆\t\uDAAA',
-    expectedEnsoExpression: "'𝌆\\t\\u{daaa}'.to Table",
-  },
-  {
-    description: 'Multiple rows, empty cells',
-    tableData: [
-      '\t36\t52',
-      '11\t\t4.727272727',
-      '12\t\t4.333333333',
-      '13\t2.769230769\t4',
-      '14\t2.571428571\t3.714285714',
-      '15\t2.4\t3.466666667',
-      '16\t2.25\t3.25',
-      '17\t2.117647059\t3.058823529',
-      '19\t1.894736842\t2.736842105',
-      '21\t1.714285714\t2.476190476',
-      '24\t1.5\t2.166666667',
-      '27\t1.333333333\t1.925925926',
-      '30\t1.2\t',
-    ].join('\n'),
-    expectedEnsoExpression:
-      "'\\t36\\t52\\n11\\t\\t4.727272727\\n12\\t\\t4.333333333\\n13\\t2.769230769\\t4\\n14\\t2.571428571\\t3.714285714\\n15\\t2.4\\t3.466666667\\n16\\t2.25\\t3.25\\n17\\t2.117647059\\t3.058823529\\n19\\t1.894736842\\t2.736842105\\n21\\t1.714285714\\t2.476190476\\n24\\t1.5\\t2.166666667\\n27\\t1.333333333\\t1.925925926\\n30\\t1.2\\t'.to Table",
-  },
-])('Enso expression from Excel data: $description', ({ tableData, expectedEnsoExpression }) => {
-  expect(tsvTableToEnsoExpression(tableData)).toEqual(expectedEnsoExpression)
-})
 
 class MockClipboardItem {
   readonly types: ReadonlyArray<string>

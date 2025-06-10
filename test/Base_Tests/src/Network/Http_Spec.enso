@@ -28,7 +28,7 @@ type Bad_To_Json
 
 # Clear out fields that we want to ignore
 remove_fields json =
-    json.set_value  "headers" (json.at "headers" . set_value "User-Agent" "")
+    json.set_value  "headers" (json.at "headers" . set_value "User-Agent" "" . set_value "Http2-Settings" "")
 compare_responses a b = (remove_fields a).should_equal (remove_fields b)
 
 ## To run this test locally:
@@ -181,7 +181,7 @@ add_specs suite_builder =
 
         group_builder.specify "Fails on a bad URL scheme" <|
             Data.fetch "zxcv://bad.scheme" . should_fail_with Illegal_Argument
-            Data.fetch "" . should_fail_with Illegal_Argument
+            Data.fetch "" . should_fail_with Syntax_Error
 
         group_builder.specify "can select the version" <| Test.with_retries <|
             req = Request.get url_get
@@ -195,13 +195,19 @@ add_specs suite_builder =
             header_names.should_not_contain "http2-settings"
             header_names.should_not_contain "upgrade"
 
+    suite_builder.group "Online test" group_builder->
+        group_builder.specify "can fetch data via HTTPS" <| Test.with_retries <|
+            https_readme_url = "https://raw.githubusercontent.com/enso-org/enso/refs/heads/develop/README.md"
+            response = Data.fetch https_readme_url format=Raw_Response
+            response.code.code . should_equal 200
+
     suite_builder.group "HTTP in Data.read" pending=pending_has_url group_builder->
         group_builder.specify "can use URI in Data.read" <| Test.with_retries <|
             r = Data.read (URI.from url_get)
             r.should_be_a JS_Object
 
         group_builder.specify "can use URI or Text URLs in Data.read_many" <|
-            r = Data.read_many [URI.from url_get, url_get]
+            r = Data.read_many [URI.from url_get, url_get] return=..As_Vector
             r.should_be_a Vector
             r.at 0 . should_be_a JS_Object
             r.at 1 . should_be_a JS_Object
@@ -221,6 +227,12 @@ add_specs suite_builder =
 
             plain_response = Data.read url_get format=..Plain_Text
             plain_response.should_be_a Text
+
+    suite_builder.group "read_many" group_builder->
+        group_builder.specify "Data.read with a Vector tells the user to use read_many" <| Test.with_retries <|
+            err = Data.read ['http://abc.com']
+            err.should_fail_with Illegal_Argument
+            err.catch.message.should_equal "Data.read cannot be used with a Vector. Please use Data.read_many."
 
     suite_builder.group "post" pending=pending_has_url group_builder->
         url_post = base_url_with_slash + "post"
@@ -566,30 +578,30 @@ add_specs suite_builder =
     suite_builder.group "Header resolution" group_builder->
         group_builder.specify "Default content type and encoding" <|
             expected = [Header.content_type "text/plain; charset=UTF-8"]
-            _resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "")) . should_equal_ignoring_order expected
+            _resolve_headers (Request.new HTTP_Method.Get "www.enso.org" [] (Request_Body.Text "")) . should_equal_ignoring_order expected
 
         group_builder.specify "Content type specified in body" <|
             expected = [Header.content_type "application/json; charset=UTF-8"]
-            _resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json")) . should_equal_ignoring_order expected
+            _resolve_headers (Request.new HTTP_Method.Get "www.enso.org" [] (Request_Body.Text "" content_type="application/json")) . should_equal_ignoring_order expected
 
         group_builder.specify "Content type specified in header list" <|
             expected = [Header.content_type "application/json"]
-            _resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")) . should_equal_ignoring_order expected
+            _resolve_headers (Request.new HTTP_Method.Get "www.enso.org" [Header.content_type "application/json"] (Request_Body.Text "")) . should_equal_ignoring_order expected
 
         group_builder.specify "Text encoding specified in body" <|
             expected = [Header.content_type "text/plain; charset=UTF-16LE"]
-            _resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" encoding=Encoding.utf_16_le)) . should_equal_ignoring_order expected
+            _resolve_headers (Request.new HTTP_Method.Get "www.enso.org" [] (Request_Body.Text "" encoding=Encoding.utf_16_le)) . should_equal_ignoring_order expected
 
         group_builder.specify "Can't specify content type in both places" <|
-            _resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain")) . should_fail_with Illegal_Argument
+            _resolve_headers (Request.new HTTP_Method.Get "www.enso.org" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain")) . should_fail_with Illegal_Argument
 
         group_builder.specify "Custom header" <|
             expected = [Header.new "some" "header", Header.content_type "application/json; charset=UTF-8"]
-            _resolve_headers (Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json")) . should_equal_ignoring_order expected
+            _resolve_headers (Request.new HTTP_Method.Get "www.enso.org" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json")) . should_equal_ignoring_order expected
 
         group_builder.specify "Multiple content types in header list are ok" <|
             expected = [Header.content_type "application/json", Header.content_type "text/plain"]
-            _resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_equal_ignoring_order expected
+            _resolve_headers (Request.new HTTP_Method.Get "www.enso.org" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_equal_ignoring_order expected
 
     suite_builder.group "Http Error handling" group_builder->
         group_builder.specify "should be able to handle request errors" <|
@@ -614,8 +626,9 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to handle server crash that closes stream abruptly" pending=pending_has_url <|
             err = Data.fetch (base_url_with_slash+"crash?type=stream") cache_policy=..No_Cache
-            err.should_fail_with HTTP_Error
-            err.catch.message . should_equal "An IO error has occurred: java.io.IOException: closed"
+            err.should_fail_with Request_Error
+            err.catch.error_type . should_equal "java.io.IOException"
+            err.catch.message . should_equal "HTTP/1.1 header parser received no bytes"
 
         group_builder.specify "should be able to handle occasional abrupt stream closures and retry" pending=pending_has_url <|
             r1 = Data.fetch (base_url_with_slash+"crash?type=stream&success_every=2")

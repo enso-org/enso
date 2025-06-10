@@ -12,7 +12,6 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Caught_Panic",
@@ -23,11 +22,10 @@ public abstract class CaughtPanicConvertToDataflowErrorNode extends Node {
     return CaughtPanicConvertToDataflowErrorNodeGen.create();
   }
 
-  abstract Object execute(State state, Atom self);
+  abstract Object execute(Atom self);
 
   @Specialization
   Object doExecute(
-      State state,
       Atom self,
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
       @CachedLibrary(limit = "5") StructsLibrary structs) {

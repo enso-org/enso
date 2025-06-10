@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -151,13 +152,15 @@ add_specs suite_builder =
                 r.is_empty . should_equal r.to_vector.is_empty
                 r.not_empty . should_equal r.to_vector.not_empty
 
-                r.map .day_of_week . should_equal (r.to_vector.map .day_of_week)
+                x = r.map .day_of_week
+                y = r.to_vector.map .day_of_week
+                x . should_equal y
                 p = d-> d.day_of_week == Day_Of_Week.Monday
                 r.filter p . should_equal (r.to_vector.filter p)
                 r.partition p . should_equal (r.to_vector.partition p)
                 r.all p . should_equal (r.to_vector.all p)
                 r.any p . should_equal (r.to_vector.any p)
-                r.find p . should_equal (r.to_vector.find p)
+                r.find p if_missing="not found" . should_equal (r.to_vector.find p if_missing="not found")
                 r.index_of p . should_equal (r.to_vector.index_of p)
                 r.last_index_of p . should_equal (r.to_vector.last_index_of p)
                 count_mondays acc date =
@@ -170,7 +173,7 @@ add_specs suite_builder =
                 r.partition fc . should_equal (r.to_vector.partition fc)
                 r.all fc . should_equal (r.to_vector.all fc)
                 r.any fc . should_equal (r.to_vector.any fc)
-                r.find fc . should_equal (r.to_vector.find fc)
+                r.find fc if_missing="not found" . should_equal (r.to_vector.find fc if_missing="not found")
                 r.index_of fc . should_equal (r.to_vector.index_of fc)
                 r.last_index_of fc . should_equal (r.to_vector.last_index_of fc)
 
@@ -181,6 +184,9 @@ add_specs suite_builder =
                 Test.expect_panic_with (r.find invalid_arg) Type_Error
                 Test.expect_panic_with (r.index_of invalid_arg) Type_Error
                 Test.expect_panic_with (r.last_index_of invalid_arg) Type_Error
+
+                # If `if_missing` is not provided, it defaults to `Not_Found` dataflow error
+                r.find (== 123) . should_fail_with Not_Found
 
                 reducer x y = if x > y then x else y
 

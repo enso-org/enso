@@ -1,17 +1,18 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { useGraphStore } from '@/stores/graph'
 import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
 import { computed } from 'vue'
+import { mapOrUndefined } from 'ydoc-shared/util/data/opt'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
+
 const application = computed(() => props.input[ArgumentApplicationKey])
 const graph = useGraphStore()
 
@@ -25,11 +26,6 @@ const targetMaybePort = computed(() => {
     if (!ptr) return input
     const definition = graph.getMethodAst(ptr)
     if (!definition.ok) return input
-    if (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident) {
-      input[FunctionName] = {
-        editableName: definition.value.name.externalId,
-      }
-    }
     return input
   } else {
     return { ...target.toWidgetInput(), forcePort: !(target instanceof ArgumentApplication) }
@@ -41,11 +37,9 @@ const appClass = computed(() => {
 })
 
 const operatorStyle = computed(() => {
-  if (
-    application.value.appTree instanceof Ast.OprApp ||
-    application.value.appTree instanceof Ast.PropertyAccess
-  ) {
-    const [_lhs, opr, rhs] = application.value.appTree.concreteChildren({
+  const appTree = application.value.appTree
+  if (appTree instanceof Ast.OprApp || appTree instanceof Ast.PropertyAccess) {
+    const [_lhs, opr, rhs] = appTree.concreteChildren({
       verbatim: true,
       indent: '',
     })
@@ -56,14 +50,18 @@ const operatorStyle = computed(() => {
   }
   return {}
 })
+
+const infixWidgetInput = computed(() =>
+  mapOrUndefined(application.value.infixOperator, WidgetInput.FromAst),
+)
+const showArgument = computed(() => tree.extended || !application.value.argument.hideByDefault)
+const argumentWidgetInput = computed(() => application.value.argument.toWidgetInput())
 </script>
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(
   ArgumentApplicationKey,
-  {
-    priority: -20,
-  },
+  { priority: -20 },
   import.meta.hot,
 )
 </script>
@@ -71,15 +69,11 @@ export const widgetDefinition = defineWidget(
 <template>
   <div class="WidgetApplication" :class="appClass">
     <NodeWidget :input="targetMaybePort" :nest="application.isInnermost" />
-    <div v-if="application.infixOperator" class="infixOp" :style="operatorStyle">
-      <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
+    <div v-if="infixWidgetInput" class="infixOp" :style="operatorStyle">
+      <NodeWidget :input="infixWidgetInput" />
     </div>
     <SizeTransition width leftGap>
-      <NodeWidget
-        v-if="tree.extended || !application.argument.hideByDefault"
-        :input="application.argument.toWidgetInput()"
-        nest
-      />
+      <NodeWidget v-if="showArgument" :input="argumentWidgetInput" nest />
     </SizeTransition>
   </div>
 </template>

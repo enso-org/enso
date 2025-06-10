@@ -166,6 +166,9 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
+      case DestroyContextResponse(_) =>
+      // Initiated by *this* registry. Ignore
+
       case PushContextRequest(client, contextId, stackItem) =>
         if (store.hasContext(client.clientId, contextId)) {
           val item = getRuntimeStackItem(stackItem)

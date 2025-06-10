@@ -12,7 +12,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the most common value in a group (ignoring Nothing). */
-public class Mode extends Aggregator {
+public class Mode extends KnownTypeAggregator {
   private final Storage<?> storage;
 
   public Mode(String name, Column column) {

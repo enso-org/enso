@@ -42,6 +42,9 @@ class RecomputeContextCmd(
     ec: ExecutionContext
   ): Future[Boolean] = {
     Future {
+      ctx.executionService.getContext
+        .getResourceManager()
+        .scheduleFinalizationOfSystemReferences();
       ctx.jobControlPlane.abortJobs(
         request.contextId,
         "recompute context",

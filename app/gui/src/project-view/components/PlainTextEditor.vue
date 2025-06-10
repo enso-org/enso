@@ -2,7 +2,7 @@
 import { type ComponentInstance, computed, defineAsyncComponent, ref } from 'vue'
 import * as Y from 'yjs'
 
-const props = defineProps<{ content: Y.Text | string }>()
+const props = defineProps<{ content: Y.Text | string; contentTestId?: string | undefined }>()
 
 const impl = ref<ComponentInstance<typeof LazyPlainTextEditor>>()
 

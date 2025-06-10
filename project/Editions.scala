@@ -18,6 +18,7 @@ object Editions {
     "Standard.Visualization",
     "Standard.Examples",
     "Standard.Searcher",
+    "Standard.Generic_JDBC",
     "Standard.Google_Api",
     "Standard.Snowflake",
     "Standard.Microsoft",

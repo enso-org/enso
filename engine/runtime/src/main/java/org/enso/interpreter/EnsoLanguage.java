@@ -9,13 +9,19 @@ import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.ExecutableNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
@@ -31,14 +37,32 @@ import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
+import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
+import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.IrToTruffle;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.EnsoDate;
+import org.enso.interpreter.runtime.data.EnsoDateTime;
+import org.enso.interpreter.runtime.data.EnsoDuration;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
+import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.data.hash.HashMapToVectorNode;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.runtime.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.runtime.instrument.Timer;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -71,7 +95,12 @@ import org.graalvm.options.OptionType;
     contextPolicy = TruffleLanguage.ContextPolicy.EXCLUSIVE,
     dependentLanguages = {"epb"},
     fileTypeDetectors = FileDetector.class,
-    services = {Timer.class, NotificationHandler.Forwarder.class, LockManager.class})
+    services = {
+      Timer.class,
+      NotificationHandler.Forwarder.class,
+      LockManager.class,
+      ScheduledExecutorService.class
+    })
 @ProvidedTags({
   DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
@@ -90,6 +119,8 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   private final ContextThreadLocal<ExecutionEnvironment[]> executionEnvironment =
       locals.createContextThreadLocal((ctx, thread) -> new ExecutionEnvironment[1]);
+  private final ContextThreadLocal<State> state =
+      locals.createContextThreadLocal((ctx, thread) -> State.create(ctx));
 
   public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);
@@ -145,6 +176,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         new EnsoContext(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
 
+    env.registerService(context.getThreadManager());
     return context;
   }
 
@@ -236,15 +268,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       var localScope = ensoRootNode.getLocalScope();
       var outputRedirect = new ByteArrayOutputStream();
       var redirectConfigWithStrictErrors =
-          new CompilerConfig(
-              false,
-              false,
-              true,
-              false,
-              false,
-              true,
-              false,
-              scala.Option.apply(new PrintStream(outputRedirect)));
+          CompilerConfig.builder()
+              .isStrictErrors(true)
+              .outputRedirect(scala.Option.apply(new PrintStream(outputRedirect)))
+              .build();
       var moduleContext =
           new ModuleContext(
               module.asCompilerModule(),
@@ -365,13 +392,84 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     return context.getTopScope();
   }
 
-  /** Conversions of primitive values */
+  /** Conversion of foreign/polyglot values to their Enso builtin counterparts. */
   @Override
-  protected Object getLanguageView(EnsoContext context, Object value) {
+  public Object getLanguageView(EnsoContext context, Object value) {
     if (value instanceof Boolean b) {
       var bool = context.getBuiltins().bool();
       var cons = b ? bool.getTrue() : bool.getFalse();
       return AtomNewInstanceNode.getUncached().newInstance(cons);
+    }
+    if (value instanceof EnsoObject ensoObject) {
+      return ensoObject;
+    }
+    var interop = InteropLibrary.getUncached();
+    // We want to know if the `value` can be converted to some Enso builtin type.
+    // In order to do that, we are trying to infer PolyglotCallType of `value.to` method.
+    var anyModuleScope = context.getBuiltins().any().getDefinitionScope();
+    var unresolvedSymbol = UnresolvedSymbol.build("to", anyModuleScope);
+    var methodResolverNode = MethodResolverNode.getUncached();
+    var callType =
+        HostMethodCallNode.getPolyglotCallType(
+            value, unresolvedSymbol, interop, methodResolverNode);
+    try {
+      switch (callType) {
+        case CONVERT_TO_DATE -> {
+          var localDate = interop.asDate(value);
+          return new EnsoDate(localDate);
+        }
+        case CONVERT_TO_ARRAY -> {
+          return ArrayLikeHelpers.asVectorFromArray(value);
+        }
+        case CONVERT_TO_BIG_INT -> {
+          // long and doubles are valid primitive types in Enso
+          if (interop.fitsInLong(value)) {
+            return new LanguageViewWrapper(interop.asLong(value));
+          } else if (interop.fitsInDouble(value)) {
+            return new LanguageViewWrapper(interop.asDouble(value));
+          } else {
+            return new EnsoBigInteger(interop.asBigInteger(value));
+          }
+        }
+        case CONVERT_TO_DATE_TIME, CONVERT_TO_ZONED_DATE_TIME -> {
+          var date = interop.asDate(value);
+          var time = interop.asTime(value);
+          var zonedDt = date.atTime(time).atZone(ZoneId.systemDefault());
+          return new EnsoDateTime(zonedDt);
+        }
+        case CONVERT_TO_DURATION -> {
+          return new EnsoDuration(interop.asDuration(value));
+        }
+        case CONVERT_TO_HASH_MAP -> {
+          var ensoHash = EnsoHashMap.empty();
+          var insertNode = HashMapInsertNode.getUncached();
+          var vec = HashMapToVectorNode.getUncached().execute(value);
+          var arrayAtNode = ArrayLikeAtNode.getUncached();
+          var size = ArrayLikeLengthNode.getUncached().executeLength(vec);
+          for (long i = 0; i < size; i++) {
+            var pair = arrayAtNode.executeAt(vec, i);
+            var key = arrayAtNode.executeAt(pair, 0);
+            var val = arrayAtNode.executeAt(pair, 1);
+            ensoHash = insertNode.execute(null, ensoHash, key, val);
+          }
+          return ensoHash;
+        }
+        case CONVERT_TO_TEXT -> {
+          return Text.create(interop.asString(value));
+        }
+        case CONVERT_TO_TIME_ZONE -> {
+          return new EnsoTimeZone(interop.asTimeZone(value));
+        }
+        case CONVERT_TO_TIME_OF_DAY -> {
+          var time = interop.asTime(value);
+          return new EnsoTimeOfDay(time);
+        }
+        case NOT_SUPPORTED -> {
+          return null;
+        }
+      }
+    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
+      context.getLogger().log(Level.WARNING, "Unexpected exception", e);
     }
     return null;
   }
@@ -382,5 +480,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
     this.executionEnvironment.get()[0] = executionEnvironment;
+  }
+
+  /** Access to state associated with current context and thread. */
+  public final State currentState() {
+    return this.state.get();
   }
 }

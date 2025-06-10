@@ -1,12 +1,13 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Data.Decimal import get_big_decimal
 
 from Standard.Table import Value_Type
 
 polyglot java import java.math.BigDecimal as Java_Big_Decimal
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types as Java_Types
-
 polyglot java import org.enso.base.polyglot.NumericConverter
 polyglot java import org.enso.database.JDBCUtils
 
@@ -41,7 +42,7 @@ fill_hole_default stmt i type_hint value = case value of
             big_decimal = NumericConverter.bigIntegerAsBigDecimal value
             stmt.setBigDecimal i big_decimal
         False -> stmt.setLong i value
-    _ : Decimal   -> stmt.setBigDecimal i value.big_decimal
+    _ : Decimal   -> stmt.setBigDecimal i (get_big_decimal value)
     _ : Float     -> stmt.setDouble i value
     _ : Text      -> stmt.setString i value
     _ : Date_Time ->
@@ -60,4 +61,5 @@ fill_hole_default stmt i type_hint value = case value of
        which ensure the type is locked to the Java class known to JDBC.
     _ : Time_Of_Day -> JDBCUtils.setLocalTime stmt i value
     _ : Date        -> JDBCUtils.setLocalDate stmt i value
+    _ : Vector      -> Error.throw (Illegal_Argument.Error "Default implementation does not support interpolating Vectors into SQL queries.")
     _               -> stmt.setObject i value

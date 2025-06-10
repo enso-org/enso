@@ -5,10 +5,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Handler;
 import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
 import org.enso.logging.config.LoggerSetup;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.io.MessageTransport;
 import org.slf4j.event.Level;
@@ -41,9 +43,11 @@ public final class ContextFactory {
   private MessageTransport messageTransport;
   private Level logLevel = Level.INFO;
   private boolean logMasking;
+  private Handler logHandler = JulHandler.get();
   private boolean enableIrCaches;
   private boolean disablePrivateCheck;
-  private boolean enableStaticAnalysis;
+  private boolean enableStaticAnalysis = false;
+  private boolean treatWarningsAsErrors = false;
   private boolean strictErrors;
   private boolean disableLinting;
   private boolean useGlobalIrCacheLocation = true;
@@ -52,6 +56,7 @@ public final class ContextFactory {
   private String checkForWarnings;
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = new HashMap<>();
+  private String runtimerServerKey;
   private boolean enableDebugServer;
 
   private ContextFactory() {}
@@ -95,6 +100,12 @@ public final class ContextFactory {
     return this;
   }
 
+  /** Overwrites the {@link JulHandler default} logging handler. */
+  public ContextFactory logHandler(Handler handler) {
+    this.logHandler = handler;
+    return this;
+  }
+
   public ContextFactory enableIrCaches(boolean enableIrCaches) {
     this.enableIrCaches = enableIrCaches;
     return this;
@@ -107,6 +118,11 @@ public final class ContextFactory {
 
   public ContextFactory enableStaticAnalysis(boolean enableStaticAnalysis) {
     this.enableStaticAnalysis = enableStaticAnalysis;
+    return this;
+  }
+
+  public ContextFactory treatWarningsAsErrors(boolean treatWarningsAsErrors) {
+    this.treatWarningsAsErrors = treatWarningsAsErrors;
     return this;
   }
 
@@ -145,6 +161,11 @@ public final class ContextFactory {
     return this;
   }
 
+  public ContextFactory enableRuntimeServerInfoKey(String keyName) {
+    this.runtimerServerKey = keyName;
+    return this;
+  }
+
   public ContextFactory checkForWarnings(String fqnOfMethod) {
     this.checkForWarnings = fqnOfMethod;
     return this;
@@ -161,6 +182,16 @@ public final class ContextFactory {
     }
     var julLogLevel = Converter.toJavaLevel(logLevel);
     var logLevelName = julLogLevel.getName();
+    var inAOTMode = HostEnsoUtils.isAot();
+    java.util.Map<String, String> engineOptions = null;
+    if (runtimerServerKey != null) {
+      if (!inAOTMode) {
+        options.put(runtimerServerKey, "true");
+      } else {
+        engineOptions = new java.util.HashMap<>();
+        engineOptions.put(runtimerServerKey, "true");
+      }
+    }
     var builder =
         Context.newBuilder()
             .allowExperimentalOptions(true)
@@ -175,6 +206,8 @@ public final class ContextFactory {
             .option(RuntimeOptions.DISABLE_IR_CACHES, Boolean.toString(!enableIrCaches))
             .option(RuntimeOptions.DISABLE_PRIVATE_CHECK, Boolean.toString(disablePrivateCheck))
             .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, Boolean.toString(enableStaticAnalysis))
+            .option(
+                RuntimeOptions.TREAT_WARNINGS_AS_ERRORS, Boolean.toString(treatWarningsAsErrors))
             .option(RuntimeOptions.LOG_MASKING, Boolean.toString(logMasking))
             .options(options)
             .option(RuntimeOptions.ENABLE_AUTO_PARALLELISM, Boolean.toString(enableAutoParallelism))
@@ -189,11 +222,7 @@ public final class ContextFactory {
     if (enableDebugServer) {
       builder.option(DebugServerInfo.ENABLE_OPTION, "true");
     }
-    if (messageTransport != null) {
-      builder.serverTransport(messageTransport);
-    }
     builder.option(RuntimeOptions.LOG_LEVEL, logLevelName);
-    var logHandler = JulHandler.get();
     var logLevels = LoggerSetup.get().getConfig().getLoggers();
     if (logLevels.hasEnsoLoggers()) {
       logLevels
@@ -226,6 +255,18 @@ public final class ContextFactory {
           .option("java.Polyglot", "true")
           .option("java.UseBindingsLoader", "true")
           .allowCreateThread(true);
+    }
+
+    if (engineOptions != null) {
+      // In AOT mode one must not use a shared engine; the latter causes issues when initializing
+      // message transport - it is set to `null`.
+      var eng = Engine.newBuilder().allowExperimentalOptions(true).options(engineOptions);
+      if (messageTransport != null) {
+        eng.serverTransport(messageTransport);
+      }
+      builder.engine(eng.build());
+    } else if (messageTransport != null) {
+      builder.serverTransport(messageTransport);
     }
 
     var ctx = builder.build();

@@ -1,11 +1,41 @@
 /** @file A hook that makes `gtag.event()` a no-op if the user is offline. */
+import * as load from 'enso-common/src/load'
 import * as React from 'react'
+import { noop } from '../utilities/functions'
 
-import * as gtag from 'enso-common/src/gtag'
+const GOOGLE_ANALYTICS_TAG = typeof $config !== 'undefined' && $config.GOOGLE_ANALYTICS_TAG
 
-// ====================
-// === useGtagEvent ===
-// ====================
+if (GOOGLE_ANALYTICS_TAG != null) {
+  void load
+    .loadScript(`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_TAG}`)
+    .catch(noop)
+}
+
+// @ts-expect-error This is explicitly not given types as it is a mistake to acess this
+// anywhere else.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/strict-boolean-expressions
+window.dataLayer = window.dataLayer || []
+
+/** Google Analytics tag function. */
+export function gtag(action: 'config' | 'event' | 'js' | 'set', ...args: unknown[]) {
+  // @ts-expect-error This is explicitly not given types as it is a mistake to acess this
+  // anywhere else.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+  window.dataLayer.push([action, ...args])
+}
+
+/** Send event to Google Analytics. */
+export function event(name: string, params?: object) {
+  gtag('event', name, params)
+}
+
+gtag('js', new Date())
+// eslint-disable-next-line camelcase, @typescript-eslint/naming-convention
+gtag('set', 'linker', { accept_incoming: true })
+gtag('config', GOOGLE_ANALYTICS_TAG)
+if (GOOGLE_ANALYTICS_TAG === 'G-CLTBJ37MDM') {
+  gtag('config', 'G-DH47F649JC')
+}
 
 /**
  * A hook that returns a no-op if the user is offline, otherwise it returns
@@ -13,13 +43,9 @@ import * as gtag from 'enso-common/src/gtag'
  */
 export function useGtagEvent() {
   return React.useCallback((name: string, params?: object) => {
-    gtag.event(name, params)
+    event(name, params)
   }, [])
 }
-
-// =============================
-// === gtagOpenCloseCallback ===
-// =============================
 
 /**
  * Send an event indicating that something has been opened, and return a cleanup function

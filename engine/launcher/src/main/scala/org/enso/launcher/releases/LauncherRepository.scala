@@ -33,6 +33,9 @@ object LauncherRepository {
   private val launcherFallbackProviderHostname =
     "launcherfallback.release.enso.org"
 
+  /** URL to the repo that could be displayed to the user. */
+  def websiteUrl: String = "https://github.com/enso-org/enso"
+
   /** Defines a part of the URL scheme of the fallback mechanism - the name of
     * the directory that holds the releases.
     *

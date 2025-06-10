@@ -41,7 +41,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.graalvm.options.OptionDescriptor;
@@ -131,7 +130,6 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
 
     private ReplExecutionEventNodeState nodeState;
-    private State monadicState;
 
     private EventContext eventContext;
     private DebuggerMessageHandler handler;
@@ -177,12 +175,12 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     }
 
     public Map<String, Object> listBindings(boolean onlyWarningsOrErrors) {
-      Map<String, FramePointer> flatScope =
-          nodeState.getLastScope().getLocalScope().flattenBindings();
-      Map<String, Object> result = new HashMap<>();
+      var last = nodeState.getLastScope();
+      var flatScope = last.getLocalScope().flattenBindings();
+      var result = new HashMap<String, Object>();
       for (Map.Entry<String, FramePointer> entry : flatScope.entrySet()) {
-        var valueOrNull =
-            readValue(nodeState.getLastScope().getFrame(), entry.getValue(), onlyWarningsOrErrors);
+        var fp = entry.getValue();
+        var valueOrNull = readValue(last.getFrame(), fp, onlyWarningsOrErrors);
         if (valueOrNull != null) {
           result.put(entry.getKey(), valueOrNull);
         }
@@ -196,7 +194,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       try {
         CaptureResultScopeNode.WithCallerInfo payload =
             (CaptureResultScopeNode.WithCallerInfo)
-                evalNode.execute(nodeState.getLastScope(), monadicState, Text.create(expression));
+                evalNode.execute(nodeState.getLastScope(), Text.create(expression));
         CallerInfo lastScope = payload.getCallerInfo();
         Object lastReturn = payload.getResult();
         nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
@@ -250,8 +248,6 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       if (atExit == null) {
         CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
         Object lastReturn = EnsoContext.get(this).getNothing();
-        // Note [Safe Access to State in the Debugger Instrument]
-        monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
         nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
         startSessionImpl();
       }
@@ -263,12 +259,6 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
         startSession(getRootNode(), frame, result);
       }
     }
-
-    /* Note [Safe Access to State in the Debugger Instrument]
-     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     * This is safe to do as we ensure that the instrument's `onEnter` is always called as the
-     * first instruction of the function that it's observing.
-     */
 
     /**
      * Called by Truffle whenever an unwind {@see {@link EventContext#createUnwind(Object)}} was
@@ -292,8 +282,6 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
             new CallerInfo(frame.materialize(), enso.getLocalScope(), enso.getModuleScope());
       }
       if (lastScope != null) {
-        // Note [Safe Access to State in the Debugger Instrument]
-        monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
         nodeState = new ReplExecutionEventNodeState(toReturn, lastScope);
         startSessionImpl();
       }

@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Decimal.Decimal
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
+import project.Data.Number_Utils
 import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
@@ -266,6 +267,7 @@ Text.characters self =
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
+@pattern make_regex_text_widget
 Text.find : (Regex | Text) -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
 Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
@@ -299,13 +301,14 @@ Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..S
          example_find_all_insensitive =
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
+@pattern make_regex_text_widget
 Text.find_all : Text|Regex -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
 Text.find_all self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match_all self
 
-## ALIAS check matches
+## ALIAS check matches, like, regex
    GROUP Text
    ICON preparation
 
@@ -334,6 +337,7 @@ Text.find_all self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..S
              regex = ".+ct@.+"
              # Evaluates to true
              "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
+@pattern Widget.Text_Input
 Text.match : Text|Regex -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error | Illegal_Argument
 Text.match self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sensitive -> Boolean ! Regex_Syntax_Error | Illegal_Argument =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
@@ -359,7 +363,7 @@ Text.match self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sens
 Text.to_regex : Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
 Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
-## ALIAS split text
+## ALIAS parse, tokenize
    GROUP Conversions
    ICON split
 
@@ -407,7 +411,7 @@ Text.split self delimiter="," case_sensitivity:Case_Sensitivity=..Sensitive use_
         if delimiter_is_singleton_vector then self.split delimiter=(delimiter.first) case_sensitivity=case_sensitivity use_regex=use_regex else
             case use_regex of
                 False ->
-                    delimiters = split_find_delimiters self delimiter case_sensitivity
+                    delimiters = _split_find_delimiters self delimiter case_sensitivity
                     Vector.new delimiters.length+1 i->
                         start = if i == 0 then 0 else
                             delimiters.at i-1 . codeunit_end
@@ -426,6 +430,7 @@ Text.split self delimiter="," case_sensitivity:Case_Sensitivity=..Sensitive use_
                         self.split combined_delimiter case_sensitivity=case_sensitivity use_regex=True
 
 ## ADVANCED
+   ALIAS parse, regex, split
    GROUP Conversions
    ICON split
    Takes an input string and and a pattern and returns all the matches as a
@@ -452,6 +457,7 @@ Text.split self delimiter="," case_sensitivity:Case_Sensitivity=..Sensitive use_
 
         'Hello Big\r\nWide\tWorld\nGoodbye!' . tokenize "(\S+)(?:\s+|$)"
             == ["Hello","Big","Wide","World","Goodbye!"]
+@pattern Widget.Text_Input
 Text.tokenize : Text|Regex -> Case_Sensitivity -> Vector Text
 Text.tokenize self pattern:Text|Regex=(Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
@@ -780,7 +786,9 @@ Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Be
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Error) =
-    Reporting_Stream_Decoder_Helper.decode_bytes_to_text bytes encoding on_problems
+    byte_vector = Vector.unify_vector_or_element bytes
+    Number_Utils.convert_unsigned_byte_array_to_signed byte_vector byte_vector-> byte_vector.if_not_error <|
+        Reporting_Stream_Decoder_Helper.decode_bytes_to_text byte_vector encoding on_problems
 
 ## ICON convert
    Returns a vector containing bytes representing the UTF-8 encoding of the
@@ -1075,7 +1083,7 @@ Text.take self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
         Range.Between start end 1 ->
             Text_Utils.substring self start end
         Codepoint_Ranges.Value char_ranges _ ->
-            slice_text self char_ranges
+            _slice_text self char_ranges
 
 ## ALIAS remove, skip
    GROUP Selections
@@ -1130,7 +1138,7 @@ Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
             char_length = Text_Utils.char_length self
             inverted = invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
-            slice_text self inverted
+            _slice_text self inverted
 
 ## ALIAS lower, proper, title, upper
    GROUP Text
@@ -1341,7 +1349,6 @@ Text.trim self where:Location=..Both what=_.is_whitespace =
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
          match_1 == match_2
-
 Text.locate : Text -> Matching_Mode -> Case_Sensitivity -> Span | Nothing
 Text.locate self term:Text="" mode=Matching_Mode.First case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term mode Case_Sensitivity.Sensitive
@@ -1932,7 +1939,7 @@ Text.parse_time_zone self = Time_Zone.parse self
          # => Arithmetic_Error
 Text.to_decimal : Integer | Nothing -> Decimal
 Text.to_decimal self (scale : Integer | Nothing = Nothing) -> Decimal =
-    d_unscaled = Decimal.from_text self
+    d_unscaled = Decimal.parse self
     if scale == Nothing then d_unscaled else
         d_unscaled.set_scale scale
 
@@ -1955,7 +1962,6 @@ Text.to_decimal self (scale : Integer | Nothing = Nothing) -> Decimal =
          "Hello World!".substring 5 Nothing == " World!"
          "Hello World!".substring 5 7 == " World!"
          "Hello World!".substring -7 3 == " Wo"
-
 Text.substring : Integer -> Integer -> Range ! Index_Out_Of_Bounds
 Text.substring self start:Integer length:Integer=self.length =
     if length < 0 then Error.throw (Illegal_Argument.Error "length must be greater than or equal to 0") else
@@ -1972,7 +1978,7 @@ Text.substring self start:Integer length:Integer=self.length =
    input's range.
 
    The input ranges are in UTF-16 code unit space.
-slice_text text char_ranges =
+private _slice_text text char_ranges =
     sb = StringBuilder.new
     char_ranges.map char_range->
        sb.append text char_range.start char_range.end
@@ -1981,8 +1987,8 @@ slice_text text char_ranges =
 ## PRIVATE
 
    Find occurrences of delimiters in a string.
-split_find_delimiters : Text -> Text | Vector Text  -> Case_Sensitivity -> Vector Text | Illegal_Argument
-split_find_delimiters input delimiter case_sensitivity =
+_split_find_delimiters : Text -> Text | Vector Text  -> Case_Sensitivity -> Vector Text | Illegal_Argument
+private _split_find_delimiters input delimiter case_sensitivity =
     Vector.from_polyglot_array <| case delimiter of
         _ : Text -> case case_sensitivity of
             Case_Sensitivity.Sensitive ->

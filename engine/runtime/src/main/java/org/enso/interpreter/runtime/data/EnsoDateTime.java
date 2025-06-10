@@ -1,35 +1,35 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
 @Builtin(
     pkg = "date",
     name = "DateTime",
     stdlibName = "Standard.Base.Data.Time.Date_Time.Date_Time")
-public final class EnsoDateTime extends EnsoObject {
+public final class EnsoDateTime extends BuiltinObject {
   private final ZonedDateTime dateTime;
 
   public EnsoDateTime(ZonedDateTime dateTime) {
     this.dateTime = dateTime;
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Date_Time";
   }
 
   @Builtin.Method(
@@ -203,26 +203,6 @@ public final class EnsoDateTime extends EnsoObject {
   @ExportMessage
   ZoneId asTimeZone() {
     return dateTime.getZone();
-  }
-
-  @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().dateTime();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().dateTime();
   }
 
   @ExportMessage

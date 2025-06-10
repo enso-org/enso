@@ -1,6 +1,6 @@
 # This file is not auto-generated. Feel free to edit it.
 
-name: ✨ GUI Pull Request
+name: ✨ GUI
 
 on:
   push:
@@ -9,8 +9,8 @@ on:
   pull_request:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}-gui-pull-request
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
 
 permissions:
   contents: read # Read-only access to repository contents
@@ -18,78 +18,136 @@ permissions:
   pull-requests: write # Write access to pull requests
   statuses: write # Write access to commit statuses
   checks: write
+  id-token: write
+  pages: write
 
 jobs:
-  changed-files:
+  gui-changed-files:
+    name: 🔍 Files Changed
+    uses: ./.github/workflows/gui-changed-files.yml
+    secrets: inherit
+
+  prettier:
+    name: 🧹 Prettier
     runs-on: ubuntu-latest
-    name: 🔍 GUI files changed
-    outputs:
-      all_changed_files: ${{ steps.changed-files.outputs.all_changed_files }}
-      any_changed: ${{ steps.changed-files.outputs.any_changed }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v44
+          fetch-depth: 0
+          fetch-tags: false
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        name: ⎔ Setup Node
         with:
-          files: |
-            app/**
-            package.json
-            pnpm-lock.yaml
-            pnpm-workspace.yaml
-            eslint.config.js
-            .prettierrc.js
-            .prettierignore
-            vitest.workspace.ts
-            .github/workflows/gui*
-          files_ignore: |
-            app/ide-desktop/**
-            app/gui/scripts/**
-            app/gui/.gitignore
-            .git-*
+          node-version-file: .node-version
+          cache: "pnpm"
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/cache/restore@v4
+        name: Download cache
+        id: cache
+        with:
+          path: |
+            node_modules/.cache/prettier
+          key: ${{ runner.os }}-gui-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-gui
+      - name: Run prettier
+        run: pnpm run ci:prettier
+      - name: 💾 Save cache
+        uses: actions/cache/save@v4
+        if: always() && steps.cache.outputs.cache-hit != 'true'
+        id: save-cache
+        with:
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+          path: |
+            node_modules/.cache/prettier
 
-      - name: List all changed files
-        env:
-          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
-        run: |
-          for file in ${ALL_CHANGED_FILES}; do
-            echo "$file was changed"
-          done
-
-  checks:
+  gui-checks:
     name: 🧰 Checks
     uses: ./.github/workflows/gui-checks.yml
-    needs: [changed-files]
-    if: ${{ needs.changed-files.outputs.any_changed == 'true' }}
+    needs: [gui-changed-files]
+    if: needs.gui-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
     secrets: inherit
 
   storybook:
     name: 📚 Deploy Storybook
     uses: ./.github/workflows/storybook.yml
-    needs: [changed-files]
-    if: ${{ needs.changed-files.outputs.any_changed == 'true' }}
+    needs: [gui-changed-files]
+    if: needs.gui-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
     secrets: inherit
 
-  print-checks-result:
-    name: 🤷 Print checks result
+  finish-message:
+    name: 📝 Finish Message
     runs-on: ubuntu-latest
-    needs: [checks, storybook]
+    needs: [prettier, gui-checks, storybook]
     if: always()
     steps:
-      - name: Print checks result
+      - uses: actions/checkout@v4
+        name: Checkout
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-tags: false
+
+      - name: 💬 Comment on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
+
+            await setMessage({
+              id: "title-message",
+              header: "## ✨ GUI Checks Results",
+              context,
+              body: `
+                ### Summary
+                - 🧹 Prettier: ${${{needs.prettier.result == 'success'}} ? '✅ Passed' : '❌ Failed'}
+                - 🧰 GUI Checks: ${${{needs.gui-checks.result == 'success'}} ? '✅ Passed' : '❌ Failed'}
+                - 📚 Storybook: ${${{needs.storybook.result == 'success'}} ? '✅ Deployed' : '❌ Failed'}
+                
+                ${${{needs.prettier.result == 'success'}} && ${{needs.gui-checks.result == 'success'}} && ${{needs.storybook.result == 'success'}} 
+                  ? '> ✅ **All checks passed!** Your changes look good to go.'
+                  : '> ⚠️ **Action Required**: Please review the failed checks and fix them before merging.'}
+                
+                See individual check results for more details.
+              `,
+              github,
+              repo: context.repo,
+              prNumber: context.payload.pull_request.number
+            })
+  required-checks:
+    name: GUI Required Checks
+    runs-on: ubuntu-latest
+    needs: [gui-changed-files, prettier, gui-checks, storybook]
+    if: always()
+    steps:
+      - name: Checks Summary
         run: |
-          echo "Checks: ${{ needs.checks.result }}"
+          echo "Prettier: ${{ needs.prettier.result }}"
+          echo "GUI Checks: ${{ needs.gui-checks.result }}"
           echo "Storybook: ${{ needs.storybook.result }}"
 
-  # This job is used to report success if the needed jobs were successful.
-  # This is a workaround to make optional jobs required if they run
-  report-success:
-    name: GUI Checks Success or Skipped
-    runs-on: ubuntu-latest
-    needs: [checks, storybook]
-    if: always() && (needs.checks.result == 'skipped' && needs.storybook.result == 'skipped') || (needs.checks.result == 'success' && needs.storybook.result == 'success')
-    steps:
-      - name: Report success
-        run: echo "Success!"
+          any_changed='${{ needs.gui-changed-files.outputs.any_changed }}'
+
+          declare -a checks
+          checks+=("${{ needs.prettier.result }}")
+          checks+=("${{ needs.gui-checks.result }}")
+          checks+=("${{ needs.storybook.result }}")
+
+          for result in "${checks[@]}"; do
+            case "$result" in
+              'failure')
+                exit 1
+                ;;
+              'skipped' | 'cancelled')
+                if [[ "$any_changed" == 'true' ]]; then
+                  exit 1
+                fi
+                ;;
+            esac
+          done
+
+          echo "Success!"

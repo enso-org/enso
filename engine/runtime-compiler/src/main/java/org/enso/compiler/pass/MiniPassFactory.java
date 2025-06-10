@@ -16,7 +16,8 @@ public interface MiniPassFactory extends IRProcessingPass {
    * a module.
    *
    * @param moduleContext A mini pass can optionally save reference to this module context.
-   * @return May return {@code null} if module compilation is not supported.
+   * @return May return {@code null} if module compilation is not supported, or if the compilation
+   *     for the given {@code moduleContext} should be skipped.
    */
   MiniIRPass createForModuleCompilation(ModuleContext moduleContext);
 
@@ -25,7 +26,7 @@ public interface MiniPassFactory extends IRProcessingPass {
    * an inline compilation.
    *
    * @param inlineContext A mini pass can optionally save reference to this inline context.
-   * @return Must not return {@code null}. Inline compilation should always be supported.
+   * @return May return {@code null} if the inline compilation is not supported.
    */
   MiniIRPass createForInlineCompilation(InlineContext inlineContext);
 }

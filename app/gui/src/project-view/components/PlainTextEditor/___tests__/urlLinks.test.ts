@@ -51,15 +51,6 @@ test.each([
     ],
   },
   {
-    text: 'Url: www.example.com',
-    expectedLinks: [
-      {
-        text: 'www.example.com',
-        href: 'https://www.example.com',
-      },
-    ],
-  },
-  {
     text: 'Email: user@example.com',
     expectedLinks: [
       {

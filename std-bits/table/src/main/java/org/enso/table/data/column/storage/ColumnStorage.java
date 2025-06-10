@@ -3,12 +3,12 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.storage.type.StorageType;
 
 /** Basic interface of a column storage. */
-public interface ColumnStorage {
+public interface ColumnStorage<T> extends Iterable<T> {
   /* Gets the size of the storage. */
   long getSize();
 
   /* Gets the value type of the storage. */
-  StorageType getType();
+  StorageType<T> getType();
 
   /**
    * Checks whether the value at idx is Nothing.
@@ -19,5 +19,8 @@ public interface ColumnStorage {
   boolean isNothing(long index);
 
   /* Gets the value at a given index. */
-  Object getItemAsObject(long index);
+  T getItemBoxed(long index);
+
+  /* Gets an iterator with index tracking. */
+  ColumnStorageIterator<T> iteratorWithIndex();
 }

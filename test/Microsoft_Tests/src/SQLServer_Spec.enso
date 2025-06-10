@@ -200,8 +200,8 @@ add_sqlserver_specs suite_builder create_connection_fn =
     materialize = .read
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=True
-    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
-    agg_in_memory_table = (enso_project.data / "data.csv") . read
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False aggregation_problems=False multi_distinct=False first_last_multi_order=False first_last_ignore_nothing=False text_concat=False
+    agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
 
     agg_table_fn = _->
         agg_in_memory_table.select_into_database_table default_connection.get (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True

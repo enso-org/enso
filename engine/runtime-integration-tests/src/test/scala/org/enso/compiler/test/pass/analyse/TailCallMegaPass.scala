@@ -266,26 +266,27 @@ case object TailCallMegaPass extends IRPass {
     isInTailPosition: Boolean
   ): Application = {
     val newApp = application match {
-      case app @ Application.Prefix(fn, args, _, _, _) =>
+      case app: Application.Prefix =>
         app
           .copy(
-            function  = analyseExpression(fn, isInTailPosition = false),
-            arguments = args.map(analyseCallArg)
+            function =
+              analyseExpression(app.function, isInTailPosition = false),
+            arguments = app.arguments.map(analyseCallArg)
           )
-      case force @ Application.Force(target, _, _) =>
+      case force: Application.Force =>
         force
-          .copy(
-            target = analyseExpression(target, isInTailPosition)
+          .copyWithTarget(
+            analyseExpression(force.target, isInTailPosition)
           )
-      case vector @ Application.Sequence(items, _, _) =>
+      case vector: Application.Sequence =>
         vector
-          .copy(items =
-            items.map(analyseExpression(_, isInTailPosition = false))
+          .copyWithItems(
+            vector.items.map(analyseExpression(_, isInTailPosition = false))
           )
-      case tSet @ Application.Typeset(expr, _, _) =>
+      case tSet: Application.Typeset =>
         tSet
-          .copy(expression =
-            expr.map(analyseExpression(_, isInTailPosition = false))
+          .copyWithExpression(
+            tSet.expression.map(analyseExpression(_, isInTailPosition = false))
           )
       case _: Operator =>
         throw new CompilerError("Unexpected binary operator.")
@@ -304,7 +305,7 @@ case object TailCallMegaPass extends IRPass {
         arg
           .copy(
             // Note [Call Argument Tail Position]
-            value = analyseExpression(arg.value, isInTailPosition = true)
+            analyseExpression(arg.value, isInTailPosition = true)
           )
           .updateMetadata(TAIL_META)
     }
@@ -357,12 +358,14 @@ case object TailCallMegaPass extends IRPass {
     */
   def analyseCase(caseExpr: Case, isInTailPosition: Boolean): Case = {
     val newCaseExpr = caseExpr match {
-      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case caseExpr: Case.Expr =>
         caseExpr
           .copy(
-            scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
+            scrutinee =
+              analyseExpression(caseExpr.scrutinee, isInTailPosition = false),
             // Note [Analysing Branches in Case Expressions]
-            branches = branches.map(analyseCaseBranch(_, isInTailPosition))
+            branches =
+              caseExpr.branches.map(analyseCaseBranch(_, isInTailPosition))
           )
       case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
@@ -396,11 +399,12 @@ case object TailCallMegaPass extends IRPass {
       isInTailPosition,
       branch
         .copy(
-          pattern = analysePattern(branch.pattern),
-          expression = analyseExpression(
+          analysePattern(branch.pattern),
+          analyseExpression(
             branch.expression,
             isInTailPosition
-          )
+          ),
+          branch.terminalBranch()
         )
     )
   }
@@ -477,11 +481,11 @@ case object TailCallMegaPass extends IRPass {
     arg: DefinitionArgument
   ): DefinitionArgument = {
     arg match {
-      case arg @ DefinitionArgument.Specified(_, _, default, _, _, _) =>
+      case arg: DefinitionArgument.Specified =>
+        val default = arg.defaultValue
         arg
-          .copy(
-            defaultValue =
-              default.map(x => analyseExpression(x, isInTailPosition = false))
+          .copyWithDefaultValue(
+            default.map(x => analyseExpression(x, isInTailPosition = false))
           )
     }
   }

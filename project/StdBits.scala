@@ -1,10 +1,13 @@
-import sbt.Keys._
-import sbt._
+import sbt.Keys.*
+import sbt.*
 import sbt.internal.util.ManagedLogger
 import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
+import sbt.util.CacheStoreFactory
 
-import java.io.File
+import java.io.{File, IOException}
+import java.nio.file.Path
+import java.util.Locale
 
 object StdBits {
 
@@ -19,72 +22,681 @@ object StdBits {
     * @param ignoreScalaLibrary whether to ignore Scala dependencies that are
     *                           added by default be SBT and are not relevant in
     *                           pure-Java projects
+    * @param libraryUpdates resolution report
+    * @param unmanagedClasspath classpath of unmanaged jars, if any
+    * @param logger SBT's logger
+    * @param cacheStoreFactory SBT's cache sotre factory
+    * @param ignoreDependenciesByModuleID Depedencies that should be ignored - not copied to the destination
+    * @param ignoreDependencies Depedencies that should be ignored based on a plain file name filter
+    * @param ignoreDependencyIncludeTransitive An optional filter to indicate that a direct dependency should be ignored except for its (transitive) dependencies
+    * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
+    *
+    * @param previousRun summary of previous extraction data, if available
     */
   def copyDependencies(
     destination: File,
     providedJarNames: Seq[String],
-    ignoreScalaLibrary: Boolean
-  ): Def.Initialize[Task[Unit]] =
-    Def.task {
-      val libraryUpdates = (Compile / update).value
-      val log            = streams.value.log
+    ignoreScalaLibrary: Boolean,
+    libraryUpdates: UpdateReport,
+    unmanagedClasspath: Classpath,
+    logger: ManagedLogger,
+    cacheStoreFactory: sbt.util.CacheStoreFactory,
+    ignoreDependenciesByModuleID: Option[Seq[ModuleID]] = None,
+    ignoreDependencies: Option[String => Boolean]       = None,
+    ignoreDependencyIncludeTransitive: Option[String]   = None,
+    ignoreUnmanagedDependency: Option[File => Boolean]  = None,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]  = None
+  ): Unit = {
 
-      val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
-      val validConfig =
-        if (ignoreScalaLibrary)
-          baseFilter - new ExactFilter(Configurations.ScalaTool.name)
-        else baseFilter
-      val configFilter: ConfigurationFilter =
-        DependencyFilter.configurationFilter(name = validConfig)
-      val graalVmOrgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
-        Seq()
-      } else {
-        GraalVM.modules.map(_.organization).distinct
-      }
-      // All graal related modules must be filtered away - they will be provided in
-      // module-path, and so, they must not be included in std-bits polyglot directories.
-      val graalModuleFilter = DependencyFilter.moduleFilter(
-        organization = new SimpleFilter(orgName => {
-          !graalVmOrgs.contains(orgName)
-        })
-      )
-      val unmanagedFiles = (Compile / unmanagedJars).value.map(_.data)
-      val relevantFiles =
-        libraryUpdates
-          .select(
-            configuration = configFilter,
-            module        = graalModuleFilter,
-            artifact      = DependencyFilter.artifactFilter()
-          ) ++ unmanagedFiles
-      val dependencyStore =
-        streams.value.cacheStoreFactory.make("std-bits-dependencies")
-      Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
-        report =>
-          val expectedFileNames =
-            report.checked.map(file => file.getName) ++ providedJarNames
-          for (existing <- IO.listFiles(destination)) {
-            if (!expectedFileNames.contains(existing.getName)) {
-              log.info(
+    val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
+    val validConfig =
+      if (ignoreScalaLibrary)
+        baseFilter - new ExactFilter(Configurations.ScalaTool.name)
+      else baseFilter
+    val configFilter: ConfigurationFilter =
+      DependencyFilter.configurationFilter(name = validConfig)
+    val graalVmOrgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
+      Seq()
+    } else {
+      GraalVM.modules.map(_.organization).distinct
+    }
+    // All graal related modules must be filtered away - they will be provided in
+    // module-path, and so, they must not be included in std-bits polyglot directories.
+    val graalModuleFilter = DependencyFilter.moduleFilter(
+      organization = new SimpleFilter(!graalVmOrgs.contains(_))
+    )
+    val moduleFilter = ignoreDependenciesByModuleID match {
+      case None => graalModuleFilter
+      case Some(ignoreDepIDs) =>
+        DependencyFilter.moduleFilter(
+          organization = new SimpleFilter(orgName =>
+            !graalVmOrgs.contains(
+              orgName
+            )
+          ),
+          name = new SimpleFilter(name => !ignoreDepIDs.exists(_.name == name))
+        )
+    }
+    val unmanagedFiles0 = unmanagedClasspath.map(_.data)
+    val unmanagedFiles = ignoreUnmanagedDependency
+      .map(fun => unmanagedFiles0.filterNot(fun))
+      .getOrElse(unmanagedFiles0)
+    val relevantFiles0 =
+      libraryUpdates
+        .select(
+          configuration = configFilter,
+          module        = moduleFilter,
+          artifact      = DependencyFilter.artifactFilter()
+        ) ++ unmanagedFiles
+    val relevantFiles1 =
+      ignoreDependencyIncludeTransitive
+        .map(filter => relevantFiles0.filterNot(_.getName.contains(filter)))
+        .getOrElse(relevantFiles0)
+    val relevantFiles =
+      ignoreDependencies
+        .map(filter => relevantFiles1.filterNot(f => filter(f.getName)))
+        .getOrElse(relevantFiles1)
+    val dependencyStore =
+      cacheStoreFactory.make("std-bits-dependencies")
+    Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
+      report =>
+        val expectedFileNames =
+          report.checked.map(file => file.getName) ++ providedJarNames
+        for (existing <- IO.listFiles(destination)) {
+          if (
+            !expectedFileNames.contains(
+              existing.getName
+            ) && ignoreDependencyIncludeTransitive
+              .forall(filter => !existing.getName.contains(filter))
+          ) {
+            val outdatedArtifact =
+              !previousRun
+                .exists(analysis =>
+                  analysis.libs.values.exists(a =>
+                    a.matchesTargetArtifact(existing) && !a.isOutdated
+                  )
+                )
+            if (outdatedArtifact) {
+              logger.info(
                 s"Removing outdated std-bits dependency ${existing.getName}."
               )
               IO.delete(existing)
+            } else {
+              logger.info(
+                s"Keeping target ${existing.getName} jar as a dependency. Still up-to-date"
+              )
             }
           }
-          for (changed <- report.modified -- report.removed) {
-            log.info(
-              s"Updating changed std-bits dependency ${changed.getName}."
-            )
-            updateDependency(changed, destination, log)
+        }
+        for (changed <- report.modified -- report.removed) {
+          logger.info(
+            s"Updating changed std-bits dependency ${changed.getName}."
+          )
+          updateDependency(changed, destination, logger)
+        }
+        for (file <- report.unmodified) {
+          val dest = destination / file.getName
+          if (!dest.exists()) {
+            logger.info(s"Adding missing std-bits dependency ${file.getName}.")
+            updateDependency(file, destination, logger)
           }
-          for (file <- report.unmodified) {
-            val dest = destination / file.getName
-            if (!dest.exists()) {
-              log.info(s"Adding missing std-bits dependency ${file.getName}.")
-              updateDependency(file, destination, log)
-            }
-          }
+        }
+    }
+  }
+
+  /** Extract native libraries from `opencv.jar` and put them under
+    * `Standard/Image/polyglot/lib` directory. The minimized `opencv.jar` will
+    * be put under `Standard/Image/polyglot/java` directory.
+    * @param imagePolyglotRoot root dir of Std image polyglot dir
+    * @param imageNativeLibs root dir of Std image lib dir
+    * @param opencvVersion OpenCV's version
+    * @param logger SBT's logger
+    * @param updateReport resolution report
+    * @param moduleName name of the project where extraction happens
+    * @param scalaBinaryVersion Scala's version
+    * @param cacheStoreFactory SBT's cache sotre factory
+    * @param previousRun summary of previous extraction data, if available
+    * @return
+    */
+  def extractNativeLibsFromOpenCV(
+    imagePolyglotRoot: File,
+    imageNativeLibs: File,
+    opencvVersion: String,
+    logger: ManagedLogger,
+    updateReport: UpdateReport,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
+    val extractPrefix = "nu/pattern/opencv"
+    val validOsName   = osName()
+    val validArch     = arch()
+
+    // Make sure that the native libs in the `lib` directory complies with
+    // `org.enso.interpreter.runtime.NativeLibraryFinder`
+    def renameFunc(entryName: String): Option[String] = {
+      val strippedEntryName = entryName
+        .substring(extractPrefix.length + 1)
+        .replace("ARMv8", "aarch64")
+      if (
+        strippedEntryName.contains("linux/ARM") ||
+        strippedEntryName.contains("linux/x86_32") ||
+        strippedEntryName.contains("README.md")    ||
+        // Remove native libs for different platforms
+        !strippedEntryName.contains(validOsName) ||
+        !strippedEntryName.contains(validArch)
+      ) {
+        None
+      } else {
+        Some(
+          strippedEntryName
+            .replace("linux/x86_64", "amd64")
+            .replace("windows/x86_64", "amd64")
+            .replace("windows/x86_32", "x86_32")
+            .replace("osx/aarch64", "aarch64")
+            .replace("osx/x86_64", "amd64")
+        )
       }
     }
+
+    val openCvJar = JPMSUtils
+      .filterModulesFromUpdate(
+        updateReport,
+        Seq("org.openpnp" % "opencv" % opencvVersion),
+        logger,
+        moduleName,
+        scalaBinaryVersion,
+        shouldContainAll = true
+      )
+      .head
+    val outputJarPath     = (imagePolyglotRoot / "opencv.jar").toPath
+    val thinOutputJar     = outputJarPath.toFile
+    val extractedFilesDir = imageNativeLibs.toPath
+    val extractedLibs = JARUtils.extractFilesFromJar(
+      openCvJar.toPath,
+      Some(extractPrefix),
+      Some(outputJarPath),
+      extractedFilesDir,
+      renameFunc,
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(openCvJar))
+    )
+    AnalysisOfExtractedNativeLibs(
+      openCvJar,
+      extractedLibs.getOrElse(Nil),
+      Some(thinOutputJar)
+    )
+  }
+
+  /** Extract native libraries from `tableauhyperapi-<osname>.jar` and put them under
+    * `Standard/Tableau/polyglot/lib` directory.
+    * @param tableauPolyglotRoot root dir of Std tableau polyglot dir
+    * @param tableauNativeLibs root dir of Std tableau lib dir
+    * @param tableauVersion Tableau's dependency version
+    * @param jnaVersion JNA's version
+    * @param logger SBT's logger
+    * @param updateReport resolution report
+    * @param unmanagedClasspath classpath of unmanaged jars, if any
+    * @param moduleName name of the project where extraction happens
+    * @param scalaBinaryVersion Scala's version
+    * @param cacheStoreFactory SBT's cache sotre factory
+    * @param previousRun summary of previous extraction data, if available
+    * @return
+    */
+  def extractNativeLibsFromTableau(
+    tableauPolyglotRoot: File,
+    tableauNativeLibs: File,
+    tableauVersion: String,
+    jnaVersion: String,
+    jnaJar: File,
+    logger: ManagedLogger,
+    updateReport: UpdateReport,
+    unmanagedClasspath: Classpath,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
+    val validOsName = osName(unixName = true)
+    val validOsExt  = osExt()
+    val validArch   = arch().replace("_", "-")
+    // Make sure that the native libs in the `lib` directory complies with
+    // `org.enso.interpreter.runtime.NativeLibraryFinder`
+    def renameFunc(prefix: String)(entryName: String): Option[String] = {
+      val strippedEntryName =
+        (if (prefix.isEmpty) entryName
+         else entryName.substring(prefix.length + 1)).replace("jnilib", "dylib")
+      if (
+        !strippedEntryName.endsWith(validOsExt) ||
+        // Remove native libs for different platforms
+        !strippedEntryName.contains(validOsName) ||
+        !strippedEntryName.contains(validArch)
+      ) {
+        None
+      } else {
+        Some(
+          strippedEntryName
+            .replace("linux-x86-64", "amd64")
+            .replace("win32-x86-64", "amd64")
+            .replace("darwin-aarch64", "aarch64")
+            .replace("darwin-x86-64", "amd64")
+        )
+      }
+    }
+
+    // Extract native library from tableauhyperapi-$arch's jar
+    val tableauSuffixInJar = s"tableauhyperapi-${plainOsName()}"
+    val tableauNativeLibJar = unmanagedClasspath
+      .map(_.data)
+      .filter(f => f.getName.contains(tableauSuffixInJar))
+      .head
+
+    val extractedFilesDir = tableauNativeLibs.toPath
+    val extractedTableauLibs = JARUtils.extractFilesFromJar(
+      tableauNativeLibJar.toPath,
+      None,
+      None,
+      extractedFilesDir,
+      renameFunc(""),
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(tableauNativeLibJar))
+    )
+    val extractedTableau = ExtractedNativeLibSummary(
+      tableauNativeLibJar,
+      extractedTableauLibs.getOrElse(Nil),
+      None
+    )
+
+    // Extract native library from jna's jar
+    val outputJnaJarPath =
+      (tableauPolyglotRoot / s"jna-${validOsName}-$jnaVersion.jar").toPath
+    val outputJnaJar  = outputJnaJarPath.toFile
+    val extractPrefix = "com/sun/jna"
+    val extractedJnaLibs = JARUtils.extractFilesFromJar(
+      jnaJar.toPath,
+      Some(extractPrefix),
+      Some(outputJnaJarPath),
+      extractedFilesDir,
+      renameFunc(extractPrefix),
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(jnaJar))
+    )
+    val extractedJna = ExtractedNativeLibSummary(
+      jnaJar,
+      extractedJnaLibs.getOrElse(Nil),
+      Some(outputJnaJar)
+    )
+    AnalysisOfExtractedNativeLibs(
+      Map(
+        tableauNativeLibJar.getAbsolutePath -> extractedTableau,
+        jnaJar.getAbsolutePath              -> extractedJna
+      )
+    )
+  }
+
+  /** Extract native libraries from `grpc-netty-shaded-<version>.jar` and put them under
+    * `Standard/Google_Api/polyglot/lib` directory.
+    * @param grpcPolyglotRoot root dir of Std Google polyglot dir
+    * @param grpcNativeLibs root dir of Std Google lib dir
+    * @param grpcVersion GRPC's library version
+    * @param updateReport resolution report
+    * @param logger SBT's logger
+    * @param moduleName name of the project where extraction happens
+    * @param scalaBinaryVersion Scala's version
+    * @param cacheStoreFactory SBT's cache sotre factory
+    * @param previousRun summary of previous extraction data, if available
+    * @return
+    */
+  def extractNativeLibsFromGrpc(
+    grpcPolyglotRoot: File,
+    grpcNativeLibs: File,
+    grpcVersion: String,
+    updateReport: UpdateReport,
+    logger: ManagedLogger,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
+    val validOsName = osName()
+    val validOsExt  = osExt()
+    val validArch   = arch().replace("-", "_")
+    // Make sure that the native libs in the `lib` directory complies with
+    // `org.enso.interpreter.runtime.NativeLibraryFinder`
+    def renameFunc(prefix: String)(entryName: String): Option[String] = {
+      val strippedEntryName =
+        (if (prefix.isEmpty) entryName
+         else entryName.substring(prefix.length + 1)).replace("jnilib", "dylib")
+      if (
+        !strippedEntryName.endsWith(validOsExt) ||
+        // Remove native libs for different platforms
+        !(strippedEntryName.contains(validOsName) || strippedEntryName.contains(
+          "native_epoll" // native-epol does not have os info in the name
+        )) ||
+        !strippedEntryName.contains(validArch)
+      ) {
+        None
+      } else {
+        Some(strippedEntryName)
+      }
+    }
+
+    val grpcJar = JPMSUtils
+      .filterModulesFromUpdate(
+        updateReport,
+        Seq("io.grpc" % "grpc-netty-shaded" % grpcVersion),
+        logger,
+        moduleName,
+        scalaBinaryVersion,
+        shouldContainAll = true
+      )
+      .head
+    val outputGrpcNettyShaded =
+      (grpcPolyglotRoot / s"grpc-netty-shaded-thin-$grpcVersion.jar").toPath
+    val extractPrefix = "META-INF/native"
+    val extractedLibs = JARUtils.extractFilesFromJar(
+      grpcJar.toPath,
+      Some(extractPrefix),
+      Some(outputGrpcNettyShaded),
+      grpcNativeLibs.toPath,
+      renameFunc(extractPrefix),
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(grpcJar))
+    )
+    AnalysisOfExtractedNativeLibs(
+      grpcJar,
+      extractedLibs.getOrElse(Nil),
+      Some(outputGrpcNettyShaded.toFile)
+    )
+  }
+
+  /** Extracts all the native libraries from `sqlite-jdbc-<version>.jar`.
+    * Also, removes the `SqliteJdbcFeature` class from the JAR.
+    */
+  def extractNativeLibsFromSqlite(
+    databasePolyglotRoot: File,
+    databaseNativeLibs: File,
+    sqliteVersion: String,
+    updateReport: UpdateReport,
+    logger: ManagedLogger,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
+    val osName     = plainOsName()
+    val validOsExt = osExt()
+    val validArch  = arch().replace("-", "_")
+    // Make sure that the native libs in the `lib` directory complies with
+    // `org.enso.interpreter.runtime.NativeLibraryFinder`
+    def renameFunc(prefix: String)(entryName: String): Option[String] = {
+      val strippedEntryName = entryName.substring(prefix.length + 1)
+      val entryOsName = strippedEntryName
+        .split("/")
+        .head
+        .toLowerCase
+        .replace("mac", "macos")
+      val entryArch = strippedEntryName.split("/").apply(1)
+      val libName   = strippedEntryName.split("/").apply(2)
+      if (
+        !strippedEntryName.endsWith(validOsExt) ||
+        // Remove native libs for different platforms
+        !(entryOsName.equals(osName)) ||
+        !entryArch.equals(validArch)
+      ) {
+        None
+      } else {
+        Some(
+          entryArch.replace(
+            "x86_64",
+            "amd64"
+          ) + "/" + entryOsName + "/" + libName
+        )
+      }
+    }
+
+    val sqliteJar = JPMSUtils
+      .filterModulesFromUpdate(
+        updateReport,
+        Seq("org.xerial" % "sqlite-jdbc" % sqliteVersion),
+        logger,
+        moduleName,
+        scalaBinaryVersion,
+        shouldContainAll = true
+      )
+      .head
+    val outputJar =
+      (databasePolyglotRoot / s"sqlite-jdbc-$sqliteVersion.jar").toPath
+    val extractPrefix = "org/sqlite/native"
+    val extractedLibs = JARUtils.extractFilesFromJar(
+      sqliteJar.toPath,
+      Some(extractPrefix),
+      Some(outputJar),
+      databaseNativeLibs.toPath,
+      renameFunc(extractPrefix),
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(sqliteJar))
+    )
+    val sqliteFeature =
+      "META-INF/versions/9/org/sqlite/nativeimage/SqliteJdbcFeature"
+    def shouldBeDeleted(entryName: String): Boolean = {
+      entryName.startsWith(sqliteFeature)
+    }
+    JARUtils.removeEntriesFromJar(
+      outputJar,
+      shouldBeDeleted
+    )
+    AnalysisOfExtractedNativeLibs(
+      sqliteJar,
+      extractedLibs.getOrElse(Nil),
+      Some(outputJar.toFile)
+    )
+  }
+
+  /** Extract native libraries from `org.conscrypt:conscrypt-openjdk-uber:2.5.2` jar, which is
+    * a transitive dependency of
+    * `com.google.analytics:google-analytics-admin:0.66.0` and of
+    * `net.snowflake:snowflake-jdbc-thin:3.15.0`.
+    *
+    * Currently, it is included in both `Standard.Google_Api` and `Standard.Snowflake` libraries.
+    *
+    * Names of the native libraries in jar:
+    * - `META-INF/native/conscrypt_openjdk_jni-windows-x86.dll`
+    * - `META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll`
+    * - `META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so`
+    * - `META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib`
+    *
+    * The jar is signed, so we also have to remove `META-INF/SIGNING.SF`.
+    */
+  def extractNativeLibsFromConscrypt(
+    polyglotRootDir: File,
+    nativeLibsDir: File,
+    updateReport: UpdateReport,
+    logger: ManagedLogger,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
+    val osName     = plainOsName().replace("macos", "osx")
+    val validOsExt = osExt()
+    val validArch  = arch().replace("-", "_")
+    val prefix     = "META-INF/native"
+    val entriesToRemove = Seq(
+      "META-INF/SIGNINGC.SF",
+      "META-INF/SIGNINGC.RSA"
+    )
+    val conscryptVersion = "2.5.2"
+
+    def renameFunc(entryName: String): Option[String] = {
+      val strippedEntryName = entryName.substring(prefix.length + 1)
+      val pattern           = "^(.+)-(\\w+)-([\\w_]+)(\\.\\w+)$".r
+      strippedEntryName match {
+        case pattern(libname, entryOs, entryArch, entryExt) =>
+          if (
+            !entryOs.equals(osName) ||
+            !entryArch.equals(validArch) ||
+            !entryExt.equals(validOsExt)
+          ) {
+            None
+          } else {
+            val outputArch = validArch.replace("x86_64", "amd64")
+            Some(s"$outputArch/$osName/$libname$entryExt")
+          }
+        case _ =>
+          throw new RuntimeException(
+            s"Unexpected entry name format: $strippedEntryName"
+          )
+      }
+    }
+
+    val conscryptJar = JPMSUtils
+      .filterModulesFromUpdate(
+        updateReport,
+        Seq("org.conscrypt" % "conscrypt-openjdk-uber" % conscryptVersion),
+        logger,
+        moduleName,
+        scalaBinaryVersion,
+        shouldContainAll = true
+      )
+      .head
+    val outputJar =
+      (polyglotRootDir / s"conscrypt-openjdk-uber-$conscryptVersion.jar").toPath
+    val extractedLibs = JARUtils.extractFilesFromJar(
+      conscryptJar.toPath,
+      Some(prefix),
+      Some(outputJar),
+      nativeLibsDir.toPath,
+      renameFunc,
+      logger,
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(conscryptJar))
+    )
+    JARUtils.removeEntriesFromJar(
+      outputJar,
+      entryName => entriesToRemove.contains(entryName)
+    )
+    AnalysisOfExtractedNativeLibs(
+      conscryptJar,
+      extractedLibs.getOrElse(Nil),
+      Some(outputJar.toFile)
+    )
+  }
+
+  def ensureDirExistsAndIsClean(
+    path: Path,
+    logger: sbt.util.Logger,
+    forceClean: Boolean = true
+  ): Unit = {
+    require(path != null)
+    val dir = path.toFile
+    if (dir.exists && dir.isDirectory) {
+      // Clean previous contents
+      if (forceClean)
+        IO.delete(IO.listFiles(dir))
+    } else {
+      try {
+        IO.createDirectory(dir)
+      } catch {
+        case e: IOException =>
+          logger.err(
+            s"Failed to create directory $path: ${e.getMessage}"
+          )
+          e.printStackTrace(System.err)
+      }
+    }
+  }
+
+  /** Inspired by `org.enso.pkg.NativeLibraryFinder`
+    */
+  private def osName(unixName: Boolean = false): String = {
+    var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
+    if (osName.contains(" ")) {
+      // Strip version
+      osName = osName.substring(0, osName.indexOf(' '))
+    }
+    if (osName.contains("linux")) {
+      "linux"
+    } else if (osName.contains("mac")) {
+      if (unixName) "darwin" else "osx"
+    } else if (osName.contains("windows")) {
+      if (unixName) "win32" else "windows"
+    } else {
+      throw new IllegalStateException(s"Unsupported OS: $osName")
+    }
+  }
+
+  // A list of support OS names
+  def allSupportedOs(): List[String] = List("linux", "osx", "windows")
+
+  // ${os-name}-${arch} plaftorm name
+  def currentPlatformSuffix(): String = {
+    osName() + "-" + arch()
+  }
+
+  // Human-accepted name of OS. One of many at least.
+  def plainOsName(): String = {
+    var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
+    if (osName.contains(" ")) {
+      // Strip version
+      osName = osName.substring(0, osName.indexOf(' '))
+    }
+    if (osName.contains("linux")) {
+      "linux"
+    } else if (osName.contains("mac")) {
+      "macos"
+    } else if (osName.contains("windows")) {
+      "windows"
+    } else {
+      throw new IllegalStateException(s"Unsupported OS: $osName")
+    }
+  }
+
+  private def osExt(): String = {
+    var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
+    if (osName.contains(" ")) {
+      // Strip version
+      osName = osName.substring(0, osName.indexOf(' '))
+    }
+    if (osName.contains("linux")) {
+      ".so"
+    } else if (osName.contains("mac")) {
+      ".dylib"
+    } else if (osName.contains("windows")) {
+      ".dll"
+    } else {
+      throw new IllegalStateException(s"Unsupported OS: $osName")
+    }
+  }
+
+  /** Inspired by `org.enso.pkg.NativeLibraryFinder`
+    */
+  private def arch(): String = {
+    val arch = System.getProperty("os.arch").toLowerCase(Locale.ENGLISH)
+    arch
+      .replace("amd64", "x86_64")
+  }
 
   private def updateDependency(
     jar: File,

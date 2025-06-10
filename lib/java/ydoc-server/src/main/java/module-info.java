@@ -1,14 +1,9 @@
-module org.enso.ydoc {
-  requires io.helidon.webclient;
-  requires io.helidon.webclient.websocket;
-  requires io.helidon.webserver;
-  requires io.helidon.webserver.websocket;
-  requires org.enso.syntax;
+module org.enso.ydoc.server {
+  requires io.helidon.common;
+  requires org.enso.ydoc.polyfill;
   requires org.graalvm.polyglot;
   requires org.slf4j;
   requires static org.graalvm.nativeimage;
 
-  opens org.enso.ydoc.polyfill.web;
-
-  exports org.enso.ydoc;
+  exports org.enso.ydoc.server;
 }

@@ -1,116 +1,102 @@
-/** @file Modal for confirming delete of any type of asset. */
-import {
-  ButtonGroup,
-  Dialog,
-  DialogDismiss,
-  Form,
-  INPUT_STYLES,
-  Input,
-} from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
-import type { SecretId } from '#/services/Backend'
-import { tv } from '#/utilities/tailwindVariants'
+/** @file A modal for creating and editing a secret. */
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
+import { type SecretId } from '#/services/Backend'
+import { useText } from '$/providers/react'
 
-// =========================
-// === UpsertSecretModal ===
-// =========================
-
-const CLASSIC_INPUT_STYLES = tv({
-  extend: INPUT_STYLES,
-  slots: {
-    base: '',
-    textArea: 'rounded-full border-0.5 border-primary/20 px-1.5',
-    inputContainer: 'before:h-0 after:h-0.5',
-  },
-})
-
-const CLASSIC_FIELD_STYLES = tv({
-  extend: Form.FIELD_STYLES,
-  slots: {
-    base: '',
-    label: 'px-2',
-  },
-})
+/** Props for a {@link UpsertSecretForm}. */
+export interface UpsertSecretFormProps {
+  readonly secretId?: SecretId | null
+  readonly name?: string | null
+  readonly doCreate: (name: string, value: string) => void
+  /**
+   * If provided, a cancel button will be offered.
+   *
+   * The value may be:
+   * - A callback to run if the button is pressed.
+   * - 'close': The cancel button will close the containing dialog.
+   * - 'reset': The cancel button will reset the form.
+   */
+  readonly doCancel?: 'close' | 'reset' | (() => void) | null
+}
 
 /** Props for a {@link UpsertSecretModal}. */
-export interface UpsertSecretModalProps {
-  readonly noDialog?: boolean
-  readonly id: SecretId | null
-  readonly name: string | null
+export interface UpsertSecretModalProps extends Omit<UpsertSecretFormProps, 'doCancel'> {
   readonly defaultOpen?: boolean
-  readonly doCreate: (name: string, value: string) => Promise<void> | void
   /** Defaults to `true`. */
   readonly canCancel?: boolean
-  /** Defaults to `false`. */
-  readonly canReset?: boolean
+}
+
+/** A modal for creating and editing a secret. */
+export function UpsertSecretForm(props: UpsertSecretFormProps) {
+  const { secretId, name: nameRaw, doCreate, doCancel } = props
+  const { getText } = useText()
+
+  const isCreatingSecret = secretId == null
+
+  return (
+    <Form
+      schema={(z) => z.object({ title: z.string().min(1), value: z.string() })}
+      defaultValues={{ title: nameRaw ?? '', value: '' }}
+      onSubmit={({ title, value }) => {
+        doCreate(title, value)
+      }}
+      method="dialog"
+      testId="upsert-secret-modal"
+      className="w-full"
+    >
+      {isCreatingSecret && (
+        <Input
+          name="title"
+          autoFocus
+          autoComplete="off"
+          label={getText('name')}
+          placeholder={getText('secretNamePlaceholder')}
+        />
+      )}
+
+      <Input
+        name="value"
+        type="password"
+        autoComplete="off"
+        label={getText('value')}
+        placeholder={
+          nameRaw == null ? getText('secretValuePlaceholder') : getText('secretValueHidden')
+        }
+      />
+
+      <Button.Group className="mt-2">
+        <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
+        {doCancel === 'reset' ?
+          <Form.Reset>{getText('cancel')}</Form.Reset>
+        : doCancel === 'close' ?
+          <Dialog.Close>{getText('cancel')}</Dialog.Close>
+        : doCancel ?
+          <Button onPress={doCancel}>{getText('cancel')}</Button>
+        : null}
+      </Button.Group>
+
+      <Form.FormError />
+    </Form>
+  )
 }
 
 /** A modal for creating and editing a secret. */
 export default function UpsertSecretModal(props: UpsertSecretModalProps) {
-  const { noDialog = false, id, name: nameRaw, defaultOpen, doCreate } = props
-  const { canCancel = true, canReset = false } = props
+  const { defaultOpen, canCancel = true, secretId } = props
   const { getText } = useText()
 
-  const isCreatingSecret = id == null
-  const isNameEditable = nameRaw == null
+  const isCreatingSecret = secretId == null
 
-  const form = Form.useForm({
-    method: 'dialog',
-    schema: (z) =>
-      z.object({ name: z.string().min(1, getText('emptyStringError')), value: z.string() }),
-    defaultValues: { name: nameRaw ?? '', value: '' },
-    onSubmit: async ({ name, value }) => {
-      await doCreate(name, value)
-    },
-  })
-
-  const content = (
-    <Form form={form} testId="upsert-secret-modal" gap="none" className="w-full">
-      {isNameEditable && (
-        <Input
-          form={form}
-          name="name"
-          size="custom"
-          rounded="full"
-          autoFocus={isNameEditable}
-          autoComplete="off"
-          isDisabled={!isNameEditable}
-          label={getText('name')}
-          placeholder={getText('secretNamePlaceholder')}
-          variants={CLASSIC_INPUT_STYLES}
-          fieldVariants={CLASSIC_FIELD_STYLES}
-        />
-      )}
-      <Input
-        form={form}
-        name="value"
-        type="password"
-        size="custom"
-        rounded="full"
-        autoFocus={!isNameEditable}
-        autoComplete="off"
-        label={getText('value')}
-        placeholder={
-          isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
-        }
-        variants={CLASSIC_INPUT_STYLES}
-        fieldVariants={CLASSIC_FIELD_STYLES}
-      />
-      <ButtonGroup className="mt-2">
-        <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
-        {canCancel && <DialogDismiss />}
-        {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
-      </ButtonGroup>
-    </Form>
+  return (
+    <Dialog
+      title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
+      modalProps={defaultOpen == null ? {} : { defaultOpen }}
+      isDismissable={false}
+    >
+      <UpsertSecretForm {...props} doCancel={canCancel ? 'close' : null} />
+    </Dialog>
   )
-
-  return noDialog ? content : (
-      <Dialog
-        title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
-        modalProps={defaultOpen == null ? {} : { defaultOpen }}
-        isDismissable={false}
-      >
-        {content}
-      </Dialog>
-    )
 }

@@ -7,8 +7,11 @@ import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
+import Standard.Database.Errors.SQL_Error
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 
+import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
+import project.Connection.Widgets
 import project.Snowflake_Connection.Snowflake_Connection
 
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
@@ -19,12 +22,14 @@ type Snowflake_Details
        Arguments:
        - account: The name of the account to connect to.
        - credentials: The credentials to use for the connection.
+         This can either be username/password pair, a `Key_Pair_Credentials` 
+         for private key authentication or a credential created in the dashboard.
        - database: The name of the database to connect to.
        - schema: The name of the schema to connect to.
        - warehouse: The name of the warehouse to use.
     @account (Text_Input display=..Always)
-    @credentials Credentials.default_widget
-    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
+    @credentials Widgets.password_or_keypair_widget
+    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials|Enso_Secret=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
 
     ## PRIVATE
        Attempt to resolve the constructor.
@@ -41,13 +46,14 @@ type Snowflake_Details
     connect self options (allow_data_links : Boolean = True) =
         data_link_setup = if allow_data_links then Data_Link_Setup.Available (create_data_link_structure self) else
             Data_Link_Setup.already_a_data_link
-        properties = options.merge self.jdbc_properties
+        properties = options.merge self.common_jdbc_properties
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
         make_new database schema warehouse =
             Snowflake_Details.Snowflake self.account self.credentials (database.if_nothing self.database) (schema.if_nothing self.schema) (warehouse.if_nothing self.warehouse) . connect options allow_data_links
 
-        Snowflake_Connection.create self.jdbc_url properties make_new data_link_setup
+        _enhance_connection_errors self <|
+            Snowflake_Connection.create self.jdbc_url properties self.credentials make_new data_link_setup
 
     ## PRIVATE
        Provides the jdbc url for the connection.
@@ -56,22 +62,20 @@ type Snowflake_Details
         'jdbc:snowflake://' + self.account + ".snowflakecomputing.com"
 
     ## PRIVATE
-       Provides the properties for the connection.
-    jdbc_properties : Vector (Pair Text Text)
-    jdbc_properties self =
+       Provides common properties for the connection, excluding the ones related to credentials.
+    private common_jdbc_properties self -> Vector (Pair Text Text) =
         ## If Arrow dependency is to be avoided (https://community.snowflake.com/s/article/SAP-BW-Java-lang-NoClassDefFoundError-for-Apache-arrow)
         ## [Pair.new 'jdbc_query_result_format' 'json']
         ## should be prepended to properties. That would make it fallback to plain `json`.
 
         account = [Pair.new 'account' self.account]
-        credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
         database = [Pair.new 'db' self.database]
         schema = [Pair.new 'schema' self.schema]
         warehouse = if self.warehouse=="" then [] else [Pair.new 'warehouse' self.warehouse]
 
         ## Control the format of TIMESTAMP and TIME fields
         formats = [Pair.new "TIME_OUTPUT_FORMAT" "HH24:MI:SS.FF9", Pair.new "TIMESTAMP_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9 TZHTZM", Pair.new "TIMESTAMP_NTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9", Pair.new "TIMESTAMP_LTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9"]
-        account + credentials + database + schema + warehouse + formats
+        account + database + schema + warehouse + formats
 
 ## PRIVATE
 private create_data_link_structure details:Snowflake_Details data_link_location:Enso_File -> JS_Object =
@@ -83,3 +87,21 @@ private create_data_link_structure details:Snowflake_Details data_link_location:
         warehouse_part = if details.warehouse.not_empty then [["warehouse", details.warehouse]] else []
         credential_part = [["credentials", credentials_json]]
         header + connection_part + schema_part + warehouse_part + credential_part
+
+private _enhance_connection_errors (details:Snowflake_Details) ~action =
+    result = action
+    result.catch SQL_Error error->
+        is_using_key_pair_auth = details.credentials.is_a Key_Pair_Credentials
+        message = error.java_exception.getMessage
+        is_likely_missing_public_key = is_using_key_pair_auth && message.contains "JWT token is invalid"
+        if is_likely_missing_public_key then
+            Error.throw (Illegal_State.Error "Authentication failed. Make sure you have associated the public key with your account and used correct username. The original error was: "+message cause=error)
+
+        is_using_cloud = case details.credentials of
+            Key_Pair_Credentials.Key_Pair _ private_key _ -> private_key.is_a Enso_Secret
+            _ -> False
+        is_invalid_private_key_format = message.contains "Private key provided is invalid or not supported"
+        if is_using_cloud.not && is_invalid_private_key_format then
+            Error.throw (Illegal_State.Error "The provided private key file is not supported by the Snowflake driver. We recommend generating the key using `generate_key_pair` method and storing it as a Secret in Enso Cloud. The original error was: "+message cause=error)
+
+        result

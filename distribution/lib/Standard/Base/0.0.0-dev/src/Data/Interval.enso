@@ -48,8 +48,7 @@ type Interval_Type
 
 ## A type representing an interval over real numbers.
 type Interval
-    ## GROUP DateTime
-       ICON time
+    ## ICON time
        Creates an interval.
 
        Arguments:

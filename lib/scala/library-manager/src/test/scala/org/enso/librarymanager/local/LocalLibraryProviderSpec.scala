@@ -17,7 +17,7 @@ class LocalLibraryProviderSpec extends AnyWordSpec with Matchers with Inside {
 
   "LocalLibraryProvider" should {
     "resolve local libraries by config name regardless of directory name" in {
-      val provider = new DefaultLocalLibraryProvider(libraryPath)
+      val provider = new DefaultLocalLibraryProvider(libraryPath, false)
       inside(provider.findLibrary(LibraryName("user1", "Library_1"))) {
         case Some(root) =>
           root.location shouldEqual secondaryPath.resolve("new_folder1")
@@ -25,7 +25,7 @@ class LocalLibraryProviderSpec extends AnyWordSpec with Matchers with Inside {
     }
 
     "resolve local libraries with conflicting names, disambiguating by namespace" in {
-      val provider = new DefaultLocalLibraryProvider(libraryPath)
+      val provider = new DefaultLocalLibraryProvider(libraryPath, false)
       inside(provider.findLibrary(LibraryName("dev1", "Simple_Library"))) {
         case Some(root) =>
           root.location shouldEqual primaryPath.resolve("Simple_Library_1")
@@ -37,7 +37,7 @@ class LocalLibraryProviderSpec extends AnyWordSpec with Matchers with Inside {
       // import statement, but it's a lot of additional work for a rare
       // occurrence, so for now we'll just log a warning - we can revisit this
       // later.
-      val provider = new DefaultLocalLibraryProvider(libraryPath)
+      val provider = new DefaultLocalLibraryProvider(libraryPath, false)
       val ambiguousName =
         LibraryName("ambiguous_developer", "Ambiguous_Library")
       inside(provider.findLibrary(ambiguousName)) { case Some(root) =>
@@ -47,12 +47,23 @@ class LocalLibraryProviderSpec extends AnyWordSpec with Matchers with Inside {
     }
 
     "prefer libraries in the first directory in the search path" in {
-      val provider = new DefaultLocalLibraryProvider(libraryPath)
+      val provider = new DefaultLocalLibraryProvider(libraryPath, false)
       inside(
         provider.findLibrary(LibraryName("user123", "Library_In_Both_Dirs"))
       ) { case Some(root) =>
         root.location shouldEqual primaryPath.resolve("library_in_both_dirs")
       }
+    }
+
+    "Library with polyglot/java directory found in JVM mode, but not in AOT mode" in {
+      val checkJvm = new DefaultLocalLibraryProvider(libraryPath, false)
+      val found    = checkJvm.findLibrary(LibraryName("dev2", "Lib_With_Poly"))
+      found.isDefined shouldEqual true
+      found.orNull.location shouldEqual primaryPath.resolve("Lib_With_Poly")
+
+      val checkAot = new DefaultLocalLibraryProvider(libraryPath, true)
+      val notFound = checkAot.findLibrary(LibraryName("dev2", "Lib_With_Poly"))
+      notFound shouldEqual None
     }
   }
 }

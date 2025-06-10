@@ -3,23 +3,14 @@
  * This is a component, NOT a page, but it is here because it is related to the authentication pages
  * and nothing else.
  */
-import type { ReactNode } from 'react'
-
-import {
-  DIALOG_BACKGROUND,
-  Form,
-  Text,
-  type FormProps,
-  type TSchema,
-} from '#/components/AriaComponents'
+import { DIALOG_BACKGROUND } from '#/components/Dialog'
+import { Form, type FormProps, type TSchema } from '#/components/Form'
 import Page from '#/components/Page'
+import { Text } from '#/components/Text'
 import { useOffline } from '#/hooks/offlineHooks'
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
+import type { ReactNode } from 'react'
 import invariant from 'tiny-invariant'
-
-// ==========================
-// === AuthenticationPage ===
-// ==========================
 
 /** Props for an {@link AuthenticationPage}. */
 interface AuthenticationPagePropsBase {
@@ -53,7 +44,7 @@ export default function AuthenticationPage<Schema extends TSchema>(
   const { isOffline } = useOffline()
 
   const heading =
-    title ?
+    title != null ?
       <Text.Heading level={1} className="self-center" weight="medium">
         {title}
       </Text.Heading>
@@ -63,7 +54,7 @@ export default function AuthenticationPage<Schema extends TSchema>(
     <Page>
       <div className="flex h-full w-full flex-col overflow-y-auto p-12">
         <div
-          className="relative m-auto grid h-full w-full max-w-md grid-cols-1 grid-rows-[1fr_auto_1fr] flex-col items-center justify-center gap-auth text-sm text-primary"
+          className="relative m-auto grid h-auto w-full max-w-md flex-none grid-cols-1 grid-rows-[1fr_auto_1fr] flex-col items-center justify-center gap-auth text-sm text-primary"
           data-testid={props['data-testid']}
         >
           {isOffline && (

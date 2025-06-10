@@ -11,6 +11,8 @@ import project.Column_Ref.Column_Ref
 import project.Expression.Expression
 import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
+import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Value_Type.Value_Type
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 ## Defines a simple expression based off an input column and an operation to perform.
@@ -42,7 +44,7 @@ type Simple_Expression
             Simple_Calculation.Divide rhs -> input_column / (table.resolve rhs)
             Simple_Calculation.Mod rhs -> input_column % (table.resolve rhs)
             Simple_Calculation.Power rhs -> input_column ^ (table.resolve rhs)
-            Simple_Calculation.Round precision use_bankers -> input_column.round precision use_bankers
+            Simple_Calculation.Round precision rounding_mode -> input_column.round precision rounding_mode
             Simple_Calculation.Ceil -> input_column.ceil
             Simple_Calculation.Floor -> input_column.floor
             Simple_Calculation.Truncate -> input_column.truncate
@@ -68,7 +70,6 @@ type Simple_Expression
        Create a widget for operation
     default_widget table:Table_Ref display:Display=..Always -> Widget =
         with_everything = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True add_nothing=True
-        with_all_types = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True
         with_number_text = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True
         filter_cond = Widget_Helpers.make_filter_condition_selector table
 
@@ -87,8 +88,10 @@ type Simple_Expression
         ## Constants
         constants = make_any_selector add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True . values
         expression = Option "<Expression>" "(expr '["+table.column_names.first+"]')"
-        derived = Option "<Simple Expression>" "..Simple_Expr" [["input", with_all_types], ["operation", Single_Choice options]]
-        Single_Choice constants+[expression, derived] display=display
+
+        input_column = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True columns_first=True
+        derived = Option "<Simple Expression>" "..Simple_Expr" [["input", input_column], ["operation", Single_Choice options]]
+        Single_Choice [derived, expression]+constants display=display
 
 ## Defines a set of Text based operations.
 type Text_Operation
@@ -165,7 +168,7 @@ type Math_Operation
     Power (rhs : Column_Ref|Expression|Number = 1)
 
     ## Rounds values in the column to the specified precision.
-    Round (precision:Integer = 0) (use_bankers:Boolean = False)
+    Round (precision:Integer = 0) (rounding_mode : Rounding_Mode = Rounding_Mode.Half_Up)
 
     ## Rounds values in the column up to the nearest integer.
     Ceil
@@ -175,6 +178,12 @@ type Math_Operation
 
     ## Truncates the fractional part of values in the column.
     Truncate
+
+    ## Returns the absolute value of each element in the column.
+    Absolute
+
+    ## Returns the sign of each element in the column.
+    Signum
 
     ## PRIVATE
     create_widget : Table_Ref -> Display -> Widget
@@ -192,6 +201,8 @@ type Math_Operation
             builder.append (Option "ceil" "..Ceil")
             builder.append (Option "floor" "..Floor")
             builder.append (Option "truncate" "..Truncate")
+            builder.append (Option "absolute" "..Absolute")
+            builder.append (Option "signum" "..Signum")
         Single_Choice options display=display
 
     ## PRIVATE
@@ -205,10 +216,14 @@ type Math_Operation
             Math_Operation.Negate -> column * -1
             Math_Operation.Mod rhs -> column % (table.resolve rhs)
             Math_Operation.Power rhs -> column ^ (table.resolve rhs)
-            Math_Operation.Round precision use_bankers -> column.round precision use_bankers
+            Math_Operation.Round precision rounding_mode -> column.round precision rounding_mode
             Math_Operation.Ceil -> column.ceil
             Math_Operation.Floor -> column.floor
             Math_Operation.Truncate -> column.truncate
+            Math_Operation.Absolute -> Value_Type.expect_numeric column <|
+                (column:Numeric_Column).abs
+            Math_Operation.Signum -> Value_Type.expect_numeric column <|
+                (column:Numeric_Column).signum
 
 ## Defines a set of Date based operations.
 type Date_Operation
@@ -345,7 +360,7 @@ type Simple_Calculation
     Power (rhs : Column_Ref|Expression|Number = 1)
 
     ## Rounds values in the column to the specified precision.
-    Round (precision:Integer = 0) (use_bankers:Boolean = False)
+    Round (precision:Integer = 0) (rounding_mode : Rounding_Mode = Rounding_Mode.Half_Up)
 
     ## Rounds values in the column up to the nearest integer.
     Ceil

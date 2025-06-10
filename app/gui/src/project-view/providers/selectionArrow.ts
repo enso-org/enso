@@ -23,8 +23,7 @@ interface SelectionArrowInfo {
   suppressArrow: boolean
 }
 
-export { injectFn as injectSelectionArrow, provideFn as provideSelectionArrow }
-const { provideFn, injectFn } = createContextStore(
+export const [provideSelectionArrow, injectSelectionArrow] = createContextStore(
   'Selection arrow info',
   identity<SelectionArrowInfo>,
 )

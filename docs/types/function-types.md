@@ -11,7 +11,7 @@ order: 3
 As a functional programming language, the type of functions in Enso (`->`) is
 key. There are a few things that should be noted about functions in Enso.
 
-> The actionables for this section:
+> [!NOTE] The actionables for this section:
 >
 > - Work out a full specification for function typing and behaviour.
 > - Calling a function with an upper-case letter instantiates all of its type
@@ -47,59 +47,61 @@ Scope lookup proceeds from the function body outwards, as is standard for
 lexical scoping. For a detailed discussion of scoping, please see
 [the scoping documentation](../semantics/scoping.md).
 
-## Structural Type Shorthand
-
-In Enso, we want to be able to write a type-signature that represents types in
-terms of the operations that take place on the input values. A classical example
-is `add`:
-
-```ruby
-add : a -> b -> b + a
-add = a -> b -> b + a
-```
-
-There are a few things to note about this signature from a design standpoint:
-
-- `a` and `b` are not the same type. This may, at first glance, seem like a
-  signature that can't work, but the return type, in combination with our
-  integrated `Convertible` mechanism gives us the tools to make it work.
-- The return type is `a + b`. This is a shorthand expression for a detailed
-  desugaring. The desugaring provided below is what the typechecker would infer
-  based on such a signature.
-
-```ruby
-add : forall a b c d. ({+ : Convertible b c => a -> c -> d} <: a) => a -> b -> d
-```
-
-This may look fairly strange at first, but we can work through the process as
-follows:
-
-1. The expression `b + a` is syntactic sugar for a method call on a: `a.+ b`.
-2. This means that there must be a `+` method on a that takes both an `a` and a
-   `b`, with return-type unspecified as of yet: `+ : a -> b -> ?`
-3. However, as `Convertible` is built into the language, we have to consider
-   that for `a.+ b` to work, the `+` method can actually take any type to which
-   `b` converts. This introduces the constraint `Convertible b c`, and we get
-   `+ : a -> c -> ?`
-4. The return type from a function need not be determined by its arguments, so
-   hence in the general case we have to default to an unrestricted type variable
-   giving `+ a -> c -> d`.
-5. This method must exist on the type `a`, resulting in the constraint that the
-   row `{+ : a -> c -> d} <: a` must conform to that interface.
-6. We now know the return type of `a + b`, and can rewrite it in the signature
-   as `d`.
-
-Please note that `a <: b` (which can be flipped as `:>`) means that `a` is a row
-that is a sub-row contained within the row `b`. The containment relation allows
-for the possibility that `a == b`.
-
-The inferred type for any function should, in general, match the given type
-signature. Cases where this break down should only exist where the type
-signature acts to constrain the function type further than would be inferred.
-
-> The actionables for this section are:
+> [!WARNING]
 >
 > PLEASE NOTE. THIS IS OUT OF DATE.
+>
+> ## Structural Type Shorthand
+>
+> In Enso, we want to be able to write a type-signature that represents types in
+> terms of the operations that take place on the input values. A classical
+> example is `add`:
+>
+> ```ruby
+> add : a -> b -> b + a
+> add = a -> b -> b + a
+> ```
+>
+> There are a few things to note about this signature from a design standpoint:
+>
+> - `a` and `b` are not the same type. This may, at first glance, seem like a
+>   signature that can't work, but the return type, in combination with our
+>   integrated `Convertible` mechanism gives us the tools to make it work.
+> - The return type is `a + b`. This is a shorthand expression for a detailed
+>   desugaring. The desugaring provided below is what the typechecker would
+>   infer based on such a signature.
+>
+> ```ruby
+> add : forall a b c d. ({+ : Convertible b c => a -> c -> d} <: a) => a -> b -> d
+> ```
+>
+> This may look fairly strange at first, but we can work through the process as
+> follows:
+>
+> 1. The expression `b + a` is syntactic sugar for a method call on a: `a.+ b`.
+> 2. This means that there must be a `+` method on a that takes both an `a` and
+>    a `b`, with return-type unspecified as of yet: `+ : a -> b -> ?`
+> 3. However, as `Convertible` is built into the language, we have to consider
+>    that for `a.+ b` to work, the `+` method can actually take any type to
+>    which `b` converts. This introduces the constraint `Convertible b c`, and
+>    we get `+ : a -> c -> ?`
+> 4. The return type from a function need not be determined by its arguments, so
+>    hence in the general case we have to default to an unrestricted type
+>    variable giving `+ a -> c -> d`.
+> 5. This method must exist on the type `a`, resulting in the constraint that
+>    the row `{+ : a -> c -> d} <: a` must conform to that interface.
+> 6. We now know the return type of `a + b`, and can rewrite it in the signature
+>    as `d`.
+>
+> Please note that `a <: b` (which can be flipped as `:>`) means that `a` is a
+> row that is a sub-row contained within the row `b`. The containment relation
+> allows for the possibility that `a == b`.
+>
+> The inferred type for any function should, in general, match the given type
+> signature. Cases where this break down should only exist where the type
+> signature acts to constrain the function type further than would be inferred.
+>
+> The actionables for this section are:
 >
 > - Clean it up and work out how it applies in light of the new developments of
 >   typesets.
@@ -112,16 +114,25 @@ all arguments have been applied. This operator is `>>` (and its backwards cousin
 arguments, and the result consumes `n` arguments, applies them to `f`, and then
 applies the result of that plus any additional arguments to `g`.
 
-```ruby
-computeCoeff = (+) >> (*5)
-
-doThing = (+) >> (*)
-```
+> [!WARNING] Enso does support `>>` as well as `<<` operators, but
+>
+> ```ruby
+> computeCoeff = (+) >> (*5)
+> doThing = (+) >> (*)
+>
+> main = computeCoeff 7 3
+> Execution finished with an error: Method `*` of comp.computeCoeff.f[comp.enso:11-12] a=7 b=_ could not be found.
+>        at <enso> comp.computeCoeff.g(comp.enso:14:9-11)
+>        at <enso> Function.>>(Function.enso:66:7-12)
+>        at <enso> comp.main(comp.enso:17:8-20)
+>
+>
+> ```
 
 In addition, we have the operator `.`, which acts as standard forward function
 chaining in Enso, and its backwards chaining cousin `<|`.
 
-> The actionables from this section are:
+> [!NOTE] The actionables from this section are:
 >
 > - Examples for the more advanced use-cases of `>>` to decide if the type
 >   complexity is worth it.

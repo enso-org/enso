@@ -30,11 +30,11 @@ type Context
 
     is_enabled : Text -> Boolean
     is_enabled self environment=Runtime.current_execution_environment =
-        self.is_enabled_builtin environment
+        is_enabled_builtin self environment
 
-    ## PRIVATE
-    is_enabled_builtin : Text -> Boolean
-    is_enabled_builtin self environment = @Builtin_Method "Context.is_enabled_builtin"
+## PRIVATE
+is_enabled_builtin : Text -> Boolean
+is_enabled_builtin c environment = @Builtin_Method "Context.is_enabled_builtin"
 
 current_execution_environment : Text
 current_execution_environment = @Builtin_Method "Runtime.current_execution_environment"
@@ -52,3 +52,6 @@ with_disabled_context_builtin : Context -> Text -> Function -> Any
 with_disabled_context_builtin context environment ~action = @Builtin_Method "Runtime.with_disabled_context_builtin"
 
 primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
+
+value_for_uuid id = instrumentor_builtin "uuid" id
+instrumentor_builtin op args = @Builtin_Method "Meta.instrumentor_builtin"

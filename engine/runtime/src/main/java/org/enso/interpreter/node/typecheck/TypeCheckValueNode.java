@@ -1,9 +1,12 @@
 package org.enso.interpreter.node.typecheck;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.enso.interpreter.node.ExpressionNode;
@@ -14,14 +17,21 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.util.CachingSupplier;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /** A node and a factory for nodes performing type checks (including necessary conversions). */
 public final class TypeCheckValueNode extends Node {
   private @Child AbstractTypeCheckNode check;
+  private @Child WarningsLibrary warnings;
+  private @Child AppendWarningNode append;
+  private final boolean allTypes;
 
-  TypeCheckValueNode(AbstractTypeCheckNode check) {
+  TypeCheckValueNode(AbstractTypeCheckNode check, boolean allTypes) {
     assert check != null;
     this.check = check;
+    this.allTypes = allTypes;
+    this.warnings = WarningsLibrary.getFactory().createDispatched(3);
   }
 
   /**
@@ -50,6 +60,31 @@ public final class TypeCheckValueNode extends Node {
    *     null} value that can be used as a result
    */
   public final Object handleCheckOrConversion(
+      VirtualFrame frame, Object value, ExpressionNode expr) {
+    if (warnings.hasWarnings(value)) {
+      if (append == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        append = insert(AppendWarningNode.build());
+      }
+      try {
+        var plainValue = warnings.removeWarnings(value);
+        var result = handleCheckOrConversionImpl(frame, plainValue, expr);
+        if (result == plainValue) {
+          return value;
+        } else {
+          var warnMap = warnings.getWarnings(value, false);
+          return append.executeAppend(frame, result, warnMap);
+        }
+      } catch (UnsupportedMessageException ex) {
+        var ctx = EnsoContext.get(this);
+        throw ctx.raiseAssertionPanic(this, null, ex);
+      }
+    } else {
+      return handleCheckOrConversionImpl(frame, value, expr);
+    }
+  }
+
+  private final Object handleCheckOrConversionImpl(
       VirtualFrame frame, Object value, ExpressionNode expr) {
     var result = check.executeCheckOrConversion(frame, value, expr);
     if (result == null) {
@@ -83,8 +118,8 @@ public final class TypeCheckValueNode extends Node {
     var arr = toArray(flatten);
     return switch (arr.length) {
       case 0 -> null;
-      case 1 -> new TypeCheckValueNode(arr[0]);
-      default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, arr));
+      case 1 -> new TypeCheckValueNode(arr[0], true);
+      default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, arr), true);
     };
   }
 
@@ -106,7 +141,7 @@ public final class TypeCheckValueNode extends Node {
       default -> {
         var abstractTypeCheckList = list.stream().map(n -> n.check).toList();
         var abstractTypeCheckArr = toArray(abstractTypeCheckList);
-        yield new TypeCheckValueNode(new OneOfTypesCheckNode(comment, abstractTypeCheckArr));
+        yield new TypeCheckValueNode(new OneOfTypesCheckNode(comment, abstractTypeCheckArr), true);
       }
     };
   }
@@ -120,7 +155,7 @@ public final class TypeCheckValueNode extends Node {
    */
   public static TypeCheckValueNode single(String comment, Type expectedType) {
     var typeCheckNodeImpl = SingleTypeCheckNodeGen.create(comment, expectedType);
-    return new TypeCheckValueNode(typeCheckNodeImpl);
+    return new TypeCheckValueNode(typeCheckNodeImpl, true);
   }
 
   /**
@@ -134,7 +169,25 @@ public final class TypeCheckValueNode extends Node {
       String comment, Supplier<? extends Object> metaObjectSupplier) {
     var cachingSupplier = CachingSupplier.wrap(metaObjectSupplier);
     var typeCheckNodeImpl = MetaTypeCheckNodeGen.create(comment, cachingSupplier);
-    return new TypeCheckValueNode(typeCheckNodeImpl);
+    return new TypeCheckValueNode(typeCheckNodeImpl, true);
+  }
+
+  /**
+   * Creates new node with different {@code allTypes} state. Otherwise the behavior is the same as
+   * {@code node}. All types state influences the behavior of type checking {@link EnsoMultiValue} -
+   * should all types the value is convertible to be used or only those types that the value has
+   * already been converted to?
+   *
+   * <pre>
+   * method arg:Text = # this check has allTypes == false
+   *   num = arg:Number # this check has allTypes == true
+   * </pre>
+   *
+   * @param allTypes the value of all types state for the new node
+   * @param node the previous node with type checking logic
+   */
+  public static TypeCheckValueNode allTypes(boolean allTypes, TypeCheckValueNode node) {
+    return node == null ? null : new TypeCheckValueNode(node.check, allTypes);
   }
 
   /**
@@ -168,15 +221,10 @@ public final class TypeCheckValueNode extends Node {
     if (list == null) {
       return new AbstractTypeCheckNode[0];
     }
-    var cnt = (int) list.stream().filter(n -> n != null).count();
-    var arr = new AbstractTypeCheckNode[cnt];
-    var it = list.iterator();
-    for (int i = 0; i < cnt; ) {
-      var element = it.next();
-      if (element != null) {
-        arr[i++] = element;
-      }
-    }
-    return arr;
+    return list.stream().filter(Objects::nonNull).toArray(AbstractTypeCheckNode[]::new);
+  }
+
+  final boolean isAllTypes() {
+    return allTypes;
   }
 }

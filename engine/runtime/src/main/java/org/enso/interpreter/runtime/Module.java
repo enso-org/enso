@@ -245,7 +245,7 @@ public final class Module extends EnsoObject {
    * @return true iff this module is private (project-private).
    */
   public boolean isPrivate() {
-    return ir.isPrivate();
+    return ir == null || isSynthetic() || ir.isPrivate();
   }
 
   /**
@@ -381,6 +381,7 @@ public final class Module extends EnsoObject {
    * @param sourceLength length at the time compilation was performed
    * @return
    */
+  @TruffleBoundary
   public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
     var src = sources.source();
     if (src == null) {
@@ -414,7 +415,7 @@ public final class Module extends EnsoObject {
   private void compile(EnsoContext context) throws IOException {
     Source source = getSource();
     if (source == null) return;
-    scopeBuilder = newScopeBuilder(false);
+    scopeBuilder = newScopeBuilder();
     compilationStage = CompilationStage.INITIAL;
     context.getCompiler().run(asCompilerModule());
   }
@@ -499,12 +500,8 @@ public final class Module extends EnsoObject {
     return scopeBuilder;
   }
 
-  public ModuleScope.Builder newScopeBuilder(boolean inheritTypes) {
-    if (inheritTypes) {
-      this.scopeBuilder = this.scopeBuilder.newBuilderInheritingTypes();
-    } else {
-      this.scopeBuilder = new ModuleScope.Builder(this);
-    }
+  public ModuleScope.Builder newScopeBuilder() {
+    this.scopeBuilder = new ModuleScope.Builder(this);
     return this.scopeBuilder;
   }
 
@@ -689,13 +686,16 @@ public final class Module extends EnsoObject {
           null,
           eval.getFunction(),
           callerInfo,
-          context.emptyState(),
+          context.currentState(),
           new Object[] {builtins.debug(), Text.create(expr)},
           null);
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {
-      return context.getCompiler().generateDocs(module.asCompilerModule());
+      var compilerModule = module.asCompilerModule();
+      var res = context.getCompiler().generateDocs(compilerModule);
+      assert res == compilerModule;
+      return module;
     }
 
     @CompilerDirectives.TruffleBoundary

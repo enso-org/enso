@@ -6,7 +6,7 @@ import { ExecutionEnvironment } from 'ydoc-shared/languageServerTypes'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
 /** Allows to recompute certain expressions (usually nodes). */
-export const { provideFn: provideNodeExecution, injectFn: useNodeExecution } = createContextStore(
+export const [provideNodeExecution, useNodeExecution] = createContextStore(
   'nodeExecution',
   (projectStore: ProjectStore) => {
     const recomputationInProgress = reactive(new Set<ExternalId>())

@@ -1,120 +1,120 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
+import ComponentEditorLabel from '@/components/ComponentBrowser/ComponentEditorLabel.vue'
+import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
-import AutoSizedInput, { type Range } from '@/components/widgets/AutoSizedInput.vue'
-import type { useNavigator } from '@/composables/navigator'
-import type { Icon } from '@/util/iconName'
-import { computed, ref, watch, type DeepReadonly } from 'vue'
-import type { ComponentExposed } from 'vue-component-type-helpers'
+import { useCodeMirror, useStringSync } from '@/util/codemirror'
+import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
+import { computed, useTemplateRef, watch, type ComponentInstance, type DeepReadonly } from 'vue'
+import { Range } from 'ydoc-shared/util/data/range'
 
 const content = defineModel<DeepReadonly<{ text: string; selection: Range | undefined }>>({
   required: true,
 })
 const props = defineProps<{
-  navigator: ReturnType<typeof useNavigator>
-  icon: Icon | undefined
+  usage: Usage
+  mode: ComponentBrowserMode
   nodeColor: string
 }>()
 
-const inputField = ref<ComponentExposed<typeof AutoSizedInput>>()
+const graphStore = useGraphStore()
 
-const fieldContent = ref<{ text: string; selection: Range | undefined }>({
-  text: '',
-  selection: undefined,
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
+
+const { syncExt, connectSync } = useStringSync()
+const { editorView } = useCodeMirror(editorRoot, {
+  extensions: [syncExt],
+  contentTestId: 'component-editor-content',
+  lineMode: 'single',
 })
 
-watch(content, (newContent) => {
-  fieldContent.value = newContent
-})
-watch(
-  [() => fieldContent.value.text, () => fieldContent.value.selection],
-  ([newText, newSelection]) => {
-    content.value = {
-      text: newText,
-      selection: newSelection,
-    }
-  },
+const { onUserAction, setText } = connectSync(editorView)
+onUserAction(
+  (text, selection) =>
+    (content.value = {
+      text,
+      selection: Range.unsafeFromBounds(selection.from, selection.to),
+    }),
 )
+watch(content, ({ text, selection }) => setText(text, selection))
+
+const icon = computed(() => {
+  if (props.mode.mode === 'componentBrowsing') return 'find'
+  if (props.usage.type === 'editNode') {
+    return iconOfNode(props.usage.node, graphStore.db)
+  }
+  if (props.mode.mode === 'codeEditing' && props.mode.appliedSuggestion) {
+    return suggestionEntryToIcon(props.mode.appliedSuggestion)
+  }
+  return DEFAULT_ICON
+})
+
+const focus = editorView.focus.bind(editorView)
 
 defineExpose({
-  blur: () => inputField.value?.blur(),
-  focus: () => inputField.value?.focus(),
+  blur: editorView.contentDOM.blur.bind(editorView.contentDOM),
+  focus,
+  /**
+   * Focus the editor asynchronously.
+   *
+   * THe editor cannot be focused until after it is mounted, because it is inserted into the DOM
+   * dynamically. This function focuses the editor when it is ready.
+   */
+  delayedFocus: () => setTimeout(focus),
 })
 
 const rootStyle = computed(() => {
   return {
-    '--color-node-primary': props.nodeColor,
-    '--port-edge-width': `${4 * props.navigator.scale}px`,
+    '--node-group-color': props.nodeColor,
   }
 })
 </script>
 
 <template>
-  <div class="ComponentEditor" :style="rootStyle">
-    <div v-if="props.icon" class="iconPort">
-      <SvgIcon :name="props.icon" class="nodeIcon" />
+  <div class="ComponentEditor define-node-colors" :style="rootStyle">
+    <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
+      <SvgIcon :name="icon" />
     </div>
-    <AutoSizedInput
-      ref="inputField"
-      v-model="fieldContent.text"
-      v-model:selection="fieldContent.selection"
-      autocomplete="off"
-      class="inputField"
-      :acceptOnEnter="false"
-      @pointerdown.stop
-      @pointerup.stop
-      @click.stop
-    />
-    <div class="buttonPanel">
-      <slot></slot>
-    </div>
+    <template v-if="props.mode.mode === 'componentBrowsing'">
+      <ComponentEditorLabel :selfArg="props.mode.filter.selfArg" />
+      <SvgIcon class="selfArgInfoArrow" name="folder_closed" />
+    </template>
+    <CodeMirrorRoot ref="editorRoot" />
   </div>
 </template>
 
 <style scoped>
 .ComponentEditor {
-  --node-color-port: color-mix(in oklab, var(--color-node-primary) 85%, white 15%);
-  --port-padding: 6px;
-  --icon-height: 16px;
-  --icon-text-gap: 6px;
-  border-radius: var(--radius-default);
+  --port-padding: 4px;
+  --icon-size: 16px;
+  border-radius: 22px;
   background-color: var(--background-color);
-  padding: 0 var(--component-editor-padding);
-  height: 40px;
+  padding: var(--component-editor-padding);
   display: flex;
   flex-direction: row;
   gap: 8px;
   align-items: center;
 }
 
-.inputField {
-  border: none;
-  outline: none;
-  background: none;
-  font: inherit;
-  text-align: left;
+:deep(.cm-editor) {
   flex-grow: 1;
 }
 
-.iconPort {
+.componentEditorIcon {
   position: relative;
   text-align: center;
   border-radius: var(--radius-full);
   padding: var(--port-padding);
-  margin: 0 var(--icon-text-gap) 0 calc(0px - var(--port-padding));
-  background-color: var(--node-color-port);
+  margin: 0;
   isolation: isolate;
+  &.port {
+    background-color: var(--color-edge-from-node);
+    color: white;
+  }
 }
 
-.nodeIcon {
-  color: white;
-  width: var(--icon-height);
-  height: var(--icon-height);
-}
-
-.buttonPanel {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  flex-grow: 0;
+.selfArgInfoArrow {
+  margin: 0 -4px;
 }
 </style>

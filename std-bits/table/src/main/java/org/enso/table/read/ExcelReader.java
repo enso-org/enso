@@ -4,12 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.ss.usermodel.Name;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
@@ -24,8 +20,10 @@ import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
+import org.enso.table.excel.ExcelWorkbook;
 import org.enso.table.excel.ReadOnlyExcelConnection;
 import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.FunctionWithException;
 import org.graalvm.polyglot.Context;
 
 /** A table reader for MS Excel files. */
@@ -39,17 +37,17 @@ public class ExcelReader {
    * @throws IOException when the action fails
    */
   public static String[] readSheetNames(File file, ExcelFileFormat format)
-      throws IOException, InvalidFormatException {
+      throws IOException, InterruptedException {
     return withWorkbook(file, format, ExcelReader::readSheetNames);
   }
 
   /**
    * Reads a list of sheet names from a workbook into an array.
    *
-   * @param workbook a {@link Workbook} to read the sheet names from.
+   * @param workbook a {@link ExcelWorkbook} to read the sheet names from.
    * @return a String[] containing the sheet names.
    */
-  public static String[] readSheetNames(Workbook workbook) {
+  public static String[] readSheetNames(ExcelWorkbook workbook) {
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
     Context context = Context.getCurrent();
@@ -69,19 +67,8 @@ public class ExcelReader {
    * @throws IOException when the action fails
    */
   public static String[] readRangeNames(File file, ExcelFileFormat format)
-      throws IOException, InvalidFormatException {
-    return withWorkbook(file, format, ExcelReader::readRangeNames);
-  }
-
-  /**
-   * Reads a list of range names for the specified XLSX/XLS file into an array.
-   *
-   * @param workbook a {@link Workbook} to read the sheet names from.
-   * @return a String[] containing the range names.
-   */
-  public static String[] readRangeNames(Workbook workbook) {
-    var names = workbook.getAllNames();
-    return names.stream().map(Name::getNameName).toArray(String[]::new);
+      throws IOException, InterruptedException {
+    return withWorkbook(file, format, ExcelWorkbook::getRangeNames);
   }
 
   /**
@@ -104,7 +91,7 @@ public class ExcelReader {
       Integer row_limit,
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
+      throws IOException, InvalidLocationException, InterruptedException {
     return withWorkbook(
         file,
         format,
@@ -145,7 +132,7 @@ public class ExcelReader {
       Integer row_limit,
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
+      throws IOException, InvalidLocationException, InterruptedException {
     return withWorkbook(
         file,
         format,
@@ -190,7 +177,7 @@ public class ExcelReader {
       Integer row_limit,
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
+      throws IOException, InvalidLocationException, InterruptedException {
     return withWorkbook(
         file,
         format,
@@ -202,7 +189,7 @@ public class ExcelReader {
   /**
    * Reads a range by sheet name, named range or address for the workbook into a table.
    *
-   * @param workbook a {@link Workbook} to read from.
+   * @param workbook a {@link ExcelWorkbook} to read from.
    * @param rangeNameOrAddress sheet name, range name or address to read.
    * @param headers specifies whether the first row should be used as headers.
    * @param skip_rows skip rows from the top of the range.
@@ -211,13 +198,13 @@ public class ExcelReader {
    * @throws InvalidLocationException when the range name or address is not found.
    */
   public static Table readRangeByName(
-      Workbook workbook,
+      ExcelWorkbook workbook,
       String rangeNameOrAddress,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       ProblemAggregator problemAggregator)
-      throws InvalidLocationException {
+      throws InvalidLocationException, InterruptedException {
     int sheetIndex = workbook.getSheetIndex(rangeNameOrAddress);
     if (sheetIndex != -1) {
       return readTable(
@@ -230,11 +217,10 @@ public class ExcelReader {
           problemAggregator);
     }
 
-    Name name = workbook.getName(rangeNameOrAddress);
-
     ExcelRange excelRange;
     try {
-      excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
+      var formula = workbook.getNameFormula(rangeNameOrAddress);
+      excelRange = new ExcelRange(formula == null ? rangeNameOrAddress : formula);
     } catch (IllegalArgumentException e) {
       throw new InvalidLocationException(
           rangeNameOrAddress,
@@ -263,7 +249,7 @@ public class ExcelReader {
       Integer row_limit,
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
-      throws IOException, InvalidLocationException {
+      throws IOException, InvalidLocationException, InterruptedException {
     return withWorkbook(
         file,
         format,
@@ -271,8 +257,11 @@ public class ExcelReader {
             readRange(workbook, excelRange, headers, skip_rows, row_limit, problemAggregator));
   }
 
-  private static <T> T withWorkbook(File file, ExcelFileFormat format, Function<Workbook, T> action)
-      throws IOException {
+  private static <T> T withWorkbook(
+      File file,
+      ExcelFileFormat format,
+      FunctionWithException<ExcelWorkbook, T, InterruptedException> action)
+      throws IOException, InterruptedException {
     try (ReadOnlyExcelConnection connection =
         ExcelConnectionPool.INSTANCE.openReadOnlyConnection(file, format)) {
       return connection.withWorkbook(action);
@@ -280,13 +269,13 @@ public class ExcelReader {
   }
 
   public static Table readRange(
-      Workbook workbook,
+      ExcelWorkbook workbook,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       ProblemAggregator problemAggregator)
-      throws InvalidLocationException {
+      throws InvalidLocationException, InterruptedException {
     int sheetIndex = workbook.getSheetIndex(excelRange.getSheetName());
     if (sheetIndex == -1) {
       throw new InvalidLocationException(
@@ -304,15 +293,16 @@ public class ExcelReader {
   }
 
   private static Table readTable(
-      Workbook workbook,
+      ExcelWorkbook workbook,
       int sheetIndex,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
       int skipRows,
       int rowCount,
-      ProblemAggregator problemAggregator) {
+      ProblemAggregator problemAggregator)
+      throws InterruptedException {
 
-    ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
+    ExcelSheet sheet = workbook.getSheetAt(sheetIndex);
 
     // Expand Single Cell
     if (excelRange != null && excelRange.isSingleCell()) {
@@ -322,7 +312,7 @@ public class ExcelReader {
             new Column[] {
               new Column(
                   CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
-                  new ObjectStorage(new Object[0], 0))
+                  ObjectStorage.EMPTY)
             });
       }
 
@@ -356,7 +346,7 @@ public class ExcelReader {
         wholeRow
             ? new ArrayList<>()
             : IntStream.range(startCol, endCol + 1)
-                .mapToObj(i -> new InferredBuilder(size, problemAggregator))
+                .mapToObj(i -> new InferredBuilder(size, problemAggregator, true))
                 .collect(Collectors.toList());
 
     // Read Cell Data
@@ -364,7 +354,7 @@ public class ExcelReader {
     while (row <= endRow && (row - startRow) < rowCount) {
       ExcelRow currentRow = sheet.get(row);
       if (currentRow == null) {
-        builders.forEach(b -> b.append(null));
+        builders.forEach(b -> b.appendNulls(1));
       } else {
         int currentEndCol =
             endCol == -1
@@ -408,7 +398,7 @@ public class ExcelReader {
       int rows,
       ProblemAggregator problemAggregator) {
     for (int i = builders.size(); i <= columnCount; i++) {
-      Builder builder = new InferredBuilder(size, problemAggregator, true);
+      var builder = new InferredBuilder(size, problemAggregator, true);
       builder.appendNulls(rows);
       builders.add(builder);
     }

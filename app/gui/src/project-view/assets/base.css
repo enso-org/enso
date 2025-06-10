@@ -1,33 +1,33 @@
-@import url('./font-enso.css');
-@import url('./font-enso-prose.css');
-@import url('./font-enso-naming.css');
-@import url('./font-mplus1.css');
-@import url('./font-dejavu.css');
+@import url("./font-enso.css");
+@import url("./font-enso-prose.css");
+@import url("./font-enso-naming.css");
+@import url("./font-mplus1.css");
+@import url("./font-dejavu.css");
 
 /*************************************************
  *** semantic color variables for this project ***
  *************************************************/
 :root {
-  --color-text: rgb(118 118 118);
+  --color-ag-header-text: rgb(0 0 0);
+  --color-text: rgb(82 82 82);
   --color-primary: rgb(0 0 0 / 0.6);
   --color-text-light: rgb(255 255 255 / 0.7);
   --color-text-inversed: rgb(255 255 255);
   --color-app-bg: rgb(255 255 255 / 0.8);
   --color-menu-entry-hover-bg: rgb(0 0 0 / 0.1);
   --color-menu-entry-selected-bg: rgb(0 0 0 / 0.05);
-  --color-visualization-bg: rgb(255 242 242);
+  --color-visualization-bg: rgb(242 242 242);
   --color-dim: rgb(0 0 0 / 0.25);
   --color-frame-bg: rgb(255 255 255 / 0.3);
   --color-frame-selected-bg: rgb(255 255 255 / 0.7);
-  --color-widget-slight: rgb(255 255 255 / 0.06);
   --color-widget: rgb(255 255 255 / 0.12);
   --color-widget-focus: rgb(255 255 255 / 1);
-  --color-widget-unfocus: rgb(255 255 255 / 0.6);
   --color-widget-selected: rgb(255 255 255 / 0.58);
   --color-widget-selection: rgba(0 0 0 / 0.2);
   --color-port-connected: rgb(255 255 255 / 0.15);
 
   /* colors for specific icons */
+  --color-missing-value: rgb(72 42 232);
   --color-warning: rgb(251 188 5);
   --color-error: rgb(234 67 53);
 }
@@ -47,7 +47,7 @@
   /** The amount of overlap for the port shape with the node. */
   --output-port-overlap: -8px;
   /** Stroke width of output port active hover area shape. Should be large enough to allow easy targetting. */
-  --output-port-hover-width: 20px;
+  --output-port-hover-width: 40px;
   /** The width of selection area around node. */
   --selected-node-border-width: 20px;
   /** Padding added to token widgets to push them away from rounded corners of the parent widget. */
@@ -55,6 +55,100 @@
 
   --node-border-radius: calc(var(--node-base-height) / 2);
   --node-port-border-radius: calc(var(--node-port-height) / 2);
+
+  /** Space between node and component above and below, such as comments and errors. */
+  --node-vertical-gap: 5px;
+  --group-color-fallback: #006b8a;
+}
+
+@property --color-node-background {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: white;
+}
+@property --color-node-background-pending {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: white;
+}
+
+/**
+ * Class used on containers that need access to computed node color variables.
+ * Expects variable `--node-group-color` to be defined on the element to which this class is applied.
+ */
+.define-node-colors {
+  --color-node-primary: var(--node-group-color);
+  --color-node-text: white;
+  --color-node-background: var(--node-group-color);
+  --color-node-primary: var(--node-group-color);
+  --color-node-text-placeholder: rgba(255, 255, 255, 0.6);
+  --color-node-error: color-mix(
+    in oklab,
+    var(--color-node-primary) 30%,
+    rgb(255, 0, 0) 70%
+  );
+  --color-node-pending: color-mix(
+    in oklab,
+    var(--color-node-primary) 60%,
+    #aaa 40%
+  );
+  --color-node-text-missing-value: white;
+  --color-edge-from-node: color-mix(
+    in oklab,
+    var(--color-node-primary) 85%,
+    white 15%
+  );
+
+  --color-node-background: var(--color-node-primary);
+  --color-node-background-pending: var(--color-node-pending);
+
+  &.pending {
+    &:not(.evaluating) {
+      --color-node-background: var(--color-node-pending);
+    }
+    --color-edge-from-node: var(--color-node-pending);
+  }
+
+  &.selected {
+    --color-widget: var(--color-widget-selected);
+    --color-node-background: color-mix(
+      in oklab,
+      var(--color-node-primary),
+      white 70%
+    );
+    --color-node-background-pending: color-mix(
+      in oklab,
+      var(--color-node-primary),
+      white 90%
+    );
+    --color-node-text: color-mix(
+      in oklab,
+      var(--color-node-primary) 70%,
+      black 30%
+    );
+    --color-node-text-placeholder: color-mix(
+      in oklab,
+      var(--color-node-primary) 30%,
+      oklab(0.75 0 0) 70%
+    );
+    --color-edge-from-node: color-mix(
+      in oklab,
+      var(--color-node-primary),
+      white 70%
+    );
+  }
+
+  /**
+   * How long the component evaluation progress bar takes to advance to each intermediate position. This is a long timer
+   * because the next update will never be right away due to batching.
+   */
+  --progress-animation-step-duration: 1s;
+  /**
+   * How long the component evaluation progress bar takes to advance to the completed state. This is a short timer
+   * because we may have already received updates to dependent components (in the same update batch), and we want to
+   * avoid the impression that the dependent components begin evaluating before this component finishes.
+   */
+  --progress-animation-final-duration: 0.1s;
 }
 
 /*********************************
@@ -71,15 +165,17 @@
   --radius-default: 16px;
   --node-port-height: 24px;
   --section-gap: 160px;
-  --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
-    BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
-    'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-code: 'Enso', /* System sans-serif font stack */ system-ui, -apple-system,
-    BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
-    'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'DejaVu Sans Mono', /* System monspace font stack */ ui-monospace, Menlo, Monaco,
-    'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
-    'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+  --font-sans: "M PLUS 1", /* System sans-serif font stack */ system-ui,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-code: "M PLUS 1", /* System sans-serif font stack */ system-ui,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "DejaVu Sans Mono",
+    /* System monspace font stack */ ui-monospace, Menlo, Monaco,
+    "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", "Oxygen Mono",
+    "Ubuntu Monospace", "Source Code Pro", "Fira Mono", "Droid Sans Mono",
+    "Courier New", monospace;
   /* Default resize handle widths, used for panels. */
   --resize-handle-inside: 3px;
   --resize-handle-outside: 3px;
@@ -89,4 +185,10 @@
   --right-dock-default-width: 40vw;
   --code-editor-default-height: 30%;
   --scrollbar-scrollable-opacity: 100%;
+}
+
+@keyframes s1 {
+  to {
+    transform: rotate(0.5turn);
+  }
 }

@@ -11,7 +11,7 @@
 import debug from 'debug'
 import type { Server } from 'http'
 import type { Http2SecureServer } from 'http2'
-import type { WebSocket } from 'isomorphic-ws'
+import type WS from 'modern-isomorphic-ws'
 import type { IncomingMessage } from 'node:http'
 import { ConnectionData, docName } from './auth'
 import { deserializeIdMap } from './serialization'
@@ -36,29 +36,34 @@ export async function createGatewayServer(
   httpServer: Server | Http2SecureServer,
   overrideLanguageServerUrl?: string,
 ) {
-  const { WebSocketServer } = await import('isomorphic-ws')
+  const { WebSocketServer } = (await import('modern-isomorphic-ws')).default
   const { parse } = await import('node:url')
 
   const wss = new WebSocketServer({ noServer: true })
-  wss.on('connection', (ws: WebSocket, _request: IncomingMessage, data: ConnectionData) => {
+  wss.on('connection', (ws: WS, _request: IncomingMessage, data: ConnectionData) => {
     ws.on('error', onWebSocketError)
-    setupGatewayClient(ws, overrideLanguageServerUrl ?? data.lsUrl, data.doc)
+    try {
+      setupGatewayClient(ws, data.lsUrl, data.doc)
+    } catch (e) {
+      if (e instanceof Error) {
+        onWebSocketError(e)
+        ws.close(1003, e.message)
+      } else throw e
+    }
   })
 
   httpServer.on('upgrade', (request, socket, head) => {
     socket.on('error', onHttpSocketError)
     authenticate(request, function next(err, data) {
-      if (err != null) {
+      if (err != null || data == null) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
         socket.destroy()
         return
       }
       socket.removeListener('error', onHttpSocketError)
-      if (data != null) {
-        wss.handleUpgrade(request, socket, head, function done(ws) {
-          wss.emit('connection', ws, request, data)
-        })
-      }
+      wss.handleUpgrade(request, socket, head, function done(ws: WS) {
+        wss.emit('connection', ws, request, data)
+      })
     })
   })
 
@@ -82,8 +87,9 @@ export async function createGatewayServer(
     const { pathname, query } = parse(request.url, true)
     if (pathname == null) return callback(null, null)
     const doc = docName(pathname)
-    const lsUrl = query.ls
-    const data = doc != null && typeof lsUrl === 'string' ? { lsUrl, doc, user } : null
+    const lsUrl =
+      overrideLanguageServerUrl ?? (typeof query.ls === 'string' ? (query.ls as string) : null)
+    const data = doc != null ? { lsUrl, doc, user } : null
     callback(null, data)
   }
 }

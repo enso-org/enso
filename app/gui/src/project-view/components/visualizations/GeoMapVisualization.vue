@@ -8,10 +8,11 @@ export const defaultPreprocessor = [
 ] as const
 export const scripts = [
   // mapbox-gl does not have an ESM release.
-  'https://api.tiles.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js',
+  'https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js',
   // The deck.gl scripting API is not available in the ESM module.
-  'https://cdn.jsdelivr.net/npm/deck.gl@8.9.27/dist.min.js',
+  'https://cdn.jsdelivr.net/npm/deck.gl@9.0.38/dist.min.js',
 ]
+export const styles = ['https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css']
 
 /**
  * Provides a mapbox & deck.gl-based map visualization.
@@ -100,8 +101,8 @@ const props = defineProps<{ data: Data }>()
  * Mapbox API access token.
  * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits
  */
-const TOKEN = import.meta.env.ENSO_IDE_MAPBOX_API_TOKEN
-if (TOKEN == null) {
+const TOKEN = $config.MAPBOX_API_TOKEN
+if (!TOKEN) {
   console.warn(
     'Mapbox API token is missing, to use Geo Map visualization please provide ENSO_IDE_MAPBOX_API_TOKEN.',
   )
@@ -170,9 +171,15 @@ function updateState(data: Data) {
   }
   const center = centerPoint()
 
+  function safeOrDefault(value: number | undefined, defaultValue: number): number {
+    if (value === 0 || value == null || Number.isNaN(value)) return defaultValue
+    return value
+  }
+  const width = safeOrDefault(mapNode.value?.clientWidth, 600)
+  const height = safeOrDefault(mapNode.value?.clientHeight, 400)
   const viewPort = new deck.WebMercatorViewport({
-    width: mapNode.value?.clientWidth ?? 600,
-    height: mapNode.value?.clientHeight ?? 400,
+    width,
+    height,
     longitude: center.longitude,
     latitude: center.latitude,
     zoom: DEFAULT_MAP_ZOOM,
@@ -229,6 +236,16 @@ function initDeckGl() {
       initialViewState: viewState.value,
       controller: controller.value,
     }) as any
+    // Hotfix for https://github.com/mapbox/mapbox-gl-js/issues/13355
+    ;(deckgl.value as any)._map.map._updateContainerDimensions = function () {
+      if (!this._container) return
+
+      const width = this._container.offsetWidth || 400
+      const height = this._container.offsetHeight || 300
+
+      this._containerWidth = width
+      this._containerHeight = height
+    }
   } catch (error) {
     console.error(error)
     resetState()

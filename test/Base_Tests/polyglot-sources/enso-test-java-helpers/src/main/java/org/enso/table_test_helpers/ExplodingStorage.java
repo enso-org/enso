@@ -2,7 +2,6 @@ package org.enso.table_test_helpers;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -30,12 +29,12 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public int size() {
+  public long getSize() {
     return array.length;
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<Long> getType() {
     return IntegerType.INT_64;
   }
 
@@ -45,31 +44,10 @@ public class ExplodingStorage extends Storage<Long> {
     return false;
   }
 
-  public long getItem(int idx) {
+  @Override
+  public Long getItemBoxed(long idx) {
     checkIndex(idx);
-    return array[idx];
-  }
-
-  @Override
-  public Long getItemBoxed(int idx) {
-    return getItem(idx);
-  }
-
-  @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return false;
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return null;
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return null;
+    return array[Math.toIntExact(idx)];
   }
 
   @Override
@@ -89,11 +67,6 @@ public class ExplodingStorage extends Storage<Long> {
 
   @Override
   public Storage<Long> slice(int offset, int limit) {
-    return null;
-  }
-
-  @Override
-  public Storage<?> appendNulls(int count) {
     return null;
   }
 

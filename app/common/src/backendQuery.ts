@@ -9,20 +9,121 @@ import * as object from './utilities/data/object'
 /** The properties of the Backend type that are methods. */
 export type BackendMethods = object.ExtractKeys<Backend, object.MethodOf<Backend>>
 
+/** Ensure that the given type contains only names of backend methods. */
+type DefineBackendMethods<T extends BackendMethods> = T
+
+/** Names of methods corresponding to mutations. */
+export type BackendMutationMethod = DefineBackendMethods<
+  | 'acceptInvitation'
+  | 'associateTag'
+  | 'changeUserGroup'
+  | 'closeProject'
+  | 'copyAsset'
+  | 'createCheckoutSession'
+  | 'createCredential'
+  | 'createDatalink'
+  | 'createDirectory'
+  | 'createPermission'
+  | 'createProject'
+  | 'createProjectExecution'
+  | 'createSecret'
+  | 'createTag'
+  | 'createUser'
+  | 'createUserGroup'
+  | 'declineInvitation'
+  | 'deleteAsset'
+  | 'deleteDatalink'
+  | 'deleteInvitation'
+  | 'deleteProjectExecution'
+  | 'deleteTag'
+  | 'deleteUser'
+  | 'deleteUserGroup'
+  | 'duplicateProject'
+  | 'inviteUser'
+  | 'logEvent'
+  | 'openProject'
+  | 'removeUser'
+  | 'resendInvitation'
+  | 'restoreUser'
+  | 'syncProjectExecution'
+  | 'undoDeleteAsset'
+  | 'updateAsset'
+  | 'updateDirectory'
+  | 'updateFile'
+  | 'updateOrganization'
+  | 'updateProject'
+  | 'updateProjectExecution'
+  | 'updateSecret'
+  | 'updateUser'
+  | 'uploadFileChunk'
+  | 'uploadFileEnd'
+  | 'uploadFileStart'
+  | 'uploadOrganizationPicture'
+  | 'uploadUserPicture'
+>
+
+/** Names of methods corresponding to queries. */
+export type BackendQueryMethod = Exclude<BackendMethods, BackendMutationMethod>
+
+/** A value for {@link INVALIDATION_MAP} representing all queries. */
+export const INVALIDATE_ALL_QUERIES = Symbol('invalidate all queries')
+/** A mapping between mutation methods and queries invalidated by them. */
+export const INVALIDATION_MAP: Partial<
+  Record<BackendMutationMethod, readonly (BackendQueryMethod | typeof INVALIDATE_ALL_QUERIES)[]>
+> = {
+  createUser: ['usersMe'],
+  updateUser: [INVALIDATE_ALL_QUERIES],
+  deleteUser: ['usersMe'],
+  restoreUser: ['usersMe'],
+  uploadUserPicture: ['usersMe'],
+  updateOrganization: ['getOrganization'],
+  uploadOrganizationPicture: ['getOrganization'],
+  createUserGroup: [INVALIDATE_ALL_QUERIES],
+  deleteUserGroup: [INVALIDATE_ALL_QUERIES],
+  changeUserGroup: [INVALIDATE_ALL_QUERIES],
+  createTag: ['listTags'],
+  deleteTag: ['listTags'],
+  associateTag: ['listDirectory', 'getAssetDetails'],
+  acceptInvitation: [INVALIDATE_ALL_QUERIES],
+  declineInvitation: ['usersMe'],
+  createProject: ['listDirectory', 'getAssetDetails'],
+  duplicateProject: ['listDirectory', 'getAssetDetails'],
+  createDirectory: ['listDirectory', 'getAssetDetails'],
+  createSecret: ['listDirectory', 'getAssetDetails'],
+  updateSecret: ['listDirectory', 'getAssetDetails'],
+  updateProject: ['listDirectory', 'getAssetDetails'],
+  updateFile: ['listDirectory', 'getAssetDetails'],
+  updateDirectory: ['listDirectory', 'getAssetDetails'],
+  createDatalink: ['listDirectory', 'getDatalink', 'getAssetDetails'],
+  uploadFileEnd: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  copyAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  deleteAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  undoDeleteAsset: ['listDirectory', 'getAssetDetails'],
+  updateAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  openProject: ['listDirectory', 'getAssetDetails'],
+  closeProject: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  createProjectExecution: ['listProjectExecutions'],
+  updateProjectExecution: ['listProjectExecutions'],
+  syncProjectExecution: ['listProjectExecutions'],
+  deleteProjectExecution: ['listProjectExecutions'],
+}
+
 /** For each backend method, an optional function defining how to create a query key from its arguments. */
 type BackendQueryNormalizers = {
-  [Method in BackendMethods]?: (...args: Parameters<Backend[Method]>) => queryCore.QueryKey
+  [Method in BackendMethods]?: (
+    ...args: Readonly<Parameters<Backend[Method]>>
+  ) => queryCore.QueryKey
 }
 
 const NORMALIZE_METHOD_QUERY: BackendQueryNormalizers = {
-  listDirectory: query => [query.parentId, object.omit(query, 'parentId')],
-  getFileDetails: fileId => [fileId],
+  listDirectory: (query) => [query.parentId, object.omit(query, 'parentId')],
+  getFileDetails: (fileId) => [fileId],
 }
 
 /** Creates a partial query key representing the given method and arguments. */
 function normalizeMethodQuery<Method extends BackendMethods>(
   method: Method,
-  args: Parameters<Backend[Method]>,
+  args: Readonly<Parameters<Backend[Method]>>,
 ) {
   return NORMALIZE_METHOD_QUERY[method]?.(...args) ?? args
 }
@@ -31,7 +132,7 @@ function normalizeMethodQuery<Method extends BackendMethods>(
 export function backendQueryOptions<Method extends BackendMethods>(
   backend: Backend | null,
   method: Method,
-  args: Parameters<Backend[Method]>,
+  args: Readonly<Parameters<Backend[Method]>>,
   keyExtra?: queryCore.QueryKey | undefined,
 ): {
   queryKey: queryCore.QueryKey
@@ -44,13 +145,21 @@ export function backendQueryOptions<Method extends BackendMethods>(
 }
 
 /** Returns the QueryKey to use for the given backend method invocation. */
-export function backendQueryKey<Method extends BackendMethods>(
+export function backendQueryKey<
+  Method extends BackendMethods,
+  TQueryKey extends queryCore.QueryKey = queryCore.QueryKey,
+>(
   backend: Backend | null,
   method: Method,
-  args: Parameters<Backend[Method]>,
-  keyExtra?: queryCore.QueryKey | undefined,
-): queryCore.QueryKey {
-  return [backend?.type, method, ...normalizeMethodQuery(method, args), ...(keyExtra ?? [])]
+  args: Readonly<Parameters<Backend[Method]>>,
+  keyExtra?: TQueryKey | undefined,
+): TQueryKey {
+  return [
+    backend?.type,
+    method,
+    ...normalizeMethodQuery(method, args),
+    ...(keyExtra ?? []),
+  ] as unknown as TQueryKey
 }
 
 /** Returns options applicable to any method of the given backend. */

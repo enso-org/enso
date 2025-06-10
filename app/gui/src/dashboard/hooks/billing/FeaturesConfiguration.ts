@@ -16,13 +16,15 @@ export const PAYWALL_FEATURES = {
   inviteUserFull: 'inviteUserFull',
   share: 'share',
   shareFull: 'shareFull',
+  uploadToCloud: 'uploadToCloud',
+  scheduler: 'scheduler',
 } as const
 
 /** Paywall features. */
 export type PaywallFeatureName = keyof typeof PAYWALL_FEATURES
 
 /** Paywall level names */
-export type PaywallLevelName = backend.Plan | 'free'
+export type PaywallLevelName = backend.Plan
 
 /**
  * Paywall level values.
@@ -38,7 +40,10 @@ export type PaywallLevelValue =
 
 /** Paywall levels configuration. */
 export const PAYWALL_LEVELS: Record<PaywallLevelName, PaywallLevelValue> = {
-  free: Object.assign(0, { name: 'free', label: 'freePlanName' } as const),
+  [backend.Plan.free]: Object.assign(0, {
+    name: backend.Plan.free,
+    label: 'freePlanName',
+  } as const),
   [backend.Plan.solo]: Object.assign(1, {
     name: backend.Plan.solo,
     label: 'soloPlanName',
@@ -64,6 +69,8 @@ const PAYWALL_FEATURES_LABELS: Record<PaywallFeatureName, text.TextId> = {
   inviteUserFull: 'inviteUserFullFeatureLabel',
   share: 'shareFeatureLabel',
   shareFull: 'shareFullFeatureLabel',
+  uploadToCloud: 'uploadToCloudFeatureLabel',
+  scheduler: 'schedulerFeatureLabel',
 } satisfies { [K in PaywallFeatureName]: `${K}FeatureLabel` }
 
 const PAYWALL_FEATURE_META = {
@@ -74,6 +81,8 @@ const PAYWALL_FEATURE_META = {
   userGroupsFull: undefined,
   share: undefined,
   shareFull: undefined,
+  uploadToCloud: undefined,
+  scheduler: undefined,
 } satisfies { [K in PaywallFeatureName]: unknown }
 
 /** Basic feature configuration. */
@@ -92,6 +101,11 @@ export type FeatureConfiguration<Key extends PaywallFeatureName = PaywallFeature
   }
 
 const PAYWALL_CONFIGURATION: Record<PaywallFeatureName, BasicFeatureConfiguration> = {
+  uploadToCloud: {
+    level: PAYWALL_LEVELS.solo,
+    bulletPointsTextId: 'uploadToCloudFeatureBulletPoints',
+    descriptionTextId: 'uploadToCloudFeatureDescription',
+  },
   userGroups: {
     level: PAYWALL_LEVELS.team,
     bulletPointsTextId: 'userGroupsFeatureBulletPoints',
@@ -122,11 +136,16 @@ const PAYWALL_CONFIGURATION: Record<PaywallFeatureName, BasicFeatureConfiguratio
     bulletPointsTextId: 'shareFullFeatureBulletPoints',
     descriptionTextId: 'shareFullFeatureDescription',
   },
+  scheduler: {
+    level: PAYWALL_LEVELS.team,
+    bulletPointsTextId: 'schedulerFeatureBulletPoints',
+    descriptionTextId: 'schedulerFeatureDescription',
+  },
 }
 
 /** Map a plan to a paywall level. */
-export function mapPlanOnPaywall(plan: backend.Plan | undefined): PaywallLevel {
-  return plan != null ? PAYWALL_LEVELS[plan] : PAYWALL_LEVELS.free
+export function mapPlanOnPaywall(plan: backend.Plan): PaywallLevel {
+  return PAYWALL_LEVELS[plan]
 }
 
 /** Check if a given string is a valid feature name. */

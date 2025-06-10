@@ -10,8 +10,8 @@ import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
@@ -50,7 +50,6 @@ public abstract class BracketNode extends Node {
   }
 
   abstract Object execute(
-      State state,
       VirtualFrame frame,
       @Suspend Object constructor,
       Object destructor, // TODO: based on stdlib signature this should be suspended as well
@@ -58,12 +57,13 @@ public abstract class BracketNode extends Node {
 
   @Specialization
   Object doBracket(
-      State state,
       VirtualFrame frame,
       Object constructor,
       Object destructor,
       Object action,
       @Cached BranchProfile initializationFailedWithDataflowErrorProfile) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     Object resource =
         invokeConstructorNode.executeThunk(frame, constructor, state, BaseNode.TailStatus.NOT_TAIL);
     if (TypesGen.isDataflowError(resource)) {

@@ -1,0 +1,125 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`htmlToMarkdown: google_docs1.html.bin 1`] = `
+"# Title
+
+Subtitle
+
+# Heading1
+
+## Heading2
+
+### Heading3
+
+#### Heading4
+
+##### Heading5
+
+###### *Heading6*
+
+**Bold**, *italic*, and *underlined*.
+
+Unordered list:
+
+- Item
+- Another
+
+Numbered list:
+
+1. First
+2. Second
+
+Link: [Text](http://example.com)
+
+![](https://lh7-rt.googleusercontent.com/docsz/AD_4nXeCL-N-bkbZ3JKJqp86wjPGiXe0hSlYQVnr6nqfI4k37Mrf0USAOhbXyIyXzdIVhuD60vPN4BHHWf64F5b80nonbX63keL0BJRe2KsBQMInXS_Sn6Elj-SdB34CUc3d1xOllHf7WA?key=oYRu0j12MJwt-XgjX8Oamy3V)"
+`;
+
+exports[`htmlToMarkdown: preppin_data_2024w1.html.bin 1`] = `
+"### 2024: Week 1 - Prep Air's Flow Card
+
+[January 03, 2024](https://preppindata.blogspot.com/2024/01/2024-week-1-prep-airs-flow-card.html "permanent link")
+
+Created by: Carl Allchin
+
+Welcome to a New Year of Preppin' Data challenges. For anyone new to the challenges then let us give you an overview how the weekly challenge works. 
+
+- Each Wednesday the Preppin' crew (Jenny, myself or a guest contributor) drop a data set(s) that requires some reshaping and/or cleaning to get it ready for analysis. 
+    - You can use any tool or language you want to do the reshaping (we build the challenges in Tableau Prep but love seeing different tools being learnt / tried).
+    - Share your solution on LinkedIn, Twitter/X, GitHub or the [Tableau Forums](https://community.tableau.com/s/group/0F94T000000gQqoSAE/preppindata)
+    - Fill out [our tracker](https://docs.google.com/forms/d/e/1FAIpQLSdZzudRXwUvjhWwNawwz1kGXcYeQ9gBnAhCOvlA7qEDknGu4A/viewform) so you can monitor your progress and involvement
+- The following Tuesday we will post a written solution in Tableau Prep (thanks Tom) and a video walkthrough too (thanks Jenny)
+
+As with each January for the last few years, we'll set a number of challenges aimed at beginners. This is a great way to learn a number of fundamental data preparation skills or a chance to learn a new tool — New Year's resolution anyone? So on to this year's challenges!
+
+### Context
+
+At Preppin' Data we use a number of (mock) companies to look at the challenges they have with their data. For January, we're going to focus on our own airline, Prep Air. The airline has introduced a new loyalty card called the Flow Card. We need to clean up a number of data sets to determine how well the card is doing. 
+
+The first task is setting some context for later weeks by understanding how popular the Flow Card is. Our stakeholder would like two data sets about our passengers. One data set for card users and one data set for those who don't use the card. 
+
+### Input
+
+There is one input file. You can [download it from here](https://drive.google.com/file/d/1STVYZvXzfGMuEq9Yq3yYOmCDCFq4iB0Z/view?usp=share_link).
+
+![](https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhyWUGjqNfzjbejKFop5EhJ5AvmFduIULRfKCy8CVzOyaqJQHQhyphenhyphen6Vgna7P_Ozfl0WvIZgd-JhihJVQJWRbkSeu9BbI8bjJ2_bFJg-OaOA8VE9yV8UWaFYL1xiAxGKGwIyGW9ebPqsy31xiw7SCQ610Y__4KiqoZdbhpqZssBrmbFLXpQUY_7nfbE1gHN9v/w640-h160/Screenshot%202023-12-12%20at%2020.37.44.png)
+
+### Requirements
+
+- Input the data
+- Split the Flight Details field to form:
+    - Date 
+    - Flight Number
+    - From
+    - To
+    - Class
+    - Price
+- Convert the following data fields to the correct data types:
+    - Date to a date format
+    - Price to a decimal value
+- Change the Flow Card field to Yes / No values instead of 1 / 0
+- Create two tables, one for Flow Card holders and one for non-Flow Card holders
+- Output the data sets
+
+### Output
+
+Both outputs have the same data structure:
+
+9 data fields:
+
+- Date
+- Flight Number
+- From
+- To
+- Class
+- Price
+- Flow Card?
+- Bags Checked
+- Meal Type
+
+Output 1
+
+![](https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjZvuMPD03wpttqY9OsQPWCC0MpBio6CDLUEfN_D9UW25P0vAYqTHITYkuuHxu5mSNjBnCpjg8iksGvW0u8ee2JOcfjxocZ6ob2CwMDtQw18BdYCv9ZJwDwdKXi2M6uMvv5b3jEYB2egkI1D7QEMVVn7xPBE9dZLizrFRx30g7bblg0f6e4OFjM1uGZAxEm/w640-h118/Screenshot%202023-12-12%20at%2021.09.34.png)
+
+Rows: 1883 (1884 including the header)
+
+
+Output 2
+
+![](https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi1WTdeAiUOCwQncp073UYOxBTo_LCbL8L_AiEOr_BBzfkRCkiboiK9r5pF2lMCCN5p9iddBCgbpz5bsvgod2W9jmBLZepuk6uWOQaFMz6mhKTVLtgxfVdjWWM8E2BFGeNzALsz81YZ4FdswF4_KshBS2JHsXUVIEt1qlS4obFDTnA368aVxLORbCuqsvjG/w640-h102/Screenshot%202023-12-12%20at%2021.10.25.png)
+
+
+
+
+Rows: 1895 (1896 including the header)
+
+You can download the [output from here](https://drive.google.com/drive/folders/1-lt4XWZSn92gCBUiMT6ZDAoEzGyUZGJm?usp=share_link).
+
+
+
+
+After you finish the challenge make sure to fill in the [participation tracker](https://docs.google.com/forms/d/e/1FAIpQLSdZzudRXwUvjhWwNawwz1kGXcYeQ9gBnAhCOvlA7qEDknGu4A/viewform), then share your solution on Twitter using [#PreppinData](https://twitter.com/search?q=%23preppindata&src=typed_query) and tagging [@Datajedininja](https://twitter.com/Datajedininja), [@JennyMartinDS14](https://twitter.com/JennyMartinDS14) & [@TomProwse1](https://twitter.com/TomProwse1)
+
+
+
+You can also post your solution on the [Tableau Forum](https://community.tableau.com/s/group/0F94T000000gQqoSAE/preppindata) where we have a Preppin' Data community page. Post your solutions and ask questions if you need any help! "
+`;

@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.Assumption;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 
@@ -75,5 +76,11 @@ public final class EqualsAndInfo {
       NO_WARNINGS.invalidate("Found equals with warnings");
       return new EqualsAndInfo(result, warnings);
     }
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public String toString() {
+    return "EqualsAndInfo{" + "equals=" + equals + ", hasWarnings=" + (getWarnings() != null) + '}';
   }
 }

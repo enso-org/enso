@@ -33,10 +33,50 @@ class ConfigSpec
         ),
         preferLocalLibraries = true,
         componentGroups      = None,
-        requires             = List()
+        requires             = List(),
+        jvm                  = None
       )
       val deserialized = Config.fromYaml(config.toYaml).get
       deserialized shouldEqual config
+    }
+
+    "should be parseable and have the right values" in {
+      val config =
+        """name: placeholder
+          |vresion: dev
+          |namespace: local
+          |edition:
+          |  engine-version: 4.5.6
+          |license: none
+          |maintainers:
+          |  - name: A
+          |    email: a@example.com
+          |  - name: B
+          |  - email: c@example.com
+          |prefer-local-libraries: true
+          |jvm: true
+          |""".stripMargin
+      val parsed = Config.fromYaml(config).get
+      val expectedConfig = Config(
+        name           = "placeholder",
+        normalizedName = None,
+        version        = "dev",
+        namespace      = "local",
+        edition =
+          Some(Config.makeCompatibilityEditionFromVersion(SemVer.of(4, 5, 6))),
+        license = "none",
+        authors = List(),
+        maintainers = List(
+          Contact(Some("A"), Some("a@example.com")),
+          Contact(Some("B"), None),
+          Contact(None, Some("c@example.com"))
+        ),
+        preferLocalLibraries = true,
+        componentGroups      = None,
+        requires             = List(),
+        jvm                  = Some(true)
+      )
+      parsed shouldEqual expectedConfig
     }
 
     "only require the name and use defaults for everything else" in {
@@ -45,6 +85,26 @@ class ConfigSpec
       parsed.normalizedName shouldEqual None
       parsed.moduleName shouldEqual "FooBar"
       parsed.edition shouldBe empty
+    }
+
+    "persist normal edition" in {
+      val parsed = Config.fromYaml("name: fooBar\nedition: 2024.4.2").get
+      parsed.name shouldEqual "fooBar"
+      parsed.normalizedName shouldEqual None
+      parsed.moduleName shouldEqual "FooBar"
+
+      val ser = parsed.toYaml
+      ser shouldEqual "name: fooBar\nnamespace: local\nedition: 2024.4.2\n"
+    }
+
+    "don't persist dev edition" in {
+      val parsed = Config.fromYaml("name: fooBar\nedition: 0.0.0-dev").get
+      parsed.name shouldEqual "fooBar"
+      parsed.normalizedName shouldEqual None
+      parsed.moduleName shouldEqual "FooBar"
+
+      val ser = parsed.toYaml
+      ser shouldEqual "name: fooBar\nnamespace: local\n"
     }
 
     "correctly de-serialize and serialize back the shortened edition syntax " +

@@ -1,13 +1,10 @@
 import type { NodeCreationOptions } from '@/composables/nodeCreation'
-import type { GraphStore, Node, NodeId } from '@/stores/graph'
-import { Ast } from '@/util/ast'
-import { Pattern } from '@/util/ast/match'
+import type { Node } from '@/stores/graph'
 import { nodeDocumentationText } from '@/util/ast/node'
 import { Vec2 } from '@/util/data/vec2'
-import type { ToValue } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { computed, toValue } from 'vue'
 import type { NodeMetadataFields } from 'ydoc-shared/ast'
+import { parseTsvData, tableToEnsoExpression } from './widgets/WidgetTableEditor/tableParsing'
 
 // MIME type in *vendor tree*; see https://www.rfc-editor.org/rfc/rfc6838#section-3.2
 // The `web ` prefix is required by Chromium:
@@ -57,21 +54,11 @@ function getClipboard(): ExtendedClipboard {
 
 /** A composable for handling copying and pasting nodes in the GraphEditor. */
 export function useGraphEditorClipboard(
-  graphStore: GraphStore,
-  selected: ToValue<Set<NodeId>>,
   createNodes: (nodesOptions: Iterable<NodeCreationOptions>) => void,
 ) {
-  /** Copy the content of the selected node to the clipboard. */
-  async function copySelectionToClipboard() {
-    const nodes = new Array<Node>()
-    const ids = graphStore.pickInCodeOrder(toValue(selected))
-    for (const id of ids) {
-      const node = graphStore.db.nodeIdToNode.get(id)
-      if (!node) continue
-      nodes.push(node)
-    }
-    if (!nodes.length) return
-    return writeClipboard(nodesToClipboardData(nodes))
+  /** Copy the content of the specified nodes to the clipboard, in the order provided. */
+  async function copyNodesToClipboard(nodes: Node[]): Promise<void> {
+    if (nodes.length) await writeClipboard(nodesToClipboardData(nodes))
   }
 
   /** Read the clipboard and if it contains valid data, create nodes from the content. */
@@ -105,7 +92,7 @@ export function useGraphEditorClipboard(
   }
 
   return {
-    copySelectionToClipboard,
+    copyNodesToClipboard,
     createNodesFromClipboard,
   }
 }
@@ -144,17 +131,13 @@ const spreadsheetDecoder: ClipboardDecoder<CopiedNode[]> = {
     if (!item.types.includes('text/plain')) return
     if (isSpreadsheetTsv(htmlContent)) {
       const textData = await item.getType('text/plain').then((blob) => blob.text())
-      return [{ expression: tsvTableToEnsoExpression(textData) }]
+      const rows = parseTsvData(textData)
+      if (rows == null) return
+      const expression = tableToEnsoExpression(rows)
+      if (expression == null) return
+      return [{ expression }]
     }
   },
-}
-
-const toTable = computed(() => Pattern.parseExpression('__.to Table'))
-
-/** Create Enso Expression generating table from this tsvData. */
-export function tsvTableToEnsoExpression(tsvData: string) {
-  const textLiteral = Ast.TextLiteral.new(tsvData)
-  return toTable.value.instantiate(textLiteral.module, [textLiteral]).code()
 }
 
 /** @internal */
@@ -186,13 +169,15 @@ export function writeClipboard(data: MimeData) {
 
 // === Serializing nodes ===
 
-function nodeStructuredData(node: Node): CopiedNode {
-  return {
-    expression: node.innerExpr.code(),
-    documentation: nodeDocumentationText(node) || undefined,
-    metadata: node.rootExpr.serializeMetadata(),
-    ...(node.pattern ? { binding: node.pattern.code() } : {}),
-  }
+function nodeStructuredData(node: Node): CopiedNode | undefined {
+  return node.type === 'input' ?
+      undefined
+    : {
+        expression: node.innerExpr.code(),
+        documentation: nodeDocumentationText(node) || undefined,
+        metadata: node.rootExpr.serializeMetadata(),
+        ...(node.pattern ? { binding: node.pattern.code() } : {}),
+      }
 }
 
 /** TODO: Add docs */
@@ -204,7 +189,7 @@ export function clipboardNodeData(nodes: CopiedNode[]): MimeData {
 /** TODO: Add docs */
 export function nodesToClipboardData(nodes: Node[]): MimeData {
   return {
-    ...clipboardNodeData(nodes.map(nodeStructuredData)),
+    ...clipboardNodeData(nodes.map(nodeStructuredData).filter<CopiedNode>((data) => data != null)),
     'text/plain': nodes.map((node) => node.outerAst.code()).join('\n'),
   }
 }

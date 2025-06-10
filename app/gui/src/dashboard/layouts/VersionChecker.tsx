@@ -1,30 +1,20 @@
 /** @file Check the version. */
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-
-import DownloadIcon from '#/assets/download.svg'
 import NewTabIcon from '#/assets/new_tab.svg'
 import SnoozeIcon from '#/assets/snooze.svg'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
-
-import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-
+import { Button } from '#/components/Button'
 import { useEnableVersionChecker, useSetEnableVersionChecker } from '#/components/Devtools'
-import { useLocalBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
-
-import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
-
+import { Dialog } from '#/components/Dialog'
 import { Stepper } from '#/components/Stepper'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { download } from '#/utilities/download'
 import { getDownloadUrl, getLatestRelease } from '#/utilities/github'
+import { useBackends, useText } from '$/providers/react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { startTransition, useState } from 'react'
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const CURRENT_VERSION: string = import.meta.env.ENSO_IDE_VERSION ?? 'unknown-dev'
-const CURRENT_VERSION_IS_DEV = CURRENT_VERSION.endsWith('-dev')
-const CURRENT_VERSION_IS_NIGHTLY = CURRENT_VERSION.includes('-nightly')
-const CURRENT_VERSION_NUMBER = getVersionNumber(CURRENT_VERSION)
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
 const STALE_TIME = 24 * 60 * 60 * 1000 // 1 day
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -32,11 +22,16 @@ const STALE_TIME_ERROR = 10 * 60 * 1000 // 10 minutes
 
 /** Check the version. */
 export default function VersionChecker() {
+  const currentVersion: string = $config.VERSION ?? 'unknown-dev'
+  const currentVersionIsDev = currentVersion.endsWith('-dev')
+  const currentVersionIsNightly = currentVersion.includes('-nightly')
+  const currentVersionNumber = getVersionNumber(currentVersion)
+
   const [isOpen, setIsOpen] = useState(false)
 
   const { getText, locale } = useText()
   const toastAndLog = useToastAndLog()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackends()
 
   const supportsLocalBackend = localBackend != null
   const overrideValue = useEnableVersionChecker()
@@ -60,9 +55,9 @@ export default function VersionChecker() {
 
       if (versionNumber == null) {
         return {
-          versionNumber: CURRENT_VERSION_NUMBER,
+          versionNumber: currentVersionNumber,
           publishedAt,
-          tagName: CURRENT_VERSION,
+          tagName: currentVersion,
           htmlUrl: data.html_url,
           isPostponed: data.isPostponed,
         }
@@ -101,7 +96,7 @@ export default function VersionChecker() {
     if (downloadUrl == null) {
       toastAndLog('noAppDownloadError')
     } else {
-      download(downloadUrl)
+      void download({ url: downloadUrl })
       stepperState.nextStep()
     }
   })
@@ -127,11 +122,11 @@ export default function VersionChecker() {
       return false
     }
 
-    if (CURRENT_VERSION_NUMBER == null || CURRENT_VERSION_IS_DEV || CURRENT_VERSION_IS_NIGHTLY) {
+    if (currentVersionNumber == null || currentVersionIsDev || currentVersionIsNightly) {
       return false
     }
 
-    return latestVersionNumber > CURRENT_VERSION_NUMBER
+    return latestVersionNumber > currentVersionNumber
   })()
 
   if (!shouldBeShown) {
@@ -192,13 +187,13 @@ export default function VersionChecker() {
                   <Text variant="body-sm">
                     {getText('yourVersion')}{' '}
                     <Text weight="bold" variant="body">
-                      {CURRENT_VERSION}
+                      {currentVersion}
                     </Text>
                   </Text>
                 </Text.Group>
               </div>
 
-              <ButtonGroup className="justify-center">
+              <Button.Group className="justify-center">
                 <Button
                   size="medium"
                   variant="outline"
@@ -214,12 +209,12 @@ export default function VersionChecker() {
                   fullWidth
                   variant="primary"
                   onPress={onDownload}
-                  icon={DownloadIcon}
+                  icon="data_download"
                   iconPosition="end"
                 >
                   {getText('download')}
                 </Button>
-              </ButtonGroup>
+              </Button.Group>
             </div>
           </Stepper.StepContent>
 

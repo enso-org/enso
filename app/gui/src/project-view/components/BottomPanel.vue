@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { codeEditorBindings } from '@/bindings'
+import ActionButton from '@/components/ActionButton.vue'
 import FullscreenButton from '@/components/FullscreenButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
@@ -40,10 +39,8 @@ const style = computed(() =>
 </script>
 
 <template>
-  <ToggleIcon
-    v-model="show"
-    :title="`Code Editor (${codeEditorBindings.bindings.toggle.humanReadable})`"
-    icon="bottom_panel"
+  <ActionButton
+    action="graph.toggleCodeEditor"
     class="gutterButton bottomOfGutter"
     :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
   />
@@ -76,9 +73,13 @@ const style = computed(() =>
 .BottomPanel {
   --panel-size: var(--code-editor-default-height);
   position: relative;
-  bottom: 0;
   height: var(--panel-size);
   margin-right: 1px;
+  /*
+   * Ensure that the content height doesn't exceed the panel's height while animating, which can
+   * cause the native scrollbar to appear momentarily, "shaking" the viewport.
+   */
+  contain: layout;
 }
 .v-enter-active,
 .v-leave-active {

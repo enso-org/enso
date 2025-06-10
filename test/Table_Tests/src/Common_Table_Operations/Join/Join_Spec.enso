@@ -644,7 +644,7 @@ add_join_specs suite_builder setup =
             t6.column_names.should_equal ["Right X", "X", "Y", "Right Y 2"]+["Right Right X", "Right X 1", "Right Y 3", "Right Y", "Right Y 1", "Right Y 4"]
 
             action = t1.join t2 right_prefix="" on_problems=_
-            tester = expect_column_names ["X", "Y", "Right Y", "X 1", "Y 1"]
+            tester t = expect_column_names ["X", "Y", "Right Y", "X 1", "Y 1"] t
             problems = [Duplicate_Output_Column_Names.Error ["X", "Y"]]
             Problems.test_problem_handling action problems tester
 

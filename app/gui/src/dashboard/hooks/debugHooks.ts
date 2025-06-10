@@ -1,10 +1,6 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
 import * as React from 'react'
 
-// =========================================
-// === Debug wrappers for built-in hooks ===
-// =========================================
-
 // `console.*` is allowed because these are for debugging purposes only.
 /* eslint-disable no-restricted-properties */
 

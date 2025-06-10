@@ -67,7 +67,11 @@ where T: serde::Serialize + Reflect {
     let text_escape_token = rust_to_meta[&TextEscape::reflect().id];
     let token_to_str = move |token: Value| {
         let range = token_code_range(&token, base);
-        code[range].to_owned().into_boxed_str()
+        if range.is_empty() {
+            "".into()
+        } else {
+            code[range].to_owned().into_boxed_str()
+        }
     };
     for token in identish_tokens {
         let token_to_str_ = token_to_str.clone();
@@ -158,6 +162,9 @@ fn token_code_range(token: &Value, base: usize) -> std::ops::Range<usize> {
         |field| fields(token).find(|(name, _)| *name == field).unwrap().1.as_u64().unwrap() as u32;
     let begin = get_u32(":codeReprBegin");
     let len = get_u32(":codeReprLen");
+    if len == 0 {
+        return 0..0;
+    }
     let begin = (begin as u64) | (base as u64 & !(u32::MAX as u64));
     let begin = if begin < (base as u64) { begin + 1 << 32 } else { begin };
     let begin = begin as usize - base;

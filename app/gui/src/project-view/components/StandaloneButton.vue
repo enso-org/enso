@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import SvgButton from './SvgButton.vue'
 
 const props = defineProps<{
@@ -9,11 +9,12 @@ const props = defineProps<{
   disabled?: boolean
   title?: string | undefined
 }>()
+const emit = defineEmits<{ activate: [] }>()
 </script>
 
 <template>
-  <div class="StandaloneButton">
-    <SvgButton v-bind="props" :name="icon" />
+  <div class="StandaloneButton" @click.stop="emit('activate')">
+    <SvgButton v-bind="{ ...$attrs, ...props }" :name="icon" @activate="emit('activate')" />
   </div>
 </template>
 

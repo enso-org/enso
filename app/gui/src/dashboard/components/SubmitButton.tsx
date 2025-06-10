@@ -1,12 +1,6 @@
 /** @file A styled submit button. */
-import * as React from 'react'
-
-import { Button } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import { submitForm } from '#/utilities/event'
-
-// ====================
-// === SubmitButton ===
-// ====================
 
 /** Props for a {@link SubmitButton}. */
 export interface SubmitButtonProps {
@@ -26,7 +20,7 @@ export default function SubmitButton(props: SubmitButtonProps) {
       fullWidth
       variant="submit"
       isDisabled={isDisabled}
-      loading={isLoading}
+      isLoading={isLoading}
       isActive={!isDisabled}
       type="submit"
       icon={icon}

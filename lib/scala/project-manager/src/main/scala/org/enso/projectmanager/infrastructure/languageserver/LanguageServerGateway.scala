@@ -29,13 +29,15 @@ trait LanguageServerGateway[F[+_, +_]] {
     * @param clientId a requester id
     * @param project a project to start
     * @param version engine version to use for the launched language server
+    * @param extraEnv extra environment variables
     * @return either a failure or sockets that a language server listens on
     */
   def start(
     progressTracker: ActorRef,
     clientId: UUID,
     project: Project,
-    version: SemVer
+    version: SemVer,
+    extraEnv: Seq[(String, String)]
   ): F[ServerStartupFailure, LanguageServerSockets]
 
   /** Stops a language server.

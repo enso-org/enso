@@ -110,6 +110,29 @@ class FileSystemServiceSpec
       FileUtils.deleteQuietly(directoryPath)
     }
 
+    "create directory fail when one exists with the same name" in {
+      val testDir = testStorageConfig.userProjectsPath
+
+      val directoryName = "filesystem_test_create_dir_with_same_name"
+      val directoryPath = new File(testDir, directoryName)
+
+      val result1 = fileSystemService
+        .createDirectory(directoryPath)
+        .unsafeRunSync()
+
+      result1 shouldEqual Right(())
+      Files.isDirectory(directoryPath.toPath) shouldEqual true
+
+      val result2 = fileSystemService
+        .createDirectory(directoryPath)
+        .unsafeRunSync()
+
+      result2.isLeft shouldEqual true
+
+      // cleanup
+      FileUtils.deleteQuietly(directoryPath)
+    }
+
     "delete directory" in {
       implicit val client: WsTestClient = new WsTestClient(address)
 

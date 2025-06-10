@@ -229,26 +229,6 @@ class SuggestionsRepoTest
         v3 shouldEqual v4
     }
 
-    "update suggestion by external id" taggedAs Retry in withRepo { repo =>
-      val newReturnType = "Quux"
-      val action = for {
-        _         <- repo.insert(suggestion.module)
-        _         <- repo.insert(suggestion.tpe)
-        _         <- repo.insert(suggestion.constructor)
-        _         <- repo.insert(suggestion.method)
-        _         <- repo.insert(suggestion.conversion)
-        _         <- repo.insert(suggestion.function)
-        Some(id4) <- repo.insert(suggestion.local)
-        res <-
-          repo.updateAll(Seq(suggestion.local.externalId.get -> newReturnType))
-        Some(val4) <- repo.select(id4)
-      } yield (id4, res._2, val4)
-
-      val (suggestionId, updatedIds, result) = Await.result(action, Timeout)
-      updatedIds.flatten shouldEqual Seq(suggestionId)
-      result shouldEqual suggestion.local.copy(returnType = newReturnType)
-    }
-
     "update suggestion external id" taggedAs Retry in withRepo { repo =>
       val newUuid = UUID.randomUUID()
       val action = for {
@@ -609,46 +589,6 @@ class SuggestionsRepoTest
       val (v1, v2, id1, id2) = Await.result(action, Timeout)
       v1 shouldEqual v2
       id2 shouldEqual Some(id1)
-    }
-
-    "change version after updateAll" taggedAs Retry in withRepo { repo =>
-      val newReturnType = "Quux"
-      val action = for {
-        _   <- repo.insert(suggestion.module)
-        _   <- repo.insert(suggestion.tpe)
-        _   <- repo.insert(suggestion.constructor)
-        _   <- repo.insert(suggestion.method)
-        _   <- repo.insert(suggestion.conversion)
-        _   <- repo.insert(suggestion.function)
-        id4 <- repo.insert(suggestion.local)
-        v1  <- repo.currentVersion
-        res <-
-          repo.updateAll(Seq(suggestion.local.externalId.get -> newReturnType))
-      } yield (id4, res._2, v1, res._1)
-
-      val (suggestionId, updatedIds, v1, v2) = Await.result(action, Timeout)
-      updatedIds shouldEqual Seq(suggestionId)
-      v1 should not equal v2
-    }
-
-    "not change version after failed updateAll" taggedAs Retry in withRepo {
-      repo =>
-        val newReturnType = "Quux"
-        val action = for {
-          _   <- repo.insert(suggestion.module)
-          _   <- repo.insert(suggestion.tpe)
-          _   <- repo.insert(suggestion.constructor)
-          _   <- repo.insert(suggestion.method)
-          _   <- repo.insert(suggestion.conversion)
-          _   <- repo.insert(suggestion.function)
-          _   <- repo.insert(suggestion.local)
-          v1  <- repo.currentVersion
-          res <- repo.updateAll(Seq(UUID.randomUUID() -> newReturnType))
-        } yield (res._2, v1, res._1)
-
-        val (updatedIds, v1, v2) = Await.result(action, Timeout)
-        updatedIds shouldEqual Seq(None)
-        v1 shouldEqual v2
     }
 
     "get exported symbols" taggedAs Retry in withRepo { repo =>

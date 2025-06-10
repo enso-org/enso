@@ -1,8 +1,9 @@
 package org.enso.compiler;
 
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair;
 import org.enso.compiler.core.ir.ProcessingPass;
-import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.IRProcessingPass;
 import scala.Option;
 
 /**
@@ -11,7 +12,7 @@ import scala.Option;
  * <p>This encapsulates the friction of interop between Scala and Java types.
  */
 public final class MetadataInteropHelpers {
-  public static <T> T getMetadataOrNull(IR ir, IRPass pass, Class<T> expectedType) {
+  public static <T> T getMetadataOrNull(IR ir, IRProcessingPass pass, Class<T> expectedType) {
     Option<ProcessingPass.Metadata> option = ir.passData().get(pass);
     if (option.isDefined()) {
       try {
@@ -30,13 +31,33 @@ public final class MetadataInteropHelpers {
     }
   }
 
-  public static <T> T getMetadata(IR ir, IRPass pass, Class<T> expectedType) {
+  public static <T> T getMetadata(IR ir, IRProcessingPass pass, Class<T> expectedType) {
     T metadataOrNull = getMetadataOrNull(ir, pass, expectedType);
     if (metadataOrNull == null) {
-      throw new IllegalStateException("Missing expected " + pass + " metadata for " + ir + ".");
+      String textRepresentation = ir.toString();
+      if (textRepresentation.length() > 100) {
+        textRepresentation = textRepresentation.substring(0, 100) + "...";
+      }
+
+      throw new IllegalStateException(
+          "Missing expected "
+              + pass
+              + " metadata for "
+              + textRepresentation
+              + " ("
+              + ir.getClass().getCanonicalName()
+              + "), had "
+              + ir.passData().toString()
+              + ".");
     }
 
     return metadataOrNull;
+  }
+
+  public static <T extends ProcessingPass> void updateMetadata(
+      IR ir, T pass, ProcessingPass.Metadata metadata) {
+    var metaPair = new MetadataPair<>(pass, metadata);
+    ir.passData().update(metaPair);
   }
 
   private MetadataInteropHelpers() {}

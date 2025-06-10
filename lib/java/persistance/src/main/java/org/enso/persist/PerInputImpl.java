@@ -25,7 +25,7 @@ final class PerInputImpl implements Input {
     this.at = at;
   }
 
-  static Reference<?> readObject(ByteBuffer buf, Function<Object, Object> readResolve)
+  static Reference<?> readObject(PerMap map, ByteBuffer buf, Function<Object, Object> readResolve)
       throws IOException {
     for (var i = 0; i < PerGenerator.HEADER.length; i++) {
       if (buf.get(i) != PerGenerator.HEADER[i]) {
@@ -33,7 +33,6 @@ final class PerInputImpl implements Input {
       }
     }
     var version = buf.getInt(4);
-    var map = PerMap.create();
     if (version != map.versionStamp) {
       throw new IOException(
           "Incompatible version "

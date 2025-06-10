@@ -1,9 +1,5 @@
 /** @file Utility functions for extracting and manipulating file information. */
 
-// ================================
-// === Extract file information ===
-// ================================
-
 /** Return just the file name, including the extension. */
 export function getFileName(filePath: string) {
   return filePath.match(/(?:[/\\]|^)([^/\\]+)[/\\]?$/)?.[1] ?? filePath

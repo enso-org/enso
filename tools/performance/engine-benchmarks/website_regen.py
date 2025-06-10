@@ -16,8 +16,8 @@ from bench_tool.remote_cache import SyncRemoteCache
 from bench_tool.website import generate_bench_website
 
 # The inception date of the benchmarks, i.e., the date of the first benchmark run.
-ENGINE_SINCE = datetime.fromisoformat("2024-04-01")
-STDLIB_SINCE = datetime.fromisoformat("2024-04-01")
+ENGINE_SINCE = datetime.fromisoformat("2024-10-01")
+STDLIB_SINCE = datetime.fromisoformat("2024-10-01")
 
 _logger = logging.getLogger("website_regen")
 

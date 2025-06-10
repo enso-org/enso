@@ -74,7 +74,7 @@ pub fn wrap_launcher(version: impl AsRef<str>) {
 
 /// Appends a line to the file located at the provided path.
 pub fn append_to_log(path: PathBuf, line: impl AsRef<str>) -> io::Result<()> {
-    let mut log_file = OpenOptions::new().append(true).open(path)?;
+    let mut log_file = OpenOptions::new().create(true).append(true).open(path)?;
     writeln!(log_file, "{}", line.as_ref())?;
     Ok(())
 }

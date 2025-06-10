@@ -1,14 +1,16 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
+import { NavigatorComposable } from '@/composables/navigator'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
 import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { PortViewInstance, useGraphStore } from '@/stores/graph'
+import { PortViewInstance } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
@@ -31,7 +33,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 
 const graph = useGraphStore()
 
-const navigator = injectGraphNavigator()
+const navigator = injectGraphNavigator(true)
 const tree = injectWidgetTree()
 const selection = injectGraphSelection(true)
 
@@ -40,28 +42,22 @@ const isCurrentEdgeHoverTarget = computed(
   () =>
     graph.mouseEditedEdge?.source != null &&
     selection?.hoveredPort === portId.value &&
-    graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.nodeId,
+    graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.externalId,
 )
 const isCurrentDisconnectedEdgeTarget = computed(
   () =>
     graph.mouseEditedEdge?.disconnectedEdgeTarget === portId.value &&
     graph.mouseEditedEdge?.target !== portId.value,
 )
-const isSelfArgument = computed(
-  () =>
-    props.input.value instanceof Ast.Ast && props.input.value.id === tree.potentialSelfArgumentId,
-)
-const connected = computed(
-  () => (!isSelfArgument.value && hasConnection.value) || isCurrentEdgeHoverTarget.value,
-)
+const connected = computed(() => hasConnection.value || isCurrentEdgeHoverTarget.value)
 const isTarget = computed(
   () =>
     (hasConnection.value && !isCurrentDisconnectedEdgeTarget.value) ||
     isCurrentEdgeHoverTarget.value,
 )
 
-const rootNode = shallowRef<HTMLElement>()
-const nodeSize = useResizeObserver(rootNode)
+const portRoot = shallowRef<HTMLElement>()
+const portSize = useResizeObserver(portRoot)
 
 // Compute the scene-space bounding rectangle of the expression's widget. Those bounds are later
 // used for edge positioning. Querying and updating those bounds is relatively expensive, so we only
@@ -87,20 +83,22 @@ providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
 watchEffect(
   (onCleanup) => {
+    const externalId = tree.externalId
+    if (!graph.db.isNodeId(externalId)) return
     const id = portId.value
-    const instance = new PortViewInstance(portRect, tree.nodeId, props.onUpdate)
+    const instance = new PortViewInstance(portRect, externalId, props.onUpdate)
     graph.addPortInstance(id, instance)
     onCleanup(() => graph.removePortInstance(id, instance))
   },
   { flush: 'post' },
 )
 
-const keyboard = injectKeyboard()
+const keyboard = injectKeyboard(true)
 
 const enabled = computed(() => {
   const input = props.input.value
-  const isConditional = input instanceof Ast.Ast && tree.conditionalPorts.has(input.id)
-  return !isConditional || keyboard.mod
+  const isConditional = input instanceof Ast.Ast && (tree.conditionalPorts?.has(input.id) ?? false)
+  return !isConditional || (keyboard?.mod ?? false)
 })
 
 /**
@@ -111,7 +109,7 @@ const enabled = computed(() => {
  */
 function updateRect() {
   const oldRect = portRect.value
-  const newRect = relativePortSceneRect()
+  const newRect = navigator ? relativePortSceneRect(navigator) : undefined
   if (
     oldRect !== newRect &&
     (oldRect == null || newRect == null || !oldRect.equalsApproximately(newRect, 0.01))
@@ -120,9 +118,9 @@ function updateRect() {
   }
 }
 
-function relativePortSceneRect(): Rect | undefined {
-  const domNode = rootNode.value
-  const rootDomNode = tree.nodeElement
+function relativePortSceneRect(navigator: NavigatorComposable): Rect | undefined {
+  const domNode = portRoot.value
+  const rootDomNode = tree.rootElement
   if (domNode == null || rootDomNode == null) return
   if (!enabled.value) return
   const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
@@ -133,10 +131,7 @@ function relativePortSceneRect(): Rect | undefined {
   return rect.isFinite() ? rect : undefined
 }
 
-watch(
-  () => [nodeSize.value, rootNode.value, tree.nodeElement, tree.nodeSize, enabled.value],
-  updateRect,
-)
+watch(() => [portSize.value, portRoot.value, tree.rootElement, enabled.value], updateRect)
 onUpdated(() => nextTick(updateRect))
 onMounted(() => nextTick(updateRect))
 useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
@@ -150,6 +145,13 @@ export const widgetDefinition = defineWidget(
     score: (props, _db) => {
       const portInfo = injectPortInfo(true)
       const value = props.input.value
+      // This is a workaround to avoid automatic port around type annotated expressions
+      // in argument positions. A port needs to be created with portId override, and it
+      // will be handled by `WidgetTypeCastPort`. Without this check, the port will be
+      // created with invalid portId because of `ArgumentInfoKey` being set on the input.
+      if (value instanceof Ast.TypeAnnotated && value.id === props.input.portId) {
+        return Score.Mismatch
+      }
       if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
         return Score.Mismatch
       }
@@ -183,7 +185,7 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div
-    ref="rootNode"
+    ref="portRoot"
     class="WidgetPort"
     :class="{
       enabled,
@@ -209,12 +211,12 @@ export const widgetDefinition = defineWidget(
   border-radius: var(--node-port-border-radius);
   min-height: var(--node-port-height);
   min-width: var(--node-port-height);
-  box-sizing: border-box;
+  transition: background-color 0.2s ease;
 }
 
 .WidgetPort.connected {
-  background-color: var(--node-color-port);
-  color: white;
+  background: var(--color-widget);
+  color: var(--color-node-text);
 }
 
 .GraphEditor.draggingEdge .WidgetPort {
@@ -244,8 +246,8 @@ export const widgetDefinition = defineWidget(
   }
 
   &.connected::before {
-    left: 0px;
-    right: 0px;
+    left: 0;
+    right: 0;
   }
 }
 </style>

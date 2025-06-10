@@ -6,23 +6,15 @@
 import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
-import * as appBaseUrl from '#/utilities/appBaseUrl'
-import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
-
-// =================
-// === Constants ===
-// =================
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
+import { getFileName } from '../utilities/fileInfo'
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
 /** The maximum amount of time for which the {@link ProjectManager} should try loading. */
 const MAXIMUM_DELAY_MS = 10_000
-
-// =============
-// === Types ===
-// =============
 
 /** Possible actions to take when a component is missing. */
 export enum MissingComponentAction {
@@ -117,7 +109,7 @@ interface Attributes {
 }
 
 /** Metadata for an arbitrary file system entry. */
-type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+export type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
 
 /** The discriminator value for {@link FileSystemEntry}. */
 export enum FileSystemEntryType {
@@ -194,10 +186,6 @@ export interface DuplicatedProject {
   readonly projectNormalizedName: string
 }
 
-// ====================
-// === ProjectState ===
-// ====================
-
 /** A project that is currently opening. */
 interface OpenInProgressProjectState {
   readonly state: backend.ProjectState.openInProgress
@@ -216,14 +204,11 @@ interface OpenedProjectState {
  */
 type ProjectState = OpenedProjectState | OpenInProgressProjectState
 
-// ================================
-// === Parameters for endpoints ===
-// ================================
-
 /** Parameters for the "open project" endpoint. */
 export interface OpenProjectParams {
   readonly projectId: UUID
   readonly missingComponentAction: MissingComponentAction
+  readonly cloudProjectDirectoryPath?: string
   readonly projectsDirectory?: string
 }
 
@@ -264,10 +249,6 @@ export interface DeleteProjectParams {
   readonly projectId: UUID
   readonly projectsDirectory?: Path
 }
-
-// =======================
-// === Project Manager ===
-// =======================
 
 /** Possible events that may be emitted by a {@link ProjectManager}. */
 export enum ProjectManagerEvents {
@@ -428,11 +409,6 @@ export default class ProjectManager {
     return this.sendRequest('project/close', params)
   }
 
-  /** Get the projects list, sorted by open time. */
-  async listProjects(params: ListProjectsParams): Promise<ProjectList> {
-    return this.sendRequest<ProjectList>('project/list', params)
-  }
-
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
     const result = await this.sendRequest<CreateProject>('project/create', {
@@ -503,6 +479,10 @@ export default class ProjectManager {
 
   /** Delete a project. */
   async deleteProject(params: Omit<DeleteProjectParams, 'projectsDirectory'>): Promise<void> {
+    const cached = this.internalProjects.get(params.projectId)
+    if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
+      await this.closeProject({ projectId: params.projectId })
+    }
     const path = this.internalProjectPaths.get(params.projectId)
     const directoryPath =
       path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath
@@ -561,11 +541,23 @@ export default class ProjectManager {
       'json',
       parentId,
     )
-    const result = response.entries.map((entry) => ({
-      ...entry,
-      path: normalizeSlashes(entry.path),
-    }))
+    const result = response.entries
+      .filter((entry) => {
+        // Ignore hybrid project directories.
+        if (entry.type === FileSystemEntryType.DirectoryEntry) {
+          const directoryName = getFileName(entry.path)
+          return !backend.HYBRID_PROJECT_DIRECTORY_MASK.test(directoryName)
+        }
+
+        return true
+      })
+      .map((entry) => ({
+        ...entry,
+        path: normalizeSlashes(entry.path),
+      }))
+
     this.internalDirectories.set(parentId, result)
+
     for (const entry of result) {
       if (entry.type === FileSystemEntryType.ProjectEntry) {
         this.internalProjectPaths.set(entry.metadata.id, entry.path)
@@ -633,47 +625,6 @@ export default class ProjectManager {
       '--filesystem-move-to',
       to,
     )
-    const children = this.internalDirectories.get(from)
-    // Assume a directory needs to be loaded for its children to be loaded.
-    if (children) {
-      const moveChildren = (directoryChildren: readonly FileSystemEntry[]) => {
-        for (const child of directoryChildren) {
-          switch (child.type) {
-            case FileSystemEntryType.DirectoryEntry: {
-              const childChildren = this.internalDirectories.get(child.path)
-              if (childChildren) {
-                moveChildren(childChildren)
-              }
-              break
-            }
-            case FileSystemEntryType.ProjectEntry: {
-              const path = this.internalProjectPaths.get(child.metadata.id)
-              if (path != null) {
-                this.internalProjectPaths.set(child.metadata.id, Path(path.replace(from, to)))
-              }
-              break
-            }
-            case FileSystemEntryType.FileEntry: {
-              // No special extra metadata is stored for files.
-              break
-            }
-          }
-        }
-        this.internalDirectories.set(
-          from,
-          children.map((child) => ({ ...child, path: Path(child.path.replace(from, to)) })),
-        )
-      }
-      moveChildren(children)
-    }
-    const directoryPath = getDirectoryAndName(from).directoryPath
-    const siblings = this.internalDirectories.get(directoryPath)
-    if (siblings) {
-      this.internalDirectories.set(
-        directoryPath,
-        siblings.filter((entry) => entry.path !== from),
-      )
-    }
   }
 
   /** Delete a file or directory. */
@@ -753,13 +704,10 @@ export default class ProjectManager {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
     }).toString()
-    const response = await fetch(
-      `${appBaseUrl.APP_BASE_URL}/api/run-project-manager-command?${searchParams}`,
-      {
-        method: 'POST',
-        body,
-      },
-    )
+    const response = await fetch(`/api/run-project-manager-command?${searchParams}`, {
+      method: 'POST',
+      body,
+    })
     if (responseType === 'json') {
       // There is no way to avoid this as `JSON.parse` returns `any`.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

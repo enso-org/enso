@@ -3,9 +3,13 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -13,19 +17,28 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ConstantNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeMethodNode;
+import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.pkg.QualifiedName;
 
 @ExportLibrary(TypesLibrary.class)
@@ -38,9 +51,10 @@ public final class Type extends EnsoObject {
   private final Type supertype;
   private final Type eigentype;
   private final Map<String, AtomConstructor> constructors;
-  private final boolean isProjectPrivate;
+  private final boolean hasAllConstructorsPrivate;
 
   private boolean gettersGenerated;
+  private Map<String, Function> methods;
 
   private Type(
       String name,
@@ -48,12 +62,12 @@ public final class Type extends EnsoObject {
       Type supertype,
       Type eigentype,
       boolean builtin,
-      boolean isProjectPrivate) {
+      boolean hasAllConstructorsPrivate) {
     this.name = name;
     this.definitionScope = definitionScope;
     this.supertype = supertype;
     this.builtin = builtin;
-    this.isProjectPrivate = isProjectPrivate;
+    this.hasAllConstructorsPrivate = hasAllConstructorsPrivate;
     this.eigentype = Objects.requireNonNullElse(eigentype, this);
     this.constructors = new HashMap<>();
   }
@@ -63,20 +77,23 @@ public final class Type extends EnsoObject {
       ModuleScope.Builder definitionScope,
       Type supertype,
       boolean builtin,
-      boolean isProjectPrivate) {
-    return new Type(name, definitionScope, supertype, null, builtin, isProjectPrivate);
+      boolean hasAllConstructorsPrivate) {
+    return new Type(name, definitionScope, supertype, null, builtin, hasAllConstructorsPrivate);
   }
 
   public static Type create(
+      EnsoLanguage lang,
       String name,
       ModuleScope.Builder definitionScope,
       Type supertype,
       Type any,
       boolean builtin,
-      boolean isProjectPrivate) {
-    var eigentype = new Type(name + ".type", definitionScope, any, null, builtin, isProjectPrivate);
-    var result = new Type(name, definitionScope, supertype, eigentype, builtin, isProjectPrivate);
-    result.generateQualifiedAccessor();
+      boolean hasAllConstructorsPrivate) {
+    var eigentype =
+        new Type(name + ".type", definitionScope, any, null, builtin, hasAllConstructorsPrivate);
+    var result =
+        new Type(name, definitionScope, supertype, eigentype, builtin, hasAllConstructorsPrivate);
+    result.generateQualifiedAccessor(lang);
     return result;
   }
 
@@ -84,14 +101,15 @@ public final class Type extends EnsoObject {
     return new Type("null", null, null, null, false, false);
   }
 
-  private void generateQualifiedAccessor() {
-    var node = new ConstantNode(null, this);
+  private void generateQualifiedAccessor(EnsoLanguage lang) {
+    assert lang != null;
+    var node = new ConstantNode(lang, getDefinitionScope(), this);
     var schemaBldr =
         FunctionSchema.newBuilder()
             .argumentDefinitions(
                 new ArgumentDefinition(
                     0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
-    if (isProjectPrivate) {
+    if (isProjectPrivate()) {
       schemaBldr.projectPrivate();
     }
     var function = new Function(node.getCallTarget(), null, schemaBldr.build());
@@ -107,17 +125,18 @@ public final class Type extends EnsoObject {
     }
   }
 
-  public void setShadowDefinitions(ModuleScope.Builder scope, boolean generateAccessorsInTarget) {
+  public void setShadowDefinitions(
+      EnsoLanguage lang, ModuleScope.Builder scope, boolean generateAccessorsInTarget) {
     if (builtin) {
       // Ensure that synthetic methods, such as getters for fields are in the scope.
       CompilerAsserts.neverPartOfCompilation();
       this.definitionScope.registerAllMethodsOfTypeToScope(this, scope);
       this.definitionScope = scope;
       if (generateAccessorsInTarget) {
-        generateQualifiedAccessor();
+        generateQualifiedAccessor(lang);
       }
       if (getEigentype() != this) {
-        getEigentype().setShadowDefinitions(scope, false);
+        getEigentype().setShadowDefinitions(lang, scope, false);
       }
     } else {
       throw new RuntimeException(
@@ -138,15 +157,24 @@ public final class Type extends EnsoObject {
   }
 
   /**
-   * Returns true iff this type is project-private. A type is project-private iff all its
-   * constructors are project-private. Note that during the compilation, it is ensured by the {@link
+   * Right now types cannot be project private. Waiting for implementation of #8835.
+   *
+   * @return {@code false}
+   */
+  public final boolean isProjectPrivate() {
+    return false;
+  }
+
+  /**
+   * Returns true iff this type has project-private constructors only. Note that during the
+   * compilation, it is ensured by the {@link
    * org.enso.compiler.pass.analyse.PrivateConstructorAnalysis} compiler pass that all the
    * constructors are either public or project-private.
    *
-   * @return true iff this type is project-private.
+   * @return true iff this type constructors are project-private.
    */
-  public boolean isProjectPrivate() {
-    return isProjectPrivate;
+  public boolean hasAllConstructorsPrivate() {
+    return hasAllConstructorsPrivate;
   }
 
   private Type getSupertype() {
@@ -217,21 +245,25 @@ public final class Type extends EnsoObject {
     var roots = AtomConstructor.collectFieldAccessors(language, this);
     roots.forEach(
         (name, node) -> {
-          var schemaBldr =
-              FunctionSchema.newBuilder()
-                  .argumentDefinitions(
-                      new ArgumentDefinition(
-                          0,
-                          Constants.Names.SELF_ARGUMENT,
-                          null,
-                          null,
-                          ArgumentDefinition.ExecutionMode.EXECUTE));
-          if (isProjectPrivate) {
-            schemaBldr.projectPrivate();
-          }
-          var funcSchema = schemaBldr.build();
-          var f = new Function(node.getCallTarget(), null, funcSchema);
-          definitionScope.registerMethod(this, name, f);
+          var functionSupplier =
+              CachingSupplier.wrap(
+                  () -> {
+                    var schemaBldr =
+                        FunctionSchema.newBuilder()
+                            .argumentDefinitions(
+                                new ArgumentDefinition(
+                                    0,
+                                    Constants.Names.SELF_ARGUMENT,
+                                    null,
+                                    null,
+                                    ArgumentDefinition.ExecutionMode.EXECUTE));
+                    if (hasAllConstructorsPrivate) {
+                      schemaBldr.projectPrivate();
+                    }
+                    var funcSchema = schemaBldr.build();
+                    return new Function(node.getCallTarget(), null, funcSchema);
+                  });
+          definitionScope.registerMethod(this, name, functionSupplier);
         });
   }
 
@@ -337,38 +369,135 @@ public final class Type extends EnsoObject {
     return true;
   }
 
+  /**
+   * Members are constructors and methods from this type, and eigen type. Not extension methods as
+   * they are most likely not in the module scope of this type.
+   *
+   * @param includeInternal
+   * @return
+   */
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) {
-    if (isProjectPrivate) {
+    if (hasAllConstructorsPrivate) {
       return ArrayLikeHelpers.empty();
-    } else {
-      return ArrayLikeHelpers.wrapStrings(constructors.keySet().toArray(String[]::new));
     }
+    var consNames = constructors.keySet();
+    if (!includeInternal) {
+      return ArrayLikeHelpers.wrapStrings(consNames.toArray(String[]::new));
+    }
+    var methodNames = methods().keySet();
+    var allNames = new HashSet<String>();
+    allNames.addAll(consNames);
+    allNames.addAll(methodNames);
+    return ArrayLikeHelpers.wrapStrings(allNames.toArray(String[]::new));
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   boolean isMemberReadable(String member) {
-    if (isProjectPrivate) {
+    if (hasAllConstructorsPrivate) {
       return false;
     } else {
-      return constructors.containsKey(member);
+      return constructors.containsKey(member) || methods().containsKey(member);
+    }
+  }
+
+  @ExportMessage
+  @TruffleBoundary
+  boolean isMemberInvocable(String member) {
+    return methods().containsKey(member);
+  }
+
+  @ExportMessage
+  static final class InvokeMember {
+    @Specialization(
+        guards = {"cachedMember.equals(member)", "func != null"},
+        limit = "3")
+    static Object doCached(
+        Type receiver,
+        String member,
+        Object[] args,
+        @Cached("member") String cachedMember,
+        @Cached MethodResolverNode methodResolverNode,
+        @Cached("buildSymbol(receiver, member)") UnresolvedSymbol symbol,
+        @Cached("findMethod(eigenType(receiver), symbol, methodResolverNode)") Function func,
+        @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode)
+        throws UnsupportedMessageException, UnsupportedTypeException, ArityException {
+      Object[] finalArgs = args;
+      if (InvokeMethodNode.shouldPrependSyntheticSelfArg(func.getSchema(), args.length)) {
+        var argsWithReceiver = new Object[args.length + 1];
+        argsWithReceiver[0] = receiver;
+        System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
+        finalArgs = argsWithReceiver;
+      }
+      return invokeCallableNode.execute(func, null, null, finalArgs);
+    }
+
+    @Specialization(replaces = "doCached")
+    @TruffleBoundary
+    static Object doUncached(
+        Type receiver,
+        String member,
+        Object[] args,
+        @CachedLibrary(limit = "3") InteropLibrary interop)
+        throws UnsupportedMessageException,
+            UnsupportedTypeException,
+            ArityException,
+            UnknownIdentifierException {
+      var symbol = buildSymbol(receiver, member);
+      var methodResolverNode = MethodResolverNode.getUncached();
+      var method = findMethod(receiver.getEigentype(), symbol, methodResolverNode);
+      if (method == null) {
+        throw UnknownIdentifierException.create(member);
+      }
+      var invokeCallableNode = buildInvokeCallableNode(method);
+      return doCached(
+          receiver, member, args, member, methodResolverNode, symbol, method, invokeCallableNode);
+    }
+
+    static Type eigenType(Type receiver) {
+      return receiver.getEigentype();
+    }
+
+    static UnresolvedSymbol buildSymbol(Type receiver, String member) {
+      return UnresolvedSymbol.build(member, receiver.getDefinitionScope());
+    }
+
+    static Function findMethod(
+        Type receiver, UnresolvedSymbol symbol, MethodResolverNode methodResolverNode) {
+      return InvokeMethodNode.resolveFunction(symbol, receiver, methodResolverNode);
+    }
+
+    static InvokeCallableNode buildInvokeCallableNode(Function func) {
+      assert func != null;
+      var argumentInfos = func.getSchema().getArgumentInfos();
+      var callArgInfos = new CallArgumentInfo[argumentInfos.length];
+      for (var i = 0; i < argumentInfos.length; i++) {
+        var argInfo = argumentInfos[i];
+        var callArgInfo = new CallArgumentInfo(argInfo.getName());
+        callArgInfos[i] = callArgInfo;
+      }
+      return InvokeCallableNode.build(
+          callArgInfos, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
     }
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   Object readMember(String member) throws UnknownIdentifierException {
-    if (isProjectPrivate) {
+    if (hasAllConstructorsPrivate) {
       throw UnknownIdentifierException.create(member);
     }
-    var result = constructors.get(member);
-    if (result == null) {
-      throw UnknownIdentifierException.create(member);
-    } else {
-      return result;
+    var cons = constructors.get(member);
+    if (cons != null) {
+      return cons;
     }
+    var method = methods().get(member);
+    if (method != null) {
+      return method;
+    }
+    throw UnknownIdentifierException.create(member);
   }
 
   @ExportMessage
@@ -406,5 +535,89 @@ public final class Type extends EnsoObject {
   private boolean isNothing(Node lib) {
     var b = EnsoContext.get(lib).getBuiltins();
     return this == b.nothing();
+  }
+
+  private Map<String, Function> methods() {
+    if (methods == null) {
+      CompilerDirectives.transferToInterpreter();
+      methods = getMethods(true);
+    }
+    return methods;
+  }
+
+  /**
+   * Returns methods (both instance and static) defined on this type, including the ones inherited
+   * from super types. Instance methods are defined on this type, static methods are defined on its
+   * {@link #getEigentype() eigen type}. The methods defined on this type are searched for inside
+   * the module scope where this type is defined, so if there are any other extension methods
+   * defined in other modules, they are not included in the result.
+   *
+   * @param includeStaticMethods If static methods, defined on eigen type, should be included in the
+   *     result.
+   * @return All static and instance methods defined on this type, including the ones inherited from
+   *     Any.
+   */
+  @TruffleBoundary
+  public Map<String, Function> getMethods(boolean includeStaticMethods) {
+    var ctx = EnsoContext.get(null);
+    var allMethods = new HashMap<String, Function>();
+    for (var type : allTypes(ctx)) {
+      var methodsOnThisType = type.methodsOnThisType(includeStaticMethods);
+      for (var entry : methodsOnThisType.entrySet()) {
+        var name = entry.getKey();
+        // If a method with the name is already in `allMethods`, it means that it is an override
+        // of a method from super type - let's keep the override.
+        if (!allMethods.containsKey(name)) {
+          allMethods.put(name, entry.getValue());
+        }
+      }
+    }
+    return allMethods;
+  }
+
+  /**
+   * Returns methods (both instance and static) defined only on this type.
+   *
+   * <p>As opposed to {@link #getMethods(boolean)}, does not include methods inherited from super
+   * types.
+   *
+   * @param includeStaticMethods If static methods, defined on eigen type, should be included in the
+   *     result.
+   */
+  @TruffleBoundary
+  private Map<String, Function> methodsOnThisType(boolean includeStaticMethods) {
+    var allMethods = new HashMap<String, Function>();
+    var defScope = definitionScope.asModuleScope();
+    var methodsFromThisScope = defScope.getMethodsForType(this);
+    if (methodsFromThisScope != null) {
+      methodsFromThisScope.forEach(
+          func -> {
+            var simpleName = simpleFuncName(func);
+            allMethods.put(simpleName, func);
+          });
+    }
+    if (includeStaticMethods && eigentype != null) {
+      var methodsFromEigenScope = eigentype.getDefinitionScope().getMethodsForType(eigentype);
+      if (methodsFromEigenScope != null) {
+        for (var method : methodsFromEigenScope) {
+          var simpleName = simpleFuncName(method);
+          // Don't replace instance methods (with one self argument) with static ones (with two self
+          // arguments).
+          if (!allMethods.containsKey(simpleName)) {
+            allMethods.put(simpleName, method);
+          }
+        }
+      }
+    }
+    return allMethods;
+  }
+
+  private static String simpleFuncName(Function func) {
+    assert func.getName() != null;
+    if (func.getName().contains(".")) {
+      var items = func.getName().split("\\.");
+      return items[items.length - 1];
+    }
+    return func.getName();
   }
 }

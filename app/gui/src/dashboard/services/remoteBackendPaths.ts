@@ -1,10 +1,6 @@
 /** @file Paths used by the `RemoteBackend`. */
-import type * as backend from '#/services/Backend'
+import * as backend from '#/services/Backend'
 import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
-
-// =============
-// === Paths ===
-// =============
 
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
 export const LIST_USERS_PATH = 'users'
@@ -42,12 +38,8 @@ export const LIST_DIRECTORY_PATH = 'directories'
 export const CREATE_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
 export const UNDO_DELETE_ASSET_PATH = 'assets'
-/** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
-export const LIST_PROJECTS_PATH = 'projects'
 /** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
 export const CREATE_PROJECT_PATH = 'projects'
-/** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
-export const LIST_FILES_PATH = 'files'
 /** Relative HTTP path to the "upload file start" endpoint of the Cloud backend API. */
 export const UPLOAD_FILE_START_PATH = 'files/upload/start'
 /** Relative HTTP path to the "upload file end" endpoint of the Cloud backend API. */
@@ -56,6 +48,8 @@ export const UPLOAD_FILE_END_PATH = 'files/upload/end'
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
 export const LIST_SECRETS_PATH = 'secrets'
+/** Relative HTTP path to the "create credential" endpoint of the Cloud backend API. */
+export const CREATE_CREDENTIAL_PATH = 'secrets'
 /** Relative HTTP path to the "list project sessions" endpoint of the Cloud backend API. */
 export const LIST_PROJECT_SESSIONS_PATH = 'project-sessions'
 /** Relative HTTP path to the "create datalink" endpoint of the Cloud backend API. */
@@ -68,8 +62,6 @@ export const LIST_TAGS_PATH = 'tags'
 export const CREATE_USER_GROUP_PATH = 'usergroups'
 /** Relative HTTP path to the "list user groups" endpoint of the Cloud backend API. */
 export const LIST_USER_GROUPS_PATH = 'usergroups'
-/** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
-export const LIST_VERSIONS_PATH = 'versions'
 /** Relative HTTP path to the "create checkout session" endpoint of the Cloud backend API. */
 export const CREATE_CHECKOUT_SESSION_PATH = 'payments/subscriptions'
 /** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
@@ -110,6 +102,22 @@ export function getProjectContentPath(
   }
   return `projects/${projectId}/files?${searchParams.toString()}`
 }
+
+/** Relative HTTP path to the "get project asset" endpoint of the Cloud backend API. */
+export function getProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
+  return `projects/${projectId}/files/${relativePath.replace('./', '')}`
+}
+/**
+ * Relative HTTP path to the "get asset details" endpoint of the Cloud backend API.
+ */
+export function getAssetDetailsPath(assetId: backend.AssetId) {
+  return `assets/${assetId}` as const
+}
+/** Relative HTTP path to the upload project endpoint of the Cloud backend API. */
+export function getProjectUploadPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/upload`
+}
+
 /** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
 export function updateAssetPath(assetId: backend.AssetId) {
   return `assets/${assetId}`
@@ -142,9 +150,9 @@ export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessi
 export function duplicateProjectPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/versions/clone`
 }
-/** Relative HTTP path to the "restore project" endpoint of the Cloud backend API. */
-export function restoreProjectPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/versions/restore`
+/** Relative HTTP path to the "restore asset" endpoint of the Cloud backend API. */
+export function restoreAssetPath(assetId: backend.AssetId) {
+  return `assets/${assetId}/versions/restore`
 }
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
 export function openProjectPath(projectId: backend.ProjectId) {
@@ -154,13 +162,33 @@ export function openProjectPath(projectId: backend.ProjectId) {
 export function projectUpdatePath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
 }
+/** Relative HTTP path to the "list project executions" endpoint of the Cloud backend API. */
+export function listProjectExecutionsPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/executions`
+}
+/** Relative HTTP path to the "create project execution" endpoint of the Cloud backend API. */
+export function createProjectExecutionPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/executions/new`
+}
+/** Relative HTTP path to the "get project execution details" endpoint of the Cloud backend API. */
+export function getProjectExecutionDetailsPath(executionId: backend.ProjectExecutionId) {
+  return `executions/${executionId}`
+}
+/** Relative HTTP path to the "update project execution" endpoint of the Cloud backend API. */
+export function updateProjectExecutionPath(executionId: backend.ProjectExecutionId) {
+  return `executions/${executionId}`
+}
+/** Relative HTTP path to the "sync project execution" endpoint of the Cloud backend API. */
+export function syncProjectExecutionPath(executionId: backend.ProjectExecutionId) {
+  return `executions/${executionId}/sync`
+}
+/** Relative HTTP path to the "delete project execution" endpoint of the Cloud backend API. */
+export function deleteProjectExecutionPath(executionId: backend.ProjectExecutionId) {
+  return `executions/${executionId}`
+}
 /** Relative HTTP path to the "get file details" endpoint of the Cloud backend API. */
 export function getFileDetailsPath(fileId: backend.FileId) {
   return `files/${fileId}`
-}
-/** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
-export function checkResourcesPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/resources`
 }
 /** Relative HTTP path to the "update secret" endpoint of the Cloud backend API. */
 export function updateSecretPath(secretId: backend.SecretId) {
@@ -190,17 +218,30 @@ export function deleteUserGroupPath(groupId: backend.UserGroupId) {
 export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
   return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
 }
+/** Relative HTTP path to the "get oauth callback" endpoint of the Cloud backend API. */
+export function getOauthCallbackPath(service: backend.CredentialInput['type']) {
+  const normalized = service.toLowerCase()
+  return `oauth/${normalized}/callback`
+}
 
-// ===========
-// === IDs ===
-// ===========
+/** Relative HTTP path to the "hybrid set open in progress" endpoint of the Cloud backend API. */
+export function getHybridSetOpenInProgress(projectId: backend.ProjectId) {
+  return `projects/${projectId}/hybrid_set_open_in_progress`
+}
+/** Relative HTTP path to the "hybrid set opened" endpoint of the Cloud backend API. */
+export function getHybridSetOpened(projectId: backend.ProjectId) {
+  return `projects/${projectId}/hybrid_set_opened`
+}
+/** Relative HTTP path to the "hybrid ping" endpoint of the Cloud backend API. */
+export function getHybridProjectPing(projectId: backend.ProjectId) {
+  return `projects/${projectId}/hybrid_ping`
+}
 
 /** Unique identifier for a directory. */
 type DirectoryId = Newtype<string, 'DirectoryId'>
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-redeclare
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 const DirectoryId = newtypeConstructor<DirectoryId>()
-export const ROOT_PARENT_DIRECTORY_ID = DirectoryId('')
 /** The ID of the directory containing the home directories of all users. */
-export const USERS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000users')
+export const USERS_DIRECTORY_ID = backend.DirectoryId('directory-0000000000000000000000users')
 /** The ID of the directory containing home directories of all teams. */
-export const TEAMS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000teams')
+export const TEAMS_DIRECTORY_ID = backend.DirectoryId('directory-0000000000000000000000teams')

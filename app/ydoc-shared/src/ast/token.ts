@@ -1,20 +1,21 @@
 import { assert } from '../util/assert'
 import type { ExternalId } from '../yjsModel'
 import { isUuid } from '../yjsModel'
-import { is_ident_or_operator } from './ffi'
+import { is_ident_or_operator, self_arg_separator } from './ffi'
 import * as RawAst from './generated/ast'
 import { newExternalId } from './idMap'
 import type { AstId, DeepReadonly, NodeChild, Owned } from './tree'
 import { Ast } from './tree'
 export import TokenType = RawAst.Token.Type
+export import tokenTypes = RawAst.Token.typeNames
 
 /** Whether the given value is a {@link Token}. */
-export function isToken(maybeToken: unknown): maybeToken is Token {
+export function isToken(maybeToken: Token | Ast): maybeToken is Token {
   return maybeToken instanceof Token
 }
 
 /** Whether the given {@link NodeChild} is a {@link NodeChild}<{@link Token}>. */
-export function isTokenChild(child: NodeChild<unknown>): child is NodeChild<Token> {
+export function isTokenChild(child: NodeChild<Token | Ast>): child is NodeChild<Token> {
   return isToken(child.node)
 }
 
@@ -34,20 +35,11 @@ export interface SyncTokenId {
 
 /** A structure representing a lexical source code unit in the AST. */
 export class Token implements SyncTokenId {
-  readonly id: TokenId
-  code_: string
-  tokenType_: TokenType | undefined
-
-  private constructor(code: string, type: TokenType | undefined, id: TokenId) {
-    this.id = id
-    this.code_ = code
-    this.tokenType_ = type
-  }
-
-  /** The id of this token. */
-  get externalId(): TokenId {
-    return this.id
-  }
+  private constructor(
+    readonly code_: string,
+    readonly tokenType_: TokenType | undefined,
+    readonly id: TokenId,
+  ) {}
 
   /** Construct a {@link Token} without a {@link TokenId}. */
   static new(code: string, type?: TokenType) {
@@ -71,8 +63,8 @@ export class Token implements SyncTokenId {
   }
 
   /** The name of the token type of this token. */
-  typeName(): string {
-    if (this.tokenType_) return RawAst.Token.typeNames[this.tokenType_]!
+  get typeName(): (typeof RawAst.Token.typeNames)[number] | 'Raw' {
+    if (this.tokenType_ != null) return RawAst.Token.typeNames[this.tokenType_]!
     else return 'Raw'
   }
 }
@@ -136,6 +128,19 @@ export function isIdentifierOrOperatorIdentifier(
 /** Whether the given code is lexically an identifier. */
 export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
+}
+
+/**
+ * What should separate this expression from self argument applied to it.
+ *
+ * The main case is IDE's Component Browser input: how exactly prefix an expression written by user
+ * with `self` argument. Usually we just put identifier with `.`, but in case of operators,
+ * a proper spacing should be put instead.
+ */
+export function selfArgSeparator(code: string): string {
+  const ffiResult = self_arg_separator(code)
+  if (ffiResult < 0) return '.'
+  else return ' '.repeat(ffiResult)
 }
 
 /**

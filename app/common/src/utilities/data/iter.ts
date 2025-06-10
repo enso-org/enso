@@ -1,7 +1,5 @@
 /** @file Utilities for manipulating {@link Iterator}s and {@link Iterable}s. */
 
-import { iteratorFilter, mapIterator } from 'lib0/iterator'
-
 /** Similar to {@link Array.prototype.reduce|}, but consumes elements from any iterable. */
 export function reduce<T, A>(
   iterable: Iterable<T>,
@@ -23,7 +21,7 @@ export function reduce<T, A>(
  * it will be consumed.
  */
 export function count(it: Iterable<unknown>): number {
-  return reduce(it, a => a + 1, 0)
+  return reduce(it, (a) => a + 1, 0)
 }
 
 /** An iterable with zero elements. */
@@ -53,16 +51,21 @@ export function* range(start: number, stop: number, step = start <= stop ? 1 : -
 }
 
 /** @returns An iterator that yields the results of applying the given function to each value of the given iterable. */
-export function map<T, U>(it: Iterable<T>, f: (value: T) => U): IterableIterator<U> {
-  return mapIterator(it[Symbol.iterator](), f)
+export function* map<T, U>(it: Iterable<T>, f: (value: T) => U): IterableIterator<U> {
+  for (const value of it) yield f(value)
 }
 
+export function filter<T, S extends T>(
+  iter: Iterable<T>,
+  include: (value: T) => value is S,
+): IterableIterator<S>
+export function filter<T>(iter: Iterable<T>, include: (value: T) => boolean): IterableIterator<T>
 /**
  * Return an {@link Iterable} that `yield`s only the values from the given source iterable
  * that pass the given predicate.
  */
-export function filter<T>(iter: Iterable<T>, include: (value: T) => boolean): IterableIterator<T> {
-  return iteratorFilter(iter[Symbol.iterator](), include)
+export function* filter<T>(iter: Iterable<T>, include: (value: T) => boolean): IterableIterator<T> {
+  for (const value of iter) if (include(value)) yield value
 }
 
 /**
@@ -179,6 +182,17 @@ export function every<T>(iter: Iterable<T>, f: (value: T) => boolean): boolean {
   return true
 }
 
+/**
+ * Returns whether the predicate returned `true` for any values yielded by the provided iterator. Short-circuiting.
+ * Returns `false` if the iterator doesn't yield any values.
+ */
+export function some<T>(iter: Iterable<T>, f: (value: T) => boolean): boolean {
+  for (const value of iter) if (f(value)) return true
+  return false
+}
+
+export function find<T, S extends T>(iter: Iterable<T>, f: (value: T) => value is S): S | undefined
+export function find<T>(iter: Iterable<T>, f: (value: T) => boolean): T | undefined
 /** Return the first element returned by the iterable which meets the condition. */
 export function find<T>(iter: Iterable<T>, f: (value: T) => boolean): T | undefined {
   for (const value of iter) {
@@ -203,4 +217,12 @@ export function last<T>(iter: Iterable<T>): T | undefined {
   let last
   for (const el of iter) last = el
   return last
+}
+
+/** Yields items of the iterable with their index. */
+export function* enumerate<T>(items: Iterable<T>): Generator<[T, number]> {
+  let index = 0
+  for (const item of items) {
+    yield [item, index++]
+  }
 }

@@ -5,8 +5,7 @@ use crate::source::*;
 use crate::syntax::*;
 
 use crate::span_builder;
-use crate::syntax::token::TokenOperatorProperties;
-use crate::syntax::treebuilding::Spacing;
+use crate::syntax::expression::Spacing;
 
 #[cfg(feature = "debug")]
 use enso_parser_syntax_tree_visitor::Visitor;
@@ -1026,7 +1025,11 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     let error = match Spacing::of_tree(&arg) {
         Spacing::Spaced => None,
         Spacing::Unspaced => Some("Space required between terms."),
-    };
+    }
+    .or(match &arg.variant {
+        Variant::AnnotatedBuiltin(_) => Some("Unexpected expression annotation."),
+        _ => None,
+    });
     maybe_with_error(Tree::app(func, arg), error)
 }
 

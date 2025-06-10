@@ -13,8 +13,7 @@ const MISSING = Symbol('MISSING')
  * When creating a store, you usually want to reexport the `provideFn` and `injectFn` as renamed
  * functions to make it easier to use the store in components without any name collisions.
  * ```ts
- * export { injectFn as injectSpecificThing, provideFn as provideSpecificThing }
- * const { provideFn, injectFn } = createContextStore('specific thing', thatThingFactory)
+ * export const [provideThing, useThing] = createContextStore('specific thing', thatThingFactory)
  * ```
  *
  * Under the hood, this uses Vue's [Context API], therefore it can only be used within a component's
@@ -46,8 +45,7 @@ export function createContextStore<F extends (...args: any[]) => any>(name: stri
 
   /**
    * An method allowing to directly provide a store value to any app or component context, possibly
-   * skipping invoking the factory function. **Use in tests only, or in exceptional situations
-   * (like in TableHeader.vue)**.
+   * skipping invoking the factory function. **Use in tests only, or in exceptional situations**.
    */
   provideFn.provideConstructed = function (
     valueOrArgs: Parameters<F> | ReturnType<F>,
@@ -93,5 +91,5 @@ export function createContextStore<F extends (...args: any[]) => any>(name: stri
     return injected
   }
 
-  return { provideFn, injectFn } as const
+  return [provideFn, injectFn] as const
 }

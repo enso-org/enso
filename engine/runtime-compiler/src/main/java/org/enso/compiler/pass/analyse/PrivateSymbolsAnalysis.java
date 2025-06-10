@@ -84,14 +84,7 @@ public class PrivateSymbolsAnalysis implements IRPass {
         var newBranches =
             caseExpr.branches().map(branch -> processCaseBranch(branch, bindingsMap)).toSeq();
         var newScrutinee = processExpression(caseExpr.scrutinee(), bindingsMap);
-        yield caseExpr.copy(
-            newScrutinee,
-            newBranches,
-            caseExpr.copy$default$3(),
-            caseExpr.copy$default$4(),
-            caseExpr.copy$default$5(),
-            caseExpr.copy$default$6(),
-            caseExpr.copy$default$7());
+        yield caseExpr.copy(newScrutinee, newBranches.toList());
       }
       case Name name -> processName(name, bindingsMap);
       default -> expr.mapExpressions(e -> processExpression(e, bindingsMap));
@@ -102,14 +95,7 @@ public class PrivateSymbolsAnalysis implements IRPass {
     var pat = branch.pattern();
     var newPat = processCasePattern(pat, bindingsMap);
     var newExpr = processExpression(branch.expression(), bindingsMap);
-    return branch.copy(
-        newPat,
-        newExpr,
-        branch.copy$default$3(),
-        branch.copy$default$4(),
-        branch.copy$default$5(),
-        branch.copy$default$6(),
-        branch.copy$default$7());
+    return branch.copy(newPat, newExpr, branch.terminalBranch());
   }
 
   private Pattern processCasePattern(Pattern pattern, BindingsMap bindingsMap) {

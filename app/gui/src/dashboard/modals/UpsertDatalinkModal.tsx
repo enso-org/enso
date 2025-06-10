@@ -1,28 +1,23 @@
-/** @file A modal for creating a Datalink. */
-import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
-import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
+/** @file A modal for creating and editing a Datalink. */
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import { validateDatalink } from '#/data/datalinkValidator'
-import { useText } from '#/providers/TextProvider'
+import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import { constantValueOfSchema } from '#/utilities/jsonSchema'
-
-// =================
-// === Constants ===
-// =================
+import { useText } from '$/providers/react'
 
 const DEFS: Record<string, object> = SCHEMA.$defs
 const INITIAL_DATALINK_VALUE = constantValueOfSchema(DEFS, SCHEMA.$defs.DataLink, true)[0] ?? null
-
-// ===========================
-// === UpsertDataLinkModal ===
-// ===========================
 
 /** Props for a {@link UpsertDatalinkModal}. */
 export interface UpsertDatalinkModalProps {
   readonly doCreate: (name: string, datalink: unknown) => Promise<void> | void
 }
 
-/** A modal for creating a Datalink. */
+/** A modal for creating and editing a Datalink. */
 export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const { doCreate } = props
 
@@ -52,10 +47,10 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
           <DatalinkFormInput name="value" dropdownTitle={getText('type')} />
         </div>
 
-        <ButtonGroup>
+        <Button.Group>
           <Form.Submit>{getText('create')}</Form.Submit>
-          <DialogDismiss />
-        </ButtonGroup>
+          <Dialog.Dismiss />
+        </Button.Group>
 
         <Form.FormError />
       </Form>

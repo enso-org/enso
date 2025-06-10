@@ -3,30 +3,21 @@
  *
  * Dialog that shows the plan details, price, and the payment form.
  */
-import * as React from 'react'
-
+import { Button } from '#/components/Button'
+import { Checkbox } from '#/components/Checkbox'
+import { Dialog } from '#/components/Dialog'
+import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
+import { Form } from '#/components/Form'
+import { Input, Selector } from '#/components/Inputs'
+import { Separator } from '#/components/Separator'
+import { Suspense } from '#/components/Suspense'
+import { Text } from '#/components/Text'
+import type { Plan } from '#/services/Backend'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import type { PaymentMethod } from '@stripe/stripe-js'
 import { useQuery } from '@tanstack/react-query'
-
-import { type GetText, useText } from '#/providers/TextProvider'
-
-import {
-  Button,
-  Checkbox,
-  Dialog,
-  Form,
-  Input,
-  Selector,
-  Separator,
-  Text,
-} from '#/components/AriaComponents'
-import { ErrorDisplay } from '#/components/ErrorBoundary'
-import { Suspense } from '#/components/Suspense'
-
-import type { Plan } from '#/services/Backend'
-
-import { twMerge } from '#/utilities/tailwindMerge'
-
 import { createSubscriptionPriceQuery, useCreatePaymentMethodMutation } from '../../../api'
 import {
   MAX_SEATS_BY_PLAN,
@@ -104,10 +95,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const seats = Form.useWatch({ name: 'seats', control: form.control })
   const period = Form.useWatch({ name: 'period', control: form.control })
 
-  const formatter = React.useMemo(
-    () => new Intl.NumberFormat(locale, { style: 'currency', currency: PRICE_CURRENCY }),
-    [locale],
-  )
+  const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: PRICE_CURRENCY })
 
   return (
     <Dialog size="xxxlarge" closeButton="floating" aria-label={title}>
@@ -139,84 +127,86 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
 
         <Separator orientation="horizontal" className="my-4" />
 
-        <div className="grid grid-cols-[1fr]">
-          <div className="flex flex-col gap-4">
-            <div>
-              <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
+        <ErrorBoundary>
+          <Suspense>
+            <div className="grid grid-cols-[1fr]">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
 
-              <Form form={form} className="mt-1">
-                <Selector
-                  form={form}
-                  name="period"
-                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                  items={[12, 36]}
-                  label={getText('billingPeriod')}
-                >
-                  {(item) => billingPeriodToString(getText, item)}
-                </Selector>
+                  <Form form={form} className="mt-1">
+                    <Selector
+                      form={form}
+                      name="period"
+                      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                      items={[12, 36]}
+                      label={getText('billingPeriod')}
+                    >
+                      {(item) => billingPeriodToString(getText, item)}
+                    </Selector>
 
-                <Input
-                  isRequired
-                  readOnly={maxSeats === 1}
-                  form={form}
-                  name="seats"
-                  type="number"
-                  inputMode="decimal"
-                  size="small"
-                  min="1"
-                  label={getText('seats')}
-                  description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
-                />
+                    <Input
+                      isRequired
+                      readOnly={maxSeats === 1}
+                      form={form}
+                      name="seats"
+                      type="number"
+                      inputMode="decimal"
+                      size="small"
+                      min="1"
+                      label={getText('seats')}
+                      description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
+                    />
 
-                <Checkbox.Group
-                  form={form}
-                  name="agree"
-                  description={
-                    <>
-                      {getText('slsaLicenseAgreementDescription1')}{' '}
-                      <Button
-                        variant="link"
-                        href="https://www.ensoanalytics.com/SLSA"
-                        target="_blank"
-                      >
-                        {getText('SLSA')}
-                      </Button>
-                      {getText('slsaLicenseAgreementDescription2')}
-                    </>
-                  }
-                >
-                  <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
-                </Checkbox.Group>
-              </Form>
-            </div>
-          </div>
+                    <Checkbox.Group
+                      form={form}
+                      name="agree"
+                      description={
+                        <>
+                          {getText('slsaLicenseAgreementDescription1')}{' '}
+                          <Button
+                            variant="link"
+                            href="https://www.ensoanalytics.com/SLSA"
+                            target="_blank"
+                          >
+                            {getText('SLSA')}
+                          </Button>
+                          {getText('slsaLicenseAgreementDescription2')}
+                        </>
+                      }
+                    >
+                      <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
+                    </Checkbox.Group>
+                  </Form>
+                </div>
+              </div>
 
-          <div>
-            <div className="my-4">
-              <Summary
-                plan={plan}
-                seats={seats}
-                period={period}
-                formatter={formatter}
-                isInvalid={form.formState.errors.seats != null}
-              />
-            </div>
-
-            <Suspense>
-              <StripeProvider>
-                {({ stripe, elements }) => (
-                  <AddPaymentMethodForm
-                    form={form}
-                    elements={elements}
-                    stripeInstance={stripe}
-                    submitText={isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
-                    onSubmit={(paymentMethodId) => onSubmit?.(paymentMethodId, seats, period)}
+              <div>
+                <div className="my-4">
+                  <Summary
+                    plan={plan}
+                    seats={seats}
+                    period={period}
+                    formatter={formatter}
+                    isInvalid={form.formState.errors.seats != null}
                   />
-                )}
-              </StripeProvider>
-            </Suspense>
-          </div>
-        </div>
+                </div>
+
+                <StripeProvider>
+                  {({ stripe, elements }) => (
+                    <AddPaymentMethodForm
+                      form={form}
+                      elements={elements}
+                      stripeInstance={stripe}
+                      submitText={isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
+                      onSubmit={(paymentMethodId) => onSubmit?.(paymentMethodId, seats, period)}
+                    />
+                  )}
+                </StripeProvider>
+              </div>
+            </div>
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </Dialog>
   )

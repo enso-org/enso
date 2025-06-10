@@ -9,6 +9,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -18,19 +19,22 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Gets the method names of a type.",
     autoRegister = false)
 public abstract class GetTypeMethodsNode extends Node {
-  static GetTypeMethodsNode build() {
+  public static GetTypeMethodsNode build() {
     return GetTypeMethodsNodeGen.create();
   }
 
-  abstract EnsoObject execute(Object type);
+  public abstract EnsoObject execute(Object type);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  EnsoObject allMethods(Type type) {
-    var methods = type.getDefinitionScope().getMethodNamesForType(type);
-    return methods == null
-        ? ArrayLikeHelpers.empty()
-        : ArrayLikeHelpers.wrapStrings(methods.toArray(new String[0]));
+  final EnsoObject allMethods(Type type) {
+    var methods = type.getMethods(true);
+    var methodNames =
+        methods.entrySet().stream()
+            .filter(e -> !e.getValue().getSchema().isProjectPrivate())
+            .map(e -> Text.create(e.getKey()))
+            .toArray(Text[]::new);
+    return ArrayLikeHelpers.asVectorEnsoObjects(methodNames);
   }
 
   @Fallback

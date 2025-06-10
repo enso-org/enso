@@ -1,0 +1,81 @@
+# This file is not auto-generated. Feel free to edit it.
+
+name: GUI Changed Files
+
+on:
+  workflow_call:
+    outputs:
+      all_changed_files:
+        description: "Returns all changed files"
+        value: ${{ jobs.gui-changed-files.outputs.all_changed_files }}
+      any_changed:
+        description: "Returns `true` when any of the filenames have changed"
+        value: ${{ jobs.gui-changed-files.outputs.any_changed }}
+
+jobs:
+  gui-changed-files:
+    runs-on: ubuntu-latest
+    name: Changed Files
+    outputs:
+      all_changed_files: ${{ steps.gui-changed-files.outputs.all_changed_files }}
+      any_changed: ${{ steps.gui-changed-files.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Get changed files
+        id: gui-changed-files
+        uses: step-security/changed-files@v45
+        with:
+          files: |
+            app/**
+            package.json
+            pnpm-lock.yaml
+            pnpm-workspace.yaml
+            eslint.config.js
+            .prettierrc.js
+            .prettierignore
+            vitest.workspace.ts
+            .github/workflows/gui*
+            .github/workflows/storybook.yml
+          files_ignore: |
+            app/gui/scripts/**
+            app/gui/.gitignore
+            .git-*
+      - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.gui-changed-files.outputs.all_changed_files }}
+        run: |
+          if [[ "${{ steps.gui-changed-files.outputs.any_changed }}" == "true" ]]; then
+            echo "Files changed:"
+          fi
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file"
+          done
+      - name: 💬 Comment on PR
+        uses: actions/github-script@v7
+        if: steps.gui-changed-files.outputs.any_changed == 'true'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
+                
+            await setMessage({
+              id: "title-message",
+              header: "## 🔄 GUI Checks in Progress",
+              context,
+              recreate: true,
+              body: `
+                The following checks are being performed:
+                - 🧹 Code formatting with Prettier
+                - 👮 Linting and type checking
+                - 🧪 Unit tests
+                - 🎭 Integration tests with Playwright
+                - 📚 Storybook deployment
+
+                Results will be updated here once completed.
+              `,
+              github,
+              repo: context.repo,
+              prNumber: context.payload.pull_request.number
+            })

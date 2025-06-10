@@ -1,71 +1,89 @@
 /** @file Modal for setting the organization name. */
-import * as React from 'react'
-
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import * as router from 'react-router'
-
-import { backendMutationOptions } from '#/hooks/backendHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import type { GetText } from '#/providers/TextProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
-import { Button } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import * as backendModule from '#/services/Backend'
-
-// =================
-// === Constants ===
-// =================
+import { ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
+import * as authProvider from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
+import type { GetText } from '$/providers/text'
+import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
+import * as React from 'react'
+import type RemoteBackend from '../services/RemoteBackend'
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
-
-// ================================
-// === SetOrganizationNameModal ===
-// ================================
 
 /**
  * Modal for setting the organization name.
  * Shows up when the user is on the team plan and the organization name is the default.
  */
-export function SetupOrganizationAfterSubscribe() {
-  const { getText } = textProvider.useText()
+export function SetupOrganizationAfterSubscribe({ children }: React.PropsWithChildren) {
+  const { remoteBackend: backend } = useBackends()
 
-  const backend = backendProvider.useRemoteBackend()
-  const { session } = authProvider.useAuth()
+  const session = authProvider.useFullUserSession()
+  const { user } = session
+  const { isOrganizationAdmin, userId, plan = backendModule.Plan.free } = user
 
-  const user = session != null && 'user' in session ? session.user : null
-  const userIsAdmin = user?.isOrganizationAdmin ?? false
-  const userId = user?.userId ?? null
-  const userPlan = user?.plan ?? backendModule.Plan.free
+  const shouldShowModal = PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin
 
-  const { data: organizationName } = useSuspenseQuery({
-    queryKey: ['organization', userId],
-    queryFn: () => backend.getOrganization().catch(() => null),
-    staleTime: Infinity,
-    select: (data) => data?.name ?? '',
-  })
+  if (shouldShowModal) {
+    return (
+      <SetupOrganizationAfterSubscribeInternal userId={userId} backend={backend}>
+        {children}
+      </SetupOrganizationAfterSubscribeInternal>
+    )
+  }
 
-  const { data: userGroupsCount } = useSuspenseQuery({
-    queryKey: ['userGroups', userId],
-    queryFn: () => backend.listUserGroups().catch(() => null),
-    staleTime: Infinity,
-    select: (data) => data?.length ?? 0,
+  return <>{children}</>
+}
+
+/**
+ * Props for the SetupOrganizationAfterSubscribeInternal component.
+ * @param props - The props for the component.
+ * @returns The component.
+ */
+interface SetupOrganizationAfterSubscribeInternalProps {
+  readonly userId: string
+  readonly backend: RemoteBackend
+}
+
+/**
+ * Internal implementation of the SetupOrganizationAfterSubscribe modal.
+ * @param props - The props for the component.
+ * @returns The component.
+ */
+function SetupOrganizationAfterSubscribeInternal(
+  props: React.PropsWithChildren<SetupOrganizationAfterSubscribeInternalProps>,
+) {
+  const { backend, children } = props
+
+  const { getText } = useText()
+
+  const { organizationName, userGroupsCount } = useSuspenseQueries({
+    queries: [
+      backendQueryOptions(backend, 'getOrganization', []),
+      backendQueryOptions(backend, 'listUserGroups', []),
+    ],
+    combine: ([organizationQuery, userGroupsQuery]) => ({
+      // Null is used to indicate that the user is not an admin of an organization,
+      // Or organization info has not yet been created, This means that the dialog
+      // should not be shown.
+      organizationName: organizationQuery.data?.name ?? null,
+      userGroupsCount: userGroupsQuery.data.length,
+    }),
   })
 
   const [hideModal, setHideModal] = React.useState(false)
 
-  const queryClient = useQueryClient()
   const updateOrganization = useMutation(backendMutationOptions(backend, 'updateOrganization'))
   const createDefaultUserGroup = useMutation(backendMutationOptions(backend, 'createUserGroup'))
 
-  const shouldSetOrgName = PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
-  const shouldSetDefaultUserGroup =
-    PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && userGroupsCount === 0
+  const shouldSetOrgName = organizationName === ''
+  const shouldSetDefaultUserGroup = userGroupsCount === 0
 
   const steps = [
     {
@@ -112,21 +130,19 @@ export function SetupOrganizationAfterSubscribe() {
     })
   }
 
-  const shouldShowModal = steps.length > 1 && userIsAdmin && !hideModal
+  const shouldShowModal = steps.length > 1 && !hideModal
 
   const { stepperState } = Stepper.useStepperState({
     steps: steps.length,
     defaultStep: 0,
     onCompleted: () => {
-      void queryClient.invalidateQueries({ queryKey: ['organization'] })
-      void queryClient.invalidateQueries({ queryKey: ['userGroups'] })
       setHideModal(true)
     },
   })
 
   return (
     <>
-      <ariaComponents.Dialog
+      <Dialog
         title={getText('setupOrganization')}
         isDismissable={false}
         isKeyboardDismissDisabled
@@ -137,15 +153,15 @@ export function SetupOrganizationAfterSubscribe() {
       >
         <Stepper
           state={stepperState}
-          renderStep={(props) => (
-            <Stepper.Step {...props} title={steps[props.index]?.title ?? ''} />
+          renderStep={(stepProps) => (
+            <Stepper.Step {...stepProps} title={steps[stepProps.index]?.title ?? ''} />
           )}
         >
           {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
         </Stepper>
-      </ariaComponents.Dialog>
+      </Dialog>
 
-      <router.Outlet context={session} />
+      {children}
     </>
   )
 }
@@ -155,12 +171,10 @@ export interface SetOrganizationNameFormProps {
   readonly onSubmit: (name: string) => Promise<void>
 }
 
-export const ORGANIZATION_NAME_MAX_LENGTH = 64
-
-// eslint-disable-next-line no-restricted-syntax
+// eslint-disable-next-line no-restricted-syntax, react-refresh/only-export-components
 export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
-  ariaComponents.Form.schema.object({
-    name: ariaComponents.Form.schema
+  Form.schema.object({
+    name: Form.schema
       .string()
       .min(1, getText('arbitraryFieldRequired'))
       .max(ORGANIZATION_NAME_MAX_LENGTH, getText('arbitraryFieldTooLong')),
@@ -169,17 +183,17 @@ export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
 /** Form for setting the organization name. */
 export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
   const { onSubmit } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
-    <ariaComponents.Form
+    <Form
       gap="medium"
       className="max-w-96"
       defaultValues={{ name: '' }}
       schema={SET_ORGANIZATION_NAME_FORM_SCHEMA(getText)}
       onSubmit={({ name }) => onSubmit(name)}
     >
-      <ariaComponents.Input
+      <Input
         name="name"
         autoFocus
         inputMode="text"
@@ -191,10 +205,10 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
         )}
       />
 
-      <ariaComponents.Form.FormError />
+      <Form.Submit />
 
-      <ariaComponents.Form.Submit />
-    </ariaComponents.Form>
+      <Form.FormError />
+    </Form>
   )
 }
 
@@ -206,26 +220,28 @@ export interface CreateUserGroupFormProps {
 /** Form for creating a user group. */
 export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
   const { onSubmit } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const defaultUserGroupMaxLength = 64
 
   return (
-    <ariaComponents.Form
+    <Form
       schema={(z) => z.object({ groupName: z.string().min(1).max(defaultUserGroupMaxLength) })}
       gap="medium"
       className="max-w-96"
       defaultValues={{ groupName: '' }}
       onSubmit={({ groupName }) => onSubmit(groupName)}
     >
-      <ariaComponents.Input
+      <Input
         name="groupName"
         autoComplete="off"
         label={getText('groupNameSettingsInput')}
         description={getText('groupNameSettingsInputDescription', defaultUserGroupMaxLength)}
       />
 
-      <ariaComponents.Form.Submit />
-    </ariaComponents.Form>
+      <Form.Submit />
+
+      <Form.FormError />
+    </Form>
   )
 }

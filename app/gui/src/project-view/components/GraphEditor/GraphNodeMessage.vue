@@ -1,39 +1,89 @@
 <script setup lang="ts">
+import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { Icon } from '@/util/iconName'
+import { QualifiedImport } from '@/stores/graph/imports'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import { ProjectPath } from '@/util/projectPath'
+
+const graph = useGraphStore()
+const projectNames = useProjectNames()
 
 const props = defineProps<{
   message: string
   type: MessageType
+  passEvents?: boolean
 }>()
 
+function containsLibraryName(): ProjectPath | null {
+  const prefix = 'Compile error: Fully qualified name references a library '
+  if (props.message.startsWith(prefix)) {
+    const rest = props.message.substring(prefix.length)
+    const libName = rest.split(' ')
+    if (!libName[0]) return null
+    const path = projectNames.parseProjectPathRaw(libName[0])
+    if (!path.ok) return null
+    return path.value
+  } else {
+    return null
+  }
+}
 function copyText() {
   window.navigator.clipboard.writeText(props.message)
+}
+function fixImport() {
+  const libName = containsLibraryName()
+  if (libName) {
+    const theImport = {
+      kind: 'Qualified',
+      module: libName,
+    } satisfies QualifiedImport
+    graph.edit((edit) => graph.addMissingImports(edit, [theImport]))
+  }
 }
 </script>
 
 <script lang="ts">
 /** The type of a message. */
-export type MessageType = 'error' | 'warning' | 'panic'
+export type MessageType = 'error' | 'warning' | 'missing' | 'panic'
 export const iconForMessageType: Record<MessageType, Icon> = {
   error: 'error',
   warning: 'warning',
+  missing: 'metadata',
   panic: 'panic',
 }
+
 export const colorForMessageType: Record<MessageType, string> = {
   error: 'var(--color-error)',
   warning: 'var(--color-warning)',
+  missing: 'var(--color-missing-value)',
   panic: 'var(--color-error)',
 }
 </script>
 
 <template>
-  <div class="GraphNodeMessage" :style="{ '--background-color': colorForMessageType[props.type] }">
+  <div
+    class="GraphNodeMessage"
+    :class="{ passEvents }"
+    :style="{ '--background-color': colorForMessageType[props.type] }"
+  >
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
-      <SvgButton name="copy2" class="copyButton" title="Copy message text" @click.stop="copyText" />
+      <SvgButton
+        v-if="containsLibraryName()"
+        name="edit"
+        class="fixImportButton"
+        title="Fix Import"
+        @activate="fixImport"
+      />
+      <SvgButton
+        v-if="!containsLibraryName()"
+        name="copy2"
+        class="copyButton"
+        title="Copy message text"
+        @activate="copyText"
+      />
     </div>
   </div>
 </template>
@@ -52,6 +102,14 @@ export const colorForMessageType: Record<MessageType, string> = {
   color: var(--color-text-inversed);
   background-color: var(--background-color);
   line-height: 20px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+
+  &.passEvents {
+    opacity: 0.5;
+  }
 }
 
 .icon {
@@ -68,6 +126,7 @@ export const colorForMessageType: Record<MessageType, string> = {
   border-radius: var(--radius-full);
   position: relative;
   z-index: 1;
+  pointer-events: auto;
 
   & > .SvgButton:hover {
     background-color: color-mix(in oklab, black, transparent 90%);
@@ -76,10 +135,7 @@ export const colorForMessageType: Record<MessageType, string> = {
 
   & > .SvgButton:active {
     background-color: color-mix(in oklab, black, transparent 70%);
+    color: var(--color-text-inversed);
   }
-}
-
-.copyButton:active {
-  color: var(--color-text-inversed);
 }
 </style>

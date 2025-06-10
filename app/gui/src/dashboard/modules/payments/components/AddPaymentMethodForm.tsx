@@ -1,9 +1,10 @@
 /** @file A modal for adding a payment method. */
+import { useDialogContext } from '#/components/Dialog'
+import { Form, type FormInstance, type schema } from '#/components/Form'
+import { useText } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import { CardElement } from '@stripe/react-stripe-js'
 import type { PaymentMethod, Stripe, StripeCardElement, StripeElements } from '@stripe/stripe-js'
-
-import { Form, useDialogContext, type FormInstance, type schema } from '#/components/AriaComponents'
-import { useText, type GetText } from '#/providers/TextProvider'
 import { useCreatePaymentMethodMutation } from '../api/createPaymentMethod'
 
 /** Props for an {@link AddPaymentMethodForm}. */
@@ -20,6 +21,7 @@ export interface AddPaymentMethodFormProps<
 }
 
 /** The validation schema for this form. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function createAddPaymentMethodFormSchema(z: typeof schema, getText: GetText) {
   return z.object({
     card: z
@@ -64,7 +66,7 @@ export function AddPaymentMethodForm<
   const cardElement =
     // FIXME[sb]: I do not understand why `useWatch` is not sufficient for Playwright.
     // (The value is always `undefined` with `useWatch` alone)
-    // It is worth noting that E2E tests previously worked without requiring this change - as of:
+    // It is worth noting that integration tests previously worked without requiring this change - as of:
     // 1500849c32f70f5f4d95240b7e31377c649dc25b
     Form.useWatch({ control: form.control, name: 'cardElement' }) ?? form.getValues().cardElement
 

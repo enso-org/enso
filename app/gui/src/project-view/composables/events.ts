@@ -1,7 +1,7 @@
 /** @file Vue composables for listening to DOM events. */
 
-import type { KeyboardComposable } from '@/composables/keyboard.ts'
-import type { Opt } from '@/util/data/opt'
+import { useRaf } from '@/composables/animation'
+import type { KeyboardComposable } from '@/composables/keyboard'
 import { Vec2 } from '@/util/data/vec2'
 import { type VueInstance } from '@vueuse/core'
 import {
@@ -17,13 +17,6 @@ import {
   type ShallowRef,
   type WatchSource,
 } from 'vue'
-import { useRaf } from './animation'
-
-/** TODO: Add docs */
-export function isTriggeredByKeyboard(e: MouseEvent | PointerEvent) {
-  if (e instanceof PointerEvent) return e.pointerType !== 'mouse'
-  else return false
-}
 
 export function useEvent<K extends keyof DocumentEventMap>(
   target: Document,
@@ -138,16 +131,8 @@ export function focusIsIn(el: Element | undefined | null) {
   return el && el.contains(document.activeElement)
 }
 
-/**
- * Whether any element currently has keyboard focus, except for elements within given subtree.
- * When `el` is `null` or `undefined`, the function behaves as `keyboardBusy()`.
- */
-export function keyboardBusyExceptIn(el: Opt<Element>) {
-  return keyboardBusy() && (el == null || !focusIsIn(el))
-}
-
 const hasWindow = typeof window !== 'undefined'
-const platform = hasWindow ? window.navigator?.platform ?? '' : ''
+const platform = hasWindow ? (window.navigator?.platform ?? '') : ''
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
 
 /** Check if `mod` key (ctrl or cmd) appropriate for current platform is used */
@@ -166,9 +151,9 @@ export function modKey(e: KeyboardEvent | MouseEvent): boolean {
  *
  * [^1]: https://github.com/vuejs/core/blob/ae97e5053895eeaaa443306e72cd8f45da001179/packages/runtime-core/src/componentPublicInstance.ts#L312
  */
-export function unrefElement(
-  element: Ref<Element | undefined | null | VueInstance>,
-): Element | undefined | null {
+export function unrefElement<E extends Element>(
+  element: Ref<E | undefined | null | VueInstance>,
+): E | undefined {
   const plain = toValue(element)
   const result = (plain as VueInstance)?.$el ?? plain
   // A component's root can be a Node (if it's a fragment), TextNode, or Comment (if its root uses a v-if).
@@ -181,7 +166,7 @@ export function unrefElement(
     }
     return undefined
   }
-  return result
+  return result ?? undefined
 }
 
 interface ResizeObserverData {

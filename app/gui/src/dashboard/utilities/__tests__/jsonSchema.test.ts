@@ -5,15 +5,7 @@ import * as v from 'vitest'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 
-// =================
-// === Constants ===
-// =================
-
 const AJV = new Ajv()
-
-// =============
-// === Tests ===
-// =============
 
 fc.test.prop({
   value: fc.fc.anything({ withNullPrototype: true }),
@@ -71,18 +63,17 @@ fc.test.prop({ value: fc.fc.float() })('number schema', ({ value }) => {
 
 fc.test.prop({
   value: fc.fc.float().filter((n) => n > 0),
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+
   multiplier: fc.fc.integer({ min: -1_000_000, max: 1_000_000 }),
 })('number multiples', ({ value, multiplier }) => {
   const schema = { type: 'number', multipleOf: value }
   if (Number.isFinite(value)) {
     v.expect(AJV.validate(schema, 0)).toBe(true)
     v.expect(AJV.validate(schema, value)).toBe(true)
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+
     if (Math.abs(value * (multiplier + 0.5)) < Number.MAX_SAFE_INTEGER) {
       v.expect(AJV.validate(schema, value * multiplier)).toBe(true)
       if (value !== 0) {
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         v.expect(AJV.validate(schema, value * (multiplier + 0.5))).toBe(false)
       }
     }
@@ -99,17 +90,16 @@ fc.test.prop({ value: fc.fc.integer() })('integer schema', ({ value }) => {
 
 fc.test.prop({
   value: fc.fc.integer().filter((n) => n > 0),
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+
   multiplier: fc.fc.integer({ min: -1_000_000, max: 1_000_000 }),
 })('integer multiples', ({ value, multiplier }) => {
   const schema = { type: 'integer', multipleOf: value }
   v.expect(AJV.validate(schema, 0)).toBe(true)
   v.expect(AJV.validate(schema, value)).toBe(true)
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+
   if (Math.abs(value * (multiplier + 0.5)) < Number.MAX_SAFE_INTEGER) {
     v.expect(AJV.validate(schema, value * multiplier)).toBe(true)
     if (value !== 0) {
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       v.expect(AJV.validate(schema, value * (multiplier + 0.5))).toBe(false)
     }
   }

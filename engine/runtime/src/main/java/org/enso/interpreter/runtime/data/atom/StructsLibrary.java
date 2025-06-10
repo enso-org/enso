@@ -47,4 +47,10 @@ public abstract class StructsLibrary extends Library {
    * field is an advanced operation used for example by {@code AtomWithHoleNode}.
    */
   public abstract void setField(Object receiver, int index, Object value);
+
+  /**
+   * Returns true if the field at given {@code index} is already evaluated. Will be false for
+   * suspended fields that are not yet evaluated.
+   */
+  public abstract boolean isFieldEvaluated(Object receiver, int index);
 }

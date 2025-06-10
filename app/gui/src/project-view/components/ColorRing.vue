@@ -34,7 +34,7 @@ const FIXED_RANGE_WIDTH = 1 / 16
 
 const selectedColor = defineModel<string | undefined>()
 const props = defineProps<{
-  matchableColors: Set<string>
+  matchableColors: ReadonlySet<string>
   /** Angle, measured in degrees from the positive Y-axis, where the initially-selected color should be placed. */
   initialColorAngle?: number
 }>()
@@ -192,10 +192,6 @@ const triangleStyle = computed(() =>
   cursor: crosshair;
   border-radius: var(--radius-full);
   animation: grow 0.1s forwards;
-  clip-path: path(
-    evenodd,
-    'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
-  );
 }
 @keyframes grow {
   from {

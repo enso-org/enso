@@ -1,8 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
-import org.enso.interpreter.bench.Utils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -47,16 +46,17 @@ main = sumTo ->
     res
 """;
 
-  private Context context;
+  private ContextUtils context;
   private Value sumTCOWithNamedArguments;
   private Value sumTCOWithDefaultedArguments;
 
   @Setup
   public void initializeBenchmarks(BenchmarkParams params) {
     this.context = org.enso.compiler.benchmarks.Utils.createDefaultContextBuilder().build();
-    this.sumTCOWithNamedArguments = Utils.getMainMethod(context, SUM_TCO_WITH_NAMED_ARGUMENTS_CODE);
+    this.sumTCOWithNamedArguments =
+        context.getMethodFromModule(SUM_TCO_WITH_NAMED_ARGUMENTS_CODE, "main");
     this.sumTCOWithDefaultedArguments =
-        Utils.getMainMethod(context, SUM_TCO_WITH_DEFAULTED_ARGUMENTS_CODE);
+        context.getMethodFromModule(SUM_TCO_WITH_DEFAULTED_ARGUMENTS_CODE, "main");
   }
 
   @Benchmark

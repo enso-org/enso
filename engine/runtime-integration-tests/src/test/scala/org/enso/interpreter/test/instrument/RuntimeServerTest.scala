@@ -38,39 +38,48 @@ class RuntimeServerTest
 
     val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
-    protected val context =
-      Context
-        .newBuilder(LanguageInfo.ID)
-        .allowExperimentalOptions(true)
-        .allowAllAccess(true)
-        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(
-          RuntimeOptions.LOG_LEVEL,
-          java.util.logging.Level.WARNING.getName
-        )
-        .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
-        .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
-        .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
-        .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
-        .option(RuntimeOptions.STRICT_ERRORS, "false")
-        .option(
-          RuntimeOptions.DISABLE_IR_CACHES,
-          InstrumentTestContext.DISABLE_IR_CACHE
-        )
-        .option(RuntimeServerInfo.ENABLE_OPTION, "true")
-        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths
-            .get("../../test/micro-distribution/component")
-            .toFile
-            .getAbsolutePath
-        )
-        .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
-        .logHandler(new TeeOutputStream(logOut, System.err))
-        .out(new TeeOutputStream(out, System.err))
-        .serverTransport(runtimeServerEmulator.makeServerTransport)
-        .build()
+    private var _context: Context     = null;
+    protected def context(): Context = {
+      if (_context == null) {
+        _context = Context
+          .newBuilder(LanguageInfo.ID)
+          .allowExperimentalOptions(true)
+          .allowAllAccess(true)
+          .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
+          .option(
+            RuntimeOptions.LOG_LEVEL,
+            java.util.logging.Level.WARNING.getName
+          )
+          .option(
+            RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
+            "true"
+          )
+          .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+          .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
+          .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
+          .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
+          .option(RuntimeOptions.STRICT_ERRORS, "false")
+          .option(
+            RuntimeOptions.DISABLE_IR_CACHES,
+            InstrumentTestContext.DISABLE_IR_CACHE
+          )
+          .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+          .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+          .option(
+            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+            Paths
+              .get("../../test/micro-distribution/component")
+              .toFile
+              .getAbsolutePath
+          )
+          .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+          .logHandler(new TeeOutputStream(logOut, System.err))
+          .out(new TeeOutputStream(out, System.err))
+          .serverTransport(runtimeServerEmulator.makeServerTransport)
+          .build()
+      }
+      _context
+    }
 
     lazy val languageContext = executionContext.context
       .getBindings(LanguageInfo.ID)
@@ -78,7 +87,7 @@ class RuntimeServerTest
       .asHostObject[EnsoContext]
 
     private def ensureInstrumentsAvailable() = {
-      val instruments = context.getEngine.getInstruments
+      val instruments = context().getEngine.getInstruments
       if (instruments.get(IdExecutionService.INSTRUMENT_ID) == null) {
         throw new IllegalStateException(
           "RuntimeServerTest cannot be initialized: IdExecutionService instrument must be available on module-path"
@@ -93,9 +102,6 @@ class RuntimeServerTest
 
     ensureInstrumentsAvailable()
 
-    def writeMain(contents: String): File =
-      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
-
     def writeFile(file: File, contents: String): File =
       Files.write(file.toPath, contents.getBytes).toFile
 
@@ -104,16 +110,19 @@ class RuntimeServerTest
       Files.write(file.toPath, contents.getBytes).toFile
     }
 
-    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
-
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
       result.linesIterator.toList
     }
 
-    def executionComplete(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionComplete(contextId))
+    override def close(): Unit = {
+      super.close();
+      if (_context != null) {
+        _context.close()
+        _context = null;
+      }
+    }
   }
 
   override protected def beforeEach(): Unit = {
@@ -1019,6 +1028,88 @@ class RuntimeServerTest
     )
   }
 
+  it should "deal with polyglot values having no type info" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val nodeId   = metadata.addItem(58, 6, "a")
+
+    val code =
+      """polyglot java import java.lang.Object
+        |
+        |main =
+        |    node1 = Object
+        |    42
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(nodeId, code, "Object")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.warning(
+              "Unused variable node1.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 4), model.Position(3, 9)))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate(
+              nodeId,
+              None,
+              None,
+              Vector(Api.ProfilingInfo.ExecutionTime(0)),
+              false,
+              false,
+              Api.ExpressionUpdate.Payload.Value(None, None)
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "send method pointer updates of builtin operators" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -1254,6 +1345,10 @@ class RuntimeServerTest
       ),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "accessRuntimeCache" in {
+    RuntimeServerTesting.accessRuntimeCache(context)
   }
 
   it should "send error updates for partially applied autoscope constructors" in {
@@ -7704,21 +7799,13 @@ object RuntimeServerTest {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idMainX,
-                  Some(ConstantsGen.INTEGER),
-                  None,
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
-              )
-            )
+          TestMessages.update(
+            contextId,
+            Main.idMainX,
+            ConstantsGen.INTEGER,
+            fromCache,
+            typeChanged,
+            methodCall = None
           )
 
         def pendingZ(): Api.ExpressionUpdate =
@@ -7748,29 +7835,19 @@ object RuntimeServerTest {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idMainY,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Enso_Test.Test.Main",
-                        ConstantsGen.NUMBER,
-                        "foo"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            Main.idMainY,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Enso_Test.Test.Main",
+                ConstantsGen.NUMBER,
+                "foo"
               )
-            )
+            ),
+            fromCache,
+            typeChanged
           )
 
         def mainZ(
@@ -7778,29 +7855,19 @@ object RuntimeServerTest {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idMainZ,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Standard.Base.Data.Numbers",
-                        ConstantsGen.INTEGER,
-                        "+"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            Main.idMainZ,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                ConstantsGen.INTEGER,
+                "+"
               )
-            )
+            ),
+            fromCache,
+            typeChanged
           )
 
         def fooY(
@@ -7808,29 +7875,19 @@ object RuntimeServerTest {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idFooY,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Standard.Base.Data.Numbers",
-                        ConstantsGen.INTEGER,
-                        "+"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            Main.idFooY,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                ConstantsGen.INTEGER,
+                "+"
               )
-            )
+            ),
+            fromCache,
+            typeChanged
           )
 
         def fooZ(
@@ -7838,29 +7895,19 @@ object RuntimeServerTest {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idFooZ,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Standard.Base.Data.Numbers",
-                        ConstantsGen.INTEGER,
-                        "*"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            Main.idFooZ,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                ConstantsGen.INTEGER,
+                "*"
               )
-            )
+            ),
+            fromCache,
+            typeChanged
           )
       }
     }
@@ -7893,53 +7940,29 @@ object RuntimeServerTest {
       object Update {
 
         def mainY(contextId: UUID) =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  idMainY,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Enso_Test.Test.Main",
-                        "Enso_Test.Test.Main",
-                        "foo"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  false,
-                  true,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            idMainY,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Enso_Test.Test.Main",
+                "Enso_Test.Test.Main",
+                "foo"
               )
             )
           )
 
         def mainZ(contextId: UUID) =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  idMainZ,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Enso_Test.Test.Main",
-                        "Enso_Test.Test.Main",
-                        "bar"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  false,
-                  true,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            idMainZ,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Enso_Test.Test.Main",
+                "Enso_Test.Test.Main",
+                "bar"
               )
             )
           )

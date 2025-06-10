@@ -9,13 +9,111 @@ import scala.collection.immutable.Seq
 /** A collection of utility methods for everything related to the GraalVM and Truffle.
   */
 object GraalVM {
+  object EnsoLauncher {
+    val VAR_NAME = "ENSO_LAUNCHER"
+
+    override def toString(): String = {
+      val prop = System.getenv(VAR_NAME)
+      // default value is `shell` for development and `native` for the release
+      if (prop != null) {
+        prop
+      } else {
+        if (BuildInfo.isReleaseMode) {
+          "native"
+        } else {
+          "shell"
+        }
+      }
+    }
+
+    private lazy val parsed
+      : (Boolean, Boolean, Boolean, Boolean, Boolean, Boolean) = {
+      var shell                 = false
+      var native                = false
+      var test                  = false
+      var debug                 = false
+      var fast                  = false
+      var disableLanguageServer = false
+      toString().split(",").foreach {
+        case "shell"  => shell  = true
+        case "native" => native = true
+        case "test" => {
+          native = true
+          test   = true
+        }
+        case "debug" => {
+          native = true
+          debug  = true
+        }
+        case "fast" => {
+          native = true
+          fast   = true
+        }
+        case "-ls" => {
+          native                = true
+          disableLanguageServer = true
+        }
+        case v =>
+          throw new IllegalStateException(s"Unexpected value of $VAR_NAME: $v")
+      }
+      if (shell && native) {
+        throw new IllegalStateException(
+          s"Cannot specify `shell` and other properties in $VAR_NAME env variable"
+        )
+      }
+      (shell, native, test, debug, fast, disableLanguageServer)
+    }
+    def shell                 = parsed._1
+    def native                = parsed._2
+    def test                  = parsed._3
+    def debug                 = parsed._4
+    def fast                  = parsed._5
+    def disableLanguageServer = parsed._6
+    def release               = native && !test && !debug && !fast && !disableLanguageServer
+  }
+
+  case class NativeImageSize(
+    minMb: Int,
+    maxMb: Int
+  )
+
+  object NativeImageSize {
+    def expectedSizeForCurrentPlatform(): NativeImageSize = {
+      if (EnsoLauncher.release) {
+        if (Platform.isWindows) {
+          windowsX64Release
+        } else if (Platform.isLinux) {
+          linuxX64Release
+        } else if (Platform.isMacOS && Platform.isAmd64) {
+          macX64Release
+        } else if (Platform.isMacOS && Platform.isArm64) {
+          macARM64Release
+        } else {
+          throw new IllegalArgumentException("Unexpected platform")
+        }
+      } else {
+        testNISize
+      }
+    }
+
+    // Expected production NI sizes deduced from sizes on latest
+    // nightly builds: https://github.com/enso-org/enso/pull/12843#issuecomment-2869897463
+    // With maximal size relaxed by 30 MB.
+    private val windowsX64Release = NativeImageSize(200, 470)
+    private val linuxX64Release   = NativeImageSize(200, 490)
+    private val macX64Release     = NativeImageSize(200, 426)
+    private val macARM64Release   = NativeImageSize(200, 473)
+    private val testNISize        = NativeImageSize(100, 592)
+  }
 
   /** Has the user requested to use Espresso for Java interop? */
   private def isEspressoMode(): Boolean =
     "espresso".equals(System.getenv("ENSO_JAVA"))
 
   // Keep in sync with graalMavenPackagesVersion in build.sbt
-  private val version: String = "24.0.0"
+  private val version: String = "24.2.0"
+
+  final def mavenPackagesVersion: String = version
 
   /** The list of modules that are included in the `component` directory in engine distribution.
     * When invoking the `java` command, these modules need to be put on the module-path.
@@ -60,9 +158,9 @@ object GraalVM {
     Seq(
       "org.graalvm.python"   % "python-language"    % version,
       "org.graalvm.python"   % "python-resources"   % version,
-      "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76",
-      "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76",
-      "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76",
+      "org.bouncycastle"     % "bcutil-jdk18on"     % "1.78.1",
+      "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.78.1",
+      "org.bouncycastle"     % "bcprov-jdk18on"     % "1.78.1",
       "org.graalvm.llvm"     % "llvm-api"           % version,
       "org.graalvm.truffle"  % "truffle-nfi"        % version,
       "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
@@ -97,11 +195,11 @@ object GraalVM {
 
   private val espressoPkgs =
     Seq(
-      "org.graalvm.truffle"  % "truffle-nfi"                            % version,
-      "org.graalvm.truffle"  % "truffle-nfi-libffi"                     % version,
-      "org.graalvm.espresso" % "espresso-language"                      % version,
-      "org.graalvm.espresso" % "espresso-libs-resources-linux-amd64"    % version,
-      "org.graalvm.espresso" % "espresso-runtime-resources-linux-amd64" % version
+      "org.graalvm.truffle"  % "truffle-nfi"                      % version,
+      "org.graalvm.truffle"  % "truffle-nfi-libffi"               % version,
+      "org.graalvm.espresso" % "espresso-language"                % version,
+      "org.graalvm.espresso" % "espresso-libs-resources"          % version,
+      "org.graalvm.espresso" % "espresso-runtime-resources-jdk21" % version
     )
 
   val toolsPkgs = chromeInspectorPkgs ++ debugAdapterProtocolPkgs ++ insightPkgs

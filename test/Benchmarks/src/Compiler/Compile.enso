@@ -8,8 +8,8 @@ polyglot java import java.io.File as Java_File
 type Data
     Value ~enso_bin:File ~std_base:File
 
-    bench_compile_base self =
-        self.startup [ "--no-compile-dependencies", "--log-level", "debug", "--no-global-cache", "--compile", self.std_base.to_text]
+    bench_compile_base self extra_params=[] =
+        self.startup ["--no-compile-dependencies", "--log-level", "debug", "--no-global-cache", "--compile", self.std_base.to_text]+extra_params
 
     startup self  args =
         cache_dir = self.std_base / ".enso" / "cache"
@@ -34,7 +34,10 @@ collect_benches = Bench.build builder->
         Data.Value enso_bin (find_lib enso_bin "Base")
 
     builder.group "Compile" options group_builder->
-        group_builder.specify "Compile_Standard_Base" data.bench_compile_base
+        group_builder.specify "Compile_Standard_Base" <|
+            data.bench_compile_base
+        group_builder.specify "Compile_Standard_Base_with_type_inference" <|
+            data.bench_compile_base extra_params=["--enable-static-analysis"]
 
 find_lib enso_bin:File name:Text namespace="Standard":Text -> File =
     install_dir = enso_bin . parent . parent
@@ -49,7 +52,8 @@ enso_bin =
     find_prefix dir prefix =
         vec = dir.list name_filter=prefix+"*"
         if vec.length == 1 then vec.at 0 else
-            msg = "Cannot find " + prefix + "* in " + dir.to_text + '\n'
+            msg_prefix = if vec.length == 0 then "Cannot find " else "Found multiple "
+            msg = msg_prefix + prefix + "* in " + dir.to_text + '\n'
             err = dir.list.fold msg t-> f->
                 t + f.to_text + '\n'
             Panic.throw err

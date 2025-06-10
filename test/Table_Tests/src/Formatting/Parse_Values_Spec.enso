@@ -613,7 +613,7 @@ add_specs suite_builder =
 
             r6 = (c6.drop 1).parse
             r6.to_vector . should_equal []
-            r6.value_type . should_equal Value_Type.Char
+            r6.value_type . should_equal Value_Type.Null
             Problems.assume_no_problems r6
 
             r7 = c7.parse
@@ -622,7 +622,7 @@ add_specs suite_builder =
             Problems.assume_no_problems r7
 
             r8 = c8.drop 1 . parse
-            r8.value_type . should_equal Value_Type.Char
+            r8.value_type . should_equal Value_Type.Null
             r8.to_vector . should_equal [Nothing, Nothing, Nothing]
             Problems.assume_no_problems r8
 
@@ -647,12 +647,12 @@ add_specs suite_builder =
             c1 = Column.from_vector "A" ["1", "2", "3"]
             Test.expect_panic Type_Error (c1.parse type=Nothing)
 
-        group_builder.specify "should return unchanged if all are Nothing or no rows" <|
+        group_builder.specify "should return Null column if all are Nothing or no rows" <|
             c1 = Column.from_vector "A" [Nothing, Nothing, Nothing] Value_Type.Char
-            c1.parse.value_type . should_equal Value_Type.Char
+            c1.parse.value_type . should_equal Value_Type.Null
 
             c2 = Column.from_vector "A" [] Value_Type.Char
-            c2.parse.value_type . should_equal Value_Type.Char
+            c2.parse.value_type . should_equal Value_Type.Null
 
         group_builder.specify "should error if the input column is not text" <|
             c1 = Column.from_vector "A" [1, 2, 3]
@@ -666,4 +666,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

@@ -1,68 +1,58 @@
 /** @file A styled input for settings pages. */
-import {
-  Form,
-  INPUT_STYLES,
-  Input,
-  TEXT_STYLE,
-  type FieldPath,
-  type InputProps,
-  type TSchema,
-} from '#/components/AriaComponents'
+import { Form, type FieldPath, type TSchema } from '#/components/Form'
+import type { InputProps } from '#/components/Inputs'
+import { Input, Password } from '#/components/Inputs'
+import { TEXT_STYLE } from '#/components/Text'
 import { tv } from '#/utilities/tailwindVariants'
-
-const SETTINGS_INPUT_STYLES = tv({
-  extend: INPUT_STYLES,
-  variants: {
-    readOnly: {
-      true: {
-        base: 'opacity-100 focus-within:outline-0 border-transparent focus-within:border-transparent',
-      },
-    },
-  },
-  slots: {
-    base: 'p-0 transition-[border-color,outline] outline-offset-2 focus-within:border-primary/50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-primary border-0.5 border-primary/20 rounded-2xl',
-    inputContainer: TEXT_STYLE({ disableLineHeightCompensation: true }),
-    addonStart: 'px-1',
-    textArea: 'h-6 rounded-full px-1',
-    addonEnd: 'px-1',
-    description: 'px-1',
-  },
-})
 
 const SETTINGS_FIELD_STYLES = tv({
   extend: Form.FIELD_STYLES,
   slots: {
     base: 'flex-row flex-wrap',
-    labelContainer: 'flex min-h-row items-center gap-5 w-full',
+    labelContainer: 'flex min-h-row items-center gap-1.5 w-full',
     label: TEXT_STYLE({
-      className: 'text self-start w-40 shrink-0',
+      className: 'flex justify-center self-start w-40 h-10 shrink-0',
       variant: 'body',
     }),
     error: 'ml-[180px]',
   },
 })
 
-// =========================
-// === SettingsAriaInput ===
-// =========================
-
 /** Props for a {@link SettingsAriaInput}. */
-export type SettingsAriaInputProps<
+export interface SettingsAriaInputProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
-> = Omit<InputProps<Schema, TFieldName>, 'fieldVariants' | 'size' | 'variant' | 'variants'>
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint extends number | string = number | string,
+> extends Omit<
+    InputProps<Schema, TFieldName, Constraint>,
+    'fieldVariants' | 'size' | 'variant' | 'variants'
+  > {}
 
 /** A styled input for settings pages. */
-export default function SettingsAriaInput<
+export function SettingsAriaInput<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, number | string>,
 >(props: SettingsAriaInputProps<Schema, TFieldName>) {
+  return <Input fieldVariants={SETTINGS_FIELD_STYLES} {...props} />
+}
+
+/** A styled password input for settings pages. */
+export function SettingsAriaInputPassword<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, string>,
+>(props: SettingsAriaInputProps<Schema, TFieldName, string>) {
+  return <Password fieldVariants={SETTINGS_FIELD_STYLES} {...props} />
+}
+
+/** A styled email input for settings pages. */
+export function SettingsAriaInputEmail<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, string>,
+>(props: SettingsAriaInputProps<Schema, TFieldName, string>) {
   return (
-    <Input
-      variant="custom"
-      size="custom"
-      variants={SETTINGS_INPUT_STYLES}
+    <Input<Schema, TFieldName, string>
       fieldVariants={SETTINGS_FIELD_STYLES}
+      type="email"
       {...props}
     />
   )

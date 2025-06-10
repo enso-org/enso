@@ -301,27 +301,6 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
     }
   }
 
-  /** Update a list of suggestions by external id.
-    *
-    * @param expressions pairs of external id and a return type
-    * @return the current database version and a list of updated suggestion ids
-    */
-  override def updateAll(
-    expressions: Seq[(ExternalID, String)]
-  ): Future[(Long, Seq[Option[Long]])] = Future {
-    db.synchronized {
-      val result = expressions.map { case (externalID, expr) =>
-        db.find(e => externalIDMatches(e._2.externalId, externalID)).map {
-          case (idx, suggestion) =>
-            db.put(idx, suggestion.withReturnType(expr))
-            idx
-        }
-      }
-      condVersionIncrement(result.find(_.nonEmpty).nonEmpty)
-      (version, result)
-    }
-  }
-
   private def versionIncrement(): Unit = {
     version += 1
   }
@@ -330,17 +309,6 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
     if (cond) {
       version += 1
     }
-  }
-
-  private def externalIDMatches(
-    existing: Option[ExternalID],
-    externalID: ExternalID
-  ): Boolean = {
-    existing
-      .map(e =>
-        e.getLeastSignificantBits == externalID.getLeastSignificantBits && e.getMostSignificantBits == externalID.getMostSignificantBits
-      )
-      .getOrElse(false)
   }
 
   /** Cleans the repo resetting the version. */

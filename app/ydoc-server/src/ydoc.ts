@@ -7,10 +7,10 @@ import {
 import { readSyncMessage, writeSyncStep1, writeUpdate } from 'y-protocols/sync'
 import * as Y from 'yjs'
 
-import WebSocket from 'isomorphic-ws'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
+import WS from 'modern-isomorphic-ws'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -67,19 +67,22 @@ export class WSSharedDoc {
     this.doc.on('update', (update, origin) => this.updateHandler(update, origin))
   }
 
-  /** Send a message to all connected clients. */
-  broadcast(message: Uint8Array) {
+  /** Send a message to all connected clients, except any client whose connection is passed as `exclude`. */
+  broadcast(message: Uint8Array, exclude?: YjsConnection | undefined) {
     for (const [conn] of this.conns) {
-      if (typeof conn !== 'string') conn.send(message)
+      if (typeof conn === 'string') continue
+      if (conn === exclude) continue
+      conn.send(message)
     }
   }
 
   /** Process an update event from the YDoc document. */
-  updateHandler(update: Uint8Array, _origin: any) {
+  updateHandler(update: Uint8Array, origin: unknown) {
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, messageSync)
     writeUpdate(encoder, update)
-    this.broadcast(encoding.toUint8Array(encoder))
+    const exclude = origin instanceof YjsConnection ? origin : undefined
+    this.broadcast(encoding.toUint8Array(encoder), exclude)
   }
 }
 
@@ -91,8 +94,20 @@ export class WSSharedDoc {
  * @param docName The name of the document to synchronize. When the document name is `index`, the
  * document is considered to be the root document of the `DistributedProject` data model.
  */
-export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string) {
-  const lsSession = LanguageServerSession.get(lsUrl)
+export function setupGatewayClient(ws: WS, lsUrl: string | undefined | null, docName: string) {
+  let lsSession: LanguageServerSession
+  console.log(`setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName})`)
+  if (lsUrl) {
+    lsSession = LanguageServerSession.get(lsUrl)
+  } else {
+    const anySession = LanguageServerSession.sessions.values().next().value
+    if (anySession) {
+      lsSession = anySession
+    } else {
+      throw `There are too many sessions: ${Array.from(LanguageServerSession.sessions.keys())} - specify one via ?ls=... parameter!`
+    }
+  }
+
   const wsDoc = lsSession.getYDoc(docName)
   if (wsDoc == null) {
     console.error(`Document '${docName}' not found in language server session '${lsUrl}'.`)
@@ -110,9 +125,9 @@ export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string
 }
 
 class YjsConnection extends ObservableV2<{ close(): void }> {
-  ws: WebSocket
+  ws: WS
   wsDoc: WSSharedDoc
-  constructor(ws: WebSocket, wsDoc: WSSharedDoc) {
+  constructor(ws: WS, wsDoc: WSSharedDoc) {
     super()
     this.ws = ws
     this.wsDoc = wsDoc
@@ -166,11 +181,11 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
   }
 
   send(message: Uint8Array) {
-    if (this.ws.readyState !== WebSocket.CONNECTING && this.ws.readyState !== WebSocket.OPEN) {
+    if (this.ws.readyState !== WS.CONNECTING && this.ws.readyState !== WS.OPEN) {
       this.close()
     }
     try {
-      this.ws.send(message, error => error && this.close())
+      this.ws.send(message, (error) => error && this.close())
     } catch {
       this.close()
     }

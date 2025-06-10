@@ -1,5 +1,5 @@
 import { isUrlString } from '@/util/data/urlString'
-import { isIconName } from '@/util/iconName'
+import { isIconName } from '@/util/iconMetadata/iconName'
 import type { DefineComponent, PropType } from 'vue'
 import * as z from 'zod'
 

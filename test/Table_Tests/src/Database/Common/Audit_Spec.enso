@@ -95,6 +95,7 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
         # Once the tests above can be run on real cloud too (#10919), we can merge all 3 cloud setups into a single one.
         real_cloud = Cloud_Tests_Setup.prepare
         test_root = Temporary_Directory.make "Audit-Logs-Datalinks"
+        group_builder.teardown test_root.cleanup
         group_builder.specify "should know the asset id of the data link used for the connection" pending=real_cloud.real_cloud_pending <| real_cloud.with_prepared_environment <|
             # Upload our local reference data link to the cloud
             cloud_data_link = test_root.get / "audited-db.datalink"

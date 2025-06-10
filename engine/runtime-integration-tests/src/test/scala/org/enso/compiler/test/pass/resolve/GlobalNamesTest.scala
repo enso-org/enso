@@ -85,11 +85,11 @@ class GlobalNamesTest extends CompilerTest {
                  |
                  |""".stripMargin
     val parsed       = EnsoParser.compile(code)
-    val moduleMapped = passManager.runPassesOnModule(parsed, ctx, group1)
+    val moduleMapped = parsed.runPasses(passManager, group1, ctx)
     ModuleTestUtils.unsafeSetIr(both._2, moduleMapped)
 
     new ExportsResolution(null).run(List(both._2.asCompilerModule()))
-    val allPrecursors = passManager.runPassesOnModule(moduleMapped, ctx, group2)
+    val allPrecursors = moduleMapped.runPasses(passManager, group2, ctx)
     val ir            = allPrecursors.analyse
 
     val bodyExprs = ir
@@ -113,7 +113,7 @@ class GlobalNamesTest extends CompilerTest {
       val app = x3Expr.asInstanceOf[Application.Prefix]
       app.function.asInstanceOf[Name.Literal].name shouldEqual "constant"
       app.arguments.length shouldEqual 1
-      app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
+      app.arguments.apply(0).value.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ctx.moduleReference()))
       )
     }
@@ -131,7 +131,7 @@ class GlobalNamesTest extends CompilerTest {
       val app = x5Expr.asInstanceOf[Application.Prefix]
       app.function.asInstanceOf[Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 2
-      app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
+      app.arguments.apply(0).value.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ctx.moduleReference()))
       )
     }
@@ -142,7 +142,7 @@ class GlobalNamesTest extends CompilerTest {
       val app = yExpr.asInstanceOf[Application.Prefix]
       app.function.asInstanceOf[Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 1
-      app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
+      app.arguments.apply(0).value.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ctx.moduleReference()))
       )
     }
@@ -181,8 +181,8 @@ class GlobalNamesTest extends CompilerTest {
         .asInstanceOf[Name.Literal]
         .name shouldEqual "method"
       moduleMethodCall.arguments.length shouldEqual 2
-      moduleMethodCall
-        .arguments(0)
+      moduleMethodCall.arguments
+        .apply(0)
         .value
         .getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ctx.moduleReference()))

@@ -1,3 +1,2 @@
-*.csv*
-rootCA.crt
-*.xls*
+*
+!.gitignore

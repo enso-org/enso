@@ -169,7 +169,7 @@ export function Stepper(props: StepperProps) {
               }}
               transition={{
                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                x: { type: 'spring', stiffness: 500, damping: 50, duration: 0.2 },
+                x: { type: 'spring', stiffness: 500, damping: 50, mass: 2 },
                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                 opacity: { duration: 0.2 },
               }}

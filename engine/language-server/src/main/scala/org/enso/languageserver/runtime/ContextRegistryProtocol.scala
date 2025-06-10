@@ -176,15 +176,17 @@ object ContextRegistryProtocol {
   /** An update about computed expression.
     *
     * @param expressionId the id of updated expression
-    * @param `type` the updated type of expression
+    * @param type the updated type of expression
+    * @param hiddenType the list of types this expression can be converted to
     * @param methodCall the updated method call
     * @param profilingInfo profiling information about the expression
-    * @param fromCache whether or not the expression's value came from the cache
+    * @param fromCache whether the expression's value came from the cache
     * @param payload an extra information about the computed value
     */
   case class ExpressionUpdate(
     expressionId: UUID,
-    `type`: Option[String],
+    `type`: Vector[String],
+    hiddenType: Vector[String],
     methodCall: Option[MethodCall],
     profilingInfo: Vector[ProfilingInfo],
     fromCache: Boolean,
@@ -231,8 +233,17 @@ object ContextRegistryProtocol {
         )
       }
 
-      case class Pending(message: Option[String], progress: Option[Double])
-          extends Payload
+      /** Indicates that an expression is pending a computation
+        */
+      case class Pending(
+        message: Option[String],
+        progress: Option[Double],
+        wasInterrupted: Boolean
+      ) extends Payload
+
+      /** Indicates that an expression's computation has been interrupted and shall be retried.
+        */
+      case object PendingInterrupted extends Payload
 
       /** Indicates that the expression was computed to an error.
         *
@@ -257,6 +268,8 @@ object ContextRegistryProtocol {
         val Value = "Value"
 
         val Pending = "Pending"
+
+        val PendingInterrupted = "PendingInterrupted"
 
         val DataflowError = "DataflowError"
 
@@ -291,6 +304,14 @@ object ContextRegistryProtocol {
               .deepMerge(
                 Json.obj(CodecField.Type -> PayloadType.Pending.asJson)
               )
+          case m: Payload.PendingInterrupted.type =>
+            Encoder[Payload.PendingInterrupted.type]
+              .apply(m)
+              .deepMerge(
+                Json.obj(
+                  CodecField.Type -> PayloadType.PendingInterrupted.asJson
+                )
+              )
         }
 
       implicit val decoder: Decoder[Payload] =
@@ -307,6 +328,9 @@ object ContextRegistryProtocol {
 
             case PayloadType.Pending =>
               Decoder[Payload.Pending].tryDecode(cursor)
+
+            case PayloadType.PendingInterrupted =>
+              Decoder[Payload.PendingInterrupted.type].tryDecode(cursor)
           }
         }
     }

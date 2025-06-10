@@ -238,6 +238,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`ExpressionNotFoundError`](#expressionnotfounderror)
   - [`FailedToApplyEdits`](#failedtoapplyedits)
   - [`RefactoringNotSupported`](#refactoringnotsupported)
+  - [`ProjectRenameFailed`](#projectrenamefailed)
+  - [`DefinitionAlreadyExists`](#definitionalreadyexists)
 
 <!-- /MarkdownTOC -->
 
@@ -366,8 +368,18 @@ An update about the computed expression.
 interface ExpressionUpdate {
   /** The id of updated expression. */
   expressionId: ExpressionId;
-  /** The updated type of the expression. */
-  type?: string;
+  /** The updated type of the expression.
+   *
+   *  Possible values:
+   *  - empty array indicates no type information for this expression
+   *  - array with a single value contains a value of this expression
+   *  - array with multiple values represents an intersetion type
+   */
+  type: string[];
+  /**
+   * The list of types this expression can be converted to.
+   */
+  hiddenType: string[];
   /** The updated method call info. */
   methodCall?: MethodCall;
   /** Profiling information about the expression. */
@@ -384,7 +396,7 @@ interface ExpressionUpdate {
 An information about the computed value.
 
 ```typescript
-type ExpressionUpdatePayload = Value | DatafalowError | Panic | Pending;
+type ExpressionUpdatePayload = Value | DataflowError | Panic | Pending;
 
 /** Indicates that the expression was computed to a value. */
 interface Value {
@@ -416,6 +428,8 @@ interface Pending {
   /** Optional amount of already done work as a number between `0.0` to `1.0`.
    */
   progress?: number;
+  /** Indicates whether the computation of the expression has been interrupted and will be retried. */
+  wasInterrupted: boolean;
 }
 
 /** Information about warnings associated with the value. */
@@ -3145,7 +3159,8 @@ type RefactoringRenameProjectResult = null;
 
 #### Errors
 
-None
+- [`ProjectRenameFailed`](#projectrenamefailed) to signal that the project
+  rename operation has failed.
 
 ### `refactoring/renameSymbol`
 
@@ -3225,6 +3240,8 @@ interface RefactoringRenameSymbolResult {
   operation was not able to apply generated edits.
 - [`RefactoringNotSupported`](#refactoringnotsupported) to signal that the
   refactoring of the given expression is not supported.
+- [`DefinitionAlreadyExists`](#definitionalreadyexists) to signal that the
+  definition with the provided name already exists in scope.
 
 ### `refactoring/projectRenamed`
 
@@ -5902,6 +5919,28 @@ Signals that the refactoring of the given expression is not supported.
 "error" : {
   "code" : 9003,
   "message" : "Refactoring not supported for expression [<expression-id>]"
+}
+```
+
+### `ProjectRenameFailed`
+
+Signals that the project rename failed.
+
+```typescript
+"error" : {
+  "code" : 9004,
+  "message" : "Project rename failed [<oldName>, <newName>]"
+}
+```
+
+### `DefinitionAlreadyExists`
+
+Signals that the definition with the provided name already exists in the scope.
+
+```typescript
+"error" : {
+  "code" : 9005,
+  "message" : "Definition [<name>] already exists"
 }
 ```
 

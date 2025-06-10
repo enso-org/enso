@@ -112,7 +112,8 @@ object DefaultLibraryProvider {
     languageHome: Option[LanguageHome],
     projectRoot: Option[Path],
     edition: Editions.ResolvedEdition,
-    preferLocalLibraries: Boolean
+    preferLocalLibraries: Boolean,
+    checkAot: Boolean
   ): ResolvingLibraryProvider = {
     val (localLibraryProvider, publishedLibraryProvider) = makeProviders(
       distributionManager,
@@ -120,7 +121,8 @@ object DefaultLibraryProvider {
       lockUserInterface,
       progressReporter,
       languageHome,
-      projectRoot
+      projectRoot,
+      checkAot
     )
 
     new DefaultLibraryProvider(
@@ -138,7 +140,8 @@ object DefaultLibraryProvider {
     lockUserInterface: LockUserInterface,
     progressReporter: ProgressReporter,
     languageHome: Option[LanguageHome],
-    projectRoot: Option[Path]
+    projectRoot: Option[Path],
+    checkAot: Boolean
   ): (
     LocalLibraryProvider,
     PublishedLibraryProvider with PublishedLibraryCache
@@ -156,7 +159,10 @@ object DefaultLibraryProvider {
       locations.additionalCacheRoots.map(new LocalReadOnlyRepository(_))
 
     val localLibraryProvider =
-      new DefaultLocalLibraryProvider(locations.localLibrarySearchPaths)
+      new DefaultLocalLibraryProvider(
+        locations.localLibrarySearchPaths,
+        checkAot
+      )
     val publishedLibraryProvider =
       new DefaultPublishedLibraryProvider(primaryCache, additionalCaches)
     (localLibraryProvider, publishedLibraryProvider)

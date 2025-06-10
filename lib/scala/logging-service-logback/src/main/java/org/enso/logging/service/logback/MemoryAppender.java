@@ -31,8 +31,10 @@ public class MemoryAppender extends AppenderBase<ILoggingEvent> {
   }
 
   public void reset() {
-    this.forwardLogs = true;
-    this.underlying.start();
+    this.forwardLogs = underlying != null;
+    if (forwardLogs) {
+      this.underlying.start();
+    }
     events.clear();
   }
 

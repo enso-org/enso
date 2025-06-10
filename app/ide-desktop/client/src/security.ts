@@ -16,6 +16,7 @@ const TRUSTED_HOSTS = [
   'github.com',
   'production-enso-domain.auth.eu-west-1.amazoncognito.com',
   'production-enso-organizations-files.s3.amazonaws.com',
+  'production-enso-projects-templates.s3.eu-west-1.amazonaws.com',
   'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
   '7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com',
   'lkxuay3ha1.execute-api.eu-west-1.amazonaws.com',
@@ -169,7 +170,7 @@ function preventNavigation() {
  */
 function disableNewWindowsCreation() {
   electron.app.on('web-contents-created', (_event, contents) => {
-    contents.setWindowOpenHandler(details => {
+    contents.setWindowOpenHandler((details) => {
       const { url } = details
       const parsedUrl = new URL(url)
       if (TRUSTED_EXTERNAL_PROTOCOLS.includes(parsedUrl.protocol)) {

@@ -1,6 +1,7 @@
-import { normalizeQualifiedName, qnFromSegments } from '@/util/qualifiedName'
+import { qnFromSegments } from '@/util/qualifiedName'
 import type {
   Expression,
+  Identifier,
   IdentifierOrOperatorIdentifier,
   Mutable,
   MutableExpression,
@@ -35,15 +36,16 @@ import {
   setExternalIds,
 } from 'ydoc-shared/ast'
 import { spanMapToIdMap, spanMapToSpanGetter } from 'ydoc-shared/ast/idMap'
+import { Opt } from 'ydoc-shared/util/data/opt'
 import { IdMap } from 'ydoc-shared/yjsModel'
 
 export * from 'ydoc-shared/ast'
 
 /** Given an output of {@link serializeExpression}, returns a deserialized expression. */
-export function deserializeExpression(serialized: string): Owned<MutableExpression> {
+export function deserializeExpression(serialized: string): Owned<MutableExpression> | undefined {
   // Not implemented: restoring serialized external IDs. This is not the best approach anyway;
   // Y.Js can't merge edits to objects when they're being serialized and deserialized.
-  return parseExpression(serialized)!
+  return parseExpression(serialized)
 }
 
 /** Returns a serialized representation of the expression. */
@@ -131,11 +133,8 @@ export function deleteFromParentBlock(ast: MutableStatement) {
  *  operator-application tree are identifier expressions, return the identifiers from left to right.
  *  This is analogous to `ast.code().split(operator)`, but type-enforcing.
  */
-export function unrollOprChain(
-  ast: Ast,
-  leftAssociativeOperator: string,
-): IdentifierOrOperatorIdentifier[] | null {
-  const idents: IdentifierOrOperatorIdentifier[] = []
+export function unrollOprChain(ast: Ast, leftAssociativeOperator: string): Identifier[] | null {
+  const idents: Identifier[] = []
   let ast_: Ast | undefined = ast
   while (
     ast_ instanceof OprApp &&
@@ -169,23 +168,14 @@ export function unrollPropertyAccess(ast: Ast): IdentifierOrOperatorIdentifier[]
 }
 
 /** TODO: Add docs */
-export function parseIdent(ast: Ast): IdentifierOrOperatorIdentifier | null {
-  if (ast instanceof Ident) {
-    return ast.code()
-  } else {
-    return null
-  }
-}
-
-/** TODO: Add docs */
-export function parseIdents(ast: Ast): IdentifierOrOperatorIdentifier[] | null {
+export function parseIdents(ast: Ast): Identifier[] | null {
   return unrollOprChain(ast, ',')
 }
 
-/** TODO: Add docs */
-export function parseQualifiedName(ast: Ast): QualifiedName | null {
+/** If the syntax tree represents a valid qualified name, return an equivalent {@link QualifiedName}. */
+export function astToQualifiedName(ast: Ast): QualifiedName | null {
   const idents = unrollPropertyAccess(ast)
-  return idents && normalizeQualifiedName(qnFromSegments(idents))
+  return idents && qnFromSegments(idents)
 }
 
 /**
@@ -214,21 +204,20 @@ export function substituteIdentifier(
 }
 
 /**
- * Substitute `pattern` inside `expression` with `to`.
- * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain).
+ * Substitute some qualified names in `expr`.
+ * @param substitution is called on every qualified name in `expr`, and if non-nullish value
+ *   is returned, it replaces this qualified name.
  */
 export function substituteQualifiedName(
   expr: MutableAst,
-  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
-  to: QualifiedName,
-) {
+  substitution: (from: QualifiedName) => Opt<QualifiedName>,
+): Ast {
   if (expr instanceof MutablePropertyAccess || expr instanceof MutableIdent) {
-    const qn = parseQualifiedName(expr)
-    if (qn === pattern) {
-      expr.updateValue(() => parseExpression(to, expr.module)!)
-    } else if (qn && qn.startsWith(pattern)) {
-      const withoutPattern = qn.replace(pattern, '')
-      expr.updateValue(() => parseExpression(to + withoutPattern, expr.module)!)
+    const qn = astToQualifiedName(expr)
+    if (!qn) return expr
+    const replacement = substitution(qn)
+    if (replacement != null) {
+      return expr.updateValue(() => parseExpression(replacement, expr.module)!)
     }
   } else {
     for (const child of expr.children()) {
@@ -236,11 +225,30 @@ export function substituteQualifiedName(
         continue
       }
       const mutableChild = expr.module.getVersion(child)
-      substituteQualifiedName(mutableChild, pattern, to)
+      substituteQualifiedName(mutableChild, substitution)
     }
   }
+  return expr
 }
 
+/**
+ * Substitute `pattern` inside `expression` with `to`.
+ * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain).
+ */
+export function substituteQualifiedNameByPattern(
+  expr: MutableAst,
+  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
+  to: QualifiedName,
+) {
+  return substituteQualifiedName(expr, (qn) => {
+    if (qn === pattern) {
+      return to
+    } else if (qn && qn.startsWith(pattern)) {
+      const withoutPattern = qn.replace(pattern, '')
+      return (to + withoutPattern) as QualifiedName
+    }
+  })
+}
 /**
  * Try to convert the number to an Enso value.
  *
@@ -280,9 +288,12 @@ export function dropMutability<T extends Ast>(value: Owned<Mutable<T>>): T {
   return value as unknown as T
 }
 
-function unwrapGroups(ast: Ast) {
-  while (ast instanceof Group && ast.expression) ast = ast.expression
-  return ast
+/**
+ * If the input is a parenthesized expression, returns the inner expression; otherwise, returns the
+ * input.
+ */
+export function unwrapGroups<T extends Ast | undefined>(ast: T): T | Expression {
+  return ast instanceof Group && ast.expression ? unwrapGroups(ast.expression) : ast
 }
 
 /**
@@ -348,14 +359,7 @@ export function parseUpdatingIdMap(
     if (idMap) setExternalIds(root.module, spans, idMap)
     return { root, spans }
   })
-  const getSpan = spanMapToSpanGetter(spans)
+  const getSpan = spanMapToSpanGetter(spans.nodes)
   const idMapOut = spanMapToIdMap(spans)
   return { root, idMap: idMapOut, getSpan }
-}
-
-declare const tokenKey: unique symbol
-declare module '@/providers/widgetRegistry' {
-  export interface WidgetInputTypes {
-    [tokenKey]: Token
-  }
 }

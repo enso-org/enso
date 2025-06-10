@@ -19,7 +19,7 @@ public abstract class DatatypeParser {
   public abstract Object parseSingleValue(String text, ParseProblemAggregator problemAggregator);
 
   /**
-   * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
+   * Parses a column of texts (represented as a {@code Storage<String>}) and returns a new storage,
    * containing the parsed elements.
    */
   public abstract Storage<?> parseColumn(

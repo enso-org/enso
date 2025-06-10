@@ -16,6 +16,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
+import { identity } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { nextTick, toValue } from 'vue'
 import { assert, assertNever } from 'ydoc-shared/util/assert'
@@ -73,18 +74,14 @@ export function useNodeCreation(
   function placeNode(placement: PlacementStrategy, place: (nodes?: Iterable<Rect>) => Vec2): Vec2 {
     return (
       placement.type === 'viewport' ? place()
-      : placement.type === 'mouse' ? tryMouse() ?? place()
-      : placement.type === 'mouseRelative' ? tryMouseRelative(placement.posOffset) ?? place()
+      : placement.type === 'mouse' ? (tryMouse() ?? place())
+      : placement.type === 'mouseRelative' ? (tryMouseRelative(placement.posOffset) ?? place())
       : placement.type === 'mouseEvent' ? mouseDictatedPlacement(placement.position)
       : placement.type === 'source' ?
         place(iter.filterDefined([graphStore.visibleArea(placement.node)]))
       : placement.type === 'fixed' ? placement.position
       : assertNever(placement)
     )
-  }
-
-  function identity<T>(value: T): T {
-    return value
   }
 
   function placeNodes(nodesOptions: Iterable<NodeCreationOptions>): NodeCreationOptions[] {
@@ -96,11 +93,11 @@ export function useNodeCreation(
     const doPlace =
       (adjust: (pos: Vec2) => Vec2 = identity) =>
       (options: NodeCreationOptions) => {
-        const position = adjust(placeNode(options.placement, place)).xy()
-        rects.push(new Rect(Vec2.FromXY(position), Vec2.Zero))
+        const position = adjust(placeNode(options.placement, place))
+        rects.push(new Rect(position, Vec2.Zero))
         return {
           ...options,
-          metadata: { ...options.metadata, position },
+          metadata: { ...options.metadata, position: position.xy() },
         }
       }
     const placedOptions = []
@@ -118,7 +115,7 @@ export function useNodeCreation(
   function createNodes(nodesOptions: Iterable<NodeCreationOptions>) {
     const placedNodes = placeNodes(nodesOptions)
     if (placedNodes.length === 0) return new Set()
-    const methodAst = graphStore.methodAst
+    const methodAst = graphStore.currentMethod.ast
     if (!methodAst.ok) {
       methodAst.error.log(`BUG: Cannot add node: No current function.`)
       return new Set()
@@ -175,7 +172,7 @@ export function useNodeCreation(
     for (const _conflict of conflicts) {
       // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
       // https://github.com/enso-org/enso/issues/9356
-      // substituteQualifiedName(assignment, conflict.pattern, conflict.fullyQualified)
+      // substituteQualifiedNameByPattern(assignment, conflict.pattern, conflict.fullyQualified)
     }
   }
 

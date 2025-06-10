@@ -9,20 +9,17 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.phase.exports.ExportsResolution
 import org.enso.compiler.pass.analyse.{BindingAnalysis, GatherDiagnostics}
 import org.enso.interpreter.runtime
-import org.enso.interpreter.runtime.EnsoContext
-import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.pkg.Package
 import org.enso.common.LanguageInfo
 import org.enso.compiler.phase.exports.Node
 import org.enso.common.RuntimeOptions
 import org.enso.test.utils.{ContextUtils, ProjectUtils}
-import org.graalvm.polyglot.{Context, Engine}
-import org.scalatest.{BeforeAndAfter}
+import org.graalvm.polyglot.Engine
+import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.io.ByteArrayOutputStream
 import java.nio.file.{Files, Path, Paths}
 import java.util.logging.Level
 import java.io.IOException
@@ -35,8 +32,6 @@ class ImportExportTest
     extends AnyWordSpecLike
     with Matchers
     with BeforeAndAfter {
-  private val out = new ByteArrayOutputStream()
-
   private val namespace   = "local"
   private val packageName = "My_Package"
   private val packageQualifiedName =
@@ -47,29 +42,28 @@ class ImportExportTest
     .allowExperimentalOptions(true)
     .build()
 
-  private val ctxBldr = Context
+  private val ctxBldr = ContextUtils
     .newBuilder(LanguageInfo.ID)
-    .engine(engine)
-    .allowExperimentalOptions(true)
-    .allowAllAccess(true)
-    .allowCreateThread(false)
-    .out(out)
-    .err(out)
-    .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-    .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-    .option(RuntimeOptions.STRICT_ERRORS, "false")
-    .logHandler(out)
-    .option(
-      RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-      Paths
-        .get("../../test/micro-distribution/component")
-        .toFile
-        .getAbsolutePath
+    .withModifiedContext(bldr =>
+      bldr
+        .engine(engine)
+        .allowExperimentalOptions(true)
+        .allowAllAccess(true)
+        .allowCreateThread(false)
+        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+        .option(RuntimeOptions.STRICT_ERRORS, "false")
+        .option(
+          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+          Paths
+            .get("../../test/micro-distribution/component")
+            .toFile
+            .getAbsolutePath
+        )
+        .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
     )
-    .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
 
-  private var ctx: Context              = _
-  private var langCtx: EnsoContext      = _
+  private var ctx: ContextUtils         = _
   private var tmpDir: Path              = _
   private var pkg: Package[TruffleFile] = _
 
@@ -78,23 +72,24 @@ class ImportExportTest
     // synthetic modules that will be part of this project.
     tmpDir = Files.createTempDirectory("enso-test")
     ProjectUtils.createProject(packageName, "main = 42", tmpDir)
-    ctxBldr.option(RuntimeOptions.PROJECT_ROOT, tmpDir.toAbsolutePath.toString)
-    ctx     = ctxBldr.build()
-    langCtx = ContextUtils.leakContext(ctx)
+    ctxBldr.withProjectRoot(tmpDir)
+    ctx = ctxBldr.build()
+    val langCtx = ctx.ensoContext()
     langCtx.getPackageRepository.getMainProjectPackage shouldBe defined
     pkg = langCtx.getPackageRepository.getMainProjectPackage.get
-    ctx.enter()
   }
 
   after {
-    ctx.leave()
-    out.reset()
+    ctx.close()
+    ctx = null
     ProjectUtils.deleteRecursively(tmpDir)
+    pkg = null
   }
 
   implicit private class CreateModule(moduleCode: String) {
     def createModule(moduleName: QualifiedName): runtime.Module = {
-      val module = new runtime.Module(moduleName, pkg, moduleCode)
+      val langCtx = ctx.ensoContext()
+      val module  = new runtime.Module(moduleName, pkg, moduleCode)
       langCtx.getPackageRepository.registerModuleCreatedInRuntime(
         module.asCompilerModule()
       )
@@ -112,6 +107,7 @@ class ImportExportTest
   private def buildExportsGraph(
     modules: List[org.enso.interpreter.runtime.Module]
   ): List[Node] = {
+    val langCtx           = ctx.ensoContext()
     val compilerCtx       = langCtx.getCompiler.context
     val exportsResolution = new ExportsResolution(compilerCtx)
     val compilerModules   = modules.map(_.asCompilerModule())
@@ -123,6 +119,7 @@ class ImportExportTest
   private def runExportsResolutionSort(
     modules: List[org.enso.interpreter.runtime.Module]
   ): List[org.enso.interpreter.runtime.Module] = {
+    val langCtx               = ctx.ensoContext()
     val compilerCtx           = langCtx.getCompiler.context
     val exportsResolution     = new ExportsResolution(compilerCtx)
     val compilerModules       = modules.map(_.asCompilerModule())
@@ -693,10 +690,10 @@ class ImportExportTest
   "Import resolution from another library from micro-distribution honor Main" should {
     "resolve Api from Main" in {
       val mainIr = """
-                     |from Test.Logical_Export import Api
+                     |from Test.Logical_Export import Element
                      |
                      |main =
-                     |    element = Api.Element.Element.create
+                     |    element = Element.Element.create
                      |    element.describe
                      |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
@@ -707,7 +704,7 @@ class ImportExportTest
         .asInstanceOf[Import.Module]
 
       in.name.name should include("Test.Logical_Export.Main")
-      in.onlyNames.get.map(_.name) shouldEqual List("Api")
+      in.onlyNames.get.map(_.name) shouldEqual List("Element")
 
       val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
       errors.size shouldEqual 0
@@ -1041,12 +1038,16 @@ class ImportExportTest
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
-      val arr = Persistance.write(
+      val arr = org.enso.interpreter.caches.PersistUtils.POOL.write(
         mainIr,
         {
           case metadata: ProcessingPass.Metadata =>
             metadata.prepareForSerialization(
-              langCtx.getCompiler.context.asInstanceOf[metadata.Compiler]
+              ctx
+                .ensoContext()
+                .getCompiler
+                .context
+                .asInstanceOf[metadata.Compiler]
             );
           case obj => obj
         }
@@ -1078,12 +1079,16 @@ class ImportExportTest
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
       try {
-        val arr = Persistance.write(
+        val arr = org.enso.interpreter.caches.PersistUtils.POOL.write(
           mainIr,
           {
             case metadata: ProcessingPass.Metadata =>
               metadata.prepareForSerialization(
-                langCtx.getCompiler.context.asInstanceOf[metadata.Compiler]
+                ctx
+                  .ensoContext()
+                  .getCompiler
+                  .context
+                  .asInstanceOf[metadata.Compiler]
               );
             case obj => obj
           }

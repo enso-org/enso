@@ -1,6 +1,5 @@
 package org.enso.launcher
 
-import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
 
 /** Handles displaying of user-facing information.
@@ -11,23 +10,12 @@ import org.enso.cli.CLIOutput
   */
 object InfoLogger {
 
-  private val logger = Logger("launcher")
-
   /** Prints an info level message.
     *
-    * If the default logger is set-up to display info-messages, they are send to
-    * the logger, otherwise they are printed to stdout.
-    *
-    * It is important to note that these messages should always be displayed to
-    * the user, so unless run in debug mode, all launcher settings should ensure
-    * that info-level logs are printed to the console output.
+    * Currently, the message is always printed to standard output. But this may be changed by changing this method.
     */
   def info(msg: => String): Unit = {
-    if (logger.underlying.isInfoEnabled) {
-      logger.info(msg)
-    } else {
-      CLIOutput.println(msg)
-    }
+    CLIOutput.println(msg)
   }
 
 }

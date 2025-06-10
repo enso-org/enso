@@ -177,7 +177,6 @@ type Time_Zone
        Get the offset in seconds at given date time.
        Arguments:
        - at: The date to compute offset at.
-
     offset : Date_Time -> Integer
     offset self at = @Builtin_Method "Time_Zone.offset"
 

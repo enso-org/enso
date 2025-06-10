@@ -7,11 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -22,13 +22,12 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Theories.class)
 public class VectorSortTest {
-  private static Context context;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static Value sortFunc;
   private static Value equalsFunc;
 
   @BeforeClass
-  public static void initCtxAndNodes() {
-    context = ContextUtils.createDefaultContext();
+  public static void initNodes() {
     var code =
         """
     from Standard.Base import all
@@ -36,25 +35,26 @@ public class VectorSortTest {
     sort val1 val2 = [val1, val2].sort
     equals val1 val2 = val1 == val2
     """;
-    sortFunc = ContextUtils.getMethodFromModule(context, code, "sort");
-    equalsFunc = ContextUtils.getMethodFromModule(context, code, "equals");
+    sortFunc = ctxRule.getMethodFromModule(code, "sort");
+    equalsFunc = ctxRule.getMethodFromModule(code, "equals");
 
     values = new ArrayList<>();
-    var valuesGenerator = ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
-    values.addAll(valuesGenerator.numbers());
-    values.addAll(valuesGenerator.vectors());
-    values.addAll(valuesGenerator.arrayLike());
-    values.addAll(valuesGenerator.booleans());
-    values.addAll(valuesGenerator.durations());
-    values.addAll(valuesGenerator.maps());
-    valuesGenerator.dispose();
+    try (ValuesGenerator valuesGenerator =
+        ValuesGenerator.create(ctxRule, Language.ENSO, Language.JAVA)) {
+      values.addAll(valuesGenerator.numbers());
+      values.addAll(valuesGenerator.vectors());
+      values.addAll(valuesGenerator.arrayLike());
+      values.addAll(valuesGenerator.booleans());
+      values.addAll(valuesGenerator.durations());
+      values.addAll(valuesGenerator.maps());
+    }
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeNodes() {
     values.clear();
-    context.close();
-    context = null;
+    sortFunc = null;
+    equalsFunc = null;
   }
 
   @DataPoints public static List<Value> values;

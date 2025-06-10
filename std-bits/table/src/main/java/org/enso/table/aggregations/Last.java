@@ -8,7 +8,7 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public class Last extends Aggregator {
+public class Last extends KnownTypeAggregator {
   private final Storage<?> storage;
   private final Storage<?>[] orderByColumns;
   private final int[] orderByDirections;

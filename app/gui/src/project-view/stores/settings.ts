@@ -12,25 +12,22 @@ const defaultUserSettings = {
   showHelpForCB: true,
 }
 
-export const { injectFn: useSettings, provideFn: provideSettings } = createContextStore(
-  'settings',
-  () => {
-    const user = ref<UserSettings>(defaultUserSettings)
+export const [provideSettings, useSettings] = createContextStore('settings', () => {
+  const user = ref<UserSettings>(defaultUserSettings)
 
-    useSyncLocalStorage<UserSettings>({
-      storageKey: 'enso-user-settings',
-      mapKeyEncoder: () => {},
-      debounce: 200,
-      captureState() {
-        return user.value ?? defaultUserSettings
-      },
-      async restoreState(restored) {
-        if (restored) {
-          user.value = { ...defaultUserSettings, ...restored }
-        }
-      },
-    })
+  useSyncLocalStorage<UserSettings>({
+    storageKey: 'enso-user-settings',
+    mapKeyEncoder: () => {},
+    debounce: 200,
+    captureState() {
+      return user.value ?? defaultUserSettings
+    },
+    async restoreState(restored) {
+      if (restored) {
+        user.value = { ...defaultUserSettings, ...restored }
+      }
+    },
+  })
 
-    return { user }
-  },
-)
+  return { user }
+})

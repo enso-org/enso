@@ -1,0 +1,151 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Test import all
+
+from project.Helpers import expect_test_failure
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+add_specs suite_builder =
+    suite_builder.group "should_equal extension method" group_builder->
+        group_builder.specify "should report correct location for Text" <|
+            r1 = expect_test_failure <|
+                "a".should_equal "b"
+            r1.message.should_contain "Extensions_Spec.enso:17"
+
+        group_builder.specify "should report correct location for numbers" <|
+            r1 = expect_test_failure <|
+                1.should_equal 2
+            r1.message.should_contain "Extensions_Spec.enso:22"
+
+            r2 = expect_test_failure <|
+                1.0 . should_equal 2
+            r2.message.should_contain "Extensions_Spec.enso:26"
+
+            r3 = expect_test_failure <|
+                1.to_decimal . should_equal 2
+            r3.message.should_contain "Extensions_Spec.enso:30"
+
+            r4 = expect_test_failure <|
+                Number.nan.should_equal 2
+            r4.message.should_contain "Extensions_Spec.enso:34"
+
+        group_builder.specify "should report correct location for errors" <|
+            error = Error.throw (Illegal_Argument.Error "foo")
+            r1 = expect_test_failure <|
+                error.should_equal 10
+            r1.message.should_contain "Extensions_Spec.enso:40"
+
+        group_builder.specify "should panic if error is expected" <|
+            error = Error.throw (Illegal_Argument.Error "foo")
+            Test.expect_panic Illegal_Argument <|
+                10.should_equal error
+
+    suite_builder.group "should_not_equal extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                1.should_not_equal 1
+            r1.message.should_contain "Extensions_Spec.enso:51"
+
+        group_builder.specify "should report correct location for errors" <|
+            error = Error.throw (Illegal_Argument.Error "foo")
+            r1 = expect_test_failure <|
+                error.should_not_equal 1
+            r1.message.should_contain "Extensions_Spec.enso:57"
+
+    suite_builder.group "should_contain extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                [1, 2].should_contain 3
+            r1.message.should_contain "Extensions_Spec.enso:63"
+
+            r2 = expect_test_failure <|
+                "abc".should_contain "d"
+            r2.message.should_contain "Extensions_Spec.enso:67"
+
+    suite_builder.group "should_not_contain extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                [1, 2].should_not_contain 2
+            r1.message.should_contain "Extensions_Spec.enso:73"
+
+    suite_builder.group "should_start_with extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                "abc".should_start_with "d"
+            r1.message.should_contain "Extensions_Spec.enso:79"
+
+    suite_builder.group "should_end_with extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                "abc".should_end_with "d"
+            r1.message.should_contain "Extensions_Spec.enso:85"
+
+    suite_builder.group "stack trace location and frame hiding" group_builder->
+        group_builder.specify "should be able to get a stack trace without test helper frames" <|
+            r1 = expect_test_failure <|
+                "ab".should_equal "ac"
+            r1.message.should_contain "Extensions_Spec.enso:91"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting)" <|
+            should_equal_2 x y = Frame_Hider.hide <|
+                x.should_equal y
+            should_equal_3 x y = Frame_Hider.hide <|
+                should_equal_2 x y
+
+            r1 = expect_test_failure <|
+                should_equal_3 "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:101"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a no-arg callback)" <|
+            ## This test is here because of differences in stack traces with no-arg calls.
+            should_equal_a checker _ _ = Frame_Hider.hide <|
+                Frame_Hider.unhide checker
+            should_equal_b checker x y = Frame_Hider.hide <|
+                should_equal_a (Frame_Hider.unhide checker) x y
+
+            my_checker =
+                False . should_be_true
+
+            r1 = expect_test_failure <|
+                should_equal_b my_checker "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:112"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a one-arg callback)" <|
+            should_equal_a checker x = Frame_Hider.hide <|
+                Frame_Hider.unhide (checker x)
+            should_equal_b checker x = Frame_Hider.hide <|
+                should_equal_a (Frame_Hider.unhide_1 checker x)
+
+            my_checker x =
+                x . should_equal "ac"
+
+            r1 = expect_test_failure <|
+                should_equal_b my_checker "ab"
+            r1.message.should_contain "Extensions_Spec.enso:125"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a two-arg callback)" <|
+            should_equal_a checker x y = Frame_Hider.hide <|
+                Frame_Hider.unhide (checker x y)
+            should_equal_b checker x y = Frame_Hider.hide <|
+                should_equal_a (Frame_Hider.unhide_2 checker x y)
+
+            my_checker x y =
+                x.should_equal y
+
+            r1 = expect_test_failure <|
+                should_equal_b my_checker "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:138"
+
+        location_pending = case Platform.os of
+            Platform.OS.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
+            _ -> Nothing
+
+        group_builder.specify "should allow to get the source location of a frame" pending=location_pending <|
+            src = Frame_Hider.get_top_stack_frame
+            loc = "Extensions_Spec.enso:149:19-49"
+            src.take (..Last loc.length) . should_equal loc

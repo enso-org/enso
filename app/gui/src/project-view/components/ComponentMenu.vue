@@ -1,67 +1,38 @@
 <script setup lang="ts">
-import { graphBindings, nodeEditBindings } from '@/bindings'
+import ActionButton from '@/components/ActionButton.vue'
+import ActionMenu from '@/components/ActionMenu.vue'
 import ColorRing from '@/components/ColorRing.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
-import MenuButton from '@/components/MenuButton.vue'
-import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { ref } from 'vue'
 
-const nodeColor = defineModel<string | undefined>('nodeColor')
-const isVisualizationEnabled = defineModel<boolean>('isVisualizationEnabled', { required: true })
-const props = defineProps<{
-  isRecordingEnabledGlobally: boolean
-  isRemovable: boolean
-  isEnterable: boolean
-  matchableNodeColors: Set<string>
-  documentationUrl: string | undefined
-  isBeingRecomputed: boolean
+const _props = defineProps<{
+  colorPickerOpened: boolean
+  currentNodeColor: string | undefined
+  matchableColors: ReadonlySet<string>
 }>()
 const emit = defineEmits<{
-  'update:isVisualizationEnabled': [isVisualizationEnabled: boolean]
-  enterNode: []
-  startEditing: []
-  startEditingComment: []
-  openFullMenu: []
-  delete: []
-  createNewNode: []
-  toggleDocPanel: []
-  recompute: []
+  closeColorPicker: []
+  setNodeColor: [color: string | undefined]
+  'update:hovered': [hovered: boolean]
 }>()
 
 const isDropdownOpened = ref(false)
-const showColorPicker = ref(false)
-
-function closeDropdown() {
-  isDropdownOpened.value = false
-}
-
-type BindingSpace<T extends string> = { bindings: Record<T, { humanReadable: string }> }
-type Binding<T extends string> = keyof BindingSpace<T>['bindings']
-function readableBinding<T extends string, BS extends BindingSpace<T>>(
-  binding: Binding<T>,
-  bindingSpace: BS,
-) {
-  return bindingSpace.bindings[binding].humanReadable
-}
 </script>
 
 <template>
   <div
-    class="CircularMenu"
+    class="ComponentMenu"
     :class="{
-      menu: !showColorPicker,
+      menu: !colorPickerOpened,
       openedDropdown: isDropdownOpened,
     }"
+    @pointerenter="emit('update:hovered', true)"
+    @pointerleave="emit('update:hovered', false)"
   >
-    <template v-if="!showColorPicker">
-      <SvgButton
-        name="eye"
-        class="slotS"
-        title="Visualization"
-        @click.stop="isVisualizationEnabled = !isVisualizationEnabled"
-      />
-      <SvgButton name="help" class="slotSW" title="Help" @click.stop="emit('toggleDocPanel')" />
+    <template v-if="!colorPickerOpened">
+      <ActionButton action="component.toggleVisualization" class="slotS" />
+      <ActionButton action="component.toggleDocPanel" class="slotSW" />
       <DropdownMenu
         v-model:open="isDropdownOpened"
         placement="bottom-start"
@@ -70,90 +41,38 @@ function readableBinding<T extends string, BS extends BindingSpace<T>>(
         class="slotW More"
       >
         <template #button><SvgIcon name="3_dot_menu" class="moreIcon" /></template>
-        <template #entries>
-          <MenuButton @click.stop="closeDropdown(), emit('toggleDocPanel')">
-            <SvgIcon name="help" class="rowIcon" />
-            <span>Help</span>
-          </MenuButton>
-          <MenuButton
-            :modelValue="isVisualizationEnabled"
-            @update:modelValue="emit('update:isVisualizationEnabled', $event)"
-            @click.stop="closeDropdown"
-          >
-            <SvgIcon name="eye" class="rowIcon" />
-            <span v-text="`${isVisualizationEnabled ? 'Hide' : 'Show'} Visualization`"></span>
-            <span
-              class="shortcutHint"
-              v-text="`${readableBinding('toggleVisualization', graphBindings)}`"
-            ></span>
-          </MenuButton>
-          <MenuButton @click.stop="closeDropdown(), emit('createNewNode')">
-            <SvgIcon name="add" class="rowIcon" />
-            <span>Add New Component</span>
-            <span
-              class="shortcutHint"
-              v-text="`${readableBinding('openComponentBrowser', graphBindings)}`"
-            ></span>
-          </MenuButton>
-          <MenuButton @click.stop="closeDropdown(), emit('startEditingComment')">
-            <SvgIcon name="comment" class="rowIcon" />
-            <span>Add Comment</span>
-          </MenuButton>
-          <MenuButton
-            data-testid="recompute"
-            :disabled="props.isBeingRecomputed"
-            @click.stop="closeDropdown(), emit('recompute')"
-          >
-            <SvgIcon name="workflow_play" class="rowIcon" />
-            <span>Write</span>
-          </MenuButton>
-          <MenuButton @click.stop="closeDropdown(), (showColorPicker = true)">
-            <SvgIcon name="paint_palette" class="rowIcon" />
-            <span>Color Component</span>
-          </MenuButton>
-          <MenuButton
-            v-if="isEnterable"
-            data-testid="enter-node-button"
-            @click.stop="closeDropdown(), emit('enterNode')"
-          >
-            <SvgIcon name="open" class="rowIcon" />
-            <span>Open Grouped Components</span>
-          </MenuButton>
-          <MenuButton data-testid="edit-button" @click.stop="closeDropdown(), emit('startEditing')">
-            <SvgIcon name="edit" class="rowIcon" />
-            <span>Code Edit</span>
-            <span
-              class="shortcutHint"
-              v-text="`${readableBinding('edit', nodeEditBindings)}`"
-            ></span>
-          </MenuButton>
-          <MenuButton
-            data-testid="removeNode"
-            :disabled="!isRemovable"
-            @click.stop="closeDropdown(), emit('delete')"
-          >
-            <SvgIcon name="trash2" class="rowIcon" />
-            <span>Remove Component</span>
-            <span
-              class="shortcutHint"
-              v-text="`${readableBinding('deleteSelected', graphBindings)}`"
-            ></span>
-          </MenuButton>
+        <template #menu>
+          <ActionMenu
+            :actions="[
+              'component.toggleDocPanel',
+              'component.toggleVisualization',
+              'component.createNewNode',
+              'component.editingComment',
+              'component.recompute',
+              'component.pickColor',
+              'component.enterNode',
+              'component.startEditing',
+              'components.copy',
+              'components.deleteSelected',
+            ]"
+            @close="isDropdownOpened = false"
+          />
         </template>
       </DropdownMenu>
     </template>
     <ColorRing
       v-else
-      v-model="nodeColor"
-      :matchableColors="matchableNodeColors"
+      :modelValue="currentNodeColor"
+      :matchableColors="matchableColors"
       :initialColorAngle="90"
-      @close="showColorPicker = false"
+      @update:modelValue="emit('setNodeColor', $event)"
+      @close="emit('closeColorPicker')"
     />
   </div>
 </template>
 
 <style scoped>
-.CircularMenu {
+.ComponentMenu {
   position: absolute;
   left: -36px;
   bottom: -36px;
@@ -169,32 +88,6 @@ function readableBinding<T extends string, BS extends BindingSpace<T>>(
      and does not match circular menu in color.*/
   --dropdown-opened-background: white;
   --dropdown-opened-backdrop-filter: none;
-}
-
-:deep(.DropdownMenuContent) {
-  width: 210px;
-  margin-top: 2px;
-  padding: 4px;
-  background: var(--dropdown-opened-background);
-  backdrop-filter: var(--dropdown-opened-backdrop-filter);
-
-  > * {
-    display: flex;
-    align-items: center;
-    justify-content: left;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-}
-
-.rowIcon {
-  display: inline-block;
-  margin-right: 8px;
-}
-
-.shortcutHint {
-  margin-left: auto;
-  opacity: 0.8;
 }
 
 .menu {
@@ -223,6 +116,15 @@ function readableBinding<T extends string, BS extends BindingSpace<T>>(
       'M0,16 V68 A52,52,0,0,0,52,68 A16,16,0,0,0,52,36 A20,20,0,0,1,32,16 A16,16,0,0,0,0,16'
     );
   }
+}
+
+.ColorRing {
+  /* Cut a hole inside color ring. First we draw a rectangle containing entire ColorRing (with the
+   arrow), and then define circle inside. */
+  clip-path: path(
+    evenodd,
+    'M -52,52 L -52,-52 L 154,-52 L 154,154 L -52,154 z M52,32 A20,20 0,1,1 52,72 20,20 0,1,1 52,32'
+  );
 }
 
 /**

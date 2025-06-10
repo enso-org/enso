@@ -3,6 +3,8 @@ from Standard.Base import all
 from Standard.Test import all
 
 import project.Input_Output_Spec
+import project.Instrumentor_Spec
+import project.Cloud_Credentials_Spec
 import project.Comparator_Spec
 import project.Decimal_Constructor_Spec
 import project.Grapheme_Spec
@@ -10,10 +12,12 @@ import project.Github_Annotations_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
+        Cloud_Credentials_Spec.add_specs suite_builder
         Comparator_Spec.add_specs suite_builder
         Decimal_Constructor_Spec.add_specs suite_builder
         Grapheme_Spec.add_specs suite_builder
         Input_Output_Spec.add_specs suite_builder
+        Instrumentor_Spec.add_specs suite_builder
         Github_Annotations_Spec.add_specs suite_builder
 
     suite.run_with_filter filter

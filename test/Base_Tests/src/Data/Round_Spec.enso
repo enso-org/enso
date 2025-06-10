@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
@@ -10,25 +11,29 @@ type Batch_Runner
     Value (run_batch : Vector -> Vector -> Boolean -> Vector) (run_one : Number -> Integer -> Boolean -> Number)
 
     from_function (f : Number -> Integer -> Boolean -> Number) =
-        batch values_vec dps_vec use_bankers =
-            values_vec.zip dps_vec v-> dp-> f v dp use_bankers
+        batch values_vec dps_vec rounding_mode =
+            values_vec.zip dps_vec v-> dp-> f v dp rounding_mode
         Batch_Runner.Value batch f
 
-    run self (use_bankers : Boolean) (action : Batch_Builder -> Nothing) =
+    run self (rounding_mode : Rounding_Mode | Boolean) (action : Batch_Builder -> Nothing) =
         configs = Vector.build vector_builder->
             action (Batch_Builder.Value vector_builder . round)
         values_vec   = configs.map c-> c.at 0
         dps_vec      = configs.map c-> c.at 1
         expected_vec = configs.map c-> c.at 2
         epsilon_vec  = configs.map c-> c.at 3
-        got_vec = self.run_batch values_vec dps_vec use_bankers
+        warning_vec  = configs.map c-> c.at 4
+        got_vec = self.run_batch values_vec dps_vec rounding_mode
         got_vec.each_with_index ix-> got->
             expected = expected_vec.at ix
             value = values_vec.at ix
             dp = dps_vec.at ix
             epsilon = epsilon_vec.at ix
-            Test.with_clue "round("+value.to_text+", "+dp.to_text+", use_bankers="+use_bankers.to_text+") -> " <|
+            warning = warning_vec.at ix
+            Test.with_clue "round("+value.to_text+", "+dp.to_text+", rounding_mode="+rounding_mode.to_text+") -> " <|
                 got.should_equal expected epsilon
+                if warning.is_nothing.not then
+                    Problems.expect_warning warning got
 
 type Batch_Builder
     Value vector_builder
@@ -39,14 +44,14 @@ type Batch_Builder
 type Check_Instance
     Value vector_builder value dp
 
-    should_equal self (expected : Number) (epsilon:Float=0) =
-        self.vector_builder.append [self.value, self.dp, expected, epsilon]
+    should_equal self (expected : Number) (epsilon:Float=0) (with_warning=Nothing) =
+        self.vector_builder.append [self.value, self.dp, expected, epsilon, with_warning]
 
 ## PRIVATE
-add_specs group_builder batch_runner run_advanced =
+add_specs is_database group_builder batch_runner run_advanced =
     pending_advanced = if run_advanced.not then "Advanced edge tests are disabled in this run."
     group_builder.specify "Can round positive decimals correctly" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun 3.0 . should_equal 3
             round_fun 3.00001 . should_equal 3
             round_fun 3.3 . should_equal 3
@@ -56,7 +61,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 3.99999 . should_equal 4
 
     group_builder.specify "Can round negative decimals correctly" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun -3.0 . should_equal -3
             round_fun -3.00001 . should_equal -3
             round_fun -3.3 . should_equal -3
@@ -66,20 +71,20 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3.99999 . should_equal -4
 
     group_builder.specify "Explicit and implicit 0 decimal places work the same" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun 3.00001 0 . should_equal 3
             round_fun 3.3 0 . should_equal 3
             round_fun 3.00001 . should_equal 3
             round_fun 3.3 . should_equal 3
 
     group_builder.specify "Can round zero and small decimals correctly" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun 0.0 . should_equal 0
             round_fun 0.00001 . should_equal 0
             round_fun -0.00001 . should_equal 0
 
     group_builder.specify "Can round positive decimals to a specified number of decimal places" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun 3.0001 2 . should_equal 3.0
             round_fun 3.1414 2 . should_equal 3.14
             round_fun 3.1415 2 . should_equal 3.14
@@ -93,7 +98,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 3.9999 3 . should_equal 4.0
 
     group_builder.specify "Can round negative decimals to a specified number of decimal places" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun -3.0001 2 . should_equal -3.0
             round_fun -3.1414 2 . should_equal -3.14
             round_fun -3.1415 2 . should_equal -3.14
@@ -107,7 +112,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3.9999 3 . should_equal -4.0
 
     group_builder.specify "Can round positive decimals to a specified negative number of decimal places" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun 1234.0 -1 . should_equal 1230
             round_fun 1234.0 -2 . should_equal 1200
             round_fun 1234.0 -3 . should_equal 1000
@@ -123,7 +128,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 1494.0 -2 . should_equal 1500
 
     group_builder.specify "Can round negative decimals to a specified negative number of decimal places" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun -1234.0 -1 . should_equal -1230
             round_fun -1234.0 -2 . should_equal -1200
             round_fun -1234.0 -3 . should_equal -1000
@@ -139,7 +144,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -1494.0 -2 . should_equal -1500
 
     group_builder.specify "Banker's rounding handles half-way values correctly" pending=pending_advanced <|
-        batch_runner.run use_bankers=True round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Bankers round_fun->
             round_fun -3.5 . should_equal -4
             round_fun -2.5 . should_equal -2
             round_fun -1.5 . should_equal -2
@@ -160,7 +165,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -12250.0 -2 . should_equal -12200
 
     group_builder.specify "Banker's rounding handles non-half-way values just like normal rounding" pending=pending_advanced <|
-        batch_runner.run use_bankers=True round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Bankers round_fun->
             round_fun 3.0 . should_equal 3
             round_fun 3.00001 . should_equal 3
             round_fun 3.3 . should_equal 3
@@ -168,7 +173,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 3.50001 . should_equal 4
             round_fun 3.99999 . should_equal 4
 
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun -3.0 . should_equal -3
             round_fun -3.00001 . should_equal -3
             round_fun -3.3 . should_equal -3
@@ -177,7 +182,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3.99999 . should_equal -4
 
     group_builder.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun 0 . should_equal 0
             round_fun 3 . should_equal 3
             round_fun -3 . should_equal -3
@@ -187,7 +192,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3 1 . should_equal -3
 
     group_builder.specify "Can round integers to a specified number of negative places correctly" <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun 0 -1 . should_equal 0
             round_fun 4 -1 . should_equal 0
             round_fun 5 -1 . should_equal 10
@@ -216,7 +221,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 3101 -3 . should_equal 3000
 
     group_builder.specify "Can round negative integers to a specified number of negative places correctly" pending=pending_advanced <|
-        batch_runner.run use_bankers=False round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun -4 -1 . should_equal 0
             round_fun -5 -1 . should_equal -10
             round_fun -6 -1 . should_equal -10
@@ -244,7 +249,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3101 -3 . should_equal -3000
 
     group_builder.specify "Can round negative integers to a specified number of negative places with banker's rounding correctly" pending=pending_advanced <|
-        batch_runner.run use_bankers=True round_fun->
+        batch_runner.run rounding_mode=Rounding_Mode.Bankers round_fun->
             round_fun 12300 -2 . should_equal 12300
             round_fun 12301 -2 . should_equal 12300
             round_fun 12330 -2 . should_equal 12300
@@ -273,7 +278,10 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -12250 -2 . should_equal -12200
             round_fun -12251 -2 . should_equal -12300
 
+    deprecated_argument_pending = if is_database then "https://github.com/enso-org/enso/issues/12787" else Nothing
+    group_builder.specify "Accepts deprecated use_bankers boolean argument, with a warning" pending=deprecated_argument_pending <|
+        batch_runner.run rounding_mode=True round_fun->
+            round_fun -3.5 . should_equal -4 with_warning=Deprecated
+
     group_builder.specify "Handles incorrect argument types" <|
         Test.expect_panic_with (batch_runner.run_one 123 "two") Type_Error
-        Test.expect_panic_with (batch_runner.run_one 123 use_bankers="no") Type_Error
-        Test.expect_panic_with (batch_runner.run_one 123 use_bankers=0) Type_Error

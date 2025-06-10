@@ -71,7 +71,7 @@ final class MiniPassTraverser {
    * @param queue queue to put objects in
    * @param ir IR to process
    * @param miniPass process with this mini pass
-   * @return {@code true} if the has been modified with new tries to process first
+   * @return {@code true} if the {@code queue} has been modified with new tries to process first
    */
   private static List<IR> enqueueSubExpressions(
       Collection<MiniPassTraverser> queue, IR ir, MiniIRPass miniPass) {
@@ -81,7 +81,9 @@ final class MiniPassTraverser {
         (ch) -> {
           var preparedMiniPass = miniPass.prepare(ir, ch);
           childExpressions.add(ch);
-          queue.add(new MiniPassTraverser(preparedMiniPass, childExpressions, i[0]++));
+          if (preparedMiniPass != null) {
+            queue.add(new MiniPassTraverser(preparedMiniPass, childExpressions, i[0]++));
+          }
           return ch;
         });
     return childExpressions;

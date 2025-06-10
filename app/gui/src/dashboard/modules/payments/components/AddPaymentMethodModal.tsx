@@ -1,14 +1,6 @@
-/**
- * @file
- *
- * A modal for adding a payment method.
- */
-import * as React from 'react'
-
+/** @file A modal for adding a payment method. */
+import { Dialog } from '#/components/Dialog'
 import type * as stripeJs from '@stripe/stripe-js'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
 import { AddPaymentMethodForm } from './AddPaymentMethodForm'
 import { StripeProvider } from './StripeProvider'
 
@@ -24,7 +16,7 @@ export default function AddPaymentMethodModal(props: AddPaymentMethodModalProps)
   const { title, onSubmit, submitText } = props
 
   return (
-    <ariaComponents.Dialog title={title}>
+    <Dialog title={title}>
       <StripeProvider>
         {({ stripe, elements }) => (
           <AddPaymentMethodForm
@@ -35,6 +27,6 @@ export default function AddPaymentMethodModal(props: AddPaymentMethodModalProps)
           />
         )}
       </StripeProvider>
-    </ariaComponents.Dialog>
+    </Dialog>
   )
 }

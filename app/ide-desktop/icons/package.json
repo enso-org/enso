@@ -19,9 +19,9 @@
     "lint": "eslint . --cache --max-warnings=0"
   },
   "devDependencies": {
-    "sharp": "^0.31.2",
-    "to-ico": "^1.1.5",
     "@types/sharp": "^0.31.1",
-    "@types/to-ico": "^1.1.1"
+    "@types/to-ico": "^1.1.3",
+    "sharp": "^0.31.3",
+    "to-ico": "^1.1.5"
   }
 }

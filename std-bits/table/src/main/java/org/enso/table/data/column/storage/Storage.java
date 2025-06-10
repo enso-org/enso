@@ -2,136 +2,116 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.cast.CastProblemAggregator;
-import org.enso.table.data.column.operation.cast.StorageConverter;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
-public abstract class Storage<T> implements ColumnStorage {
-  /** A constant representing the index of a missing value in a column. */
-  public static final int NOT_FOUND_INDEX = -1;
-
-  /**
-   * @return the number of elements in this column (including NAs)
-   */
-  public abstract int size();
+public abstract class Storage<T> implements ColumnStorage<T> {
+  @Override
+  public abstract long getSize();
 
   @Override
-  public long getSize() {
-    return size();
-  }
-
-  @Override
-  public abstract StorageType getType();
-
-  /**
-   * @return the type of the values in this column's storage. Most storages just return their type.
-   *     Mixed storage will try to see if all elements fit some more precise type.
-   */
-  public StorageType inferPreciseType() {
-    return getType();
-  }
-
-  /**
-   * Returns the smallest type (according to Column.auto_value_type rules) that may still fit all
-   * values in this column.
-   *
-   * <p>It is a sibling of `inferPreciseType` that allows some further shrinking. It is kept
-   * separate, because `inferPreciseType` should be quick to compute (cached if needed) as it is
-   * used in typechecking of lots of operations. This one however, is only used in a specific
-   * `auto_value_type` use-case and rarely will need to be computed more than once.
-   */
-  public StorageType inferPreciseTypeShrunk() {
-    return getType();
-  }
-
-  /**
-   * Returns a more specialized storage, if available.
-   *
-   * <p>This storage should have the same type as returned by {@code inferPreciseType}. See {@link
-   * MixedStorage} for more information.
-   */
-  public Storage<?> tryGettingMoreSpecializedStorage() {
-    return this;
-  }
+  public abstract StorageType<T> getType();
 
   @Override
   public abstract boolean isNothing(long index);
 
+  @Override
+  public abstract T getItemBoxed(long index);
+
+  @Override
+  public Iterator<T> iterator() {
+    return new Iterator<>() {
+      private long index = -1;
+
+      @Override
+      public boolean hasNext() {
+        return index + 1 < getSize();
+      }
+
+      @Override
+      public T next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        return getItemBoxed(++index);
+      }
+    };
+  }
+
+  @Override
+  public ColumnStorageIterator<T> iteratorWithIndex() {
+    return new StorageIterator<>(this);
+  }
+
+  public static class StorageIterator<T> implements ColumnStorageIterator<T> {
+    protected final ColumnStorage<T> parent;
+    protected long index = -1;
+
+    public StorageIterator(ColumnStorage<T> parent) {
+      this.parent = parent;
+    }
+
+    @Override
+    public T getItemBoxed() {
+      return parent.getItemBoxed(index);
+    }
+
+    @Override
+    public boolean isNothing() {
+      return parent.isNothing(index);
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index + 1 < parent.getSize();
+    }
+
+    @Override
+    public T next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      return parent.getItemBoxed(++index);
+    }
+
+    @Override
+    public long getIndex() {
+      return index;
+    }
+
+    @Override
+    public boolean moveNext() {
+      if (!hasNext()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
+  }
+
   /**
-   * Returns a boxed representation of an item. Missing values are denoted with null.
-   *
-   * @param idx the index to look up
-   * @return the item at position {@code idx}
+   * @return the type of the values in this column's storage. Most storages just return their type.
+   *     Mixed storage will try to see if all elements fit some more precise type.
+   * @implNote The {@code PreciseTypeOptions.DEFAULT} should either be computable in constant time
+   *     or cache its result for subsequent calls, as it may be called often.
    */
-  public abstract T getItemBoxed(int idx);
-
-  /** A container for names of vectorizable operation. */
-  public static final class Maps {
-    public static final String EQ = "==";
-    public static final String LT = "<";
-    public static final String LTE = "<=";
-    public static final String GT = ">";
-    public static final String GTE = ">=";
-    public static final String MUL = "*";
-    public static final String ADD = "+";
-    public static final String SUB = "-";
-    public static final String DIV = "/";
-    public static final String MOD = "%";
-    public static final String POWER = "^";
-    public static final String ROUND = "round";
-    public static final String AND = "&&";
-    public static final String OR = "||";
-    public static final String STARTS_WITH = "starts_with";
-    public static final String ENDS_WITH = "ends_with";
-    public static final String TEXT_LEFT = "text_left";
-    public static final String TEXT_RIGHT = "text_right";
-    public static final String CONTAINS = "contains";
-    public static final String LIKE = "like";
-    public static final String IS_IN = "is_in";
-    public static final String MIN = "min";
-    public static final String MAX = "max";
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
+    return getType();
   }
-
-  /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
-  public abstract boolean isBinaryOpVectorized(String name);
-
-  /** Runs a vectorized operation on this storage, taking one scalar argument. */
-  public abstract Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator);
-
-  /* Specifies if the given ternary operation has a vectorized implementation available for this storage.*/
-  public boolean isTernaryOpVectorized(String name) {
-    return false;
-  }
-
-  /** Runs a vectorized operation on this storage, taking two scalar arguments. */
-  public Storage<?> runVectorizedTernaryMap(
-      String name,
-      Object argument0,
-      Object argument1,
-      MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalArgumentException("Unsupported ternary operation: " + name);
-  }
-
-  /**
-   * Runs a vectorized operation on this storage, taking a storage as the right argument -
-   * processing row-by-row.
-   */
-  public abstract Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator);
 
   /**
    * Runs a 2-argument function on each element in this storage.
@@ -148,23 +128,24 @@ public abstract class Storage<T> implements ColumnStorage {
       BiFunction<Object, Object, Object> function,
       Object argument,
       boolean skipNulls,
-      StorageType expectedResultType,
+      StorageType<?> expectedResultType,
       ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
+    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     if (skipNulls && argument == null) {
-      storageBuilder.appendNulls(size());
+      // ToDo: appendNulls should take a long, not an int. Should have a constant Storage for null.
+      storageBuilder.appendNulls((int) getSize());
       return storageBuilder.seal();
     }
 
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
         storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it, argument);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.appendNoGrow(converted);
+        storageBuilder.append(converted);
       }
 
       context.safepoint();
@@ -185,137 +166,24 @@ public abstract class Storage<T> implements ColumnStorage {
       BiFunction<Object, Object, Object> function,
       Storage<?> arg,
       boolean skipNa,
-      StorageType expectedResultType,
+      StorageType<?> expectedResultType,
       ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
+    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       Object it1 = getItemBoxed(i);
-      Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
+      Object it2 = i < arg.getSize() ? arg.getItemBoxed(i) : null;
       if (skipNa && (it1 == null || it2 == null)) {
         storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it1, it2);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.appendNoGrow(converted);
+        storageBuilder.append(converted);
       }
 
       context.safepoint();
     }
     return storageBuilder.seal();
-  }
-
-  /**
-   * Runs a binary operation with a scalar argument.
-   *
-   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not
-   *     available; it should never raise dataflow errors.
-   * @param argument the argument to pass to each run of the function
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedOrFallbackBinaryMap(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      BiFunction<Object, Object, Object> fallback,
-      Object argument,
-      boolean skipNulls,
-      StorageType expectedResultType) {
-    if (isBinaryOpVectorized(name)) {
-      return runVectorizedBinaryMap(name, argument, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
-    }
-  }
-
-  /**
-   * Runs a ternary operation with two scalar arguments.
-   *
-   * <p>Does not take a fallback function.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param argument0 the first argument to pass to each run of the function
-   * @param argument1 the second argument to pass to each run of the function
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedTernaryMap(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      Object argument0,
-      Object argument1,
-      boolean skipNulls,
-      StorageType expectedResultType) {
-    if (isTernaryOpVectorized(name)) {
-      return runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
-    } else {
-      throw new IllegalArgumentException("Unsupported ternary operation: " + name);
-    }
-  }
-
-  /**
-   * Runs a binary operation with a storage argument.
-   *
-   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not
-   *     available; it should never raise dataflow errors.
-   * @param other the other storage to zip with this one
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedOrFallbackZip(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      BiFunction<Object, Object, Object> fallback,
-      Storage<?> other,
-      boolean skipNulls,
-      StorageType expectedResultType) {
-    if (isBinaryOpVectorized(name)) {
-      return runVectorizedZip(name, other, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return zip(fallback, other, skipNulls, expectedResultType, problemAggregator);
-    }
-  }
-
-  private void checkFallback(Object fallback, StorageType storageType, String operationName)
-      throws IllegalArgumentException {
-    if (fallback == null) {
-      if (operationName == null) {
-        throw new IllegalArgumentException(
-            "A function or name of vectorized operation must be specified. This is a bug in the"
-                + " Table library.");
-      } else {
-        String className = this.getClass().getName();
-        throw new IllegalArgumentException(
-            "The operation "
-                + operationName
-                + " has no vectorized implementation for "
-                + className
-                + ", but no fallback function was provided. This is a bug in the Table library.");
-      }
-    }
-
-    if (storageType == null) {
-      throw new IllegalArgumentException(
-          "The expected result type must be specified if a fallback function is used. This is a bug"
-              + " in the Table library.");
-    }
   }
 
   /**
@@ -326,18 +194,13 @@ public abstract class Storage<T> implements ColumnStorage {
    * @return a new storage, with all missing elements replaced by arg
    */
   public Storage<?> fillMissing(
-      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
-    Builder builder = Builder.getForType(commonType, size(), problemAggregator);
+      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
+    Builder builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       Object it = getItemBoxed(i);
-      if (it == null) {
-        builder.appendNoGrow(convertedFallback);
-      } else {
-        builder.appendNoGrow(it);
-      }
-
+      builder.append(it == null ? convertedFallback : it);
       context.safepoint();
     }
 
@@ -352,19 +215,13 @@ public abstract class Storage<T> implements ColumnStorage {
    * @return a new storage with missing values filled
    */
   public Storage<?> fillMissingFrom(
-      Storage<?> other, StorageType commonType, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForType(commonType, size(), problemAggregator);
+      Storage<?> other, StorageType<?> commonType, ProblemAggregator problemAggregator) {
+    var builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      if (isNothing(i)) {
-        builder.appendNoGrow(other.getItemBoxed(i));
-      } else {
-        builder.appendNoGrow(getItemBoxed(i));
-      }
-
+    for (long i = 0; i < getSize(); i++) {
+      builder.append(isNothing(i) ? other.getItemBoxed(i) : getItemBoxed(i));
       context.safepoint();
     }
-
     return builder.seal();
   }
 
@@ -402,19 +259,9 @@ public abstract class Storage<T> implements ColumnStorage {
   public abstract Storage<T> slice(int offset, int limit);
 
   /**
-   * @return a new storage instance, containing the same elements as this one, with {@code count}
-   *     nulls appended at the end
-   */
-  public abstract Storage<?> appendNulls(int count);
-
-  /**
    * @return a copy of the storage consisting of slices of the original data
    */
   public abstract Storage<T> slice(List<SliceRange> ranges);
-
-  public List<Object> toList() {
-    return new StorageListView(this);
-  }
 
   /**
    * Counts the number of times each value has been seen before in this storage.
@@ -422,27 +269,45 @@ public abstract class Storage<T> implements ColumnStorage {
    * @return a storage counting the number of times each value in this one has been seen before.
    */
   public Storage<?> duplicateCount() {
-    long[] data = new long[size()];
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    var builder =
+        Builder.getForLong(IntegerType.INT_64, getSize(), BlackholeProblemAggregator.INSTANCE);
+    for (long i = 0; i < getSize(); i++) {
       var value = getItemBoxed(i);
       var count = occurenceCount.getOrDefault(value, 0);
-      data[i] = count;
+      builder.appendLong(count);
       occurenceCount.put(value, count + 1);
       context.safepoint();
     }
-    return new LongStorage(data, IntegerType.INT_64);
+    return builder.seal();
   }
 
-  public final Storage<?> cast(
-      StorageType targetType, CastProblemAggregator castProblemAggregator) {
-    StorageConverter<?> converter = StorageConverter.fromStorageType(targetType);
-    return converter.cast(this, castProblemAggregator);
-  }
+  /** Creates a storage containing a single repeated item. */
+  public static Storage<?> fromRepeatedItem(
+      Value item, int repeat, ProblemAggregator problemAggregator) {
+    if (repeat < 0) {
+      throw new IllegalArgumentException("Repeat count must be non-negative.");
+    }
 
-  @Override
-  public Object getItemAsObject(long index) {
-    return getItemBoxed((int) index);
+    Object converted = Polyglot_Utils.convertPolyglotValue(item);
+
+    if (converted == null) {
+      return new NullStorage(repeat);
+    }
+
+    if (converted instanceof Long longValue) {
+      return new LongConstantStorage(longValue, repeat);
+    }
+
+    var storageType = StorageType.forBoxedItem(converted, PreciseTypeOptions.DEFAULT);
+    Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < repeat; i++) {
+      builder.append(converted);
+      context.safepoint();
+    }
+
+    return builder.seal();
   }
 }

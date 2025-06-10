@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 
 /** An implementation of the case expression specialised to working on types. */
@@ -33,7 +34,13 @@ public class CatchTypeBranchNode extends BranchNode {
   }
 
   public void execute(VirtualFrame frame, Object state, Object value) {
-    if (profile.profile(isValueOfTypeNode.execute(expectedType, value))) {
+    if (profile.profile(isValueOfTypeNode.execute(expectedType, value, true))) {
+      if (value instanceof EnsoMultiValue multi) {
+        var replacement =
+            EnsoMultiValue.CastToNode.getUncached().findTypeOrNull(expectedType, multi, true, true);
+        assert replacement != null : "Must find the type, when isValueOfTypeNode is true";
+        value = replacement;
+      }
       accept(frame, state, new Object[] {value});
     }
   }

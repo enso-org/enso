@@ -2,6 +2,7 @@ import org.enso.runner.common.LanguageServerApi;
 
 module org.enso.language.server {
   requires java.logging;
+  requires java.management;
   requires scala.library;
 
   requires commons.cli;
@@ -36,9 +37,8 @@ module org.enso.language.server {
   requires org.enso.version.output;
   requires org.enso.text.buffer;
   requires org.enso.task.progress.notifications;
-  requires org.enso.ydoc;
+  requires org.enso.ydoc.polyfill;
 
-  exports org.enso.languageserver.boot;
   exports org.enso.languageserver.filemanager to scala.library;
   exports org.enso.languageserver.runtime to scala.library;
   exports org.enso.languageserver.search to scala.library;

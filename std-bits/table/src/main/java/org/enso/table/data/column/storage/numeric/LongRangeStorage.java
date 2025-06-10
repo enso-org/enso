@@ -17,13 +17,13 @@ public class LongRangeStorage extends ComputedLongStorage {
 
   @SuppressWarnings("unused")
   private void verifyBounds() throws ArithmeticException {
-    long lastIdx = size - 1;
+    long lastIdx = getSize() - 1;
     // Computing this value will throw an exception if it overflows.
     long lastValue = Math.addExact(start, Math.multiplyExact(step, lastIdx));
   }
 
   @Override
-  protected long computeItem(int idx) {
+  protected long computeItem(long idx) {
     return start + idx * step;
   }
 }

@@ -10,11 +10,10 @@ public final class CloudAPI {
    * <p>It always ends with a slash.
    */
   public static String getAPIRootURI() {
-    var envUri = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URI");
-    var effectiveUri =
-        envUri == null ? "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/" : envUri;
-    var uriWithSlash = effectiveUri.endsWith("/") ? effectiveUri : effectiveUri + "/";
-    return uriWithSlash;
+    var envUrl = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URL");
+    var effectiveUrl = envUrl == null ? "https://api.cloud.enso.org/" : envUrl;
+    var urlWithSlash = effectiveUrl.endsWith("/") ? effectiveUrl : effectiveUrl + "/";
+    return urlWithSlash;
   }
 
   /**
@@ -36,9 +35,9 @@ public final class CloudAPI {
   }
 
   public static void flushCloudCaches() {
-    CloudRequestCache.clear();
-    AuthenticationProvider.reset();
-    EnsoSecretReader.flushCache();
+    CloudRequestCache.INSTANCE.clear();
+    AuthenticationProvider.INSTANCE.reset();
+    EnsoSecretReader.INSTANCE.flushCache();
     AuditLog.resetCache();
   }
 }

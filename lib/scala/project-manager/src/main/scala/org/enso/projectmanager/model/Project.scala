@@ -16,8 +16,10 @@ import java.util.UUID
   * @param kind a project kind
   * @param created a project creation time
   * @param edition the edition configuration associated with the project
-  * @param lastOpened a project last open time
+  * @param jvmModeEnabled should the JVM mode be enabled for the project
   * @param path a path to the project structure
+  * @param lastOpened a project last open time
+  * @param directoryCreationTime a project's directory creation time
   */
 case class Project(
   id: UUID,
@@ -27,7 +29,11 @@ case class Project(
   kind: ProjectKinds.ProjectKind,
   created: OffsetDateTime,
   edition: Option[Editions.RawEdition],
+  jvmModeEnabled: Option[Boolean],
   path: File,
   lastOpened: Option[OffsetDateTime]      = None,
   directoryCreationTime: Option[FileTime] = None
-)
+) {
+
+  def isJvmModeEnabled(): Boolean = jvmModeEnabled.getOrElse(false)
+}

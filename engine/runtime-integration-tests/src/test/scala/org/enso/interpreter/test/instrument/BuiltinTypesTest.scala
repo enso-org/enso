@@ -38,6 +38,7 @@ class BuiltinTypesTest
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(
@@ -59,9 +60,6 @@ class BuiltinTypesTest
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 
-    def writeMain(contents: String): File =
-      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
-
     def writeFile(file: File, contents: String): File =
       Files.write(file.toPath, contents.getBytes).toFile
 
@@ -70,16 +68,11 @@ class BuiltinTypesTest
       Files.write(file.toPath, contents.getBytes).toFile
     }
 
-    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
-
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
       result.linesIterator.toList
     }
-
-    def executionComplete(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionComplete(contextId))
   }
 
   override protected def beforeEach(): Unit = {
@@ -543,6 +536,70 @@ class BuiltinTypesTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send updates of an intersection type" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(46, 3, "aa")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = foo
+        |    x
+        |
+        |foo : Text & Integer
+        |foo = (42 : Text & Integer)
+        |
+        |Text.from that:Integer = that.to_text
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.updateMultiType(
+        contextId,
+        id_x,
+        Vector(ConstantsGen.TEXT, ConstantsGen.INTEGER),
+        methodCall =
+          Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")))
+      ),
       context.executionComplete(contextId)
     )
   }

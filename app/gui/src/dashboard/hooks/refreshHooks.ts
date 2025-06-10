@@ -1,10 +1,6 @@
 /** @file A hook to trigger React re-renders. */
 import * as React from 'react'
 
-// ==================
-// === useRefresh ===
-// ==================
-
 // This must not be a `symbol` as it cannot be sent to Playright.
 /** The type of the state returned by {@link useRefresh}. */
 export interface RefreshState {}

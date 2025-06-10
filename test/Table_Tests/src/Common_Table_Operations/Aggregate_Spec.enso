@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
+import Standard.Base.Errors.Common.Missing_Argument
 
-from Standard.Table import Table, Sort_Column, expr
+from Standard.Table import Table, Sort_Column, Value_Type, expr
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
@@ -57,8 +58,8 @@ add_aggregate_specs suite_builder setup =
     table_builder = setup.table_builder
     data = Data.setup table_fn empty_table_fn
 
-    expect_column_names names table =
-        table.columns . map .name . should_equal names frames_to_skip=3
+    expect_column_names names table = Frame_Hider.hide <|
+        table.columns . map .name . should_equal names
 
     find_row key table (columns=Nothing) =
         table_columns = if columns.is_nothing then table.columns else columns.map x->(table.columns.at x)
@@ -934,6 +935,93 @@ add_aggregate_specs suite_builder setup =
                 materialized.columns.at 1 . name . should_equal "Shortest B"
                 materialized.columns.at 1 . to_vector . should_equal ["f"]
 
+    suite_builder.group prefix+"Table.aggregate Sum" group_builder->
+        # The types of aggregates are only tested in-memory, in DB they will depend on each backend
+        if setup.is_database.not then group_builder.specify "should return an Integer column when summing an Integer input" <|
+            table = table_builder [["int_column", [1, 2, 3, 4, 5, 6, 7]]]
+            table.at "int_column" . value_type . should_equal Value_Type.Integer
+
+            result = table.aggregate [] [Sum "int_column"]
+            within_table result <|
+                result.row_count . should_equal 1
+                materialized = materialize result
+                Problems.assume_no_problems materialized
+                materialized.column_count . should_equal 1
+                materialized.columns.at 0 . name . should_equal "Sum int_column"
+                materialized.columns.at 0 . to_vector . should_equal [28]
+                materialized.columns.at 0 . value_type . should_equal Value_Type.Integer
+
+            table2 = table_builder [["int_column", [31000, 31000, 31000, 31000, 31000]]]
+                . cast "int_column" (Value_Type.Integer ..Bits_16)
+            table2.at "int_column" . value_type . should_equal (Value_Type.Integer ..Bits_16)
+
+            result2 = table2.aggregate [] [Sum "int_column"]
+            within_table result2 <|
+                result2.row_count . should_equal 1
+                materialized2 = materialize result2
+                Problems.assume_no_problems materialized2
+                materialized2.column_count . should_equal 1
+                materialized2.columns.at 0 . name . should_equal "Sum int_column"
+                materialized2.columns.at 0 . to_vector . should_equal [5*31000]
+                materialized2.columns.at 0 . value_type . should_be_a (Value_Type.Integer ...)
+
+        if setup.is_database.not then group_builder.specify "should return a Decimal column when the sum overflows 64-bit Integers" <|
+            table = table_builder [["int_column", [2^62, 2^62, 2^62, 2^62, 2^62, 2^62, 2^62, 1, 2, 4]], ["group", ["big", "big", "big", "big", "big", "big", "big", "small", "small", "small"]]]
+            table.at "int_column" . value_type . should_equal Value_Type.Integer
+
+            result = table.aggregate [] [Sum "int_column"]
+            within_table result <|
+                result.row_count . should_equal 1
+                materialized = materialize result
+                Problems.assume_no_problems materialized
+                materialized.column_count . should_equal 1
+                materialized.columns.at 0 . name . should_equal "Sum int_column"
+                materialized.columns.at 0 . to_vector . should_equal [((2^62) * 7) + 7]
+                materialized.columns.at 0 . value_type . should_be_a (Value_Type.Decimal ...)
+
+            result2 = table.aggregate ["group"] [Sum "int_column"] . sort "group"
+            within_table result2 <|
+                result2.row_count . should_equal 2
+                materialized2 = materialize result2
+                Problems.assume_no_problems materialized2
+                materialized2.column_count . should_equal 2
+                materialized2.columns.at 0 . name . should_equal "group"
+                materialized2.columns.at 0 . to_vector . should_equal ["big", "small"]
+                materialized2.columns.at 1 . name . should_equal "Sum int_column"
+                materialized2.columns.at 1 . to_vector . should_equal [(2^62) * 7, 7]
+                materialized2.columns.at 1 . value_type . should_be_a (Value_Type.Decimal ...)
+
+        if setup.is_database.not then group_builder.specify "should allow to sum big-integer column" <|
+            table = table_builder [["big_column", [2^100, 2^70]]]
+            table.at "big_column" . value_type . should_be_a (Value_Type.Decimal ...)
+            result = table.aggregate [] [Sum "big_column"]
+            within_table result <|
+                result.row_count . should_equal 1
+                materialized = materialize result
+                Problems.assume_no_problems materialized
+                materialized.column_count . should_equal 1
+                materialized.columns.at 0 . name . should_equal "Sum big_column"
+                materialized.columns.at 0 . to_vector . should_equal [2^100 + 2^70]
+                materialized.columns.at 0 . value_type . should_be_a (Value_Type.Decimal ...)
+
+    suite_builder.group prefix+"Table.aggregate Average" group_builder->
+        # The types of aggregates are only tested in-memory, in DB they will depend on each backend
+        if setup.is_database.not then group_builder.specify "should return a Decimal column when input is Decimal" <|
+            table = table_builder [["X", [2^62, 2^62, 2^62, 2^62]]]
+                . cast "X" (Value_Type.Decimal scale=0)
+            table.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            result = table.aggregate [] [Average "X"]
+            within_table result <|
+                result.row_count . should_equal 1
+                materialized = materialize result
+                Problems.assume_no_problems materialized
+                materialized.column_count . should_equal 1
+                materialized.columns.at 0 . name . should_equal "Average X"
+                materialized.columns.at 0 . to_vector . should_equal [2^62]
+                materialized.columns.at 0 . value_type . should_be_a (Value_Type.Decimal ...)
+
+                # Map to text to ensure that the equality is _exact_ and does not rely on Float rounding
+                materialized.columns.at 0 . to_vector . map .to_text . should_equal [(2^62).to_text]
 
     # Special case for Snowflake until the https://github.com/enso-org/enso/issues/10412 ticket is resolved.
     if setup.prefix.contains "Snowflake" then
@@ -1019,10 +1107,10 @@ add_aggregate_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.aggregate Count_Distinct" group_builder->
         group_builder.specify "should correctly count missing values" <|
-            get_value t =
+            get_value t = Frame_Hider.hide <|
                 columns = materialize t . columns
-                columns.length . should_equal 1 frames_to_skip=1
-                columns.first.length  . should_equal 1 frames_to_skip=1
+                columns.length . should_equal 1
+                columns.first.length  . should_equal 1
                 columns.first . at 0
 
             ## TODO currently our builder does not allow all-null tables, so we
@@ -1166,16 +1254,15 @@ add_aggregate_specs suite_builder setup =
             m1.columns.first.at 0 . should_equal 1.1180339887499 epsilon=0.000001
             m1.columns.second.at 0 . should_equal 1.2909944487358 epsilon=0.000001
 
-    expect_null_or_nan value =
+    expect_null_or_nan value = Frame_Hider.hide <|
         matches = case value of
             Nothing -> True
             _ : Float -> Double.isNaN value
             _       -> False
         if matches.not then
-            loc = Meta.get_source_location 2
-            Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+loc+")."
+            Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
-    suite_builder.group prefix+"Table.aggregate should correctly handle infinities" group_builder->
+    if setup.flagged ..Supports_Infinity then suite_builder.group prefix+"Table.aggregate should correctly handle infinities" group_builder->
         pos_inf = 1/0
         neg_inf = -1/0
 
@@ -1254,7 +1341,7 @@ add_aggregate_specs suite_builder setup =
             expect_null_or_nan <| m1.columns.first.at 0
             expect_null_or_nan <| m1.columns.second.at 0
 
-    suite_builder.group prefix+"Table.aggregate should correctly handle NaN" pending=(resolve_pending test_selection.nan) group_builder->
+    if setup.flagged ..Supports_Separate_NaN then suite_builder.group prefix+"Table.aggregate should correctly handle NaN" pending=(resolve_pending test_selection.nan) group_builder->
         nan = 0.log 0
         group_builder.specify "on Average" <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
@@ -1472,7 +1559,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
             action1 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[MISSING]*[MISSING]")] on_problems=_
-            tester1 = expect_column_names ["Index", "Sum Value"]
+            tester1 t = expect_column_names ["Index", "Sum Value"] t
             problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
             Problems.test_problem_handling action1 problems1 tester1
 
@@ -1498,7 +1585,7 @@ add_aggregate_specs suite_builder setup =
         group_builder.specify "should fail if there are no output columns, and promote any warnings to errors" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+": " <|
                 t1 = table.aggregate [] on_problems=pb
-                t1.should_fail_with No_Output_Columns
+                t1.should_fail_with Missing_Argument
 
             t2 = table.aggregate columns=[Sum "MISSING"]
             t2.should_fail_with Invalid_Aggregate_Column
@@ -1536,7 +1623,7 @@ add_aggregate_specs suite_builder setup =
 
             action2 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=_
             problems2 = [Missing_Input_Columns.Error [42]]
-            tester2 = expect_column_names ["Index", "Sum Value"]
+            tester2 t = expect_column_names ["Index", "Sum Value"] t
             Problems.test_problem_handling action2 problems2 tester2
 
             # As above, missing errors from group-by take precedence over aggregates.
@@ -1550,31 +1637,31 @@ add_aggregate_specs suite_builder setup =
         group_builder.specify "should raise a warning when a duplicate column name" <|
             action = table.aggregate ["Index", 0] [] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["Index"]]
-            tester = expect_column_names ["Index", "Index 1"]
+            tester t = expect_column_names ["Index", "Index 1"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should raise a warning when a duplicate column name and rename default names first" <|
             action = table.aggregate ["Value"] [Sum "Index" "Value"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["Value"]]
-            tester = expect_column_names ["Value 1", "Value"]
+            tester t = expect_column_names ["Value 1", "Value"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should raise a warning when duplicate column names" <|
             action = table.aggregate columns=[Sum "Value" as="AGG1", Count as="AGG1"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["AGG1"]]
-            tester = expect_column_names ["AGG1", "AGG1 1"]
+            tester t = expect_column_names ["AGG1", "AGG1 1"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should allow partial matches on Count_Distinct" <|
             action = table.aggregate columns=[Count_Distinct ["Missing", "Value"]] on_problems=_
             problems = [Missing_Input_Columns.Error ["Missing"]]
-            tester = expect_column_names ["Count Distinct Value"]
+            tester t = expect_column_names ["Count Distinct Value"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should ignore Count_Distinct if no columns matched" <|
             action = table.aggregate columns=[Count_Distinct [-100], Count] on_problems=_
             problems = [Missing_Input_Columns.Error [-100]]
-            tester = expect_column_names ["Count"]
+            tester t = expect_column_names ["Count"] t
             Problems.test_problem_handling action problems tester
 
     suite_builder.group prefix+"Table.aggregate should report warnings and errors based on types" group_builder->
@@ -1582,7 +1669,7 @@ add_aggregate_specs suite_builder setup =
             t = table_builder [["X", [1.1, 2.2, 3.3, 2.2]]]
             action = t.aggregate ["X"] on_problems=_
             problems = [Floating_Point_Equality.Error "X"]
-            tester = expect_column_names ["X"]
+            tester t = expect_column_names ["X"] t
             Problems.test_problem_handling action problems tester
 
         case test_selection.advanced_stats of
@@ -1591,7 +1678,7 @@ add_aggregate_specs suite_builder setup =
                     t = table_builder [["X", [1.5, 2.0, 1.5, 1.0]]]
                     action = t.aggregate columns=[Mode "X"] on_problems=_
                     problems = [Floating_Point_Equality.Error "Mode X"]
-                    tester = expect_column_names ["Mode X"]
+                    tester t = expect_column_names ["Mode X"] t
                     Problems.test_problem_handling action problems tester
             False ->
                 group_builder.specify "should error if unsupported operations are selected" <|
@@ -1658,7 +1745,7 @@ add_aggregate_specs suite_builder setup =
             column = Concatenate "Text" separator=","
             action = table.aggregate columns=[column] on_problems=_
             problems = [Unquoted_Delimiter.Error "Concatenate Text" [1]]
-            tester = expect_column_names ["Concatenate Text"]
+            tester t = expect_column_names ["Concatenate Text"] t
             Problems.test_problem_handling action problems tester
 
     suite_builder.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) group_builder->
@@ -1703,7 +1790,7 @@ add_aggregate_specs suite_builder setup =
                     table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
                     order = [Sort_Column.Name "A"]
                     expect_sum_and_unsupported_errors 2 <|
-                        table.aggregate columns=[Sum "X", First ignore_nothing=False "X" (order_by=order), Last ignore_nothing=False "X" (order_by=order)]
+                        table.aggregate columns=[Sum "X", First "X" ignore_nothing=False order_by=order, Last "X" ignore_nothing=False order_by=order] on_problems=..Report_Warning
 
             if test_selection.first_last_ignore_nothing.not then
                 group_builder.specify "with First and Last with ignore_nothing=True" <|
@@ -1730,7 +1817,7 @@ add_aggregate_specs suite_builder setup =
                     expect_sum_and_unsupported_errors 2 <|
                         table.aggregate columns=[Sum "X", Shortest "Y", Longest "Y"]
 
-            if test_selection.text_concat.not && (setup.prefix.contains "Snowflake" . not) then
+            if test_selection.text_concat.not && (setup.prefix.contains "Snowflake" . not && setup.prefix.contains "SQLServer" . not) then
                 group_builder.specify "with Concatenate" <|
                     table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
                     expect_sum_and_unsupported_errors 1 <|

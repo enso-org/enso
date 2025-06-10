@@ -10,7 +10,6 @@ import org.enso.distribution.locking.{
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
-import org.enso.filewatcher.WatcherAdapterFactory
 import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.languageserver.capability.CapabilityRouter
@@ -49,6 +48,8 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.common.RuntimeOptions
 import org.enso.common.ContextFactory
+import org.enso.common.HostEnsoUtils
+import org.enso.filewatcher.WatcherFactory
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
@@ -57,9 +58,10 @@ import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.enso.version.BuildVersion
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
-import org.slf4j.LoggerFactory
+import org.slf4j.{LoggerFactory, MDC}
 
 import java.io.{File, PrintStream}
+import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
@@ -80,7 +82,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     logLevel
   )
 
-  private val ydocSupervisor    = new ComponentSupervisor()
+  initialTelemetry()
+
   private val contextSupervisor = new ComponentSupervisor()
   private val utcClock          = Clock.systemUTC()
 
@@ -258,7 +261,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       ReceivesTreeUpdatesHandler.props(
         languageServerConfig,
         contentRootManagerWrapper,
-        new WatcherAdapterFactory,
+        WatcherFactory.createDefault(),
         fileSystem,
         zioExec
       ),
@@ -306,7 +309,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
   val extraOptions = new java.util.HashMap[String, String]()
-  extraOptions.put(RuntimeServerInfo.ENABLE_OPTION, "true")
   extraOptions.put(RuntimeOptions.INTERACTIVE_MODE, "true")
   extraOptions.put(
     RuntimeOptions.LOG_MASKING,
@@ -318,17 +320,24 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     Runtime.getRuntime.availableProcessors().toString
   )
 
-  val builder = ContextFactory
+  if (HostEnsoUtils.isAot()) {
+    log.info("Running Language Server in AOT mode")
+  } else {
+    log.info("Running Language Server in JVM mode")
+  }
+
+  private val builder = ContextFactory
     .create()
     .projectRoot(serverConfig.contentRootPath)
     .logLevel(logLevel)
     .strictErrors(false)
-    .disableLinting(false)
     .enableIrCaches(true)
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
+    .disableLinting(true)
+    .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
@@ -393,7 +402,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     localLibraryManager      = localLibraryManager,
     editionReferenceResolver = editionReferenceResolver,
     editionManager           = editionManager,
-    localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
+    localLibraryProvider =
+      DefaultLocalLibraryProvider.make(libraryLocations, HostEnsoUtils.isAot()),
     publishedLibraryCache =
       PublishedLibraryCache.makeReadOnlyCache(libraryLocations),
     installerConfig = LibraryInstallerConfig(
@@ -434,8 +444,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       suggestionsRepo,
       builder,
       contextSupervisor,
-      zioRuntime,
-      ydocSupervisor
+      zioRuntime
     )(system.dispatcher)
 
   private val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
@@ -509,8 +518,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     suggestionsRepo.close()
     contextSupervisor.close()
     runtimeEventsMonitor.close()
-    ydocSupervisor.close()
     log.info("Stopped Language Server")
+    MDC.remove("project.id")
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {
@@ -520,5 +529,35 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       .withFallback(empty)
       .getConfig("akka")
       .getConfig("https")
+  }
+
+  private def initialTelemetry(): Unit = {
+    val telemetryLog =
+      LoggerFactory.getLogger(
+        "org.enso.telemetry.languageserver.boot.MainModule"
+      )
+    val osBean     = ManagementFactory.getOperatingSystemMXBean
+    val mServer    = ManagementFactory.getPlatformMBeanServer
+    val memoryBean = ManagementFactory.getMemoryMXBean
+    val maxHeapMB  = (memoryBean.getHeapMemoryUsage.getMax / 1024) / 1024
+    val totalMem = mServer
+      .getAttribute(osBean.getObjectName, "TotalPhysicalMemorySize")
+      .asInstanceOf[Long]
+    val totalMemMB = totalMem / 1024 / 1024
+    ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
+    telemetryLog.trace(
+      "Initializing main module of the Language Server: edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}, os_name={}, os_arch={}, os_version={}, available_cpus={}, total_memory_MB={}, available_memory_MB={}",
+      BuildVersion.currentEdition(),
+      BuildVersion.graalVersion(),
+      BuildVersion.ensoVersion(),
+      BuildVersion.isRelease,
+      HostEnsoUtils.isAot,
+      osBean.getName,
+      osBean.getArch,
+      osBean.getVersion,
+      osBean.getAvailableProcessors,
+      totalMemMB,
+      maxHeapMB
+    )
   }
 }

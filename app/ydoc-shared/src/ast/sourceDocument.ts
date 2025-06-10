@@ -1,11 +1,14 @@
 import { assertDefined } from '../util/assert'
-import type { SourceRangeEdit } from '../util/data/text'
-import { offsetEdit, textChangeToEdits } from '../util/data/text'
-import type { Origin, SourceRange } from '../yjsModel'
-import { rangeEquals, sourceRangeFromKey } from '../yjsModel'
-import type { Module, ModuleUpdate } from './mutableModule'
+import {
+  SourceRange,
+  SourceRangeEdit,
+  sourceRangeFromKey,
+  textChangeToEdits,
+} from '../util/data/text'
+import { type Origin } from '../yjsModel'
+import { type Module, type ModuleUpdate } from './mutableModule'
 import { printWithSpans } from './print'
-import type { AstId } from './tree'
+import { type AstId } from './tree'
 
 /**
  * Provides a view of the text representation of a module,
@@ -31,10 +34,12 @@ export class SourceDocument {
   /** Reset this {@link SourceDocument} to an empty state. */
   clear() {
     if (this.state.spans.size !== 0) this.state.spans.clear()
-    if (this.state.text !== '') {
-      const range: SourceRange = [0, this.state.text.length]
+    if (this.state.text.length !== 0) {
+      const textEdit = SourceRangeEdit.delete(
+        SourceRange.fromStartAndLength(0, this.state.text.length),
+      )
       this.state.text = ''
-      this.notifyObservers([{ range, insert: '' }], undefined)
+      this.notifyObservers([textEdit], undefined)
     }
   }
 
@@ -49,13 +54,13 @@ export class SourceDocument {
       const range = sourceRangeFromKey(key)
       for (const node of nodes) {
         const oldSpan = this.rawState.spans.get(node.id)
-        if (!oldSpan || !rangeEquals(range, oldSpan)) this.state.spans.set(node.id, range)
+        if (!oldSpan || !range.rangeEquals(oldSpan)) this.state.spans.set(node.id, range)
         if (update.updateRoots.has(node.id) && node.id !== root.id) {
           assertDefined(oldSpan)
-          const oldCode = this.rawState.text.slice(oldSpan[0], oldSpan[1])
-          const newCode = printed.code.slice(range[0], range[1])
-          const subedits = textChangeToEdits(oldCode, newCode).map(textEdit =>
-            offsetEdit(textEdit, oldSpan[0]),
+          const oldCode = this.rawState.text.slice(oldSpan.from, oldSpan.to)
+          const newCode = printed.code.slice(range.from, range.to)
+          const subedits = textChangeToEdits(oldCode, newCode).map((textEdit) =>
+            textEdit.withRange(textEdit.range.shift(oldSpan.from)),
           )
           subtreeTextEdits.push(...subedits)
         }
@@ -64,7 +69,12 @@ export class SourceDocument {
     if (printed.code !== this.rawState.text) {
       const textEdits =
         update.updateRoots.has(root.id) ?
-          [{ range: [0, this.rawState.text.length] satisfies SourceRange, insert: printed.code }]
+          [
+            SourceRangeEdit.replace(
+              SourceRange.fromStartAndLength(0, this.rawState.text.length),
+              printed.code,
+            ),
+          ]
         : subtreeTextEdits
       this.state.text = printed.code
       this.notifyObservers(textEdits, update.origin)
@@ -85,7 +95,7 @@ export class SourceDocument {
   observe(observer: SourceDocumentObserver) {
     this.observers.push(observer)
     if (this.rawState.text.length)
-      observer([{ range: [0, 0], insert: this.rawState.text }], undefined)
+      observer([SourceRangeEdit.replace(SourceRange.empty, this.rawState.text)], undefined)
   }
 
   /** Remove a callback to no longer be called with a list of edits on every update. */
@@ -94,10 +104,7 @@ export class SourceDocument {
     if (index !== undefined) this.observers.splice(index, 1)
   }
 
-  private notifyObservers(
-    textEdits: ReadonlyArray<Readonly<SourceRangeEdit>>,
-    origin: Origin | undefined,
-  ) {
+  private notifyObservers(textEdits: ReadonlyArray<SourceRangeEdit>, origin: Origin | undefined) {
     for (const o of this.observers) o(textEdits, origin)
   }
 }
@@ -108,6 +115,6 @@ export interface SourceDocumentState {
 }
 
 export type SourceDocumentObserver = (
-  textEdits: ReadonlyArray<Readonly<SourceRangeEdit>>,
+  textEdits: ReadonlyArray<SourceRangeEdit>,
   origin: Origin | undefined,
 ) => void

@@ -5,7 +5,17 @@ import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.Source;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Random;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Function;
 import java.util.logging.Level;
+import org.enso.runtime.utils.ThreadUtils;
+import org.enso.ydoc.polyfill.ParserPolyfill;
+import org.enso.ydoc.polyfill.web.WebEnvironment;
+import org.graalvm.polyglot.Value;
 
 /**
  * A context for {@link EpbLanguage}. Provides access to both isolated Truffle contexts used in
@@ -21,6 +31,8 @@ final class EpbContext {
   private final TruffleLanguage.Env env;
   private @CompilationFinal TruffleContext innerContext;
   private final TruffleLogger log;
+  private final Random delayer = new Random();
+  private boolean polyfillInitialized;
 
   /**
    * Creates a new instance of this context.
@@ -46,6 +58,7 @@ final class EpbContext {
             env.newInnerContextBuilder()
                 .initializeCreatorContext(true)
                 .inheritAllAccess(true)
+                .threadAccessDeniedHandler(this::handleMultiAccess)
                 .config(INNER_OPTION, "yes")
                 .build();
       }
@@ -74,5 +87,46 @@ final class EpbContext {
 
   public void log(Level level, String msg, Object... args) {
     this.log.log(level, msg, args);
+  }
+
+  final void initializePolyfill(Node node, TruffleContext ctx) {
+    if (!polyfillInitialized) {
+      var parserPolyfill = new ParserPolyfill();
+      polyfillInitialized = true;
+      var ensoLanguage = getEnv().getInternalLanguages().get("enso");
+      var exec = getEnv().lookup(ensoLanguage, ScheduledExecutorService.class);
+      assert exec != null : "Need executor from " + ensoLanguage;
+      Function<URL, Value> eval =
+          (url) -> {
+            try {
+              var src = Source.newBuilder("js", url).build();
+              var obj = ctx.evalPublic(node, src);
+              return Value.asValue(obj);
+            } catch (IOException ex) {
+              throw new IllegalStateException(ex);
+            }
+          };
+      WebEnvironment.initialize(eval, exec);
+      parserPolyfill.initialize(eval);
+    }
+  }
+
+  final void handleMultiAccess(String msg) {
+    try {
+      var ms = delayer.nextInt(10, 1000);
+      // dump stack when assertions on
+      assert dumpStack(ms);
+      Thread.sleep(ms);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private boolean dumpStack(int ms) {
+    var msg =
+        ThreadUtils.dumpAllStacktraces(
+            "Polyglot access failed. Waiting " + ms + " ms. Thread dump:");
+    log(Level.WARNING, msg);
+    return true;
   }
 }

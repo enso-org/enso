@@ -1,0 +1,44 @@
+load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_test")
+load("@vaticle_bazel_distribution//maven:rules.bzl", "assemble_maven")
+
+scala_library(
+    name = "cli",
+    srcs = glob(["src/main/scala/**/*.scala"]),
+    tags = [
+        "maven_coordinates=org.enso:cli:{pom_version}",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@maven//:com_typesafe_scala_logging_scala_logging_2_13",
+        "@maven//:org_typelevel_cats_core_2_13",
+        "@maven//:org_typelevel_cats_kernel_2_13",
+        "@maven//:io_circe_circe_core_2_13",
+        "@maven//:org_slf4j_slf4j_api",
+        ##"@maven//:org_scala_lang_scala_library",
+    ],
+)
+
+scala_test(
+    name = "tests",
+    srcs = glob(["src/test/scala/**/*.scala"]),
+    tags = ["unit"],
+    deps = [
+        ":cli",
+        "@maven//:org_scala_lang_scala_library",
+        "@maven//:org_scalactic_scalactic_2_13",
+        "@maven//:org_scalatest_scalatest_compatible",
+        "@maven//:org_scalatest_scalatest_core_2_13",
+        "@maven//:org_scalatest_scalatest_wordspec_2_13",
+        "@maven//:org_typelevel_cats_core_2_13",
+        "@maven//:org_typelevel_cats_kernel_2_13",
+    ],
+)
+
+assemble_maven(
+    name = "assemble_maven",
+    project_description = "Project description STUB",
+    project_name = "Enso CLI",
+    project_url = "https://enso.org",
+    target = ":cli",
+    workspace_refs = "@enso_org_enso_workspace_refs//:refs.json",
+)

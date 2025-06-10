@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "get_simple_type_name",
+    name = "simple_name_builtin",
     description = "Pretty prints a type.",
     autoRegister = false)
 public class GetSimpleTypeNameNode extends Node {

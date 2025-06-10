@@ -1,0 +1,23 @@
+from Standard.Base import all
+from Standard.Test import all
+
+import Standard.Visualization.Widgets
+
+from Standard.Base.Widget_Helpers import all
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+
+add_specs suite_builder =
+    suite_builder.group "Widget_Helpers run" group_builder->
+        group_builder.specify "make_regex_text_widget" <|
+            w = make_regex_text_widget
+            j = (Widgets.get_widget_json w) . to_text
+            j.should_contain "Option '<Leading_Whitespace>' 'Named_Pattern.Leading_Whitespace' [] ''"
+        group_builder.specify "make_data_cleanse_vector_selector" <|
+            w = make_data_cleanse_vector_selector
+            j = (Widgets.get_widget_json w) . to_text
+            j.should_contain "Option 'Leading_Whitespace' '..Leading_Whitespace' [] ''"

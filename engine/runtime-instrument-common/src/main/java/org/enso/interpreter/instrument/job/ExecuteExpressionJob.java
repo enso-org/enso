@@ -4,7 +4,7 @@ import java.util.UUID;
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.execution.Executable;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
-import org.enso.interpreter.util.ScalaConversions;
+import org.enso.scala.wrapper.ScalaConversions;
 
 /** The job that schedules the execution of the expression. */
 public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<Executable> {

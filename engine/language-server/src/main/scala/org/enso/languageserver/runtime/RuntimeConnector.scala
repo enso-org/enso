@@ -35,8 +35,8 @@ final class RuntimeConnector(
 
   override def receive: Receive = {
     case RuntimeConnector.Initialize(engine) =>
-      logger.debug(
-        s"Runtime connector established connection with the message endpoint"
+      logger.trace(
+        "Runtime connector established connection with the message endpoint"
       )
       unstashAll()
       context.become(waitingOnEndpoint(engine))
@@ -48,14 +48,16 @@ final class RuntimeConnector(
       case MessageFromRuntime(
             Runtime.Api.Response(None, Api.InitializedNotification())
           ) =>
-        logger.debug(
-          s"Message endpoint [{}] is initialized. Runtime connector can accept messages",
+        logger.trace(
+          "Message endpoint [{}] is initialized. Runtime connector can accept messages",
           engine
         )
         unstashAll()
         context.become(initialized(engine, Map()))
 
-      case _ => stash()
+      case msg =>
+        logger.trace("Runtime received unexpected message: {}", msg)
+        stash()
     })
 
   /** Performs communication between runtime and language server.
@@ -103,8 +105,8 @@ final class RuntimeConnector(
           handler ! request
         case None =>
           logger.warn(
-            s"No registered handler found for request " +
-            s"[${payload.getClass.getCanonicalName}]"
+            "No registered handler found for request [{}]",
+            payload.getClass.getCanonicalName
           )
       }
 

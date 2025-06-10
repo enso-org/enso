@@ -15,8 +15,7 @@ import org.enso.polyglot.ModuleExports
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
-
-import java.util.logging.Level
+import org.slf4j.LoggerFactory
 
 final class AnalyzeModuleJob(
   module: Module,
@@ -35,6 +34,8 @@ final class AnalyzeModuleJob(
 }
 
 object AnalyzeModuleJob {
+  private def logger: org.slf4j.Logger =
+    LoggerFactory.getLogger(getClass)
 
   def apply(
     module: Module,
@@ -68,8 +69,7 @@ object AnalyzeModuleJob {
     val moduleName = module.getName
     val compiler   = ctx.executionService.getContext.getCompiler
     if (state.isIndexed) {
-      ctx.executionService.getLogger
-        .log(Level.FINEST, "Analyzing indexed module {0}", moduleName)
+      logger.trace("Analyzing indexed module {}", moduleName)
       val types = Module.findTypeHierarchy(compiler.context)
       val prevSuggestions =
         SuggestionBuilder(changeset.source, types, compiler)
@@ -91,16 +91,13 @@ object AnalyzeModuleJob {
       if (ctx.state.suggestions.updateState(module, state, newIr)) {
         sendModuleUpdate(notification)
       } else {
-        ctx.executionService.getLogger
-          .log(
-            Level.FINEST,
-            s"Newly calculated index for module {0} is not up-to-date. Discarding",
-            module.getName
-          )
+        logger.trace(
+          s"Newly calculated index for module {} is not up-to-date. Discarding",
+          module.getName
+        )
       }
     } else {
-      ctx.executionService.getLogger
-        .log(Level.FINEST, s"Analyzing not-indexed module {0}", module.getName)
+      logger.trace(s"Analyzing not-indexed module {}", module.getName)
       val types = Module.findTypeHierarchy(compiler.context)
       val newSuggestions =
         SuggestionBuilder(module.asCompilerModule(), types, compiler)
@@ -117,12 +114,10 @@ object AnalyzeModuleJob {
       if (ctx.state.suggestions.markAsIndexed(module, state)) {
         sendModuleUpdate(notification)
       } else {
-        ctx.executionService.getLogger
-          .log(
-            Level.FINEST,
-            s"Calculated index for module {0} is not up-to-date. Discarding",
-            module.getName
-          )
+        logger.trace(
+          s"Calculated index for module {} is not up-to-date. Discarding",
+          module.getName
+        )
       }
     }
   }

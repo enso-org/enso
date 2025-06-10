@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
 import org.enso.common.CachePreferences;
@@ -45,10 +46,10 @@ public class RuntimeCacheTest {
   public void cacheTypes() {
     var cache = new RuntimeCache();
     var key = UUID.randomUUID();
-    var obj = "Number";
+    var obj = TypeInfo.ofType("Number");
 
     assertNull(cache.putType(key, obj));
-    assertEquals(obj, cache.putType(key, obj));
+    assertTypesEquals(obj, cache.putType(key, obj));
 
     cache.removeType(key);
     assertNull(cache.putType(key, obj));
@@ -163,6 +164,11 @@ public class RuntimeCacheTest {
     } else {
       assertNotNull(msg + " ref has been cleaned", obj);
     }
+  }
+
+  private static boolean assertTypesEquals(TypeInfo a, TypeInfo b) {
+    return Arrays.equals(a.visibleType(), b.visibleType())
+        && Arrays.equals(a.hiddenType(), b.hiddenType());
   }
 
   private static CachePreferences of(UUID key, CachePreferences.Kind value) {

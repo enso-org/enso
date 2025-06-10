@@ -4,8 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -52,15 +50,6 @@ public class Column {
   }
 
   /**
-   * Converts this column to a single-column table.
-   *
-   * @return a table containing only this column
-   */
-  public Table toTable() {
-    return new Table(new Column[] {this});
-  }
-
-  /**
    * @return the column name
    */
   public String getName() {
@@ -78,7 +67,8 @@ public class Column {
    * @return the number of items in this column.
    */
   public int getSize() {
-    return getStorage().size();
+    // ToDo: Work through changing to long.
+    return Math.toIntExact(getStorage().getSize());
   }
 
   /**
@@ -104,22 +94,22 @@ public class Column {
 
   /** Creates a column from an Enso array, ensuring Enso dates are converted to Java dates. */
   public static Column fromItems(
-      String name, List<Value> items, StorageType expectedType, ProblemAggregator problemAggregator)
+      String name,
+      List<Value> items,
+      StorageType<?> expectedType,
+      ProblemAggregator problemAggregator)
       throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
-    Builder builder =
-        expectedType == null
-            ? new InferredBuilder(n, problemAggregator)
-            : Builder.getForType(expectedType, n, problemAggregator);
+    var builder = Builder.getForType(expectedType, n, problemAggregator);
 
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     for (Object item : items) {
       if (item instanceof Value v) {
         Object converted = Polyglot_Utils.convertPolyglotValue(v);
-        builder.appendNoGrow(converted);
+        builder.append(converted);
       } else {
-        builder.appendNoGrow(item);
+        builder.append(item);
       }
 
       context.safepoint();
@@ -138,18 +128,15 @@ public class Column {
   public static Column fromItemsNoDateConversion(
       String name,
       List<Object> items,
-      StorageType expectedType,
+      StorageType<?> expectedType,
       ProblemAggregator problemAggregator)
       throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
-    Builder builder =
-        expectedType == null
-            ? new InferredBuilder(n, problemAggregator)
-            : Builder.getForType(expectedType, n, problemAggregator);
+    var builder = Builder.getForType(expectedType, n, problemAggregator);
 
     for (Object item : items) {
-      builder.appendNoGrow(item);
+      builder.append(item);
       context.safepoint();
     }
 
@@ -165,27 +152,7 @@ public class Column {
    */
   public static Column fromRepeatedItem(
       String name, Value item, int repeat, ProblemAggregator problemAggregator) {
-    if (repeat < 0) {
-      throw new IllegalArgumentException("Repeat count must be non-negative.");
-    }
-
-    Object converted = Polyglot_Utils.convertPolyglotValue(item);
-
-    if (converted == null) {
-      Builder builder = new MixedBuilder(repeat);
-      builder.appendNulls(repeat);
-      return new Column(name, builder.seal());
-    }
-
-    StorageType storageType = StorageType.forBoxedItem(converted);
-    Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < repeat; i++) {
-      builder.appendNoGrow(converted);
-      context.safepoint();
-    }
-
-    return new Column(name, builder.seal());
+    return new Column(name, Storage.fromRepeatedItem(item, repeat, problemAggregator));
   }
 
   /**
@@ -216,22 +183,5 @@ public class Column {
    */
   public Column duplicateCount() {
     return new Column(name + "_duplicate_count", storage.duplicateCount());
-  }
-
-  /**
-   * Resizes the given column to the provided new length.
-   *
-   * <p>If the new length is smaller than the current length, the column is truncated. If the new
-   * length is larger than the current length, the column is padded with nulls.
-   */
-  public Column resize(int newSize) {
-    if (newSize == getSize()) {
-      return this;
-    } else if (newSize < getSize()) {
-      return slice(0, newSize);
-    } else {
-      int nullsToAdd = newSize - getSize();
-      return new Column(name, storage.appendNulls(nullsToAdd));
-    }
   }
 }

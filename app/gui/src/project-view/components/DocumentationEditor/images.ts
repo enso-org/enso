@@ -2,6 +2,12 @@ import { fetcherUrlTransformer } from '@/components/MarkdownEditor/imageUrlTrans
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
+import { unsafeKeys } from 'enso-common/src/utilities/data/object'
+import {
+  readUserSelectedFile,
+  type FileExtension,
+  type MimeType,
+} from 'enso-common/src/utilities/file'
 import { computed, reactive, toValue } from 'vue'
 import type { Path } from 'ydoc-shared/languageServerTypes'
 import { Err, mapOk, Ok, Result, withContext } from 'ydoc-shared/util/data/result'
@@ -20,15 +26,20 @@ interface ProjectFilesAPI {
   ensureDirExists(path: Path): Promise<Result<void>>
 }
 
-const supportedImageTypes: Record<string, { extension: string }> = {
+export interface MarkdownEditorAPI {
+  putText: (text: string) => void
+  putTextAtCoord: (text: string, coord: Vec2) => void
+}
+
+const supportedImageTypes: Record<MimeType, { extensions: string[] }> = {
   // List taken from https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Image_types
-  'image/apng': { extension: 'apng' },
-  'image/avif': { extension: 'avif' },
-  'image/gif': { extension: 'gif' },
-  'image/jpeg': { extension: 'jpg' },
-  'image/png': { extension: 'png' },
-  'image/svg+xml': { extension: 'svg' },
-  'image/webp': { extension: 'webp' },
+  'image/apng': { extensions: ['apng'] },
+  'image/avif': { extensions: ['avif'] },
+  'image/gif': { extensions: ['gif'] },
+  'image/jpeg': { extensions: ['jpg', 'jpeg', 'jfif', 'pjpeg', 'pjp'] },
+  'image/png': { extensions: ['png'] },
+  'image/svg+xml': { extensions: ['svg'] },
+  'image/webp': { extensions: ['webp'] },
 }
 
 function pathUniqueId(path: Path) {
@@ -39,15 +50,29 @@ function pathDebugRepr(path: Path) {
   return pathUniqueId(path)
 }
 
+/**
+ * Based of given location of the module, return the location of image based on imageUrl.
+ * @returns path relative to project's root, or the full URL with schema.
+ */
+export function resolveDocImageUrl(modulePathSegments: string[], imageUrl: string) {
+  const appliedUrl = URL.parse(imageUrl, `file:///${modulePathSegments.join('/')}}`)
+  switch (appliedUrl?.protocol) {
+    case null:
+      return Err('Invalid image url')
+    case 'file:':
+      // Omit the starting '/'
+      return Ok({ type: 'projectPath' as const, path: decodeURI(appliedUrl.pathname).substring(1) })
+    case 'http:':
+    case 'https:':
+      return Ok({ type: 'url' as const, url: appliedUrl })
+    default:
+      return Err('Unsupported protocol')
+  }
+}
+
 /** Supports loading and uploading project images. */
 export function useDocumentationImages(
-  markdownEditor: ToValue<
-    | {
-        putText: (text: string) => void
-        putTextAtCoord: (text: string, coord: Vec2) => void
-      }
-    | undefined
-  >,
+  markdownEditor: ToValue<MarkdownEditorAPI | undefined>,
   modulePath: ToValue<Path | undefined>,
   projectFiles: ProjectFilesAPI,
 ) {
@@ -58,13 +83,13 @@ export function useDocumentationImages(
     if (!modulePathValue) {
       return Err('Current module path is unknown.')
     }
-    const appliedUrl = new URL(url, `file:///${modulePathValue.segments.join('/')}`)
-    if (appliedUrl.protocol === 'file:') {
-      // The pathname starts with '/', so we remove "" segment.
-      const segments = decodeURI(appliedUrl.pathname).split('/').slice(1)
+    const resolvedUrl = resolveDocImageUrl(modulePathValue.segments, url)
+    if (!resolvedUrl.ok) return resolvedUrl
+    if (resolvedUrl.value.type === 'projectPath') {
+      const segments = resolvedUrl.value.path.split('/')
       return Ok({ rootId: modulePathValue.rootId, segments })
     } else {
-      // Not a relative URL, custom fetching not needed.
+      // Custom fetching not needed.
       return undefined
     }
   }
@@ -74,7 +99,7 @@ export function useDocumentationImages(
   /** URL transformer that enables displaying images from the current project. */
   const transformImageUrl = fetcherUrlTransformer(
     async (url: string) => {
-      const path = await urlToPath(url)
+      const path = urlToPath(url)
       if (!path) return
       return withContext(
         () => `Locating documentation image (${url})`,
@@ -165,9 +190,9 @@ export function useDocumentationImages(
 
   /** If the given clipboard content contains a supported image, upload it and insert a reference into the editor. */
   function tryUploadPastedImage(item: ClipboardItem): boolean {
-    const imageType = item.types.find((type) => type in supportedImageTypes)
+    const imageType = item.types.find((type): type is MimeType => type in supportedImageTypes)
     if (imageType) {
-      const ext = supportedImageTypes[imageType]?.extension ?? ''
+      const ext = supportedImageTypes[imageType]?.extensions[0] ?? ''
       uploadImage(`image.${ext}`, item.getType(imageType))
       return true
     } else {
@@ -175,5 +200,24 @@ export function useDocumentationImages(
     }
   }
 
-  return { transformImageUrl, tryUploadDroppedImage, tryUploadPastedImage }
+  async function selectFiles() {
+    try {
+      const mimeTypes = unsafeKeys(supportedImageTypes)
+      const extensions = Object.values(supportedImageTypes).flatMap(({ extensions }) =>
+        extensions.map<FileExtension>((e) => `.${e}`),
+      )
+      return await readUserSelectedFile({ accept: [...mimeTypes, ...extensions] })
+    } catch (e) {
+      console.error(e)
+      return []
+    }
+  }
+
+  async function tryUploadImageFile() {
+    for (const file of await selectFiles()) {
+      await uploadImage(file.name, Promise.resolve(file))
+    }
+  }
+
+  return { transformImageUrl, tryUploadDroppedImage, tryUploadPastedImage, tryUploadImageFile }
 }

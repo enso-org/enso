@@ -5,6 +5,8 @@ import { computed, getCurrentInstance, ref, watch, withCtx } from 'vue'
 import { xxHash128 } from 'ydoc-shared/ast/ffi'
 import { AbortScope } from 'ydoc-shared/util/net'
 
+export type EncodeFn = (enc: encoding.Encoder) => void
+
 export interface SyncLocalStorageOptions<StoredState> {
   /** The main localStorage key under which a map of saved states will be stored. */
   storageKey: string
@@ -15,7 +17,7 @@ export interface SyncLocalStorageOptions<StoredState> {
    * that is encoded in this function dictates the effective identity of stored state. Whenever the
    * encoded key changes, the current state is saved and state stored under new key is restored.
    */
-  mapKeyEncoder: (enc: encoding.Encoder) => void
+  mapKeyEncoder: EncodeFn
   /**
    * **Reactive** current state serializer. Captures the environment data that will be stored in
    * localStorage. Returned object must be JSON-encodable. State will not be captured while async
@@ -42,7 +44,9 @@ export interface SyncLocalStorageOptions<StoredState> {
 export function useSyncLocalStorage<StoredState extends object>(
   options: SyncLocalStorageOptions<StoredState>,
 ) {
-  const graphViewportStorageKey = computed(() => xxHash128(encoding.encode(options.mapKeyEncoder)))
+  const encodeKey = (encoder: EncodeFn) => xxHash128(encoding.encode(encoder))
+
+  const graphViewportStorageKey = computed(() => encodeKey(options.mapKeyEncoder))
 
   // Ensure that restoreState function is run within component's context, allowing for temporary
   // watchers to be created for async/await purposes.
@@ -128,5 +132,20 @@ export function useSyncLocalStorage<StoredState extends object>(
     } finally {
       if (restoreIdInProgress.value === thisRestoreId) restoreIdInProgress.value = undefined
     }
+  }
+
+  return {
+    /**
+     * Move saved state from under one key to another. Does nothing if `oldKey` does not have any
+     * associated saved state.
+     */
+    moveToNewKey(oldKeyEncoder: EncodeFn, newKeyEncoder: EncodeFn) {
+      const oldKey = encodeKey(oldKeyEncoder)
+      const stateBlob = storageMap.value.get(oldKey)
+      if (stateBlob != null) {
+        const newKey = encodeKey(newKeyEncoder)
+        storageMap.value.set(newKey, stateBlob)
+      }
+    },
   }
 }

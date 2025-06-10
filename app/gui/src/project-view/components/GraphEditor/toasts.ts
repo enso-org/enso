@@ -1,6 +1,6 @@
-import { useEvent } from '@/composables/events'
 import { type ProjectStore } from '@/stores/project'
 import { useToast } from '@/util/toast'
+import { onScopeDispose } from 'vue'
 
 /**
  * A composable which sets up several toasts for project management, and creates one for message
@@ -16,9 +16,16 @@ export function useGraphEditorToasts(projectStore: ProjectStore) {
   toastStartup.show('Initializing the project. This can take up to one minute.')
   projectStore.firstExecution.then(toastStartup.dismiss)
 
-  useEvent(document, 'project-manager-loading-failed', () =>
+  const offTransportClosed = projectStore.lsRpcConnection.on('transport/closed', () =>
     toastConnectionLost.show('Lost connection to Language Server.'),
   )
+  const offTransportConnected = projectStore.lsRpcConnection.on('transport/connected', () =>
+    toastConnectionLost.dismiss(),
+  )
+  onScopeDispose(() => {
+    offTransportClosed()
+    offTransportConnected()
+  })
 
   projectStore.lsRpcConnection.client.onError((e) =>
     toastLspError.show(`Language server error: ${e}`),

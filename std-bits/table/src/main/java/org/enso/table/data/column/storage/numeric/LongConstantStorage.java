@@ -9,7 +9,7 @@ public class LongConstantStorage extends ComputedLongStorage {
   }
 
   @Override
-  protected long computeItem(int idx) {
+  protected long computeItem(long idx) {
     return constant;
   }
 }

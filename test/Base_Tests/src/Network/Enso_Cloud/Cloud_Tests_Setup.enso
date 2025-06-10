@@ -21,7 +21,7 @@ type Cloud_Tests_Setup
     with_prepared_environment self ~action = case self of
         Cloud_Tests_Setup.Mock _ _ ->
             Panic.with_finalizer Cloud_Tests_Setup.reset <|
-                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" self.api_url.to_text <|
+                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URL" self.api_url.to_text <|
                     Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
                         Cloud_Tests_Setup.reset
                         action
@@ -124,7 +124,7 @@ type Cloud_Tests_Setup
     get_expired_token_failures_count self -> Integer = case self of
         Cloud_Tests_Setup.Mock _ _ ->
             uri = self.httpbin_uri / "COUNT-EXPIRED-TOKEN-FAILURES"
-            HTTP.fetch uri . decode_as_json
+            HTTP.fetch uri cache_policy=..No_Cache . decode_as_json
         _ -> Panic.throw (Illegal_State.Error "This method is only valid for Mock setup.")
 
     ## Runs the action with overridden credentials, clearing caches before and
@@ -152,6 +152,9 @@ type Mock_Credentials
             + [["client_id", self.client_id]]
         JS_Object.from_pairs fields . to_json
 
+    set_access_token self token:Text =
+        Mock_Credentials.Value token self.expire_at self.refresh_token self.refresh_url self.client_id
+
     set_refresh_token self token:Text =
         Mock_Credentials.Value self.access_token self.expire_at token self.refresh_url self.client_id
 
@@ -175,6 +178,9 @@ type Mock_Credentials
         new_expire_at = Date_Time.now + (Duration.new minutes=1)
         Mock_Credentials.Value self.access_token new_expire_at self.refresh_token self.refresh_url self.client_id
 
+## A temporary directory created in the Cloud.
+   Always make sure to register the `cleanup` method to `teardown` of a test
+   group to ensure that the directory is cleared after the tests are finished.
 type Temporary_Directory
     Value was_initialized:Ref ~get
 

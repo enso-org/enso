@@ -60,7 +60,7 @@ abstract class UnboxingAtom extends Atom {
   protected final Layout layout;
 
   protected UnboxingAtom(AtomConstructor constructor, Layout layout) {
-    super(constructor);
+    super(constructor, false);
     this.layout = layout;
   }
 
@@ -82,6 +82,15 @@ abstract class UnboxingAtom extends Atom {
     static Object doUncached(UnboxingAtom atom, int index) {
       return atom.layout.getUncachedFieldGetter(index).execute(atom);
     }
+  }
+
+  @ExportMessage
+  boolean isFieldEvaluated(int index) {
+    var fieldGetter = layout.getUncachedFieldGetter(index);
+    if (fieldGetter instanceof SuspendedFieldGetterNode suspendedFieldGetter) {
+      return suspendedFieldGetter.isEvaluated();
+    }
+    return true;
   }
 
   @ExportMessage

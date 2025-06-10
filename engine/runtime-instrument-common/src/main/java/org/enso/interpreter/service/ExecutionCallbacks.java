@@ -1,14 +1,17 @@
 package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.enso.common.CachePreferences;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.TypeInfo;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
@@ -37,6 +40,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
+  private final Consumer<ExpressionValue> onProgressCallbackOrNull;
+  private ExecutionProgressObserver progressObserver;
 
   /**
    * Creates callbacks instance.
@@ -51,6 +56,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
    * @param onCachedCallback the consumer of the cached value events.
    * @param functionCallCallback the consumer of function call events.
    * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
+   * @param onProgressCallbackOrNull the consumer of progress events
    */
   ExecutionCallbacks(
       VisualizationHolder visualizationHolder,
@@ -62,7 +68,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionCall> functionCallCallback,
-      Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback,
+      Consumer<ExpressionValue> onProgressCallbackOrNull) {
     this.visualizationHolder = visualizationHolder;
     this.nextExecutionItem = nextExecutionItem;
     this.cache = cache;
@@ -73,6 +80,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
     this.onExecutedVisualizationCallback = onExecutedVisualizationCallback;
+    this.onProgressCallbackOrNull = onProgressCallbackOrNull;
   }
 
   @Override
@@ -90,24 +98,69 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     if (result != null && !nodeId.equals(nextExecutionItem)) {
       callOnCachedCallback(nodeId, result);
       return result;
+    } else {
+      if (onProgressCallbackOrNull != null) {
+        reportEvaluationProgress(nodeId);
+      }
     }
 
     return null;
   }
 
+  @CompilerDirectives.TruffleBoundary
+  private void reportEvaluationProgress(UUID nodeId) {
+    if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
+      var newObserver =
+          ExecutionProgressObserver.startComputation(
+              nodeId,
+              (progress, msg) -> {
+                CompilerDirectives.transferToInterpreter();
+                var expressionValue = ExpressionValue.progress(nodeId, progress, msg);
+                onProgressCallbackOrNull.accept(expressionValue);
+              });
+      refreshObserver(newObserver);
+    }
+  }
+
+  private void refreshObserver(ExecutionProgressObserver newObserverOrNull) {
+    var o = progressObserver;
+    if (o != null) {
+      try {
+        o.close();
+      } catch (Exception ex) {
+        throw ExecutionService.raise(RuntimeException.class, ex);
+      }
+    }
+    this.progressObserver = newObserverOrNull;
+  }
+
   @Override
   public void updateCachedResult(IdExecutionService.Info info) {
     Object result = info.getResult();
-    String resultType = typeOf(result);
+    TypeInfo resultType = typeOf(result);
     UUID nodeId = info.getId();
-    String cachedType = cache.getType(nodeId);
+
+    if (progressObserver instanceof ExecutionProgressObserver o && nodeId.equals(o.nodeId())) {
+      refreshObserver(null);
+    }
+
+    TypeInfo cachedType = cache.getType(nodeId);
     FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
     ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
 
     ExpressionValue expressionValue =
         new ExpressionValue(
-            nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+            nodeId,
+            result,
+            resultType,
+            cachedType,
+            call,
+            cachedCall,
+            profilingInfo,
+            false,
+            -1.0,
+            null);
     syncState.setExpressionUnsync(nodeId);
     syncState.setVisualizationUnsync(nodeId);
 
@@ -170,7 +223,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             calls.get(nodeId),
             cache.getCall(nodeId),
             new ProfilingInfo[] {ExecutionTime.empty()},
-            true);
+            true,
+            -1.0,
+            null);
 
     onCachedCallback.accept(expressionValue);
   }
@@ -214,20 +269,35 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     return calls.get(nodeId);
   }
 
-  private String typeOf(Object value) {
-    String resultType;
+  private TypeInfo typeOf(Object value) {
     if (value instanceof UnresolvedSymbol) {
-      resultType = Constants.UNRESOLVED_SYMBOL;
-    } else {
-      var typeOfNode = TypeOfNode.getUncached();
-      Object typeResult = value == null ? null : typeOfNode.findTypeOrError(value);
-      if (typeResult instanceof Type t) {
-        resultType = getTypeQualifiedName(t);
-      } else {
-        resultType = null;
+      return TypeInfo.ofType(Constants.UNRESOLVED_SYMBOL);
+    }
+
+    if (value != null) {
+      final TypeOfNode typeOfNode = TypeOfNode.getUncached();
+      final Type[] publicTypes = typeOfNode.findAllTypesOrNull(value, false);
+
+      if (publicTypes != null) {
+        final Type[] allTypes = typeOfNode.findAllTypesOrNull(value, true);
+        assert Arrays.equals(publicTypes, Arrays.copyOfRange(allTypes, 0, publicTypes.length));
+        final Type[] hiddenTypes =
+            Arrays.copyOfRange(allTypes, publicTypes.length, allTypes.length);
+
+        final String[] publicTypeNames = new String[publicTypes.length];
+        for (var i = 0; i < publicTypes.length; i++) {
+          publicTypeNames[i] = getTypeQualifiedName(publicTypes[i]);
+        }
+        final String[] hiddenTypeNames = new String[hiddenTypes.length];
+        for (var i = 0; i < hiddenTypeNames.length; i++) {
+          hiddenTypeNames[i] = getTypeQualifiedName(hiddenTypes[i]);
+        }
+
+        return new TypeInfo(publicTypeNames, hiddenTypeNames);
       }
     }
-    return resultType;
+
+    return null;
   }
 
   @CompilerDirectives.TruffleBoundary

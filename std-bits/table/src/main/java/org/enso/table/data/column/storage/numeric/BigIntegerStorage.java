@@ -2,62 +2,31 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MaxOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MinOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
-import org.enso.table.data.column.operation.map.numeric.comparisons.EqualsComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
-import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
-import org.enso.table.data.column.operation.map.numeric.isin.BigIntegerIsInOp;
-import org.enso.table.data.column.storage.ObjectStorage;
+import org.enso.table.data.column.operation.CachedPropertyCheck;
+import org.enso.table.data.column.operation.RequiresNumberFormatting;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
+public class BigIntegerStorage extends SpecializedStorage<BigInteger>
+    implements NumericFormattingStorage {
+  private final CachedPropertyCheck<Boolean> isNumericFormatRequired;
+
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
-  public BigIntegerStorage(BigInteger[] data, int size) {
-    super(data, size, makeOps());
-  }
+  public BigIntegerStorage(BigInteger[] data) {
+    super(BigIntegerType.INSTANCE, data);
 
-  protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
-    MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops =
-        ObjectStorage.buildObjectOps();
-    return ops.add(new AddOp<>())
-        .add(new SubOp<>())
-        .add(new MulOp<>())
-        .add(new DivideOp<>())
-        .add(new ModOp<>())
-        .add(new PowerOp<>())
-        .add(new MinOp<>())
-        .add(new MaxOp<>())
-        .add(new LessComparison<>())
-        .add(new LessOrEqualComparison<>())
-        .add(new EqualsComparison<>())
-        .add(new GreaterOrEqualComparison<>())
-        .add(new GreaterComparison<>())
-        .add(new BigIntegerIsInOp<>());
-  }
-
-  public static BigIntegerStorage makeEmpty(int size) {
-    return new BigIntegerStorage(new BigInteger[size], size);
+    isNumericFormatRequired =
+        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   @Override
-  protected SpecializedStorage<BigInteger> newInstance(BigInteger[] data, int size) {
-    return new BigIntegerStorage(data, size);
+  protected SpecializedStorage<BigInteger> newInstance(BigInteger[] data) {
+    return new BigIntegerStorage(data);
   }
 
   @Override
@@ -65,17 +34,12 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
     return new BigInteger[size];
   }
 
-  @Override
-  public StorageType getType() {
-    return BigIntegerType.INSTANCE;
-  }
-
   private long cachedMaxPrecisionStored = -1;
 
   public long getMaxPrecisionStored() {
     if (cachedMaxPrecisionStored < 0) {
       long maxPrecision = 0;
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < getSize(); i++) {
         BigInteger value = data[i];
         if (value == null) {
           continue;
@@ -95,15 +59,26 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
     return cachedMaxPrecisionStored;
   }
 
-  private StorageType inferredType = null;
-
   @Override
-  public StorageType inferPreciseType() {
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
+    StorageType<?> preciseType = inferAndCacheDefaultPreciseType();
+
+    // If shrinking was requested we may shrink INT_64 further
+    if (options.shrinkIntegers() && preciseType instanceof IntegerType) {
+      return findSmallestIntegerTypeThatFits(options);
+    }
+
+    return preciseType;
+  }
+
+  private StorageType<?> inferredType = null;
+
+  private StorageType<?> inferAndCacheDefaultPreciseType() {
     if (inferredType == null) {
       boolean allFitInLong = true;
       int visitedCount = 0;
 
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < getSize(); i++) {
         BigInteger value = data[i];
         if (value == null) {
           continue;
@@ -124,17 +99,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
     return inferredType;
   }
 
-  @Override
-  public StorageType inferPreciseTypeShrunk() {
-    StorageType preciseType = inferPreciseType();
-    if (preciseType instanceof IntegerType) {
-      return findSmallestIntegerTypeThatFits();
-    }
-
-    return preciseType;
-  }
-
-  private StorageType findSmallestIntegerTypeThatFits() {
+  private StorageType<?> findSmallestIntegerTypeThatFits(PreciseTypeOptions options) {
     // This method assumes that all values _do_ fit in some integer type.
     assert inferredType instanceof IntegerType;
 
@@ -142,10 +107,10 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
 
     // We create a Long storage that gets values by converting our storage.
     ComputedNullableLongStorage longAdapter =
-        new ComputedNullableLongStorage(size) {
+        new ComputedNullableLongStorage((int) getSize()) {
           @Override
-          protected Long computeItem(int idx) {
-            BigInteger bigInteger = parent.getItem(idx);
+          protected Long computeItem(long idx) {
+            BigInteger bigInteger = parent.getItemBoxed(idx);
             if (bigInteger == null) {
               return null;
             }
@@ -155,6 +120,16 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
         };
 
     // And rely on its shrinking logic.
-    return longAdapter.inferPreciseTypeShrunk();
+    return longAdapter.inferPreciseType(options);
+  }
+
+  /**
+   * Checks if any numbers are large enough for the column to require formatin in the table viz.
+   *
+   * @return true/false if formatting is required
+   */
+  @Override
+  public Boolean cachedNumericFormatCheck() throws InterruptedException {
+    return isNumericFormatRequired.get();
   }
 }

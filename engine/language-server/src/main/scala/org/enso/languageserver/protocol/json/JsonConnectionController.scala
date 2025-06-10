@@ -202,7 +202,14 @@ class JsonConnectionController(
       )
       mainComponent
         .init()
-        .thenApply(_ => InitializationComponentInitialized.getInstance)
+        .whenComplete((_, ex) =>
+          if (mainComponent.isInitialized) {
+            logger.trace("Resources have been initialized")
+            self ! InitializationComponentInitialized.getInstance()
+          } else {
+            logger.warn("Failed to initialize resources", ex)
+          }
+        )
         .pipeTo(self)
       context.become(initializing(webActor, clientId, req, sender()))
 

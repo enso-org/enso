@@ -25,7 +25,9 @@ public final class MockLogHandler extends Handler {
   public void flush() {}
 
   @Override
-  public void close() throws SecurityException {}
+  public void close() throws SecurityException {
+    logs.clear();
+  }
 
   public void reset() {
     logs.clear();

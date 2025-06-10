@@ -1,6 +1,5 @@
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as map from 'lib0/map'
-import * as Y from 'yjs'
 import { assert } from '../util/assert'
 import type { IdMap } from '../yjsModel'
 import { abstractMarkdown } from './documentation'
@@ -45,6 +44,7 @@ import {
   parentId,
   PropertyAccess,
   TextLiteral,
+  TypeAnnotated,
   UnaryOprApp,
   Vector,
   Wildcard,
@@ -145,7 +145,7 @@ class Abstractor {
     let node: Owned
     switch (tree.type) {
       case RawAst.Tree.Type.BodyBlock: {
-        const lines = Array.from(tree.statements, line => {
+        const lines = Array.from(tree.statements, (line) => {
           const newline = this.abstractToken(line.newline)
           const statement = line.expression ? this.abstractStatement(line.expression) : undefined
           return { newline, statement }
@@ -258,7 +258,7 @@ class Abstractor {
       case RawAst.Tree.Type.TextLiteral: {
         const open = tree.open ? this.abstractToken(tree.open) : undefined
         const newline = tree.newline ? this.abstractToken(tree.newline) : undefined
-        const elements = Array.from(tree.elements, raw => this.abstractTextElement(raw))
+        const elements = Array.from(tree.elements, (raw) => this.abstractTextElement(raw))
         const close = tree.close ? this.abstractToken(tree.close) : undefined
         node = TextLiteral.concrete(this.module, open, newline, elements, close)
         break
@@ -303,6 +303,13 @@ class Abstractor {
         node = Vector.concrete(this.module, left, elements, right)
         break
       }
+      case RawAst.Tree.Type.TypeAnnotated: {
+        const expression = this.abstractExpression(tree.expression)
+        const operator = this.abstractToken(tree.operator)
+        const type = this.abstractExpression(tree.typeNode)
+        node = TypeAnnotated.concrete(this.module, expression, operator, type)
+        break
+      }
       default: {
         node = Generic.concrete(this.module, this.abstractChildren(tree))
       }
@@ -316,7 +323,7 @@ class Abstractor {
     const { markdown: docMarkdown, hash: docLineMarkdownHash } = abstractMarkdown(
       docLine?.docs.elements,
     )
-    const annotationLines = Array.from(tree.annotationLines, anno => ({
+    const annotationLines = Array.from(tree.annotationLines, (anno) => ({
       annotation: {
         operator: this.abstractToken(anno.annotation.operator),
         annotation: this.abstractToken(anno.annotation.annotation),
@@ -330,7 +337,7 @@ class Abstractor {
     }
     const private_ = tree.private && this.abstractToken(tree.private)
     const name = this.abstractExpression(tree.name)
-    const argumentDefinitions = Array.from(tree.args, arg => ({
+    const argumentDefinitions = Array.from(tree.args, (arg) => ({
       open: arg.open && this.abstractToken(arg.open),
       open2: arg.open2 && this.abstractToken(arg.open2),
       suspension: arg.suspension && this.abstractToken(arg.suspension),
@@ -351,7 +358,7 @@ class Abstractor {
     return FunctionDef.concrete(this.module, {
       docLine,
       docLineMarkdownHash,
-      docMarkdown: new Y.Text(docMarkdown),
+      docMarkdown,
       annotationLines,
       signatureLine,
       private_,
@@ -506,7 +513,7 @@ export function parseModuleWithSpans(
 /** Return the number of `Ast`s in the tree, including the provided root. */
 export function astCount(ast: Ast): number {
   let count = 0
-  ast.visitRecursive(_subtree => {
+  ast.visitRecursive((_subtree) => {
     count += 1
   })
   return count
@@ -536,12 +543,12 @@ export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap):
  * context.
  */
 export function parseInSameContext(
-  module: MutableModule,
   code: string,
   ast: Ast,
+  module?: MutableModule,
 ): { root: Owned; spans: SpanMap } {
   const rawParsed = rawParseInContext(code, getParseContext(ast))
-  return abstract(module, rawParsed, code)
+  return abstract(module ?? MutableModule.Transient(), rawParsed, code)
 }
 
 type ParseContext = 'module' | 'block' | 'expression' | 'statement'

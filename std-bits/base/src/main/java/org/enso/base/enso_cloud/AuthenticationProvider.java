@@ -1,9 +1,15 @@
 package org.enso.base.enso_cloud;
 
+import org.enso.base.cache.ReloadDetector;
 import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
 
-public class AuthenticationProvider {
+public class AuthenticationProvider implements ReloadDetector.HasClearableCache {
+  public static AuthenticationProvider INSTANCE = new AuthenticationProvider();
+
+  private AuthenticationProvider() {
+    ReloadDetector.register(this);
+  }
 
   public interface AuthenticationService {
     String get_access_token();
@@ -11,27 +17,27 @@ public class AuthenticationProvider {
     void force_refresh();
   }
 
-  private static Value authenticationServiceAsEnso = null;
-  private static AuthenticationService authenticationServiceAsJava = null;
+  private Value authenticationServiceAsEnso = null;
+  private AuthenticationService authenticationServiceAsJava = null;
 
-  public static void reset() {
+  public void reset() {
     authenticationServiceAsEnso = null;
     authenticationServiceAsJava = null;
   }
 
-  private static Value createAuthenticationService() {
+  private Value createAuthenticationService() {
     return EnsoMeta.callStaticModuleMethod(
         "Standard.Base.Enso_Cloud.Internal.Authentication", "instantiate_authentication_service");
   }
 
-  private static void ensureServicesSetup() {
+  private void ensureServicesSetup() {
     var ensoInstance = createAuthenticationService();
     var javaInstance = ensoInstance.as(AuthenticationService.class);
     authenticationServiceAsEnso = ensoInstance;
     authenticationServiceAsJava = javaInstance;
   }
 
-  static AuthenticationService getAuthenticationService() {
+  AuthenticationService getAuthenticationService() {
     if (authenticationServiceAsJava == null) {
       ensureServicesSetup();
     }
@@ -39,7 +45,9 @@ public class AuthenticationProvider {
     return authenticationServiceAsJava;
   }
 
-  public static Value getAuthenticationServiceEnsoInstance() {
+  public Value getAuthenticationServiceEnsoInstance() {
+    ReloadDetector.clearOnReload(this);
+
     if (authenticationServiceAsEnso == null) {
       ensureServicesSetup();
     }
@@ -47,7 +55,14 @@ public class AuthenticationProvider {
     return authenticationServiceAsEnso;
   }
 
-  public static String getAccessToken() {
+  public String getAccessToken() {
+    ReloadDetector.clearOnReload(this);
+
     return getAuthenticationService().get_access_token();
+  }
+
+  @Override /* HasClearableCache */
+  public void clearCache() {
+    reset();
   }
 }

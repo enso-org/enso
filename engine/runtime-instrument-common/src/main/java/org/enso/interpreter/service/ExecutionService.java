@@ -2,7 +2,6 @@ package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
@@ -15,7 +14,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
@@ -23,15 +21,17 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
-import java.util.logging.Level;
-import org.enso.common.LanguageInfo;
+import java.util.function.Supplier;
 import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.TypeInfo;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
@@ -49,6 +49,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
 import org.enso.interpreter.service.error.MethodNotFoundException;
@@ -62,19 +63,18 @@ import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
  * language.
  */
 public final class ExecutionService {
-
   private static final String MAIN_METHOD = "main";
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
-  private final TruffleLogger logger =
-      TruffleLogger.getLogger(LanguageInfo.ID, ExecutionService.class);
   private final ConnectedLockManager connectedLockManager;
   private final ExecuteRootNode execute = new ExecuteRootNode();
   private final CallRootNode call = new CallRootNode();
@@ -112,13 +112,6 @@ public final class ExecutionService {
     return context;
   }
 
-  /**
-   * @return the execution service logger.
-   */
-  public TruffleLogger getLogger() {
-    return logger;
-  }
-
   public FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
       Module module, String typeName, String methodName)
       throws TypeNotFoundException, MethodNotFoundException {
@@ -143,9 +136,10 @@ public final class ExecutionService {
     if (connectedLockManager != null) {
       connectedLockManager.connect(endpoint);
     } else {
-      logger.warning(
-          "ConnectedLockManager was not initialized, even though a Language Server connection has"
-              + " been established. This may result in synchronization errors.");
+      LoggerFactory.getLogger(ExecutionService.class)
+          .warn(
+              "ConnectedLockManager was not initialized, even though a Language Server connection"
+                  + " has been established. This may result in synchronization errors.");
     }
   }
 
@@ -181,37 +175,49 @@ public final class ExecutionService {
           SourceNotFoundException,
           UnsupportedMessageException,
           UnsupportedTypeException {
-    SourceSection src = call.getFunction().getSourceSection();
-    if (src == null) {
-      throw new SourceNotFoundException(call.getFunction().getName());
-    }
-    var callbacks =
-        new ExecutionCallbacks(
-            visualizationHolder,
-            nextExecutionItem,
-            cache,
-            methodCallsCache,
-            syncState,
-            expressionExecutionState,
-            onCachedCallback,
-            onComputedCallback,
-            funCallCallback,
-            onExecutedVisualizationCallback);
-    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service ->
-                service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
+    var pending =
+        submitExecution(
+            () -> {
+              SourceSection src;
+              try {
+                src = call.getFunction().getSourceSection();
+              } catch (UnsupportedMessageException ex) {
+                src = null;
+              }
+              if (src == null) {
+                throw new SourceNotFoundException(call.getFunction().getName());
+              }
 
-    DynamicObjectLibrary.getUncached()
-        .put(call.getState().getContainer(), IdExecutionService.class, cache);
+              var callbacks =
+                  new ExecutionCallbacks(
+                      visualizationHolder,
+                      nextExecutionItem,
+                      cache,
+                      methodCallsCache,
+                      syncState,
+                      expressionExecutionState,
+                      onCachedCallback,
+                      onComputedCallback,
+                      funCallCallback,
+                      onExecutedVisualizationCallback,
+                      this.context.isProgressReportEnabled() ? onComputedCallback : null);
+              Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
+                  idExecutionInstrument.map(
+                      service ->
+                          service.bind(
+                              module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-    Object p = context.getThreadManager().enter();
-    try {
-      execute.getCallTarget().call(substituteMissingArguments(call));
-    } finally {
-      context.getThreadManager().leave(p);
-      eventNodeFactory.ifPresent(EventBinding::dispose);
-    }
+              try {
+                var callFn =
+                    Function.fullyApplied(
+                        execute.getCallTarget(), substituteMissingArguments(call));
+                RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
+              } finally {
+                eventNodeFactory.ifPresent(EventBinding::dispose);
+              }
+              return null;
+            });
+    resultOf(pending);
   }
 
   /**
@@ -300,12 +306,12 @@ public final class ExecutionService {
    * @return a result of evaluation
    */
   public Object evaluateExpression(Module module, String expression) {
-    Object p = context.getThreadManager().enter();
-    try {
-      return invoke.getCallTarget().call(module, expression);
-    } finally {
-      context.getThreadManager().leave(p);
-    }
+    var future =
+        submitExecution(
+            () -> {
+              return invoke.getCallTarget().call(module, expression);
+            });
+    return resultOf(future);
   }
 
   /**
@@ -332,12 +338,15 @@ public final class ExecutionService {
    * @return the result of calling the function
    */
   public Object callFunction(Object fn, Object argument) {
-    Object p = context.getThreadManager().enter();
-    try {
-      return call.getCallTarget().call(fn, new Object[] {argument});
-    } finally {
-      context.getThreadManager().leave(p);
-    }
+    var future =
+        submitExecution(
+            () -> {
+              var callArgs =
+                  Function.ArgumentsHelper.buildArguments(
+                      null, new Object[] {fn, new Object[] {argument}});
+              return call.getCallTarget().call(callArgs);
+            });
+    return resultOf(future);
   }
 
   /**
@@ -347,7 +356,7 @@ public final class ExecutionService {
    * @param cache the runtime cache
    * @param executionCache cache with values provided by main execution
    * @param module the module providing scope for the function
-   * @param function the function object
+   * @param fn the function object
    * @param arguments the sequence of arguments applied to the function
    * @return the result of calling the function
    */
@@ -358,56 +367,67 @@ public final class ExecutionService {
       Module module,
       Object function,
       Object... arguments) {
-    UUID nextExecutionItem = null;
-    CallTarget entryCallTarget =
-        (function instanceof Function) ? ((Function) function).getCallTarget() : null;
-    MethodCallsCache methodCallsCache = new MethodCallsCache();
-    UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
-    Consumer<ExpressionCall> funCallCallback = (value) -> {};
-    Consumer<ExpressionValue> onComputedCallback =
-        (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
-    Consumer<ExpressionValue> onCachedCallback =
-        (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
-    Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
-    ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
 
-    var callbacks =
-        new ExecutionCallbacks(
-            visualizationHolder,
-            nextExecutionItem,
-            cache,
-            methodCallsCache,
-            syncState,
-            expressionExecutionState,
-            onCachedCallback,
-            onComputedCallback,
-            funCallCallback,
-            onExecutedVisualizationCallback);
-    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service -> service.bind(module, entryCallTarget, callbacks, this.timer));
-    var ret = new Object[1];
-    Object p = context.getThreadManager().enter();
-    try {
-      State state;
-      if (function instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
-        state = fnCall.getState();
-      } else {
-        var fn = (Function) function;
-        state = State.create(context);
-        function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
-      }
-      if (executionCache != null) {
-        DynamicObjectLibrary.getUncached()
-            .put(state.getContainer(), IdExecutionService.class, executionCache);
-      }
+    var future =
+        submitExecution(
+            () -> {
+              var fn = function;
+              UUID nextExecutionItem = null;
+              CallTarget entryCallTarget =
+                  (fn instanceof Function) ? ((Function) fn).getCallTarget() : null;
+              MethodCallsCache methodCallsCache = new MethodCallsCache();
+              UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
+              Consumer<ExpressionCall> funCallCallback = (value) -> {};
+              Consumer<ExpressionValue> onComputedCallback =
+                  (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
+              Consumer<ExpressionValue> onCachedCallback =
+                  (value) ->
+                      context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
+              Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
+              ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
+              Consumer<ExpressionValue> onProgressCallback =
+                  (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
 
-      ret[0] = call.getCallTarget().call(function, arguments);
-    } finally {
-      context.getThreadManager().leave(p);
-      eventNodeFactory.ifPresent(EventBinding::dispose);
-    }
-    return ret[0];
+              var callbacks =
+                  new ExecutionCallbacks(
+                      visualizationHolder,
+                      nextExecutionItem,
+                      cache,
+                      methodCallsCache,
+                      syncState,
+                      expressionExecutionState,
+                      onCachedCallback,
+                      onComputedCallback,
+                      funCallCallback,
+                      onExecutedVisualizationCallback,
+                      onProgressCallback);
+              Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
+                  idExecutionInstrument.map(
+                      service -> service.bind(module, entryCallTarget, callbacks, this.timer));
+              var ret = new Object[1];
+              try {
+                State state;
+                if (fn instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
+                  state = fnCall.getState();
+                } else {
+                  var tmp = (Function) fn;
+                  state = State.create(context);
+                  fn = new FunctionCallInstrumentationNode.FunctionCall(tmp, state, new Object[0]);
+                }
+                var callArgs = new Object[] {fn, arguments};
+                var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
+                ret[0] =
+                    RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
+              } finally {
+                eventNodeFactory.ifPresent(EventBinding::dispose);
+              }
+              return ret[0];
+            });
+    return resultOf(future);
+  }
+
+  private Type cacheKey() {
+    return context.getBuiltins().instrumentor();
   }
 
   /**
@@ -441,12 +461,14 @@ public final class ExecutionService {
    *
    * @param module the module to edit.
    * @param edits the edits to apply.
+   * @param simpleUpdate identification of a "simple edit" or {@code null}
+   * @param logger logger to use for logging
    */
   public void modifyModuleSources(
       Module module,
       scala.collection.immutable.Seq<model.TextEdit> edits,
       SimpleUpdate simpleUpdate,
-      TruffleLogger logger) {
+      Logger logger) {
     try {
       module.getSource();
     } catch (IOException e) {
@@ -461,13 +483,10 @@ public final class ExecutionService {
                     module.getName(), edits, failure, module.getLiteralSource());
               },
               rope -> {
-                logger.log(
-                    Level.FINE,
-                    "Applied edits. Source has {0} lines, last line has {1} characters.",
-                    new Object[] {
-                      rope.lines().length(),
-                      rope.lines().drop(rope.lines().length() - 1).characters().length()
-                    });
+                logger.trace(
+                    "Applied edits. Source has {} lines, last line has {} characters.",
+                    rope.lines().length(),
+                    rope.lines().drop(rope.lines().length() - 1).characters().length());
                 module.setLiteralSource(rope, simpleUpdate);
                 return new Object();
               });
@@ -489,8 +508,8 @@ public final class ExecutionService {
         if (source != null) {
           return source.getLanguage();
         }
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
+      } catch (UnsupportedMessageException ex) {
+        // fallthru
       }
     }
     return null;
@@ -504,14 +523,18 @@ public final class ExecutionService {
    */
   public SourceSection getSourceLocation(Object o) {
     var iop = InteropLibrary.getUncached(o);
-    if (iop.hasSourceLocation(o)) {
-      try {
-        return iop.getSourceLocation(o);
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
-      }
-    }
-    return null;
+    return context.withinCtx(
+        iop,
+        () -> {
+          if (iop.hasSourceLocation(o)) {
+            try {
+              return iop.getSourceLocation(o);
+            } catch (UnsupportedMessageException ex) {
+              // fallthru
+            }
+          }
+          return null;
+        });
   }
 
   public boolean isExitException(AbstractTruffleException ex) {
@@ -532,36 +555,53 @@ public final class ExecutionService {
    * @param panic the panic to display.
    * @return a human-readable version of its contents.
    */
-  public String getExceptionMessage(PanicException panic) {
+  public String getExceptionMessage(AbstractTruffleException panic) {
+    var future = submitExecution(() -> computeExceptionMessage(panic));
+    return resultOf(future);
+  }
+
+  private String computeExceptionMessage(AbstractTruffleException panic) {
     var iop = InteropLibrary.getUncached();
-    var p = context.getThreadManager().enter();
+    var payload = panic instanceof PanicException ex ? ex.getPayload() : panic;
     try {
       // Invoking a member on an Atom that does not have a method `to_display_text` will not
       // contrary to what is
       // expected from the documentation, throw an `UnsupportedMessageException`.
       // Instead it will crash with some internal assertion deep inside runtime. Hence the check.
-      if (iop.isMemberInvocable(panic.getPayload(), "to_display_text")) {
-        return iop.asString(iop.invokeMember(panic.getPayload(), "to_display_text"));
+      if (iop.isMemberInvocable(payload, "to_display_text")) {
+        return iop.asString(iop.invokeMember(payload, "to_display_text"));
       } else throw UnsupportedMessageException.create();
     } catch (UnsupportedMessageException
         | ArityException
         | UnknownIdentifierException
         | UnsupportedTypeException e) {
-      return TypeToDisplayTextNode.getUncached().execute(panic.getPayload());
+      return TypeToDisplayTextNode.getUncached().execute(payload);
     } catch (Throwable e) {
       if (iop.isException(e)) {
-        return TypeToDisplayTextNode.getUncached().execute(panic.getPayload());
+        return TypeToDisplayTextNode.getUncached().execute(payload);
       } else {
         throw e;
       }
-    } finally {
-      context.getThreadManager().leave(p);
     }
   }
 
   @SuppressWarnings("unchecked")
-  private static <E extends Exception> E raise(Class<E> type, Exception ex) throws E {
+  static <E extends Throwable> E raise(Class<E> type, Throwable ex) throws E {
     throw (E) ex;
+  }
+
+  private <T> Future<T> submitExecution(Supplier<T> c) {
+    return context.getThreadManager().submit(c);
+  }
+
+  private static <T> T resultOf(Future<T> future) {
+    try {
+      return future.get();
+    } catch (InterruptedException ex) {
+      throw raise(RuntimeException.class, ex);
+    } catch (ExecutionException ex) {
+      throw raise(RuntimeException.class, ex.getCause());
+    }
   }
 
   private static final class ExecuteRootNode extends RootNode {
@@ -574,10 +614,11 @@ public final class ExecutionService {
     @Override
     public Object execute(VirtualFrame frame) {
       try {
-        if (frame.getArguments()[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
+        var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+        if (args[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
           return iop.execute(call);
         }
-        throw ArityException.create(1, 1, frame.getArguments().length);
+        throw ArityException.create(1, 1, args.length);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
@@ -594,9 +635,10 @@ public final class ExecutionService {
     @Override
     public Object execute(VirtualFrame frame) {
       try {
-        var self = frame.getArguments()[0];
-        var args = (Object[]) frame.getArguments()[1];
-        return iop.execute(self, args);
+        var callArgs = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+        var fn = callArgs[0];
+        var args = (Object[]) callArgs[1];
+        return iop.execute(fn, args);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
@@ -661,42 +703,81 @@ public final class ExecutionService {
   public static final class ExpressionValue {
     private final UUID expressionId;
     private final Object value;
-    private final String type;
-    private final String cachedType;
+    private final TypeInfo typeInfo;
+    private final TypeInfo cachedTypeInfo;
     private final FunctionCallInfo callInfo;
     private final FunctionCallInfo cachedCallInfo;
     private final ProfilingInfo[] profilingInfo;
     private final boolean wasCached;
+    private final double progress;
+    private final String progressMessage;
 
     /**
      * Creates a new instance of this class.
      *
      * @param expressionId the id of the expression being computed.
      * @param value the value returned by computing the expression.
-     * @param type the type of the returned value.
-     * @param cachedType the cached type of the value.
+     * @param typeInfo the type info of the returned value.
+     * @param cachedTypeInfo the cached type info of the value.
      * @param callInfo the function call data.
      * @param cachedCallInfo the cached call data.
      * @param profilingInfo the profiling information associated with this node
      * @param wasCached whether or not the value was obtained from the cache
+     * @param progress identification of progress (either less than zero - e.g. indeterminate) or
+     *     value between 0.0 and 1.0 as a percentage of finished work
+     * @param progressMessage text describing progress of the computation
      */
     public ExpressionValue(
         UUID expressionId,
         Object value,
-        String type,
-        String cachedType,
+        TypeInfo typeInfo,
+        TypeInfo cachedTypeInfo,
         FunctionCallInfo callInfo,
         FunctionCallInfo cachedCallInfo,
         ProfilingInfo[] profilingInfo,
-        boolean wasCached) {
+        boolean wasCached,
+        double progress,
+        String progressMessage) {
       this.expressionId = expressionId;
       this.value = value;
-      this.type = type;
-      this.cachedType = cachedType;
+      this.typeInfo = typeInfo;
+      this.cachedTypeInfo = cachedTypeInfo;
       this.callInfo = callInfo;
       this.cachedCallInfo = cachedCallInfo;
       this.profilingInfo = profilingInfo;
       this.wasCached = wasCached;
+      this.progress = progress;
+      this.progressMessage = progressMessage;
+    }
+
+    /**
+     * Creates new progress update event.
+     *
+     * @param nodeId identification of the node
+     * @param amount identification of progress (either less than zero - e.g. indeterminate) or
+     *     value between 0.0 and 1.0 as a percentage of finished work
+     * @param msg either {@code null} or description of the current operation in progress
+     * @return value that returns true from its {@link #isProgressUpdate()} method
+     */
+    static ExpressionValue progress(UUID nodeId, double amount, String msg) {
+      return new ExpressionValue(nodeId, null, null, null, null, null, null, false, amount, msg);
+    }
+
+    /**
+     * Does this value represent progress update?
+     *
+     * @return
+     */
+    public boolean isProgressUpdate() {
+      return value == null && profilingInfo == null;
+    }
+
+    public double getProgress() {
+      return progress;
+    }
+
+    public String getProgressMessage() {
+      return progressMessage;
     }
 
     @Override
@@ -707,11 +788,11 @@ public final class ExecutionService {
           + expressionId
           + ", value="
           + (value == null ? "null" : new MaskedString(value.toString()).applyMasking())
-          + ", type='"
-          + type
+          + ", typeInfo='"
+          + typeInfo
           + '\''
-          + ", cachedType='"
-          + cachedType
+          + ", cachedTypeInfo='"
+          + cachedTypeInfo
           + '\''
           + ", callInfo="
           + callInfo
@@ -734,15 +815,15 @@ public final class ExecutionService {
     /**
      * @return the type of the returned value.
      */
-    public String getType() {
-      return type;
+    public TypeInfo getType() {
+      return typeInfo;
     }
 
     /**
      * @return the cached type of the value.
      */
-    public String getCachedType() {
-      return cachedType;
+    public TypeInfo getCachedType() {
+      return cachedTypeInfo;
     }
 
     /**
@@ -784,7 +865,22 @@ public final class ExecutionService {
      * @return {@code true} when the type differs from the cached value.
      */
     public boolean isTypeChanged() {
-      return !Objects.equals(type, cachedType);
+      String[] visibleType = null;
+      String[] hiddenType = null;
+      if (typeInfo != null) {
+        visibleType = typeInfo.visibleType();
+        hiddenType = typeInfo.hiddenType();
+      }
+
+      String[] cachedVisibleType = null;
+      String[] cachedHiddenType = null;
+      if (cachedTypeInfo != null) {
+        cachedVisibleType = cachedTypeInfo.visibleType();
+        cachedHiddenType = cachedTypeInfo.hiddenType();
+      }
+
+      return !Arrays.equals(visibleType, cachedVisibleType)
+          || !Arrays.equals(hiddenType, cachedHiddenType);
     }
 
     /**
