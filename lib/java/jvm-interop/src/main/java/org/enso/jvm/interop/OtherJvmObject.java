@@ -30,6 +30,9 @@ final class OtherJvmObject implements TruffleObject {
   @ExportMessage
   Object send(Message message, Object[] args) throws Exception {
     if (message.getLibraryClass() != InteropLibrary.class) {
+      if (message.getParameterCount() == 1 && message.getReturnType() == boolean.class) {
+        return false;
+      }
       throw UnsupportedMessageException.create();
     }
     var msg = new OtherJvmMessage(id, message, List.of(args));

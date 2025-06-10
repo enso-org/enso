@@ -15,7 +15,7 @@ final class TruffleClassLoader implements TruffleObject {
 
   private TruffleClassLoader() {}
 
-  private static synchronized Context ctx() {
+  static synchronized Context ctx() {
     if (ctx == null) {
       ctx =
           Context.newBuilder() // no dynamic languages needed

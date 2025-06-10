@@ -60,12 +60,15 @@ record OtherJvmMessage( // sends a message to the other side
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel t) {
     try {
+      TruffleClassLoader.ctx().enter();
       var receiver = OBJECTS.get(id);
       assert receiver instanceof TruffleObject;
       var res = ReflectionLibrary.getUncached().send(receiver, message, args.toArray());
       return new ReturnValue<>(res);
     } catch (Exception ex) {
       return ThrowException.create(ex);
+    } finally {
+      TruffleClassLoader.ctx().leave();
     }
   }
 
