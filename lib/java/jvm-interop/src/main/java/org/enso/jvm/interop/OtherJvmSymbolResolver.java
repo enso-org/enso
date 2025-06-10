@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Properties;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.PolyglotSymbolResolver;
 import org.enso.jvm.channel.Channel;
@@ -12,23 +11,23 @@ import org.enso.jvm.channel.JVM;
 
 /** Resolves symbols via interop messages to the "other" HotSpot JVM. */
 @org.openide.util.lookup.ServiceProvider(service = PolyglotSymbolResolver.class)
-public final class OtherSymbolResolver extends PolyglotSymbolResolver {
-  private Channel jvm;
+public final class OtherJvmSymbolResolver extends PolyglotSymbolResolver {
+  private Channel channel;
 
   @Override
   protected Object handleLoadClass(String name) throws ClassNotFoundException {
     if (!HostEnsoUtils.isAot()) {
       throw new ClassNotFoundException("Only works in AOT mode!");
     }
-    if (jvm == null) {
+    if (channel == null) {
       try {
-        jvm = initializeChannel();
+        channel = initializeChannel();
       } catch (IOException | URISyntaxException ex) {
         throw new ClassNotFoundException("Cannot initialize JVM", ex);
       }
     }
-    var result = jvm.execute(OtherResult.class, new OtherMessage.LoadClass(name));
-    return result.value();
+    var result = channel.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
+    return OtherJvmObject.bindToChannel(result.value(), channel);
   }
 
   private Channel initializeChannel() throws IOException, URISyntaxException {
@@ -53,14 +52,11 @@ public final class OtherSymbolResolver extends PolyglotSymbolResolver {
     if (assertsOn) {
       commandAndArgs.add("-ea");
     }
-    Properties props = null;
-    if (props != null) {
-      for (var e : props.entrySet()) {
-        commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
-      }
-    }
     commandAndArgs.add("--sun-misc-unsafe-memory-access=allow");
+    commandAndArgs.add("-Dpolyglot.engine.WarnInterpreterOnly=false");
+    commandAndArgs.add("-Dtruffle.UseFallbackRuntime=true");
     commandAndArgs.add("--enable-native-access=org.graalvm.truffle");
+    commandAndArgs.add("--enable-native-access=org.enso.jvm.channel");
     commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
     if (!component.isDirectory()) {
       throw new IOException("Cannot find " + component + " directory");

@@ -16,20 +16,21 @@ import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 
 @Persistable(id = 81901)
-record OtherMessage( // sends a message to the other side
+record OtherJvmMessage( // sends a message to the other side
     long id, Message message, List<Object> args // with ReflectionLibrary-like arguments
-    ) implements Function<Channel, OtherResult<? extends Object, ? extends Exception>> {
+    ) implements Function<Channel, OtherJvmResult<? extends Object, ? extends Exception>> {
   private static final Map<Long, TruffleObject> OBJECTS = new HashMap<>();
 
   @Persistable(id = 81908, allowInlining = false)
-  record ReturnValue<T, E extends Exception>(T value) implements OtherResult<T, E> {
+  record ReturnValue<T, E extends Exception>(T value) implements OtherJvmResult<T, E> {
     static <T, E extends Exception> ReturnValue<T, E> create(T value) {
       return new ReturnValue<>(value);
     }
   }
 
   @Persistable(id = 81909, allowInlining = false)
-  record ThrowException<V, E extends Exception>(int kind, String msg) implements OtherResult<V, E> {
+  record ThrowException<V, E extends Exception>(int kind, String msg)
+      implements OtherJvmResult<V, E> {
 
     static <T, E extends Exception> ThrowException<T, E> create(E ex) {
       var kind =
@@ -57,7 +58,7 @@ record OtherMessage( // sends a message to the other side
   }
 
   @Override
-  public OtherResult<? extends Object, ? extends Exception> apply(Channel t) {
+  public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel t) {
     try {
       var receiver = OBJECTS.get(id);
       assert receiver instanceof TruffleObject;
@@ -70,9 +71,9 @@ record OtherMessage( // sends a message to the other side
 
   @Persistable(id = 81905)
   record LoadClass(String name)
-      implements Function<Channel, OtherResult<TruffleObject, ClassNotFoundException>> {
+      implements Function<Channel, OtherJvmResult<TruffleObject, ClassNotFoundException>> {
     @Override
-    public OtherResult<TruffleObject, ClassNotFoundException> apply(Channel t) {
+    public OtherJvmResult<TruffleObject, ClassNotFoundException> apply(Channel t) {
       try {
         var clazzRaw = TruffleClassLoader.loadClass(name);
         return ReturnValue.create(clazzRaw);

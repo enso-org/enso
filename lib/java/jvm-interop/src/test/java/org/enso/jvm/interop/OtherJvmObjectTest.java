@@ -25,7 +25,7 @@ public class OtherJvmObjectTest {
     var bigUnwrap = ctx.unwrapValue(bigValue);
     assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
 
-    var id = OtherMessage.registerObject((TruffleObject) bigUnwrap);
+    var id = OtherJvmMessage.registerObject((TruffleObject) bigUnwrap);
     var other = new OtherJvmObject(CHANNEL, id);
     var otherValue = ctx.asValue(other);
 
@@ -52,7 +52,7 @@ public class OtherJvmObjectTest {
     var bigUnwrap = ctx.unwrapValue(bigValue);
     assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
 
-    var id = OtherMessage.registerObject((TruffleObject) bigUnwrap);
+    var id = OtherJvmMessage.registerObject((TruffleObject) bigUnwrap);
     var other = new OtherJvmObject(CHANNEL, id);
     var otherValue = ctx.asValue(other);
 
@@ -71,8 +71,8 @@ public class OtherJvmObjectTest {
 
   @Test
   public void loadClassViaMessage() throws Exception {
-    var msg = new OtherMessage.LoadClass("java.lang.Short");
-    var shortRaw = CHANNEL.execute(OtherResult.class, msg).value();
+    var msg = new OtherJvmMessage.LoadClass("java.lang.Short");
+    var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
     if (shortRaw instanceof OtherJvmObject other) {
       shortRaw = new OtherJvmObject(CHANNEL, other.id());
     }
@@ -84,9 +84,9 @@ public class OtherJvmObjectTest {
 
   @Test
   public void classNotFoundError() {
-    var msg = new OtherMessage.LoadClass("java.lang.unknown.Clazz");
+    var msg = new OtherJvmMessage.LoadClass("java.lang.unknown.Clazz");
     try {
-      var shortRaw = CHANNEL.execute(OtherResult.class, msg).value();
+      var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
       fail("Should yield an exception: " + shortRaw);
     } catch (ClassNotFoundException ex) {
       assertThat(ex.getMessage(), StringContains.containsString("java.lang.unknown.Clazz"));

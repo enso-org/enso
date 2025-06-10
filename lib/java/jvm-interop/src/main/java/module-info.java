@@ -1,5 +1,5 @@
 import org.enso.common.PolyglotSymbolResolver;
-import org.enso.jvm.interop.OtherSymbolResolver;
+import org.enso.jvm.interop.OtherJvmSymbolResolver;
 
 module org.enso.jvm.interop {
   // requires org.slf4j;
@@ -9,7 +9,7 @@ module org.enso.jvm.interop {
   requires org.enso.engine.common;
 
   provides PolyglotSymbolResolver with
-      OtherSymbolResolver;
+      OtherJvmSymbolResolver;
 
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;

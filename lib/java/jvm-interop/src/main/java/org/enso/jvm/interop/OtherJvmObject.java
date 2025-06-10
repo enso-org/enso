@@ -32,14 +32,17 @@ final class OtherJvmObject implements TruffleObject {
     if (message.getLibraryClass() != InteropLibrary.class) {
       throw UnsupportedMessageException.create();
     }
-    var msg = new OtherMessage(id, message, List.of(args));
-    var reply = channel.execute(OtherResult.class, msg);
+    var msg = new OtherJvmMessage(id, message, List.of(args));
+    var reply = channel.execute(OtherJvmResult.class, msg);
+    return bindToChannel(reply.value(), channel);
+  }
 
-    if (reply.value() instanceof OtherJvmObject toBind) {
+  static Object bindToChannel(Object v, Channel ch) {
+    if (v instanceof OtherJvmObject toBind) {
       assert toBind.channel == null;
-      return new OtherJvmObject(channel, toBind.id);
+      return new OtherJvmObject(ch, toBind.id);
     } else {
-      return reply.value();
+      return v;
     }
   }
 }
