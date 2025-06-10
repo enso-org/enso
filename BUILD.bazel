@@ -152,7 +152,7 @@ CMD = "PATH=$(FLATC_PATH):$$PATH JAVA_HOME=$(JAVABASE) {SBT_SETTINGS} $(SBT_BIN)
 genrule(
     name = "sbt_build_engine_distribution",
     srcs = SRCS,
-    outs = ["something.txt"],
+    outs = ["built-distribution"],
     cmd = CMD,
     message = "Building engine distribution",
     toolchains = [
