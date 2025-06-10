@@ -239,7 +239,13 @@ type Subtraction_Kind
     Numeric_Subtract
 
     ## PRIVATE
+    Date_Difference
+
+    ## PRIVATE
     Date_Time_Difference
+
+    ## PRIVATE
+    Time_Of_Day_Difference
 
 ## PRIVATE
    A helper which resolves if numeric subtraction or date-time difference should
@@ -250,16 +256,12 @@ resolve_subtraction_kind arg1 arg2 -> Subtraction_Kind | Nothing =
         typ = find_argument_type arg
         if typ.is_null then Nothing else
             if typ.is_numeric then Subtraction_Kind.Numeric_Subtract else
-                if typ.is_date_or_time then Subtraction_Kind.Date_Time_Difference else
-                    raise_unexpected_type "numeric or date/time" arg
-    kind = resolve_operation_kind arg1 arg2 "subtraction" find_subtraction_kind
-    case kind of
-        # Additional special logic needed:
-        Subtraction_Kind.Date_Time_Difference ->
-            types = [arg1, arg2].map find_argument_type . filter (!= Value_Type.Null) . distinct
-            # If both types are date-time but they differ, we say second one should be the same as first.
-            if types.length > 1 then raise_unexpected_type types.first arg2 else kind
-        _ -> kind
+                if typ.is_date then Subtraction_Kind.Date_Difference else
+                    if typ.is_date_time then Subtraction_Kind.Date_Time_Difference else
+                        if typ.is_time then Subtraction_Kind.Time_Of_Day_Difference else
+                            raise_unexpected_type "numeric or date/time" arg
+
+    resolve_operation_kind arg1 arg2 "subtraction" find_subtraction_kind
 
 ## PRIVATE
    Checks that both provided arguments have numeric type and runs the action

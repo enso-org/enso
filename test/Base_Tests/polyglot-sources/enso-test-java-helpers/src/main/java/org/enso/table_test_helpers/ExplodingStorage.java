@@ -71,11 +71,6 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Storage<?> appendNulls(int count) {
-    return null;
-  }
-
-  @Override
   public Storage<Long> slice(List<SliceRange> ranges) {
     return null;
   }

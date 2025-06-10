@@ -30,6 +30,7 @@ import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
@@ -39,6 +40,15 @@ public class Table {
 
   private final Column[] columns;
   private String versionId;
+
+  /**
+   * Creates a new table from a single column.
+   *
+   * @param column the column contained in this table.
+   */
+  public Table(Column column) {
+    this(new Column[] {column});
+  }
 
   /**
    * Creates a new table
@@ -411,14 +421,37 @@ public class Table {
     int leftColumnCount = this.columns.length;
     int rightColumnCount = right.columns.length;
     for (int i = 0; i < leftColumnCount; i++) {
-      newColumns[i] = this.columns[i].resize(resultRowCount);
+      newColumns[i] = resize(this.columns[i], resultRowCount);
     }
     for (int i = 0; i < rightColumnCount; i++) {
       newColumns[leftColumnCount + i] =
-          right.columns[i].resize(resultRowCount).rename(newRightColumnNames.get(i));
+          resize(right.columns[i], resultRowCount).rename(newRightColumnNames.get(i));
     }
 
     return new Table(newColumns);
+  }
+
+  /**
+   * Resizes the given column to the provided new length.
+   *
+   * <p>If the new length is smaller than the current length, the column is truncated. If the new
+   * length is larger than the current length, the column is padded with nulls.
+   */
+  private static Column resize(Column input, int newSize) {
+    var inputSize = input.getSize();
+    if (inputSize == newSize) {
+      return input;
+    }
+
+    if (newSize < inputSize) {
+      return input.slice(0, newSize);
+    }
+
+    var storage = input.getStorage();
+    var builder = storage.getType().makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
+    builder.appendBulkStorage(storage);
+    builder.appendNulls(newSize - inputSize);
+    return new Column(input.getName(), builder.seal());
   }
 
   /**

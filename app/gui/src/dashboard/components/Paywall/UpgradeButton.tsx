@@ -1,7 +1,7 @@
 /** @file A button that links to the upgrade page. */
-import * as appUtils from '#/appUtils'
 import { Button, type ButtonProps } from '#/components/Button'
 import * as billingHooks from '#/hooks/billing'
+import * as appUtils from '$/appUtils'
 import { useText } from '$/providers/react'
 import * as React from 'react'
 
