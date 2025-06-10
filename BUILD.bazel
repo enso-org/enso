@@ -25,24 +25,6 @@ write_source_files(
 ### Engine distribution ###
 ###########################
 
-# TODO: these two rules are workarounds to avoid running `cargo` in sbt.
-# We should rather generate needed files using Bazel and provide them to sbt by some environment variable.
-# Now we write them to the same locations sbt expects them to be during normal build.
-write_source_files(
-    name = "write_rust_parser_java_bindings",
-    files = {
-        "lib/rust/parser/target/src_managed/main/org/enso/syntax2": "//lib/rust/parser:generate_java",
-    }
-)
-
-write_source_files(
-    name = "write_rust_parser_native_lib",
-    files = {
-        # TODO: obviously not cross-platform.
-        "target/rust/parser-jni/libenso_parser.so": "//lib/rust/parser/jni:enso_parser_jni",
-    }
-)
-
 # TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
 SRCS = [
     "build.sbt",
