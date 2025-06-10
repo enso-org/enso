@@ -1828,15 +1828,15 @@ add_column_operation_specs suite_builder setup =
                 connection_data.teardown
 
             if connection_data.connection.dialect.flagged ..Supports_Nested_With_Clause then
-                group_builder.specify "Should allow the use of let-style CTEs" pending="TODO fix bug that prevents us from Column & DB_Column" <|
+                group_builder.specify "Should allow the use of let-style CTEs" <|
                     t = table_builder [["X", [1, 2, 3, 4]], ["Y", [4, 3, 100, 200]], ["Z", [12.1, 23.4, -4.5, 44.33]]]
                     x = t.at "X"
                     y = t.at "Y"
                     z = t.at "Z"
                     a = ((x - 2.3) * (y + 1)) + z
-                    b = (x - 2.3).let "xx" xx-> (xx * (y + 1)) + z
-                    c = (x - 2.3).let "xx" xx-> (y + 1).let "yy" yy-> (xx * yy) + z
-                    d = ((x - 2.3) * (y + 1)).let "xxyy" xxyy-> xxyy + z
+                    b = ((x - 2.3):DB_Column).let "xx" xx-> (xx * (y + 1)) + z
+                    c = ((x - 2.3):DB_Column).let "xx" xx-> ((y + 1):DB_Column).let "yy" yy-> (xx * yy) + z
+                    d = (((x - 2.3) * (y + 1)):DB_Column).let "xxyy" xxyy-> xxyy + z
 
                     r = t . set a "a" . set b "b" . set c "c" . set d "d" . order_by ["X"] . read
                     r.at "a" . to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]

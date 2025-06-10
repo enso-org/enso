@@ -75,8 +75,7 @@ type DB_Column
     to_text self -> Text = "DB_Column " + (self:Column).name
 
     ## PRIVATE
-    let : Text -> (Column -> Column) -> Column
-    let self (name : Text) (callback : (Column -> Column)) =
+    let self (name : Text) (callback : (Column -> Column)) -> Column & DB_Column =
         use_ctes = self.connection.dialect.flagged ..Supports_Nested_With_Clause
 
         if use_ctes.not then callback self else
