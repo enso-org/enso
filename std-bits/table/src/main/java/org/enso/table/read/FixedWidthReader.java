@@ -81,6 +81,10 @@ public class FixedWidthReader {
   }
 
   public Table read(InputStream inputStream) throws IOException {
+    for (int i = 0; i < skipRows; ++i) {
+      readLine(inputStream);
+    }
+
     if (layoutEntries == null) {
       inferHeaders(inputStream);
     }
@@ -97,9 +101,7 @@ public class FixedWidthReader {
         break;
       }
 
-      if (sourceLineNumber >= skipRows) {
-        addRow(lineLength);
-      }
+      addRow(lineLength);
 
       sourceLineNumber++;
     }
