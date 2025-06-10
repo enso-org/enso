@@ -115,7 +115,10 @@ SRCS = [
     "project/src/**",
 ])
 
-sbt_path(name = "sbt_path", build_setting_default = "")
+sbt_path(
+    name = "sbt_path",
+    build_setting_default = "",
+)
 
 SBT_COMMAND = "buildEngineDistribution"
 
