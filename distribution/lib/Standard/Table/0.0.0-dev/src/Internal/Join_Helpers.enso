@@ -7,7 +7,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Join_Condition.Join_Condition
 import project.Value_Type.Value_Type
-from project.Errors import Invalid_Value_Type, Missing_Input_Columns, No_Such_Column
+from project.Errors import Missing_Input_Columns, No_Such_Column
 
 type Join_Condition_Resolver
     ## PRIVATE
