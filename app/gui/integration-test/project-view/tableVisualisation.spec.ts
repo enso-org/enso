@@ -6,6 +6,7 @@ import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
 import { mockVisualizationDataUpdate } from './visualizationUpdates'
+import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' assert { type: 'json' };
 
 /** Prepare the graph for the tests. We add the table type to the `aggregated` node. */
 async function initGraph(page: Page) {
@@ -376,4 +377,41 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
   const numberWidget = newNode.locator('.WidgetNumber')
   await expect(numberWidget).toBeVisible()
   await expect(numberWidget).toHaveValue('2')
+})
+
+export function getCellLocator(page: Page, colId: string, rowIndex: number) {
+    const locatorString = `[row-index="${rowIndex}"] [col-id="${colId}"]`;
+    return page.locator(locatorString);
+}
+
+test.only('Datetime test - sorting and copying', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    singleColumnDatetimes,
+  )
+  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-02 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-01 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:12:40.000');
+  const value2 = tableVisualization.getByText('Value')
+  await value2.click()
+  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-01 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-02 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:12:40.000');
+  await value2.click()
+  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-03 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-02 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-01 12:12:40.000');
+  await value2.click()
+  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-02 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-01 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:12:40.000');
 })
