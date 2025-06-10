@@ -27,6 +27,8 @@ write_source_files(
 
 # TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
 SRCS = [
+    ".jvmopts",
+    ".scalafmt.conf",
     "build.sbt",
     "project/plugins.sbt",
     "project/build.properties",
