@@ -2995,7 +2995,7 @@ lazy val `runtime-integration-tests` =
       frgaalJavaCompilerSetting,
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ slf4jApi ++ Seq(
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ slf4jApi ++ rxJava ++ Seq(
         "org.graalvm.polyglot"       % "polyglot"                     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk"            % "polyglot-tck"                 % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle"        % "truffle-api"                  % graalMavenPackagesVersion % "provided",
@@ -3032,7 +3032,7 @@ lazy val `runtime-integration-tests` =
       ),
       Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies := {
-        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ scalaLibrary ++ scalaReflect ++ slf4jApi ++ Seq(
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ scalaLibrary ++ scalaReflect ++ slf4jApi ++ rxJava ++ Seq(
           "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
           "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
           "commons-io"             % "commons-io"                   % commonsIoVersion,
@@ -3046,7 +3046,8 @@ lazy val `runtime-integration-tests` =
           "com.ibm.icu"            % "icu4j"                        % icuVersion,
           "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
           "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
-          "com.typesafe"           % "config"                       % typesafeConfigVersion
+          "com.typesafe"           % "config"                       % typesafeConfigVersion,
+          "org.reactivestreams"    % "reactive-streams"             % reactiveStreamsVersion
         )
       },
       Test / internalModuleDependencies := Seq(
