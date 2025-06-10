@@ -591,14 +591,11 @@ public final class EnsoContext {
       for (; ; ) {
         var fqn = binaryName.toString();
         try {
-          System.err.println("fqn check: " + fqn);
           var hostSymbol = fn.loadClass(fqn);
-          System.err.println("  res: " + hostSymbol);
           if (hostSymbol != null) {
             return hostSymbol;
           }
         } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
-          ex.printStackTrace();
           collectExceptions.add(ex);
         }
         var at = fqn.lastIndexOf('.');
@@ -632,14 +629,11 @@ public final class EnsoContext {
               collectedExceptions // put here all exceptions
               );
       if (hostSymbol instanceof TruffleObject) {
-        System.err.println("  returning host symbol " + hostSymbol);
         return (TruffleObject) hostSymbol;
       }
     }
-    System.err.println("  try deeper if " + HostEnsoUtils.isAot());
     if (HostEnsoUtils.isAot()) {
       var javaHome = System.getProperty("java.home");
-      System.err.println("  with javaHOme: " + javaHome);
       logger.info(
           () -> String.format("Class %s not found, trying to turn on JVM %s", className, javaHome));
       var hostSymbol =
