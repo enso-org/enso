@@ -355,7 +355,9 @@ add_direct_specs suite_builder =
             t.at 'one' . to_vector . should_equal [12345, 82345]
 
         group_builder.specify "Throws an exception when inferring headers and the header row has no columns" <|
-            infer_headers_no_headers.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left) . should_fail_with No_Column_Names_Found
+            err = infer_headers_no_headers.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            err . should_fail_with No_Column_Names_Found
+            err.catch.to_display_text . should_equal "No column names were found in the header line."
 
         group_builder.specify "should work with all kinds of line endings" pending="https://github.com/enso-org/enso/issues/13137" <|
             descs = []
@@ -415,7 +417,9 @@ add_direct_specs suite_builder =
                 all = header + [10, 66, 66, 66, 10]
                 stream = Input_Stream.from_bytes all
 
-                format.read_stream stream . should_fail_with Fixed_Width_Line_Too_Long
+                err = format.read_stream stream
+                err . should_fail_with Fixed_Width_Line_Too_Long
+                err.catch.to_display_text . should_equal ("Fixed width file line 0 is longer than the maximum length of " + FixedWidthReader.MAXIMUM_LINE_LENGTH.to_text)
 
 fixed_width_spec_from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Error) -> Text =

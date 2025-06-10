@@ -44,7 +44,7 @@
 - [Column inference for fixed-width files.][13240]
 - [Specify fixed-width file layout with a `Vector` or `Column` of
   widths.][13240]
-- [Support `skip_rows` and `on_emptyfield` for fixed-width files.][13240]
+- [Support `skip_rows` and `on_empty_field` for fixed-width files.][13240]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950

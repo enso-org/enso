@@ -25,7 +25,7 @@ public class FixedWidthReader {
   public static final int MAXIMUM_LINE_LENGTH = 1024 * 1024;
 
   private List<FixedWidthLayoutEntry> layoutEntries;
-  private Justification justification;
+  private Justification justificationForLayoutInference;
   private final Charset charset;
   private final long skipRows;
   private final long rowLimit;
@@ -48,7 +48,7 @@ public class FixedWidthReader {
 
   public FixedWidthReader(
       List<FixedWidthLayoutEntry> layoutEntries,
-      Justification justification,
+      Justification justificationForLayoutInference,
       Charset charset,
       long skipRows,
       long rowLimit,
@@ -59,11 +59,11 @@ public class FixedWidthReader {
       FixedWidthDecodingProblemAggregator decodingProblemAggregator,
       ProblemAggregator problemAggregator) {
 
-    assert layoutEntries == null ^ justification == null
-        : "Exactly one of 'layoutEntries' and 'justification' can be specified";
+    assert layoutEntries == null ^ justificationForLayoutInference == null
+        : "Exactly one of 'layoutEntries' and 'justificationForLayoutInference' can be specified";
 
     this.layoutEntries = layoutEntries;
-    this.justification = justification;
+    this.justificationForLayoutInference = justificationForLayoutInference;
     this.charset = charset;
     this.skipRows = skipRows;
     this.rowLimit = rowLimit;
@@ -303,7 +303,7 @@ public class FixedWidthReader {
   private List<FixedWidthLayoutEntry> inferHeadersFromLine(int lineLength) throws IOException {
     var entries = new ArrayList<FixedWidthLayoutEntry>();
 
-    switch (justification) {
+    switch (justificationForLayoutInference) {
       case LEFT -> {
         var starts = findStarts(lineLength);
         for (int i = 0; i < starts.size(); ++i) {
