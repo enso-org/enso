@@ -1,30 +1,11 @@
 load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library")
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 
-# Builds the platform specific DLL
 rust_shared_library(
     name = "enso_parser",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
-    edition = "2021",
-    proc_macro_deps = all_crate_deps(proc_macro = True) + [
-        "//lib/rust/parser/src/syntax/tree/visitor:enso_parser_syntax_tree_visitor",
-        "//lib/rust/parser/macros:enso_parser_macros",
-    ],
-    visibility = ["//visibility:public"],
-    deps = all_crate_deps(normal = True) + [
-        "//lib/rust/prelude:enso_prelude",
-        "//lib/rust/reflect:enso_reflect",
-    ],
-)
-
-# Builds *.rlib library for use in other Rust crates.
-rust_library(
-    name = "enso_parser_rlib",
-    srcs = glob(["src/**/*.rs"]),
-    aliases = aliases(),
-    crate_name = "enso_parser",
     edition = "2021",
     proc_macro_deps = all_crate_deps(proc_macro = True) + [
         "//lib/rust/parser/src/syntax/tree/visitor:enso_parser_syntax_tree_visitor",
