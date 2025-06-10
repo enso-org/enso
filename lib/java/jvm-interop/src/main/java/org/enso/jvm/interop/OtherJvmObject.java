@@ -1,5 +1,6 @@
 package org.enso.jvm.interop;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -25,6 +26,7 @@ final class OtherJvmObject implements TruffleObject {
     return id;
   }
 
+  @CompilerDirectives.TruffleBoundary
   @ExportMessage
   Object send(Message message, Object[] args) throws Exception {
     if (message.getLibraryClass() != InteropLibrary.class) {
