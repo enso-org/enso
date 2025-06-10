@@ -24,6 +24,7 @@ import {
   AnyAsset,
   AssetConflict,
   AssetId,
+  AssetResolution,
   AssetType,
   DirectoryAsset,
   DirectoryId,
@@ -622,30 +623,42 @@ export class Server {
     this.httpOkJson<null>(response, null)
   }
 
-  /** Response handler for "resolve archive conflicts" endpoint. */
-  async httpResolveArchiveConflicts(
-    request: http.IncomingMessage,
-    response: http.ServerResponse,
-    params: URLSearchParams,
-    [jobId]: [jobId: UnzipAssetsJobId],
-  ) {
-    const bodyParsed = ResolveArchiveRequestBody.safeParse(await json(request))
-    if (!bodyParsed.success) {
-      this.httpError(response, prettifyError(bodyParsed.error))
-      return
-    }
-    const { resolutions } = bodyParsed.data
-    const filePath = Path(String(jobId))
+  /** Upload an archive, optionally with a list of conflict resolutions. */
+  async apiUploadArchive({
+    directoryId,
+    jobId,
+    filePath,
+    resolutions,
+    readStream,
+  }: {
+    directoryId?: DirectoryId | null | undefined
+    jobId?: UnzipAssetsJobId | null | undefined
+    filePath?: string | null | undefined
+    resolutions?: readonly AssetResolution[] | null | undefined
+    readStream?: stream.Readable | null | undefined
+  }): Promise<ImportArchiveResponse> {
+    filePath ??= jobId != null ? Path(String(jobId)) : undefined
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this
-    const directoryParam = params.get('directory') as DirectoryId | null
     const directory =
-      directoryParam ? extractTypeAndPath(directoryParam).path : this.projectsRootDirectory
+      directoryId ? extractTypeAndPath(directoryId).path : this.projectsRootDirectory
     let tempDirectory: string | undefined
+    if (filePath == null) {
+      tempDirectory = await mkdtemp(path.join(tmpdir(), 'enso-'))
+      filePath = path.join(tempDirectory, 'archive.zip')
+      const writeStream = createWriteStream(filePath)
+      if (readStream == null) {
+        throw new Error(
+          'If no source path is provided, then a stream (e.g. from a request) is required',
+        )
+      }
+      readStream.pipe(writeStream)
+      await finished(writeStream)
+    }
     const assets: AnyAsset[] = []
     const conflicts: AssetConflict[] = []
     const resolutionsByPath = new Map(
-      resolutions.map((resolution) => [resolution.path, resolution]),
+      resolutions?.map((resolution) => [resolution.path, resolution]),
     )
 
     const getEntryPath = (entryPathInArchive: RelativePath) => {
@@ -755,10 +768,29 @@ export class Server {
         await rm(tempDirectory, { force: true, recursive: true })
       }
     }
-    this.httpOkJson<ImportArchiveResponse>(
-      response,
-      conflicts.length === 0 ? { assets } : { jobId, conflicts },
-    )
+    jobId ??= UnzipAssetsJobId(filePath)
+    return conflicts.length === 0 ? { assets } : { jobId, conflicts }
+  }
+
+  /** Response handler for "resolve archive conflicts" endpoint. */
+  async httpResolveArchiveConflicts(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    params: URLSearchParams,
+    [jobId]: [jobId: UnzipAssetsJobId],
+  ) {
+    const bodyParsed = ResolveArchiveRequestBody.safeParse(await json(request))
+    if (!bodyParsed.success) {
+      this.httpError(response, prettifyError(bodyParsed.error))
+      return
+    }
+    const { resolutions } = bodyParsed.data
+    const result = await this.apiUploadArchive({
+      jobId,
+      directoryId: params.get('directory') as DirectoryId | null,
+      resolutions,
+    })
+    this.httpOkJson<ImportArchiveResponse>(response, result)
   }
 
   /** Create an archive stream with the given assets. */
@@ -991,116 +1023,12 @@ export class Server {
     response: http.ServerResponse,
     params: URLSearchParams,
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this
-    const directoryParam = params.get('directory') as DirectoryId | null
-    const directory =
-      directoryParam ? extractTypeAndPath(directoryParam).path : this.projectsRootDirectory
-    let filePath = params.get('filePath')
-    let tempDirectory: string | undefined
-    if (filePath == null) {
-      tempDirectory = await mkdtemp(path.join(tmpdir(), 'enso-'))
-      filePath = path.join(tempDirectory, 'archive.zip')
-      const writeStream = createWriteStream(filePath)
-      request.pipe(writeStream)
-      await finished(writeStream)
-    }
-    const assets: AnyAsset[] = []
-    const conflicts: AssetConflict[] = []
-    for await (const { metadata } of await unzipEntries(filePath)) {
-      const entryPathInArchive = RelativePath(metadata.name)
-      const entryPath = Path(path.join(directory, entryPathInArchive))
-      const isDirectory = entryPathInArchive.endsWith('/')
-      const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
-      // If directories need to be merged in the future, the 'existing asset' check can be skipped.
-      const existingAsset = self.apiGetAssetDetailsByPath({ path: entryPath })
-      if (existingAsset) {
-        const conflict: AssetConflict = {
-          type: existingAsset.type,
-          path: entryPathInArchive,
-          existingAsset,
-        }
-        conflicts.push(conflict)
-        continue
-      }
-      const shared = {
-        title: getFileName(entryPath),
-        modifiedAt: toRfc3339(new Date()),
-        parentId: DirectoryId(`directory-${getFolderPath(entryPath)}` as const),
-        extension: null,
-        permissions: [],
-        projectState: null,
-        parentsPath: ParentsPath(''),
-        virtualParentsPath: VirtualParentsPath(''),
-      } satisfies Partial<DirectoryAsset>
-      if (isDirectory) {
-        assets.push({
-          ...shared,
-          type: AssetType.directory,
-          id: DirectoryId(`directory-${entryPath}` as const),
-        })
-      } else if (isProject) {
-        assets.push({
-          ...shared,
-          type: AssetType.project,
-          id: ProjectId(`project-${entryPath.replace(BUNDLED_PROJECT_SUFFIX, '/')}`),
-          projectState: { type: ProjectState.closed },
-        })
-      } else {
-        assets.push({
-          ...shared,
-          type: AssetType.file,
-          id: FileId(`file-${entryPath}`),
-          extension: basenameAndExtension(entryPath).extension,
-        })
-      }
-    }
-    if (conflicts.length === 0) {
-      // Upload; no conflict resolution needed.
-      for await (const entry of await unzipEntries(filePath)) {
-        if (entry.metadata.name.endsWith(BUNDLED_PROJECT_SUFFIX)) {
-          const destinationPath = entry.getDestinationPath(directory)
-          await entry.extract({
-            rootDirectory: directory,
-            transform: async (stream) => {
-              await tarGzReadStreamToFs(stream, destinationPath)
-              const entries = await readdir(destinationPath)
-              const originalSingleChild = entries[0]
-              // Unwrap project contents if there is only a single directory inside.
-              if (entries.length === 1 && originalSingleChild != null) {
-                let singleChild = originalSingleChild
-                while (
-                  await fileExists(path.join(destinationPath, originalSingleChild, singleChild))
-                ) {
-                  singleChild += '_'
-                }
-                if (singleChild !== originalSingleChild) {
-                  await rename(
-                    path.join(destinationPath, originalSingleChild),
-                    path.join(destinationPath, singleChild),
-                  )
-                }
-                const childPath = path.join(destinationPath, singleChild)
-                for (const entry of await readdir(childPath)) {
-                  await rename(path.join(childPath, entry), path.join(destinationPath, entry))
-                }
-              }
-              // Prevent default behavior.
-              return false as const
-            },
-          })
-        } else {
-          await entry.extract({ rootDirectory: directory })
-        }
-      }
-      if (tempDirectory != null) {
-        await rm(tempDirectory, { force: true, recursive: true })
-      }
-    }
-    this.httpOkJson<ImportArchiveResponse>(
-      response,
-      conflicts.length === 0 ? { assets } : { jobId: UnzipAssetsJobId(filePath), conflicts },
-    )
+    const result = await this.apiUploadArchive({
+      directoryId: params.get('directory') as DirectoryId | null,
+      filePath: params.get('filePath'),
+      readStream: request,
+    })
+    this.httpOkJson<ImportArchiveResponse>(response, result)
   }
 
   /** Response handler for "upload file" endpoint. */
