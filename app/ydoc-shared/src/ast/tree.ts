@@ -1871,6 +1871,7 @@ export class TextLiteral extends BaseExpression {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
+  /** Check if this text literal is a block literal, i.e. can be multiline. */
   get isBlock(): boolean {
     return (this.open?.code().length ?? 1) > 1
   }
