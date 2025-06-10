@@ -30,7 +30,9 @@ SRCS = [
     "build.sbt",
     "project/plugins.sbt",
     "project/build.properties",
+    "//lib/rust/parser/jni:enso_parser_jni",
     "//lib/rust/parser:generate_java",
+    "//lib/rust/parser/generate-java:enso_parser_generate_java_srcs",
 ] + glob([
     "engine/common/src/**",
     "engine/interpreter-dsl-test/src/**",

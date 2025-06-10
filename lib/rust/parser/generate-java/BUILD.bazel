@@ -33,3 +33,11 @@ rust_binary(
         "//lib/rust/reflect:enso_reflect",
     ],
 )
+
+filegroup(
+    name = "enso_parser_generate_java_srcs",
+    srcs = glob([
+        "java/**/*.java",
+    ]),
+    visibility = ["//visibility:public"],
+)
