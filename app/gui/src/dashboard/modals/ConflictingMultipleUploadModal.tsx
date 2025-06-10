@@ -16,6 +16,7 @@ import {
 } from '#/services/Backend'
 import { useText } from '$/providers/text'
 import { useQuery } from '@tanstack/react-query'
+import { getText, resolveDictionary } from 'enso-common/src/text'
 
 /** Props for a {@link ConflictingMultipleUploadModal}. */
 export interface ConflictingMultipleUploadFormProps {
@@ -29,7 +30,7 @@ export interface ConflictingMultipleUploadFormProps {
 export function ConflictingMultipleUploadForm(props: ConflictingMultipleUploadFormProps) {
   const { conflicts, parentDirectoryQueryOptions, onSubmit, onCancel } = props
 
-  const { getText } = useText()
+  const text = useText()
 
   const { data: siblings = null } = useQuery(listDirectoryQueryOptions(parentDirectoryQueryOptions))
 
@@ -42,7 +43,7 @@ export function ConflictingMultipleUploadForm(props: ConflictingMultipleUploadFo
         ),
       }),
     defaultValues: {
-      acceptedConflicts: [],
+      acceptedConflicts: [...conflicts.keys()].map(String),
       newPaths: Object.fromEntries(conflicts.map((conflict) => [conflict.path, null])),
     },
     onSubmit: ({ acceptedConflicts, newPaths }) => {
@@ -61,52 +62,53 @@ export function ConflictingMultipleUploadForm(props: ConflictingMultipleUploadFo
 
   return (
     <Form form={form}>
-      <Text.Heading>{getText('conflictingAssetsFound')}</Text.Heading>
-      <Checkbox.Group name="acceptedConflicts">
+      <Checkbox.Group name="acceptedConflicts" className="w-full">
         {conflicts.map((conflict, i) => (
-          <Checkbox value={String(i)}>
-            <AssetIcon asset={{ type: conflict.type, title: conflict.path }} />
-            <Text>{newPaths[conflict.path] ?? conflict.path}</Text>
-            <Popover.Trigger>
-              <Button variant="primary" className="min-w-16">
-                {getText('rename')}
-              </Button>
+          <label className="flex w-full cursor-pointer select-none">
+            <Checkbox value={String(i)} />
+            <div className="flex w-full items-center gap-2">
+              <AssetIcon asset={{ type: conflict.type, title: conflict.path }} />
+              <Text>{newPaths[conflict.path] ?? conflict.path}</Text>
+              <Popover.Trigger>
+                <Button variant="icon" icon="edit" className="ml-auto" />
 
-              <Popover placement="bottom start">
-                <Form
-                  method="dialog"
-                  defaultValues={{
-                    newName: form.getValues('newPaths')[conflict.path] ?? '',
-                  }}
-                  schema={(schema) =>
-                    schema.object({
-                      newName: titleSchema({
-                        asset: conflict.existingAsset,
-                        siblings,
-                      }),
-                    })
-                  }
-                  onSubmit={({ newName }) => {
-                    form.setValue('newPaths', { [conflict.path]: newName })
-                  }}
-                >
-                  <Text>{getText('newNameDescription')}</Text>
+                <Popover placement="bottom start">
+                  <Form
+                    method="dialog"
+                    defaultValues={{
+                      newName: form.getValues('newPaths')[conflict.path] ?? '',
+                    }}
+                    schema={(schema) =>
+                      schema.object({
+                        newName: titleSchema({
+                          asset: conflict.existingAsset,
+                          siblings,
+                        }),
+                      })
+                    }
+                    onSubmit={({ newName }) => {
+                      form.setValue('newPaths', { [conflict.path]: newName })
+                    }}
+                  >
+                    <Text>{text.getText('newNameDescription')}</Text>
 
-                  <Input label={getText('newName')} name="newName" autoFocus="select" />
+                    <Input label={text.getText('newName')} name="newName" autoFocus="select" />
 
-                  <Form.Submit>{getText('apply')}</Form.Submit>
+                    <Form.Submit>{text.getText('apply')}</Form.Submit>
 
-                  <Form.FormError />
-                </Form>
-              </Popover>
-            </Popover.Trigger>
-          </Checkbox>
+                    <Form.FormError />
+                  </Form>
+                </Popover>
+              </Popover.Trigger>
+            </div>
+          </label>
         ))}
       </Checkbox.Group>
-      <Button.Group className="fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md">
-        <Dialog.Close variant="ghost" onPress={onCancel} className="mr-auto">
-          {getText('cancel')}
-        </Dialog.Close>
+      <Button.Group>
+        <Form.Submit />
+        <Button variant="outline" onPress={onCancel} className="mr-auto">
+          {text.getText('cancel')}
+        </Button>
       </Button.Group>
       <Form.FormError />
     </Form>
@@ -122,8 +124,17 @@ export interface ResolveConflictsOptions
 export async function resolveConflicts(options: ResolveConflictsOptions) {
   return new Promise<readonly AssetResolution[]>((resolve, reject) => {
     setModal(
-      <Dialog>
-        <ConflictingMultipleUploadForm {...options} onSubmit={resolve} onCancel={reject} />
+      <Dialog title={getText(resolveDictionary(), 'conflictingAssetsFound')}>
+        {({ close }) => (
+          <ConflictingMultipleUploadForm
+            {...options}
+            onSubmit={resolve}
+            onCancel={() => {
+              close()
+              reject(new Error('Conflicting multiple upload was cancelled.'))
+            }}
+          />
+        )}
       </Dialog>,
     )
   }).finally(unsetModal)
