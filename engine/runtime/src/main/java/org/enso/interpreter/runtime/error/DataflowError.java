@@ -38,7 +38,8 @@ import org.enso.interpreter.runtime.state.State;
 @ImportStatic(PanicException.class)
 public final class DataflowError extends AbstractTruffleException {
   /** Signals (local) values that haven't yet been initialized */
-  public static final DataflowError UNINITIALIZED = new DataflowError(null, (Node) null);
+  public static final DataflowError UNINITIALIZED =
+      new DataflowError(Text.create("unknown/uninitialized"), (Node) null);
 
   private final EnsoContext ctx;
   private final Object payload;

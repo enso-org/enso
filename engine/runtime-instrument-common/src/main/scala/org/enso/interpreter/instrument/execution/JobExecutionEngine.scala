@@ -11,7 +11,12 @@ import org.slf4j.LoggerFactory
 import java.util
 import java.util.{Collections, UUID}
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{CancellationException, ExecutorService, TimeUnit}
+import java.util.concurrent.{
+  CancellationException,
+  Executor,
+  ExecutorService,
+  TimeUnit
+}
 import scala.concurrent.{Future, Promise, TimeoutException}
 import scala.util.control.NonFatal
 
@@ -54,13 +59,17 @@ final class JobExecutionEngine(
   private val MaxJobLimit =
     Integer.MAX_VALUE // Temporary solution to avoid jobs being dropped
 
-  val highPriorityJobExecutor: ExecutorService =
+  private val highPriorityJobExecutor: ExecutorService =
     context.getThreadManager.newCachedThreadPool(
       "prioritized-job-pool",
       2,
       4,
       MaxJobLimit
     )
+
+  def visualizationsExecutor: Executor = {
+    highPriorityJobExecutor
+  }
 
   private val backgroundJobExecutor: ExecutorService =
     context.getThreadManager.newCachedThreadPool(

@@ -118,6 +118,7 @@ public final class ExecutionService {
       throws TypeNotFoundException, MethodNotFoundException {
     return submitExecution(
         () -> {
+          assert (!module.needsCompilation());
           ModuleScope scope = module.compileScope(context);
           Type type = scope.getType(typeName, false);
           if (type == null) {

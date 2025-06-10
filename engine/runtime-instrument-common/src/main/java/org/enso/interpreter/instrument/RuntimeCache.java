@@ -3,6 +3,7 @@ package org.enso.interpreter.instrument;
 import com.oracle.truffle.api.CompilerDirectives;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.observers.DisposableObserver;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.ReplaySubject;
 import io.reactivex.rxjava3.subjects.Subject;
 import java.lang.ref.Reference;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.CachePreferences;
@@ -52,41 +54,53 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     return false;
   }
 
-  public void registerObserver(
+  /**
+   * Registers a visualization for a given `expressionId`.
+   *
+   * @param visualizationId a unique ID of the visualization
+   * @param expressionId an expression's ID to which visualization is associated with
+   * @param onNext action to be executed with expression's value
+   * @param onFailure action to be executed when visualization throws a failure
+   * @param executor `Executor` on which new value notifications should be processed on
+   * @return true, if association of visualization with the expression was successful, false
+   *     otherwise
+   */
+  public boolean registerObserver(
       UUID visualizationId,
       UUID expressionId,
       Consumer<Object> onNext,
-      Consumer<Throwable> onFailure) {
+      Consumer<Throwable> onFailure,
+      Executor executor) {
     Subject<Object> observable;
     synchronized (observables) {
       observable =
           observables.computeIfAbsent(expressionId, (UUID uuid) -> ReplaySubject.createWithSize(1));
     }
+    var scheduler = Schedulers.from(executor);
     var observer =
-        observable.subscribeWith(
-            new DisposableObserver<Object>() {
-              @Override
-              public void onNext(Object t) {
-                onNext.accept(t);
-              }
+        observable
+            .observeOn(scheduler)
+            .subscribeWith(
+                new DisposableObserver<Object>() {
+                  @Override
+                  public void onNext(Object t) {
+                    onNext.accept(t);
+                  }
 
-              @Override
-              public void onError(Throwable t) {
-                onFailure.accept(t);
-              }
+                  @Override
+                  public void onError(Throwable t) {
+                    // TODO: retry to ensure that a visualization update is sent
+                    onFailure.accept(t);
+                  }
 
-              @Override
-              public void onComplete() {
-                unregisterObserver(visualizationId);
-              }
-            });
+                  @Override
+                  public void onComplete() {
+                    unregisterObserver(visualizationId);
+                  }
+                });
     synchronized (observers) {
-      var current = observers.get(visualizationId);
-      if (current != null) {
-        // TODO: wrong, shouldn't have any?
-      } else {
-        observers.put(visualizationId, observer);
-      }
+      var prev = observers.put(visualizationId, observer);
+      return prev == null;
     }
   }
 

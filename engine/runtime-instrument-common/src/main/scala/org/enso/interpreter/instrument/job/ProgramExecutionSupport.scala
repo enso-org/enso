@@ -86,12 +86,6 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.trace("ON_CACHED_VALUE {}", value.getExpressionId)
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        /*sendVisualizationUpdates(
-          contextId,
-          executionFrame.cache,
-          executionFrame.syncState,
-          value
-        )*/
       }
     }
 
@@ -114,12 +108,6 @@ object ProgramExecutionSupport {
           case _ =>
         }
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        /*sendVisualizationUpdates(
-          contextId,
-          executionFrame.cache,
-          executionFrame.syncState,
-          value
-        )*/
       }
     }
 
@@ -152,7 +140,7 @@ object ProgramExecutionSupport {
             )
         }
 
-        ctx.executionService.execute(
+        val pending = ctx.executionService.execute(
           module.toString,
           cons.item,
           function,
@@ -167,6 +155,7 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
+        ExecutionService.resultOf(pending)
       case ExecutionFrame(
             ExecutionItem.CallData(expressionId, callData),
             cache,

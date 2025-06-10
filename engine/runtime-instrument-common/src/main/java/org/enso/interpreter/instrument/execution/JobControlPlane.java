@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.execution;
 
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import org.enso.interpreter.instrument.job.Job;
 
 /** Controls running jobs. */
@@ -65,4 +66,7 @@ public interface JobControlPlane {
 
   /** Finds the first in-progress job satisfying the `filter` condition */
   <T> scala.Option<T> jobInProgress(scala.PartialFunction<Job<?>, scala.Option<T>> filter);
+
+  /** Executor used for executing visualizations. */
+  Executor visualizationsExecutor();
 }
