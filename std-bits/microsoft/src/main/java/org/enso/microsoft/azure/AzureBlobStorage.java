@@ -12,7 +12,8 @@ import org.slf4j.Logger;
 public final class AzureBlobStorage {
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(AzureBlobStorage.class);
 
-  private static BlobServiceClient makeClient(AzureCredential credential, String storageAccountName) {
+  private static BlobServiceClient makeClient(
+      AzureCredential credential, String storageAccountName) {
     var clientBuilder =
         new BlobServiceClientBuilder()
             .endpoint("https://" + storageAccountName + ".blob.core.windows.net/");
