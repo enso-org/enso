@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
@@ -10,8 +11,6 @@ import {
   WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
-import { injectProjectNames } from '@/stores/projectNames'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
 import { unwrapGroups } from '@/util/ast/abstract'
 import { endOnClick, targetIsOutside } from '@/util/autoBlur'
@@ -41,8 +40,7 @@ const emit = defineEmits<{
   updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
 type WidgetProps = ComponentProps<typeof NodeWidget>
-const suggestionDb = useSuggestionDbStore()
-const projectNames = injectProjectNames()
+const openedProject = injectCurrentProject().ref
 
 function defaultWidget(ast: Ast.Token | Ast.Ast): WidgetProps {
   return { input: WidgetInput.FromAst(ast) }
@@ -103,11 +101,11 @@ function resolveType(typeExpr: Ast.Ast) {
   const tyCode = typeExpr.code()
   // Hack: We have to resolve the fully qualified type name ourselves based on present imports.
   // To avoid implementing that for now, we only look up types selectable from dropdown.
-  const matchingTypeEntry = suggestionDb.entries.selectableTypes.value.find(
+  const matchingTypeEntry = openedProject.value?.suggestionDb.entries.selectableTypes.value.find(
     (ty) => ty.name === tyCode,
   )
   return matchingTypeEntry ?
-      projectNames.printProjectPath(matchingTypeEntry.definitionPath)
+      openedProject.value?.names.printProjectPath(matchingTypeEntry.definitionPath)
     : undefined
 }
 
