@@ -1580,13 +1580,11 @@ public class Main {
       assert HostEnsoUtils.isAot() : "Otherwise java.home would be defined";
       var exe = JavaFinder.findJavaExecutable();
       if (exe != null) {
-        System.setProperty("java.home", exe.getParentFile().getParentFile().getAbsolutePath());
+        var path = exe.getParentFile().getParentFile().getAbsolutePath();
+        System.setProperty("java.home", path);
+        LOGGER.debug("Setting java.home property for AOT mode to {}", path);
       }
     }
-    var home = System.getProperty("java.home");
-    System.err.println("javaHome: " + home);
-    assert home != null && new File(home).exists() : "There must be home: " + home;
-
     handleLaunch(originalCwdOrNull, line, logLevel, logMasking[0]);
   }
 
