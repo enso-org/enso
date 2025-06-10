@@ -1,5 +1,6 @@
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
+import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
