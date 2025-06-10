@@ -898,12 +898,13 @@ object Runtime {
       *
       * @param contextId the context's id.
       * @param stackItem an item that should be pushed on the stack.
+      * @param execute true if a completed request should trigger an execution
       */
     @named("pushContextRequest")
     final case class PushContextRequest(
       contextId: ContextId,
       stackItem: StackItem,
-      execute: Boolean
+      execute: Boolean = true
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the [[PushContextRequest]]
