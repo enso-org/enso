@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Missing_Argument
 
 type Join_Condition
     ## Correlates rows from the two tables if the `left` element is equal to the

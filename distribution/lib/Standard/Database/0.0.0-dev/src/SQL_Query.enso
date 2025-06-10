@@ -1,4 +1,3 @@
-import Standard.Base.Errors.Common.Missing_Argument
 from Standard.Base import Text
 
 type SQL_Query

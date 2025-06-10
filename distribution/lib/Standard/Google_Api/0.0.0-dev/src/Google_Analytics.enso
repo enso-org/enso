@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
-import Standard.Base.Errors.Common.Missing_Argument
 from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
