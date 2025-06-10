@@ -17,7 +17,7 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Sort_Column, Table, Value_Type
+from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Table, Value_Type
 from Standard.Table.Column import default_date_period
 from Standard.Table.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Value_Type
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility

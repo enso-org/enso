@@ -4,7 +4,6 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-import Standard.Table.Internal.Vector_Builder.Vector_Builder
 from Standard.Table import Aggregate_Column, Column, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
@@ -23,11 +22,9 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
-import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.Internal.Replace_Params.Replace_Params
@@ -40,7 +37,7 @@ import project.SQL.SQL_Fragment
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Dialect import Temp_Table_Style
-from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Errors import Unsupported_Database_Operation
 from project.Feature import Feature
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from project.Internal.JDBC_Connection import JDBC_Connection

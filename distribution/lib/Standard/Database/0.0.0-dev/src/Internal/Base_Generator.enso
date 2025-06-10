@@ -10,7 +10,6 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Traversal_Helpers
 import project.Internal.SQL_Part.SQL_Part
 import project.SQL.SQL_Builder
