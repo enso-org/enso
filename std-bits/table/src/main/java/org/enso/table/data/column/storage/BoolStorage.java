@@ -9,7 +9,6 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -195,13 +194,6 @@ public final class BoolStorage extends Storage<Boolean>
         isNothing.get(offset, offset + limit),
         newSize,
         negated);
-  }
-
-  @Override
-  public Storage<?> appendNulls(int count) {
-    BitSet isNothing = BitSets.makeDuplicate(this.isNothing);
-    isNothing.set(size, size + count);
-    return new BoolStorage(values, isNothing, size + count, negated);
   }
 
   @Override

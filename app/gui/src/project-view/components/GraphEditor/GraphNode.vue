@@ -16,12 +16,10 @@ import ComponentWidgetTree, {
   GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/ComponentWidgetTree.vue'
+import { useNodeMessage } from '@/components/GraphEditor/GraphNode/nodeMessage'
+import { useNodeVisualization } from '@/components/GraphEditor/GraphNode/nodeVisualization'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
-import GraphNodeMessage, {
-  colorForMessageType,
-  iconForMessageType,
-  type MessageType,
-} from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -34,7 +32,6 @@ import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { injectKeyboard } from '@/providers/keyboard'
 import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
@@ -46,8 +43,8 @@ import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { ComponentInstance, computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
-import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
+import { ComponentInstance, computed, onUnmounted, ref, watch, watchEffect } from 'vue'
+import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
   padding: NODE_CONTENT_PADDING_PX,
@@ -99,67 +96,13 @@ const widgetTree = ref<ComponentInstance<typeof ComponentWidgetTree>>()
 const nodeSize = useResizeObserver(rootNode)
 const widgetTreeSize = useResizeObserver(widgetTree)
 
-function inputExternalIds() {
-  const externalIds = new Array<ExternalId>()
-  for (const inputId of graph.db.nodeDependents.reverseLookup(nodeId.value)) {
-    if (inputId) {
-      externalIds.push(inputId)
-    }
-  }
-  return externalIds
-}
-
-function getPanic(id: ExternalId) {
-  const info = projectStore.computedValueRegistry.db.get(id)
-  return info?.payload.type === 'Panic' ? info.payload.message : undefined
-}
-
-function getDataflowError(id: ExternalId) {
-  return projectStore.dataflowErrors.lookup(id)?.value?.message
-}
-
-interface Message {
-  type: MessageType
-  text: string
-  alwaysShow: boolean
-}
-const availableMessage = computed<Message | undefined>(() => {
-  const externalId = nodeId.value
-  if (!externalId) return undefined
-  const info = projectStore.computedValueRegistry.db.get(externalId)
-  switch (info?.payload.type) {
-    case 'Panic': {
-      const text = info.payload.message
-      const alwaysShow = !inputExternalIds().some((id) => getPanic(id) === text)
-      return { type: 'panic', text, alwaysShow } satisfies Message
-    }
-    case 'DataflowError': {
-      const rawText = getDataflowError(externalId)
-      const text = rawText?.split(' (at')[0]
-      if (!text) return undefined
-      const alwaysShow = !inputExternalIds().some((id) => getDataflowError(id) === rawText)
-      const type = rawText.includes('Missing_Argument') ? 'missing' : 'error'
-      return { type, text, alwaysShow } satisfies Message
-    }
-    case 'Value': {
-      const warning = info.payload.warnings?.value
-      if (!warning) return undefined
-      return {
-        type: 'warning',
-        text: 'Warning: ' + warning,
-        alwaysShow: false,
-      } satisfies Message
-    }
-    default:
-      return undefined
-  }
+const { visibleMessage, hiddenMessage } = useNodeMessage({
+  projectStore,
+  graphDb: graph.db,
+  passEvents: () => outputHovered.value,
+  expand: () => nodeHovered.value || selected.value,
+  nodeId,
 })
-
-const visibleMessage = computed(
-  () =>
-    (availableMessage.value?.alwaysShow || nodeHovered.value || selected.value) &&
-    availableMessage.value,
-)
 
 const nodeHovered = computed(() => graph.nodeHovered.get(nodeId.value) ?? false)
 
@@ -225,37 +168,28 @@ function ensureSelected() {
 }
 
 const outputHovered = computed(() => graph.nodeOutputVisible.get(nodeId.value) ?? false)
-const keyboard = injectKeyboard()
 
-const visualizationWidth = computed({
-  get: () => props.node.vis?.width ?? null,
-  set: (value) => value && emit('update:visualizationWidth', value),
-})
-const visualizationHeight = computed(() => props.node.vis?.height ?? null)
-const isVisualizationEnabled = computed({
-  get: () => props.node.vis?.visible ?? false,
-  set: (enabled) => {
-    emit('update:visualizationEnabled', enabled)
-  },
-})
-const visualizationHovered = ref(false)
+const scale = computed(() => navigator?.scale ?? 1)
+const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))
 
-const isVisualizationPreviewed = computed(
-  () =>
-    keyboard.mod &&
-    (outputHovered.value || visualizationHovered.value || nodeHovered.value) &&
-    !isVisualizationEnabled.value,
-)
-const isVisualizationVisible = computed(
-  () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
-)
-watch(isVisualizationVisible, (val) => {
-  // When visualization is being hidden, we don’t receive `pointerleave` event for some reason.
-  // So we need to set `visualizationHovered` to `false` manually.
-  if (!val) {
-    visualizationHovered.value = false
-  }
+const {
+  visualizationWidth,
+  isVisualizationEnabled,
+  isVisualizationPreviewed,
+  visRect,
+  visualization,
+} = useNodeVisualization({
+  vis: () => props.node.vis,
+  nodeHovered: () => nodeHovered.value || outputHovered.value,
+  isComponentMenuVisible: menuVisible,
+  nodeRect,
+  scale,
+  isFocused: isOnlyOneSelected,
+  typename: () => expressionInfo.value?.rawTypename,
+  dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
+  emit,
 })
+
 watch(isVisualizationPreviewed, (newVal, oldVal) => {
   if (!newVal) {
     graph.setNodeHovered(nodeId.value, false)
@@ -264,7 +198,6 @@ watch(isVisualizationPreviewed, (newVal, oldVal) => {
   }
 })
 
-const scale = computed(() => navigator?.scale ?? 1)
 provideResizableWidgetRegistry(
   computed({
     get: () => visualizationWidth.value && visualizationWidth.value * scale.value,
@@ -338,22 +271,9 @@ const isRecordingOverridden = computed({
 
 const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
 
-const typename = computed(() => expressionInfo.value?.rawTypename)
-
 const nodeEditHandler = nodeEditBindings.handler({
-  cancel(e) {
-    if (e.target instanceof HTMLElement) {
-      e.target.blur()
-    }
-  },
-  edit() {
-    startEditingNode()
-  },
+  edit: () => actionHandlers['component.startEditing'].action(),
 })
-
-function startEditingNode() {
-  emit('update:edited', props.node.rootExpr.code().length)
-}
 
 const handleNodeClick = useDoubleClick(
   (e: MouseEvent) => {
@@ -367,29 +287,14 @@ const handleNodeClick = useDoubleClick(
   },
 ).handleClick
 
-const visRect = shallowRef<Rect>()
-function updateVisualizationRect(rect: Rect | undefined) {
-  visRect.value = rect
-  emit('update:visualizationRect', rect)
-}
+const graphSelectionSize = computed(() => visRect.value?.size ?? nodeSize.value)
 
-const graphSelectionSize = computed(() =>
-  isVisualizationEnabled.value && visRect.value ? visRect.value.size : nodeSize.value,
-)
-
-const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))
-const nodeOuterRect = computed(() =>
-  isVisualizationEnabled.value && visRect.value ? visRect.value : nodeRect.value,
-)
+const nodeOuterRect = computed(() => visRect.value ?? nodeRect.value)
 watchEffect(() => {
   if (!nodeOuterRect.value.size.isZero()) {
     emit('update:rect', nodeOuterRect.value)
   }
 })
-
-const dataSource = computed(
-  () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
-)
 
 // === Recompute node expression ===
 
@@ -490,14 +395,14 @@ function selectBeforeAction<Handlers extends { [K in string]?: ActionHandler }>(
 const editingComment = ref(false)
 const colorPickerOpened = ref(false)
 
-registerHandlers(
+const actionHandlers = registerHandlers(
   selectBeforeAction({
     'component.enterNode': {
+      available: computed(() => graph.nodeCanBeEntered(nodeId.value)),
       action: () => emit('enterNode'),
-      hidden: computed(() => !graph.nodeCanBeEntered(nodeId.value)),
     },
     'component.startEditing': {
-      action: startEditingNode,
+      action: () => emit('update:edited', props.node.rootExpr.code().length),
     },
     'component.editingComment': toggledAction(editingComment),
     'component.createNewNode': {
@@ -509,8 +414,8 @@ registerHandlers(
     'component.toggleVisualization': toggledAction(isVisualizationEnabled),
     'component.pickColor': toggledAction(colorPickerOpened),
     'component.recompute': {
+      enabled: computed(() => !isBeingRecomputed.value),
       action: recomputeOnce,
-      disabled: isBeingRecomputed,
     },
   }),
 )
@@ -548,31 +453,12 @@ const nodeName = computed(() => props.node.pattern?.code())
       :matchableColors="matchableColors"
       @setNodeColor="emit('setNodeColor', $event)"
       @closeColorPicker="colorPickerOpened = false"
-      @pointerenter="menuHovered = true"
-      @pointerleave="menuHovered = false"
+      @update:hovered="menuHovered = $event"
       @click.capture="setSoleSelected"
     />
     <GraphVisualization
-      v-if="isVisualizationVisible"
-      v-model:width="visualizationWidth"
-      :nodeSize="nodeSize"
-      :scale="navigator?.scale ?? 1"
-      :nodePosition="nodePosition"
-      :isComponentMenuVisible="menuVisible"
-      :currentType="props.node.vis?.identifier"
-      :dataSource="dataSource"
-      :typename="typename"
-      :height="visualizationHeight"
-      :isFocused="isOnlyOneSelected"
-      :isPreview="isVisualizationPreviewed"
-      :isFullscreenAllowed="true"
-      :isResizable="true"
-      @pointerenter="visualizationHovered = true"
-      @pointerleave="visualizationHovered = false"
-      @update:rect="updateVisualizationRect"
-      @update:id="emit('update:visualizationId', $event)"
-      @update:enabled="emit('update:visualizationEnabled', $event)"
-      @update:height="emit('update:visualizationHeight', $event)"
+      v-if="visualization"
+      v-bind="visualization"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
       @click.capture="setSoleSelected"
@@ -621,18 +507,12 @@ const nodeName = computed(() => props.node.pattern?.code())
       </div>
     </ContextMenuTrigger>
     <div class="statuses">
-      <SvgIcon
-        v-if="availableMessage && !visibleMessage"
-        :name="iconForMessageType[availableMessage.type]"
-        :style="{ color: colorForMessageType[availableMessage.type] }"
-      />
+      <SvgIcon v-if="hiddenMessage" v-bind="hiddenMessage" />
     </div>
     <GraphNodeMessage
       v-if="visibleMessage"
+      v-bind="visibleMessage"
       class="afterNode shiftWhenMenuVisible"
-      :message="visibleMessage.text"
-      :type="visibleMessage.type"
-      :outputPortHovered="outputHovered"
     />
     <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
   </div>
@@ -716,6 +596,7 @@ const nodeName = computed(() => props.node.pattern?.code())
   position: absolute;
   top: 100%;
   margin-top: var(--node-vertical-gap);
+  /*noinspection CssUnresolvedCustomProperty*/
   transform: translateY(var(--viz-below-node));
 }
 .shiftWhenMenuVisible {

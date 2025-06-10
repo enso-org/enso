@@ -279,15 +279,15 @@ add_specs suite_builder setup =
                 ((t3.at "Y") - (t3.at "X")) . should_fail_with Unsupported_Database_Operation
                 ((t3.at "Y") - (Time_Of_Day.new 0 0 0)) . should_fail_with Unsupported_Database_Operation
 
-        group_builder.specify "should report an Invalid_Value_Type error when subtracting mixed date/time types" <|
+        group_builder.specify "should report an Illegal_Argument error when subtracting mixed date/time types" <|
             t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]]
 
-            ((t.at "Y") - (t.at "X")) . should_fail_with Invalid_Value_Type
-            ((t.at "Y") - (Time_Of_Day.new 12 30 0)) . should_fail_with Invalid_Value_Type
-            ((t.at "X") - (t.at "Z")) . should_fail_with Invalid_Value_Type
-            ((t.at "X") - (Date_Time.new 2021 12 5 12 30 0)) . should_fail_with Invalid_Value_Type
-            ((t.at "Z") - (t.at "Y")) . should_fail_with Invalid_Value_Type
-            ((t.at "Z") - (Date.new 2021 11 3)) . should_fail_with Invalid_Value_Type
+            ((t.at "Y") - (t.at "X")) . should_fail_with Illegal_Argument
+            ((t.at "Y") - (Time_Of_Day.new 12 30 0)) . should_fail_with Illegal_Argument
+            ((t.at "X") - (t.at "Z")) . should_fail_with Illegal_Argument
+            ((t.at "X") - (Date_Time.new 2021 12 5 12 30 0)) . should_fail_with Illegal_Argument
+            ((t.at "Z") - (t.at "Y")) . should_fail_with Illegal_Argument
+            ((t.at "Z") - (Date.new 2021 11 3)) . should_fail_with Illegal_Argument
 
         zone = Time_Zone.parse "Europe/Warsaw"
         dates1 = Lazy_Ref.Value <|

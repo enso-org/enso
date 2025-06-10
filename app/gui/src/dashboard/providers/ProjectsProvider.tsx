@@ -5,7 +5,7 @@ import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import * as backendModule from '#/services/Backend'
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -96,7 +96,7 @@ export type ProjectsProviderProps = Readonly<React.PropsWithChildren>
 export default function ProjectsProvider(props: ProjectsProviderProps) {
   const { children } = props
 
-  const [launchedProjects, setLaunchedProjects] = localStorageProvider.useLocalStorageState(
+  const [launchedProjects, setLaunchedProjects] = useLocalStorageState(
     'launchedProjects',
     array.EMPTY_ARRAY,
     {

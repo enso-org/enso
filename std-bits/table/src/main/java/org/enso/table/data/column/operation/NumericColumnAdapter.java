@@ -74,7 +74,7 @@ public sealed interface NumericColumnAdapter<T>
     public static final NumericColumnAdapter<BigDecimal> INSTANCE = new BigDecimalColumnAdapter();
 
     private static final StorageType<?>[] VALID_TYPES =
-        new StorageType[] {BigIntegerType.INSTANCE, IntegerType.INT_64};
+        new StorageType[] {FloatType.FLOAT_64, BigIntegerType.INSTANCE, IntegerType.INT_64};
 
     @Override
     public StorageType<BigDecimal> getValidType() {
@@ -92,6 +92,8 @@ public sealed interface NumericColumnAdapter<T>
         case BigDecimalType bigDecimalType -> bigDecimalType.asTypedStorage(storage);
         case BigIntegerType bigIntegerType -> new ColumnStorageFacade<>(
             bigIntegerType.asTypedStorage(storage), BigDecimal::new);
+        case FloatType floatType -> new ColumnStorageFacade<>(
+            floatType.asTypedStorage(storage), BigDecimal::valueOf);
         case IntegerType integerType -> new ColumnStorageFacade<>(
             integerType.asTypedStorage(storage), BigDecimal::valueOf);
         default -> throw new IllegalArgumentException(

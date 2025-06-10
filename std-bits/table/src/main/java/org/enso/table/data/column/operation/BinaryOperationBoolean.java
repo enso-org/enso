@@ -4,7 +4,6 @@ import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForBoolean;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -12,6 +11,7 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -21,7 +21,7 @@ import org.enso.table.problems.ProblemAggregator;
  * NullStorage, override the `applySpecializedMapOverNullStorage` or the
  * `applySpecializedZipOverNullStorage`.
  */
-public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean> {
+public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean, Boolean> {
   private final boolean preserveNulls;
   protected final boolean throwOnOther;
   protected final boolean valueOnOther;
@@ -31,7 +31,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
   }
 
   protected BinaryOperationBoolean(boolean preserveNulls, boolean allowNullType) {
-    super(BooleanType.INSTANCE, allowNullType);
+    super(BooleanType.INSTANCE, BooleanType.INSTANCE, allowNullType);
     this.preserveNulls = preserveNulls;
     this.throwOnOther = true;
     this.valueOnOther = false;
@@ -39,7 +39,7 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
 
   protected BinaryOperationBoolean(
       boolean preserveNulls, boolean allowNullType, boolean valueOnOther) {
-    super(BooleanType.INSTANCE, allowNullType);
+    super(BooleanType.INSTANCE, BooleanType.INSTANCE, allowNullType);
     this.preserveNulls = preserveNulls;
     this.throwOnOther = false;
     this.valueOnOther = valueOnOther;

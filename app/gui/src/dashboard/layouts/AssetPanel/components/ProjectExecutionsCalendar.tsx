@@ -17,10 +17,10 @@ import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
 import { Text } from '#/components/Text'
 import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type Backend from '#/services/Backend'
 import {
   AssetType,

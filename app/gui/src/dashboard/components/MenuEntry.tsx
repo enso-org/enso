@@ -12,7 +12,6 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
 import * as detect from 'enso-common/src/detect'
@@ -92,6 +91,7 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly title?: string | undefined
   readonly doAction: () => void
   readonly color?: TextProps['color'] | undefined
+  readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
 }
 
 /** An item in a menu. */
@@ -106,9 +106,11 @@ export default function MenuEntry(props: MenuEntryProps) {
     icon,
     tooltip: tooltipValue,
     color,
+    bindingFocusScope,
     ...variantProps
   } = props
 
+  const defaultBindingFocusScope = React.useRef(document.body)
   const { getText } = useText()
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -134,13 +136,17 @@ export default function MenuEntry(props: MenuEntryProps) {
 
   React.useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        [action]: () => {
-          if (isDisabledRef.current) return
-          doActionCallback()
+      inputBindings.attach(
+        bindingFocusScope?.current ?? defaultBindingFocusScope.current,
+        'keydown',
+        {
+          [action]: () => {
+            if (isDisabledRef.current) return
+            doActionCallback()
+          },
         },
-      }),
-    [inputBindings, action, doActionCallback, isDisabledRef],
+      ),
+    [inputBindings, action, doActionCallback, isDisabledRef, bindingFocusScope],
   )
 
   const { tooltip, targetProps } = useVisualTooltip({

@@ -223,7 +223,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   /** TODO: Add docs */
   pop() {
     if (this._desiredStack.length === 1) {
-      console.debug('Cannot pop last item from execution context stack')
+      console.info('Cannot pop last item from execution context stack')
       return
     }
     this._desiredStack.pop()
