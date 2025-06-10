@@ -79,7 +79,7 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
   const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedCode) {
     return (tag: ExpressionTag) =>
-      tag.expression?.startsWith(editedCode) ||
+      tag.expression.startsWith(editedCode) ||
       (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedCode))
   }
   return undefined
@@ -357,9 +357,6 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   }
 }
 
-function entryIsSelected(entry: Entry) {
-  return entry.tag instanceof ExpressionTag && selectedExpressions.value.has(entry.tag.expression)
-}
 const arrowLocation = ref()
 </script>
 

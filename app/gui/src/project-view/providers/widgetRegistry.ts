@@ -166,7 +166,7 @@ export enum Score {
    */
   Mismatch,
   /**
-   * A last resort match. This widget will be used only if there issn't any good option present.
+   * A last resort match. This widget will be used only if there is no other good option present.
    */
   Weak,
   /**
