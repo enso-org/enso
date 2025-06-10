@@ -47,3 +47,8 @@ build --@rules_rust//rust/toolchain/channel=nightly
 
 ## Allow local overrides of bazel configuration
 try-import %workspace%/.bazelrc.local
+
+# Force the use of Clang for all builds. FuzzTest relies on Clang for sanitizer
+# coverage (https://clang.llvm.org/docs/SanitizerCoverage.html).
+build --action_env=CC=clang
+build --action_env=CXX=clang++
