@@ -1,8 +1,8 @@
 load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
-load("@rules_rust//rust:defs.bzl", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 
-rust_library(
+rust_shared_library(
     name = "enso_parser",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
@@ -17,7 +17,7 @@ rust_library(
         "//lib/rust/reflect:enso_reflect",
     ],
 )
- 
+
 run_binary(
     name = "generate_java",
     args = ["$(@)"],
