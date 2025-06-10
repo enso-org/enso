@@ -29,6 +29,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -38,7 +39,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
+import org.enso.common.PolyglotSymbolResolver;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.EnsoParser;
@@ -579,6 +582,35 @@ public final class EnsoContext {
     return false;
   }
 
+  interface ClassLookup {
+    Object loadClass(String name) throws ClassNotFoundException, InteropException;
+
+    static Object lookupJavaClass(
+        String className, ClassLookup fn, Collection<? super Exception> collectExceptions) {
+      var binaryName = new StringBuilder(className);
+      for (; ; ) {
+        var fqn = binaryName.toString();
+        try {
+          System.err.println("fqn check: " + fqn);
+          var hostSymbol = fn.loadClass(fqn);
+          System.err.println("  res: " + hostSymbol);
+          if (hostSymbol != null) {
+            return hostSymbol;
+          }
+        } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
+          ex.printStackTrace();
+          collectExceptions.add(ex);
+        }
+        var at = fqn.lastIndexOf('.');
+        if (at < 0) {
+          break;
+        }
+        binaryName.setCharAt(at, '$');
+      }
+      return null;
+    }
+  }
+
   /**
    * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
    * This method also tries to lookup inner classes. More specifically, if the provided name
@@ -590,30 +622,44 @@ public final class EnsoContext {
    */
   @TruffleBoundary
   public TruffleObject lookupJavaClass(String className) {
-    var binaryName = new StringBuilder(className);
     var collectedExceptions = new ArrayList<Exception>();
-    for (; ; ) {
-      var fqn = binaryName.toString();
-      try {
-        var hostSymbol = lookupHostSymbol(fqn);
-        if (hostSymbol != null) {
-          return (TruffleObject) hostSymbol;
-        }
-      } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
-        collectedExceptions.add(ex);
+
+    {
+      var hostSymbol =
+          ClassLookup.lookupJavaClass(
+              className, // name to search for
+              this::lookupHostSymbol, // ask the classloader
+              collectedExceptions // put here all exceptions
+              );
+      if (hostSymbol instanceof TruffleObject) {
+        System.err.println("  returning host symbol " + hostSymbol);
+        return (TruffleObject) hostSymbol;
       }
-      var at = fqn.lastIndexOf('.');
-      if (at < 0) {
-        break;
-      }
-      binaryName.setCharAt(at, '$');
     }
+    System.err.println("  try deeper if " + HostEnsoUtils.isAot());
+    if (HostEnsoUtils.isAot()) {
+      var javaHome = System.getProperty("java.home");
+      System.err.println("  with javaHOme: " + javaHome);
+      logger.info(
+          () -> String.format("Class %s not found, trying to turn on JVM %s", className, javaHome));
+      var hostSymbol =
+          ClassLookup.lookupJavaClass(
+              className, // name to search for
+              PolyglotSymbolResolver::loadClass, // pluggable polyglot searches
+              collectedExceptions // collect exceptions
+              );
+      if (hostSymbol instanceof TruffleObject) {
+        return (TruffleObject) hostSymbol;
+      }
+    }
+
     var level = Level.WARNING;
     for (var ex : collectedExceptions) {
       logger.log(level, ex.getMessage());
       level = Level.FINE;
       logger.log(Level.FINE, null, ex);
     }
+
     return getBuiltins().error().makeMissingPolyglotImportError(className);
   }
 

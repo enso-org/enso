@@ -3841,6 +3841,10 @@ lazy val `engine-runner` = project
     NativeImage.additionalCp := {
       val runnerDeps =
         (Compile / fullClasspath).value.map(_.data.getAbsolutePath)
+      val jvmInteropDeps =
+        (`jvm-interop` / Compile / fullClasspath).value.map(
+          _.data.getAbsolutePath
+        )
       val runtimeDeps =
         (`runtime` / Compile / fullClasspath).value.map(_.data.getAbsolutePath)
       val loggingDeps =
@@ -3874,6 +3878,7 @@ lazy val `engine-runner` = project
       }
       val core = (
         runnerDeps ++
+          jvmInteropDeps ++
           runtimeDeps ++
           loggingDeps ++
           replDebugInstr ++
@@ -4305,17 +4310,19 @@ lazy val `jvm-interop` =
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= slf4jApi ++ Seq(
-        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
-        "org.graalvm.sdk"     % "graal-sdk"             % graalMavenPackagesVersion % Test,
-        "junit"               % "junit"                 % junitVersion              % Test,
-        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test
+        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor"   % graalMavenPackagesVersion % "provided",
+        "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+        "org.graalvm.sdk"     % "graal-sdk"               % graalMavenPackagesVersion % Test,
+        "junit"               % "junit"                   % junitVersion              % Test,
+        "com.github.sbt"      % "junit-interface"         % junitIfVersion            % Test
       ),
       Compile / moduleDependencies ++= slf4jApi ++ Seq(
-        "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
-        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
+        "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion,
+        "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage"             % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"                    % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`jvm-channel` / Compile / exportedModule).value,
@@ -4334,23 +4341,26 @@ lazy val `os-environment` =
     .settings(
       frgaalJavaCompilerSetting,
       libraryDependencies ++= slf4jApi ++ Seq(
-        "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
-        "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
-        "commons-io"      % "commons-io"      % commonsIoVersion,
-        "junit"           % "junit"           % junitVersion              % Test,
-        "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
+        "org.graalvm.sdk"     % "nativeimage"     % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk"     % "graal-sdk"       % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-api"     % graalMavenPackagesVersion % "provided",
+        "commons-io"          % "commons-io"      % commonsIoVersion,
+        "junit"               % "junit"           % junitVersion              % Test,
+        "com.github.sbt"      % "junit-interface" % junitIfVersion            % Test
       ),
       Compile / moduleDependencies ++= slf4jApi ++ Seq(
         "commons-io"           % "commons-io"  % commonsIoVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "com.typesafe"         % "config"      % typesafeConfigVersion,
-        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
+        "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`engine-common` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value,
         (`jvm-channel` / Compile / exportedModule).value,
+        (`jvm-interop` / Compile / exportedModule).value,
         (`logging-utils` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value
       ),
@@ -4406,6 +4416,7 @@ lazy val `os-environment` =
       Test / fork := true
     )
     .dependsOn(`jvm-channel`)
+    .dependsOn(`jvm-interop`)
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`engine-common`)
