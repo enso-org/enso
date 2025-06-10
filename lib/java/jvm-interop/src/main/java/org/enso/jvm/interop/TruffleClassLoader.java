@@ -33,33 +33,19 @@ final class TruffleClassLoader implements TruffleObject {
     var clazzValue2 = clazzValue1.getMember("static");
     var holderRaw = new TruffleClassLoader();
     var holderValue = context.asValue(holderRaw);
-    holderValue.putMember("any", clazzValue2);
-    java.lang.Object clazzRaw = holderRaw.value;
+    holderValue.execute(clazzValue2);
+    var clazzRaw = holderRaw.value;
     return (TruffleObject) clazzRaw;
   }
 
   @ExportMessage
-  void writeMember(String name, Object value) {
-    this.value = value;
-  }
-
-  @ExportMessage
-  boolean hasMembers() {
-    return false;
-  }
-
-  @ExportMessage
-  boolean isMemberModifiable(String member) {
-    return true;
-  }
-
-  @ExportMessage
-  boolean isMemberInsertable(String member) {
-    return false;
-  }
-
-  @ExportMessage
-  Object getMembers(boolean includeInternal) {
+  final Object execute(Object[] values) {
+    this.value = values[0];
     return this;
+  }
+
+  @ExportMessage
+  final boolean isExecutable() {
+    return true;
   }
 }
