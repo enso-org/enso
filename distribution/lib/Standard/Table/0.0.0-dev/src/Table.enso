@@ -317,7 +317,7 @@ type Table
 
              example_display = Examples.inventory_table.display
     display self show_rows:Integer=10 format_terminal:Boolean=False -> Text =
-        Display_Helpers.display_table self add_row_index=True max_rows_to_show=show_rows all_rows_count=self.row_count format_terminal=format_terminal
+        self.implementation.display self.underlying show_rows format_terminal
 
     ## PRIVATE
        ADVANCED
