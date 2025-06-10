@@ -15,7 +15,19 @@ export function fileIcon(fileName: string): SvgUseIcon {
     case 'gif': {
       return 'image'
     }
+    case 'enso-project': {
+      return 'graph_editor'
+    }
+    case 'datalink': {
+      return 'connector'
+    }
+    case 'secret': {
+      return 'key'
+    }
     default: {
+      if (fileName.endsWith('/')) {
+        return 'folder'
+      }
       return 'text'
     }
   }

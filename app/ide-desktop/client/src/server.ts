@@ -22,7 +22,6 @@ import * as paths from '@/paths'
 import { app } from 'electron'
 import {
   AnyAsset,
-  AssetConflict,
   AssetId,
   AssetResolution,
   AssetType,
@@ -638,8 +637,6 @@ export class Server {
     readStream?: stream.Readable | null | undefined
   }): Promise<ImportArchiveResponse> {
     filePath ??= jobId != null ? Path(String(jobId)) : undefined
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this
     const directory =
       directoryId ? extractTypeAndPath(directoryId).path : this.projectsRootDirectory
     let tempDirectory: string | undefined
@@ -655,8 +652,9 @@ export class Server {
       readStream.pipe(writeStream)
       await finished(writeStream)
     }
+    let hasConflicts = false
     const assets: AnyAsset[] = []
-    const conflicts: AssetConflict[] = []
+    const archivePaths: RelativePath[] = []
     const resolutionsByPath = new Map(
       resolutions?.map((resolution) => [resolution.path, resolution]),
     )
@@ -673,21 +671,17 @@ export class Server {
 
     for await (const { metadata } of await unzipEntries(filePath)) {
       const entryPathInArchive = RelativePath(metadata.name)
+      archivePaths.push(entryPathInArchive)
       const destinationPath = getEntryPath(entryPathInArchive)
       if (destinationPath == null) {
         continue
       }
       const isDirectory = entryPathInArchive.endsWith('/')
       const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
-      // If directories need to be merged in the future, the 'existing asset' check can be skipped.
-      const existingAsset = self.apiGetAssetDetailsByPath({ path: destinationPath })
-      if (existingAsset) {
-        const conflict: AssetConflict = {
-          type: existingAsset.type,
-          path: entryPathInArchive,
-          existingAsset,
-        }
-        conflicts.push(conflict)
+      // If directories need to be merged in the future, the following check can be skipped
+      // for directories.
+      if (await fileExists(destinationPath)) {
+        hasConflicts = true
         continue
       }
       const shared = {
@@ -722,7 +716,7 @@ export class Server {
         })
       }
     }
-    if (conflicts.length === 0) {
+    if (!hasConflicts) {
       // Upload; no conflict resolution needed.
       for await (const entry of await unzipEntries(filePath)) {
         const entryPathInArchive = RelativePath(entry.metadata.name)
@@ -769,7 +763,7 @@ export class Server {
       }
     }
     jobId ??= UnzipAssetsJobId(filePath)
-    return conflicts.length === 0 ? { assets } : { jobId, conflicts }
+    return hasConflicts ? { jobId, archivePaths } : { assets }
   }
 
   /** Response handler for "resolve archive conflicts" endpoint. */

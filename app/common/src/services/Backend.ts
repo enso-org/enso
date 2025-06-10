@@ -1353,12 +1353,6 @@ interface ImportArchiveResponseWithAssets {
   readonly assets: readonly AnyAsset[]
 }
 
-export interface AssetConflict {
-  readonly type: AssetType
-  readonly path: RelativePath
-  readonly existingAsset: AnyAsset
-}
-
 export const AssetResolution = z.union([
   z
     .object({
@@ -1394,7 +1388,7 @@ export interface ResolveArchiveRequestBody {
 
 interface ImportArchiveResponseWithConflicts {
   readonly jobId: UnzipAssetsJobId
-  readonly conflicts: readonly AssetConflict[]
+  readonly archivePaths: readonly RelativePath[]
 }
 
 export type ImportArchiveResponse =
@@ -1506,7 +1500,8 @@ export function stripProjectExtension(name: string) {
 }
 
 /**
- * Escape special characters in a project name to prevent them from being interpreted as path or regex
+ * Escape special characters in a project name to prevent them from being interpreted
+ * as path or regex.
  */
 export function escapeSpecialCharacters(name: string): string {
   return name.replace(/[*+?^${}()|[\]\\]/g, ':')
@@ -1521,16 +1516,27 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
+/** Extract a title and suffix from a relative path. */
+export function extractTitleAndSuffix(path: RelativePath) {
+  const [, title = path, suffix = ''] =
+    path.match(/([^/]+)((?:[/]|[.]enso-project|[.]datalink|[.]secret)?)$/) ?? []
+  return { title, suffix }
+}
+
 export interface TitleSchemaOptions {
-  readonly asset: Pick<AnyAsset, 'id' | 'title'>
+  readonly id: AssetId
   readonly siblings?: readonly AnyAsset[] | null
 }
 
-/**
- * Check if the title contains invalid characters.
- */
+/** Check if the title contains invalid characters. */
 export function doesTitleContainInvalidCharacters(name: string) {
-  return name.includes('/') || name.includes('\\') || name.includes('..')
+  return (
+    name.includes('/') ||
+    name.includes('\\') ||
+    name.includes('..') ||
+    name === '.' ||
+    name === '..'
+  )
 }
 
 /** A regex for matching hybrid project directories. */
@@ -1539,18 +1545,14 @@ export const HYBRID_PROJECT_DIRECTORY_MASK = /^cloud-project-\w+$/
 /** A list of regexes for matching invalid names. */
 const INVALID_NAME_MASKS = [HYBRID_PROJECT_DIRECTORY_MASK]
 
-/**
- * Check if the title contains invalid names.
- */
+/** Check if the title contains invalid names. */
 export function doesContainInvalidNames(title: string) {
   return INVALID_NAME_MASKS.some((mask) => mask.test(title))
 }
 
-/**
- * A Zod schema for validating a title.
- */
+/** A Zod schema for validating a title. */
 export function titleSchema(options: TitleSchemaOptions) {
-  const { asset, siblings } = options
+  const { id, siblings } = options
 
   const dictionary = resolveDictionary()
 
@@ -1565,29 +1567,27 @@ export function titleSchema(options: TitleSchemaOptions) {
     .refine((value) => !doesTitleContainInvalidCharacters(value), {
       message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
     })
-    .refine((value) => isNewTitleUnique(asset, value, siblings), {
+    .refine((value) => isNewTitleUnique(id, value, siblings), {
       message: getText(dictionary, 'nameShouldBeUnique'),
     })
 }
 
-/**
- * Check whether a new title is unique among the siblings.
- */
+/** Check whether a new title is unique among an asset's siblings. */
 export function isNewTitleUnique(
-  item: Pick<AnyAsset, 'id' | 'title'>,
+  id: AssetId,
   newTitle: string,
   siblings?: readonly AnyAsset[] | null,
 ) {
   siblings ??= []
 
-  return siblings.every((sibling) => {
-    if (sibling.id === item.id) {
-      return true
-    }
-
-    const hasSameTitle = sibling.title.trim().toLowerCase() === newTitle.trim().toLowerCase()
-    return !hasSameTitle
-  })
+  return siblings.every(
+    (sibling) =>
+      // Every sibling must:
+      // be the asset itself,
+      sibling.id === id ||
+      // or have a different title.
+      sibling.title.trim().toLowerCase() !== newTitle.trim().toLowerCase(),
+  )
 }
 
 /** Network error class. */

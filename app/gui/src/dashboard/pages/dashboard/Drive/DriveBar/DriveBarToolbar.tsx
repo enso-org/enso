@@ -191,7 +191,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
       return
     }
     const resolutions = await resolveConflicts({
-      conflicts: result.conflicts,
+      archivePaths: result.archivePaths,
       parentDirectoryQueryOptions: {
         backend,
         parentId: queryDirectoryId,
