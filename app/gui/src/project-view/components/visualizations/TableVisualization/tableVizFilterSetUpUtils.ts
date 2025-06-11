@@ -1,6 +1,5 @@
 import { SetFilterValuesFuncParams } from 'ag-grid-community'
 import { isNumericType, ValueType } from './tableVizUtils'
-import { formatDateLikeValue } from '@/components/shared/AgGridTableView/Utils'
 
 export const getFilterParams = (
   isSSRM: boolean,
