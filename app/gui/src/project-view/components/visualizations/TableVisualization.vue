@@ -680,16 +680,25 @@ function toField(
     autoHeight: cellValueType === 'text' && isSSRM.value,
   }
   if (valueType && ['Date', 'Date_Time', 'Time'].includes(valueType.constructor)) {
-    return { ...colDef, comparator: (valueA, valueB) => {
-      const textA = valueA && typeof valueA === 'object' && '_display_text_' in valueA ? valueA['_display_text_'] : valueA
-      const textB = valueB && typeof valueB === 'object' && '_display_text_' in valueB ? valueB['_display_text_'] : valueB
+    return {
+      ...colDef,
+      comparator: (valueA, valueB) => {
+        const textA =
+          valueA && typeof valueA === 'object' && '_display_text_' in valueA ?
+            valueA['_display_text_']
+          : valueA
+        const textB =
+          valueB && typeof valueB === 'object' && '_display_text_' in valueB ?
+            valueB['_display_text_']
+          : valueB
 
-      if (textA == null && textB == null) return 0
-      if (textA == null) return 1
-      if (textB == null) return -1
+        if (textA == null && textB == null) return 0
+        if (textA == null) return 1
+        if (textB == null) return -1
 
-      return textA.toString().localeCompare(textB.toString())
-    } }
+        return textA.toString().localeCompare(textB.toString())
+      },
+    }
   }
   return colDef
 }

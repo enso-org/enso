@@ -8,6 +8,8 @@ import Standard.Visualization.Table.Visualization
    These tests check the json produced by prepare_visualization matches a baseline
    The Playwright tests check that json data then renders correctly in an AG Grid in the GUI
    If you change the json API you can regen the reference json by commenting in the line of code in check_equal
+   Then run these tests and then run the js prettier
+   Remember to comment the write back out
 
 json_dir = enso_project.data . parent . parent . parent / 'app/gui/integration-test/project-view/table-vis-json'
 type TestData
@@ -20,8 +22,9 @@ type TestData
         any1 = Data.read_many vector1 ..Plain_Text
         column1 = any1.at 'Value'
         column3 = any1.at 'Path'
+        column2 = column1.map x->(x.parse_json.to_text)
         column4 = column3.map x->(x.name.split '.' . at 0)
-        Dictionary.from_keys_and_values column4 values=column1
+        Dictionary.from_keys_and_values column4 values=column2
 
     check_equal self vis filename =
         ## Comment this line in and run the tests to regen the test data if you change the API
@@ -42,7 +45,7 @@ add_specs suite_builder =
             data.check_equal vis 'singleColumnDates'
         
         group_builder.specify "single column of times" <|
-            vis = Visualization.prepare_visualization (Table.new [["Value", [Time_Of_Day.new 12 14 14 123 3 5, Time_Of_Day.new 12 13 14 123 4 5, Time_Of_Day.new 12 15 14 123 4 5]]])
+            vis = Visualization.prepare_visualization (Table.new [["Value", [Time_Of_Day.new 12 14 14 123 4 5, Time_Of_Day.new 12 13 14 123 4 5, Time_Of_Day.new 12 15 14 123 4 5]]])
             data.check_equal vis 'singleColumnTimes'
 
 main filter=Nothing =

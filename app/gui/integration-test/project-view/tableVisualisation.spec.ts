@@ -5,10 +5,10 @@ import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
+import singleColumnDates from './table-vis-json/singleColumnDates.json' assert { type: 'json' }
+import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' assert { type: 'json' }
+import singleColumnTimes from './table-vis-json/singleColumnTimes.json' assert { type: 'json' }
 import { mockVisualizationDataUpdate } from './visualizationUpdates'
-import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' assert { type: 'json' };
-import singleColumnDates from './table-vis-json/singleColumnDates.json' assert { type: 'json' };
-import singleColumnTimes from './table-vis-json/singleColumnTimes.json' assert { type: 'json' };
 
 /** Prepare the graph for the tests. We add the table type to the `aggregated` node. */
 async function initGraph(page: Page) {
@@ -387,117 +387,102 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
    These tests check that json data then renders correctly in an AG Grid in the GUI
    If you change the json API you can regen the reference json by commenting in the line of code in 
    check_equal in Table_Visualisation_Integration_Spec.enso and running those tests
+   Then run the js prettier
+   Remember to comment the write back out
 */
 
 test('Datetime test - sorting and copying', async ({ page, context }) => {
   await loadData(page, singleColumnDatetimes)
-  await expectCellDataToBe(page, 'Value',
+  await expectCellDataToBe(
+    page,
+    'Value',
     '2025-01-02 12:13:14.123',
     '2025-01-01 12:13:14.123',
-    '2025-01-03 12:13:14.123'
+    '2025-01-03 12:13:14.123',
   )
-  const value = await getHeaderLocator(page, {colHeaderName: 'Value'});
+  const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
   await value.click() // Sort ascending
-  await expectCellDataToBe(page, 'Value',
+  await expectCellDataToBe(
+    page,
+    'Value',
     '2025-01-01 12:13:14.123',
     '2025-01-02 12:13:14.123',
-    '2025-01-03 12:13:14.123'
+    '2025-01-03 12:13:14.123',
   )
   await value.click() // Sort descending
-  await expectCellDataToBe(page, 'Value',
+  await expectCellDataToBe(
+    page,
+    'Value',
     '2025-01-03 12:13:14.123',
     '2025-01-02 12:13:14.123',
-    '2025-01-01 12:13:14.123'
+    '2025-01-01 12:13:14.123',
   )
   await value.click() // remove sort
-  await expectCellDataToBe(page, 'Value',
+  await expectCellDataToBe(
+    page,
+    'Value',
     '2025-01-02 12:13:14.123',
     '2025-01-01 12:13:14.123',
-    '2025-01-03 12:13:14.123'
+    '2025-01-03 12:13:14.123',
   )
   await expectCopyingColumnClipboardToBe(
     page,
     context,
-    "Value",
+    'Value',
     0,
     2,
-    '2025-01-02 12:13:14.123\r\n2025-01-01 12:13:14.123\r\n2025-01-03 12:13:14.123'
+    '2025-01-02 12:13:14.123\r\n2025-01-01 12:13:14.123\r\n2025-01-03 12:13:14.123',
   )
 })
 
 test('Date test - sorting and copying', async ({ page, context }) => {
   await loadData(page, singleColumnDates)
-  await expectCellDataToBe(page, 'Value',
-    '2025-01-02',
-    '2025-01-01',
-    '2025-01-03'
-  )
-  const value = await getHeaderLocator(page, {colHeaderName: 'Value'});
+  await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
+  const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
   await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
-  await expectCellDataToBe(page, 'Value',
-    '2025-01-01',
-    '2025-01-02',
-    '2025-01-03'
-  )
+  await expectCellDataToBe(page, 'Value', '2025-01-01', '2025-01-02', '2025-01-03')
   await value.click({ position: { x: 10, y: 10 } }) // Sort descending
-  await expectCellDataToBe(page, 'Value',
-    '2025-01-03',
-    '2025-01-02',
-    '2025-01-01'
-  )
+  await expectCellDataToBe(page, 'Value', '2025-01-03', '2025-01-02', '2025-01-01')
   await value.click({ position: { x: 10, y: 10 } }) // remove sort
-  await expectCellDataToBe(page, 'Value',
-    '2025-01-02',
-    '2025-01-01',
-    '2025-01-03'
-  )
+  await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
   await expectCopyingColumnClipboardToBe(
     page,
     context,
-    "Value",
+    'Value',
     0,
     2,
-    '2025-01-02\r\n2025-01-01\r\n2025-01-03'
+    '2025-01-02\r\n2025-01-01\r\n2025-01-03',
   )
 })
 
 test('Time test - sorting and copying', async ({ page, context }) => {
   await loadData(page, singleColumnTimes)
-  await expectCellDataToBe(page, 'Value',
-    '12:14:14.123004',
-    '12:13:14.123004',
-    '12:15:14.123004'
-  )
-  const value = await getHeaderLocator(page, {colHeaderName: 'Value'});
+  await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
+  const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
   await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
-  await expectCellDataToBe(page, 'Value',
-    '12:13:14.123004',
-    '12:14:14.123004',
-    '12:15:14.123004'
-  )
+  await expectCellDataToBe(page, 'Value', '12:13:14.123004', '12:14:14.123004', '12:15:14.123004')
   await value.click({ position: { x: 10, y: 10 } }) // Sort descending
-  await expectCellDataToBe(page, 'Value',
-    '12:15:14.123004',
-    '12:14:14.123004',
-    '12:13:14.123004'
-  )
+  await expectCellDataToBe(page, 'Value', '12:15:14.123004', '12:14:14.123004', '12:13:14.123004')
   await value.click({ position: { x: 10, y: 10 } }) // remove sort
-  await expectCellDataToBe(page, 'Value',
-    '12:14:14.123004',
-    '12:13:14.123004',
-    '12:15:14.123004'
-  )
+  await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
   await expectCopyingColumnClipboardToBe(
     page,
     context,
-    "Value",
+    'Value',
     0,
     2,
-    '12:14:14.123004\r\n12:13:14.123004\r\n12:15:14.123004'
+    '12:14:14.123004\r\n12:13:14.123004\r\n12:15:14.123004',
   )
 })
 
-async function expectCopyingColumnClipboardToBe(page: Page, context: BrowserContext, columnName: string, startRow: number, endRow: number, expectedClipboardText: string) {
+async function expectCopyingColumnClipboardToBe(
+  page: Page,
+  context: BrowserContext,
+  columnName: string,
+  startRow: number,
+  endRow: number,
+  expectedClipboardText: string,
+) {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await getCellLocator(page, columnName, startRow).click()
   await page.keyboard.down('Shift')
@@ -505,7 +490,7 @@ async function expectCopyingColumnClipboardToBe(page: Page, context: BrowserCont
   await page.keyboard.up('Shift')
   await page.keyboard.press(`${CONTROL_KEY}+C`)
   const expectClipboard = expect.poll(() =>
-    page.evaluate(() => window.navigator.clipboard.readText())
+    page.evaluate(() => window.navigator.clipboard.readText()),
   )
   await expectClipboard.toBe(expectedClipboardText)
 }
@@ -527,26 +512,26 @@ async function loadData(page: Page, data: any) {
 }
 
 export type ColumnLocatorOptions = {
-    colId?: string;
-    colHeaderName?: string;
-};
+  colId?: string
+  colHeaderName?: string
+}
 
 /**
  * Returns a locator for the header cell
  */
 export function getHeaderLocator(page: Page, options: ColumnLocatorOptions) {
-    if (options.colHeaderName) {
-        return page.getByRole('columnheader', { name: options.colHeaderName });
-    }
-    return page.getByRole('columnheader').and(page.locator(`[col-id="${options.colId}"]`));
+  if (options.colHeaderName) {
+    return page.getByRole('columnheader', { name: options.colHeaderName })
+  }
+  return page.getByRole('columnheader').and(page.locator(`[col-id="${options.colId}"]`))
 }
 
 /**
  * Returns a locator for the cell based off colId and rowIndex
  */
 export function getCellLocator(page: Page, colId: string, rowIndex: number) {
-    const locatorString = `[row-index="${rowIndex}"] [col-id="${colId}"]`;
-    return page.locator(locatorString);
+  const locatorString = `[row-index="${rowIndex}"] [col-id="${colId}"]`
+  return page.locator(locatorString)
 }
 
 // Helper function to check cell values in a column
