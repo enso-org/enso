@@ -381,6 +381,14 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
   await expect(numberWidget).toHaveValue('2')
 })
 
+/* 
+   These tests pair with the Enso tests found at test/Visualization_Tests/src/Table_Visualisation_Integration_Spec.enso
+   Those tests check the json produced by prepare_visualization matches a baseline
+   These tests check that json data then renders correctly in an AG Grid in the GUI
+   If you change the json API you can regen the reference json by commenting in the line of code in 
+   check_equal in Table_Visualisation_Integration_Spec.enso and running those tests
+*/
+
 test('Datetime test - sorting and copying', async ({ page, context }) => {
   await loadData(page, singleColumnDatetimes)
   await expectCellDataToBe(page, 'Value',

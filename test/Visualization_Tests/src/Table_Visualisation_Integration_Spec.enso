@@ -4,6 +4,11 @@ from Standard.Table import all
 from Standard.Test import all
 import Standard.Visualization.Table.Visualization
 
+## These tests pair with the Playwright tests found at app/gui/integration-test/project-view/tableVisualisation.spec.ts
+   These tests check the json produced by prepare_visualization matches a baseline
+   The Playwright tests check that json data then renders correctly in an AG Grid in the GUI
+   If you change the json API you can regen the reference json by commenting in the line of code in check_equal
+
 json_dir = enso_project.data . parent . parent . parent / 'app/gui/integration-test/project-view/table-vis-json'
 type TestData
     Value ~data
