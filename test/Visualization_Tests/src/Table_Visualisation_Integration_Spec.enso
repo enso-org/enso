@@ -19,12 +19,10 @@ type TestData
   
     setup = TestData.Value <|
         vector1 = Data.list json_dir '{*.json}'
-        any1 = Data.read_many vector1 ..Plain_Text
-        column1 = any1.at 'Value'
-        column3 = any1.at 'Path'
-        column2 = column1.map x->(x.parse_json.to_text)
-        column4 = column3.map x->(x.name.split '.' . at 0)
-        Dictionary.from_keys_and_values column4 values=column2
+        files = Data.read_many vector1 ..Plain_Text
+        values = files.at 'Value' . map x->(x.parse_json.to_text)
+        keys = files.at 'Path' . map x->(x.name.split '.' . at 0)
+        Dictionary.from_keys_and_values keys values
 
     check_equal self vis filename =
         ## Comment this line in and run the tests to regen the test data if you change the API
