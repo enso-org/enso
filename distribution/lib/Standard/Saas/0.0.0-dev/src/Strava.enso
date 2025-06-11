@@ -22,5 +22,4 @@ type Strava
 
 strava_get strava url =
     header = Header.new "Authorization" ("Bearer " + strava.strava_service.getAccessToken.token)
-    r = HTTP.fetch url headers=[header]
-    r
+    HTTP.fetch url headers=[header]
