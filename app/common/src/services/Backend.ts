@@ -27,7 +27,6 @@ import {
   ProjectExecutionId,
   ProjectId,
   ProjectSessionId,
-  RelativePath,
   S3FilePath,
   S3ObjectVersionId,
   SecretId,
@@ -1473,7 +1472,7 @@ export function extractProjectExtension(name: string) {
 }
 
 /** Extract a title and suffix from a relative path. */
-export function extractTitleAndSuffix(path: RelativePath) {
+export function extractTitleAndSuffix(path: string) {
   const [, title = path, suffix = ''] =
     path.match(/([^/]+)((?:[/]|[.]enso-project|[.]datalink|[.]secret)?)$/) ?? []
   return { title, suffix }
@@ -1526,34 +1525,6 @@ export function titleSchema(options: TitleSchemaOptions) {
     .refine((value) => isNewTitleUnique(id, value, siblings), {
       message: getText(dictionary, 'nameShouldBeUnique'),
     })
-}
-
-/** A Zod schema for validating a path by title. */
-export function pathByTitleSchema(options: TitleSchemaOptions) {
-  const { id, siblings } = options
-  const dictionary = resolveDictionary()
-
-  return z
-    .string()
-    .trim()
-    .min(1)
-    .max(512)
-    .refine((value) => !doesContainInvalidNames(extractTitleAndSuffix(RelativePath(value)).title), {
-      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
-    })
-    .refine(
-      (value) =>
-        !doesTitleContainInvalidCharacters(extractTitleAndSuffix(RelativePath(value)).title),
-      {
-        message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
-      },
-    )
-    .refine(
-      (value) => isNewTitleUnique(id, extractTitleAndSuffix(RelativePath(value)).title, siblings),
-      {
-        message: getText(dictionary, 'nameShouldBeUnique'),
-      },
-    )
 }
 
 /** Check whether a new title is unique among an asset's siblings. */

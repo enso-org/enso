@@ -42,7 +42,7 @@ export function isFolderPath(path: string) {
 
 /** Return the entire path, without the file name. */
 export function getFolderPath(filePath: string) {
-  return filePath.match(/^.+[/\\](?=.)/)?.[0] ?? filePath
+  return filePath.match(/^.+[/\\](?=.)/)?.[0] ?? ''
 }
 
 /** Return the root folder in the path, or the entire path if there are no folders. */

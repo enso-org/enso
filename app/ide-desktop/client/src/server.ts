@@ -27,6 +27,7 @@ import {
   DirectoryAsset,
   DirectoryId,
   ExportedArchive,
+  extractTitleAndSuffix,
   extractTypeFromId,
   FileAsset,
   FileDetails,
@@ -37,7 +38,6 @@ import {
   ProjectAsset,
   ProjectId,
   ProjectState,
-  RelativePath,
   S3FilePath,
   UnzipAssetsJobId,
   VirtualParentsPath,
@@ -642,29 +642,40 @@ export class Server {
       readStream.pipe(writeStream)
       await finished(writeStream)
     }
-    let hasConflicts = false
     const assets: AnyAsset[] = []
-    const archivePaths: RelativePath[] = []
 
-    const getEntryPath = (entryPathInArchive: RelativePath) => {
-      return Path(path.join(directory, entryPathInArchive))
-    }
+    const pathMapping: Record<string, string> = {}
 
-    for await (const { metadata } of await unzipEntries(filePath)) {
-      const entryPathInArchive = RelativePath(metadata.name)
-      archivePaths.push(entryPathInArchive)
-      const destinationPath = getEntryPath(entryPathInArchive)
-      if (destinationPath == null) {
-        continue
-      }
+    const getDirectoryPath = async (entryPathInArchive: string) => {
       const isDirectory = isFolderPath(entryPathInArchive)
-      const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
+      const parentPathInArchiveRaw = getFolderPath(entryPathInArchive)
+      const parentPathInArchive =
+        parentPathInArchiveRaw === entryPathInArchive ? '' : (
+          (pathMapping[parentPathInArchiveRaw] ?? (await getDirectoryPath(parentPathInArchiveRaw)))
+        )
+      let destinationPathInArchive = path.join(parentPathInArchive, getFileName(entryPathInArchive))
+      const originalDestinationPath = Path(path.join(directory, destinationPathInArchive))
+      let destinationPath = originalDestinationPath
+      const { title, suffix } = extractTitleAndSuffix(getFileName(destinationPath))
       // If directories need to be merged in the future, the following check can be skipped
       // for directories.
-      if (await fileExists(destinationPath)) {
-        hasConflicts = true
-        continue
+      let i = 0
+      while (await fileExists(destinationPath)) {
+        i += 1
+        destinationPathInArchive = path.join(parentPathInArchive, `${title} (${i})${suffix}`)
+        destinationPath = Path(path.join(directory, destinationPathInArchive))
       }
+      if (isDirectory) {
+        pathMapping[entryPathInArchive] = destinationPathInArchive
+      }
+      return destinationPath
+    }
+
+    for await (const entry of await unzipEntries(filePath)) {
+      const entryPathInArchive = entry.metadata.name
+      const destinationPath = await getDirectoryPath(entryPathInArchive)
+      const isDirectory = isFolderPath(entryPathInArchive)
+      const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
       const shared = {
         title: getFileName(destinationPath),
         modifiedAt: toRfc3339(new Date()),
@@ -681,12 +692,42 @@ export class Server {
           type: AssetType.directory,
           id: DirectoryId(`directory-${destinationPath}` as const),
         })
+        await entry.extract({ rootDirectory: directory, destinationPath })
       } else if (isProject) {
         assets.push({
           ...shared,
           type: AssetType.project,
           id: ProjectId(`project-${destinationPath.replace(BUNDLED_PROJECT_SUFFIX, '/')}`),
           projectState: { type: ProjectState.closed },
+        })
+        await entry.extract({
+          rootDirectory: directory,
+          transform: async (stream) => {
+            await tarGzReadStreamToFs(stream, destinationPath)
+            const entries = await readdir(destinationPath)
+            const originalSingleChild = entries[0]
+            // Unwrap project contents if there is only a single directory inside.
+            if (entries.length === 1 && originalSingleChild != null) {
+              let singleChild = originalSingleChild
+              while (
+                await fileExists(path.join(destinationPath, originalSingleChild, singleChild))
+              ) {
+                singleChild += '_'
+              }
+              if (singleChild !== originalSingleChild) {
+                await rename(
+                  path.join(destinationPath, originalSingleChild),
+                  path.join(destinationPath, singleChild),
+                )
+              }
+              const childPath = path.join(destinationPath, singleChild)
+              for (const entry of await readdir(childPath)) {
+                await rename(path.join(childPath, entry), path.join(destinationPath, entry))
+              }
+            }
+            // Prevent default behavior.
+            return false as const
+          },
         })
       } else {
         assets.push({
@@ -695,53 +736,11 @@ export class Server {
           id: FileId(`file-${destinationPath}`),
           extension: basenameAndExtension(destinationPath).extension,
         })
+        await entry.extract({ rootDirectory: directory, destinationPath })
       }
     }
-    if (!hasConflicts) {
-      // Upload; no conflict resolution needed.
-      for await (const entry of await unzipEntries(filePath)) {
-        const entryPathInArchive = RelativePath(entry.metadata.name)
-        const destinationPath = getEntryPath(entryPathInArchive)
-        if (destinationPath == null) {
-          continue
-        }
-        if (entry.metadata.name.endsWith(BUNDLED_PROJECT_SUFFIX)) {
-          await entry.extract({
-            rootDirectory: directory,
-            transform: async (stream) => {
-              await tarGzReadStreamToFs(stream, destinationPath)
-              const entries = await readdir(destinationPath)
-              const originalSingleChild = entries[0]
-              // Unwrap project contents if there is only a single directory inside.
-              if (entries.length === 1 && originalSingleChild != null) {
-                let singleChild = originalSingleChild
-                while (
-                  await fileExists(path.join(destinationPath, originalSingleChild, singleChild))
-                ) {
-                  singleChild += '_'
-                }
-                if (singleChild !== originalSingleChild) {
-                  await rename(
-                    path.join(destinationPath, originalSingleChild),
-                    path.join(destinationPath, singleChild),
-                  )
-                }
-                const childPath = path.join(destinationPath, singleChild)
-                for (const entry of await readdir(childPath)) {
-                  await rename(path.join(childPath, entry), path.join(destinationPath, entry))
-                }
-              }
-              // Prevent default behavior.
-              return false as const
-            },
-          })
-        } else {
-          await entry.extract({ rootDirectory: directory, destinationPath })
-        }
-      }
-      if (tempDirectory != null) {
-        await rm(tempDirectory, { force: true, recursive: true })
-      }
+    if (tempDirectory != null) {
+      await rm(tempDirectory, { force: true, recursive: true })
     }
     return { assets }
   }
