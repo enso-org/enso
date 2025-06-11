@@ -63,10 +63,6 @@ import {
   isNumericType,
   ValueType,
 } from '@/components/visualizations/TableVisualization/tableVizUtils'
-import {
-  formatDateLikeValue,
-  ensoDateComparator,
-} from '@/components/shared/AgGridTableView/Utils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -682,10 +678,6 @@ function toField(
     },
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,
-  }
-  // Attach custom comparator for date-like types
-  if (valueType && ['Date', 'Date_Time', 'Time_Of_Day'].includes(valueType.constructor)) {
-    return { ...colDef, comparator: ensoDateComparator }
   }
   return colDef
 }
