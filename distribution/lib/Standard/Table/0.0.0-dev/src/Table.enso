@@ -2584,6 +2584,12 @@ type Table
             Column.from_repeated_item value.pretty value self.row_count
 
     ## PRIVATE
+       Creates a constant column that has the same number of rows as this table.
+       Each row of this column contains the provided vector as its value.
+    make_constant_column_from_vector self vector:Vector =
+        Column.from_repeated_item "Vector" vector self.row_count
+
+    ## PRIVATE
        Create a unique temporary column name.
     make_temp_column_name : Text
     make_temp_column_name self = self.column_naming_helper.make_temp_column_name self.column_names

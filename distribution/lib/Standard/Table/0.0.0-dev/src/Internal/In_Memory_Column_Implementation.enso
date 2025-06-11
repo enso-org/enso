@@ -524,7 +524,7 @@ type In_Memory_Column_Implementation
             _ : Vector -> vector
             _ : Array -> Vector.from_polyglot_array vector
             column : Column -> column.to_vector
-        new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "in", as_vector.short_display_text 5]
+        new_name = naming_helper.binary_operation_name "in" this_column vector
         java_column = this_column.java_column
         case IsInOperation.isSupported java_column of
             True ->
