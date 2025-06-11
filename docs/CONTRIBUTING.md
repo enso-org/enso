@@ -589,7 +589,7 @@ Once all the components are assembled, it is time to execute them in
 orchestration. One can pass following environment variables to
 `project-manager`:
 
-- `_JAVA_OPTIONS` to for example turn
+- `ENSO_JVM_OPTS` to for example turn
   [debugging of the Engine runtime](debugger/README.md) on
 - `ENSO_JVM_PATH` to force a fixed GraalVM to execute the engine/language server
   process on
@@ -619,7 +619,7 @@ option to the _sbt command_:
 sbt:enso> runProjectManagerDistribution --debug
 ```
 
-the system sets `_JAVA_OPTIONS=-agentlib:jdwp=transport=dt_socket,address=5005`.
+the system sets `ENSO_JVM_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005`.
 Just [configure your Java IDE](debugger/README.md) to listen on port 5005 before
 invoking the command and you'll be able to debug the engine launched by the
 project manager.

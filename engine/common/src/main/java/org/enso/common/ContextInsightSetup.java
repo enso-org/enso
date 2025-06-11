@@ -26,7 +26,7 @@ import org.graalvm.polyglot.Source;
  * or when launching the {@code project-manager}:
  *
  * <pre>
- * _JAVA_OPTIONS=-Denso.dev.insight=`pwd`/insightScript.js project-manager
+ * ENSO_JVM_OPTS=-Denso.dev.insight=`pwd`/insightScript.js project-manager
  * </pre>
  *
  * The sample {@code insightScript.js} can look for example like:
