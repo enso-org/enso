@@ -293,7 +293,8 @@ $ ENSO_JAVA=espresso ./built-distribution/enso-engine-*/enso-*/bin/enso --run he
 Unless you see a warning containing _"No language for id java found."_ your code
 has just successfully been executed by
 [Espresso](https://www.graalvm.org/jdk17/reference-manual/java-on-truffle/)! To
-debug just add `_JAVA_OPTIONS` environment variable set to your IDE favorite value:
+debug just add `_JAVA_OPTIONS` environment variable set to your IDE favorite
+value:
 
 ```bash
 $ _JAVA_OPTIONS=-agentlib:jdwp=transport=dt_socket,address=5005 ENSO_JAVA=espresso enso --run hello.enso

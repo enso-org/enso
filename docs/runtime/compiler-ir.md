@@ -37,8 +37,8 @@ to how GraalVM graphs are dumped, which is documented in
 
 When using the `enso.compiler.dumpIr` property, one has to add
 `--add-exports jdk.graal.compiler/jdk.graal.compiler.graphio=org.enso.runtime.compiler.dump.igv`
-to the `_JAVA_OPTIONS` env var, because the IGV dumper uses an internal package of
-GraalVM JDK's module which is not exported by default.
+to the `_JAVA_OPTIONS` env var, because the IGV dumper uses an internal package
+of GraalVM JDK's module which is not exported by default.
 
 Usage example:
 

@@ -34,8 +34,8 @@ sbt:enso> runEngineDistribution --debug --run ./test/Base_Tests/src/Data/Numbers
 ```
 
 The second options gives one a complete control as it launches everything from a
-command line. By specifying `_JAVA_OPTIONS` environment variable one influences the
-special JVM arguments when launching the `bin/enso` from the engine
+command line. By specifying `_JAVA_OPTIONS` environment variable one influences
+the special JVM arguments when launching the `bin/enso` from the engine
 distribution:
 
 ```bash
