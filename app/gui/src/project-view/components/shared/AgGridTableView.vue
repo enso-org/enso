@@ -253,8 +253,8 @@ function processCellForClipboard({
   formatValue: (arg: any) => string
 }) {
   if (value == null) return ''
-  else if (value?.type === 'Date' || value?.type === 'Date_Time' || value?.type === 'Time_Of_Day')
-      return formatDateLikeValue(value)
+  else if ('_display_text_' in value && value['_display_text_'])
+    return String(value['_display_text_'])
   const formatted = formatValue(value)
   if (formatted.match(/[\t\n\r"]/)) {
     return `"${formatted.replaceAll(/"/g, '""')}"`
