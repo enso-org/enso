@@ -39,10 +39,10 @@ public abstract class PolyglotSymbolResolver {
   }
 
   /**
-   * Subclasses implement this method to seach for provided name
+   * Subclasses implement this method to search for class with the provided name.
    *
    * @param name dot separated name to search for
-   * @return non-null object representing the name
+   * @return non-{@code null} object representing the name
    * @throws java.lang.ClassNotFoundException if no name was found
    */
   protected abstract Object handleLoadClass(String name) throws ClassNotFoundException;
