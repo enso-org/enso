@@ -13,6 +13,7 @@ import {
   AssetType,
   extractTitleAndSuffix,
   FileId,
+  pathByTitleSchema,
   RelativePath,
   titleSchema,
   type AnyAsset,
@@ -47,8 +48,9 @@ export function ConflictingMultipleUploadForm(props: ConflictingMultipleUploadFo
     schema: (z) =>
       z.object({
         acceptedConflicts: z.array(z.string()),
-        newPaths: z.object(
-          Object.fromEntries(archivePaths.map((path) => [path, titleSchemaInstance.or(z.null())])),
+        newPaths: z.record(
+          z.string(),
+          z.null().or(pathByTitleSchema({ id: FileId(''), siblings })),
         ),
       }),
     defaultValues: {
@@ -71,7 +73,12 @@ export function ConflictingMultipleUploadForm(props: ConflictingMultipleUploadFo
 
   return (
     <Form form={form}>
-      <Checkbox.Group name="acceptedConflicts" className="w-full">
+      <Checkbox.Group
+        aria-label={text.getText('assetList')}
+        form={form}
+        name="acceptedConflicts"
+        className="w-full"
+      >
         {archivePaths.map((path, i) => {
           const newPath = RelativePath(newPaths[path] ?? path)
           const { title, suffix } = extractTitleAndSuffix(newPath)
@@ -95,7 +102,7 @@ export function ConflictingMultipleUploadForm(props: ConflictingMultipleUploadFo
                     <Form
                       method="dialog"
                       defaultValues={{ newName: title }}
-                      schema={(schema) => schema.object({ newName: titleSchemaInstance })}
+                      schema={(z) => z.object({ newName: titleSchemaInstance })}
                       onSubmit={({ newName }) => {
                         form.setValue('newPaths', { [path]: `${newName}${suffix}` })
                       }}
@@ -112,6 +119,7 @@ export function ConflictingMultipleUploadForm(props: ConflictingMultipleUploadFo
             </label>
           )
         })}
+        <Form.FieldError name="acceptedConflicts" />
       </Checkbox.Group>
       <Button.Group>
         <Form.Submit />
@@ -132,15 +140,21 @@ export interface ResolveConflictsOptions
 // eslint-disable-next-line react-refresh/only-export-components
 export async function resolveConflicts(options: ResolveConflictsOptions) {
   return new Promise<readonly AssetResolution[]>((resolve, reject) => {
+    const cancel = () => {
+      reject(new Error('Conflicting multiple upload was cancelled.'))
+    }
     setModal(
-      <Dialog title={getText(resolveDictionary(), 'conflictingAssetsFound')}>
+      <Dialog title={getText(resolveDictionary(), 'conflictingAssetsFound')} onDismiss={cancel}>
         {({ close }) => (
           <ConflictingMultipleUploadForm
             {...options}
-            onSubmit={resolve}
+            onSubmit={(value) => {
+              unsetModal()
+              resolve(value)
+            }}
             onCancel={() => {
               close()
-              reject(new Error('Conflicting multiple upload was cancelled.'))
+              cancel()
             }}
           />
         )}

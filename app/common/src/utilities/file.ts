@@ -35,14 +35,19 @@ export function getFileName(filePath: string) {
   return filePath.match(/(?:[/\\]|^)([^/\\]+)[/\\]?$/)?.[1] ?? filePath
 }
 
+/** Whether a path represents a folder. */
+export function isFolderPath(path: string) {
+  return /[/\\]$/.test(path)
+}
+
 /** Return the entire path, without the file name. */
 export function getFolderPath(filePath: string) {
-  return filePath.match(/^.+[/\\]/)?.[0] ?? filePath
+  return filePath.match(/^.+[/\\](?=.)/)?.[0] ?? filePath
 }
 
 /** Return the root folder in the path, or the entire path if there are no folders. */
 export function getRootEntryInPath(filePath: string) {
-  return filePath.match(/[^/\\]+[/\\]/)?.[0] ?? filePath
+  return filePath.match(/^.+?[/\\]/)?.[0] ?? filePath
 }
 
 /** Return just the file name, without the path and without the extension. */

@@ -1,4 +1,4 @@
-import { getFolderPath } from 'enso-common/src/utilities/file'
+import { getFolderPath, isFolderPath } from 'enso-common/src/utilities/file'
 import gunzipMaybe from 'gunzip-maybe'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
@@ -147,6 +147,7 @@ export async function unzipEntries(path: string) {
       error ? reject(error) : resolve(archive),
     )
   })
+  const skipped: Record<string, boolean> = {}
   return {
     async *[Symbol.asyncIterator]() {
       while (true) {
@@ -156,9 +157,15 @@ export async function unzipEntries(path: string) {
           }
           archive.on('error', reject)
           archive.on('end', end)
-          archive.once('entry', (entry: Entry) => {
-            archive.off('error', reject)
-            archive.off('end', end)
+          archive.on('entry', onEntry)
+          function onEntry(entry: Entry) {
+            const entryIsDirectory = isFolderPath(entry.fileName)
+            if (skipped[getFolderPath(entry.fileName)] == true) {
+              if (entryIsDirectory) {
+                skipped[entry.fileName] = true
+              }
+              return
+            }
             const archiveEntry: ArchiveEntry = {
               metadata: { name: entry.fileName },
               getDestinationPath(rootDirectory) {
@@ -166,7 +173,7 @@ export async function unzipEntries(path: string) {
               },
               async extract({ rootDirectory, destinationPath, transform }) {
                 destinationPath ??= archiveEntry.getDestinationPath(rootDirectory)
-                if (entry.fileName.endsWith('/')) {
+                if (entryIsDirectory) {
                   await mkdir(destinationPath, { recursive: true })
                   return
                 }
@@ -189,8 +196,11 @@ export async function unzipEntries(path: string) {
                 return await promise
               },
             }
+            archive.off('error', reject)
+            archive.off('end', end)
+            archive.off('entry', onEntry)
             resolve(archiveEntry)
-          })
+          }
         })
         archive.readEntry()
         const result = await promise

@@ -1572,6 +1572,34 @@ export function titleSchema(options: TitleSchemaOptions) {
     })
 }
 
+/** A Zod schema for validating a path by title. */
+export function pathByTitleSchema(options: TitleSchemaOptions) {
+  const { id, siblings } = options
+  const dictionary = resolveDictionary()
+
+  return z
+    .string()
+    .trim()
+    .min(1)
+    .max(512)
+    .refine((value) => !doesContainInvalidNames(extractTitleAndSuffix(RelativePath(value)).title), {
+      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
+    })
+    .refine(
+      (value) =>
+        !doesTitleContainInvalidCharacters(extractTitleAndSuffix(RelativePath(value)).title),
+      {
+        message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
+      },
+    )
+    .refine(
+      (value) => isNewTitleUnique(id, extractTitleAndSuffix(RelativePath(value)).title, siblings),
+      {
+        message: getText(dictionary, 'nameShouldBeUnique'),
+      },
+    )
+}
+
 /** Check whether a new title is unique among an asset's siblings. */
 export function isNewTitleUnique(
   id: AssetId,

@@ -397,6 +397,7 @@
   "newFolder": "New Folder",
   "newProject": "New Project",
   "uploadFiles": "Import",
+  "assetList": "Asset list",
   "conflictingAssetsFound": "Conflicting Assets Found",
   "conflictingAssetsDuplicateMessage": "A file with the same name already exists in this folder.",
   "importArchive": "Import Archive",

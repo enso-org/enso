@@ -54,7 +54,12 @@ import {
   RESOLVE_ARCHIVE_PATH_REGEX,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
-import { basenameAndExtension, getFileName, getFolderPath } from 'enso-common/src/utilities/file'
+import {
+  basenameAndExtension,
+  getFileName,
+  getFolderPath,
+  isFolderPath,
+} from 'enso-common/src/utilities/file'
 import { createReadStream, createWriteStream, statSync } from 'node:fs'
 import {
   access,
@@ -636,7 +641,7 @@ export class Server {
     resolutions?: readonly AssetResolution[] | null | undefined
     readStream?: stream.Readable | null | undefined
   }): Promise<ImportArchiveResponse> {
-    filePath ??= jobId != null ? Path(String(jobId)) : undefined
+    filePath ??= jobId != null ? Path(decodeURIComponent(jobId)) : undefined
     const directory =
       directoryId ? extractTypeAndPath(directoryId).path : this.projectsRootDirectory
     let tempDirectory: string | undefined
@@ -659,28 +664,52 @@ export class Server {
       resolutions?.map((resolution) => [resolution.path, resolution]),
     )
 
+    const pathMapping: Record<string, string> = {}
+    for (const resolution of resolutions ?? []) {
+      if (resolution.type === 'rename') {
+        pathMapping[resolution.path] = resolution.newPath
+      }
+    }
+
     const getEntryPath = (entryPathInArchive: RelativePath) => {
       const resolution = resolutionsByPath.get(entryPathInArchive)
       if (resolution?.type === 'skip') {
         return
       }
-      const relativeEntryPath =
-        resolution?.type === 'rename' ? resolution.newPath : entryPathInArchive
+      let overriddenPath = pathMapping[entryPathInArchive]
+      const parentOverriddenPath = pathMapping[getFolderPath(entryPathInArchive)]
+      if (overriddenPath == null && parentOverriddenPath != null) {
+        const newPath = path.join(parentOverriddenPath, getFileName(entryPathInArchive))
+        overriddenPath = newPath
+        if (isFolderPath(entryPathInArchive)) {
+          pathMapping[entryPathInArchive] = newPath
+        }
+      }
+      console.log(
+        ':)',
+        overriddenPath,
+        entryPathInArchive,
+        parentOverriddenPath,
+        getFolderPath(entryPathInArchive),
+        pathMapping,
+      )
+      const relativeEntryPath = overriddenPath ?? entryPathInArchive
       return Path(path.join(directory, relativeEntryPath))
     }
 
     for await (const { metadata } of await unzipEntries(filePath)) {
       const entryPathInArchive = RelativePath(metadata.name)
+      const resolution = resolutionsByPath.get(entryPathInArchive)
       archivePaths.push(entryPathInArchive)
       const destinationPath = getEntryPath(entryPathInArchive)
       if (destinationPath == null) {
         continue
       }
-      const isDirectory = entryPathInArchive.endsWith('/')
+      const isDirectory = isFolderPath(entryPathInArchive)
       const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
       // If directories need to be merged in the future, the following check can be skipped
       // for directories.
-      if (await fileExists(destinationPath)) {
+      if (resolution?.type !== 'replace' && (await fileExists(destinationPath))) {
         hasConflicts = true
         continue
       }
@@ -762,7 +791,7 @@ export class Server {
         await rm(tempDirectory, { force: true, recursive: true })
       }
     }
-    jobId ??= UnzipAssetsJobId(filePath)
+    jobId ??= UnzipAssetsJobId(encodeURIComponent(filePath))
     return hasConflicts ? { jobId, archivePaths } : { assets }
   }
 
