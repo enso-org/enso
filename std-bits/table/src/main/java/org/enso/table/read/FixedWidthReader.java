@@ -30,6 +30,8 @@ public class FixedWidthReader {
   private final long skipRows;
   private final long rowLimit;
   private final InvalidFixedWidthRowsBehavior invalidRowsBehavior;
+  // Null means Infer; otherwise, contains the exact line ending string.
+  private String lineEnding;
   private final boolean emptyToNull;
   private final DatatypeParser valueParser;
   private final FixedWidthDecodingProblemAggregator decodingProblemAggregator;
@@ -53,6 +55,7 @@ public class FixedWidthReader {
       long skipRows,
       long rowLimit,
       InvalidFixedWidthRowsBehavior invalidRowsBehavior,
+      String lineEnding,
       boolean emptyToNull,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
@@ -68,6 +71,7 @@ public class FixedWidthReader {
     this.skipRows = skipRows;
     this.rowLimit = rowLimit;
     this.invalidRowsBehavior = invalidRowsBehavior;
+    this.lineEnding = lineEnding;
     this.emptyToNull = emptyToNull;
     this.valueParser = valueParser;
     this.decodingProblemAggregator = decodingProblemAggregator;

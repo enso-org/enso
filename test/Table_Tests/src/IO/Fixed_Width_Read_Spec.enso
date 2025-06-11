@@ -370,7 +370,7 @@ add_direct_specs suite_builder =
             err . should_fail_with No_Column_Names_Found
             err.catch.to_display_text . should_equal "No column names were found in the header line."
 
-        test_with_line_endings line_ending_string line_ending =
+        test_with_line_endings line_endings_string line_endings =
             file = enso_project.data / 'transient' / 'line_endings.txt'
             Panic.with_finalizer file.delete <|
                 descs = []
@@ -380,7 +380,7 @@ add_direct_specs suite_builder =
                 layout = Fixed_Width_Layout.from_descriptions descs
 
                 lines = ['abc', 'def', '123']
-                text = lines.join line_ending_string
+                text = lines.join line_endings_string
                 text.write file
 
                 table = Data.read file (Fixed_Width_Format.Fixed_Width layout line_endings=line_endings) ..Report_Error
@@ -396,7 +396,9 @@ add_direct_specs suite_builder =
                 test_with_Line_Endings '\n' Line_Ending_Style.Unix
                 test_with_Line_Endings '\r' Infer
                 test_with_Line_Endings '\r' Line_Ending_Style.Mac_Legacy
+                test_with_Line_Endings 'é' (Custom_Line_Ending.Value 'é')
                 test_with_Line_Endings '5é.' (Custom_Line_Ending.Value '5é.')
+                test_with_Line_Endings '' (Custom_Line_Ending.Value '')
                 test_with_Line_Endings '' No_Line_Ending
 
         group_builder.specify "Should report row and column for bad characters" <|
