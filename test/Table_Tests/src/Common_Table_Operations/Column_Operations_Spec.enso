@@ -1776,7 +1776,7 @@ add_column_operation_specs suite_builder setup =
         group_builder.specify "misc"
             data.t.at "a" . min [1, 2] . name . should_equal "min([a], 1, 2)"
             data.t.at "a" . max 33 . name . should_equal "max([a], 33)"
-            data.t.at "a" . is_in [1, 2, 3] . name . should_equal "[a] in [1, 2, 3]"
+            data.t.at "a" . is_in [1, 2, 3] . name . should_equal "[a] in [Vector]"
 
         group_builder.specify "composed operations" <|
             # These look a bit weird, but they are consistent with the column name escaping scheme.
