@@ -575,8 +575,6 @@ function cellRenderer(params: ICellRendererParams) {
     const valueType = params.value?.type
     if (valueType === 'Float')
       return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
-    else if (valueType === 'Date' || valueType === 'Date_Time' || valueType === 'Time_Of_Day')
-      return formatDateLikeValue(params.value)
     else if (isNumericType(valueType)) return formatNumber(params)
     else if ('_display_text_' in params.value && params.value['_display_text_'])
       return String(params.value['_display_text_'])
