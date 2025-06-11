@@ -453,7 +453,7 @@ test('Date test - sorting and copying', async ({ page, context }) => {
   )
 })
 
-test.only('Time test - sorting and copying', async ({ page, context }) => {
+test('Time test - sorting and copying', async ({ page, context }) => {
   await loadData(page, singleColumnTimes)
   await expectCellDataToBe(page, 'Value',
     '12:14:14.123004',
