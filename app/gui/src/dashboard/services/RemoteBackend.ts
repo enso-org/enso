@@ -1588,17 +1588,6 @@ export default class RemoteBackend extends Backend {
   }
 
   /**
-   * Resolve conflicts for an imported archive.
-   * @throws {Error} always.
-   */
-  override resolveArchiveConflicts(
-    _jobId: backend.UnzipAssetsJobId,
-    _params: backend.ResolveArchiveRequestBody,
-  ): Promise<void> {
-    throw new Error('`resolveArchiveConflicts` is not implemented on the Remote Backend.')
-  }
-
-  /**
    * Replaces the `user` of all permissions for the current user on an asset, so that they always
    * return the up-to-date user.
    */

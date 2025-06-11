@@ -28,13 +28,11 @@ import {
   ProjectId,
   ProjectSessionId,
   RelativePath,
-  RelativePathType,
   S3FilePath,
   S3ObjectVersionId,
   SecretId,
   SubscriptionId,
   TagId,
-  UnzipAssetsJobId,
   UpAssetId,
   UserGroupId,
   UserId,
@@ -1349,51 +1347,9 @@ interface ImportArchiveParamsWithFile extends ImportArchiveParamsBase {
 
 export type ImportArchiveParams = ImportArchiveParamsWithPath | ImportArchiveParamsWithFile
 
-interface ImportArchiveResponseWithAssets {
+export interface ImportArchiveResponse {
   readonly assets: readonly AnyAsset[]
 }
-
-export const AssetResolution = z.union([
-  z
-    .object({
-      type: z.literal('rename'),
-      path: RelativePathType,
-      newPath: RelativePathType,
-    })
-    .readonly(),
-  z
-    .object({
-      type: z.literal('replace'),
-      path: RelativePathType,
-    })
-    .readonly(),
-  z
-    .object({
-      type: z.literal('skip'),
-      path: RelativePathType,
-    })
-    .readonly(),
-])
-
-/** Possible resolutions for a conflict. */
-export type AssetResolution = z.infer<typeof AssetResolution>
-
-export const ResolveArchiveRequestBody = z
-  .object({ resolutions: z.array(AssetResolution).readonly() })
-  .readonly()
-
-export interface ResolveArchiveRequestBody {
-  readonly resolutions: readonly AssetResolution[]
-}
-
-interface ImportArchiveResponseWithConflicts {
-  readonly jobId: UnzipAssetsJobId
-  readonly archivePaths: readonly RelativePath[]
-}
-
-export type ImportArchiveResponse =
-  | ImportArchiveResponseWithAssets
-  | ImportArchiveResponseWithConflicts
 
 export interface ExportArchiveParams {
   readonly assetIds: readonly AssetId[]
@@ -1932,11 +1888,6 @@ export default abstract class Backend {
   abstract importArchive(params: ImportArchiveParams): Promise<ImportArchiveResponse>
   /** Export multiple files and pack into an archive. */
   abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
-  /** Resolve conflicts for an imported archive. */
-  abstract resolveArchiveConflicts(
-    jobId: UnzipAssetsJobId,
-    params: ResolveArchiveRequestBody,
-  ): Promise<void>
 
   /**
    * Get the URL for the customer portal.

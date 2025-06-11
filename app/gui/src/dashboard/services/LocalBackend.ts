@@ -21,7 +21,6 @@ import {
   downloadProjectPath,
   EXPORT_ARCHIVE_PATH,
   IMPORT_ARCHIVE_PATH,
-  resolveArchivePath,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
@@ -809,16 +808,6 @@ export default class LocalBackend extends Backend {
       this.postBinary<backend.ImportArchiveResponse>(path, params.archive)
     : this.post<backend.ImportArchiveResponse>(path, {}))
     return await response.json()
-  }
-
-  /** Resolve conflicts for an imported archive. */
-  override async resolveArchiveConflicts(
-    jobId: backend.UnzipAssetsJobId,
-    params: backend.ResolveArchiveRequestBody,
-  ): Promise<void> {
-    const path = resolveArchivePath(jobId)
-    await this.post<backend.ImportArchiveResponse>(path, params)
-    return
   }
 
   /** Export multiple files and pack into an archive. */

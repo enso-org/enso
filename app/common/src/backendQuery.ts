@@ -46,7 +46,6 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'openProject'
   | 'removeUser'
   | 'resendInvitation'
-  | 'resolveArchiveConflicts'
   | 'restoreUser'
   | 'syncProjectExecution'
   | 'undoDeleteAsset'
