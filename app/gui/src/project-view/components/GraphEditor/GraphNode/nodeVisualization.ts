@@ -96,6 +96,7 @@ export function useNodeVisualization({
       'onUpdate:id': (event) => emit('update:visualizationId', event),
       'onUpdate:enabled': (event) => emit('update:visualizationEnabled', event),
       'onUpdate:height': (event) => emit('update:visualizationHeight', event),
+      'onUpdate:width': (event) => (visualizationWidth.value = event),
     }
   })
 

@@ -1,5 +1,5 @@
 import { TextContext } from '$/providers/react'
-import { createTextStore } from '$/providers/text'
+import { useText } from '$/providers/text'
 import { act, render, screen } from '@testing-library/react'
 import { describe, vi } from 'vitest'
 import { Await } from '../Await'
@@ -10,7 +10,7 @@ describe('<Await />', (it) => {
   }) => {
     const promise = Promise.resolve('Hello')
     render(
-      <TextContext.Provider value={createTextStore()}>
+      <TextContext.Provider value={useText()}>
         <Await promise={promise}>{(value) => <div>{value}</div>}</Await>
       </TextContext.Provider>,
     )
@@ -36,7 +36,7 @@ describe('<Await />', (it) => {
     const errorPromise = Promise.reject(new Error('💣'))
 
     render(
-      <TextContext.Provider value={createTextStore()}>
+      <TextContext.Provider value={useText()}>
         <Await promise={errorPromise}>{() => <>Hello</>}</Await>
       </TextContext.Provider>,
     )
@@ -58,7 +58,7 @@ describe('<Await />', (it) => {
   }) => {
     const promise = Promise.resolve('Hello')
     const { unmount } = render(
-      <TextContext.Provider value={createTextStore()}>
+      <TextContext.Provider value={useText()}>
         <Await promise={promise}>{(value) => <div>{value}</div>}</Await>
       </TextContext.Provider>,
     )

@@ -11,16 +11,16 @@ import {
   backendMutationOptions,
   getProjectExecutionDetailsQueryOptions,
 } from '#/hooks/backendHooks'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { setModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import {
   getLocalTimeZone,
   now,

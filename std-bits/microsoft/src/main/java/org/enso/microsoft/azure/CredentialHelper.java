@@ -46,6 +46,17 @@ final class CredentialHelper {
             .clientSecret(resolvedClientSecret)
             .build();
       }
+      case AzureCredential.BlobStorageSASToken(HideableValue token) ->
+        throw new ClientAuthenticationException(
+            "Blob Storage SAS Token is not supported for authentication.", null);
+    };
+  }
+
+  static String toSASToken(AzureCredential credential) {
+    return switch (credential) {
+      case AzureCredential.BlobStorageSASToken(HideableValue token) -> unsafeResolveSecrets(token);
+      default ->
+        throw new IllegalArgumentException("Only BlobStorageSASToken credentials can provide a SAS token.");
     };
   }
 

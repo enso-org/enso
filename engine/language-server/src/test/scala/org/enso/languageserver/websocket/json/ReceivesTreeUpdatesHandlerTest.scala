@@ -1,6 +1,6 @@
 package org.enso.languageserver.websocket.json
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Paths, StandardOpenOption}
 import io.circe.literal._
 import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
@@ -111,7 +111,12 @@ class ReceivesTreeUpdatesHandlerTest
           """)
 
       // update file
-      Files.write(path, "Hello".getBytes())
+      Files.write(
+        path,
+        "Hello".getBytes(),
+        StandardOpenOption.WRITE,
+        StandardOpenOption.APPEND
+      )
       client1.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",

@@ -1,11 +1,10 @@
 /** @file A page in which the currently active payment plan can be changed. */
-import { DASHBOARD_PATH, SUBSCRIBE_SUCCESS_PATH } from '#/appUtils'
 import { Button } from '#/components/Button'
 import { Text } from '#/components/Text'
 import { PlanSelector } from '#/modules/payments'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { isPlan } from '#/services/Backend'
-import { useRouter, useText } from '$/providers/react'
+import { DASHBOARD_PATH, SUBSCRIBE_SUCCESS_PATH } from '$/appUtils'
+import { useFullUserSession, useRouter, useText } from '$/providers/react'
 
 /**
  * A page in which the currently active payment plan can be changed.

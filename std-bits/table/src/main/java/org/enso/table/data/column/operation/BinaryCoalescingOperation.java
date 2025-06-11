@@ -7,7 +7,6 @@ import java.util.function.BiFunction;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -19,11 +18,12 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Value;
 
-public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
+public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
   private static Column applyOperation(
       Column left,
       Object right,
@@ -160,7 +160,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
   private final BiFunction<T, T, T> zipOperation;
 
   protected BinaryCoalescingOperation(StorageType<T> validType, BiFunction<T, T, T> zipOperation) {
-    super(validType, false);
+    super(validType, validType, false);
     this.zipOperation = zipOperation;
   }
 

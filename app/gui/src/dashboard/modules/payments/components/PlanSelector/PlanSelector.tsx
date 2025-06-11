@@ -3,11 +3,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { DIALOG_BACKGROUND } from '#/components/Dialog/variants'
 import { usePaywall } from '#/hooks/billing'
-import { useAuth } from '#/providers/AuthProvider'
 import { Plan, PLANS } from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackends, useText } from '$/providers/react'
+import { useAuth, useBackends, useText } from '$/providers/react'
 import { Card } from './components'
 import { getComponentPerPlan } from './getComponentForPlan'
 
