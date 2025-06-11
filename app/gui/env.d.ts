@@ -185,6 +185,6 @@ declare module 'vite/client' {
 
 declare module 'vue-router' {
   interface RouteMeta {
-    access?: 'guest' | 'anyLoggedIn' | UserSessionType
+    access?: 'guest' | 'anyLoggedIn' | UserSessionType | 'deleted'
   }
 }

@@ -2,11 +2,7 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/layouts/CloudBrowserDisabled'
 import { OpenAppWatcher } from '#/layouts/OpenAppWatcher'
-import {
-  AgreementsModal,
-  latestPrivacyPolicyQueryOptions,
-  latestTermsOfServiceQueryOptions,
-} from '#/modals/AgreementsModal'
+import { AgreementsModal } from '#/modals/AgreementsModal'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
@@ -32,7 +28,6 @@ import {
   SUBSCRIBE_SUCCESS_PATH,
 } from '$/appUtils'
 import { reactComponent } from '@/util/react'
-import * as vueQuery from '@tanstack/vue-query'
 import { PropsWithChildren, ReactNode } from 'react'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import ProtectedLayout from './components/ProtectedLayout.vue'
@@ -112,85 +107,87 @@ async function softDeletedUser() {
   }
 }
 
-async function prefetchAgreements() {
-  const queryClient = vueQuery.useQueryClient()
-  await queryClient.ensureQueryData(latestTermsOfServiceQueryOptions)
-  await queryClient.ensureQueryData(latestPrivacyPolicyQueryOptions)
-}
-
 // TODO[ao]: Now the React Layouts are wrapped and used here, but they should be gradually replaced
 // with vue-router guards
 // (https://router.vuejs.org/guide/advanced/navigation-guards.html#Per-Route-Guard or similar).
 const routes = [
   {
-    path: UNAVAILABLE_PATH,
-    meta: { access: 'guest' as const },
+    path: '',
     component: ProtectedLayout,
     children: [
-      { path: LOGIN_PATH, component: reactForRouter(Login) },
-      { path: '/registration', component: reactForRouter(Registration) },
+      { path: LOGIN_PATH, component: reactForRouter(Login), meta: { access: 'guest' as const } },
+      {
+        path: '/registration',
+        component: reactForRouter(Registration),
+        meta: { access: 'guest' as const },
+      },
+      {
+        path: '',
+        meta: { access: UserSessionType.full },
+        children: [
+          {
+            path: '',
+            beforeEnter: notDeletedUser,
+            children: [
+              {
+                ...applyLayouts(
+                  [
+                    CloudBrowserDisabledLayout,
+                    SetupOrganizationAfterSubscribe,
+                    InvitedToOrganizationModal,
+                    OpenAppWatcher,
+                  ],
+                  [
+                    {
+                      path: DASHBOARD_PATH,
+                      component: reactForRouter(Dashboard),
+                    },
+                    {
+                      path: SUBSCRIBE_PATH,
+                      component: reactForRouter(Subscribe),
+                    },
+                  ],
+                ),
+              },
+              {
+                path: SUBSCRIBE_SUCCESS_PATH,
+                component: reactForRouter(SubscribeSuccess),
+              },
+            ],
+          },
+          {
+            path: '',
+            beforeEnter: softDeletedUser,
+            children: [
+              {
+                path: RESTORE_USER_PATH,
+                component: reactForRouter(RestoreAccount),
+              },
+            ],
+          },
+          {
+            path: '',
+            name: 'agreementsModal',
+            component: reactComponent(AgreementsModal),
+          },
+        ],
+      },
     ],
   },
   {
     path: UNAVAILABLE_PATH,
     meta: { access: UserSessionType.full },
     component: ProtectedLayout,
-    children: [
-      {
-        path: UNAVAILABLE_PATH,
-        beforeEnter: notDeletedUser,
-        children: [
-          {
-            beforeEnter: prefetchAgreements,
-            ...applyLayouts(
-              [
-                ({ children }) => <AgreementsModal>{children}</AgreementsModal>,
-                CloudBrowserDisabledLayout,
-                SetupOrganizationAfterSubscribe,
-                InvitedToOrganizationModal,
-                OpenAppWatcher,
-              ],
-              [
-                {
-                  path: DASHBOARD_PATH,
-                  component: reactForRouter(Dashboard),
-                },
-                {
-                  path: SUBSCRIBE_PATH,
-                  component: reactForRouter(Subscribe),
-                },
-              ],
-            ),
-          },
-          {
-            path: SUBSCRIBE_SUCCESS_PATH,
-            component: reactForRouter(SubscribeSuccess),
-          },
-        ],
-      },
-      {
-        path: UNAVAILABLE_PATH,
-        beforeEnter: softDeletedUser,
-        children: [
-          {
-            path: RESTORE_USER_PATH,
-            component: reactForRouter(RestoreAccount),
-          },
-        ],
-      },
-    ],
+    children: [],
   },
   {
     path: UNAVAILABLE_PATH,
     meta: { access: 'anyLoggedIn' as const },
-    beforeEnter: [prefetchAgreements, notDeletedUser],
+    beforeEnter: notDeletedUser,
     component: ProtectedLayout,
     children: [
       applyLayouts(
-        [
-          ({ children }) => <AgreementsModal>{children}</AgreementsModal>,
-          CloudBrowserDisabledLayout,
-        ],
+        [CloudBrowserDisabledLayout],
         [
           {
             path: SETUP_PATH,
@@ -223,14 +220,6 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-})
-
-router.beforeEach(async (to) => {
-  const auth = useAuth()
-  await auth.waitForSession()
-  const guard = auth.routeGuard(to)
-  if (!guard.allowed && guard.redirect) return guard.redirect
-  else return guard.allowed
 })
 
 router.onError((error) => console.error('Router error', error))

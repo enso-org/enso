@@ -11,14 +11,14 @@ import Link from '#/components/Link'
 import { Stepper, useStepperState } from '#/components/Stepper'
 import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import {
-  latestPrivacyPolicyQueryOptions,
-  latestTermsOfServiceQueryOptions,
-} from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import LocalStorage from '#/utilities/LocalStorage'
 import { LOGIN_PATH } from '$/appUtils'
+import {
+  latestPrivacyPolicyQueryOptions,
+  latestTermsOfServiceQueryOptions,
+} from '$/components/ProtectedLayout.vue'
 import { useBackends, useLocalStorage, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
 import { useSuspenseQuery } from '@tanstack/react-query'
