@@ -18,7 +18,7 @@ import org.graalvm.nativeimage.c.type.VoidPointer;
 import org.graalvm.word.PointerBase;
 
 @CContext(JNIDirectives.class)
-public final class JNI {
+final class JNI {
   @CConstant
   static native int JNI_OK();
 

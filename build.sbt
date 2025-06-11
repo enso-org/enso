@@ -4341,26 +4341,23 @@ lazy val `os-environment` =
     .settings(
       frgaalJavaCompilerSetting,
       libraryDependencies ++= slf4jApi ++ Seq(
-        "org.graalvm.sdk"     % "nativeimage"     % graalMavenPackagesVersion % "provided",
-        "org.graalvm.sdk"     % "graal-sdk"       % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle" % "truffle-api"     % graalMavenPackagesVersion % "provided",
-        "commons-io"          % "commons-io"      % commonsIoVersion,
-        "junit"               % "junit"           % junitVersion              % Test,
-        "com.github.sbt"      % "junit-interface" % junitIfVersion            % Test
+        "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
+        "commons-io"      % "commons-io"      % commonsIoVersion,
+        "junit"           % "junit"           % junitVersion              % Test,
+        "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
       ),
       Compile / moduleDependencies ++= slf4jApi ++ Seq(
         "commons-io"           % "commons-io"  % commonsIoVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "com.typesafe"         % "config"      % typesafeConfigVersion,
-        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
-        "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`engine-common` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value,
         (`jvm-channel` / Compile / exportedModule).value,
-        (`jvm-interop` / Compile / exportedModule).value,
         (`logging-utils` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value
       ),
@@ -4416,7 +4413,6 @@ lazy val `os-environment` =
       Test / fork := true
     )
     .dependsOn(`jvm-channel`)
-    .dependsOn(`jvm-interop`)
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`engine-common`)
