@@ -471,9 +471,10 @@ public class HyperFormat {
 
       var result = new ColumnStorage[tableDef.getColumns().size()];
       for (int i = 0; i < result.length; i++) {
-        result[i] = i < sourceColumns.length
-            ? sourceColumns[i].getStorage()
-            : Builder.fromRepeatedItem(null, numberOfRows);
+        result[i] =
+            i < sourceColumns.length
+                ? sourceColumns[i].getStorage()
+                : Builder.fromRepeatedItem(null, numberOfRows);
       }
       return result;
     }
