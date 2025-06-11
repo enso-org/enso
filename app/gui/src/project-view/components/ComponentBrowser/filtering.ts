@@ -280,8 +280,6 @@ export class Filtering {
     if (this.selfArg.type !== 'known') return exactMatch()
     const entrySelfType = entry.selfType
     const visibleTypes = this.selfArg.typeInfo.visibleTypes
-    console.log('visibleTypes', visibleTypes)
-    console.log('entrySelfType', entrySelfType)
     const visibleTypeMatch = visibleTypes?.find((ty) => entrySelfType.equals(ty))
     if (visibleTypeMatch != null) return exactMatch()
     const hiddenTypeMatch = this.selfArg.typeInfo?.hiddenTypes.find((t) => entrySelfType.equals(t))
