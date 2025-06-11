@@ -379,7 +379,7 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
   await expect(numberWidget).toHaveValue('2')
 })
 
-test.only('Datetime test - sorting and copying', async ({ page }) => {
+test.only('Datetime test - sorting and copying', async ({ page, context }) => {
   await loadData(page, singleColumnDatetimes)
   await expectCellDataToBe(page, 'Value',
     '2025-01-02 12:13:14.123',
@@ -405,7 +405,28 @@ test.only('Datetime test - sorting and copying', async ({ page }) => {
     '2025-01-01 12:13:14.123',
     '2025-01-03 12:13:14.123'
   )
+  await expectCopyingColumnClipboardToBe(
+    page,
+    context,
+    "Value",
+    0,
+    2,
+    '2025-01-02 12:13:14.123\r\n2025-01-01 12:13:14.123\r\n2025-01-03 12:13:14.123'
+  )
 })
+
+async function expectCopyingColumnClipboardToBe(page: Page, context: BrowserContext, columnName: string, startRow: number, endRow: number, expectedClipboardText: string) {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await getCellLocator(page, columnName, startRow).click()
+  await page.keyboard.down('Shift')
+  await getCellLocator(page, columnName, endRow).click()
+  await page.keyboard.up('Shift')
+  await page.keyboard.press(`${CONTROL_KEY}+C`)
+  const expectClipboard = expect.poll(() =>
+    page.evaluate(() => window.navigator.clipboard.readText())
+  )
+  await expectClipboard.toBe(expectedClipboardText)
+}
 
 async function loadData(page: Page, data: any) {
   await initGraph(page)
