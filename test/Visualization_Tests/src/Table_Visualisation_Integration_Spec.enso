@@ -21,10 +21,20 @@ add_specs suite_builder =
     suite_builder.group "Table Visualization Integration" group_builder->
         data = TestData.setup
 
-        group_builder.specify "single column of dates" <|
+        group_builder.specify "single column of datetimes" <|
             vis = Visualization.prepare_visualization (Table.new [["Value", [Date_Time.new 2025 1 2 12 13 14 123 4 5, Date_Time.new 2025 1 1 12 13 14 123 4 5, Date_Time.new 2025 1 3 12 13 14 123 4 5]]])
             ## vis.write '/Users/adriley/Code/enso-org/enso/app/gui/integration-test/project-view/table-vis-json/singleColumnDatetimes.json'
             vis . should_equal (data.t.at 'singleColumnDatetimes')
+        
+        group_builder.specify "single column of dates" <|
+            vis = Visualization.prepare_visualization (Table.new [["Value", [Date.new 2025 1 2, Date.new 2025 1 1, Date.new 2025 1 3]]])
+            ## vis.write '/Users/adriley/Code/enso-org/enso/app/gui/integration-test/project-view/table-vis-json/singleColumnDates.json'
+            vis . should_equal (data.t.at 'singleColumnDates')
+        
+        group_builder.specify "single column of times" <|
+            vis = Visualization.prepare_visualization (Table.new [["Value", [Time_Of_Day.new 12 14 14 123 4 5, Time_Of_Day.new 12 13 14 123 4 5, Time_Of_Day.new 12 15 14 123 4 5]]])
+            ## vis.write '/Users/adriley/Code/enso-org/enso/app/gui/integration-test/project-view/table-vis-json/singleColumnTimes.json'
+            vis . should_equal (data.t.at 'singleColumnTimes')
 
 main filter=Nothing =
     suite = Test.build suite_builder->

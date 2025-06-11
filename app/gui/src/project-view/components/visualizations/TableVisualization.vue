@@ -679,7 +679,7 @@ function toField(
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,
   }
-  if (valueType && ['Date', 'Date_Time', 'Time_Of_Day'].includes(valueType.constructor)) {
+  if (valueType && ['Date', 'Date_Time', 'Time'].includes(valueType.constructor)) {
     return { ...colDef, comparator: (valueA, valueB) => {
       const textA = valueA && typeof valueA === 'object' && '_display_text_' in valueA ? valueA['_display_text_'] : valueA
       const textB = valueB && typeof valueB === 'object' && '_display_text_' in valueB ? valueB['_display_text_'] : valueB

@@ -1,4 +1,4 @@
-import { test, type Locator, type Page } from '@playwright/test'
+import { test, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
@@ -7,6 +7,8 @@ import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
 import { mockVisualizationDataUpdate } from './visualizationUpdates'
 import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' assert { type: 'json' };
+import singleColumnDates from './table-vis-json/singleColumnDates.json' assert { type: 'json' };
+import singleColumnTimes from './table-vis-json/singleColumnTimes.json' assert { type: 'json' };
 
 /** Prepare the graph for the tests. We add the table type to the `aggregated` node. */
 async function initGraph(page: Page) {
@@ -379,7 +381,7 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
   await expect(numberWidget).toHaveValue('2')
 })
 
-test.only('Datetime test - sorting and copying', async ({ page, context }) => {
+test('Datetime test - sorting and copying', async ({ page, context }) => {
   await loadData(page, singleColumnDatetimes)
   await expectCellDataToBe(page, 'Value',
     '2025-01-02 12:13:14.123',
@@ -412,6 +414,78 @@ test.only('Datetime test - sorting and copying', async ({ page, context }) => {
     0,
     2,
     '2025-01-02 12:13:14.123\r\n2025-01-01 12:13:14.123\r\n2025-01-03 12:13:14.123'
+  )
+})
+
+test('Date test - sorting and copying', async ({ page, context }) => {
+  await loadData(page, singleColumnDates)
+  await expectCellDataToBe(page, 'Value',
+    '2025-01-02',
+    '2025-01-01',
+    '2025-01-03'
+  )
+  const value = await getHeaderLocator(page, {colHeaderName: 'Value'});
+  await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
+  await expectCellDataToBe(page, 'Value',
+    '2025-01-01',
+    '2025-01-02',
+    '2025-01-03'
+  )
+  await value.click({ position: { x: 10, y: 10 } }) // Sort descending
+  await expectCellDataToBe(page, 'Value',
+    '2025-01-03',
+    '2025-01-02',
+    '2025-01-01'
+  )
+  await value.click({ position: { x: 10, y: 10 } }) // remove sort
+  await expectCellDataToBe(page, 'Value',
+    '2025-01-02',
+    '2025-01-01',
+    '2025-01-03'
+  )
+  await expectCopyingColumnClipboardToBe(
+    page,
+    context,
+    "Value",
+    0,
+    2,
+    '2025-01-02\r\n2025-01-01\r\n2025-01-03'
+  )
+})
+
+test.only('Time test - sorting and copying', async ({ page, context }) => {
+  await loadData(page, singleColumnTimes)
+  await expectCellDataToBe(page, 'Value',
+    '12:14:14.123004',
+    '12:13:14.123004',
+    '12:15:14.123004'
+  )
+  const value = await getHeaderLocator(page, {colHeaderName: 'Value'});
+  await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
+  await expectCellDataToBe(page, 'Value',
+    '12:13:14.123004',
+    '12:14:14.123004',
+    '12:15:14.123004'
+  )
+  await value.click({ position: { x: 10, y: 10 } }) // Sort descending
+  await expectCellDataToBe(page, 'Value',
+    '12:15:14.123004',
+    '12:14:14.123004',
+    '12:13:14.123004'
+  )
+  await value.click({ position: { x: 10, y: 10 } }) // remove sort
+  await expectCellDataToBe(page, 'Value',
+    '12:14:14.123004',
+    '12:13:14.123004',
+    '12:15:14.123004'
+  )
+  await expectCopyingColumnClipboardToBe(
+    page,
+    context,
+    "Value",
+    0,
+    2,
+    '12:14:14.123004\r\n12:13:14.123004\r\n12:15:14.123004'
   )
 })
 
