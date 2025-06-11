@@ -9,7 +9,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.StorageListView;
+
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -63,9 +63,7 @@ public final class IsInOperation {
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof Column argColumn) {
-      var argStorage = BinaryOperation.getInferredStorage(argColumn);
-      var argAsList = new StorageListView(argStorage);
-      return apply(left, new_name, argAsList, problemAggregator);
+      return apply(left, new_name, argColumn.asList(), problemAggregator);
     }
 
     if (!(arg instanceof List<?> list)) {

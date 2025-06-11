@@ -67,7 +67,6 @@ polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePar
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.storage.PreciseTypeOptions
-polyglot java import org.enso.table.data.column.storage.StorageListView
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.Table as Java_Table
@@ -615,8 +614,8 @@ type In_Memory_Column_Implementation
             this_column.to_table.read max_rows . at 0
 
     to_vector this_column -> Vector =
-        storage_list = StorageListView.new (this_column:In_Memory_Column).java_column.getStorage
-        Vector.from_polyglot_array storage_list . map java_to_enso
+        column_list = (this_column:In_Memory_Column).java_column.asList
+        Vector.from_polyglot_array column_list . map java_to_enso
 
     value_type this_column -> Value_Type =
         storage_type = (this_column:In_Memory_Column).java_column.getStorage.getType
@@ -630,10 +629,9 @@ type In_Memory_Column_Implementation
         this_column.value_type.is_same_type value_type
 
     to_js_object this_column -> JS_Object =
-        name = (this_column:In_Memory_Column).java_column.getName
-        storage = (this_column:In_Memory_Column).java_column.getStorage
-        storage_proxy = Array_Proxy.new storage.getSize i-> storage.getItemBoxed i
-        storage_json = Vector.from_polyglot_array storage_proxy
+        name = this_column.name
+        column_list = (this_column:In_Memory_Column).java_column.asList
+        storage_json = Vector.from_polyglot_array column_list
         JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
     to_table this_column -> Table =

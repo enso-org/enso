@@ -6,6 +6,7 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StorageListView;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -15,7 +16,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
-public class Column {
+public final class Column {
   private final String name;
   private final Storage<?> storage;
 
@@ -163,6 +164,13 @@ public class Column {
   public Column applyMask(OrderMask mask) {
     var newStorage = storage.applyMask(mask);
     return new Column(name, newStorage);
+  }
+
+  /**
+   * @return a list view of the column
+   */
+  public List<?> asList() {
+    return new StorageListView(this.getStorage());
   }
 
   /**
