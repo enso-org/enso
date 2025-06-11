@@ -20,97 +20,6 @@
         ]
     },
     {
-        "name": "org.enso.table.data.column.storage.Storage",
-        "methods": [
-            {
-                "name": "<init>",
-                "parameterTypes": []
-            }
-        ],
-        "fields": [
-            {
-                "name": "Maps"
-            }
-        ]
-    },
-    {
-        "name": "org.enso.table.data.column.storage.Storage.Maps"
-    },
-    {
-        "name": "org.enso.table.data.column.storage.Storage$Maps",
-        "fields": [
-            {
-                "name": "EQ"
-            },
-            {
-                "name": "LT"
-            },
-            {
-                "name": "LTE"
-            },
-            {
-                "name": "GT"
-            },
-            {
-                "name": "GTE"
-            },
-            {
-                "name": "MUL"
-            },
-            {
-                "name": "ADD"
-            },
-            {
-                "name": "SUB"
-            },
-            {
-                "name": "DIV"
-            },
-            {
-                "name": "MOD"
-            },
-            {
-                "name": "POWER"
-            },
-            {
-                "name": "ROUND"
-            },
-            {
-                "name": "AND"
-            },
-            {
-                "name": "OR"
-            },
-            {
-                "name": "STARTS_WITH"
-            },
-            {
-                "name": "ENDS_WITH"
-            },
-            {
-                "name": "TEXT_LEFT"
-            },
-            {
-                "name": "TEXT_RIGHT"
-            },
-            {
-                "name": "CONTAINS"
-            },
-            {
-                "name": "IS_IN"
-            },
-            {
-                "name": "LIKE"
-            },
-            {
-                "name": "MIN"
-            },
-            {
-                "name": "MAX"
-            }
-        ]
-    },
-    {
         "name": "org.apache.commons.compress.archivers.zip.AsiExtraField",
         "methods": [
             {
@@ -278,15 +187,31 @@
         ]
     },
     {
-        "name": "org.enso.table.data.column.storage.BoolStorage",
+        "name": "org.enso.table.data.column.storage.numeric.BigIntegerStorage",
         "methods": [
             {
-                "name": "iif",
+                "name": "getMaxPrecisionStored"
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.numeric.AbstractLongStorage",
+        "methods": [
+            {
+                "name": "inferPreciseType",
                 "parameterTypes": [
-                    "org.graalvm.polyglot.Value",
-                    "org.graalvm.polyglot.Value",
-                    "org.enso.table.data.column.storage.type.StorageType",
-                    "org.enso.table.problems.ProblemAggregator"
+                    "org.enso.table.data.column.storage.PreciseTypeOptions"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.numeric.DoubleStorage",
+        "methods": [
+            {
+                "name": "inferPreciseType",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.PreciseTypeOptions"
                 ]
             }
         ]
@@ -295,7 +220,54 @@
         "name": "org.enso.table.data.column.storage.numeric.BigIntegerStorage",
         "methods": [
             {
-                "name": "getMaxPrecisionStored"
+                "name": "inferPreciseType",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.PreciseTypeOptions"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.MixedStorage",
+        "methods": [
+            {
+                "name": "inferPreciseType",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.PreciseTypeOptions"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.MixedStorageFacade",
+        "methods": [
+            {
+                "name": "inferPreciseType",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.PreciseTypeOptions"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.StringStorage",
+        "methods": [
+            {
+                "name": "inferPreciseType",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.PreciseTypeOptions"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.Storage",
+        "methods": [
+            {
+                "name": "inferPreciseType",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.PreciseTypeOptions"
+                ]
             }
         ]
     },

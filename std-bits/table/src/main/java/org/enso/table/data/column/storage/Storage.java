@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -110,39 +109,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    */
   public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
     return getType();
-  }
-
-  /**
-   * Runs a function on each pair of non-missing elements in this and arg.
-   *
-   * @param function the function to run.
-   * @param skipNa whether rows containing missing values should be passed to the function.
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the function on all non-missing elements.
-   */
-  public final ColumnStorage<?> zip(
-      BiFunction<Object, Object, Object> function,
-      Storage<?> arg,
-      boolean skipNa,
-      StorageType<?> expectedResultType,
-      ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < getSize(); i++) {
-      Object it1 = getItemBoxed(i);
-      Object it2 = i < arg.getSize() ? arg.getItemBoxed(i) : null;
-      if (skipNa && (it1 == null || it2 == null)) {
-        storageBuilder.appendNulls(1);
-      } else {
-        Object result = function.apply(it1, it2);
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.append(converted);
-      }
-
-      context.safepoint();
-    }
-    return storageBuilder.seal();
   }
 
   /**
