@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.TruffleObject;
 import java.math.BigDecimal;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
 import org.hamcrest.core.StringContains;
@@ -91,5 +92,19 @@ public class OtherJvmObjectTest {
     } catch (ClassNotFoundException ex) {
       assertThat(ex.getMessage(), StringContains.containsString("java.lang.unknown.Clazz"));
     }
+  }
+
+  @Test
+  public void messageFromAnUnsupportedLibrary() {
+    var bigReal = new BigDecimal("-1.1");
+    var bigValue = ctx.asValue(bigReal);
+    var bigUnwrap = ctx.unwrapValue(bigValue);
+    assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
+
+    var id = OtherJvmMessage.registerObject((TruffleObject) bigUnwrap);
+    var other = new OtherJvmObject(CHANNEL, id);
+
+    var noType = TypesLibrary.getUncached().hasType(other);
+    assertFalse("Other JVM objects don't have type", noType);
   }
 }
