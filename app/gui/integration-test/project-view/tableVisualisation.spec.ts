@@ -398,20 +398,20 @@ test.only('Datetime test - sorting and copying', async ({ page }) => {
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     singleColumnDatetimes,
   )
-  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-02 12:12:40.000');
-  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-01 12:12:40.000');
-  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-02 12:13:14.000');
+  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-01 12:13:14.000');
+  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:13:14.000');
   const value2 = tableVisualization.getByText('Value')
   await value2.click()
-  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-01 12:12:40.000');
-  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-02 12:12:40.000');
-  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-01 12:13:14.000');
+  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-02 12:13:14.000');
+  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:13:14.000');
   await value2.click()
-  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-03 12:12:40.000');
-  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-02 12:12:40.000');
-  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-01 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-03 12:13:14.000');
+  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-02 12:13:14.000');
+  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-01 12:13:14.000');
   await value2.click()
-  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-02 12:12:40.000');
-  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-01 12:12:40.000');
-  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:12:40.000');
+  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-02 12:13:14.000');
+  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-01 12:13:14.000');
+  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:13:14.000');
 })
