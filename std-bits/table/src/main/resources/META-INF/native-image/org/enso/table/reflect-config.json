@@ -202,6 +202,12 @@
                 "parameterTypes": [
                     "org.enso.table.data.column.storage.PreciseTypeOptions"
                 ]
+            },
+            {
+                "name": "fillMissingFromPrevious",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.BoolStorage"
+                ]
             }
         ]
     },
@@ -213,6 +219,33 @@
                 "parameterTypes": [
                     "org.enso.table.data.column.storage.PreciseTypeOptions"
                 ]
+            },
+            {
+                "name": "fillMissing",
+                "parameterTypes": [
+                    "org.graalvm.polyglot.Value",
+                    "org.enso.table.data.column.storage.type.StorageType",
+                    "org.enso.table.problems.ProblemAggregator"
+                ]
+            },
+            {
+                "name": "fillMissingFromPrevious",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.BoolStorage"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.numeric.LongStorage",
+        "methods": [
+            {
+                "name": "fillMissing",
+                "parameterTypes": [
+                    "org.graalvm.polyglot.Value",
+                    "org.enso.table.data.column.storage.type.StorageType",
+                    "org.enso.table.problems.ProblemAggregator"
+                ]
             }
         ]
     },
@@ -223,6 +256,25 @@
                 "name": "inferPreciseType",
                 "parameterTypes": [
                     "org.enso.table.data.column.storage.PreciseTypeOptions"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.BoolStorage",
+        "methods": [
+            {
+                "name": "fillMissing",
+                "parameterTypes": [
+                    "org.graalvm.polyglot.Value",
+                    "org.enso.table.data.column.storage.type.StorageType",
+                    "org.enso.table.problems.ProblemAggregator"
+                ]
+            },
+            {
+                "name": "fillMissingFromPrevious",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.BoolStorage"
                 ]
             }
         ]
@@ -246,6 +298,34 @@
                 "parameterTypes": [
                     "org.enso.table.data.column.storage.PreciseTypeOptions"
                 ]
+            },
+            {
+                "name": "fillMissingFromPrevious",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.BoolStorage"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.NullStorage",
+        "methods": [
+            {
+                "name": "fillMissingFromPrevious",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.BoolStorage"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.data.column.storage.SpecializedStorage",
+        "methods": [
+            {
+                "name": "fillMissingFromPrevious",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.BoolStorage"
+                ]
             }
         ]
     },
@@ -267,6 +347,22 @@
                 "name": "inferPreciseType",
                 "parameterTypes": [
                     "org.enso.table.data.column.storage.PreciseTypeOptions"
+                ]
+            },
+            {
+                "name": "fillMissing",
+                "parameterTypes": [
+                    "org.graalvm.polyglot.Value",
+                    "org.enso.table.data.column.storage.type.StorageType",
+                    "org.enso.table.problems.ProblemAggregator"
+                ]
+            },
+            {
+                "name": "fillMissingFrom",
+                "parameterTypes": [
+                    "org.enso.table.data.column.storage.Storage",
+                    "org.enso.table.data.column.storage.type.StorageType",
+                    "org.enso.table.problems.ProblemAggregator"
                 ]
             }
         ]
