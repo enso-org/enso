@@ -385,6 +385,35 @@ export function getCellLocator(page: Page, colId: string, rowIndex: number) {
 }
 
 test.only('Datetime test - sorting and copying', async ({ page }) => {
+  await loadData(page, singleColumnDatetimes)
+  const tableVisualization = locate.tableVisualization(page)
+  await expectCellDataToBe(page, 'Value',
+    '2025-01-02 12:13:14.123',
+    '2025-01-01 12:13:14.123',
+    '2025-01-03 12:13:14.123'
+  )
+  const value = tableVisualization.getByText('Value')
+  await value.click() // Sort ascending
+  await expectCellDataToBe(page, 'Value',
+    '2025-01-01 12:13:14.123',
+    '2025-01-02 12:13:14.123',
+    '2025-01-03 12:13:14.123'
+  )
+  await value.click() // Sort descending
+  await expectCellDataToBe(page, 'Value',
+    '2025-01-03 12:13:14.123',
+    '2025-01-02 12:13:14.123',
+    '2025-01-01 12:13:14.123'
+  )
+  await value.click() // remove sort
+  await expectCellDataToBe(page, 'Value',
+    '2025-01-02 12:13:14.123',
+    '2025-01-01 12:13:14.123',
+    '2025-01-03 12:13:14.123'
+  )
+})
+
+async function loadData(page: Page, data: any) {
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
@@ -396,22 +425,13 @@ test.only('Datetime test - sorting and copying', async ({ page }) => {
   await mockVisualizationDataUpdate(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
-    singleColumnDatetimes,
+    data,
   )
-  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-02 12:13:14.123');
-  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-01 12:13:14.123');
-  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:13:14.123');
-  const value2 = tableVisualization.getByText('Value')
-  await value2.click()
-  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-01 12:13:14.123');
-  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-02 12:13:14.123');
-  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:13:14.123');
-  await value2.click()
-  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-03 12:13:14.123');
-  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-02 12:13:14.123');
-  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-01 12:13:14.123');
-  await value2.click()
-  expect(await getCellLocator(page, 'Value', 0).textContent()).toBe('2025-01-02 12:13:14.123');
-  expect(await getCellLocator(page, 'Value', 1).textContent()).toBe('2025-01-01 12:13:14.123');
-  expect(await getCellLocator(page, 'Value', 2).textContent()).toBe('2025-01-03 12:13:14.123');
-})
+}
+
+// Helper function to check cell values in a column
+async function expectCellDataToBe(page: Page, colId: string, ...expectedValues: string[]) {
+  for (let i = 0; i < expectedValues.length; i++) {
+    expect(await getCellLocator(page, colId, i).textContent()).toBe(expectedValues[i])
+  }
+}
