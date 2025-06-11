@@ -431,11 +431,11 @@ type In_Memory_Column_Implementation
                         input.replace term replace case_sensitivity only_first
 
                 length = this_column.length
-                storage = (this_column:In_Memory_Column).java_column.getStorage
+                java_column = (this_column:In_Memory_Column).java_column
 
                 builder = make_string_builder length
                 0.up_to length . each i->
-                    replaced = do_replace i (storage.getItemBoxed i)
+                    replaced = do_replace i (java_column.getItem i)
                     builder.append replaced
 
                 In_Memory_Column.from_storage new_name builder.seal
@@ -781,8 +781,8 @@ wrap_text_argument_as_value_provider val =
     Value_Type.expect_text val <| case val of
         text : Text -> (_-> text)
         col : Column ->
-            storage = (col:In_Memory_Column).java_column.getStorage
-            i-> storage.getItemBoxed i
+            java_column = (col:In_Memory_Column).java_column
+            i-> java_column.getItem i
 
 ## PRIVATE
 wrap_text_or_regex_argument_as_value_provider val =

@@ -447,10 +447,11 @@ public class HyperFormat {
       boolean throwDontWarn) {
     int numberOfRows = table.rowCount();
     if (matchColumnsByName) {
-      String[] existingColumnNames =
-          tableDef.getColumns().stream()
-              .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
-              .toArray(String[]::new);
+      var existingColumns = table.getColumns();
+      var existingColumnNames = new String[existingColumns.length];
+      for (int i = 0; i < existingColumns.length; i++) {
+        existingColumnNames[i] = existingColumns[i].getName().replaceAll("^\"|\"$", "");
+      }
 
       validateNoExtraColumnsByName(
           table, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
@@ -468,13 +469,13 @@ public class HyperFormat {
       Column[] sourceColumns = table.getColumns();
       int defColumnCount = tableDef.getColumns().size();
 
-      return IntStream.range(0, defColumnCount)
-          .mapToObj(
-              i ->
-                  i < sourceColumns.length
-                      ? sourceColumns[i].getStorage()
-                      : Builder.fromRepeatedItem(null, numberOfRows))
-          .toArray(ColumnStorage[]::new);
+      var result = new ColumnStorage[tableDef.getColumns().size()];
+      for (int i = 0; i < result.length; i++) {
+        result[i] = i < sourceColumns.length
+            ? sourceColumns[i].getStorage()
+            : Builder.fromRepeatedItem(null, numberOfRows);
+      }
+      return result;
     }
   }
 
