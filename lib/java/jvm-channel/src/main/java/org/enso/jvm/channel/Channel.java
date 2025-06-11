@@ -47,6 +47,7 @@ public final class Channel implements AutoCloseable {
   private final MethodHandle callbackFn;
   private final JNI.JClass channelClass;
   private final JNI.JMethodID channelHandle;
+  private final Channel otherMockChannel;
 
   /** The SubstrateVM side of a channel. */
   private Channel(
@@ -62,6 +63,7 @@ public final class Channel implements AutoCloseable {
     this.callbackFn = null;
     this.channelClass = handleClass;
     this.channelHandle = handleFn;
+    this.otherMockChannel = null;
   }
 
   /** The HotSpot JVM side of a channel. */
@@ -75,6 +77,7 @@ public final class Channel implements AutoCloseable {
     this.env = null;
     this.channelClass = null;
     this.channelHandle = null;
+    this.otherMockChannel = null;
 
     var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
     var fnDescriptor =
@@ -91,7 +94,7 @@ public final class Channel implements AutoCloseable {
    * Mock constructor. Creates a channel that simulates sending of the messages inside of the same
    * JVM. Useful for testing.
    */
-  private Channel(long id, Persistance.Pool pool) {
+  private Channel(Channel otherOrNull, long id, Persistance.Pool pool) {
     if (ImageInfo.inImageCode()) {
       throw new IllegalStateException("Only usable in HotSpot");
     }
@@ -102,6 +105,7 @@ public final class Channel implements AutoCloseable {
     this.env = null;
     this.channelClass = null;
     this.channelHandle = null;
+    this.otherMockChannel = otherOrNull != null ? otherOrNull : new Channel(this, id, pool);
   }
 
   /**
@@ -123,7 +127,7 @@ public final class Channel implements AutoCloseable {
     }
     var id = idCounter++;
     if (jvm == null) {
-      return new Channel(id, pool);
+      return new Channel(null, id, pool);
     }
 
     if (!ImageInfo.inImageCode()) {
@@ -260,8 +264,9 @@ public final class Channel implements AutoCloseable {
   }
 
   private long toDirectMessage(ByteBuffer buf) throws IOException {
+    assert otherMockChannel != null;
     buf.position(0);
-    var len = handleWithChannel(this, buf);
+    var len = handleWithChannel(otherMockChannel, buf);
     buf.position(0);
     return len;
   }
