@@ -379,20 +379,14 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
   await expect(numberWidget).toHaveValue('2')
 })
 
-export function getCellLocator(page: Page, colId: string, rowIndex: number) {
-    const locatorString = `[row-index="${rowIndex}"] [col-id="${colId}"]`;
-    return page.locator(locatorString);
-}
-
 test.only('Datetime test - sorting and copying', async ({ page }) => {
   await loadData(page, singleColumnDatetimes)
-  const tableVisualization = locate.tableVisualization(page)
   await expectCellDataToBe(page, 'Value',
     '2025-01-02 12:13:14.123',
     '2025-01-01 12:13:14.123',
     '2025-01-03 12:13:14.123'
   )
-  const value = tableVisualization.getByText('Value')
+  const value = await getHeaderLocator(page, {colHeaderName: 'Value'});
   await value.click() // Sort ascending
   await expectCellDataToBe(page, 'Value',
     '2025-01-01 12:13:14.123',
@@ -427,6 +421,29 @@ async function loadData(page: Page, data: any) {
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     data,
   )
+}
+
+export type ColumnLocatorOptions = {
+    colId?: string;
+    colHeaderName?: string;
+};
+
+/**
+ * Returns a locator for the header cell
+ */
+export function getHeaderLocator(page: Page, options: ColumnLocatorOptions) {
+    if (options.colHeaderName) {
+        return page.getByRole('columnheader', { name: options.colHeaderName });
+    }
+    return page.getByRole('columnheader').and(page.locator(`[col-id="${options.colId}"]`));
+}
+
+/**
+ * Returns a locator for the cell based off colId and rowIndex
+ */
+export function getCellLocator(page: Page, colId: string, rowIndex: number) {
+    const locatorString = `[row-index="${rowIndex}"] [col-id="${colId}"]`;
+    return page.locator(locatorString);
 }
 
 // Helper function to check cell values in a column
