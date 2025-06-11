@@ -29,7 +29,9 @@ jobs:
         with:
           files: |
             app/**
+            lib/rust/**
             package.json
+            *.bazel
             pnpm-lock.yaml
             pnpm-workspace.yaml
             eslint.config.js
