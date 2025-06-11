@@ -447,21 +447,25 @@ public class HyperFormat {
       boolean throwDontWarn) {
     int numberOfRows = table.rowCount();
     if (matchColumnsByName) {
-      var existingColumns = table.getColumns();
-      var existingColumnNames = new String[existingColumns.length];
-      for (int i = 0; i < existingColumns.length; i++) {
-        existingColumnNames[i] = existingColumns[i].getName().replaceAll("^\"|\"$", "");
+      var tableDefColumns = tableDef.getColumns();
+      var existingColumnNames = new String[tableDefColumns.size()];
+      for (int i = 0; i < tableDefColumns.size(); ++i) {
+        existingColumnNames[i] =
+            tableDefColumns.get(i).getName().toString().replaceAll("^\"|\"$", "");
       }
 
       validateNoExtraColumnsByName(
           table, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
 
       var result = new ColumnStorage[existingColumnNames.length];
-      for (int i = 0; i < result.length; i++) {
+      for (int i = 0; i < existingColumnNames.length; ++i) {
         String name = existingColumnNames[i];
-        var column = table.getColumnByName(name);
+        var tableColumn = table.getColumnByName(name);
         result[i] =
-            column == null ? Builder.fromRepeatedItem(null, numberOfRows) : column.getStorage();
+            tableColumn == null
+                ? Builder.fromRepeatedItem(null, numberOfRows)
+                : tableColumn.getStorage();
+        ;
       }
       return result;
     } else { // match by position
@@ -469,7 +473,7 @@ public class HyperFormat {
       Column[] sourceColumns = table.getColumns();
       int defColumnCount = tableDef.getColumns().size();
 
-      var result = new ColumnStorage[tableDef.getColumns().size()];
+      var result = new ColumnStorage[defColumnCount];
       for (int i = 0; i < result.length; i++) {
         result[i] =
             i < sourceColumns.length
