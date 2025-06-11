@@ -65,7 +65,6 @@ public final class Column {
     return storage;
   }
 
-
   /* Gets the value at a given index. */
   public Object getItem(long index) {
     return storage.getItemBoxed(index);

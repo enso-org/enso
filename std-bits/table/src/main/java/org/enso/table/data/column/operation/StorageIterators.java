@@ -695,7 +695,8 @@ public class StorageIterators {
    * Zips two storages together, applying an operation to each pair of values. The operation's
    * result is appended to the builder. The builderConstructor will be passed the expected size to
    * create a new builder. If skipNothing is true, then if either value is Nothing, the result will
-   * be Nothing and appended automatically.
+   * be Nothing and appended automatically. This is a variant that works when return type is
+   * variable.
    *
    * @param source1 the first source storage to read from and iterate over.
    * @param source2 the second source storage to read from and iterate over.
@@ -704,7 +705,6 @@ public class StorageIterators {
    * @param operation a callback to process a pair of values.
    * @param <R> Input Java type for the first source.
    * @param <S> Input Java type for the second source.
-   * @param <T> Output Java type for the storage.
    * @return a built ColumnStorage from sealing the builder.
    */
   public static <R, S> ColumnStorage<?> zipOverObjectStorages(
