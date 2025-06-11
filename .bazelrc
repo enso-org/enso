@@ -47,7 +47,3 @@ build --@rules_rust//rust/toolchain/channel=nightly
 
 ## Allow local overrides of bazel configuration
 try-import %workspace%/.bazelrc.local
-
-# Force the use of Clang for all builds (https://github.com/bazelbuild/bazel/issues/20838).
-build --action_env=CC=clang
-build --action_env=CXX=clang++
