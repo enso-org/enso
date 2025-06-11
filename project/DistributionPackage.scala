@@ -273,7 +273,7 @@ object DistributionPackage {
           val runningProcess = Process(
             command,
             Some(path.getAbsoluteFile.getParentFile),
-            "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
+            "_JAVA_OPTIONS" -> "-Dorg.jline.terminal.dumb=true"
           ).run
           // Poor man's solution to stuck index generation
           val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
@@ -380,7 +380,7 @@ object DistributionPackage {
 
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
-    reduceArgs(all, "JAVA_OPTS", pb.environment)
+    reduceArgs(all, "_JAVA_OPTIONS", pb.environment)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }

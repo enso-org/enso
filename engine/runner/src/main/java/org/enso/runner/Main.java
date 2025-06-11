@@ -1439,7 +1439,7 @@ public class Main {
     var commandAndArgs = new ArrayList<String>();
     if (!useJNI) {
       commandAndArgs.add(javaExecutable.getPath());
-      var jvmOptions = System.getenv("JAVA_OPTS");
+      var jvmOptions = System.getenv("_JAVA_OPTIONS");
       if (jvmOptions != null) {
         for (var op : jvmOptions.split(" ")) {
           if (op.isEmpty()) {

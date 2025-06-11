@@ -41,7 +41,7 @@ public final class JVM {
     // java.home
     jvmArgs.add("-Djava.home=" + javaHome);
 
-    var jvmOptions = System.getenv("JAVA_OPTS");
+    var jvmOptions = System.getenv("_JAVA_OPTIONS");
     if (jvmOptions != null) {
       for (var op : jvmOptions.split(" ")) {
         if (op.isEmpty()) {
