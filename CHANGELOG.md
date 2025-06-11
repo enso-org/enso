@@ -39,15 +39,18 @@
 - [Support for reading fixed-width-column data files.][12726]
 - [Added `row_limit` parameter to the `Fixed_Width` format.][12950]
 - [Add Tableau Hyper write support][12900]
+- [Support character encodings when reading fixed-width files.][13138]
 - [Initial Microsoft Azure support][13144]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
 [12900]: https://github.com/enso-org/enso/pull/12900
+[13138]: https://github.com/enso-org/enso/pull/13138
 [13144]: https://github.com/enso-org/enso/pull/13144
 
 #### Enso Language & Runtime
 
+- [Allow optional path for `--jvm` option of `project-manager`][13225]
 - [Prevent `Meta` access to private constructors and private fields][12905]
 - [Encapsulating Private_Access constructor][#12976]
 - [Upgrading Truffle][12500] (including its
@@ -59,6 +62,7 @@
 [12976]: https://github.com/enso-org/enso/pull/12976
 [12855]: https://github.com/enso-org/enso/pull/12855
 [12905]: https://github.com/enso-org/enso/pull/12905
+[13225]: https://github.com/enso-org/enso/pull/13225
 
 # Enso 2025.1
 

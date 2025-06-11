@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -31,7 +30,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
    * <p>Once the specialized storage is first computed, all vectorized operations will be forwarded
    * to it - assuming that it will most likely provide more efficient implementations.
    */
-  private Storage<?> cachedInferredStorage = null;
+  private ColumnStorage<?> cachedInferredStorage = null;
 
   private boolean hasSpecializedStorageBeenInferred = false;
 
@@ -123,7 +122,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     }
   }
 
-  public Storage<?> getInferredStorage() {
+  public ColumnStorage<?> getInferredStorage() {
     if (!hasSpecializedStorageBeenInferred) {
       StorageType<?> inferredType = inferPreciseType(PreciseTypeOptions.DEFAULT);
       if (inferredType instanceof AnyObjectType) {
@@ -142,105 +141,5 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     }
 
     return cachedInferredStorage;
-  }
-
-  private enum VectorizedOperationAvailability {
-    NOT_AVAILABLE,
-    AVAILABLE_IN_SPECIALIZED_STORAGE,
-    AVAILABLE_IN_SUPER
-  }
-
-  /** {@see resolveUnaryOp} for explanations. */
-  private VectorizedOperationAvailability resolveBinaryOp(String name) {
-    // Shortcut - if the storage is already specialized - we prefer it.
-    if (cachedInferredStorage != null && cachedInferredStorage.isBinaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-    }
-
-    // Otherwise, we try to avoid specializing if not yet necessary.
-    if (super.isBinaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SUPER;
-    } else {
-      // But if our storage does not provide the operation, we have to try checking the other one.
-      if (getInferredStorage() != null && getInferredStorage().isBinaryOpVectorized(name)) {
-        return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-      } else {
-        return VectorizedOperationAvailability.NOT_AVAILABLE;
-      }
-    }
-  }
-
-  /** {@see resolveUnaryOp} for explanations. */
-  private VectorizedOperationAvailability resolveTernaryOp(String name) {
-    // Shortcut - if the storage is already specialized - we prefer it.
-    if (cachedInferredStorage != null && cachedInferredStorage.isTernaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-    }
-
-    // Otherwise, we try to avoid specializing if not yet necessary.
-    if (super.isTernaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SUPER;
-    } else {
-      // But if our storage does not provide the operation, we have to try checking the other one.
-      if (getInferredStorage() != null && getInferredStorage().isTernaryOpVectorized(name)) {
-        return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-      } else {
-        return VectorizedOperationAvailability.NOT_AVAILABLE;
-      }
-    }
-  }
-
-  @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return resolveBinaryOp(name) != VectorizedOperationAvailability.NOT_AVAILABLE;
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    if (resolveBinaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedBinaryMap(name, argument, problemAggregator);
-    } else {
-      // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedBinaryMap(name, argument, problemAggregator);
-    }
-  }
-
-  @Override
-  public boolean isTernaryOpVectorized(String name) {
-    return resolveTernaryOp(name) != VectorizedOperationAvailability.NOT_AVAILABLE;
-  }
-
-  @Override
-  public Storage<?> runVectorizedTernaryMap(
-      String name,
-      Object argument0,
-      Object argument1,
-      MapOperationProblemAggregator problemAggregator) {
-    if (resolveTernaryOp(name)
-        == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage()
-          .runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
-    } else {
-      // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
-    }
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    if (resolveBinaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedZip(name, argument, problemAggregator);
-    } else {
-      // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedZip(name, argument, problemAggregator);
-    }
-  }
-
-  @Override
-  public Storage<?> tryGettingMoreSpecializedStorage() {
-    var inferredStorage = getInferredStorage();
-    return inferredStorage != null ? inferredStorage : this;
   }
 }

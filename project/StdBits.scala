@@ -112,7 +112,7 @@ object StdBits {
             val outdatedArtifact =
               !previousRun
                 .exists(analysis =>
-                  analysis.libs.exists(a =>
+                  analysis.libs.values.exists(a =>
                     a.matchesTargetArtifact(existing) && !a.isOutdated
                   )
                 )
@@ -336,7 +336,12 @@ object StdBits {
       extractedJnaLibs.getOrElse(Nil),
       Some(outputJnaJar)
     )
-    AnalysisOfExtractedNativeLibs(extractedTableau :: extractedJna :: Nil)
+    AnalysisOfExtractedNativeLibs(
+      Map(
+        tableauNativeLibJar.getAbsolutePath -> extractedTableau,
+        jnaJar.getAbsolutePath              -> extractedJna
+      )
+    )
   }
 
   /** Extract native libraries from `grpc-netty-shaded-<version>.jar` and put them under

@@ -1,5 +1,4 @@
 /** @file A toolbar containing chat and the user menu. */
-import { SUBSCRIBE_PATH } from '#/appUtils'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
 import { Button } from '#/components/Button'
@@ -13,10 +12,10 @@ import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json'
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import InviteUsersModal from '#/modals/InviteUsersModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { Plan } from '#/services/Backend'
 import { isAbsoluteUrl } from '#/utilities/url'
-import { useText } from '$/providers/react'
+import { SUBSCRIBE_PATH } from '$/appUtils'
+import { useFullUserSession, useText } from '$/providers/react'
 import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
@@ -104,7 +103,16 @@ export function UserBar(props: UserBarProps) {
           )}
         </AnimatePresence>
 
-        <UserBarHelpSection items={topbarLinks.items} />
+        <div className="flex sm:hidden">
+          <Popover.Trigger>
+            <Button variant="icon" icon="help" aria-label={getText('help')} />
+            <Popover size="auto">
+              <UserBarHelpSection items={topbarLinks.items} className="flex-col" />
+            </Popover>
+          </Popover.Trigger>
+        </div>
+
+        <UserBarHelpSection items={topbarLinks.items} className="hidden sm:flex" />
 
         {shouldShowPaywallButton && (
           <PaywallDialogButton feature="inviteUser" size="medium" variant="accent">
@@ -153,18 +161,19 @@ export function UserBar(props: UserBarProps) {
 /** Props for a {@link UserBarHelpSection}. */
 export interface UserBarHelpSectionProps {
   readonly items: z.infer<typeof TOPBAR_LINKS_SCHEMA>['items']
+  readonly className?: string
 }
 
 /** A section containing help buttons. */
 export function UserBarHelpSection(props: UserBarHelpSectionProps) {
-  const { items } = props
+  const { items, className } = props
   const { getText } = useText()
 
   const getSafetyProps = (url: string) =>
     isAbsoluteUrl(url) ? { rel: 'opener', target: '_blank' } : {}
 
   return (
-    <Button.Group gap="small" buttonVariants={{ variant: 'icon' }}>
+    <Button.Group gap="small" buttonVariants={{ variant: 'icon' }} className={className}>
       {items.map((item) => {
         if ('url' in item) {
           if ('menu' in item) {

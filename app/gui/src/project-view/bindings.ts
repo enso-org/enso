@@ -1,31 +1,30 @@
+import { isMacLike } from '@/composables/events'
 import { defineKeybinds } from '@/util/shortcuts'
-import { isMacLike } from './composables/events'
 
 export const undoBindings = defineKeybinds('undo', {
-  undo: ['Mod+Z'],
+  'graph.undo': ['Mod+Z'],
   // On Mac, `Mod+Shift+Z` takes priority and will be displayed in the tooltip.
-  redo: isMacLike ? ['Mod+Shift+Z', 'Mod+Y'] : ['Mod+Y', 'Mod+Shift+Z'],
+  'graph.redo': isMacLike ? ['Mod+Shift+Z', 'Mod+Y'] : ['Mod+Y', 'Mod+Shift+Z'],
 })
 
-export const codeEditorBindings = defineKeybinds('code-editor', {
-  toggle: ['Mod+`'],
+export const panelsBindings = defineKeybinds('panels', {
+  'graph.toggleCodeEditor': ['Mod+`'],
+  'graph.toggleDocumentationEditor': ['Mod+D'],
 })
 
 export const documentationEditorBindings = defineKeybinds('documentation-editor', {
-  toggle: ['Mod+D'],
-  paste: ['Mod+V'],
-  pasteRaw: ['Mod+Shift+V'],
-  bold: ['Mod+B'],
-  italic: ['Mod+I'],
-  paragraph: ['Mod+Alt+0'],
-  header1: ['Mod+Alt+1'],
-  header2: ['Mod+Alt+2'],
-  header3: ['Mod+Alt+3'],
-  link: ['Mod+K'],
+  'documentationEditor.paste': ['Mod+V'],
+  'documentationEditor.pasteRaw': ['Mod+Shift+V'],
 })
 
-export const textEditorsBindings = defineKeybinds('text-editors', {
-  openLink: ['Mod+PointerMain'],
+export const documentationEditorFormatBindings = defineKeybinds('documentation-editor-formatting', {
+  'documentationEditor.italic': ['Mod+I'],
+  'documentationEditor.bold': ['Mod+B'],
+  'documentationEditor.link': ['Mod+K'],
+  'documentationEditor.paragraph': ['Mod+Alt+0'],
+  'documentationEditor.header1': ['Mod+Alt+1'],
+  'documentationEditor.header2': ['Mod+Alt+2'],
+  'documentationEditor.header3': ['Mod+Alt+3'],
 })
 
 export const textEditorsCommonBindings = defineKeybinds('text-editors-common-bindings', {
@@ -52,30 +51,30 @@ export const interactionBindings = defineKeybinds('current-interaction', {
 })
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
-  applySuggestion: ['Shift+Enter'],
-  acceptSuggestion: ['Enter'],
-  acceptCode: ['Enter'],
+  'componentBrowser.editSuggestion': ['Shift+Enter'],
+  'componentBrowser.acceptSuggestion': ['Enter'],
+  'componentBrowser.acceptInputAsCode': ['Enter'],
+  'componentBrowser.switchToCodeEditMode': ['Mod+Tab'],
   acceptInput: ['Mod+Enter'],
   acceptAIPrompt: ['Enter'],
   switchPanelFocus: ['Tab'],
-  switchToCodeEditMode: ['Mod+Tab'],
 })
 
 export const graphBindings = defineKeybinds('graph-editor', {
   openComponentBrowser: ['Enter'],
   toggleVisualization: ['Space'],
-  deleteSelected: ['Delete', 'Backspace'],
-  zoomToSelected: ['Mod+Shift+A'],
+  'components.deleteSelected': ['Delete', 'Backspace'],
+  'graph.fitAll': ['Mod+Shift+A'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape'],
-  copyNode: ['Mod+C'],
+  'components.copy': ['Mod+C'],
   pasteNode: ['Mod+V'],
-  collapse: ['Mod+G'],
+  'components.collapse': ['Mod+G'],
   startProfiling: ['Mod+Alt+,'],
   stopProfiling: ['Mod+Alt+.'],
   enterNode: ['Mod+E'],
-  exitNode: ['Mod+Shift+E'],
-  changeColorSelectedNodes: ['Mod+Shift+C'],
+  'graph.navigateUp': ['Mod+Shift+E'],
+  'components.pickColorMulti': ['Mod+Shift+C'],
   openDocumentation: ['F1'],
 })
 
@@ -83,6 +82,18 @@ export const visualizationBindings = defineKeybinds('visualization', {
   nextType: ['Mod+Space'],
   toggleFullscreen: ['Shift+Space'],
   exitFullscreen: ['Escape'],
+})
+
+export const gridBindings = defineKeybinds('grid', {
+  cutCells: ['Mod+X'],
+  copyCells: ['Mod+C'],
+  pasteCells: ['Mod+V'],
+})
+
+// === Mouse bindings ===
+
+export const textEditorsBindings = defineKeybinds('text-editors', {
+  openLink: ['Mod+PointerMain'],
 })
 
 export const selectionMouseBindings = defineKeybinds('selection', {
@@ -94,12 +105,5 @@ export const selectionMouseBindings = defineKeybinds('selection', {
 })
 
 export const nodeEditBindings = defineKeybinds('node-edit', {
-  cancel: ['Escape'],
   edit: ['Mod+PointerMain'],
-})
-
-export const gridBindings = defineKeybinds('grid', {
-  cutCells: ['Mod+X'],
-  copyCells: ['Mod+C'],
-  pasteCells: ['Mod+V'],
 })

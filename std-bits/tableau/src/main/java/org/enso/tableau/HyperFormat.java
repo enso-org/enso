@@ -22,18 +22,23 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
@@ -113,7 +118,7 @@ public class HyperFormat {
         var classLoader = new TableauClassLoader();
         var jnaPath = classLoader.getResource("jnidispatch");
         Thread.currentThread().setContextClassLoader(classLoader);
-        LOGGER.log(Level.INFO, "Starting Hyper process: " + HYPER_PATH + ".");
+        LOGGER.log(Level.INFO, "Starting Hyper process: {0}.", HYPER_PATH);
         try {
           if (jnaPath != null) {
             System.setProperty("jna.boot.library.path", new File(jnaPath.getFile()).getParent());
@@ -151,8 +156,7 @@ public class HyperFormat {
         try {
           if (found == null || found.asString() == null) {
             LOGGER.log(
-                Level.WARNING,
-                "Failed to find library `" + libName + "`. Retrying with a fallback");
+                Level.WARNING, "Failed to find library `{0}`. Retrying with a fallback", libName);
             return super.getResource(name);
           } else {
             return new File(found.asString()).toURI().toURL();
@@ -180,8 +184,7 @@ public class HyperFormat {
         try {
           if (found == null || found.asString() == null) {
             LOGGER.log(
-                Level.WARNING,
-                "Failed to find library `" + libName + "`. Retrying with a fallback");
+                Level.WARNING, "Failed to find library `{0}`. Retrying with a fallback", libName);
             return super.getResourceAsStream(name);
           } else {
             return new FileInputStream(found.asString());
@@ -201,7 +204,7 @@ public class HyperFormat {
           InvalidPathException,
           UnsupportedOperationException,
           SecurityException {
-    LOGGER.log(Level.INFO, "Downloading Hyper from: " + uri);
+    LOGGER.log(Level.INFO, "Downloading Hyper from: {0}", uri);
     var hyperdFile = HYPER_PATH.resolve(fileName).toFile();
     var url = new URI(uri);
     var readChannel = Channels.newChannel(url.toURL().openStream());
@@ -330,14 +333,36 @@ public class HyperFormat {
     }
   }
 
-  public static void writeTable(String path, String schemaName, String tableName, Table table)
+  public static String[] writeTable(
+      String path,
+      String schemaName,
+      String tableName,
+      Table table,
+      boolean append,
+      boolean matchColumnsByName,
+      boolean throwDontWarn)
       throws IOException {
+    List<String> warningUnmatchedColumns = new ArrayList<>();
     getProcess();
     try (var connection =
         new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
-      var tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
-      insertData(table, tableDef, connection);
+      TableDefinition tableDef;
+      if (append && tableExists(schemaName, tableName, connection)) {
+        tableDef = connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
+      } else {
+        tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
+      }
+      insertData(
+          table, tableDef, connection, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
+      connection.close();
     }
+    return warningUnmatchedColumns.toArray(String[]::new);
+  }
+
+  private static boolean tableExists(String schemaName, String tableName, Connection connection) {
+    final var sn = new SchemaName(schemaName);
+    final var tn = new TableName(schemaName, tableName);
+    return connection.getCatalog().getTableNames(sn).contains(tn);
   }
 
   private static TableDefinition createTable(
@@ -350,46 +375,107 @@ public class HyperFormat {
     var tableDef = new TableDefinition(new TableName(schemaName, tableName));
     for (var col : columns) {
       String columnName = col.getName();
-      var storage = col.getStorage();
-      switch (storage.getType()) {
-        case TextType t -> tableDef.addColumn(columnName, SqlType.text());
-        case IntegerType t -> tableDef.addColumn(columnName, SqlType.bigInt());
-        case FloatType t -> tableDef.addColumn(columnName, SqlType.doublePrecision());
-        case BooleanType t -> tableDef.addColumn(columnName, SqlType.bool());
-        case DateType t -> tableDef.addColumn(columnName, SqlType.date());
-        case TimeOfDayType t -> tableDef.addColumn(columnName, SqlType.time());
-        case DateTimeType t -> tableDef.addColumn(columnName, SqlType.timestampTz());
-          // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
-          // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
-          // values is
-          // often slower than processing 64-bit values, so it is advisable to use a sensible
-          // precision for
-          // the use case at hand instead of always using the maximum precision by default.
-        case BigDecimalType t -> tableDef.addColumn(columnName, SqlType.numeric(18, 9));
-        default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
-      }
+      var sqlType = mapEnsoTypeToSqlType(col.getStorage().getType());
+      tableDef.addColumn(columnName, sqlType);
     }
+
     connection.executeCommand("DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"");
     connection.getCatalog().createTable(tableDef);
     return tableDef;
   }
 
-  private static void insertData(Table table, TableDefinition tableDef, Connection connection) {
+  private static SqlType mapEnsoTypeToSqlType(StorageType<?> type) {
+    return switch (type) {
+      case TextType t -> SqlType.text();
+      case IntegerType t -> SqlType.bigInt();
+      case FloatType t -> SqlType.doublePrecision();
+      case BooleanType t -> SqlType.bool();
+      case DateType t -> SqlType.date();
+      case TimeOfDayType t -> SqlType.time();
+      case DateTimeType t -> SqlType.timestampTz();
+        // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
+        // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
+        // values is often slower than processing 64-bit values, so it is advisable to use
+        // a sensible precision for the use case at hand instead of always using the maximum
+        // precision by default.
+        // TODO fix this after https://github.com/enso-org/enso/issues/13022
+      case BigDecimalType t -> SqlType.numeric(18, 9);
+      default -> throw new HyperUnsupportedTypeError(type.toString());
+    };
+  }
+
+  private static void insertData(
+      Table table,
+      TableDefinition tableDef,
+      Connection connection,
+      boolean matchColumnsByName,
+      List<String> warningUnmatchedColumns,
+      boolean throwDontWarn) {
+    ColumnStorage[] columnStorages =
+        getOrderedStorages(
+            table, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
+
+    validateTypesMatch(columnStorages, tableDef);
+
+    try (Inserter inserter = new Inserter(connection, tableDef)) {
+      for (int row = 0; row < table.rowCount(); ++row) {
+        for (ColumnStorage storage : columnStorages) {
+          addValueToInserter(inserter, storage, row);
+        }
+        inserter.endRow();
+      }
+      inserter.execute();
+    }
+  }
+
+  private static ColumnStorage[] getOrderedStorages(
+      Table table,
+      TableDefinition tableDef,
+      boolean matchColumnsByName,
+      List<String> warningUnmatchedColumns,
+      boolean throwDontWarn) {
     int numberOfRows = table.rowCount();
-    int numberOfColumns = table.getColumns().length;
-    Inserter inserter = new Inserter(connection, tableDef);
-    for (int row = 0; row < numberOfRows; ++row) {
-      for (int col = 0; col < numberOfColumns; ++col) {
-        var storage = table.getColumns()[col].getStorage();
-        if (storage.isNothing(row)) {
-          inserter.addNull();
-        } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-          inserter.add(doubleStorage.getItemAsDouble(row));
-        } else if (storage instanceof ColumnLongStorage longStorage) {
-          inserter.add(longStorage.getItemAsLong(row));
-        } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-          inserter.add(boolStorage.getItemAsBoolean(row));
-        } else {
+    if (matchColumnsByName) {
+      String[] existingColumnNames =
+          tableDef.getColumns().stream()
+              .map(col -> col.getName().toString().replaceAll("^\"|\"$", ""))
+              .toArray(String[]::new);
+
+      validateNoExtraColumnsByName(
+          table, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
+      return Arrays.stream(existingColumnNames)
+          .map(
+              name ->
+                  Arrays.stream(table.getColumns())
+                      .filter(col -> col.getName().equals(name))
+                      .findFirst()
+                      .map(Column::getStorage)
+                      .orElseGet(() -> new NullStorage(numberOfRows)))
+          .toArray(ColumnStorage[]::new);
+    } else { // match by position
+      validateNoExtraColumnsByPosition(table, tableDef, warningUnmatchedColumns, throwDontWarn);
+      Column[] sourceColumns = table.getColumns();
+      int defColumnCount = tableDef.getColumns().size();
+
+      return IntStream.range(0, defColumnCount)
+          .mapToObj(
+              i ->
+                  i < sourceColumns.length
+                      ? sourceColumns[i].getStorage()
+                      : new NullStorage(numberOfRows))
+          .toArray(ColumnStorage[]::new);
+    }
+  }
+
+  private static void addValueToInserter(Inserter inserter, ColumnStorage storage, int row) {
+    if (storage.isNothing(row)) {
+      inserter.addNull();
+    } else {
+      switch (storage) {
+        case ColumnDoubleStorage doubleStorage -> inserter.add(doubleStorage.getItemAsDouble(row));
+        case ColumnLongStorage longStorage -> inserter.add(longStorage.getItemAsLong(row));
+        case ColumnBooleanStorage boolStorage -> inserter.add(boolStorage.getItemAsBoolean(row));
+        default -> {
           Object value = storage.getItemBoxed(row);
           switch (value) {
             case String s -> inserter.add(s);
@@ -401,8 +487,85 @@ public class HyperFormat {
           }
         }
       }
-      inserter.endRow();
     }
-    inserter.execute();
+  }
+
+  private static void validateNoExtraColumnsByName(
+      Table table,
+      String[] allowedColumnNames,
+      List<String> warningUnmatchedColumns,
+      boolean throwDontWarn) {
+    Set<String> allowed = Set.of(allowedColumnNames);
+    Set<String> tableColumnNames =
+        Arrays.stream(table.getColumns()).map(Column::getName).collect(Collectors.toSet());
+
+    String[] extraColumns =
+        tableColumnNames.stream().filter(name -> !allowed.contains(name)).toArray(String[]::new);
+
+    if (extraColumns.length > 0) {
+      throw new HyperUnmatchedColumns(extraColumns);
+    }
+
+    List<String> missingColumns =
+        Arrays.stream(allowedColumnNames).filter(name -> !tableColumnNames.contains(name)).toList();
+
+    if (!missingColumns.isEmpty()) {
+      if (throwDontWarn) {
+        throw new HyperUnmatchedColumns(missingColumns.toArray(String[]::new));
+      } else {
+        warningUnmatchedColumns.addAll(missingColumns);
+      }
+    }
+  }
+
+  private static void validateNoExtraColumnsByPosition(
+      Table table,
+      TableDefinition tableDef,
+      List<String> warningUnmatchedColumns,
+      boolean throwDontWarn) {
+    int tableColumnCount = table.getColumns().length;
+    int defColumnCount = tableDef.getColumns().size();
+
+    if (tableColumnCount > defColumnCount) {
+      String[] extraColumnNames =
+          IntStream.range(defColumnCount, tableColumnCount)
+              .mapToObj(i -> table.getColumns()[i].getName())
+              .toArray(String[]::new);
+
+      throw new HyperUnmatchedColumns(extraColumnNames);
+    }
+
+    if (tableColumnCount < defColumnCount) {
+      String[] missingColumnNames =
+          IntStream.range(tableColumnCount, defColumnCount)
+              .mapToObj(
+                  i -> tableDef.getColumns().get(i).getName().toString().replaceAll("^\"|\"$", ""))
+              .toArray(String[]::new);
+
+      if (throwDontWarn) {
+        throw new HyperUnmatchedColumns(missingColumnNames);
+      } else {
+        warningUnmatchedColumns.addAll(List.of(missingColumnNames));
+      }
+    }
+  }
+
+  private static void validateTypesMatch(ColumnStorage[] storages, TableDefinition tableDef) {
+    for (int i = 0; i < storages.length; i++) {
+      ColumnStorage storage = storages[i];
+
+      if (storage instanceof NullStorage) {
+        continue; // Allow NULLs to append to anything
+      }
+
+      SqlType expectedSqlType = tableDef.getColumns().get(i).getType();
+      SqlType actualSqlType = mapEnsoTypeToSqlType(storage.getType());
+
+      if (!expectedSqlType.equals(actualSqlType)) {
+        String columnName = tableDef.getColumns().get(i).getName().toString();
+        throw new HyperTypeMismatch(
+            columnName, expectedSqlType.toString(), actualSqlType.toString());
+      }
+    }
   }
 }

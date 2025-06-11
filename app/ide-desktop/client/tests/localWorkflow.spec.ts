@@ -116,7 +116,7 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
   // Press `Write once` button.
   await writeNode.locator('.More').click()
-  await writeNode.getByTestId('recompute').click()
+  await writeNode.getByTestId('action:component.recompute').click()
   await page.mouse.move(0, 0) // Avoid showing a tooltip
   await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
 

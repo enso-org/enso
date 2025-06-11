@@ -2,7 +2,6 @@ package org.enso.table_test_helpers;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -52,23 +51,6 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return false;
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return null;
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return null;
-  }
-
-  @Override
   public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     return null;
   }
@@ -85,11 +67,6 @@ public class ExplodingStorage extends Storage<Long> {
 
   @Override
   public Storage<Long> slice(int offset, int limit) {
-    return null;
-  }
-
-  @Override
-  public Storage<?> appendNulls(int count) {
     return null;
   }
 

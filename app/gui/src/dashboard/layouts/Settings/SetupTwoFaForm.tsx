@@ -5,7 +5,6 @@
  */
 import ShieldCheck from '#/assets/shield_check.svg'
 import ShieldCrossed from '#/assets/shield_crossed.svg'
-import type { MfaType } from '#/authentication/cognito'
 import { Alert } from '#/components/Alert'
 import { Button } from '#/components/Button'
 import { CopyBlock } from '#/components/CopyBlock'
@@ -16,9 +15,9 @@ import { OTPInput, Selector } from '#/components/Inputs'
 import { Suspense } from '#/components/Suspense'
 import { Switch } from '#/components/Switch'
 import { Text } from '#/components/Text'
-import { useSessionAPI } from '#/providers/SessionProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
+import type { MfaType } from '$/authentication/cognito'
+import { useSession, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
 
@@ -34,7 +33,7 @@ const LazyQRCode = lazy(() =>
  */
 export function SetupTwoFaForm() {
   const { getText } = useText()
-  const { getMFAPreference, updateMFAPreference, verifyTotpToken } = useSessionAPI()
+  const { getMFAPreference, updateMFAPreference, verifyTotpToken } = useSession()
 
   const { data } = useSuspenseQuery({
     queryKey: ['twoFaPreference'],
@@ -151,7 +150,7 @@ export function SetupTwoFaForm() {
 
 /** Two Factor Authentication Setup Form. */
 function TwoFa() {
-  const { setupTOTP } = useSessionAPI()
+  const { setupTOTP } = useSession()
   const { getText } = useText()
 
   const { data } = useSuspenseQuery({

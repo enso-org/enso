@@ -1,30 +1,24 @@
 package org.enso.os.environment.jni;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
+import java.io.File;
+import java.io.FileWriter;
 import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import org.enso.persist.Persistable;
 
 final class TestMain {
+  static final Map<Long, String> CORRECT_RESULTS = new HashMap<>();
+
   private TestMain() {}
 
-  static void main(String... args) throws Throwable {
-    var jvmIsolate = Long.parseLong(args[0]);
-    var fnCallbackAddress = MemorySegment.ofAddress(Long.parseLong(args[1]));
-    var fnDescriptor =
-        FunctionDescriptor.of(
-            ValueLayout.JAVA_BOOLEAN,
-            ValueLayout.JAVA_LONG,
-            ValueLayout.JAVA_LONG,
-            ValueLayout.ADDRESS);
-    var fnHandle = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
-    var n = Integer.parseInt(args[2]);
-
-    var res = factorial(n).toString();
-    reportResultToSvmIsolate(jvmIsolate, fnHandle, n, res);
+  public static void main(String... args) throws Exception {
+    var out = new File(args[0]);
+    var n = Integer.parseInt(args[1]);
+    try (java.io.FileWriter os = new FileWriter(out)) {
+      os.write(factorial(n).toString());
+    }
   }
 
   static BigInteger factorial(long n) {
@@ -38,17 +32,56 @@ final class TestMain {
     return acc;
   }
 
-  private static void reportResultToSvmIsolate(
-      long jvmIsolate, MethodHandle fn, long key, String value) throws Throwable {
-    try (var arena = Arena.ofConfined()) {
-      var valueStr = arena.allocateFrom(value);
-      Object result = fn.invoke(jvmIsolate, key, valueStr);
-      if (!Boolean.TRUE.equals(result)) {
-        var ex =
-            new IllegalStateException(
-                "Not correct result for " + key + " and value " + value + " result " + result);
-        ex.printStackTrace();
-        throw ex;
+  @Persistable(id = 430607)
+  record RequestFactorial(long n) implements Function<Channel, Void> {
+    @Override
+    public Void apply(Channel channel) {
+      var res = factorial(n).toString();
+      channel.execute(Void.class, new ReportResult(n, res));
+      return null;
+    }
+  }
+
+  @Persistable(id = 430608)
+  record ComputeFactorial(long n) implements Function<Channel, BigInteger> {
+    @Override
+    public BigInteger apply(Channel channel) {
+      var res = factorial(n);
+      return res;
+    }
+  }
+
+  @Persistable(id = 430606)
+  record ReportResult(long key, String value) implements Function<Channel, Void> {
+    @Override
+    public Void apply(Channel otherVM) {
+      var vm = System.getProperty("java.vm.name");
+      assert "Substrate VM".equals(vm) : "Running in SVM again: " + vm;
+      CORRECT_RESULTS.put(key, value);
+      return null;
+    }
+  }
+
+  @Persistable(id = 430609)
+  record CountDownAndReturn(long value, long acc) implements Function<Channel, Long> {
+    @Override
+    public Long apply(Channel otherVM) {
+      if (value <= 1) {
+        return acc;
+      } else {
+        return otherVM.execute(Long.class, new CountDownAndReturn(value - 1, acc * value));
+      }
+    }
+  }
+
+  @Persistable(id = 430610)
+  record CountDownAndThrow(long value, long acc) implements Function<Channel, Void> {
+    @Override
+    public Void apply(Channel otherVM) {
+      if (value <= 1) {
+        throw new IllegalStateException("" + acc);
+      } else {
+        return otherVM.execute(Void.class, new CountDownAndThrow(value - 1, acc * value));
       }
     }
   }

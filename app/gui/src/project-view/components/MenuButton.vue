@@ -6,14 +6,15 @@ import type { ComponentExposed } from 'vue-component-type-helpers'
 /**
  * A button. Supports toggling and disabled state.
  *
- * If a boolean model is bound to the primary model, clicking the button will switch between `toggledOn` and
- * `toggledOff` css classes on the slot's root element, as well as updating the model.
+ * If a boolean model is bound to the primary model, clicking the button will switch between
+ * `toggledOn` and `toggledOff` css classes on the slot's root element, as well as updating the
+ * model.
  *
- * If the disabled property is set, the button stops responding to mouse interaction and its contents will have the
- * `disabled` class.
+ * If the disabled property is set, the button stops responding to mouse interaction and its
+ * contents will have the `disabled` class.
  */
 
-const toggledOn = defineModel<boolean>({ default: undefined })
+const toggledOn = defineModel<boolean | undefined>()
 const props = defineProps<{
   disabled?: boolean | undefined
   title?: string | undefined
@@ -91,7 +92,8 @@ function onActivate() {
 
 .hoverArea {
   position: absolute;
-  inset: calc(var(--extraClickZone) * -1);
+  /*noinspection CssUnresolvedCustomProperty*/
+  inset: calc(var(--extraClickZone, 0) * -1);
   cursor: pointer;
 }
 </style>

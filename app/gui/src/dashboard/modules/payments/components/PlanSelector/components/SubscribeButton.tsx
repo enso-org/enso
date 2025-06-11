@@ -1,8 +1,8 @@
 /** @file A button to subscribe to a plan. */
-import { getSalesEmail } from '#/appUtils'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Text } from '#/components/Text'
+import { getSalesEmail } from '$/appUtils'
 import { useText } from '$/providers/react'
 import { PLAN_TO_UPGRADE_LABEL_ID, TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'

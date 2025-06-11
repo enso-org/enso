@@ -1,70 +1,75 @@
 import {
-  codeEditorBindings,
   componentBrowserBindings,
-  documentationEditorBindings,
+  documentationEditorFormatBindings,
   graphBindings,
   nodeEditBindings,
+  panelsBindings,
   undoBindings,
 } from '@/bindings'
 import { createContextStore } from '@/providers'
+import { type ActionContext, injectActionContext } from '@/providers/actionContext'
 import { assert } from '@/util/assert'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { type ToValue } from '@/util/reactivity'
 import { BindingInfo } from '@/util/shortcuts'
 import { ref } from 'vue'
-import { ForbidExcessProps } from 'ydoc-shared/util/types'
-import { ActionContext, injectActionContext } from './actionContext'
+import { type ForbidExcessProps } from 'ydoc-shared/util/types'
 
 /**
  * A definition of some action available via shortcut, button, and/or menu entry.
  */
 export interface Action {
+  available?: ToValue<boolean>
+  enabled?: ToValue<boolean>
   action?: (ctx: ActionContext | undefined) => void
   icon: Icon
-  shortcut?: BindingInfo
-  testid?: string
   description: ToValue<string>
-  hidden?: ToValue<boolean>
-  disabled?: ToValue<boolean>
+  shortcut?: BindingInfo
   toggled?: ToValue<boolean>
 }
 export type ActionHandler = Partial<Action> & { action: (ctx: ActionContext | undefined) => void }
 
 const actions = {
+  // === Graph Editor ===
+
   'graphEditor.showHelp': {
     icon: 'help',
     description: 'Show help',
   },
+
+  // === Selected Components ===
+
   'components.collapse': {
     icon: 'group',
     description: 'Group Selected Components',
-    shortcut: graphBindings.bindings.collapse,
+    shortcut: graphBindings.bindings['components.collapse'],
   },
   'components.copy': {
     icon: 'copy2',
     description: 'Copy Components',
-    shortcut: graphBindings.bindings.copyNode,
+    shortcut: graphBindings.bindings['components.copy'],
   },
   'components.deleteSelected': {
     icon: 'trash',
     description: 'Delete Selected Components',
-    shortcut: graphBindings.bindings.deleteSelected,
-    testid: 'removeNode',
+    shortcut: graphBindings.bindings['components.deleteSelected'],
   },
   'components.pickColorMulti': {
     icon: 'paint_palette',
     description: 'Color Selected Components',
+    shortcut: graphBindings.bindings['components.pickColorMulti'],
   },
+
+  // === Component ===
+
   'component.enterNode': {
     icon: 'open',
     description: 'Open Grouped Components',
-    testid: 'enter-node-button',
   },
   'component.startEditing': {
     icon: 'edit',
     description: 'Code Edit',
     shortcut: nodeEditBindings.bindings.edit,
-    testid: 'edit-button',
   },
   'component.editingComment': {
     icon: 'comment',
@@ -87,95 +92,172 @@ const actions = {
   'component.recompute': {
     icon: 'workflow_play',
     description: 'Write',
-    testid: 'recompute',
   },
   'component.pickColor': {
     icon: 'paint_palette',
     description: 'Color Component',
   },
+
+  // === Component Browser ===
+
   'componentBrowser.editSuggestion': {
     icon: 'edit',
     description: 'Edit selected component',
-    shortcut: componentBrowserBindings.bindings.applySuggestion,
+    shortcut: componentBrowserBindings.bindings['componentBrowser.editSuggestion'],
   },
   'componentBrowser.acceptSuggestion': {
     icon: 'add_to_graph_editor',
     description: 'Accept selected component',
-    shortcut: componentBrowserBindings.bindings.acceptSuggestion,
+    shortcut: componentBrowserBindings.bindings['componentBrowser.acceptSuggestion'],
   },
   'componentBrowser.acceptInputAsCode': {
     icon: 'add_to_graph_editor',
     description: 'Accept search input as code',
-    shortcut: componentBrowserBindings.bindings.acceptInput,
+    shortcut: componentBrowserBindings.bindings['componentBrowser.acceptInputAsCode'],
   },
   'componentBrowser.switchToCodeEditMode': {
     icon: 'edit',
-    description: 'Swtich to Code Edit Mode',
-    shortcut: componentBrowserBindings.bindings.switchToCodeEditMode,
+    description: 'Switch to Code Edit Mode',
+    shortcut: componentBrowserBindings.bindings['componentBrowser.switchToCodeEditMode'],
   },
+
+  // === Graph ===
+
   'graph.addComponent': {
     icon: 'add',
     description: 'Add Component',
     shortcut: graphBindings.bindings.openComponentBrowser,
   },
   'graph.toggleCodeEditor': {
-    description: 'Code Editor',
     icon: 'bottom_panel',
-    shortcut: codeEditorBindings.bindings.toggle,
+    description: 'Code Editor',
+    shortcut: panelsBindings.bindings['graph.toggleCodeEditor'],
   },
   'graph.toggleDocumentationEditor': {
     icon: 'right_panel',
     description: 'Documentation Editor',
-    shortcut: documentationEditorBindings.bindings.toggle,
+    shortcut: panelsBindings.bindings['graph.toggleDocumentationEditor'],
   },
   'graph.renameProject': {
-    description: 'Rename Project',
     icon: 'edit',
+    description: 'Rename Project',
   },
   'graph.refreshExecution': {
-    description: 'Refresh',
     icon: 'refresh',
+    description: 'Refresh',
   },
   'graph.recomputeAll': {
-    description: 'Write All',
     icon: 'workflow_play',
+    description: 'Write All',
   },
   'graph.undo': {
-    description: 'Undo',
-    shortcut: undoBindings.bindings.undo,
     icon: 'undo',
+    description: 'Undo',
+    shortcut: undoBindings.bindings['graph.undo'],
   },
   'graph.redo': {
-    description: 'Redo',
-    shortcut: undoBindings.bindings.redo,
     icon: 'redo',
+    description: 'Redo',
+    shortcut: undoBindings.bindings['graph.redo'],
   },
   'graph.fitAll': {
-    description: 'Show All Components',
     icon: 'show_all',
+    description: 'Show All Components',
+    shortcut: graphBindings.bindings['graph.fitAll'],
   },
   'graph.zoomIn': {
-    description: 'Increase Zoom',
     icon: 'add',
+    description: 'Increase Zoom',
   },
   'graph.zoomOut': {
-    description: 'Decrease Zoom',
     icon: 'minus',
+    description: 'Decrease Zoom',
   },
   'graph.navigateUp': {
-    description: 'Navigate Up',
     icon: 'navigate_up',
+    description: 'Navigate Up',
+    shortcut: graphBindings.bindings['graph.navigateUp'],
+  },
+
+  // === File Browser ===
+
+  'fileBrowser.newDirectory': {
+    icon: 'folder_add',
+    description: 'New folder',
+  },
+  'fileBrowser.renameDirectory': {
+    icon: 'edit',
+    description: 'Rename folder',
+  },
+  'fileBrowser.newSecret': {
+    icon: 'key_add',
+    description: 'New secret',
+  },
+  'fileBrowser.navigateUp': {
+    icon: 'navigate_up',
+    description: 'Up',
+  },
+
+  // === Documentation Editor ===
+
+  'documentationEditor.italic': {
+    icon: 'italic',
+    description: 'Italic',
+    shortcut: documentationEditorFormatBindings.bindings['documentationEditor.italic'],
+  },
+  'documentationEditor.bold': {
+    icon: 'bold',
+    description: 'Bold',
+    shortcut: documentationEditorFormatBindings.bindings['documentationEditor.bold'],
+  },
+  'documentationEditor.link': {
+    icon: 'connector_add',
+    description: 'Link',
+    shortcut: documentationEditorFormatBindings.bindings['documentationEditor.link'],
+  },
+  'documentationEditor.code': {
+    icon: 'code',
+    description: 'Code',
+  },
+  'documentationEditor.header1': {
+    icon: 'header1',
+    description: 'Header 1',
+    shortcut: documentationEditorFormatBindings.bindings['documentationEditor.header1'],
+  },
+  'documentationEditor.header2': {
+    icon: 'header2',
+    description: 'Header 2',
+    shortcut: documentationEditorFormatBindings.bindings['documentationEditor.header2'],
+  },
+  'documentationEditor.header3': {
+    icon: 'header3',
+    description: 'Header 3',
+    shortcut: documentationEditorFormatBindings.bindings['documentationEditor.header3'],
+  },
+  'documentationEditor.paragraph': {
+    icon: 'text',
+    description: 'Normal',
+    shortcut: documentationEditorFormatBindings.bindings['documentationEditor.paragraph'],
+  },
+  'documentationEditor.list': {
+    icon: 'bullet-list',
+    description: 'List',
+  },
+  'documentationEditor.numberedList': {
+    icon: 'numbered-list',
+    description: 'Numbered List',
+  },
+  'documentationEditor.quote': {
+    icon: 'quote',
+    description: 'Quote',
   },
 } satisfies Record<string, Action>
 
 /**
  * A name of an action available in actions context.
  *
- * Such a name may be passed to `ActionButton`, `ActionMenu` or similar component instead of
- * {@link `Action`}, making use of handler defined in some ancestor.
- *
- * TODO[ao]: Also integrate it with shortcut management, preferably when working on
- * https://github.com/enso-org/enso/issues/12242
+ * Such a name may be passed to `ActionButton`, `ActionMenu` or similar component, making use of
+ * handler defined in some ancestor.
  */
 export type ActionName = keyof typeof actions
 type Actions = Record<ActionName, Action>
@@ -238,28 +320,28 @@ export function toggledAction(toggleState = ref(false)) {
   }
 }
 
-type ResolvedAction = Action & { action: () => void }
+type ResolvedAction = Action & {
+  action: () => void
+  available: ToValue<boolean>
+  enabled: ToValue<boolean>
+}
 
 /**
  * Potentially resolve an action by name from context. Raises an error if such action is not found.
  */
-export function resolveAction(actionOrName: Action | ActionName): ResolvedAction {
-  let action: Action
-
-  if (typeof actionOrName === 'string') {
-    const actions = injectActions()
-    assert(
-      actions != null,
-      `Trying to reference an action by name '${actionOrName}', but actions not injected.`,
-    )
-    action = actions[actionOrName]
-  } else {
-    action = actionOrName
-  }
+export function resolveAction(actionName: ActionName): ResolvedAction {
+  const actions = injectActions()
+  assert(
+    actions != null,
+    `Trying to reference an action by name '${actionName}', but actions not injected.`,
+  )
+  const action = actions[actionName]
   const ctx = injectActionContext(true)
   return {
     ...action,
     action: () => action.action?.(ctx),
+    available: action.available ?? true,
+    enabled: action.enabled ?? true,
   }
 }
 

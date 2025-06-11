@@ -338,14 +338,6 @@ public final class LogbackSetup extends LoggerSetup {
     return true;
   }
 
-  private static String getCloudLogsAPIEndpoint() {
-    var envUri = System.getenv("ENSO_CLOUD_API_URI");
-    var effectiveUri =
-        envUri == null ? "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/" : envUri;
-    var uriWithSlash = effectiveUri.endsWith("/") ? effectiveUri : effectiveUri + "/";
-    return uriWithSlash + "logs";
-  }
-
   @Override
   public boolean setupNoOpAppender() {
     LoggerAndContext env = contextInit(Level.ERROR, null, true);

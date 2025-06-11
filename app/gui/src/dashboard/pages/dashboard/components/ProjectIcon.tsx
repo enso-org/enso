@@ -7,7 +7,6 @@ import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinn
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCanOpenProjects } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import { projectsStore } from '#/providers/ProjectsProvider/hooks'
 import type Backend from '#/services/Backend'
@@ -20,7 +19,7 @@ import {
   type ProjectId,
 } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-import { useText } from '$/providers/react'
+import { useFullUserSession, useText } from '$/providers/react'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: ProjectState.closed } as const

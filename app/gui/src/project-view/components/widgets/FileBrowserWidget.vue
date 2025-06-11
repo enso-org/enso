@@ -5,6 +5,7 @@ export default {
 </script>
 
 <script setup lang="ts">
+import ActionButton from '@/components/ActionButton.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'
 import { mapPath, useEnsoPaths } from '@/components/widgets/FileBrowserWidget/ensoPath'
@@ -14,6 +15,7 @@ import {
   useSecretCreation,
   useUpsertDirectory,
 } from '@/components/widgets/FileBrowserWidget/fileBrowser'
+import FileBrowserBreadcrumbs from '@/components/widgets/FileBrowserWidget/FileBrowserBreadcrumbs.vue'
 import FileBrowserContent from '@/components/widgets/FileBrowserWidget/FileBrowserContent.vue'
 import FileBrowserModals from '@/components/widgets/FileBrowserWidget/FileBrowserModals.vue'
 import FileBrowserNameBar from '@/components/widgets/FileBrowserWidget/FileBrowserNameBar.vue'
@@ -25,6 +27,7 @@ import {
 } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
 import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
+import { registerHandlers } from '@/providers/action'
 import { injectProjectBackend } from '@/providers/projectBackend'
 import { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
@@ -126,7 +129,7 @@ const isBusy = computed(
 const anyError = computed(() => error.value ?? userFilesError.value)
 const creatingSecret = ref(false)
 const editingAsset = ref(false)
-const disableTopBarButtons = computed(() => creatingSecret.value || editingAsset.value)
+const enableTopBarButtons = computed(() => !creatingSecret.value && !editingAsset.value)
 
 // === Secret creation ===
 
@@ -185,6 +188,27 @@ function chooseEntry(asset: AnyAsset, close: boolean) {
 }
 
 const root = useTemplateRef<HTMLDivElement>('root')
+
+registerHandlers({
+  'fileBrowser.newDirectory': {
+    enabled: enableTopBarButtons,
+    action: () => browserContent.value?.newDirectory.action(),
+  },
+  'fileBrowser.renameDirectory': {
+    enabled: () =>
+      enableTopBarButtons.value && (browserContent.value?.renameDirectory.enabled.value ?? false),
+    action: () => browserContent.value?.renameDirectory.action(),
+  },
+  'fileBrowser.newSecret': {
+    available: computed(() => props.type === 'secret'),
+    enabled: enableTopBarButtons,
+    action: () => (creatingSecret.value = true),
+  },
+  'fileBrowser.navigateUp': {
+    enabled: () => enableTopBarButtons.value && !!enteredPath.value?.segments.length,
+    action: () => popTo(enteredPath.value!.segments.length - 1),
+  },
+})
 </script>
 
 <template>
@@ -195,14 +219,15 @@ const root = useTemplateRef<HTMLDivElement>('root')
         v-model:warningText="warningText"
         @overwriteConfirmed="acceptCurrentFile"
       />
-      <FileBrowserTopBar
-        :directoryStack="enteredPath?.segments ?? []"
-        :disabled="disableTopBarButtons"
-        :enableSecretCreation="type === 'secret'"
-        @popTo="popTo"
-        @newDirectory="browserContent?.addNewDirectory"
-        @newSecret="creatingSecret = true"
-      />
+      <FileBrowserTopBar>
+        <FileBrowserBreadcrumbs
+          :directoryStack="enteredPath?.segments ?? []"
+          :enabled="enableTopBarButtons"
+          @popTo="popTo"
+        />
+        <ActionButton action="fileBrowser.newDirectory" />
+        <ActionButton action="fileBrowser.newSecret" />
+      </FileBrowserTopBar>
       <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
       <div v-else-if="isBusy" class="centerContent browserContents">
         <LoadingSpinner phase="loading-medium" />
