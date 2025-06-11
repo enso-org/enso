@@ -60,7 +60,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
     "create a command from settings" in {
       val envOptions = "-Xfrom-env -Denv=env"
       val runner =
-        makeFakeRunner(extraEnv = Map("ENSO_JVM_OPTS" -> envOptions))
+        makeFakeRunner(extraEnv = Map("_JAVA_OPTIONS" -> envOptions))
 
       val runSettings = RunSettings(
         SemVer.of(0, 0, 0),

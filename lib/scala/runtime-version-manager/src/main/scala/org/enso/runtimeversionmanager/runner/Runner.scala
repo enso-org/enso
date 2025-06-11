@@ -156,7 +156,7 @@ class Runner(
     }
 
   final private val JVM_PATH_ENV_VAR    = "ENSO_JVM_PATH"
-  final private val JVM_OPTIONS_ENV_VAR = "ENSO_JVM_OPTS"
+  final private val JVM_OPTIONS_ENV_VAR = "_JAVA_OPTIONS"
 
   /** Runs an action giving it a command that can be used to launch the
     * component.

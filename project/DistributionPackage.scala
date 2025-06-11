@@ -478,7 +478,7 @@ object DistributionPackage {
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
     pb.environment().put("ENSO_OPENSEARCH_APPENDER_ENABLED", "false")
-    reduceArgs(all, "ENSO_JVM_OPTS", pb.environment)
+    reduceArgs(all, "_JAVA_OPTIONS", pb.environment)
     pb.inheritIO()
     val p        = pb.start()
     val exitCode = p.waitFor()

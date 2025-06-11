@@ -292,10 +292,10 @@ be passed after a double dash (`--`), i.e. `enso repl -- --someUnknownFlag`.
 
 ## JVM Options
 
-If an environment variable `ENSO_JVM_OPTS` is defined, JVM options defined there
+If an environment variable `_JAVA_OPTIONS` is defined, JVM options defined there
 are passed to the launcher JVM.
 
-> Note: Currently the `ENSO_JVM_OPTS` are parsed by splitting on the space
+> Note: Currently the `_JAVA_OPTIONS` are parsed by splitting on the space
 > character, so individual options listed in this environment variable should
 > not contain spaces or they may be interpreted incorrectly.
 
