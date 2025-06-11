@@ -370,34 +370,34 @@ add_direct_specs suite_builder =
             err . should_fail_with No_Column_Names_Found
             err.catch.to_display_text . should_equal "No column names were found in the header line."
 
-        group_builder.specify "should work with all kinds of line endings" pending="https://github.com/enso-org/enso/issues/13137" <|
-            descs = []
-                + [Fixed_Width_Column_Description.Start_And_Width 0 1 "x"]
-                + [Fixed_Width_Column_Description.Width 1 "y"]
-                + [Fixed_Width_Column_Description.Width 1 "z"]
-            layout = Fixed_Width_Layout.from_descriptions descs
+        test_with_line_endings line_ending_string line_ending =
+            file = enso_project.data / 'transient' / 'line_endings.txt'
+            Panic.with_finalizer file.delete <|
+                descs = []
+                    + [Fixed_Width_Column_Description.Start_And_Width 0 1 "x"]
+                    + [Fixed_Width_Column_Description.Width 1 "y"]
+                    + [Fixed_Width_Column_Description.Width 1 "z"]
+                layout = Fixed_Width_Layout.from_descriptions descs
 
-            path name = enso_project.data / 'transient' / name
-            create_file name ending_style =
                 lines = ['abc', 'def', '123']
-                text = lines.join ending_style
-                text.write (path name)
+                text = lines.join line_ending_string
+                text.write file
 
-            test_file name =
-                table = Data.read (path name) (Fixed_Width_Format.Fixed_Width layout) ..Report_Error
+                table = Data.read file (Fixed_Width_Format.Fixed_Width layout line_endings=line_endings) ..Report_Error
                 table.columns.map .name . should_equal ['x', 'y', 'z']
                 table.at 'x' . to_vector . should_equal ['a', 'd', '1']
                 table.at 'y' . to_vector . should_equal ['b', 'e', '2']
                 table.at 'z' . to_vector . should_equal ['c', 'f', '3']
 
-            create_file 'crlf.csv' '\r\n'
-            test_file 'crlf.csv'
-            create_file 'lf.csv' '\n'
-            test_file 'lf.csv'
-            create_file 'cr.csv' '\r'
-            test_file 'cr.csv'
-
-            ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
+        group_builder.specify "should handle differen line endings" <|
+                test_with_line_endings '\r\n' Infer
+                test_with_Line_Endings '\r\n' Line_Ending_Style.Windows
+                test_with_Line_Endings '\n' Infer
+                test_with_Line_Endings '\n' Line_Ending_Style.Unix
+                test_with_Line_Endings '\r' Infer
+                test_with_Line_Endings '\r' Line_Ending_Style.Mac_Legacy
+                test_with_Line_Endings '5é.' (Custom_Line_Ending.Value '5é.')
+                test_with_Line_Endings '' No_Line_Ending
 
         group_builder.specify "Should report row and column for bad characters" <|
             descs = []
