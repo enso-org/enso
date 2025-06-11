@@ -2,6 +2,7 @@ load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//:bazel_scripts/sbt.bzl", "sbt_path")
+load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 
 npm_link_all_packages()
 
@@ -25,13 +26,20 @@ write_source_files(
 ### Engine distribution ###
 ###########################
 
+STDLIB_SOURCES = glob(stdlib_source_patterns())
+
 # TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
-SRCS = [
+SRCS = STDLIB_SOURCES + [
     ".jvmopts",
     ".scalafmt.conf",
     "build.sbt",
     "project/plugins.sbt",
     "project/build.properties",
+    "distribution/manifest.template.yaml",
+    "distribution/launcher-manifest.yaml",
+    "distribution/enso.bundle.template",
+    "distribution/bin/enso",
+    "distribution/bin/enso.bat",
     "//lib/rust/parser/jni:enso_parser_jni",
     "//lib/rust/parser:generate_java",
     "//lib/rust/parser/generate-java:enso_parser_generate_java_srcs",
