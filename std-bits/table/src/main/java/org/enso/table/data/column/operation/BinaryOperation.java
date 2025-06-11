@@ -5,6 +5,7 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
@@ -14,12 +15,15 @@ public interface BinaryOperation<T> {
    * Runs a 2-argument function on each element in the column.
    *
    * @param left the first column to run the function on.
-   * @param function the function to run.
-   * @param right the second argument to pass to each run of the function
+   * @param right the second argument to pass to each run of the function on. If a column is passed,
+   *     it will be zipped with the first column.
    * @param skipNulls specifies whether null values on the input should result in a null result
    *     without passing them through the function, this is useful if the function does not support
    *     the null-values, but it needs to be set to false if the function should handle them.
-   * @param expectedResultType the expected type for the result storage
+   * @param newName the name of the result column.
+   * @param function the function to run.
+   * @param expectedResultType the expected type for the result storage.
+   * @param problemAggregator Problem aggregator to report problems to.
    * @return a new storage containing results of the function for each row
    */
   static <T> Column mapFunction(
@@ -30,29 +34,58 @@ public interface BinaryOperation<T> {
       BiFunction<Object, Object, Object> function,
       StorageType<T> expectedResultType,
       MapOperationProblemAggregator problemAggregator) {
-    var size = left.getSize();
-    var builder =
-        expectedResultType == null
-            ? Builder.getInferredBuilder(size, problemAggregator)
-            : expectedResultType.makeBuilder(size, problemAggregator);
-    if (skipNulls && right == null) {
-      builder.appendNulls(size);
-      return new Column(newName, builder.seal());
+    // Special handling for nulls
+    if (skipNulls) {
+      if (right instanceof Column rightColumn
+          && rightColumn.getStorage().getType() instanceof NullType) {
+        right = null;
+      }
+      if (right == null || getInferredStorage(left).getType() instanceof NullType) {
+        var result =
+            expectedResultType == null
+                ? Builder.fromRepeatedItem(null, left.getSize())
+                : expectedResultType
+                    .makeBuilder(left.getSize(), problemAggregator)
+                    .appendNulls(left.getSize())
+                    .seal();
+        return new Column(newName, result);
+      }
     }
 
-    var result =
-        StorageIterators.buildObjectOverStorage(
-            left.getStorage(),
-            skipNulls,
-            builder,
-            (b, index, value) -> {
-              var converted = Polyglot_Utils.convertPolyglotValue(function.apply(value, right));
-              if (converted == null) {
-                b.appendNulls(1);
-              } else {
-                b.append(converted);
-              }
-            });
+    ColumnStorage<?> result;
+    if (right instanceof Column rightColumn) {
+      result =
+          StorageIterators.zipOverObjectStorages(
+              left.getStorage(),
+              rightColumn.getStorage(),
+              size ->
+                  expectedResultType == null
+                      ? Builder.getInferredBuilder(size, problemAggregator)
+                      : expectedResultType.makeBuilder(size, problemAggregator),
+              skipNulls,
+              (index, l, r) -> Polyglot_Utils.convertPolyglotValue(function.apply(l, r)));
+    } else {
+      var size = left.getSize();
+      var builder =
+          expectedResultType == null
+              ? Builder.getInferredBuilder(size, problemAggregator)
+              : expectedResultType.makeBuilder(size, problemAggregator);
+
+      final var r = right;
+      result =
+          StorageIterators.buildObjectOverStorage(
+              left.getStorage(),
+              skipNulls,
+              builder,
+              (b, index, value) -> {
+                var converted = Polyglot_Utils.convertPolyglotValue(function.apply(value, r));
+                if (converted == null) {
+                  b.appendNulls(1);
+                } else {
+                  b.append(converted);
+                }
+              });
+    }
     return new Column(newName, result);
   }
 

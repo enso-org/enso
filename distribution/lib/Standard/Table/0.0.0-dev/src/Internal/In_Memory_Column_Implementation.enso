@@ -757,16 +757,9 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
 private _apply_binary_map column function operand new_name skip_nulls=True expected_result_type=Nothing =
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        case operand of
-            other_column : Column ->
-                s = (column:In_Memory_Column).java_column.getStorage
-                new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s.zip function (other_column:In_Memory_Column).java_column.getStorage skip_nulls storage_type problem_builder
-                In_Memory_Column.from_storage new_name new_storage
-            _ ->
-                new_column = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    BinaryOperation.mapFunction (column:In_Memory_Column).java_column (enso_to_java operand) skip_nulls new_name function storage_type problem_builder
-                In_Memory_Column.from_java_column new_column
+        new_column = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+            BinaryOperation.mapFunction (column:In_Memory_Column).java_column (_java_other operand) skip_nulls new_name function storage_type problem_builder
+        In_Memory_Column.from_java_column new_column
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.

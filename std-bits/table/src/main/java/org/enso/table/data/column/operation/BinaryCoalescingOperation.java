@@ -8,7 +8,6 @@ import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
@@ -46,15 +45,8 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
           return new Column(name, rightColumn.getStorage());
         }
 
-        var result =
-            ((Storage<?>) leftStorage)
-                .zip(
-                    fallback,
-                    rightColumn.getStorage(),
-                    false,
-                    leftStorage.getType(),
-                    problemBuilder);
-        return new Column(name, result);
+        return BinaryOperation.mapFunction(
+            left, rightColumn, false, name, fallback, fallbackType, problemBuilder);
       }
     }
 
