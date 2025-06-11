@@ -1,0 +1,65 @@
+[
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential"
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential$Default",
+    "methods" : [
+      {
+        "name" : "<init>",
+        "parameterTypes" : []
+      }
+    ]
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential.Default"
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential$Environment",
+    "methods" : [
+      {
+        "name" : "<init>",
+        "parameterTypes" : []
+      }
+    ]
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential.Environment"
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential$CLI",
+    "methods" : [
+      {
+        "name" : "<init>",
+        "parameterTypes" : []
+      }
+    ]
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential.CLI"
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential$ClientSecret",
+    "methods" : [
+      {
+        "name" : "<init>",
+        "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue"]
+      }
+    ]
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential.ClientSecret"
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential$BlobStorageSASToken",
+    "methods" : [
+      {
+        "name" : "<init>",
+        "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue"]
+      }
+    ]
+  },
+  {
+    "name" : "org.enso.microsoft.azure.AzureCredential.BlobStorageSASToken"
+  }
+]
