@@ -3,7 +3,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Internal.Polyglot_Helpers
 
 import project.Column.Column
-import project.Column.Is_Column
 import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
 import project.Internal.In_Memory_Visualization_Helpers.In_Memory_Visualization_Helpers
 import project.Internal.Java_Problems
@@ -116,9 +115,6 @@ type In_Memory_Column
    Creates the Column type class instance for the In_Memory_Column.
 Column.from (that : In_Memory_Column) =
     column_from_implementation that In_Memory_Column_Implementation
-
-## PRIVATE
-Is_Column.from (that : In_Memory_Column) = Is_Column.Value that
 
 ## PRIVATE
    Conversion that extracts the underlying in-memory column from the column,

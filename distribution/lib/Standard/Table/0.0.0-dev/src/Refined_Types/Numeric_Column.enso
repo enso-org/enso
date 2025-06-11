@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import project.Column.Column
-import project.Column.Is_Column
 
 ## A column that contains numeric values.
 type Numeric_Column
@@ -34,6 +33,3 @@ type Numeric_Column
              example_signum = Examples.decimal_column.signum
     signum self -> Column & Numeric_Column =
         self.operations_implementation.signum self.column
-
-## PRIVATE
-Is_Column.from (that : Numeric_Column) = Is_Column.Value that

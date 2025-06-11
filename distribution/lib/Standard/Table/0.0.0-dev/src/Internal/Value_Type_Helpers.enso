@@ -4,7 +4,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert
 
 import project.Column.Column
-import project.Column.Is_Column
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Storage
 import project.Value_Type.Auto
@@ -195,7 +194,7 @@ find_common_numeric_boolean_type (types : Vector Value_Type) -> Value_Type | Not
    try to treat this value as fitting any type, or accordingly to specific
    semantics of each method.
 find_argument_type value:Any infer_precise_type:Boolean=True -> Value_Type =
-    case Is_Column.is_column value of
+    case Column.is_column value of
         False -> most_specific_value_type value use_smallest=True
         True ->
             as_column = value:Column
@@ -298,7 +297,7 @@ check_multi_argument_comparable_op column arg_or_args ~action =
 
 ## PRIVATE
 raise_unexpected_type expected_type argument =
-    error = case Is_Column.is_column argument of
+    error = case Column.is_column argument of
         True ->
             argument_as_column = argument:Column
             Invalid_Value_Type.Column expected_type argument_as_column.value_type argument_as_column.name

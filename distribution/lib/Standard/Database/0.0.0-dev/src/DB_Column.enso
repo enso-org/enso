@@ -4,7 +4,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Column, Table, Value_Type
 from Standard.Table.Internal.Column_Type_Helpers import column_from_implementation, underlying_from_column
-import Standard.Table.Column.Is_Column
 import Standard.Table.Internal.Type_Refinements.Typed_Column_Helpers
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 
@@ -92,9 +91,6 @@ type DB_Column
 ## PRIVATE
 Column.from (that : DB_Column) =
     column_from_implementation that DB_Column_Implementation
-
-## PRIVATE
-Is_Column.from (that : DB_Column) = Is_Column.Value that
 
 ## PRIVATE
 DB_Column.from (that : Column) =
