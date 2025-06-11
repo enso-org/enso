@@ -111,7 +111,7 @@ impl Configuration {
 
 pub async fn process_lines_until<R: AsyncRead + Unpin>(
     reader: R,
-    f: &impl Fn(&str) -> bool,
+    mut f: impl FnMut(&str) -> bool,
 ) -> Result<R> {
     let mut reader = BufReader::new(reader);
     let mut line = String::new();
@@ -128,8 +128,9 @@ pub async fn process_lines_until<R: AsyncRead + Unpin>(
 
 #[derive(Debug)]
 pub struct SQLServerContainer {
-    _docker_run: Child,
-    config:      Configuration,
+    _docker_run:               Child,
+    config:                    Configuration,
+    pub initialization_failed: bool,
 }
 
 impl Drop for SQLServerContainer {
@@ -181,15 +182,19 @@ impl SQLServer {
             .ok_or_else(|| anyhow!("Failed to access standard output of the spawned process!"))?;
 
         // Wait until container is ready.
-        let check_line = |line: &str| {
+        let mut initialization_failed = false;
+        let mut check_line = |line: &str| {
             debug!("SQLSERVER_LOG: {}", line.trim_end().trim_start());
+            if line.contains("To proceed, notify your system administrator.") {
+                initialization_failed = true;
+            }
             line.contains("SQL Server is now ready for client connections")
         };
-        let stdout = process_lines_until(stdout, &check_line).await?;
+        let stdout = process_lines_until(stdout, &mut check_line).await?;
         // Put back stream we've been reading and pack the whole thing back for the caller.
         child.stdout = Some(stdout);
         config.set_enso_test_env()?;
-        Ok(SQLServerContainer { _docker_run: child, config })
+        Ok(SQLServerContainer { _docker_run: child, config, initialization_failed })
     }
 }
 

@@ -251,14 +251,21 @@ impl BuiltEnso {
                 let container_name =
                     format!("sqlserver-for-{runner_context_string}").replace(' ', "_");
                 let config = sqlserver::Configuration {
-                    sqlserver_container: ContainerId(container_name),
+                    sqlserver_container: ContainerId(container_name.clone()),
                     database_name:       "tempdb".to_string(),
                     user:                "sa".to_string(),
                     password:            "enso_test_password_<YourStrong@Passw0rd>".to_string(),
                     endpoint:            SQLServerEndpointConfiguration::deduce()?,
                     version:             "2022-latest".to_string(),
                 };
-                let sqlserver = SQLServer::start(config).await?;
+                let mut sqlserver = SQLServer::start(config.clone()).await?;
+                if sqlserver.initialization_failed {
+                    drop(sqlserver);
+                    sqlserver = SQLServer::start(config.clone()).await?;
+                }
+                if sqlserver.initialization_failed {
+                    return Err(anyhow!("{container_name} initialization failed!"));
+                }
                 Some(sqlserver)
             }
             _ => None,
