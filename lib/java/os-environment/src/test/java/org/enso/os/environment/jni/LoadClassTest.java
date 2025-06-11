@@ -40,7 +40,7 @@ public class LoadClassTest {
     return impl;
   }
 
-  private Channel channel;
+  private Channel<JVMPeer> channel;
 
   @Before
   public void initializeChannel() throws Exception {

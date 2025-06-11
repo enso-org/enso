@@ -15,10 +15,10 @@ final class OtherJvmObject implements TruffleObject {
   /** receiver for other than InteropLibrary messages */
   private static final Object POJO = new Object();
 
-  private final Channel channel;
+  private final Channel<OtherJvmPool> channel;
   private final long id;
 
-  OtherJvmObject(Channel channel, long id) {
+  OtherJvmObject(Channel<OtherJvmPool> channel, long id) {
     assert id > 0;
     this.channel = channel;
     this.id = id;
@@ -44,7 +44,7 @@ final class OtherJvmObject implements TruffleObject {
     }
   }
 
-  static Object bindToChannel(Object v, Channel ch) {
+  static Object bindToChannel(Object v, Channel<OtherJvmPool> ch) {
     if (v instanceof OtherJvmObject toBind) {
       assert toBind.channel == null;
       return new OtherJvmObject(ch, toBind.id);

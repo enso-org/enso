@@ -34,9 +34,9 @@ final class TestMain {
   }
 
   @Persistable(id = 430607)
-  record RequestFactorial(long n) implements Function<Channel, Void> {
+  record RequestFactorial(long n) implements Function<Channel<?>, Void> {
     @Override
-    public Void apply(Channel channel) {
+    public Void apply(Channel<?> channel) {
       var res = factorial(n).toString();
       channel.execute(Void.class, new ReportResult(n, res));
       return null;
@@ -44,9 +44,9 @@ final class TestMain {
   }
 
   @Persistable(id = 430608)
-  record ComputeFactorial(long n) implements Function<Channel, BigInteger> {
+  record ComputeFactorial(long n) implements Function<Object, BigInteger> {
     @Override
-    public BigInteger apply(Channel channel) {
+    public BigInteger apply(Object ignore) {
       var res = factorial(n);
       return res;
     }
@@ -64,9 +64,9 @@ final class TestMain {
   }
 
   @Persistable(id = 430609)
-  record CountDownAndReturn(long value, long acc) implements Function<Channel, Long> {
+  record CountDownAndReturn(long value, long acc) implements Function<Channel<?>, Long> {
     @Override
-    public Long apply(Channel otherVM) {
+    public Long apply(Channel<?> otherVM) {
       if (value <= 1) {
         return acc;
       } else {
@@ -76,9 +76,9 @@ final class TestMain {
   }
 
   @Persistable(id = 430610)
-  record CountDownAndThrow(long value, long acc) implements Function<Channel, Void> {
+  record CountDownAndThrow(long value, long acc) implements Function<Channel<?>, Void> {
     @Override
-    public Void apply(Channel otherVM) {
+    public Void apply(Channel<?> otherVM) {
       if (value <= 1) {
         throw new IllegalStateException("" + acc);
       } else {

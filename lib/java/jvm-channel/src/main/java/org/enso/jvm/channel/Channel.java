@@ -26,8 +26,14 @@ import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
 import org.graalvm.word.WordFactory;
 
-/** Channel connects two {@link JVM} instances. */
-public final class Channel implements AutoCloseable {
+/**
+ * Channel connects two {@link JVM} instances. A "channel" creates two identical instances of the
+ * {@code Channel} on both sides of the "channel" - e.g. in each of the JVMs. The instances are
+ * initialized with the same {@link Persistance.Pool}, so they both understand the same messages.
+ *
+ * @param <Data> internal data of the channel
+ */
+public final class Channel<Data> implements AutoCloseable {
   /**
    * @GuardedBy("Channel.class")
    */
@@ -38,6 +44,9 @@ public final class Channel implements AutoCloseable {
    */
   private static long idCounter = 1;
 
+  /** data associated with the channel */
+  private final Data data;
+
   /** persistance pool associated with this channel object */
   private final Persistance.Pool pool;
 
@@ -47,16 +56,18 @@ public final class Channel implements AutoCloseable {
   private final MethodHandle callbackFn;
   private final JNI.JClass channelClass;
   private final JNI.JMethodID channelHandle;
-  private final Channel otherMockChannel;
+  private final Channel<Data> otherMockChannel;
 
   /** The SubstrateVM side of a channel. */
   private Channel(
       long id,
+      Data data,
       Persistance.Pool pool,
       JNI.JNIEnv env,
       JNI.JClass handleClass,
       JNI.JMethodID handleFn) {
     this.id = id;
+    this.data = data;
     this.pool = pool;
     this.env = env;
     this.isolate = -1;
@@ -67,11 +78,12 @@ public final class Channel implements AutoCloseable {
   }
 
   /** The HotSpot JVM side of a channel. */
-  private Channel(long id, Persistance.Pool pool, long isolate, long callbackFn) {
+  private Channel(long id, Data data, Persistance.Pool pool, long isolate, long callbackFn) {
     if (ImageInfo.inImageCode()) {
       throw new IllegalStateException("Only usable in HotSpot");
     }
     this.id = id;
+    this.data = data;
     this.pool = pool;
     this.isolate = isolate;
     this.env = null;
@@ -94,40 +106,44 @@ public final class Channel implements AutoCloseable {
    * Mock constructor. Creates a channel that simulates sending of the messages inside of the same
    * JVM. Useful for testing.
    */
-  private Channel(Channel otherOrNull, long id, Persistance.Pool pool) {
+  private Channel(
+      Data myData, Channel<Data> otherOrNull, Data otherData, long id, Persistance.Pool pool) {
     if (ImageInfo.inImageCode()) {
       throw new IllegalStateException("Only usable in HotSpot");
     }
     this.id = id;
+    this.data = myData;
     this.pool = pool;
     this.isolate = -2;
     this.callbackFn = null;
     this.env = null;
     this.channelClass = null;
     this.channelHandle = null;
-    this.otherMockChannel = otherOrNull != null ? otherOrNull : new Channel(this, id, pool);
+    this.otherMockChannel =
+        otherOrNull != null
+            ? otherOrNull // use other channel when provided
+            : // otherwise allocate new and pass this reference to it
+            new Channel<>(otherData, this, null, id, pool);
   }
 
   /**
    * Factory method to initialize the Channel in the SubstrateVM.
    *
+   * @param <D> type of internal data as well as provider of the pool
    * @param jvm instance of HotSpot JVM to connect to (can be {@code null} to create a mock channel
    *     inside of a single JVM)
-   * @param poolClass the class which has public default constructor and can supply an instance of
-   *     persistance pool to use for communication
+   * @param dataAndPoolClass the class which has public default constructor and can supply an
+   *     instance of persistance pool to use for communication
    * @return channel for sending messages to the HotSpot JVM
    */
-  public static synchronized Channel create(
-      JVM jvm, Class<? extends Supplier<Persistance.Pool>> poolClass) {
-    Persistance.Pool pool;
-    try {
-      pool = poolClass.getConstructor().newInstance().get();
-    } catch (ReflectiveOperationException ex) {
-      throw new IllegalArgumentException(ex);
-    }
+  public static synchronized <D extends Supplier<Persistance.Pool>> Channel<D> create(
+      JVM jvm, Class<? extends D> dataAndPoolClass) {
+    var data = newInstance(dataAndPoolClass);
+    Persistance.Pool pool = data.get();
     var id = idCounter++;
     if (jvm == null) {
-      return new Channel(null, id, pool);
+      var otherData = newInstance(dataAndPoolClass);
+      return new Channel<>(data, null, otherData, id, pool);
     }
 
     if (!ImageInfo.inImageCode()) {
@@ -136,7 +152,7 @@ public final class Channel implements AutoCloseable {
     var e = jvm.env();
     var classNameWithSlashes = Channel.class.getName().replace('.', '/');
     try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
-        var poolClassInC = CTypeConversion.toCString(poolClass.getName());
+        var poolClassInC = CTypeConversion.toCString(dataAndPoolClass.getName());
         var createInC = CTypeConversion.toCString("createJvmPeerChannel");
         var createSigInC = CTypeConversion.toCString("(JJJLjava/lang/String;)Z"); //
         var handleInC = CTypeConversion.toCString("handleJvmMessage");
@@ -152,7 +168,7 @@ public final class Channel implements AutoCloseable {
       var handleMethod =
           fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
 
-      var channel = new Channel(id, pool, e, channelClass, handleMethod);
+      var channel = new Channel<>(id, data, pool, e, channelClass, handleMethod);
 
       var arg = StackValue.get(4, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
@@ -168,16 +184,16 @@ public final class Channel implements AutoCloseable {
     }
   }
 
-  /** Allocates new channel with given ID in the HotSpot VM. Called via JNI/foreign interface. */
-  private static boolean createJvmPeerChannel(
-      long id, long threadId, long callbackFn, String poolClassName) throws Throwable {
-    @SuppressWarnings("unchecked")
-    var factory =
-        (Supplier<Persistance.Pool>) Class.forName(poolClassName).getConstructor().newInstance();
-    var pool = factory.get();
-    var channel = new Channel(id, pool, threadId, callbackFn);
-    var prev = ID_TO_CHANNEL.put(id, channel);
-    return prev == null;
+  /**
+   * Getter for data associated with the channel. Each instance of {@code Channel} on both sides of
+   * the "channel" gets different instance of {@code Data}. The data may be used in the functions
+   * that implement the logic in {@link #execute} message processing.
+   *
+   * @return data associated with this channel
+   * @see #execute
+   */
+  public final Data getData() {
+    return data;
   }
 
   /**
@@ -197,8 +213,33 @@ public final class Channel implements AutoCloseable {
    *     from this method
    */
   @SuppressWarnings("unchecked")
-  public final <C, R extends C> R execute(Class<C> resultType, Function<Channel, R> msg) {
-    return (R) executeImpl(pool, resultType, msg);
+  public final <C, R extends C> R execute(
+      Class<C> resultType, Function<? super Channel<Data>, R> msg) {
+    return (R) executeImpl(pool, resultType, (Function) msg);
+  }
+
+  //
+  // implementation
+  //
+
+  private static <T> T newInstance(Class<T> poolClass) {
+    try {
+      return poolClass.getConstructor().newInstance();
+    } catch (ReflectiveOperationException ex) {
+      throw new IllegalArgumentException(ex);
+    }
+  }
+
+  /** Allocates new channel with given ID in the HotSpot VM. Called via JNI/foreign interface. */
+  @SuppressWarnings("unchecked")
+  private static boolean createJvmPeerChannel(
+      long id, long threadId, long callbackFn, String poolClassName) throws Throwable {
+    var dataAndPoolClass = Class.forName(poolClassName);
+    var data = (Supplier<Persistance.Pool>) newInstance(dataAndPoolClass);
+    var pool = data.get();
+    var channel = new Channel<>(id, data, pool, threadId, callbackFn);
+    var prev = ID_TO_CHANNEL.put(id, channel);
+    return prev == null;
   }
 
   private static final CEntryPointLiteral<CFunctionPointer> CALLBACK_FN =
@@ -300,7 +341,7 @@ public final class Channel implements AutoCloseable {
   private <R> R executeImpl( // handles this.execute
       Persistance.Pool pool, // the pool with persitance
       Class<R> replyType, // requested return type
-      Function<Channel, ? extends R> msg // function to serde to the other JVM
+      Function<Channel<? extends Data>, ? extends R> msg // function to serde to the other JVM
       ) {
     var address = 0L;
     try {

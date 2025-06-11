@@ -12,13 +12,10 @@ import org.enso.jvm.channel.JVM;
 /** Resolves symbols via interop messages to the "other" HotSpot JVM. */
 @org.openide.util.lookup.ServiceProvider(service = PolyglotSymbolResolver.class)
 public final class OtherJvmSymbolResolver extends PolyglotSymbolResolver {
-  private Channel channel;
+  private Channel<OtherJvmPool> channel;
 
   @Override
   protected Object handleLoadClass(String name) throws ClassNotFoundException {
-    if (!HostEnsoUtils.isAot()) {
-      throw new ClassNotFoundException("Only works in AOT mode!");
-    }
     if (channel == null) {
       try {
         channel = initializeChannel();
@@ -30,7 +27,17 @@ public final class OtherJvmSymbolResolver extends PolyglotSymbolResolver {
     return OtherJvmObject.bindToChannel(result.value(), channel);
   }
 
-  private Channel initializeChannel() throws IOException, URISyntaxException {
+  private Channel<OtherJvmPool> initializeChannel() throws IOException, URISyntaxException {
+    var jvm =
+        HostEnsoUtils.isAot()
+            ? // normally we run in AOT mode
+            initializeJvm() // then create HotSpot JVM
+            : // but for debugging purposes we can also
+            null; // emulate the connection in a single JVM
+    return Channel.create(jvm, OtherJvmPool.class);
+  }
+
+  private JVM initializeJvm() throws IOException, URISyntaxException {
     var home = System.getProperty("java.home");
     if (home == null) {
       throw new IOException("No java.home specified");
@@ -39,13 +46,11 @@ public final class OtherJvmSymbolResolver extends PolyglotSymbolResolver {
     if (!javaHome.exists()) {
       throw new IOException("JVM doesn't exists: " + javaHome);
     }
-
     var loc = getClass().getProtectionDomain().getCodeSource().getLocation();
     var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
     if (!component.getName().equals("component")) {
       component = new File(component, "component");
     }
-
     var commandAndArgs = new ArrayList<String>();
     var assertsOn = false;
     assert assertsOn = true;
@@ -63,7 +68,6 @@ public final class OtherJvmSymbolResolver extends PolyglotSymbolResolver {
     }
     commandAndArgs.add("--module-path=" + component.getPath());
     commandAndArgs.add("-Djdk.module.main=org.enso.jvm.interop");
-    var jvm = JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
-    return Channel.create(jvm, Persistables.class);
+    return JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
   }
 }

@@ -17,7 +17,7 @@ import org.junit.Test;
 
 public class OtherJvmObjectTest {
   @ClassRule public static final ContextUtils ctx = ContextUtils.newBuilder("js").build();
-  private static final Channel CHANNEL = Channel.create(null, Persistables.class);
+  private static final Channel<OtherJvmPool> CHANNEL = Channel.create(null, OtherJvmPool.class);
 
   @Test
   public void wrapBigDecimal() {
@@ -26,7 +26,7 @@ public class OtherJvmObjectTest {
     var bigUnwrap = ctx.unwrapValue(bigValue);
     assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
 
-    var id = OtherJvmMessage.registerObject((TruffleObject) bigUnwrap);
+    var id = OtherJvmPool.registerObject((TruffleObject) bigUnwrap);
     var other = new OtherJvmObject(CHANNEL, id);
     var otherValue = ctx.asValue(other);
 
@@ -53,7 +53,7 @@ public class OtherJvmObjectTest {
     var bigUnwrap = ctx.unwrapValue(bigValue);
     assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
 
-    var id = OtherJvmMessage.registerObject((TruffleObject) bigUnwrap);
+    var id = OtherJvmPool.registerObject((TruffleObject) bigUnwrap);
     var other = new OtherJvmObject(CHANNEL, id);
     var otherValue = ctx.asValue(other);
 
@@ -101,7 +101,7 @@ public class OtherJvmObjectTest {
     var bigUnwrap = ctx.unwrapValue(bigValue);
     assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
 
-    var id = OtherJvmMessage.registerObject((TruffleObject) bigUnwrap);
+    var id = OtherJvmPool.registerObject((TruffleObject) bigUnwrap);
     var other = new OtherJvmObject(CHANNEL, id);
 
     var noType = TypesLibrary.getUncached().hasType(other);

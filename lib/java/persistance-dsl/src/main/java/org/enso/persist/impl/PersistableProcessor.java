@@ -94,12 +94,9 @@ public class PersistableProcessor extends AbstractProcessor {
 
             w.append("package " + entry.getKey() + ";\n");
             w.append("import org.enso.persist.Persistance;\n");
-            w.append("import java.util.function.Supplier;\n");
-            w.append(
-                "public final class Persistables extends Persistance.Pool implements"
-                    + " Supplier<Persistance.Pool> {\n");
+            w.append("public final class Persistables extends Persistance.Pool {\n");
             w.append("  public static final Persistance.Pool POOL = new Persistables();\n");
-            w.append("  public Persistables() {\n");
+            w.append("  private Persistables() {\n");
             w.append("    super(\"").append(entry.getKey()).append("\",");
             var lineEnding = "\n";
             for (var idName : props.entrySet()) {
@@ -108,9 +105,6 @@ public class PersistableProcessor extends AbstractProcessor {
               lineEnding = ",\n";
             }
             w.append("\n    );\n");
-            w.append("  }\n");
-            w.append("  public Persistance.Pool get() {\n");
-            w.append("    return this;\n");
             w.append("  }\n");
             w.append("}\n");
           }

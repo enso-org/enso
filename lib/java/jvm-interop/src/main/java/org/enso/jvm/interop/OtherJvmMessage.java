@@ -7,9 +7,7 @@ import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
@@ -18,9 +16,9 @@ import org.enso.persist.Persistance;
 @Persistable(id = 81901)
 record OtherJvmMessage( // sends a message to the other side
     long id, Message message, List<Object> args // with ReflectionLibrary-like arguments
-    ) implements Function<Channel, OtherJvmResult<? extends Object, ? extends Exception>> {
-  private static final Map<Long, TruffleObject> OBJECTS = new HashMap<>();
-
+    )
+    implements Function<
+        Channel<OtherJvmPool>, OtherJvmResult<? extends Object, ? extends Exception>> {
   @Persistable(id = 81908, allowInlining = false)
   record ReturnValue<T, E extends Exception>(T value) implements OtherJvmResult<T, E> {
     static <T, E extends Exception> ReturnValue<T, E> create(T value) {
@@ -51,17 +49,11 @@ record OtherJvmMessage( // sends a message to the other side
     }
   }
 
-  static synchronized long registerObject(TruffleObject obj) {
-    var size = OBJECTS.size() + 1;
-    OBJECTS.put((long) size, obj);
-    return size;
-  }
-
   @Override
-  public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel t) {
+  public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
     try {
       TruffleClassLoader.ctx().enter();
-      var receiver = OBJECTS.get(id);
+      var receiver = t.getData().findObject(id);
       assert receiver instanceof TruffleObject;
       var res = ReflectionLibrary.getUncached().send(receiver, message, args.toArray());
       return new ReturnValue<>(res);
@@ -97,7 +89,7 @@ record OtherJvmMessage( // sends a message to the other side
       if (obj instanceof OtherJvmObject other) {
         out.writeLong(other.id());
       } else {
-        var id = registerObject(obj);
+        var id = OtherJvmPool.registerObject(obj);
         out.writeLong(-id);
       }
     }
@@ -108,7 +100,7 @@ record OtherJvmMessage( // sends a message to the other side
       if (id < 0) {
         return new OtherJvmObject(null, -id);
       } else {
-        var cached = OBJECTS.get(id);
+        var cached = OtherJvmPool.findObject(id);
         assert cached != null;
         return cached;
       }
