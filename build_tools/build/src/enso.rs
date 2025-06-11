@@ -263,9 +263,6 @@ impl BuiltEnso {
                     drop(sqlserver);
                     sqlserver = SQLServer::start(config.clone()).await?;
                 }
-                if sqlserver.initialization_failed {
-                    return Err(anyhow!("{container_name} initialization failed!"));
-                }
                 Some(sqlserver)
             }
             _ => None,
