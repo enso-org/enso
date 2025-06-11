@@ -65,6 +65,19 @@ public final class Column {
     return storage;
   }
 
+
+  /* Gets the value at a given index. */
+  public Object getItem(long index) {
+    return storage.getItemBoxed(index);
+  }
+
+  /**
+   * @return the type of the underlying storage
+   */
+  public StorageType<?> getType() {
+    return storage.getType();
+  }
+
   /**
    * @return the number of items in this column.
    */

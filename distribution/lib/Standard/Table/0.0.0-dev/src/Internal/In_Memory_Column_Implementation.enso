@@ -606,8 +606,8 @@ type In_Memory_Column_Implementation
         if index < 0 && index >= -length then this_column.get (length + index) default else
             valid_index = (index >= 0) && (index < length)
             if valid_index.not then default else
-                storage = (this_column:In_Memory_Column).java_column.getStorage
-                java_to_enso <| storage.getItemBoxed index
+                java_column = (this_column:In_Memory_Column).java_column
+                java_to_enso <| java_column.getItem index
 
     read this_column (max_rows : Rows_To_Read = ..All_Rows) -> Column =
         if max_rows.is_nothing then this_column else
@@ -618,7 +618,7 @@ type In_Memory_Column_Implementation
         Vector.from_polyglot_array column_list . map java_to_enso
 
     value_type this_column -> Value_Type =
-        storage_type = (this_column:In_Memory_Column).java_column.getStorage.getType
+        storage_type = (this_column:In_Memory_Column).java_column.getType
         Storage.to_value_type storage_type
 
     inferred_precise_value_type this_column -> Value_Type =
@@ -809,7 +809,6 @@ fill_previous column is_missing =
     missing_storage = if Nothing == is_missing then Nothing else (is_missing:In_Memory_Column).java_column.getStorage
     new_storage = (column:In_Memory_Column).java_column.getStorage.fillMissingFromPrevious missing_storage
     In_Memory_Column.from_storage column.name new_storage
-
 
 ## PRIVATE
    Applies a UnaryOperation to a column.
