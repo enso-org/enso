@@ -62,7 +62,7 @@ import {
   getCellValueType,
   isNumericType,
   ValueType,
-} from '@/components/visualizations/TableVisualization/tableVizUtils'
+} from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -678,14 +678,9 @@ function toField(
     },
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,
-    valueFormatter: (params: ValueFormatterParams) => {
-      if (params.value && typeof params.value === 'object' && '_display_text_' in params.value) {
-        return String(params.value['_display_text_'])
-      }
-      return params.value
-    },
-    // Add comparator for sorting based on _display_text_
-    comparator: (valueA, valueB) => {
+  }
+  if (valueType && ['Date', 'Date_Time', 'Time_Of_Day'].includes(valueType.constructor)) {
+    return { ...colDef, comparator: (valueA, valueB) => {
       const textA = valueA && typeof valueA === 'object' && '_display_text_' in valueA ? valueA['_display_text_'] : valueA
       const textB = valueB && typeof valueB === 'object' && '_display_text_' in valueB ? valueB['_display_text_'] : valueB
 
@@ -694,7 +689,7 @@ function toField(
       if (textB == null) return -1
 
       return textA.toString().localeCompare(textB.toString())
-    },
+    } }
   }
   return colDef
 }

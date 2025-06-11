@@ -113,7 +113,6 @@ import {
   rowsToTsv,
   tableToEnsoExpression,
 } from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
-import { formatDateLikeValue } from './AgGridTableView/Utils'
 
 const props = defineProps<{
   rowData: TData[]
