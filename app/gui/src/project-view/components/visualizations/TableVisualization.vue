@@ -678,6 +678,23 @@ function toField(
     },
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,
+    valueFormatter: (params: ValueFormatterParams) => {
+      if (params.value && typeof params.value === 'object' && '_display_text_' in params.value) {
+        return String(params.value['_display_text_'])
+      }
+      return params.value
+    },
+    // Add comparator for sorting based on _display_text_
+    comparator: (valueA, valueB) => {
+      const textA = valueA && typeof valueA === 'object' && '_display_text_' in valueA ? valueA['_display_text_'] : valueA
+      const textB = valueB && typeof valueB === 'object' && '_display_text_' in valueB ? valueB['_display_text_'] : valueB
+
+      if (textA == null && textB == null) return 0
+      if (textA == null) return 1
+      if (textB == null) return -1
+
+      return textA.toString().localeCompare(textB.toString())
+    },
   }
   return colDef
 }
