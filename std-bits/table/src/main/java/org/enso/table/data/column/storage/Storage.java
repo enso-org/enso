@@ -5,10 +5,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -114,86 +112,13 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   /**
-   * Runs a 2-argument function on each element in this storage.
-   *
-   * @param function the function to run.
-   * @param argument the argument to pass to each run of the function
-   * @param skipNulls specifies whether null values on the input should result in a null result
-   *     without passing them through the function, this is useful if the function does not support
-   *     the null-values, but it needs to be set to false if the function should handle them.
-   * @param expectedResultType the expected type for the result storage
-   * @return a new storage containing results of the function for each row
-   */
-  public final Storage<?> binaryMap(
-      BiFunction<Object, Object, Object> function,
-      Object argument,
-      boolean skipNulls,
-      StorageType<?> expectedResultType,
-      ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
-    if (skipNulls && argument == null) {
-      // ToDo: appendNulls should take a long, not an int. Should have a constant Storage for null.
-      storageBuilder.appendNulls((int) getSize());
-      return storageBuilder.seal();
-    }
-
-    Context context = Context.getCurrent();
-    for (long i = 0; i < getSize(); i++) {
-      Object it = getItemBoxed(i);
-      if (skipNulls && it == null) {
-        storageBuilder.appendNulls(1);
-      } else {
-        Object result = function.apply(it, argument);
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.append(converted);
-      }
-
-      context.safepoint();
-    }
-    return storageBuilder.seal();
-  }
-
-  /**
-   * Runs a function on each pair of non-missing elements in this and arg.
-   *
-   * @param function the function to run.
-   * @param skipNa whether rows containing missing values should be passed to the function.
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the function on all non-missing elements.
-   */
-  public final Storage<?> zip(
-      BiFunction<Object, Object, Object> function,
-      Storage<?> arg,
-      boolean skipNa,
-      StorageType<?> expectedResultType,
-      ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < getSize(); i++) {
-      Object it1 = getItemBoxed(i);
-      Object it2 = i < arg.getSize() ? arg.getItemBoxed(i) : null;
-      if (skipNa && (it1 == null || it2 == null)) {
-        storageBuilder.appendNulls(1);
-      } else {
-        Object result = function.apply(it1, it2);
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.append(converted);
-      }
-
-      context.safepoint();
-    }
-    return storageBuilder.seal();
-  }
-
-  /**
    * Return a new storage, where missing elements have been replaced by arg.
    *
    * @param arg the value to use for missing elements
    * @param commonType the common type of this storage and the provided value
    * @return a new storage, with all missing elements replaced by arg
    */
-  public Storage<?> fillMissing(
+  public ColumnStorage<?> fillMissing(
       Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     Builder builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
@@ -214,7 +139,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @param commonType a common type that should fit values from both storages
    * @return a new storage with missing values filled
    */
-  public Storage<?> fillMissingFrom(
+  public ColumnStorage<?> fillMissingFrom(
       Storage<?> other, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     var builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
@@ -235,7 +160,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    *     to just rely on the default semantics of missing values. Some storages may not allow
    *     customizing the semantics.
    */
-  public abstract Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator);
+  public abstract ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator);
 
   /**
    * Return a new storage, containing only the items marked true in the mask.
@@ -244,31 +169,31 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @param newLength the number of true values in mask
    * @return a new storage, filtered with the given mask
    */
-  public abstract Storage<T> applyFilter(BitSet filterMask, int newLength);
+  public abstract ColumnStorage<T> applyFilter(BitSet filterMask, int newLength);
 
   /**
    * Returns a new storage, ordered according to the rules specified in a mask.
    *
    * @param mask@return a storage resulting from applying the reordering rules
    */
-  public abstract Storage<T> applyMask(OrderMask mask);
+  public abstract ColumnStorage<T> applyMask(OrderMask mask);
 
   /**
    * @return a copy of the storage containing a slice of the original data
    */
-  public abstract Storage<T> slice(int offset, int limit);
+  public abstract ColumnStorage<T> slice(int offset, int limit);
 
   /**
    * @return a copy of the storage consisting of slices of the original data
    */
-  public abstract Storage<T> slice(List<SliceRange> ranges);
+  public abstract ColumnStorage<T> slice(List<SliceRange> ranges);
 
   /**
    * Counts the number of times each value has been seen before in this storage.
    *
    * @return a storage counting the number of times each value in this one has been seen before.
    */
-  public Storage<?> duplicateCount() {
+  public ColumnStorage<?> duplicateCount() {
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
     Context context = Context.getCurrent();
     var builder =
@@ -280,34 +205,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       occurenceCount.put(value, count + 1);
       context.safepoint();
     }
-    return builder.seal();
-  }
-
-  /** Creates a storage containing a single repeated item. */
-  public static Storage<?> fromRepeatedItem(
-      Value item, int repeat, ProblemAggregator problemAggregator) {
-    if (repeat < 0) {
-      throw new IllegalArgumentException("Repeat count must be non-negative.");
-    }
-
-    Object converted = Polyglot_Utils.convertPolyglotValue(item);
-
-    if (converted == null) {
-      return new NullStorage(repeat);
-    }
-
-    if (converted instanceof Long longValue) {
-      return new LongConstantStorage(longValue, repeat);
-    }
-
-    var storageType = StorageType.forBoxedItem(converted, PreciseTypeOptions.DEFAULT);
-    Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < repeat; i++) {
-      builder.append(converted);
-      context.safepoint();
-    }
-
     return builder.seal();
   }
 }

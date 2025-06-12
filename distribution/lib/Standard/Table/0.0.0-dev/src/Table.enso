@@ -1558,10 +1558,9 @@ type Table
                 already_parsed = Auto != type && column_value_type.is_same_type type
                 if already_parsed then column else
                     Value_Type.expect_text column <|
-                        storage = (column:In_Memory_Column).java_column.getStorage
                         new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                             parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
-                            parser.parseColumn storage parse_problem_aggregator
+                            parser.parseColumn (column:In_Memory_Column).java_column parse_problem_aggregator
                         In_Memory_Column.from_storage column.name new_storage
             Table.new new_columns
 

@@ -5,10 +5,10 @@ import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -23,7 +23,7 @@ import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
 public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
-  public static Storage<Double> makeEmpty(long size) {
+  public static ColumnStorage<Double> makeEmpty(long size) {
     int intSize = Builder.checkSize(size);
     BitSet isNothing = new BitSet(intSize);
     isNothing.set(0, intSize);
@@ -98,7 +98,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (Objects.equals(storage.getType(), FloatType.FLOAT_64)) {
       if (storage instanceof DoubleStorage doubleStorage) {
         int n = (int) doubleStorage.getSize();
@@ -156,7 +156,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
                 + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof BooleanType) {
-      if (storage instanceof BoolStorage boolStorage) {
+      if (storage instanceof ColumnBooleanStorage boolStorage) {
         long n = boolStorage.getSize();
         for (long i = 0; i < n; i++) {
           if (boolStorage.isNothing(i)) {
@@ -198,7 +198,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
-  public Storage<Double> seal() {
+  public ColumnStorage<Double> seal() {
     return new DoubleStorage(data, currentSize, isNothing);
   }
 
