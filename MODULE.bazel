@@ -144,6 +144,9 @@ register_toolchains("@graalvm//:toolchain")
 
 bazel_dep(name = "rules_jvm_external", version = "6.3")
 
+sbt_ext = use_extension("//:bazel_scripts/sbt.bzl", "sbt_ext")
+use_repo(sbt_ext, "sbt_repo")
+
 scala_logging_version = "3.9.4"
 
 scalatest_version = "3.3.0-SNAP4"

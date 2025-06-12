@@ -1,6 +1,8 @@
+load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@rules_java//java:defs.bzl", "java_binary", "java_runtime")
 load("//:bazel_scripts/sbt.bzl", "sbt_path")
 load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 
@@ -184,6 +186,51 @@ genrule(
         "@rules_java//toolchains:current_java_runtime",
         "@//toolchains/flatc:resolved_toolchain",
         ":sbt_path",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+#java_binary(
+#    name = "sbt_launcher",
+#    create_executable = False,
+#    jar = "@sbt_dist//:sbt/bin/sbt-launch.jar",
+#    main_class = "",  # SBT launch JAR uses its own Main-Class
+#    runtime_deps = [":sbt_launch_jar"],
+#)
+#
+
+java_binary(
+    name = "sbt_launcher",
+    create_executable = False,
+    main_class = "",  # SBT launch JAR uses its own Main-Class
+    runtime_deps = [":sbt_import"],
+)
+
+java_import(
+    name = "sbt_import",
+    jars = [
+        "@sbt_repo//:sbt_launch_jar",
+    ],
+)
+
+run_binary(
+    name = "sbt",
+    srcs = [
+        "@rules_java//toolchains:current_java_runtime",
+        "@sbt_repo//:sbt_launch_jar",
+    ],
+    outs = ["sbt_version.txt"],
+    args = ["-jar $(location @sbt_repo//:sbt_launch_jar) --version"],
+    tool = "$(JAVA)",
+)
+
+genrule(
+    name = "debug",
+    srcs = ["@sbt_repo//:sbt_launch_jar"],
+    outs = ["out.txt"],
+    cmd = "$(JAVA) -jar $(location @sbt_repo//:sbt_launch_jar) --version > $@",
+    toolchains = [
+        "@rules_java//toolchains:current_java_runtime",
     ],
     visibility = ["//visibility:public"],
 )
