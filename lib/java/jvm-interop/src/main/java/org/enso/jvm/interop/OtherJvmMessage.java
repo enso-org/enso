@@ -70,11 +70,20 @@ record OtherJvmMessage( // sends a message to the other side
     @Override
     public OtherJvmResult<TruffleObject, ClassNotFoundException> apply(Channel t) {
       try {
-        var clazzRaw = TruffleClassLoader.loadClass(name);
+        var clazzRaw = TruffleClassLoader.loadClassObject(name);
         return ReturnValue.create(clazzRaw);
       } catch (ClassNotFoundException ex) {
         return ThrowException.create(ex);
       }
+    }
+  }
+
+  @Persistable(id = 81906)
+  record AddToClassPath(String url) implements Function<Channel<?>, Void> {
+    @Override
+    public Void apply(Channel t) {
+      TruffleClassLoader.addToClassPath(url);
+      return null;
     }
   }
 

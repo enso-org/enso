@@ -1,5 +1,6 @@
 package org.enso.common;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,6 +39,12 @@ public abstract class PolyglotSymbolResolver {
     throw ex;
   }
 
+  public static void addToClassPath(URL url) {
+    for (var p : ALL) {
+      p.handleAddToClassPath(url);
+    }
+  }
+
   /**
    * Subclasses implement this method to search for class with the provided name.
    *
@@ -46,4 +53,6 @@ public abstract class PolyglotSymbolResolver {
    * @throws java.lang.ClassNotFoundException if no name was found
    */
   protected abstract Object handleLoadClass(String name) throws ClassNotFoundException;
+
+  protected abstract void handleAddToClassPath(URL url);
 }

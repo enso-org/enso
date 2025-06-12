@@ -3,6 +3,7 @@ package org.enso.jvm.interop;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.PolyglotSymbolResolver;
@@ -14,17 +15,31 @@ import org.enso.jvm.channel.JVM;
 public final class OtherJvmSymbolResolver extends PolyglotSymbolResolver {
   private Channel<OtherJvmPool> channel;
 
+  private Channel<OtherJvmPool> getChannel() throws URISyntaxException, IOException {
+    if (channel == null) {
+      channel = initializeChannel();
+    }
+    return channel;
+  }
+
   @Override
   protected Object handleLoadClass(String name) throws ClassNotFoundException {
-    if (channel == null) {
-      try {
-        channel = initializeChannel();
-      } catch (IOException | URISyntaxException ex) {
-        throw new ClassNotFoundException("Cannot initialize JVM", ex);
-      }
+    try {
+      var ch = getChannel();
+      var result = ch.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
+      return OtherJvmObject.bindToChannel(result.value(), ch);
+    } catch (IOException | URISyntaxException ex) {
+      throw new ClassNotFoundException(name, ex);
     }
-    var result = channel.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
-    return OtherJvmObject.bindToChannel(result.value(), channel);
+  }
+
+  @Override
+  protected void handleAddToClassPath(URL url) {
+    try {
+      getChannel().execute(Void.class, new OtherJvmMessage.AddToClassPath(url.toString()));
+    } catch (URISyntaxException | IOException ex) {
+      ex.printStackTrace();
+    }
   }
 
   private Channel<OtherJvmPool> initializeChannel() throws IOException, URISyntaxException {

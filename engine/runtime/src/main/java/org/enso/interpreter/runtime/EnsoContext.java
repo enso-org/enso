@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
 import org.enso.common.PolyglotSymbolResolver;
 import org.enso.common.RuntimeOptions;
@@ -504,6 +503,7 @@ public final class EnsoContext {
       try {
         var url = file.toUri().toURL();
         hostClassLoader.add(url);
+        PolyglotSymbolResolver.addToClassPath(url);
       } catch (MalformedURLException ex) {
         throw new IllegalStateException(ex);
       }
@@ -621,7 +621,7 @@ public final class EnsoContext {
   public TruffleObject lookupJavaClass(String className) {
     var collectedExceptions = new ArrayList<Exception>();
 
-    {
+    if (true) { // set this to false to simulate classloading via Channel
       var hostSymbol =
           ClassLookup.lookupJavaClass(
               className, // name to search for
@@ -632,19 +632,17 @@ public final class EnsoContext {
         return (TruffleObject) hostSymbol;
       }
     }
-    if (HostEnsoUtils.isAot()) {
-      var javaHome = System.getProperty("java.home");
-      logger.info(
-          () -> String.format("Class %s not found, trying to turn on JVM %s", className, javaHome));
-      var hostSymbol =
-          ClassLookup.lookupJavaClass(
-              className, // name to search for
-              PolyglotSymbolResolver::loadClass, // pluggable polyglot searches
-              collectedExceptions // collect exceptions
-              );
-      if (hostSymbol instanceof TruffleObject) {
-        return (TruffleObject) hostSymbol;
-      }
+    var javaHome = System.getProperty("java.home");
+    logger.info(
+        () -> String.format("Class %s not found, trying to turn on JVM %s", className, javaHome));
+    var hostSymbol =
+        ClassLookup.lookupJavaClass(
+            className, // name to search for
+            PolyglotSymbolResolver::loadClass, // pluggable polyglot searches
+            collectedExceptions // collect exceptions
+            );
+    if (hostSymbol instanceof TruffleObject) {
+      return (TruffleObject) hostSymbol;
     }
 
     var level = Level.WARNING;

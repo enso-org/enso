@@ -4,16 +4,23 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 
 @ExportLibrary(value = InteropLibrary.class)
-final class TruffleClassLoader implements TruffleObject {
+final class TruffleClassLoader extends URLClassLoader implements TruffleObject {
+  private static final TruffleClassLoader DEFAULT = new TruffleClassLoader();
   private static Context ctx;
-
   private Object value;
 
-  private TruffleClassLoader() {}
+  private TruffleClassLoader() {
+    super(new URL[0]);
+  }
 
   static synchronized Context ctx() {
     if (ctx == null) {
@@ -25,17 +32,20 @@ final class TruffleClassLoader implements TruffleObject {
     return ctx;
   }
 
-  static TruffleObject loadClass(String className) throws ClassNotFoundException {
-    var context = ctx();
+  static void addToClassPath(String url) {
+    try {
+      DEFAULT.addURL(new URI(url).toURL());
+    } catch (MalformedURLException | URISyntaxException ex) {
+      ex.printStackTrace();
+    }
+  }
 
-    var clazz = Class.forName(className);
-    var clazzValue1 = context.asValue(clazz);
+  static TruffleObject loadClassObject(String className) throws ClassNotFoundException {
+    var clazz = DEFAULT.loadClass(className);
+    var clazzValue1 = ctx().asValue(clazz);
     var clazzValue2 = clazzValue1.getMember("static");
-    var holderRaw = new TruffleClassLoader();
-    var holderValue = context.asValue(holderRaw);
-    holderValue.execute(clazzValue2);
-    var clazzRaw = holderRaw.value;
-    return (TruffleObject) clazzRaw;
+    ctx().asValue(DEFAULT).execute(clazzValue2);
+    return (TruffleObject) DEFAULT.value;
   }
 
   @ExportMessage
