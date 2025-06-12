@@ -1433,10 +1433,17 @@ public class Main {
   }
 
   private void launchJvm(
-      CommandLine line, Map<String, String> props, File component, File javaExecutable)
+      String originalCwdOrNull,
+      CommandLine line,
+      Map<String, String> props,
+      File component,
+      File javaExecutable)
       throws IOException, InterruptedException {
     var useJNI = true;
     var commandAndArgs = new ArrayList<String>();
+    if (originalCwdOrNull != null) {
+      commandAndArgs.add("-Denso.user.dir=" + originalCwdOrNull);
+    }
     if (!useJNI) {
       commandAndArgs.add(javaExecutable.getPath());
     }
@@ -1552,11 +1559,11 @@ public class Main {
               throw exitFail("Cannot find java executable");
             }
           } else {
-            launchJvm(line, props, component, javaExe);
+            launchJvm(originalCwdOrNull, line, props, component, javaExe);
           }
         } else {
           var javaExecutable = new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile();
-          launchJvm(line, props, component, javaExecutable);
+          launchJvm(originalCwdOrNull, line, props, component, javaExecutable);
         }
       }
     }
