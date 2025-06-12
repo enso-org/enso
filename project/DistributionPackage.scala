@@ -137,10 +137,8 @@ object DistributionPackage {
     editionName: String,
     sourceStdlibVersion: String,
     targetStdlibVersion: String,
-    nativeLibrariesToCopy: Seq[File]
+    targetDir: File
   ): Unit = {
-    log.debug(s"Native libs to copy: " + nativeLibrariesToCopy)
-
     copyDirectoryIncremental(
       file("distribution/engine/THIRD-PARTY"),
       distributionRoot / "THIRD-PARTY",
@@ -153,10 +151,11 @@ object DistributionPackage {
       cacheFactory.make("module jars")
     )
 
+    val parser = targetDir / Platform.dynamicLibraryFileName("enso_parser")
     copyFilesIncremental(
-      nativeLibrariesToCopy,
+      Seq(parser),
       distributionRoot / "component",
-      cacheFactory.make("engine-native-libraries")
+      cacheFactory.make("engine-parser-library")
     )
 
     (distributionRoot / "editions").mkdirs()

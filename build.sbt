@@ -1420,11 +1420,6 @@ lazy val `language-server-deps-wrapper` = project
     }
   )
 
-lazy val nativeLibsOutDir = TaskKey[File](
-  "nativeLibsOutdir",
-  "Directory where native libraries are extracted to"
-)
-
 lazy val `jna-wrapper` = project
   .in(file("lib/java/jna-wrapper"))
   .enablePlugins(JPMSPlugin)
@@ -1451,42 +1446,6 @@ lazy val `jna-wrapper` = project
         javaModuleName.value -> jna
       )
     },
-    nativeLibsOutDir := {
-      (Compile / classDirectory).value / "native-libs"
-    },
-    extractNativeLibs := Def.task {
-      val logger            = streams.value.log
-      val cacheStoreFactory = streams.value.cacheStoreFactory
-      import sbt.util.CacheImplicits._
-      val prev     = extractNativeLibs.previous
-      val inputJar = assembly.value
-      val outputJarPath = inputJar.toPath.toString
-        .replace(".jar", "-minimized.jar")
-      val outputJar = new File(outputJarPath)
-      StdBits.extractNativeLibsFromJna(
-        inputJar,
-        outputJar,
-        nativeLibsOutDir.value,
-        logger,
-        moduleName.value,
-        cacheStoreFactory,
-        prev
-      )
-    }.value,
-    assembly := assembly
-      .dependsOn(
-        Compile / compileModuleInfo
-      )
-      .value,
-    // Returns path to the minimized jar
-    Compile / exportedModuleBin := Def
-      .task {
-        val analysis = extractNativeLibs.value
-        analysis.libs.head.thinTarget.get
-      }
-      .dependsOn(assembly)
-      .dependsOn(Compile / compileModuleInfo)
-      .value,
     assemblyMergeStrategy := { case _ =>
       MergeStrategy.preferProject
     }
@@ -5894,39 +5853,18 @@ createEnginePackageNoIndex := {
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
   val cacheFactory  = streams.value.cacheStoreFactory
-  val parserTargetDir =
-    (`syntax-rust-definition` / rustParserTargetDirectory).value
-  val parserNativeLib =
-    parserTargetDir / Platform.dynamicLibraryFileName("enso_parser")
-  val jnaWrapperNativeLibsDir = (`jna-wrapper` / nativeLibsOutDir).value
-  if (!jnaWrapperNativeLibsDir.exists()) {
-    throw new RuntimeException(
-      s"JNA wrapper native libs directory does not exist: $jnaWrapperNativeLibsDir." +
-      "Probably wrong task dependencies?"
-    )
-  }
-  val jnaWrapperNativeLibs = IO.listFiles(jnaWrapperNativeLibsDir)
-  if (jnaWrapperNativeLibs.isEmpty) {
-    throw new RuntimeException(
-      s"JNA wrapper native libs directory is empty: $jnaWrapperNativeLibsDir." +
-      "Probably wrong task dependencies?"
-    )
-  }
-  val nativeLibsToCopy = Seq(
-    parserNativeLib
-  ) ++ jnaWrapperNativeLibs
   DistributionPackage.createEnginePackage(
-    distributionRoot      = root,
-    cacheFactory          = cacheFactory,
-    log                   = log,
-    jarModulesToCopy      = modulesToCopy,
-    graalVersion          = graalMavenPackagesVersion,
-    javaVersion           = graalVersion,
-    ensoVersion           = ensoVersion,
-    editionName           = currentEdition,
-    sourceStdlibVersion   = stdLibVersion,
-    targetStdlibVersion   = targetStdlibVersion,
-    nativeLibrariesToCopy = nativeLibsToCopy
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    jarModulesToCopy    = modulesToCopy,
+    graalVersion        = graalMavenPackagesVersion,
+    javaVersion         = graalVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion,
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value
   )
   log.info(s"Engine package created at $root")
 }
