@@ -125,6 +125,17 @@ SRCS = STDLIB_SOURCES + [
     "lib/scala/yaml/src/**",
     "project/*.scala",
     "project/src/**",
+    "std-bits/aws/src/**",
+    "std-bits/base/src/**",
+    "std-bits/benchmarks/src/**",
+    "std-bits/database/src/**",
+    "std-bits/generic-jdbc/src/**",
+    "std-bits/google-api/src/**",
+    "std-bits/image/src/**",
+    "std-bits/microsoft/src/**",
+    "std-bits/snowflake/src/**",
+    "std-bits/table/src/**",
+    "std-bits/tableau/src/**",
 ])
 
 sbt_path(
