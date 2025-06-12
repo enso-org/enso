@@ -12,7 +12,6 @@ import { getDownloadUrl } from '#/utilities/github'
 import { unsafeWriteValue } from '#/utilities/write'
 import * as appUtils from '$/appUtils'
 import { useText } from '$/providers/react'
-import { useFeatureFlag } from '$/providers/react/featureFlags'
 import * as React from 'react'
 
 const DEFAULT_REDIRECT_DELAY_MS = 3_000
@@ -28,12 +27,10 @@ export interface CloudBrowserDisabledLayoutProps {
 /**
  * Layout that disables the dashboard if the cloud is disabled.
  */
-export function CloudBrowserDisabledLayout(
-  props: React.PropsWithChildren<CloudBrowserDisabledLayoutProps>,
-) {
-  const { children, redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
+export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProps) {
+  const { redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
   const { getText } = useText()
-  const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
+
   const [isRedirecting, setIsRedirecting] = React.useState(true)
 
   const normalizedRedirectPath = redirectPath.startsWith('/') ? redirectPath.slice(1) : redirectPath
@@ -46,12 +43,7 @@ export function CloudBrowserDisabledLayout(
       setIsRedirecting(false)
     },
     ms: redirectDelayMs,
-    isDisabled: isCloudExecutionEnabled,
   })
-
-  if (isCloudExecutionEnabled) {
-    return <>{children}</>
-  }
 
   return (
     <Page>

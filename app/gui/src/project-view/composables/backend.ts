@@ -6,7 +6,7 @@ import type {
   UseQueryOptions,
   UseQueryReturnType,
 } from '@tanstack/vue-query'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { BackendMutationMethod, BackendQueryMethod } from 'enso-common/src/backendQuery'
 import {
   backendBaseOptions,
@@ -26,21 +26,20 @@ const methodDefaultOptions: Partial<Record<BackendQueryMethod, ExtraOptions>> = 
   getFileDetails: { ...noPersist },
 }
 
-function backendQueryOptions<Method extends BackendQueryMethod>(
-  method: Method,
-  args: ToValue<Parameters<Backend[Method]> | undefined>,
-  backend: Backend | null,
-) {
-  return {
+export function backendQueryOptions<
+  Method extends BackendQueryMethod,
+  T extends ReturnType<Backend[Method]> = ReturnType<Backend[Method]>,
+>(method: Method, args: ToValue<Parameters<Backend[Method]> | undefined>, backend: Backend | null) {
+  return queryOptions({
     ...backendBaseOptions(backend),
     ...(methodDefaultOptions[method] ?? {}),
     queryKey: computed(() => {
       const argsValue = toValue(args)
       return argsValue ? backendQueryKey(backend, method, argsValue) : []
     }),
-    queryFn: () => backend && (backend[method] as any).apply(backend, toValue(args)!),
+    queryFn: (): T => backend && (backend[method] as any).apply(backend, toValue(args)!),
     enabled: computed(() => !!backend && !!toValue(args)),
-  }
+  })
 }
 
 type MutationOptions<Method extends BackendMutationMethod> = ToValue<

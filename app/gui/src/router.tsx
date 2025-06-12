@@ -2,7 +2,6 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/layouts/CloudBrowserDisabled'
 import { OpenAppWatcher } from '#/layouts/OpenAppWatcher'
-import { AgreementsModal } from '#/modals/AgreementsModal'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
@@ -32,7 +31,8 @@ import { PropsWithChildren, ReactNode } from 'react'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import ProtectedLayout from './components/ProtectedLayout.vue'
 import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
-import { useAuth, UserSessionType } from './providers/auth'
+import { UserSessionType } from './providers/auth'
+import { useFeatureFlag } from './providers/featureFlags'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
 
@@ -77,33 +77,10 @@ function applyLayouts(
   }
 }
 
-function CloudBrowserDisabledLayout(props: PropsWithChildren) {
-  return (
-    <CloudBrowserDisabledLayoutImpl redirectPath={SETUP_PATH}>
-      {props.children}
-    </CloudBrowserDisabledLayoutImpl>
-  )
-}
-
-async function notDeletedUser() {
-  const auth = useAuth()
-  if (await auth.isUserMarkedForDeletion()) {
-    return { path: RESTORE_USER_PATH }
-  }
-}
-
-async function softDeletedUser() {
-  const auth = useAuth()
-  if (await auth.isUserMarkedForDeletion()) {
-    const isSoftDeleted = await auth.isUserSoftDeleted()
-    const isDeleted = await auth.isUserDeleted()
-    if (isSoftDeleted) {
-      return true
-    } else if (isDeleted) {
-      return { path: LOGIN_PATH }
-    } else {
-      return { path: DASHBOARD_PATH }
-    }
+function requireCloudBrowserEnabled() {
+  const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
+  if (!isCloudExecutionEnabled) {
+    return { name: 'cloudDisabled' }
   }
 }
 
@@ -112,7 +89,7 @@ async function softDeletedUser() {
 // (https://router.vuejs.org/guide/advanced/navigation-guards.html#Per-Route-Guard or similar).
 const routes = [
   {
-    path: '',
+    path: UNAVAILABLE_PATH,
     component: ProtectedLayout,
     children: [
       { path: LOGIN_PATH, component: reactForRouter(Login), meta: { access: 'guest' as const } },
@@ -122,79 +99,38 @@ const routes = [
         meta: { access: 'guest' as const },
       },
       {
-        path: '',
         meta: { access: UserSessionType.full },
-        children: [
-          {
-            path: '',
-            beforeEnter: notDeletedUser,
-            children: [
-              {
-                ...applyLayouts(
-                  [
-                    CloudBrowserDisabledLayout,
-                    SetupOrganizationAfterSubscribe,
-                    InvitedToOrganizationModal,
-                    OpenAppWatcher,
-                  ],
-                  [
-                    {
-                      path: DASHBOARD_PATH,
-                      component: reactForRouter(Dashboard),
-                    },
-                    {
-                      path: SUBSCRIBE_PATH,
-                      component: reactForRouter(Subscribe),
-                    },
-                  ],
-                ),
-              },
-              {
-                path: SUBSCRIBE_SUCCESS_PATH,
-                component: reactForRouter(SubscribeSuccess),
-              },
-            ],
-          },
-          {
-            path: '',
-            beforeEnter: softDeletedUser,
-            children: [
-              {
-                path: RESTORE_USER_PATH,
-                component: reactForRouter(RestoreAccount),
-              },
-            ],
-          },
-          {
-            path: '',
-            name: 'agreementsModal',
-            component: reactComponent(AgreementsModal),
-          },
-        ],
+        beforeEnter: requireCloudBrowserEnabled,
+        ...applyLayouts(
+          [SetupOrganizationAfterSubscribe, InvitedToOrganizationModal, OpenAppWatcher],
+          [
+            {
+              path: DASHBOARD_PATH,
+              component: reactForRouter(Dashboard),
+            },
+            {
+              path: SUBSCRIBE_PATH,
+              component: reactForRouter(Subscribe),
+            },
+          ],
+        ),
       },
-    ],
-  },
-  {
-    path: UNAVAILABLE_PATH,
-    meta: { access: UserSessionType.full },
-    component: ProtectedLayout,
-    children: [],
-  },
-  {
-    path: UNAVAILABLE_PATH,
-    meta: { access: 'anyLoggedIn' as const },
-    beforeEnter: notDeletedUser,
-    component: ProtectedLayout,
-    children: [
-      applyLayouts(
-        [CloudBrowserDisabledLayout],
-        [
-          {
-            path: SETUP_PATH,
-            component: reactForRouter(Setup),
-          },
-        ],
-      ),
+      {
+        path: SUBSCRIBE_SUCCESS_PATH,
+        meta: { access: UserSessionType.full },
+        component: reactForRouter(SubscribeSuccess),
+      },
+      {
+        path: RESTORE_USER_PATH,
+        meta: { access: 'deleted' },
+        component: reactForRouter(RestoreAccount),
+      },
+      {
+        path: SETUP_PATH,
+        meta: { access: 'anyLoggedIn' },
+        beforeEnter: requireCloudBrowserEnabled,
+        component: reactForRouter(Setup),
+      },
     ],
   },
 
@@ -214,6 +150,12 @@ const routes = [
   {
     path: '/:anyPath(.*)*',
     redirect: '/',
+  },
+  {
+    path: '',
+    name: 'cloudDisabled',
+    component: reactComponent(CloudBrowserDisabledLayoutImpl),
+    props: { redirectPath: DASHBOARD_PATH },
   },
 ]
 
