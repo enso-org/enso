@@ -7,6 +7,8 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -31,7 +33,7 @@ public class FixedWidthReader {
   private final long rowLimit;
   private final InvalidFixedWidthRowsBehavior invalidRowsBehavior;
   // Null means Infer; otherwise, contains the exact line ending string.
-  private String lineEnding;
+  @Nullable private String lineEnding;
   private final boolean emptyToNull;
   private final DatatypeParser valueParser;
   private final FixedWidthDecodingProblemAggregator decodingProblemAggregator;
@@ -55,7 +57,7 @@ public class FixedWidthReader {
       long skipRows,
       long rowLimit,
       InvalidFixedWidthRowsBehavior invalidRowsBehavior,
-      String lineEnding,
+      @Nullable String lineEnding,
       boolean emptyToNull,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
@@ -170,6 +172,63 @@ public class FixedWidthReader {
     return reportingStreamDecoder.readAllIntoMemory();
   }
 
+  private class LineEndingDetector {
+    // -1 means no lookahead, otherwise it's a char
+    private Optional<Integer> lookahead = Optional.empty();
+
+    // If we know the line ending, index of the next char in the line ending
+    // that we hope to see.
+    private int nextLineEndingChar = 0;
+
+    public boolean hasLookahead() {
+      return lookahead.isPresent();
+    }
+
+    public int nextLookahead() {
+      assert lookahead.isPresent();
+      var c = lookahead.get();
+      lookahead = Optional.empty();
+      return c;
+    }
+
+    // c can be -1
+    public Result take(int c) {
+      assert !lookahead.isPresent();
+
+      if (lineEnding == null) {
+        // Inferring.
+        if (c == '\r') {
+          lookahead = Optional.of('\r'); ????
+        } else {
+        }
+      } else {
+        assert nextLineEndingChar < lineEnding.length();
+        if (c == lineEnding.charAt(nextLineEndingChar)) {
+          // We have matched the next character of the line ending.
+          nextLineEndingChar ++;
+          if (nextLineEndingChar >= lineEnding.length()) {
+            // We have matched the entire line ending.
+            nextLineEndingChar = 0;
+            return new Done();
+          } else {
+            // Not a full match yet.
+            return new Continue();
+          }
+        } else {
+          // Does not match the next line ending char.
+          nextLineEndingChar = 0;
+          return new Char(c);
+        }
+      }
+    }
+
+    public sealed interface Result {
+      record Char(int c) implements Result {}
+      record Continue() implements Result {}
+      record Done() implements Result {}
+    }
+  }
+
   /*
    * Reads up to `layoutWidth` bytes into the buffer. Returns the actual
    * length of the entire line, even if that is not equal to
@@ -180,7 +239,47 @@ public class FixedWidthReader {
     Context context = Context.getCurrent();
 
     int lineLength = 0;
+    boolean done = false;
+    var led = new LineEndingDetector();
 
+    while (!done) { 
+      int c = led.hasLookahead() ? led.getLookahead() : inputStream.read();
+      var result = led.take(c);
+      switch (result) {
+        case Result.Char -> {
+          int c result.c;
+          if (c == -1) {
+            if (lineLength == 0) {
+              // First attempt was EOF, so return -1 to signify that the stream is done.
+              return -1;
+            } else {
+              break;
+            }
+          } else {
+            if (lineLength >= MAXIMUM_LINE_LENGTH) {
+              throw new FixedWidthLineTooLongException(sourceLineNumber, MAXIMUM_LINE_LENGTH);
+            }
+
+            assert lineLength <= readBuffer.length;
+
+            if (lineLength == readBuffer.length) {
+              readBuffer = Arrays.copyOf(readBuffer, readBuffer.length * 2);
+            }
+
+            readBuffer[lineLength] = (byte) c;
+            lineLength++;
+          }
+        }
+        case Result.Continue -> {}
+        case Result.Done -> {
+          done = true;
+        }
+      }
+
+      context.safepoint();
+    }
+
+    /*
     while (true) {
       int c = inputStream.read();
       if (c == -1) {
@@ -210,6 +309,7 @@ public class FixedWidthReader {
 
       context.safepoint();
     }
+    */
 
     return lineLength;
   }
