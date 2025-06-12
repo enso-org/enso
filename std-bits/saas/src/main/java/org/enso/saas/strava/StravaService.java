@@ -19,12 +19,10 @@ public final class StravaService {
       accessToken = ExternalLibraryCredentialHelper.requestAccessToken(credentialReference);
     }
 
-    // TODO remove this.
     public AccessToken getAccessToken() throws IOException {
       if (accessToken == null) {
         refresh();
       }
-      //return new AccessToken("token", ZonedDateTime.now().plusMonths(1));
       return accessToken;
     }
 }

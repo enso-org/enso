@@ -18,8 +18,16 @@ type Strava
         credentials_reference = as_credential_reference credentials
         Strava.Service (StravaService.new credentials_reference)
 
-    get_user self = strava_get self "https://www.strava.com/api/v3/athlete"
+    get_user self =
+        strava_get self "https://www.strava.com/api/v3/athlete"
 
-strava_get strava url =
+    get_zones self =
+        strava_get self "https://www.strava.com/api/v3/athlete/zones"
+
+    get_stats self =
+        id = self.get_user.decode_as_json.get "id"
+        strava_get self "https://www.strava.com/api/v3/athletes/"+id.to_text+"/stats"
+
+private strava_get strava url =
     header = Header.new "Authorization" ("Bearer " + strava.strava_service.getAccessToken.token)
     HTTP.fetch url headers=[header]
