@@ -400,41 +400,60 @@ type In_Memory_Column_Implementation
             _apply_case_sensitive_text_operation this_column string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
 
     trim (this_column : Column & In_Memory_Column) where:Location=..Both (what : Text | Column = '') -> Column = Value_Type.expect_text this_column <|
+        parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then "" else what
+
         new_name = naming_helper.function_name "trim" [this_column]
+        case parsed_what of
+            _ : Text ->
+                trim_fn = if parsed_what.is_empty then t-> t.trim where else
+                    t-> t.trim where parsed_what
+                _apply_unary_map this_column new_name trim_fn expected_result_type=Value_Type.Char
+            _ : Column -> Value_Type.expect_text parsed_what <|
+                    fn = t-> w-> if t.is_nothing then Nothing else
+                        if w.is_nothing || w.is_empty then t.trim where else t.trim where w
+                    _apply_binary_map this_column fn parsed_what new_name skip_nulls=False expected_result_type=Value_Type.Char
 
-        trim_get = wrap_text_argument_as_value_provider what
+    text_replace (this_column : Column & In_Memory_Column) (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column = Value_Type.expect_text this_column <|
+        parsed_term = if term.is_a Column && term.value_type == Value_Type.Null then "" else term
+        parsed_new = if new_text.is_a Column && new_text.value_type == Value_Type.Null then "" else new_text
 
-        trim_get.if_not_error <|
-            trim_fn t w = if w.is_empty then t.trim where else
-                t.trim where w
+        new_name = naming_helper.function_name "replace" [this_column, term, new_text]
 
-            this_column_vec = this_column.to_vector
-            mapped = this_column_vec.map_with_index i->t-> trim_fn t (trim_get i)
-            Column.from_vector new_name mapped
+        ## Text and Regex have same implementation
+        perform_scalar used_term =
+            if parsed_new.is_a Text then _apply_unary_map this_column new_name (t-> t.replace used_term parsed_new case_sensitivity only_first) expected_result_type=Value_Type.Char else
+                Value_Type.expect_text parsed_new <|
+                    fn = t-> r-> if t.is_nothing then Nothing else
+                        if r.is_nothing.not then t.replace used_term (r.if_nothing "") case_sensitivity only_first else
+                            if t.contains used_term then Nothing else t
+                    _apply_binary_map this_column fn parsed_new new_name skip_nulls=False expected_result_type=Value_Type.Char
 
-    text_replace (this_column : Column & In_Memory_Column) (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
-        Value_Type.expect_text this_column <|
-            term_fn = wrap_text_or_regex_argument_as_value_provider term
-            new_text_fn = wrap_text_argument_as_value_provider new_text
+        case parsed_term of
+            _ : Text -> if parsed_term.is_empty then this_column.rename new_name else perform_scalar parsed_term
+            _ : Regex -> perform_scalar parsed_term
+            _ : Column -> Value_Type.expect_text parsed_term <| case parsed_new of
+                _ : Text ->
+                    fn = t-> s-> if t.is_nothing then Nothing else
+                        if s.is_nothing || s.is_empty then t else t.replace s parsed_new case_sensitivity only_first
+                    _apply_binary_map this_column fn parsed_new new_name skip_nulls=False expected_result_type=Value_Type.Char
+                _ : Column -> Value_Type.expect_text parsed_new <|
+                    ## Three Columns To Deal With (all are text)
+                    fn = t-> s-> r-> if t.is_nothing then Nothing else
+                        if s.is_nothing || s.is_empty then t else
+                            if r.is_nothing.not then t.replace r s case_sensitivity only_first else
+                                if t.contains s then Nothing else t
 
-            term_fn.if_not_error <| new_text_fn.if_not_error <|
-                new_name = naming_helper.function_name "replace" [this_column, term, new_text]
+                    length = this_column.length
+                    java_this = this_column.java_column
+                    java_term = parsed_term.java_column
+                    java_new = parsed_new.java_column
 
-                do_replace index input =
-                    term = term_fn index
-                    if term.is_nothing || (term.is_a Text && term.is_empty) || input.is_nothing then input else
-                        replace = new_text_fn index
-                        input.replace term replace case_sensitivity only_first
+                    builder = make_string_builder length
+                    0.up_to length . each i->
+                        replaced = fn (java_this.getItem i) (java_term.getItem i) (java_new.getItem i)
+                        builder.append replaced
 
-                length = this_column.length
-                java_column = this_column.java_column
-
-                builder = make_string_builder length
-                0.up_to length . each i->
-                    replaced = do_replace i (java_column.getItem i)
-                    builder.append replaced
-
-                In_Memory_Column.from_storage new_name builder.seal
+                    In_Memory_Column.from_storage new_name builder.seal
 
     text_cleanse (this_column : Column & In_Memory_Column) (remove : Vector Named_Pattern) -> Column =
       remove.map (Text_Cleanse.Value _) . fold this_column (current-> tc-> tc.apply current)
@@ -768,23 +787,6 @@ slice_ranges column ranges =
 resolve_storage_type value_type = case value_type of
     Nothing -> Nothing
     _ -> Storage.from_value_type_strict value_type
-
-## PRIVATE
-wrap_text_argument_as_value_provider val =
-    Value_Type.expect_text val <| case val of
-        text : Text -> (_-> text)
-        col : Column ->
-            java_column = (col:In_Memory_Column).java_column
-            i-> java_column.getItem i
-
-## PRIVATE
-wrap_text_or_regex_argument_as_value_provider val =
-    if val.is_a Regex then (_-> val) else wrap_text_argument_as_value_provider val
-
-## PRIVATE
-   Cast a column to a `Value_Type`, unless it already has that type.
-cast_if_needed : Column -> Value_Type -> Column
-cast_if_needed column value_type = if column.value_type == value_type then column else column.cast value_type
 
 ## PRIVATE
 naming_helper : Column_Naming_Helper
