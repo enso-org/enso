@@ -103,17 +103,18 @@ class Passes(config: CompilerConfig) {
     ) ++ (if (config.isLintingDisabled) {
             Nil
           } else {
-            List(UnusedBindings, NoSelfInStatic, UnusedImports.INSTANCE)
-          }) ++ (if (config.staticTypeInferenceEnabled) {
+            List(UnusedBindings, NoSelfInStatic)
+          }) ++ (if (config.staticAnalysisEnabled) {
                    List(
                      TypeInferenceSignatures.INSTANCE,
-                     StaticModuleScopeAnalysis.INSTANCE
+                     StaticModuleScopeAnalysis.INSTANCE,
+                     UnusedImports.INSTANCE
                    )
                  } else Nil)
   )
 
   val typeInferenceFinalPasses = new PassGroup(
-    if (config.staticTypeInferenceEnabled) {
+    if (config.staticAnalysisEnabled) {
       List(
         TypeInferencePropagation.INSTANCE
       )

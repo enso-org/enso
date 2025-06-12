@@ -83,7 +83,7 @@ public final class EnsoContext {
   private final HostClassLoader hostClassLoader = new HostClassLoader();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
-  private final boolean isStaticTypeAnalysisEnabled;
+  private final boolean isStaticAnalysisEnabled;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -145,7 +145,7 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
-    this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
+    this.isStaticAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
     this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
@@ -158,7 +158,7 @@ public final class EnsoContext {
             .autoParallelismEnabled(isParallelismEnabled)
             .warningsEnabled(true)
             .privateCheckEnabled(!isPrivateCheckDisabled)
-            .staticTypeInferenceEnabled(isStaticTypeAnalysisEnabled)
+            .staticAnalysisEnabled(isStaticAnalysisEnabled)
             .treatWarningsAsErrors(getOption(RuntimeOptions.TREAT_WARNINGS_AS_ERRORS_KEY))
             .dumpModuleIR(scala.Option.apply(dumpModuleIR))
             .isStrictErrors(getOption(RuntimeOptions.STRICT_ERRORS_KEY))
