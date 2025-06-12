@@ -234,14 +234,14 @@ object StdBits {
   }
 
   /** Extracts native libraries from `std-microsoft`.
-   * In particular from JNA.
+    * In particular from JNA.
     *
     * The list of the native libraries is listed in
     * <a href="https://github.com/enso-org/enso/blob/7e0c6373b55bdf976562bce899f2fe6af7c258c0/test/Base_Tests/data/native_libs.json#L2-L25">
     *   test/Base_Tests/data/native_libs.json
     * </a>
-   *
-   * @param jnaJar Path to `jna-wrapper/assembly`.
+    *
+    * @param jnaJar Path to `jna-wrapper/assembly`.
     */
   def extractNativeLibsFromMicrosoft(
     microsoftPolyglotRoot: File,

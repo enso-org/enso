@@ -5589,12 +5589,12 @@ lazy val `std-microsoft` = project
       StdBits
         .extractNativeLibsFromMicrosoft(
           microsoftPolyglotRoot = `std-microsoft-polyglot-root`,
-          microsoftNativeLibs = `std-microsoft-native-libs`,
-          jnaJar = jnaJar,
-          logger = streams.value.log,
-          moduleName = moduleName.value,
-          cacheStoreFactory = cacheStoreFactory,
-          previousRun = prev
+          microsoftNativeLibs   = `std-microsoft-native-libs`,
+          jnaJar                = jnaJar,
+          logger                = streams.value.log,
+          moduleName            = moduleName.value,
+          cacheStoreFactory     = cacheStoreFactory,
+          previousRun           = prev
         )
     }.value,
     cleanPolyglotRoot := Def.task {
