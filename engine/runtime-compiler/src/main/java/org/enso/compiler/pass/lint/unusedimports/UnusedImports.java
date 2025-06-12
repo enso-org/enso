@@ -21,6 +21,7 @@ import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
+import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.compiler.pass.IRPass;
@@ -167,6 +168,20 @@ public final class UnusedImports implements IRPass {
         var consNames = constructors.stream().map(cons -> typeName.createChild(cons.name()));
         var isInUsedSymbols = consNames.anyMatch(usedSymbolsForImp::contains);
         yield isInUsedSymbols;
+      }
+      case ResolvedModule module -> {
+        for (var usedSymbol : usedSymbolsForImp) {
+          // All but the last item
+          var prefix = usedSymbol.path().mkString(".");
+          if (module.qualifiedName().toString().equals(prefix)) {
+            var res = module.findExportedSymbolsFor(usedSymbol.item());
+            var symbolInModule = !res.isEmpty();
+            if (symbolInModule) {
+              yield true;
+            }
+          }
+        }
+        yield false;
       }
       default -> false;
     };
