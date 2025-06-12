@@ -32,6 +32,7 @@ jobs:
             lib/rust/**
             package.json
             *.bazel
+            .bazelrc
             pnpm-lock.yaml
             pnpm-workspace.yaml
             eslint.config.js
