@@ -514,6 +514,33 @@ public class UsedSymbolsCollectorTest {
     expectNoUsedSymbols(mainMod);
   }
 
+  /**
+   * {@code local.Proj.A} is both synthetic module and a real module.
+   */
+  @Test
+  public void usedSymbol_FromSyntheticSubmodule() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.A.B"), """
+            type B_Type
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.A"),
+        """
+            export project.A.B
+            type A_Type
+            """
+    );
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.A import B
+            main = B.B_Type
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.A.B.B_Type");
+  }
+
   private static UsedSymbols collect(org.enso.compiler.context.CompilerContext.Module mod) {
     var modIr = mod.getIr();
     return UsedSymbolsCollector.collect(modIr, getBindingsMap(modIr));
