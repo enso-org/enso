@@ -1,7 +1,7 @@
 package org.enso.table.data.column.builder;
 
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.NullStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
@@ -26,7 +26,7 @@ public final class NullBuilder implements Builder {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     // For any storage that is not all-null, check if non-null values are present
     if (!(storage.getType() instanceof NullType)) {
       for (long i = 0; i < storage.getSize(); i++) {
@@ -46,7 +46,7 @@ public final class NullBuilder implements Builder {
   }
 
   @Override
-  public Storage<?> seal() {
+  public ColumnStorage<?> seal() {
     return new NullStorage(length);
   }
 

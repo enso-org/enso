@@ -5,6 +5,7 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -22,6 +23,7 @@ import project.Internal.Read_Many_Helpers
 import project.Internal.Type_Refinements.Column_Refinements
 import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Internal.Widget_Helpers
+import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
@@ -66,6 +68,13 @@ type Column
        - repeats: The number of times to repeat the element.
     from_repeated_item name:Text item:Any repeats:Integer -> Column =
         In_Memory_Column.from_repeated_item name item repeats
+
+    ## PRIVATE
+       Checks if the given object represents a Column type.
+    is_column object -> Boolean =
+        Panic.catch Type_Error handler=_->False <|
+            _ = object:Column
+            True
 
     ## PRIVATE
        ADVANCED
@@ -1919,8 +1928,10 @@ type Column
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
+         By default, it will return all rows for in-memory columns, but in
+         Database it will read up to 1000 rows and warn if there are more.
     @max_rows Rows_To_Read.default_widget
-    read self (max_rows : Rows_To_Read = ..All_Rows) -> Column =
+    read self (max_rows : Rows_To_Read = default_row_limit_for_read self) -> Column =
         self.implementation.read self max_rows
 
     ## GROUP Standard.Base.Conversions
@@ -1971,7 +1982,7 @@ type Column
 
              example_to_json = Examples.integer_column.to_js_object
     to_js_object self -> JS_Object =
-        self.implementation.to_js_object self
+        self.implementation.to_js_object_implementation self
 
     ## ICON data_input
        Converts this column into a single-column table.
@@ -1982,7 +1993,8 @@ type Column
              import Standard.Examples
 
              example_to_table = Examples.integer_column.to_table
-    to_table self -> Table =
+    to_table self -> Table | Any =
+        # FIXME Table | Any is a workaround until Table becomes a base type like Column
         self.implementation.to_table self
 
     ## ALIAS column type, field info, metadata
@@ -2206,17 +2218,14 @@ type Column
         self.implementation.offset self n fill_with
 
 ## PRIVATE
-   Constructor to be used by implementations of the Column type to be able to provide a conversion.
-column_from_implementation value implementation =
-    Column.Value value implementation
-
-## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 
 ## PRIVATE
    Conversion method from a Column to a Vector.
-Vector.from (that:Column) = that.to_vector
+Vector.from (that:Column) =
+    if that.underlying.is_a In_Memory_Column then that.to_vector else
+        Error.throw (Illegal_Argument.Error that.to_text+" must be .read into memory before converting to Vector.")
 
 ## PRIVATE
    Conversion method to a Table to a Vector.
@@ -2237,9 +2246,9 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_wit
 ## PRIVATE
 Many_Files_List.from (that : Column) =
     # Ensure that only in-memory columns can be used as Many_Files_List
-    _ = that:In_Memory_Column
-    Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
-        Many_Files_List.Value that that.to_vector
+    (that:In_Memory_Column).if_not_error <|
+        Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
+            Many_Files_List.Value that that.to_vector
 
 ## PRIVATE
    Gets the Visualization helpers for a Column.
@@ -2247,5 +2256,14 @@ Visualization_Helpers.from (that : Column) =
     Visualization_Helpers.from that.underlying
 
 ## PRIVATE
+Numeric_Column.from (that : Column) =
+    Numeric_Column.from that.underlying
+
+## PRIVATE
    Resolves the default date period for `date_add` depending on the source column value type.
 default_date_period column = if column.value_type.has_date then Date_Period.Day else Time_Period.Hour
+
+## PRIVATE
+   Returns the default row limit for `read` depending on the backend.
+default_row_limit_for_read column =
+    column.implementation.default_row_limit_for_read

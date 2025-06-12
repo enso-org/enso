@@ -6,6 +6,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
@@ -100,7 +101,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public Storage<Long> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<Long> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
       throw new IllegalStateException(
           "Custom missing value semantics are not supported by AbstractLongStorage.");
@@ -141,7 +142,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   public abstract AbstractLongStorage widen(IntegerType widerType);
 
   @Override
-  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Long> applyFilter(BitSet filterMask, int newLength) {
     var builder = Builder.getForLong(getType(), newLength, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < getSize(); i++) {
@@ -159,7 +160,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public Storage<Long> applyMask(OrderMask mask) {
+  public ColumnStorage<Long> applyMask(OrderMask mask) {
     var builder = Builder.getForLong(getType(), mask.length(), BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
@@ -176,7 +177,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public Storage<Long> slice(int offset, int limit) {
+  public ColumnStorage<Long> slice(int offset, int limit) {
     int size = (int) getSize();
     int newSize = Math.min(size - offset, limit);
     var builder = Builder.getForLong(getType(), newSize, BlackholeProblemAggregator.INSTANCE);
@@ -193,7 +194,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public Storage<Long> slice(List<SliceRange> ranges) {
+  public ColumnStorage<Long> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
     var builder = Builder.getForLong(getType(), newSize, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();

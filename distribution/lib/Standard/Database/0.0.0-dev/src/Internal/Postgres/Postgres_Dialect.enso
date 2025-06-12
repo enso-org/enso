@@ -221,8 +221,8 @@ type Postgres_Dialect
        is used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
-        is_int8 ic = ic.sql_type_reference.get.typeid == Types.BIGINT
-        is_int ic =
+        is_int8 ic:Internal_Column = ic.sql_type_reference.get.typeid == Types.BIGINT
+        is_int ic:Internal_Column =
             typeid = ic.sql_type_reference.get.typeid
             typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
 
@@ -244,7 +244,7 @@ type Postgres_Dialect
        Add an extra cast to adjust the output type of aggregate operations.
        Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->c.expression))
+        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->(c:Internal_Column).expression))
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
@@ -592,7 +592,7 @@ right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
 ## PRIVATE
-make_order_descriptor internal_column sort_direction text_ordering =
+make_order_descriptor internal_column:Internal_Column sort_direction text_ordering =
     nulls = case sort_direction of
         Sort_Direction.Ascending -> Nulls_Order.First
         Sort_Direction.Descending -> Nulls_Order.Last
@@ -654,7 +654,7 @@ supported_replace_params =
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
@@ -697,7 +697,7 @@ replace args metadata =
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
-        DB_Column ->
+        Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->

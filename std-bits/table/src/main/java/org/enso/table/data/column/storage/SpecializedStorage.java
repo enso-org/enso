@@ -54,7 +54,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<T> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(newLength);
     int resIx = 0;
@@ -69,7 +69,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> applyMask(OrderMask mask) {
+  public ColumnStorage<T> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(mask.length());
     for (int i = 0; i < mask.length(); i++) {
@@ -85,7 +85,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> slice(int offset, int limit) {
+  public ColumnStorage<T> slice(int offset, int limit) {
     int newSize = Math.min(data.length - offset, limit);
     T[] newData = newUnderlyingArray(newSize);
     System.arraycopy(data, offset, newData, 0, newSize);
@@ -93,7 +93,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> slice(List<SliceRange> ranges) {
+  public ColumnStorage<T> slice(List<SliceRange> ranges) {
     Context context = Context.getCurrent();
     int newSize = SliceRange.totalLength(ranges);
     T[] newData = newUnderlyingArray(newSize);
@@ -109,7 +109,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public Storage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null && CountNothing.anyNothing(missingIndicator)) {
       throw new IllegalArgumentException(
           "Missing indicator must not contain missing values itself.");

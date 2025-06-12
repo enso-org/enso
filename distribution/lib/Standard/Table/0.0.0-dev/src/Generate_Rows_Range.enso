@@ -54,7 +54,7 @@ type Generate_Rows_Range
             Generate_Rows_Range.Date_Range from to include_end step ->
                 resolve_from_to_range from to include_end step Value_Type.Date
             Generate_Rows_Range.Range value ->
-                table.make_constant_column value
+                table.make_constant_column_from_vector value
             Generate_Rows_Range.Integer_Column column ->
                 column.map t->(0.up_to t)
 

@@ -62,7 +62,7 @@ type Test
                 True ->
                     Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action returned a Dataflow Error " + res.catch.to_display_text + " instead (at " + Frame_Hider.get_top_stack_frame + ").")
                 False ->
-                    return_suffix = if res.is_nothing then "" else " and returned ["+res.to_text+"]"
+                    return_suffix = if Nothing == res then "" else " and returned ["+res.to_text+"]"
                     Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at " + Frame_Hider.get_top_stack_frame + ").")
 
 

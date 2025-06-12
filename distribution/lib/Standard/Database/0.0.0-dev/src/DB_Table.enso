@@ -27,6 +27,7 @@ import Standard.Table.Expression.Expression_Error
 import Standard.Table.Grouping_Method.Grouping_Method
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
+import Standard.Table.Internal.Column_Type_Helpers
 import Standard.Table.Internal.Constant_Column.Constant_Column
 import Standard.Table.Internal.Display_Helpers
 import Standard.Table.Internal.Join_Kind_Cross.Join_Kind_Cross
@@ -45,7 +46,7 @@ import Standard.Table.Row.Row
 import Standard.Table.Row_Limit.Row_Limit
 import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.Value_Type.By_Type
-from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Fill_With, Generate_Rows_Range, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
+from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column, Column_Ref, Data_Formatter, Fill_With, Generate_Rows_Range, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Table import make_fill_nothing_default_widget
@@ -153,7 +154,7 @@ type DB_Table
        Arguments:
        - selector: The name or index of the column to get.
     @selector Widget_Helpers.make_column_name_selector
-    at self (selector : Integer | Text = 0) -> DB_Column ! No_Such_Column | Index_Out_Of_Bounds =
+    at self (selector : Integer | Text = 0) -> Column & DB_Column ! No_Such_Column | Index_Out_Of_Bounds =
         case selector of
             _ : Integer -> self.make_column (self.internal_columns.at selector)
             _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
@@ -165,7 +166,7 @@ type DB_Table
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
-    get self (selector : Integer | Text = 0) ~if_missing:Any=Nothing -> DB_Column | Any =
+    get self (selector : Integer | Text = 0) ~if_missing:Any=Nothing -> (Column & DB_Column) | Any =
         internal_column = case selector of
             _ : Integer -> self.internal_columns.get selector if_missing=Nothing
             _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
@@ -224,7 +225,7 @@ type DB_Table
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
-    first_column self -> DB_Column ! Index_Out_Of_Bounds =
+    first_column self -> Column & DB_Column ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw self.connection.dialect "first_column" <|
             self.at 0
 
@@ -232,7 +233,7 @@ type DB_Table
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the last column
-    last_column self -> DB_Column ! Index_Out_Of_Bounds =
+    last_column self -> Column & DB_Column ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw self.connection.dialect "last_column" <|
             self.at -1
 
@@ -304,7 +305,7 @@ type DB_Table
     select_columns self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [self.columns.first.name]) reorder:Boolean=False case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Output_Columns | Missing_Input_Columns =
         Feature.Select_Columns.if_supported_else_throw self.connection.dialect "select_columns" <|
             new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
-            self.updated_columns (new_columns.map _.as_internal)
+            self.updated_columns (new_columns.map (Internal_Column.from _))
 
     ## PRIVATE
        ALIAS select fields by type
@@ -323,7 +324,7 @@ type DB_Table
     select_columns_by_type self (types:Vector Value_Type) strict:Boolean=False =
         Feature.Select_Columns.if_supported_else_throw self.connection.dialect "select_columns_by_type" <|
             new_columns = self.columns_helper.select_by_type types strict
-            result = self.updated_columns (new_columns.map _.as_internal)
+            result = self.updated_columns (new_columns.map (Internal_Column.from _))
             Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
 
     ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
@@ -383,7 +384,7 @@ type DB_Table
     remove_columns self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [self.columns.first.name]) case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Output_Columns | Missing_Input_Columns =
         Feature.Select_Columns.if_supported_else_throw self.connection.dialect "remove_columns" <|
             new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
-            self.updated_columns (new_columns.map _.as_internal)
+            self.updated_columns (new_columns.map (Internal_Column.from _))
 
     ## PRIVATE
        ALIAS remove fields by type, select columns by type, select fields by type
@@ -402,7 +403,7 @@ type DB_Table
     remove_columns_by_type self (types:Vector Value_Type) strict:Boolean=False =
         Feature.Select_Columns.if_supported_else_throw self.connection.dialect "remove_columns_by_type" <|
             new_columns = self.columns_helper.remove_by_type types strict
-            result = self.updated_columns (new_columns.map _.as_internal)
+            result = self.updated_columns (new_columns.map (Internal_Column.from _))
             Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
 
     ## ALIAS filter_blank_columns, select_blank_fields, select_missing_columns, select_na
@@ -510,7 +511,7 @@ type DB_Table
     reorder_columns self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [self.columns.first.name]) position:Position=..Before_Other_Columns case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Missing_Input_Columns =
         Feature.Select_Columns.if_supported_else_throw self.connection.dialect "reorder_columns" <|
             new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
-            self.updated_columns (new_columns.map _.as_internal)
+            self.updated_columns (new_columns.map (Internal_Column.from _))
 
     ## GROUP Standard.Base.Selections
        ICON select_column
@@ -651,7 +652,7 @@ type DB_Table
 
        If instead of a name, a column is provided, it is returned as-is as long
        as it comes from the same context.
-    resolve : Text | DB_Column -> DB_Column
+    resolve : Text | DB_Column -> Column & DB_Column
     resolve self column =
         Feature.Select_Columns.if_supported_else_throw self.connection.dialect "resolve" <|
             case column of
@@ -724,11 +725,11 @@ type DB_Table
              people.filter "age" (age -> (age%10 == 0))
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
-    filter self (column : DB_Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
+    filter self (column : (Column & DB_Column) | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
         Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
             case column of
-                _ : DB_Column ->
-                    mask filter_column = case Helpers.check_integrity self filter_column of
+                _ : Column ->
+                    mask (filter_column : Column & DB_Column) = case Helpers.check_integrity self filter_column of
                         False ->
                             Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
                         True ->
@@ -905,7 +906,7 @@ type DB_Table
             ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
             problem_builder.attach_problems_before on_problems <|
                 order_descriptors = _resolve_order_descriptors self ordering "add_row_number"
-                grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+                grouping_expressions = (grouping_columns.map (Internal_Column.from _)).map .expression
 
                 new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
 
@@ -917,7 +918,7 @@ type DB_Table
                 new_column = Internal_Column.Value name new_type_ref new_expr
 
                 rebuild_table columns =
-                    self.updated_columns (columns.map .as_internal)
+                    self.updated_columns (columns.map (Internal_Column.from _))
                 renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
                 updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                 updated_table.as_subquery
@@ -1021,7 +1022,7 @@ type DB_Table
                         Error.throw (Illegal_Argument.Error "..Unique requires a non-empty 'group_by'")
                     grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
                     problem_builder.attach_problems_before on_problems <|
-                        grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+                        grouping_expressions = (grouping_columns.map (Internal_Column.from _)).map .expression
 
                         new_expr = Group_Number_Helpers.make_group_number from step grouping_expressions
 
@@ -1033,7 +1034,7 @@ type DB_Table
                         new_column = Internal_Column.Value name new_type_ref new_expr
 
                         rebuild_table columns =
-                            self.updated_columns (columns.map .as_internal)
+                            self.updated_columns (columns.map (Internal_Column.from _))
                         renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
                         updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                         updated_table.as_subquery
@@ -1054,7 +1055,7 @@ type DB_Table
                         new_column = Internal_Column.Value name new_type_ref new_expr
 
                         rebuild_table columns =
-                            self.updated_columns (columns.map .as_internal)
+                            self.updated_columns (columns.map (Internal_Column.from _))
                         renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
                         updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                         updated_table.as_subquery
@@ -1140,7 +1141,7 @@ type DB_Table
                  table.set double_inventory as="total_stock"
                  table.set (expr "2 * [total_stock]") as="total_stock_expr"
     @value Simple_Expression.default_widget
-    set self (value : DB_Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+    set self (value : (Column & DB_Column) | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names
@@ -1148,7 +1149,7 @@ type DB_Table
         resolved = case value of
             _ : Text -> self.make_constant_column value
             _ : Expression -> self.evaluate_expression value on_problems
-            _ : DB_Column ->
+            _ : Column ->
                 if Helpers.check_integrity self value then value else
                     Error.throw (Integrity_Error.Error "Column "+value.name)
             _ : Constant_Column -> self.make_constant_column value
@@ -1173,7 +1174,7 @@ type DB_Table
                 Set_Mode.Add -> if index.is_nothing then True else Error.throw (Existing_Column.Error renamed.name)
                 Set_Mode.Update -> if index.is_nothing then Error.throw (Missing_Column.Error renamed.name) else True
             new_table = check_add.if_not_error <|
-                new_col = renamed.as_internal
+                new_col = Internal_Column.from renamed
                 new_cols = if index.is_nothing then self.internal_columns + [new_col] else
                     Vector.new self.column_count i-> if i == index then new_col else self.internal_columns.at i
                 self.updated_columns new_cols
@@ -1204,15 +1205,15 @@ type DB_Table
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
-    evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression : Text | Expression -> Problem_Behavior -> Column & DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
         if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
             get_column name = self.at name
             make_constant_column value = case value of
-                _ : DB_Column -> value
+                _ : Column -> value
                 _ -> self.make_constant_column value
-            is_column value = value.is_a DB_Column
-            new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
+            is_column value = value.is_a Column
+            new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" Column_Type_Helpers.var_args_functions
             problems = Warning.get_all new_column . map .value
             result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
             on_problems.attach_problems_before problems <|
@@ -1261,9 +1262,9 @@ type DB_Table
     ## PRIVATE
 
        Create a constant column from a value.
-    make_constant_column : Any -> DB_Column ! Illegal_Argument
+    make_constant_column : Any -> Column & DB_Column ! Illegal_Argument
     make_constant_column self value =
-        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
+        if Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
             type_mapping = self.connection.dialect.get_type_mapping
             argument_value_type = Value_Type_Helpers.find_argument_type value
             sql_type = case argument_value_type of
@@ -1514,7 +1515,7 @@ type DB_Table
        Returns the set of rows which are duplicated within the specified columns from the
        input table.
 
-       When multiple rows have the same values within the specified columns all of those rows are 
+       When multiple rows have the same values within the specified columns all of those rows are
        returned. Rows which are unique within the specified columns are removed.
 
        Arguments:
@@ -2052,7 +2053,7 @@ type DB_Table
                                 case column_set.column_indices.at i of
                                     corresponding_column_index : Integer ->
                                         column = t.at corresponding_column_index
-                                        internal_named_column = column.as_internal.rename column_name
+                                        internal_named_column = Internal_Column.from column . rename column_name
                                         ## We cast if the result type is different.
                                           This is a bit on the safe side. In some cases the cast is not needed
                                           (for example, most databases will allow union of int2 and int4 without casts; or SQLite does not need casts at all).
@@ -2795,8 +2796,7 @@ type DB_Table
 
        Arguments:
        - internal: The internal column to use for creating a column.
-    make_column : Internal_Column -> DB_Column
-    make_column self internal =
+    make_column self internal:Internal_Column -> Column & DB_Column =
         DB_Column.new internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE
@@ -3072,7 +3072,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | DB_Column | Column_Ref | Expression | Regex = "") (new_text : Text | DB_Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> DB_Column =
+    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | DB_Column | Column_Ref | Expression | Regex = "") (new_text : Text | DB_Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column & DB_Column =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
@@ -3202,11 +3202,11 @@ type DB_Table
             resolved_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
             problem_builder.attach_problems_before on_problems <| if columns.is_empty then self else
                 order_descriptors = _resolve_order_descriptors self ordering "offset"
-                grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+                grouping_expressions = (grouping_columns.map (Internal_Column.from _)).map .expression
                 
                 offset_expr c:DB_Column -> SQL_IR_Expression =
-                    Offset_Helpers.make_offset n (c.as_internal) order_descriptors grouping_expressions fill_with
-                new_column_name c:DB_Column -> Text = 
+                    Offset_Helpers.make_offset n (Internal_Column.from c) order_descriptors grouping_expressions fill_with
+                new_column_name c:Column -> Text =
                     if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
                 
                 new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) c.sql_type_reference (offset_expr c))
