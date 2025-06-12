@@ -514,9 +514,7 @@ public class UsedSymbolsCollectorTest {
     expectNoUsedSymbols(mainMod);
   }
 
-  /**
-   * {@code local.Proj.A} is both synthetic module and a real module.
-   */
+  /** {@code local.Proj.A} is both synthetic module and a real module. */
   @Test
   public void usedSymbol_FromSyntheticSubmodule() {
     compilerCtx.createModule(
@@ -528,8 +526,7 @@ public class UsedSymbolsCollectorTest {
         """
             export project.A.B
             type A_Type
-            """
-    );
+            """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),
