@@ -164,7 +164,6 @@ export function useFileExtensions({
     (): ComponentProps<typeof SelectionSubmenu<FileExtensionEntry>> => ({
       show: toValue(fileExtensionDropdownOpened),
       entries: toValue(fileExtensionEntries),
-      isSelected: () => false,
       topLevel: true,
       color: 'white',
       backgroundColor: 'var(--color-panel-accent)',

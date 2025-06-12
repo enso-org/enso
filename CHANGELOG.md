@@ -18,6 +18,8 @@
 - [Add keyboard shortcuts for formatting documentation][13134]
 - [New right-side panel][13135], unified between tabs.
 - [Allow selecting expected types for arguments of grouped components.][13161]
+- [Allow marking grouped component arguments as required or providing a default
+  value.][13254]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -33,6 +35,7 @@
 [13134]: https://github.com/enso-org/enso/pull/13134
 [13135]: https://github.com/enso-org/enso/pull/13135
 [13161]: https://github.com/enso-org/enso/pull/13161
+[13254]: https://github.com/enso-org/enso/pull/13254
 
 #### Enso Standard Library
 
