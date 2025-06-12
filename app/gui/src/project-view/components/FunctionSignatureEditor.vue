@@ -4,6 +4,7 @@ import {
   useProjectNames,
   useSuggestionDbStore,
 } from '$/components/WithCurrentProject.vue'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
@@ -54,6 +55,7 @@ const treeRootInput = computed((): WidgetInput => {
 
 const rootElement = useTemplateRef('rootElement')
 const { focused } = useFocusWithin(rootElement)
+providePopoverRoot(rootElement)
 
 const graph = useGraphStore()
 
