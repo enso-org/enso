@@ -1583,9 +1583,6 @@ lazy val `akka-wrapper` = project
       "com.google.protobuf" % "protobuf-java"    % googleProtobufVersion,
       "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion
     ),
-    Compile / internalModuleDependencies := Seq(
-      (`jna-wrapper` / Compile / exportedModule).value
-    ),
     assembly / assemblyExcludedJars := {
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
         update.value,
@@ -1631,7 +1628,6 @@ lazy val `akka-wrapper` = project
       )
     }
   )
-  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val `zio-wrapper` = project
   .in(file("lib/java/zio-wrapper"))
@@ -2490,7 +2486,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`logging-service-logback` / Test / exportedModule).value,
       (`version-output` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
-      (`jna-wrapper` / Compile / exportedModule).value,
       (`akka-wrapper` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
       (`fansi-wrapper` / Compile / exportedModule).value,
