@@ -1,12 +1,9 @@
 private
 
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Column, Value_Type
-from Standard.Table.Internal.Column_Type_Helpers import underlying_from_column
+from Standard.Table import Value_Type
 
-import project.DB_Column.DB_Column
 from project.Internal.DB_Column_Implementation import naming_helper, make_unary_op
 
 type DB_Numeric_Column_Implementation
