@@ -3,8 +3,9 @@ load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@rules_java//java:defs.bzl", "java_binary", "java_runtime")
-load("//:bazel_scripts/sbt.bzl", "sbt_path")
 load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
+load("//toolchains/sbt:extensions.bzl", "sbt_path")
+load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
 npm_link_all_packages()
 
@@ -189,6 +190,14 @@ genrule(
     ],
     visibility = ["//visibility:public"],
 )
+
+run_sbt(
+    name = "debug_run_sbt",
+    args = ["--version"],
+    out_dirs = ["internal"],
+    visibility = ["//visibility:public"],
+)
+
 
 #java_binary(
 #    name = "sbt_launcher",

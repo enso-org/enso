@@ -8,6 +8,7 @@ bazel_dep(name = "aspect_rules_js", version = "2.1.2")
 bazel_dep(name = "aspect_rules_ts", version = "3.3.2")
 bazel_dep(name = "rules_nodejs", version = "6.3.2")
 bazel_dep(name = "aspect_bazel_lib", version = "2.10.0")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
 
 ## Node.js
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
@@ -144,8 +145,10 @@ register_toolchains("@graalvm//:toolchain")
 
 bazel_dep(name = "rules_jvm_external", version = "6.3")
 
-sbt_ext = use_extension("//:bazel_scripts/sbt.bzl", "sbt_ext")
+sbt_ext = use_extension("//toolchains/sbt:extensions.bzl", "sbt_ext")
 use_repo(sbt_ext, "sbt_repo")
+
+register_toolchains("@sbt_repo//:toolchain")
 
 scala_logging_version = "3.9.4"
 

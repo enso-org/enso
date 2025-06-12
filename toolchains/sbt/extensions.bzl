@@ -31,18 +31,18 @@ def _sbt_repo(rctx):
         output = "sbt.zip",
     )
     rctx.extract("sbt.zip")
-    rctx.file("BUILD.bazel", """
-load("@rules_java//java:defs.bzl", "java_binary", "java_runtime")
-
-filegroup(
-    name = "sbt_launch_jar",
-    srcs = ["sbt/bin/sbt-launch.jar"],
-    visibility = ["//visibility:public"],
-)
-""")
+    
+    rctx.template("BUILD.bazel", rctx.attr._build_tpl, substitutions = {
+        "{sbt_binary}": str(rctx.path("sbt/bin/sbt-launch.jar")),
+    })
 
 sbt_repo = repository_rule(
     implementation = _sbt_repo,
+    attrs = {
+        "_build_tpl": attr.label(
+            default = "@//toolchains/sbt:BUILD.bazel.tpl",
+        ),
+    }
 )
 
 def _sbt_ext(rctx):

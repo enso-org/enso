@@ -195,22 +195,6 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
-    "//:bazel_scripts/sbt.bzl%sbt_ext": {
-      "general": {
-        "bzlTransitiveDigest": "M6BsvP6r4iD+jftlXYbV7PGtvSPsUEc5WVvqBj/wnY4=",
-        "usagesDigest": "b3kmobk2eCXOVXZaF5zUsdo7wzWFASGqruZq3yySkak=",
-        "recordedFileInputs": {},
-        "recordedDirentsInputs": {},
-        "envVariables": {},
-        "generatedRepoSpecs": {
-          "sbt_repo": {
-            "repoRuleId": "@@//:bazel_scripts/sbt.bzl%sbt_repo",
-            "attributes": {}
-          }
-        },
-        "recordedRepoMappingEntries": []
-      }
-    },
     "//:bazel_scripts/secrets.bzl%secrets": {
       "general": {
         "bzlTransitiveDigest": "gAEoCrisX9JFPj8WI9Db0nShQ/mwAWt8x3lA90BT6NU=",
@@ -274,6 +258,22 @@
               "os": "windows",
               "arch": "x86_64"
             }
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
+    "//toolchains/sbt:extensions.bzl%sbt_ext": {
+      "general": {
+        "bzlTransitiveDigest": "Av5aAHdU5boPFADQIh4esHQX6mnW2aXRXZqpF7BiGWg=",
+        "usagesDigest": "uOw8V7fdjt93Pr0cm/xXSVVkrSsvkmJXDXVazCMm4CQ=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "sbt_repo": {
+            "repoRuleId": "@@//toolchains/sbt:extensions.bzl%sbt_repo",
+            "attributes": {}
           }
         },
         "recordedRepoMappingEntries": []
