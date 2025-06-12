@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
@@ -31,8 +31,7 @@ public class Distinct {
     if (keyColumns.length != 0) {
       HashSet<MultiValueKeyBase> visitedRows = new HashSet<>();
       int size = keyColumns[0].getSize();
-      Storage<?>[] storage =
-          Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+      var storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
       List<TextFoldingStrategy> strategies = ConstantList.make(textFoldingStrategy, storage.length);
       for (int i = 0; i < size; i++) {
         UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, strategies);
@@ -66,8 +65,7 @@ public class Distinct {
     if (keyColumns.length != 0) {
       Map<MultiValueKeyBase, Integer> visitedRows = new HashMap<>();
       int size = keyColumns[0].getSize();
-      Storage<?>[] storage =
-          Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+      var storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
       List<TextFoldingStrategy> strategies = ConstantList.make(textFoldingStrategy, storage.length);
       for (int i = 0; i < size; i++) {
         UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, strategies);

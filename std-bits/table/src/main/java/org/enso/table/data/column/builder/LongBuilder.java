@@ -5,7 +5,7 @@ import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -94,7 +94,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (Objects.equals(storage.getType(), getType())
         && storage instanceof LongStorage longStorage) {
       // A fast path for the same type - no conversions/checks needed.
@@ -174,7 +174,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   @Override
-  public Storage<Long> seal() {
+  public ColumnStorage<Long> seal() {
     return new LongStorage(data, currentSize, isNothing, getType());
   }
 }

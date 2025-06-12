@@ -105,7 +105,7 @@ public final class EnsoMultiValue extends EnsoObject {
       var dt = executeTypes(types, 0, dispatchTypes);
       var et = executeTypes(types, dispatchTypes, types.length);
       assert !dt.hasIntersectionWith(et)
-          : "Dispatch (" + dt + " and extra " + et + " should be disjoin!";
+          : "Dispatch (" + dt + ") and extra (" + et + ") should be disjoin!";
       return new EnsoMultiValue(dt, et, values, firstDispatch);
     }
 

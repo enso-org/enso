@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.index.UnorderedMultiValueKey;
@@ -90,7 +90,7 @@ class NoGroupingNoOrderingRunning extends GroupingOrderingVisitor {
 class GroupingNoOrderingRunning extends GroupingOrderingVisitor {
 
   private final Column[] groupingColumns;
-  private final Storage<?>[] groupingStorages;
+  private final ColumnStorage<?>[] groupingStorages;
   private final ColumnAggregatedProblemAggregator groupingProblemAggregator;
   private final List<TextFoldingStrategy> textFoldingStrategy;
   private final Map<UnorderedMultiValueKey, GroupRowVisitor> groups;
@@ -98,7 +98,7 @@ class GroupingNoOrderingRunning extends GroupingOrderingVisitor {
   public GroupingNoOrderingRunning(Column[] groupingColumns, ProblemAggregator problemAggregator) {
     this.groupingColumns = groupingColumns;
     groupingStorages =
-        Arrays.stream(groupingColumns).map(Column::getStorage).toArray(Storage[]::new);
+        Arrays.stream(groupingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     textFoldingStrategy =
         ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, groupingStorages.length);
@@ -120,13 +120,13 @@ class GroupingNoOrderingRunning extends GroupingOrderingVisitor {
 
 class NoGroupingOrderingRunning extends GroupingOrderingVisitor {
 
-  private final Storage<?>[] orderingStorages;
+  private final ColumnStorage<?>[] orderingStorages;
   private final List<OrderedMultiValueKey> keys;
 
   public NoGroupingOrderingRunning(Column[] orderingColumns, int[] directions) {
     int n = orderingColumns[0].getSize();
     orderingStorages =
-        Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
+        Arrays.stream(orderingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     keys =
         new ArrayList<>(
             IntStream.range(0, n)
@@ -151,8 +151,8 @@ class GroupingOrderingRunning extends GroupingOrderingVisitor {
   private final Column[] groupingColumns;
   private final Column[] orderingColumns;
   private final int[] directions;
-  private final Storage<?>[] groupingStorages;
-  private final Storage<?>[] orderingStorages;
+  private final ColumnStorage<?>[] groupingStorages;
+  private final ColumnStorage<?>[] orderingStorages;
   private final ProblemAggregator problemAggregator;
 
   public GroupingOrderingRunning(
@@ -164,10 +164,10 @@ class GroupingOrderingRunning extends GroupingOrderingVisitor {
     this.orderingColumns = orderingColumns;
     this.directions = directions;
     groupingStorages =
-        Arrays.stream(groupingColumns).map(Column::getStorage).toArray(Storage[]::new);
+        Arrays.stream(groupingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, groupingStorages.length);
     orderingStorages =
-        Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
+        Arrays.stream(orderingColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     this.problemAggregator = problemAggregator;
   }
 

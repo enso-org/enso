@@ -9,8 +9,8 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -68,7 +68,7 @@ public final class LongStorage extends AbstractLongStorage
     return isNothing;
   }
 
-  private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
+  private ColumnStorage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
     var builder = Builder.getForDouble(FloatType.FLOAT_64, getSize(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < getSize(); i++) {
@@ -84,7 +84,7 @@ public final class LongStorage extends AbstractLongStorage
     return builder.seal();
   }
 
-  private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
+  private ColumnStorage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
     final var builder = Builder.getForLong(IntegerType.INT_64, getSize(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < getSize(); i++) {
@@ -100,7 +100,7 @@ public final class LongStorage extends AbstractLongStorage
     return builder.seal();
   }
 
-  private Storage<?> fillMissingBigInteger(
+  private ColumnStorage<?> fillMissingBigInteger(
       BigInteger bigInteger, ProblemAggregator problemAggregator) {
     var builder = Builder.getForBigInteger(getSize(), problemAggregator);
     Context context = Context.getCurrent();
@@ -112,7 +112,7 @@ public final class LongStorage extends AbstractLongStorage
   }
 
   @Override
-  public Storage<?> fillMissing(
+  public ColumnStorage<?> fillMissing(
       Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (NumericConverter.isCoercibleToLong(arg.as(Object.class))) {
@@ -128,7 +128,7 @@ public final class LongStorage extends AbstractLongStorage
   }
 
   @Override
-  public LongStorage slice(int offset, int limit) {
+  public ColumnStorage<Long> slice(int offset, int limit) {
     int size = (int) getSize();
     int newSize = Math.min(size - offset, limit);
     long[] newData;
@@ -149,7 +149,7 @@ public final class LongStorage extends AbstractLongStorage
   }
 
   @Override
-  public LongStorage slice(List<SliceRange> ranges) {
+  public ColumnStorage<Long> slice(List<SliceRange> ranges) {
     BitSet currentMask = getIsNothingMap();
     int newSize = SliceRange.totalLength(ranges);
     long[] newData = new long[newSize];

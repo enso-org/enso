@@ -4,8 +4,6 @@ import java.util.function.LongFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.NullStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -52,7 +50,7 @@ public final class IfOperation {
 
     var result =
         (resultStorageType instanceof NullType)
-            ? new NullStorage(condition.getSize())
+            ? Builder.fromRepeatedItem(null, condition.getSize())
             : computeColumnStorage(
                 condition,
                 when_true,
@@ -60,7 +58,7 @@ public final class IfOperation {
                 resultStorageType,
                 problemAggregator,
                 conditionStorage);
-    return new Column(new_name, (Storage<?>) result);
+    return new Column(new_name, result);
   }
 
   private static <T> ColumnStorage<T> computeColumnStorage(

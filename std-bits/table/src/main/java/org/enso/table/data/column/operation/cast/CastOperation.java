@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -38,8 +37,7 @@ public class CastOperation {
     var converter = fromStorageType(targetType);
     var newStorage = converter.cast(source.getStorage(), castProblemAggregator);
 
-    // ToDo: Merge Storage and ColumnStorage
-    return new Column(source.getName(), (Storage<?>) newStorage);
+    return new Column(source.getName(), newStorage);
   }
 
   /** Construct a StorageConverter for the given target type. */

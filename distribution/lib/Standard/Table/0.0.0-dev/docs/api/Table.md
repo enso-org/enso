@@ -44,6 +44,7 @@
     - last_row self -> Standard.Table.Row.Row!Standard.Base.Errors.Common.Index_Out_Of_Bounds
     - last_value self -> Standard.Base.Any.Any!Standard.Base.Errors.Common.Index_Out_Of_Bounds
     - make_constant_column self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - make_constant_column_from_vector self vector:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
     - make_table_from_dictionary self dict:Standard.Base.Any.Any key_column_name:Standard.Base.Any.Any value_column_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - make_table_from_vectors self column_vectors:Standard.Base.Any.Any column_names:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - make_temp_column_name self -> Standard.Base.Any.Any

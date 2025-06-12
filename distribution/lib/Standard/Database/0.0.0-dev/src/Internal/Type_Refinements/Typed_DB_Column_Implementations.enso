@@ -1,0 +1,21 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import Column, Value_Type
+from Standard.Table.Internal.Column_Type_Helpers import underlying_from_column
+
+import project.DB_Column.DB_Column
+from project.Internal.DB_Column_Implementation import naming_helper, make_unary_op
+
+type DB_Numeric_Column_Implementation
+    abs column =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "abs" [column]
+            make_unary_op column "ABS" new_name
+
+    signum column =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "signum" [column]
+            make_unary_op column "SIGNUM" new_name

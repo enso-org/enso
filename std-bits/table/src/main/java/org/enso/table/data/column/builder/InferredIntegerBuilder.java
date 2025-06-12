@@ -2,7 +2,7 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -66,7 +66,7 @@ public final class InferredIntegerBuilder implements Builder {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
@@ -84,7 +84,7 @@ public final class InferredIntegerBuilder implements Builder {
   }
 
   @Override
-  public Storage<?> seal() {
+  public ColumnStorage<?> seal() {
     if (bigIntegerBuilder != null) {
       return bigIntegerBuilder.seal();
     } else {

@@ -5,8 +5,13 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.util.BitSet;
 import java.util.Objects;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.NullStorage;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
+import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -20,7 +25,10 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.data.table.Column;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Context;
 
 /** Interface defining a builder for creating columns dynamically. */
 public interface Builder {
@@ -37,6 +45,30 @@ public interface Builder {
     }
 
     return (int) size;
+  }
+
+  static ColumnStorage<?> fromRepeatedItem(Object item, long size) {
+    if (size < 0) {
+      throw new IllegalArgumentException("Repeat count must be non-negative.");
+    }
+
+    return switch (item) {
+      case null -> new NullStorage(size);
+      case Long longValue -> new LongConstantStorage(longValue, checkSize(size));
+      case Boolean booleanValue -> new BoolStorage(
+          new BitSet(), new BitSet(), checkSize(size), booleanValue);
+      default -> {
+        var storageType = StorageType.forBoxedItem(item, PreciseTypeOptions.DEFAULT);
+        Builder builder =
+            Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
+        Context context = Context.getCurrent();
+        for (long i = 0; i < size; i++) {
+          builder.append(item);
+          context.safepoint();
+        }
+        yield builder.seal();
+      }
+    };
   }
 
   /**
@@ -183,6 +215,19 @@ public interface Builder {
   Builder appendNulls(int count);
 
   /**
+   * Appends the whole contents of some other column.
+   *
+   * <p>This may be used to efficiently copy a whole column into the builder. Used for example when
+   * concatenating columns.
+   *
+   * <p>If the provided storage type is not compatible with the type of this builder, a {@code
+   * StorageTypeMismatch} exception may be thrown.
+   */
+  default void appendBulkStorage(Column column) {
+    appendBulkStorage(column.getStorage());
+  }
+
+  /**
    * Appends the whole contents of some other storage.
    *
    * <p>This may be used to efficiently copy a whole storage into the builder. Used for example when
@@ -191,7 +236,7 @@ public interface Builder {
    * <p>If the provided storage type is not compatible with the type of this builder, a {@code
    * StorageTypeMismatch} exception may be thrown.
    */
-  void appendBulkStorage(Storage<?> storage);
+  void appendBulkStorage(ColumnStorage<?> storage);
 
   /**
    * @return the number of appended elements
@@ -201,7 +246,7 @@ public interface Builder {
   /**
    * @return a storage containing all the items appended so far
    */
-  Storage<?> seal();
+  ColumnStorage<?> seal();
 
   /**
    * @return the current storage type of this builder

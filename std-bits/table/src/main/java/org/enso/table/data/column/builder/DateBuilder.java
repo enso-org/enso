@@ -2,7 +2,7 @@ package org.enso.table.data.column.builder;
 
 import java.time.LocalDate;
 import java.util.Objects;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
@@ -34,7 +34,7 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
   }
 
   @Override
-  protected Storage<LocalDate> doSeal() {
+  protected ColumnStorage<LocalDate> doSeal() {
     return new DateStorage(data);
   }
 

@@ -1,11 +1,11 @@
 package org.enso.table.data.column.builder;
 
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 
 public interface BuilderForType<T> extends Builder {
   @Override
   BuilderForType<T> appendNulls(int count);
 
   @Override
-  Storage<T> seal();
+  ColumnStorage<T> seal();
 }

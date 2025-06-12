@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
@@ -13,7 +13,7 @@ import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the most common value in a group (ignoring Nothing). */
 public class Mode extends KnownTypeAggregator {
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
 
   public Mode(String name, Column column) {
     super(name, column.getStorage().getType());

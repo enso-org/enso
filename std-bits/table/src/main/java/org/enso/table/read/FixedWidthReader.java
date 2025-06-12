@@ -9,7 +9,6 @@ import java.util.List;
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -181,7 +180,7 @@ public class FixedWidthReader {
       Value expectedEnsoValueType = Value.asValue(null);
       CommonParseProblemAggregator parseProblemAggregator =
           ParseProblemAggregator.make(problemAggregator, columnName, expectedEnsoValueType);
-      Storage<?> storage = valueParser.parseColumn(stringStorage, parseProblemAggregator);
+      var storage = valueParser.parseColumn(stringStorage, parseProblemAggregator);
       columns[i] = new Column(columnName, storage);
 
       context.safepoint();
