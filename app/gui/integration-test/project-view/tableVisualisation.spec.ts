@@ -484,9 +484,9 @@ async function expectCopyingColumnClipboardToBe(
   expectedClipboardText: string,
 ) {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  await getCellLocator(page, columnName, startRow).click()
+  await getCellLocator(page, columnName, startRow).click({ position: { x: 10, y: 10 } })
   await page.keyboard.down('Shift')
-  await getCellLocator(page, columnName, endRow).click()
+  await getCellLocator(page, columnName, endRow).click({ position: { x: 10, y: 10 } })
   await page.keyboard.up('Shift')
   await page.keyboard.press(`${CONTROL_KEY}+C`)
   const expectClipboard = expect.poll(() =>
