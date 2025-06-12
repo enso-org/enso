@@ -139,7 +139,7 @@ const nodeDefault = computed((): WidgetProps => {
 })
 
 const submenuRef = useTemplateRef('submenuRef')
-const defaultValueRoot = useTemplateRef('defaultValueRoot')
+const defaultValueRoot = useTemplateRef<HTMLElement>('defaultValueRoot')
 function isOutsideDropdown(event: Event) {
   return submenuRef.value?.isTargetOutside(event) ?? false
 }
