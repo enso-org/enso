@@ -1,22 +1,13 @@
 import { Ast } from '@/util/ast'
-import { Identifier } from 'ydoc-shared/ast'
+import { Pattern } from '@/util/ast/match'
+import { computed } from 'vue'
 import { assertNever } from 'ydoc-shared/util/assert'
 
-const identMissingArgument = 'Missing_Argument' as Identifier
-const identThrow = 'throw' as Identifier
-
-function isAccessMissingArgumentThrow(expr: Ast.Expression) {
-  return (
-    expr instanceof Ast.PropertyAccess &&
-    expr.lhs instanceof Ast.Ident &&
-    expr.lhs.token.code() == identMissingArgument &&
-    expr.rhs.code() == identThrow
-  )
-}
+const missingArgPattern = computed(() => Pattern.parseExpression('Missing_Argument.throw __'))
 
 /** Check if given AST node represents a missing argument default value expression. */
 export function exprIsMissingArgument(ast: Ast.Ast): ast is Ast.App {
-  return ast instanceof Ast.App && isAccessMissingArgumentThrow(ast.function)
+  return ast instanceof Ast.App && missingArgPattern.value.test(ast)
 }
 
 /** All distinct kinds of default value assignments that we explicitly recognize. */
@@ -50,13 +41,9 @@ export function createDefaultExpressionOfKind(
 }
 
 /** Create an AST for default value of a missing argument. */
-function createMissingArgumentThrow(argumentName: string): Ast.Owned<Ast.MutableApp> {
+function createMissingArgumentThrow(argumentName: string): Ast.Owned<Ast.MutableExpression> {
   const module = Ast.MutableModule.Transient()
-  return Ast.App.positional(
-    Ast.PropertyAccess.Sequence([identMissingArgument, identThrow], module),
-    Ast.TextLiteral.new(argumentName, module),
-    module,
-  )
+  return missingArgPattern.value.instantiate(module, [Ast.TextLiteral.new(argumentName, module)])
 }
 
 /** Apply new argument name to the argument's default value expression, if necessary. */

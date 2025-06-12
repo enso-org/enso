@@ -3402,45 +3402,36 @@ export type Mutable<T extends Ast = Ast> =
   : MutableAst
 
 const astTypeConstructors = [
-  ['App', App, MutableApp],
-  ['Assignment', Assignment, MutableAssignment],
-  ['BodyBlock', BodyBlock, MutableBodyBlock],
-  ['ExpressionStatement', ExpressionStatement, MutableExpressionStatement],
-  ['FunctionDef', FunctionDef, MutableFunctionDef],
-  ['Generic', Generic, MutableGeneric],
-  ['Group', Group, MutableGroup],
-  ['Ident', Ident, MutableIdent],
-  ['Import', Import, MutableImport],
-  ['Invalid', Invalid, MutableInvalid],
-  ['NegationApp', NegationApp, MutableNegationApp],
-  ['NumericLiteral', NumericLiteral, MutableNumericLiteral],
-  ['OprApp', OprApp, MutableOprApp],
-  ['PropertyAccess', PropertyAccess, MutablePropertyAccess],
-  ['TextLiteral', TextLiteral, MutableTextLiteral],
-  ['UnaryOprApp', UnaryOprApp, MutableUnaryOprApp],
-  ['AutoscopedIdentifier', AutoscopedIdentifier, MutableAutoscopedIdentifier],
-  ['Vector', Vector, MutableVector],
-  ['Wildcard', Wildcard, MutableWildcard],
-  ['TypeAnnotated', TypeAnnotated, MutableTypeAnnotated],
+  ['App', MutableApp],
+  ['Assignment', MutableAssignment],
+  ['BodyBlock', MutableBodyBlock],
+  ['ExpressionStatement', MutableExpressionStatement],
+  ['FunctionDef', MutableFunctionDef],
+  ['Generic', MutableGeneric],
+  ['Group', MutableGroup],
+  ['Ident', MutableIdent],
+  ['Import', MutableImport],
+  ['Invalid', MutableInvalid],
+  ['NegationApp', MutableNegationApp],
+  ['NumericLiteral', MutableNumericLiteral],
+  ['OprApp', MutableOprApp],
+  ['PropertyAccess', MutablePropertyAccess],
+  ['TextLiteral', MutableTextLiteral],
+  ['UnaryOprApp', MutableUnaryOprApp],
+  ['AutoscopedIdentifier', MutableAutoscopedIdentifier],
+  ['Vector', MutableVector],
+  ['Wildcard', MutableWildcard],
+  ['TypeAnnotated', MutableTypeAnnotated],
 ] as const
-export const astTypes = astTypeConstructors.map((t) => t[0])
 
-const typeMap = new Map(astTypeConstructors.map((t) => [t[0], t[1]]))
-const mutableTypeMap = new Map(astTypeConstructors.map((t) => [t[0], t[2]]))
+export const astTypes = astTypeConstructors.map(([name]) => name)
+const mutableTypeMap = new Map(astTypeConstructors.map(([name, mutable]) => [name, mutable]))
 
 /** TODO: Add docs */
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
   const type = fields.get('type')
   const klass = mutableTypeMap.get(type)
   if (klass) return new klass(module, fields as FixedMap<any>)
-  bail(`Invalid type: ${type}`)
-}
-
-/** TODO: Add docs */
-export function materialize(module: Module, fields: FixedMapView<AstFields>): Ast {
-  const type = fields.get('type')
-  const klass = typeMap.get(type)
-  if (klass) return new klass(module, fields as FixedMapView<any>)
   bail(`Invalid type: ${type}`)
 }
 
