@@ -1,14 +1,7 @@
-import { ErrorBoundary } from '#/components/ErrorBoundary'
-import { Suspense } from '#/components/Suspense'
-import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/layouts/CloudBrowserDisabled'
-import { OpenAppWatcher } from '#/layouts/OpenAppWatcher'
-import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
-import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
+import { CloudBrowserDisabledLayout } from '#/layouts/CloudBrowserDisabled'
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import Login from '#/pages/authentication/Login'
-import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import { Setup } from '#/pages/authentication/Setup'
@@ -26,59 +19,40 @@ import {
   SUBSCRIBE_PATH,
   SUBSCRIBE_SUCCESS_PATH,
 } from '$/appUtils'
+import Registration from '$/components/Registration.vue'
+import { UserSessionType } from '$/providers/auth'
+import { flagsStore } from '$/providers/featureFlags'
 import { reactComponent } from '@/util/react'
-import { PropsWithChildren, ReactNode } from 'react'
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import ProtectedLayout from './components/ProtectedLayout.vue'
-import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
-import { UserSessionType } from './providers/auth'
-import { useFeatureFlag } from './providers/featureFlags'
+import { defineComponent, DefineComponent, effectScope, h, onScopeDispose } from 'vue'
+import { createRouter, createWebHistory } from 'vue-router'
+import AppContainerLayout from './components/AppContainerLayout.vue'
 
-const UNAVAILABLE_PATH = '/UNAVAILABLE'
-
-/**
- * Wrap react component in ErrorBoundary and Suspense.
- *
- * The Router views doesn't really like things thrown at them from react.
- */
-function wrapReactForRouter(Component: (props: PropsWithChildren) => ReactNode) {
-  return ({ children }: PropsWithChildren) => (
-    <ErrorBoundary>
-      <Suspense fallback={<LoadingScreen />}>
-        <Component>{children}</Component>
-      </Suspense>
-    </ErrorBoundary>
-  )
-}
-
-function reactForRouter(component: () => ReactNode) {
-  return reactComponent(wrapReactForRouter(component))
-}
-
-/**
- * Nests multiple ReactLayouts and create a Route.
- *
- * This function avoids making too many vue-react boundaries.
- */
-function applyLayouts(
-  components: ((props: PropsWithChildren) => ReactNode)[],
-  children: RouteRecordRaw[],
-) {
-  const reducedComponent = components.reduceRight((composed, Next) => (props) => (
-    <Next>{composed(props)}</Next>
-  ))
-  return {
-    component: ReactLayoutWrapper,
-    props: {
-      reactComponent: wrapReactForRouter(reducedComponent),
-    },
-    path: UNAVAILABLE_PATH,
-    children,
+declare module 'vue' {
+  interface ComponentCustomOptions {
+    dataLoader?: () => Promise<any>
   }
 }
 
+function withDataLoader(componentPromise: () => Promise<{ default: DefineComponent }>) {
+  return async () => {
+    const block = (await import('$/components/Registration.vue')).default
+
+    const { default: component } = await componentPromise()
+    const scope = effectScope()
+    const data = await scope.run(() => component.dataLoader?.())
+
+    return defineComponent(() => {
+      onScopeDispose(() => scope.stop())
+
+      return () => h(component, data)
+    })
+  }
+}
+
+const UNAVAILABLE_PATH = '/UNAVAILABLE'
+
 function requireCloudBrowserEnabled() {
-  const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
+  const isCloudExecutionEnabled = flagsStore.getState().featureFlags.enableCloudExecution
   if (!isCloudExecutionEnabled) {
     return { name: 'cloudDisabled' }
   }
@@ -90,46 +64,45 @@ function requireCloudBrowserEnabled() {
 const routes = [
   {
     path: UNAVAILABLE_PATH,
-    component: ProtectedLayout,
+    component: withDataLoader(() => import('$/components/ProtectedLayout.vue')),
     children: [
-      { path: LOGIN_PATH, component: reactForRouter(Login), meta: { access: 'guest' as const } },
+      { path: LOGIN_PATH, component: reactComponent(Login), meta: { access: 'guest' as const } },
       {
         path: '/registration',
-        component: reactForRouter(Registration),
+        component: Registration,
         meta: { access: 'guest' as const },
       },
       {
+        path: UNAVAILABLE_PATH,
         meta: { access: UserSessionType.full },
+        component: AppContainerLayout,
         beforeEnter: requireCloudBrowserEnabled,
-        ...applyLayouts(
-          [SetupOrganizationAfterSubscribe, InvitedToOrganizationModal, OpenAppWatcher],
-          [
-            {
-              path: DASHBOARD_PATH,
-              component: reactForRouter(Dashboard),
-            },
-            {
-              path: SUBSCRIBE_PATH,
-              component: reactForRouter(Subscribe),
-            },
-          ],
-        ),
+        children: [
+          {
+            path: DASHBOARD_PATH,
+            component: reactComponent(Dashboard),
+          },
+          {
+            path: SUBSCRIBE_PATH,
+            component: reactComponent(Subscribe),
+          },
+        ],
       },
       {
         path: SUBSCRIBE_SUCCESS_PATH,
         meta: { access: UserSessionType.full },
-        component: reactForRouter(SubscribeSuccess),
+        component: reactComponent(SubscribeSuccess),
       },
       {
         path: RESTORE_USER_PATH,
-        meta: { access: 'deleted' },
-        component: reactForRouter(RestoreAccount),
+        meta: { access: 'deleted' as const },
+        component: reactComponent(RestoreAccount),
       },
       {
         path: SETUP_PATH,
-        meta: { access: 'anyLoggedIn' },
+        meta: { access: 'anyLoggedIn' as const },
         beforeEnter: requireCloudBrowserEnabled,
-        component: reactForRouter(Setup),
+        component: reactComponent(Setup),
       },
     ],
   },
@@ -137,24 +110,24 @@ const routes = [
   /* Other pages are visible to unauthenticated and authenticated users. */
   {
     path: CONFIRM_REGISTRATION_PATH,
-    component: reactForRouter(ConfirmRegistration),
+    component: reactComponent(ConfirmRegistration),
   },
   {
     path: FORGOT_PASSWORD_PATH,
-    component: reactForRouter(ForgotPassword),
+    component: reactComponent(ForgotPassword),
   },
   {
     path: RESET_PASSWORD_PATH,
-    component: reactForRouter(ResetPassword),
+    component: reactComponent(ResetPassword),
   },
   {
     path: '/:anyPath(.*)*',
     redirect: '/',
   },
   {
-    path: '',
+    path: '/',
     name: 'cloudDisabled',
-    component: reactComponent(CloudBrowserDisabledLayoutImpl),
+    component: reactComponent(CloudBrowserDisabledLayout),
     props: { redirectPath: DASHBOARD_PATH },
   },
 ]

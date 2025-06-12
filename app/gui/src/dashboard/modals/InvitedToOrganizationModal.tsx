@@ -8,11 +8,10 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '$/appUtils'
 import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
-import * as React from 'react'
 import * as z from 'zod'
 
 /** Modal for accepting the terms of service. */
-export function InvitedToOrganizationModal({ children }: React.PropsWithChildren) {
+export function InvitedToOrganizationModal() {
   const { getText } = useText()
   const { remoteBackend: backend } = useBackends()
   const { user } = useFullUserSession()
@@ -26,13 +25,12 @@ export function InvitedToOrganizationModal({ children }: React.PropsWithChildren
   ).mutateAsync
 
   if (!shouldDisplay) {
-    return <>{children}</>
+    return <></>
   } else {
     switch (user.newOrganizationInvite) {
       case 'pending': {
         return (
           <>
-            {children}
             <Dialog
               title={getText('organizationInviteTitle')}
               isKeyboardDismissDisabled
@@ -77,7 +75,6 @@ export function InvitedToOrganizationModal({ children }: React.PropsWithChildren
       case 'error': {
         return (
           <>
-            {children}
             <Dialog
               title={getText('organizationInviteTitle')}
               // For now, allow dismissing the modal as the user account is still usable.

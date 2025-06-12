@@ -6,11 +6,11 @@
 import { EnsoDevtools as EnsoDevToolsReact } from '#/components/Devtools'
 import {
   AgreementsModal as AgreementsModalReact,
-  useAgreementsModalProps,
   type AgreementsModalProps,
 } from '#/modals/AgreementsModal'
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH, SETUP_PATH } from '$/appUtils'
+import { useUserAgrements } from '$/composables/userAgreements'
 import { AuthStore, useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
@@ -28,8 +28,6 @@ import {
   watchPostEffect,
 } from 'vue'
 import { RouteLocation, useRoute, useRouter } from 'vue-router'
-
-type TosAndPP = Awaited<ReturnType<typeof useTosAndPp>>
 
 const AgreementsModal = reactComponent(AgreementsModalReact)
 
@@ -76,12 +74,10 @@ export default {
 
     if (auth.session != null) {
       const scope = effectScope()
-      const agreementsModalProps = await scope.run(() => useAgreementsModalProps(queryClient))
+      const agreementsModalProps = await scope.run(() => useUserAgrements(queryClient))
       return next((component) => {
         component.routeScope = scope
-        scope.run(() => {
-          watchEffect(() => (component.agreementsModalProps = agreementsModalProps))
-        })
+        scope.run(() => watchEffect(() => (component.agreementsModalProps = agreementsModalProps)))
       })
     }
     return next(true)
