@@ -396,34 +396,34 @@ test('Datetime test - sorting and copying', async ({ page, context }) => {
   await expectCellDataToBe(
     page,
     'Value',
-    '2025-01-02 12:13:14.123',
-    '2025-01-01 12:13:14.123',
-    '2025-01-03 12:13:14.123',
+    '2025-01-02 12:13:14.123[UTC]',
+    '2025-01-01 12:13:14.123[UTC]',
+    '2025-01-03 12:13:14.123[UTC]',
   )
   const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
   await value.click() // Sort ascending
   await expectCellDataToBe(
     page,
     'Value',
-    '2025-01-01 12:13:14.123',
-    '2025-01-02 12:13:14.123',
-    '2025-01-03 12:13:14.123',
+    '2025-01-01 12:13:14.123[UTC]',
+    '2025-01-02 12:13:14.123[UTC]',
+    '2025-01-03 12:13:14.123[UTC]',
   )
   await value.click() // Sort descending
   await expectCellDataToBe(
     page,
     'Value',
-    '2025-01-03 12:13:14.123',
-    '2025-01-02 12:13:14.123',
-    '2025-01-01 12:13:14.123',
+    '2025-01-03 12:13:14.123[UTC]',
+    '2025-01-02 12:13:14.123[UTC]',
+    '2025-01-01 12:13:14.123[UTC]',
   )
   await value.click() // remove sort
   await expectCellDataToBe(
     page,
     'Value',
-    '2025-01-02 12:13:14.123',
-    '2025-01-01 12:13:14.123',
-    '2025-01-03 12:13:14.123',
+    '2025-01-02 12:13:14.123[UTC]',
+    '2025-01-01 12:13:14.123[UTC]',
+    '2025-01-03 12:13:14.123[UTC]',
   )
   await expectCopyingColumnClipboardToBe(
     page,
@@ -431,7 +431,7 @@ test('Datetime test - sorting and copying', async ({ page, context }) => {
     'Value',
     0,
     1,
-    '2025-01-02 12:13:14.123\r\n2025-01-01 12:13:14.123',
+    '2025-01-02 12:13:14.123[UTC]\r\n2025-01-01 12:13:14.123[UTC]',
   )
 })
 
@@ -445,14 +445,7 @@ test('Date test - sorting and copying', async ({ page, context }) => {
   await expectCellDataToBe(page, 'Value', '2025-01-03', '2025-01-02', '2025-01-01')
   await value.click({ position: { x: 10, y: 10 } }) // remove sort
   await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
-  await expectCopyingColumnClipboardToBe(
-    page,
-    context,
-    'Value',
-    0,
-    1,
-    '2025-01-02\r\n2025-01-01',
-  )
+  await expectCopyingColumnClipboardToBe(page, context, 'Value', 0, 1, '2025-01-02\r\n2025-01-01')
 })
 
 test('Time test - sorting and copying', async ({ page, context }) => {
