@@ -385,7 +385,7 @@ _make_json_for_value val level=0 = case val of
     time : Time_Of_Day -> _to_js_object_with_display_text time
     _ -> val.to_display_text
 
-_to_js_object_with_display_text date =
+private _to_js_object_with_display_text date =
     js_version = date.to_js_object
     pairs = [['_display_text_', date.to_display_text]] + js_version.field_names.map f-> [f, js_version.get f]
     JS_Object.from_pairs pairs
