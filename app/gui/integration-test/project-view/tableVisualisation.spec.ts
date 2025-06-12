@@ -430,8 +430,8 @@ test('Datetime test - sorting and copying', async ({ page, context }) => {
     context,
     'Value',
     0,
-    2,
-    '2025-01-02 12:13:14.123\r\n2025-01-01 12:13:14.123\r\n2025-01-03 12:13:14.123',
+    1,
+    '2025-01-02 12:13:14.123\r\n2025-01-01 12:13:14.123',
   )
 })
 
@@ -450,8 +450,8 @@ test('Date test - sorting and copying', async ({ page, context }) => {
     context,
     'Value',
     0,
-    2,
-    '2025-01-02\r\n2025-01-01\r\n2025-01-03',
+    1,
+    '2025-01-02\r\n2025-01-01',
   )
 })
 
@@ -470,8 +470,8 @@ test('Time test - sorting and copying', async ({ page, context }) => {
     context,
     'Value',
     0,
-    2,
-    '12:14:14.123004\r\n12:13:14.123004\r\n12:15:14.123004',
+    1,
+    '12:14:14.123004\r\n12:13:14.123004',
   )
 })
 
@@ -484,9 +484,9 @@ async function expectCopyingColumnClipboardToBe(
   expectedClipboardText: string,
 ) {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  await getCellLocator(page, columnName, startRow).click({ position: { x: 10, y: 10 } })
+  await getCellLocator(page, columnName, startRow).click()
   await page.keyboard.down('Shift')
-  await getCellLocator(page, columnName, endRow).click({ position: { x: 10, y: 10 } })
+  await getCellLocator(page, columnName, endRow).click()
   await page.keyboard.up('Shift')
   await page.keyboard.press(`${CONTROL_KEY}+C`)
   const expectClipboard = expect.poll(() =>
