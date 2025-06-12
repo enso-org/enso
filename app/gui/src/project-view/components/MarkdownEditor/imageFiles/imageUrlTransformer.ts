@@ -1,6 +1,4 @@
-import { createContextStore } from '@/providers'
-import type { ToValue } from '@/util/reactivity'
-import { Ref, toValue } from 'vue'
+import type { Ref } from 'vue'
 import { mapOk, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 /**
@@ -18,14 +16,6 @@ export type TransformUrlResult = Result<{
   uploading?: Ref<boolean>
 }>
 export type UrlTransformer = (url: string) => Promise<TransformUrlResult>
-
-export const [provideDocumentationImageUrlTransformer, injectDocumentationImageUrlTransformer] =
-  createContextStore(
-    'Documentation image URL transformer',
-    (transformUrl: ToValue<UrlTransformer | undefined>) => ({
-      transformUrl: (url: string) => toValue(transformUrl)?.(url),
-    }),
-  )
 
 type ResourceId = string
 type Url = string

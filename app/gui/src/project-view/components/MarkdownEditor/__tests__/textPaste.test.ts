@@ -1,4 +1,4 @@
-import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
+import { transformPastedText } from '@/components/MarkdownEditor/codemirror/clipboard'
 import { expect, test } from 'vitest'
 
 test.each([

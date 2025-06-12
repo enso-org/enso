@@ -1,7 +1,13 @@
-import { fetcherUrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
+import {
+  resolveDocImageUrl,
+  type DocumentationImages,
+} from '@/components/MarkdownEditor/imageFiles/common'
+import { fetcherUrlTransformer } from '@/components/MarkdownEditor/imageFiles/imageUrlTransformer'
+import { putText, putTextAtCoords } from '@/util/codemirror'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
+import type { EditorView } from '@codemirror/view'
 import { unsafeKeys } from 'enso-common/src/utilities/data/object'
 import {
   readUserSelectedFile,
@@ -10,7 +16,7 @@ import {
 } from 'enso-common/src/utilities/file'
 import { computed, reactive, toValue } from 'vue'
 import type { Path } from 'ydoc-shared/languageServerTypes'
-import { Err, mapOk, Ok, Result, withContext } from 'ydoc-shared/util/data/result'
+import { Err, mapOk, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 import type { Uuid } from 'ydoc-shared/yjsModel'
 
 type UploadedImagePosition = { type: 'selection' } | { type: 'coords'; coords: Vec2 }
@@ -24,11 +30,6 @@ interface ProjectFilesAPI {
   writeFileBinary(path: Path, content: Blob): Promise<Result>
   pickUniqueName(path: Path, suggestedName: string): Promise<Result<string>>
   ensureDirExists(path: Path): Promise<Result<void>>
-}
-
-export interface MarkdownEditorAPI {
-  putText: (text: string) => void
-  putTextAtCoord: (text: string, coord: Vec2) => void
 }
 
 const supportedImageTypes: Record<MimeType, { extensions: string[] }> = {
@@ -50,32 +51,11 @@ function pathDebugRepr(path: Path) {
   return pathUniqueId(path)
 }
 
-/**
- * Based of given location of the module, return the location of image based on imageUrl.
- * @returns path relative to project's root, or the full URL with schema.
- */
-export function resolveDocImageUrl(modulePathSegments: string[], imageUrl: string) {
-  const appliedUrl = URL.parse(imageUrl, `file:///${modulePathSegments.join('/')}}`)
-  switch (appliedUrl?.protocol) {
-    case null:
-      return Err('Invalid image url')
-    case 'file:':
-      // Omit the starting '/'
-      return Ok({ type: 'projectPath' as const, path: decodeURI(appliedUrl.pathname).substring(1) })
-    case 'http:':
-    case 'https:':
-      return Ok({ type: 'url' as const, url: appliedUrl })
-    default:
-      return Err('Unsupported protocol')
-  }
-}
-
-/** Supports loading and uploading project images. */
-export function useDocumentationImages(
-  markdownEditor: ToValue<MarkdownEditorAPI | undefined>,
+/** Supports loading and uploading project images in an opened project via the ProjectFiles API. */
+export function useDocumentationImagesFromProjectFiles(
   modulePath: ToValue<Path | undefined>,
   projectFiles: ProjectFilesAPI,
-) {
+): DocumentationImages {
   const uploadErrorToast = useToast.error()
 
   function urlToPath(url: string): Result<Path> | undefined {
@@ -126,6 +106,7 @@ export function useDocumentationImages(
   )
 
   async function uploadImage(
+    view: EditorView,
     name: string,
     blobPromise: Promise<Blob>,
     position: UploadedImagePosition = { type: 'selection' },
@@ -134,11 +115,6 @@ export function useDocumentationImages(
       const rootId = await projectFiles.projectRootId
       if (!rootId) {
         uploadErrorToast.show('Cannot upload image: unknown project file tree root.')
-        return
-      }
-      const markdownEditorValue = toValue(markdownEditor)
-      if (!markdownEditorValue) {
-        console.error('Tried to upload image while markdown editor is still not loaded')
         return
       }
       const dirPath = { rootId, segments: ['images'] }
@@ -155,10 +131,10 @@ export function useDocumentationImages(
       const insertedLink = `\n![Image](/images/${encodeURI(filename.value)})\n`
       switch (position.type) {
         case 'selection':
-          markdownEditorValue.putText(insertedLink)
+          putText(view, insertedLink)
           break
         case 'coords':
-          markdownEditorValue.putTextAtCoord(insertedLink, position.coords)
+          putTextAtCoords(view, insertedLink, position.coords)
           break
       }
       try {
@@ -175,7 +151,7 @@ export function useDocumentationImages(
   }
 
   /** If the given drag event contains supported image(s), upload them and insert references into the editor. */
-  async function tryUploadDroppedImage(event: DragEvent) {
+  async function tryUploadDroppedImage(view: EditorView, event: DragEvent) {
     if (!event.dataTransfer?.items) return
     for (const item of event.dataTransfer.items) {
       if (item.kind !== 'file' || !Object.hasOwn(supportedImageTypes, item.type)) continue
@@ -184,16 +160,19 @@ export function useDocumentationImages(
       const clientPos = new Vec2(event.clientX, event.clientY)
       event.stopPropagation()
       event.preventDefault()
-      await uploadImage(file.name, Promise.resolve(file), { type: 'coords', coords: clientPos })
+      await uploadImage(view, file.name, Promise.resolve(file), {
+        type: 'coords',
+        coords: clientPos,
+      })
     }
   }
 
   /** If the given clipboard content contains a supported image, upload it and insert a reference into the editor. */
-  function tryUploadPastedImage(item: ClipboardItem): boolean {
+  function tryUploadPastedImage(view: EditorView, item: ClipboardItem): boolean {
     const imageType = item.types.find((type): type is MimeType => type in supportedImageTypes)
     if (imageType) {
       const ext = supportedImageTypes[imageType]?.extensions[0] ?? ''
-      uploadImage(`image.${ext}`, item.getType(imageType))
+      uploadImage(view, `image.${ext}`, item.getType(imageType))
       return true
     } else {
       return false
@@ -213,9 +192,9 @@ export function useDocumentationImages(
     }
   }
 
-  async function tryUploadImageFile() {
+  async function tryUploadImageFile(view: EditorView) {
     for (const file of await selectFiles()) {
-      await uploadImage(file.name, Promise.resolve(file))
+      await uploadImage(view, file.name, Promise.resolve(file))
     }
   }
 

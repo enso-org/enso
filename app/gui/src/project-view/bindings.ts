@@ -12,11 +12,6 @@ export const panelsBindings = defineKeybinds('panels', {
   'graph.toggleDocumentationEditor': ['Mod+D'],
 })
 
-export const documentationEditorBindings = defineKeybinds('documentation-editor', {
-  'documentationEditor.paste': ['Mod+V'],
-  'documentationEditor.pasteRaw': ['Mod+Shift+V'],
-})
-
 export const documentationEditorFormatBindings = defineKeybinds('documentation-editor-formatting', {
   'documentationEditor.italic': ['Mod+I'],
   'documentationEditor.bold': ['Mod+B'],
@@ -32,6 +27,10 @@ export const textEditorsCommonBindings = defineKeybinds('text-editors-common-bin
   'textEditor.moveRight': ['ArrowRight'],
   'textEditor.deleteBack': ['Backspace'],
   'textEditor.deleteForward': ['Delete'],
+  'textEditor.cut': ['Mod+X'],
+  'textEditor.copy': ['Mod+C'],
+  'textEditor.paste': ['Mod+V'],
+  'textEditor.pasteRaw': ['Mod+Shift+V'],
 })
 
 export const textEditorsMultilineBindings = defineKeybinds('text-editors-multiline-bindings', {
