@@ -60,7 +60,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         }}
         schema={() =>
           titleSchema({
-            asset: item,
+            id: item.id,
             siblings: getAssetChildren(item.parentId),
           })
         }

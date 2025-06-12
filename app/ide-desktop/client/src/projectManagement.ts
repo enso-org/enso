@@ -23,7 +23,8 @@ import * as buildUtils from 'enso-common/src/buildUtils'
 
 import * as desktopEnvironment from '@/desktopEnvironment'
 import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
-import { Path } from 'enso-common/src/services/Backend'
+import { Path, UUID } from 'enso-common/src/services/Backend'
+import { Rfc3339DateTime, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 
 const logger = console
 
@@ -43,7 +44,7 @@ const SAMPLES_DIRECTORY_NAME = 'Samples'
 
 /** Metadata for a newly imported project. */
 export interface ProjectInfo {
-  readonly id: string
+  readonly id: UUID
   readonly name: string
   readonly path: string
   readonly parentDirectory: string
@@ -254,13 +255,13 @@ interface ProjectMetadata {
    * The ID of the project. It is only used in communication with project manager;
    * it has no semantic meaning.
    */
-  readonly id: string
+  readonly id: UUID
   /** The project variant. This is currently always `UserProject`. */
   readonly kind: 'UserProject'
   /** The date at which the project was created, in RFC3339 format. */
-  readonly created: string
+  readonly created: Rfc3339DateTime
   /** The date at which the project was last opened, in RFC3339 format. */
-  readonly lastOpened: string
+  readonly lastOpened: Rfc3339DateTime
 }
 
 /**
@@ -278,7 +279,7 @@ function isProjectMetadata(value: unknown): value is ProjectMetadata {
 }
 
 /** Get the ID from the project metadata. */
-export function getProjectId(projectRoot: string): string | null {
+export function getProjectId(projectRoot: string): UUID | null {
   return getMetadata(projectRoot)?.id ?? null
 }
 
@@ -303,8 +304,8 @@ export function createMetadata(): ProjectMetadata {
   return {
     id: generateId(),
     kind: 'UserProject',
-    created: new Date().toISOString(),
-    lastOpened: new Date().toISOString(),
+    created: toRfc3339(new Date()),
+    lastOpened: toRfc3339(new Date()),
   }
 }
 
@@ -480,8 +481,8 @@ export async function unpackBundle(
 // ==================
 
 /** Generate a unique UUID for a project. */
-export function generateId(): string {
-  return crypto.randomUUID()
+export function generateId(): UUID {
+  return UUID(crypto.randomUUID())
 }
 
 /** Update the project's ID to a new, unique value, and its last opened date to the current date. */
@@ -521,7 +522,7 @@ export function bumpMetadata(
   const id = updateMetadata(projectRoot, (metadata) => ({
     ...metadata,
     id: generateId(),
-    lastOpened: new Date().toISOString(),
+    lastOpened: toRfc3339(new Date()),
   })).id
   return { id, name, path: Path(projectRoot), parentDirectory }
 }

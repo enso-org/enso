@@ -97,7 +97,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        schema={() => titleSchema({ asset: item, siblings: getAssetChildren(item.parentId) })}
+        schema={() =>
+          titleSchema({
+            id: item.id,
+            siblings: getAssetChildren(item.parentId),
+          })
+        }
       >
         {item.title}
       </EditableSpan>

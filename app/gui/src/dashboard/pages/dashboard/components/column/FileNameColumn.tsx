@@ -53,7 +53,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }}
         schema={() =>
           titleSchema({
-            asset: item,
+            id: item.id,
             siblings: getAssetChildren(item.parentId),
           })
         }

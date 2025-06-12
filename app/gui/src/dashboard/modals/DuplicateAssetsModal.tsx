@@ -641,7 +641,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                   schema={(schema) =>
                                     schema.object({
                                       newName: backendModule.titleSchema({
-                                        asset,
+                                        id: asset.id,
                                         siblings: siblingFiles.siblings,
                                       }),
                                     })

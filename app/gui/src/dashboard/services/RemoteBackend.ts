@@ -1552,16 +1552,6 @@ export default class RemoteBackend extends Backend {
     await this.post(path, {})
   }
 
-  /**
-   * Import an archive and unpack into a directory.
-   * @throws {Error} always.
-   */
-  override importArchive(
-    _params: backend.ImportArchiveParams,
-  ): Promise<backend.ImportArchiveResponse> {
-    throw new Error('`importArchive` is not implemented on the Remote Backend.')
-  }
-
   /** Export multiple files and pack into an archive. */
   override async exportArchive(
     params: backend.ExportArchiveParams,

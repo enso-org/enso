@@ -77,7 +77,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         )}
         schema={() =>
           titleSchema({
-            asset: item,
+            id: item.id,
             siblings: getAssetChildren(item.parentId),
           })
         }

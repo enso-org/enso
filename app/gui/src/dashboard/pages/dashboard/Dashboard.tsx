@@ -88,16 +88,32 @@ function DashboardInner() {
     networkMode: 'always',
     ...STATIC_QUERY_OPTIONS,
     queryFn: async () => {
-      if (initialLocalProjectPath != null && window.backendApi && localBackend) {
+      if (initialLocalProjectPath != null && localBackend) {
         const projectName = baseName(initialLocalProjectPath)
-        const { path } = await window.backendApi.importProjectFromPath(
-          initialLocalProjectPath,
-          localBackend.rootPath(),
-          projectName,
+        const parentDirectoryId = localBackendModule.newDirectoryId(localBackend.rootPath())
+        const metadata = await localBackend.uploadFileStart(
+          {
+            parentDirectoryId,
+            fileName: projectName,
+            fileId: null,
+            filePath: backendModule.Path(initialLocalProjectPath),
+          },
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          null!,
         )
+        const endMetadata = await localBackend.uploadFileEnd({
+          parentDirectoryId,
+          fileName: projectName,
+          assetId: null,
+          parts: [],
+          ...metadata,
+        })
+        if (endMetadata.project == null) {
+          return
+        }
         await openProjectLocally(
           {
-            id: localBackendModule.newProjectId(path),
+            id: endMetadata.id,
             title: projectName,
             parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
           },

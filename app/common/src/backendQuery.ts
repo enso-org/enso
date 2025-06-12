@@ -40,7 +40,6 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'deleteUserGroup'
   | 'duplicateProject'
   | 'exportArchive'
-  | 'importArchive'
   | 'inviteUser'
   | 'logEvent'
   | 'openProject'
@@ -108,7 +107,6 @@ export const INVALIDATION_MAP: Partial<
   updateProjectExecution: ['listProjectExecutions'],
   syncProjectExecution: ['listProjectExecutions'],
   deleteProjectExecution: ['listProjectExecutions'],
-  importArchive: ['listDirectory'],
 }
 
 /** For each backend method, an optional function defining how to create a query key from its arguments. */

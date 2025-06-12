@@ -22,7 +22,6 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import { useStore } from '#/hooks/storeHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import {
@@ -40,11 +39,11 @@ import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DrivePr
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import { Path, type CredentialConfig } from '#/services/Backend'
+import { isDirectoryId, type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useText } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
@@ -71,9 +70,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
-  const { localBackend = null } = useBackends()
   const canDownload = useCanDownload()
-  const canExport = useStore(driveStore, ({ selectedIds }) => selectedIds.size !== 0)
 
   const { currentDirectoryId } = useDirectoryIds({ category })
 
@@ -107,7 +104,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
-  const importArchive = useMutationCallback(backendMutationOptions(localBackend, 'importArchive'))
   const exportArchive = useExportArchive()
 
   const newProjectMutation = useMutationCallback({
@@ -167,26 +163,21 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     await uploadFiles(Array.from(files))
   })
 
-  const importArchiveCallback = useEventCallback(async () => {
-    const [archive] = await readUserSelectedFile({ accept: ['.zip'] })
-    if (!archive) {
-      return
-    }
-    await importArchive([
-      'path' in archive && typeof archive.path === 'string' ?
-        // This is a non-standard property that is available in Electron.
-        { directory: currentDirectoryId, filePath: Path(archive.path) }
-      : { directory: currentDirectoryId, archive },
-    ])
-  })
-
   const downloadFilesCallback = useEventCallback(async () => {
     unsetModal()
     const { selectedAssets } = driveStore.getState()
-    await downloadAssetsMutation({
-      ids: selectedAssets,
-      targetDirectoryId: null,
-    })
+    if (
+      selectedAssets.length === 1 &&
+      selectedAssets[0] != null &&
+      !isDirectoryId(selectedAssets[0].id)
+    ) {
+      await downloadAssetsMutation({
+        ids: selectedAssets,
+        targetDirectoryId: null,
+      })
+    } else {
+      await exportArchive()
+    }
   })
 
   const searchBar = (
@@ -307,22 +298,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 icon="data_download"
                 aria-label={getText('downloadFiles')}
                 onPress={downloadFilesCallback}
-              />
-              <Button
-                variant="icon"
-                size="medium"
-                icon="data_upload"
-                aria-label={isCloud ? getText('importArchive.localOnly') : getText('importArchive')}
-                onPress={importArchiveCallback}
-                isDisabled={isCloud}
-              />
-              <Button
-                variant="icon"
-                size="medium"
-                icon="data_download"
-                aria-label={getText('exportArchive')}
-                onPress={exportArchive}
-                isDisabled={!canExport}
               />
             </div>
             {createAssetsVisualTooltip.tooltip}

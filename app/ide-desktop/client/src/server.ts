@@ -32,7 +32,8 @@ import {
   FileAsset,
   FileDetails,
   FileId,
-  ImportArchiveResponse,
+  fileNameIsArchive,
+  fileNameIsProject,
   ParentsPath,
   Path,
   ProjectAsset,
@@ -47,7 +48,6 @@ import {
   downloadFilePath,
   EXPORT_ARCHIVE_PATH,
   GET_FILE_DETAILS_REGEX,
-  IMPORT_ARCHIVE_PATH,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import {
@@ -151,11 +151,6 @@ export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
 
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
-  readonly uploadProjectBundle: (
-    project: stream.Readable,
-    directory: string | null,
-    name: string | null,
-  ) => Promise<projectManagement.ProjectInfo>
   readonly runProjectManagerCommand: (
     cliArguments: string[],
     body?: NodeJS.ReadableStream,
@@ -333,19 +328,8 @@ export class Server {
           await this.httpDownloadArchive(request, response, params)
           break
         }
-        case `/${IMPORT_ARCHIVE_PATH}`: {
-          await this.httpUploadArchive(request, response, params)
-          break
-        }
         case '/upload-file': {
           await this.httpUploadFile(request, response, params)
-          break
-        }
-        case '/upload-project': {
-          // This endpoint should only be used when accessing the app from the browser.
-          // When accessing the app from Electron, the file input event will have the
-          // full system path.
-          await this.httpUploadProject(request, response, params)
           break
         }
         case '/run-project-manager-command': {
@@ -625,7 +609,7 @@ export class Server {
     jobId?: UnzipAssetsJobId | null | undefined
     filePath?: string | null | undefined
     readStream?: stream.Readable | null | undefined
-  }): Promise<ImportArchiveResponse> {
+  }): Promise<unknown> {
     filePath ??= jobId != null ? Path(decodeURIComponent(jobId)) : undefined
     const directory =
       directoryId ? extractTypeAndPath(directoryId).path : this.projectsRootDirectory
@@ -960,7 +944,7 @@ export class Server {
     const assets: AnyAsset[] = []
     for (const entryName of await readdir(directory)) {
       const entryPath = Path(path.join(directory, entryName))
-      const asset = await this.apiGetAssetDetailsByPath({ path: entryPath })
+      const asset = this.apiGetAssetDetailsByPath({ path: entryPath })
       if (asset == null) {
         throw new Error(`File not found at '${entryPath}'`)
       }
@@ -969,75 +953,58 @@ export class Server {
     return assets
   }
 
-  /** Response handler for "upload archive" endpoint. */
-  async httpUploadArchive(
-    request: http.IncomingMessage,
-    response: http.ServerResponse,
-    params: URLSearchParams,
-  ) {
-    const result = await this.apiUploadArchive({
-      directoryId: params.get('directory') as DirectoryId | null,
-      filePath: params.get('filePath'),
-      readStream: request,
-    })
-    this.httpOkJson<ImportArchiveResponse>(response, result)
-  }
-
   /** Response handler for "upload file" endpoint. */
   async httpUploadFile(
     request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
   ) {
-    const fileName = params.get('file_name')
     const directoryParam = params.get('directory') as DirectoryId | null
     const directory =
       directoryParam ? extractTypeAndPath(directoryParam).path : this.projectsRootDirectory
-    if (fileName == null) {
-      response
-        .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
-        .end('Request is missing search parameter `file_name`.')
-    } else {
-      const filePath = path.join(directory, fileName)
-      void writeFile(filePath, request)
-        .then(() => {
-          response
-            .writeHead(HTTP_STATUS_OK, [
-              ['Content-Length', String(filePath.length)],
-              ['Content-Type', 'text/plain'],
-              ...COOP_COEP_CORP_HEADERS,
-            ])
-            .end(filePath)
-        })
-        .catch((e) => {
-          console.error(e)
-          response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
-        })
-    }
-  }
-
-  /** Response handler for "upload project" endpoint. */
-  async httpUploadProject(
-    request: http.IncomingMessage,
-    response: http.ServerResponse,
-    params: URLSearchParams,
-  ) {
-    const directoryParam = params.get('directory') as DirectoryId | null
-    const directory = directoryParam ? extractTypeAndPath(directoryParam).path : null
-    const name = params.get('name')
+    const fileName = params.get('file_name')
+    const filePath = params.get('file_path')
     try {
-      const project = await this.config.externalFunctions.uploadProjectBundle(
-        request,
-        directory,
-        name,
-      )
-      response
-        .writeHead(HTTP_STATUS_OK, [
-          ['Content-Length', String(project.id.length)],
-          ['Content-Type', 'text/plain'],
-          ...COOP_COEP_CORP_HEADERS,
-        ])
-        .end(project.id)
+      if (fileName == null) {
+        response
+          .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+          .end('Request is missing search parameter `file_name`.')
+      } else if (fileNameIsArchive(fileName)) {
+        await this.apiUploadArchive({
+          directoryId: directoryParam,
+          filePath,
+          readStream: request,
+        })
+        response.writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS).end()
+      } else if (fileNameIsProject(fileName)) {
+        const project =
+          filePath ?
+            projectManagement.importProjectFromPath(filePath, directory, fileName)
+          : await projectManagement.uploadBundle(request, directory, fileName)
+        response
+          .writeHead(HTTP_STATUS_OK, [
+            ['Content-Length', String(project.id.length)],
+            ['Content-Type', 'text/plain'],
+            ...COOP_COEP_CORP_HEADERS,
+          ])
+          .end(project.path)
+      } else {
+        const filePath = path.join(directory, fileName)
+        void writeFile(filePath, request)
+          .then(() => {
+            response
+              .writeHead(HTTP_STATUS_OK, [
+                ['Content-Length', String(filePath.length)],
+                ['Content-Type', 'text/plain'],
+                ...COOP_COEP_CORP_HEADERS,
+              ])
+              .end(filePath)
+          })
+          .catch((e) => {
+            console.error(e)
+            response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
+          })
+      }
     } catch {
       response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
     }

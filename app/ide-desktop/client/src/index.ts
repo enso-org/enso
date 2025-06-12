@@ -371,7 +371,6 @@ class App {
             dir: paths.ASSETS_PATH,
             port: this.args.groups.server.options.port.value,
             externalFunctions: {
-              uploadProjectBundle: projectManagement.uploadBundle,
               runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
                 projectManager.runCommand(this.args, cliArguments, body),
             },

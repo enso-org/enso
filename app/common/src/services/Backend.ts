@@ -1281,6 +1281,8 @@ export interface UploadFileRequestParams {
   // Marked as optional in the data type, however it is required by the actual route handler.
   readonly fileName: string
   readonly parentDirectoryId: DirectoryId | null
+  /** Only used for the Local backend when there is no {@link File} object available. */
+  readonly filePath?: Path
 }
 
 /** HTTP request body for the "upload file start" endpoint. */
@@ -1330,24 +1332,6 @@ export type UploadedLargeAsset = UploadedLargeFile | UploadedLargeProject
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
   readonly fileName: string | null
-}
-
-interface ImportArchiveParamsBase {
-  readonly directory: DirectoryId
-}
-
-interface ImportArchiveParamsWithPath extends ImportArchiveParamsBase {
-  readonly filePath: Path
-}
-
-interface ImportArchiveParamsWithFile extends ImportArchiveParamsBase {
-  readonly archive: Blob
-}
-
-export type ImportArchiveParams = ImportArchiveParamsWithPath | ImportArchiveParamsWithFile
-
-export interface ImportArchiveResponse {
-  readonly assets: readonly AnyAsset[]
 }
 
 export interface ExportArchiveParams {
@@ -1430,21 +1414,32 @@ export function userHasUserAndTeamSpaces(user: User | null) {
   }
 }
 
-/** A subset of properties of the JS `File` type. */
+/** A subset of properties of the JS {@link File} type. */
 interface JSFile {
   readonly name: string
 }
 
-/** Whether a `File` is a project. */
-export function fileIsProject(file: JSFile) {
-  return (
-    file.name.endsWith('.tar.gz') ||
-    file.name.endsWith('.zip') ||
-    file.name.endsWith('.enso-project')
-  )
+/** Whether a file name represents a non-project archive. */
+export function fileNameIsArchive(fileName: string) {
+  return fileName.endsWith('.zip')
 }
 
-/** Whether a `File` is not a project. */
+/** Whether a file name represents a project. */
+export function fileNameIsProject(fileName: string) {
+  return fileName.endsWith('.tar.gz') || fileName.endsWith('.enso-project')
+}
+
+/** Whether a {@link File} is a non-project archive. */
+export function fileIsArchive(file: JSFile) {
+  return fileNameIsArchive(file.name)
+}
+
+/** Whether a {@link File} is a project. */
+export function fileIsProject(file: JSFile) {
+  return fileNameIsProject(file.name)
+}
+
+/** Whether a {@link File} is not a project. */
 export function fileIsNotProject(file: JSFile) {
   return !fileIsProject(file)
 }
@@ -1855,8 +1850,6 @@ export default abstract class Backend {
     targetDirectoryId: DirectoryId | null,
     shouldUnpackProject?: boolean,
   ): Promise<void>
-  /** Import an archive and unpack into a directory. */
-  abstract importArchive(params: ImportArchiveParams): Promise<ImportArchiveResponse>
   /** Export multiple files and pack into an archive. */
   abstract exportArchive(params: ExportArchiveParams): Promise<ExportedArchive>
 

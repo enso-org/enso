@@ -84,7 +84,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }}
         schema={() =>
           titleSchema({
-            asset: item,
+            id: item.id,
             siblings: getAssetChildren(item.parentId),
           })
         }

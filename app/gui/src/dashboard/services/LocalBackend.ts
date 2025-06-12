@@ -13,14 +13,13 @@ import * as projectManager from '#/services/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
-import { omit, unsafeEntries } from '#/utilities/object'
+import { unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
 import { PRODUCT_NAME } from 'enso-common'
 import {
   downloadProjectPath,
   EXPORT_ARCHIVE_PATH,
-  IMPORT_ARCHIVE_PATH,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
@@ -661,43 +660,29 @@ export default class LocalBackend extends Backend {
       : extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    if (backend.fileIsNotProject(file)) {
-      const searchParams = new URLSearchParams([
-        ['file_name', body.fileName],
-        ...(body.parentDirectoryId == null ? [] : [['directory', parentPath]]),
-      ]).toString()
-      const path = `/api/upload-file?${searchParams}`
-      await fetch(path, { method: 'POST', body: file })
-      this.uploadedFiles.set(uploadId, { id: newFileId(filePath), project: null })
-    } else {
-      const title = backend.stripProjectExtension(body.fileName)
-      let projectPath: backend.Path
-      if (
-        'backendApi' in window &&
-        // This non-standard property is defined in Electron.
-        'path' in file &&
-        typeof file.path === 'string' &&
-        file.path !== ''
-      ) {
-        const projectInfo = await window.backendApi.importProjectFromPath(
-          file.path,
-          parentPath,
-          title,
-        )
-        // FIXME: Is this correct?
-        projectPath = backend.Path(projectInfo.parentDirectory)
-      } else {
-        const searchParams = new URLSearchParams({
-          directory: parentPath,
-          name: title,
-        }).toString()
-        const path = `/api/upload-project?${searchParams}`
-        const response = await fetch(path, { method: 'POST', body: file })
-        projectPath = backend.Path(await response.text())
-      }
+    const sourcePath =
+      body.filePath ??
+      // The non-standard `path` property is defined in Electron.
+      ('path' in file && typeof file.path === 'string' && file.path !== '' ? file.path : null)
+    const searchParams = new URLSearchParams([
+      ['directory', parentPath],
+      ['file_name', body.fileName],
+      ...(sourcePath != null ? [['file_path', sourcePath]] : []),
+    ]).toString()
+    const path = `/api/upload-file?${searchParams}`
+    const response = await fetch(path, {
+      method: 'POST',
+      ...(sourcePath != null ? {} : { body: file }),
+    })
+    if (backend.fileIsProject(file)) {
+      const projectPath = backend.Path(await response.text())
       const projectId = newProjectId(projectPath)
       const project = await this.getProjectDetails(projectId)
       this.uploadedFiles.set(uploadId, { id: projectId, project })
+    } else if (backend.fileIsArchive(file)) {
+      // FIXME: Add new shape for uploaded archive.
+    } else {
+      this.uploadedFiles.set(uploadId, { id: newFileId(filePath), project: null })
     }
     return { presignedUrls: [], uploadId, sourcePath: backend.S3FilePath('') }
   }
@@ -795,19 +780,6 @@ export default class LocalBackend extends Backend {
         break
       }
     }
-  }
-
-  /** Import an archive and unpack into a directory. */
-  override async importArchive(
-    params: backend.ImportArchiveParams,
-  ): Promise<backend.ImportArchiveResponse> {
-    const rest = 'archive' in params ? omit(params, 'archive') : params
-    const searchParams = new URLSearchParams(rest).toString()
-    const path = `${IMPORT_ARCHIVE_PATH}?${searchParams}`
-    const response = await ('archive' in params ?
-      this.postBinary<backend.ImportArchiveResponse>(path, params.archive)
-    : this.post<backend.ImportArchiveResponse>(path, {}))
-    return await response.json()
   }
 
   /** Export multiple files and pack into an archive. */

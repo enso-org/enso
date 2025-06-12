@@ -263,7 +263,6 @@ export function getHybridProjectPingPath(projectId: ProjectId) {
 }
 
 export const EXPORT_ARCHIVE_PATH = 'assets/zip'
-export const IMPORT_ARCHIVE_PATH = 'assets/unzip'
 /** Relative HTTP path to the "export archive job status" endpoint of the Cloud backend API. */
 export function getExportArchiveJobStatusPath(jobId: ZipAssetsJobId) {
   return HttpsUrl(`assets/zip/${jobId}`)

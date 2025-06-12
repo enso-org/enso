@@ -21,19 +21,6 @@ interface Enso {
 }
 
 /**
- * `window.backendApi` is a context bridge to the main process, when we're running in an
- * Electron context. It contains non-authentication-related functionality.
- */
-interface BackendApi {
-  /** Return the ID of the new project. */
-  readonly importProjectFromPath: (
-    openedPath: string,
-    directory: string | null,
-    name: string,
-  ) => Promise<ProjectInfo>
-}
-
-/**
  * `window.authenticationApi` is a context bridge to the main process, when we're running in an
  * Electron context.
  *
@@ -139,7 +126,6 @@ declare global {
   const $config: $Config
 
   interface Window {
-    readonly backendApi?: BackendApi
     readonly authenticationApi: AuthenticationApi
     readonly navigationApi: NavigationApi
     readonly menuApi?: MenuApi
