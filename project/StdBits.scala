@@ -233,18 +233,20 @@ object StdBits {
     )
   }
 
-  /** Extracts native libraries from `jna-wrapper-assembly-0.1.0-SNAPSHOT.jar`.
-    * This is our own fat JAR that we assemble inside `jna-wrapper` project.
+  /** Extracts native libraries from `std-microsoft`.
+   * In particular from JNA.
     *
     * The list of the native libraries is listed in
     * <a href="https://github.com/enso-org/enso/blob/7e0c6373b55bdf976562bce899f2fe6af7c258c0/test/Base_Tests/data/native_libs.json#L2-L25">
     *   test/Base_Tests/data/native_libs.json
     * </a>
+   *
+   * @param jnaJar Path to `jna-wrapper/assembly`.
     */
-  def extractNativeLibsFromJna(
-    inputJar: File,
-    outputJar: File,
-    nativeLibsOutDir: File,
+  def extractNativeLibsFromMicrosoft(
+    microsoftPolyglotRoot: File,
+    microsoftNativeLibs: File,
+    jnaJar: File,
     logger: ManagedLogger,
     moduleName: String,
     cacheStoreFactory: CacheStoreFactory,
@@ -253,12 +255,8 @@ object StdBits {
     if (previousRun.exists(!_.isOutdated)) {
       return previousRun.get
     }
-    if (nativeLibsOutDir.exists()) {
-      IO.delete(nativeLibsOutDir)
-    }
-    IO.createDirectory(nativeLibsOutDir)
     val nativeCodeEntries =
-      JARUtils.readNativeCodeEntriesFromManifest(inputJar.toPath)
+      JARUtils.readNativeCodeEntriesFromManifest(jnaJar.toPath)
     val (expectedOsName, targetOs) = if (Platform.isWindows) {
       ("win", "windows")
     } else if (Platform.isLinux) {
@@ -280,7 +278,7 @@ object StdBits {
     }
     if (entriesToExtract.isEmpty) {
       throw new IllegalStateException(
-        s"No native libraries found for $expectedOsName-$expectedProcessor in $inputJar"
+        s"No native libraries found for $expectedOsName-$expectedProcessor in $jnaJar"
       )
     }
     val pathsToExtract = entriesToExtract.map(_.libPath)
@@ -294,21 +292,24 @@ object StdBits {
       }
     }
 
+    val outputJna =
+      (microsoftPolyglotRoot / s"jna-wrapper-thin.jar").toPath
+
     val extractedLibs = JARUtils.extractFilesFromJar(
-      inputJar.toPath,
+      jnaJar.toPath,
       None,
-      Some(outputJar.toPath),
-      nativeLibsOutDir.toPath,
+      Some(outputJna),
+      microsoftNativeLibs.toPath,
       renameFunc,
       logger,
       cacheStoreFactory,
-      previousRun.flatMap(_.forJar(inputJar))
+      previousRun.flatMap(_.forJar(jnaJar))
     )
 
     AnalysisOfExtractedNativeLibs(
-      inputJar,
+      jnaJar,
       extractedLibs.getOrElse(Nil),
-      Some(outputJar)
+      Some(outputJna.toFile)
     )
   }
 
