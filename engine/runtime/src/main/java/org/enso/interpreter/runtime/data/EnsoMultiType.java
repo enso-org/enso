@@ -27,6 +27,7 @@ final class EnsoMultiType {
 
   private EnsoMultiType(Type[] types) {
     assert checkNonNull(types);
+    assert isUnique(types);
     this.types = types;
   }
 
@@ -94,12 +95,18 @@ final class EnsoMultiType {
     return "MultiType{" + "types=" + Arrays.toString(types) + '}';
   }
 
+  private static boolean isUnique(Type[] types) {
+    var set = new HashSet<>(Arrays.asList(types));
+    return set.size() == types.length;
+  }
+
   @CompilerDirectives.TruffleBoundary
   final boolean hasIntersectionWith(EnsoMultiType other) {
     var my = new HashSet<>(Arrays.asList(types));
     var their = Arrays.asList(other.types);
-    my.removeAll(their);
-    return my.size() < types.length;
+    // removeAll returns true if any element from 'their' was removed from 'my' - meaning there is
+    // an intersection.
+    return my.removeAll(their);
   }
 
   @GenerateUncached

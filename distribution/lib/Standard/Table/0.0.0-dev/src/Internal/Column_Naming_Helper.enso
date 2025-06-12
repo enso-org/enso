@@ -1,11 +1,11 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Column.Column
 import project.Internal.Naming_Properties.Enso_Length_Limited_Naming_Properties
 import project.Internal.Naming_Properties.Unlimited_Naming_Properties
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project.Errors import Clashing_Column_Name, Invalid_Column_Names
-from project.Internal.Table_Helpers import is_column
 
 polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -102,7 +102,7 @@ type Column_Naming_Helper
        For columns, it will return its name wrapped in `[` and `]`.
        For other objects, it will return its pretty-printed representation.
     to_expression_text self value =
-        if is_column value then "[" + value.name + "]" else
+        if Column.is_column value then "[" + (value:Column).name + "]" else
             if value.is_a Regex then "r/" + (value.pattern.replace "/" "\/") + "/" else
                 if Meta.is_atom value then value.pretty.replace (Meta.Type.from value . name)+"." ".." else
                     value.pretty

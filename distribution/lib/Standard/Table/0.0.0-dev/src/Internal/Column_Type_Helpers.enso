@@ -1,0 +1,21 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Column.Column
+
+## PRIVATE
+   Constructor to be used by implementations of the Column type to be able to provide a conversion.
+column_from_implementation value implementation =
+    Column.Value value implementation
+
+## PRIVATE
+   Checks if the underlying data has the expected type and returns it if the
+   type is correct.
+underlying_from_column value:Column expected_type =
+    if value.underlying.is_a expected_type then value.underlying else
+        got_type = Meta.type_of value.underlying
+        Error.throw (Illegal_Argument.Error ("Expected a column of type " + expected_type.to_text + " but got " + got_type.to_text + "."))
+
+## PRIVATE
+   Helper for the expression to tell it which functions needs a Vector.
+var_args_functions = ['is_in', 'coalesce', 'min', 'max']

@@ -1,7 +1,4 @@
 /** @file A table row for an arbitrary asset. */
-import BlankIcon from '#/assets/blank.svg'
-import { IndefiniteSpinner } from '#/components/Spinner'
-import { Text } from '#/components/Text'
 import {
   useDeleteAssetsMutationState,
   useMoveAssetsMutationState,
@@ -20,7 +17,6 @@ import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import {
   useDriveStore,
   useSetCurrentDirectoryId,
@@ -36,13 +32,13 @@ import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 import {
   canPermissionModifyDirectoryContents,
-  isTeamParentsPath,
+  isTeamPath,
   tryFindSelfPermission,
 } from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import { useRightPanelData, useText } from '$/providers/react'
+import { useFullUserSession, useRightPanelData } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -85,6 +81,7 @@ export interface AssetRowProps {
   readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
   readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
+  readonly tableRootRef: React.MutableRefObject<HTMLElement | null> | undefined
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
@@ -93,9 +90,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { type, columns, id, item } = props
 
   switch (type) {
-    case backendModule.AssetType.specialLoading:
-    case backendModule.AssetType.specialEmpty:
-    case backendModule.AssetType.specialError:
     case backendModule.AssetType.specialUp: {
       return <AssetSpecialRow columnsLength={columns.length} type={type} />
     }
@@ -120,58 +114,13 @@ export interface AssetSpecialRowProps {
 
 /** Renders a special asset row. */
 const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
-  const { type, columnsLength } = props
-
-  const { getText } = useText()
+  const { type } = props
 
   switch (type) {
     case backendModule.AssetType.specialUp: {
       // TODO: Implement this.
       // @MrFlashAccount [Cloud v2 #1810](https://github.com/enso-org/cloud-v2/issues/1810)
       return null
-    }
-
-    case backendModule.AssetType.specialLoading: {
-      return (
-        <tr>
-          <td colSpan={columnsLength} className="border-r p-0">
-            <div className="flex h-table-row items-center justify-center rounded-full">
-              <IndefiniteSpinner size={24} />
-            </div>
-          </td>
-        </tr>
-      )
-    }
-    case backendModule.AssetType.specialEmpty: {
-      return (
-        <tr>
-          <td colSpan={columnsLength} className="border-r p-0">
-            <div className="flex h-table-row items-center rounded-full">
-              <img src={BlankIcon} />
-              <Text className="px-name-column-x placeholder" disableLineHeightCompensation>
-                {getText('thisFolderIsEmpty')}
-              </Text>
-            </div>
-          </td>
-        </tr>
-      )
-    }
-    case backendModule.AssetType.specialError: {
-      return (
-        <tr>
-          <td colSpan={columnsLength} className="border-r p-0">
-            <div className="flex h-table-row items-center rounded-full">
-              <img src={BlankIcon} />
-              <Text
-                className="px-name-column-x text-danger placeholder"
-                disableLineHeightCompensation
-              >
-                {getText('thisFolderFailedToFetch')}
-              </Text>
-            </div>
-          </td>
-        </tr>
-      )
     }
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
@@ -206,6 +155,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
     renameAsset,
     closeProject,
     openProject,
+    tableRootRef,
   } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
@@ -345,7 +295,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
           // Assume the parent is the root directory.
           return true
         }
-        if (isTeamParentsPath(parent.parentsPath, [])) {
+        if (parent.ensoPath != null && isTeamPath(parent.ensoPath)) {
           return true
         }
         // Assume user path; check permissions
@@ -435,6 +385,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
               setModal(
                 <AssetContextMenu
+                  rootRef={tableRootRef}
                   innerProps={innerProps}
                   currentDirectoryId={currentDirectoryId}
                   triggerRef={rootRef}
@@ -527,6 +478,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             // the entire context menu (once for the keyboard actions, once for the JSX).
             <AssetContextMenu
               hidden
+              rootRef={tableRootRef}
               innerProps={innerProps}
               currentDirectoryId={currentDirectoryId}
               triggerRef={rootRef}
@@ -542,9 +494,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
       )
     }
     case backendModule.AssetType.specialUp:
-    case backendModule.AssetType.specialLoading:
-    case backendModule.AssetType.specialEmpty:
-    case backendModule.AssetType.specialError:
     default: {
       invariant(
         false,

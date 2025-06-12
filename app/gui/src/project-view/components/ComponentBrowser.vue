@@ -314,42 +314,42 @@ function acceptInput() {
 
 // === Action Handlers ===
 
-const outsideComponentBrowsing = computed(() => input.mode.mode != 'componentBrowsing')
+const insideComponentBrowsing = computed(() => input.mode.mode === 'componentBrowsing')
 const actions = registerHandlers({
   'componentBrowser.editSuggestion': {
+    enabled: insideComponentBrowsing,
     action: () => {
       const result = applyComponent()
       if (!result.ok) result.error.log('Cannot apply component')
     },
-    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptSuggestion': {
+    enabled: insideComponentBrowsing,
     action: () => acceptComponent(),
-    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptInputAsCode': {
+    enabled: insideComponentBrowsing,
     action: acceptInput,
-    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.switchToCodeEditMode': {
-    disabled: outsideComponentBrowsing,
+    enabled: insideComponentBrowsing,
     action: input.switchToCodeEditMode,
   },
 })
 
 function performActionIfNotDisabled(action: Action & { action: () => void }) {
-  if (toValue(action.hidden) || toValue(action.disabled)) return false
+  if (!toValue(action.available ?? true) || !toValue(action.enabled ?? true)) return false
   else return action.action()
 }
 
 const handler = componentBrowserBindings.handler({
-  applySuggestion() {
-    return performActionIfNotDisabled(actions['componentBrowser.editSuggestion'])
-  },
-  acceptSuggestion() {
-    return performActionIfNotDisabled(actions['componentBrowser.acceptSuggestion'])
-  },
-  acceptCode() {
+  'componentBrowser.editSuggestion': () =>
+    performActionIfNotDisabled(actions['componentBrowser.editSuggestion']),
+  'componentBrowser.acceptSuggestion': () =>
+    performActionIfNotDisabled(actions['componentBrowser.acceptSuggestion']),
+  'componentBrowser.switchToCodeEditMode': () =>
+    performActionIfNotDisabled(actions['componentBrowser.switchToCodeEditMode']),
+  'componentBrowser.acceptInputAsCode': () => {
     if (input.mode.mode != 'codeEditing') return false
     acceptInput()
   },
@@ -357,9 +357,6 @@ const handler = componentBrowserBindings.handler({
   acceptAIPrompt() {
     if (input.mode.mode == 'aiPrompt') input.applyAIPrompt()
     else return false
-  },
-  switchToCodeEditMode() {
-    return performActionIfNotDisabled(actions['componentBrowser.switchToCodeEditMode'])
   },
   switchPanelFocus() {
     componentList.value?.switchPanelFocus()

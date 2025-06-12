@@ -274,6 +274,9 @@ public class PersistableProcessor extends AbstractProcessor {
               case INT -> w.append("    var ")
                   .append(v.getSimpleName())
                   .append(" = in.readInt();\n");
+              case LONG -> w.append("    var ")
+                  .append(v.getSimpleName())
+                  .append(" = in.readLong();\n");
               default -> processingEnv
                   .getMessager()
                   .printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
@@ -327,6 +330,9 @@ public class PersistableProcessor extends AbstractProcessor {
                   .append(v.getSimpleName())
                   .append("());\n");
               case INT -> w.append("    out.writeInt(obj.")
+                  .append(v.getSimpleName())
+                  .append("());\n");
+              case LONG -> w.append("    out.writeLong(obj.")
                   .append(v.getSimpleName())
                   .append("());\n");
               default -> processingEnv

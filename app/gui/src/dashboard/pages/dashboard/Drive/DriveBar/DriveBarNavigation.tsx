@@ -2,16 +2,21 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
+import RecentIcon from '#/assets/recent.svg'
 import { Breadcrumbs, type BreadcrumbItemProps, type OnDrop } from '#/components/Breadcrumbs'
 import { Button } from '#/components/Button'
+import { Popover } from '#/components/Dialog'
 import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import CategorySwitcher from '#/layouts/CategorySwitcher'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
+import type { PathItem } from '#/services/utilities'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRightPanelData, useText } from '$/providers/react'
@@ -19,11 +24,18 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
+/** Props for a {@link DriveBarNavigation}. */
+export interface DriveBarNavigationProps {
+  readonly setCategoryId: (categoryId: Category['id']) => void
+}
+
 /**
  * Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher.
  */
-export function DriveBarNavigation() {
+export function DriveBarNavigation(props: DriveBarNavigationProps) {
+  const { setCategoryId } = props
+
   const { getText } = useText()
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
@@ -94,12 +106,39 @@ export function DriveBarNavigation() {
     }
   }, [directoryData?.asset, rightPanel])
 
-  const { finalPath } = parseDirectoriesPath({
+  const { finalPath: finalPathRaw } = parseDirectoriesPath({
     parentsPath: directoryData?.parentsPath ?? '',
     virtualParentsPath: directoryData?.virtualParentsPath ?? '',
     rootDirectoryId,
     getCategoryByDirectoryId,
   })
+  const finalPath = (() => {
+    if (category.type === 'recent') {
+      return [
+        {
+          id: rootDirectoryId,
+          categoryId: category.id,
+          label: getText('recentCategory'),
+          icon: RecentIcon,
+        } satisfies PathItem,
+        ...finalPathRaw.slice(1),
+      ]
+    }
+
+    if (category.type === 'trash') {
+      return [
+        {
+          id: category.homeDirectoryId,
+          categoryId: category.id,
+          label: getText('trashCategory'),
+          icon: 'trash_small',
+        } satisfies PathItem,
+        ...finalPathRaw.slice(Math.max(1, finalPathRaw.length - 1)),
+      ]
+    }
+
+    return finalPathRaw
+  })()
 
   const parentId = finalPath.findIndex((item) => item.id === currentDirectoryId) - 1
   const canNavigateUp = parentId >= 0
@@ -138,16 +177,74 @@ export function DriveBarNavigation() {
     navigateToDirectory(directoryData.parentId)
   })
 
+  const breadcrumbs = (
+    <Scroller orientation="horizontal">
+      <Breadcrumbs onDrop={onDrop}>
+        {finalPath.map((pathItem, index) => {
+          const isCurrent = pathItem.id === currentDirectoryId
+          const breadcrumb = (
+            <DriveBarBreadcrumbsItem
+              key={pathItem.id + index}
+              id={pathItem.id}
+              icon={pathItem.icon}
+              navigateToDirectory={navigateToDirectory}
+              isDroppable={!isCurrent}
+            >
+              {pathItem.label}
+            </DriveBarBreadcrumbsItem>
+          )
+          if (index === 0 && isCurrent) {
+            return (
+              <Menu.Trigger>
+                <Button size="custom">
+                  <DriveBarBreadcrumbsItem
+                    key={pathItem.id + index}
+                    id={pathItem.id}
+                    icon={pathItem.icon}
+                    navigateToDirectory={navigateToDirectory}
+                    isDroppable={pathItem.id !== currentDirectoryId}
+                  >
+                    {pathItem.label}
+                  </DriveBarBreadcrumbsItem>
+                </Button>
+                <Popover size="auto">
+                  {({ close }) => {
+                    return (
+                      <CategorySwitcher
+                        category={category}
+                        setCategoryId={(id) => {
+                          setCategoryId(id)
+                          close()
+                        }}
+                      />
+                    )
+                  }}
+                </Popover>
+              </Menu.Trigger>
+            )
+          }
+          return breadcrumb
+        })}
+      </Breadcrumbs>
+    </Scroller>
+  )
+
   switch (category.type) {
     case 'trash': {
       return (
-        <div className="py-2">
+        <div className="flex w-full flex-none items-center py-2">
           <UpButton navigateToParent={navigateToParent} isDisabled={!canNavigateUp} />
+          {breadcrumbs}
         </div>
       )
     }
     case 'recent':
-      return null
+      return (
+        <div className="flex w-full flex-none items-center py-2">
+          <UpButton navigateToParent={navigateToParent} isDisabled />
+          {breadcrumbs}
+        </div>
+      )
     case 'cloud':
     case 'local':
     case 'user':
@@ -177,21 +274,7 @@ export function DriveBarNavigation() {
             </Menu.Trigger>
           </Button.Group>
 
-          <Scroller orientation="horizontal">
-            <Breadcrumbs onDrop={onDrop}>
-              {finalPath.map((pathItem, index) => (
-                <DriveBarBreadcrumbsItem
-                  key={pathItem.id + index}
-                  id={pathItem.id}
-                  icon={pathItem.icon}
-                  navigateToDirectory={navigateToDirectory}
-                  isDroppable={pathItem.id !== currentDirectoryId}
-                >
-                  {pathItem.label}
-                </DriveBarBreadcrumbsItem>
-              ))}
-            </Breadcrumbs>
-          </Scroller>
+          {breadcrumbs}
         </div>
       )
     }

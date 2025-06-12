@@ -2,8 +2,8 @@ package org.enso.table_test_helpers;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -52,49 +52,27 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return false;
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     return null;
   }
 
   @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<Long> applyFilter(BitSet filterMask, int newLength) {
     return null;
   }
 
   @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<Long> applyMask(OrderMask mask) {
     return null;
   }
 
   @Override
-  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Long> slice(int offset, int limit) {
     return null;
   }
 
   @Override
-  public Storage<Long> applyMask(OrderMask mask) {
-    return null;
-  }
-
-  @Override
-  public Storage<Long> slice(int offset, int limit) {
-    return null;
-  }
-
-  @Override
-  public Storage<?> appendNulls(int count) {
-    return null;
-  }
-
-  @Override
-  public Storage<Long> slice(List<SliceRange> ranges) {
+  public ColumnStorage<Long> slice(List<SliceRange> ranges) {
     return null;
   }
 }

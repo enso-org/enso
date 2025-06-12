@@ -15,7 +15,7 @@ import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CountNothing;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
@@ -36,8 +36,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       Comparator<Object> objectComparator,
       ProblemAggregator problemAggregator) {
     TreeMap<OrderedMultiValueKey, List<Integer>> locs = new TreeMap<>();
-    final Storage<?>[] storage =
-        Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+    final var storage =
+        Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     IntFunction<OrderedMultiValueKey> keyFactory =
         i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator);
     return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory, problemAggregator);
@@ -49,8 +49,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       List<TextFoldingStrategy> textFoldingStrategies,
       ProblemAggregator problemAggregator) {
     HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
-    final Storage<?>[] storage =
-        Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+    final var storage =
+        Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     IntFunction<UnorderedMultiValueKey> keyFactory =
         i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
     return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory, problemAggregator);

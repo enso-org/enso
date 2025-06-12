@@ -1,7 +1,7 @@
 import * as text from 'enso-common/src/text'
 
-import { createContextStore } from '@/providers'
 import { MaybeRefOrGetterArray } from '@/util/reactivity'
+import { createGlobalState } from '@vueuse/core'
 import { computed, proxyRefs, ref, toValue } from 'vue'
 
 export type TextStore = ReturnType<typeof createTextStore>
@@ -11,7 +11,7 @@ export type TextStore = ReturnType<typeof createTextStore>
  * The composable is used in tests only; the application should use
  * `injectText` instead.
  */
-export function createTextStore() {
+function createTextStore() {
   const language = ref(text.resolveUserLanguage())
   const locale = computed(() => text.LANGUAGE_TO_LOCALE[language.value])
   const localizedText = computed(() => text.getDictionary(language.value))
@@ -47,4 +47,4 @@ export type GetText = <K extends text.TextId>(
   ...replacements: text.Replacements[K]
 ) => string
 
-export const [provideText, useText] = createContextStore('text', createTextStore)
+export const useText = createGlobalState(createTextStore)

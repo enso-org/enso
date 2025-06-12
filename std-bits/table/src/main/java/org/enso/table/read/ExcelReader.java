@@ -9,7 +9,7 @@ import java.util.stream.IntStream;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.storage.ObjectStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptySheetException;
@@ -28,6 +28,8 @@ import org.graalvm.polyglot.Context;
 
 /** A table reader for MS Excel files. */
 public class ExcelReader {
+  private static final ColumnStorage<?> EMPTY_STORAGE = Builder.getObjectBuilder(0).seal();
+
   /**
    * Reads a list of sheet names for the specified XLSX/XLS file into an array.
    *
@@ -312,7 +314,7 @@ public class ExcelReader {
             new Column[] {
               new Column(
                   CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
-                  ObjectStorage.EMPTY)
+                  EMPTY_STORAGE)
             });
       }
 

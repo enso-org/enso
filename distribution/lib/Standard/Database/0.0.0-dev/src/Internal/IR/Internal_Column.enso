@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+from Standard.Table import Column
+
+import project.DB_Column.DB_Column
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Type.SQL_Type
@@ -23,3 +26,11 @@ type Internal_Column
        - new_name: The new name for the column.
     rename : Text -> Internal_Column
     rename self new_name = Internal_Column.Value new_name self.sql_type_reference self.expression
+
+## PRIVATE
+Internal_Column.from (that : DB_Column) =
+    Internal_Column.Value (that:Column).name that.sql_type_reference that.expression
+
+## PRIVATE
+Internal_Column.from (that : Column) =
+    Internal_Column.from (that : DB_Column)
