@@ -1,4 +1,4 @@
-import { unrefElement, type UnrefElement } from '@/composables/events'
+import { unrefElement } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { ref, watch, type Ref, type WatchSource } from 'vue'
 
@@ -7,9 +7,9 @@ interface Emit {
 }
 
 interface FullscreenAnimationOptions {
-  content: UnrefElement
+  content: Parameters<typeof unrefElement>[0]
   savedSize: Ref<Keyframe | undefined>
-  fullscreenRoot: UnrefElement
+  fullscreenRoot: Parameters<typeof unrefElement>[0]
   fullscreen: WatchSource<boolean>
   emit: Emit
 }

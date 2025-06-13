@@ -155,8 +155,6 @@ export function modKey(e: KeyboardEvent | MouseEvent): boolean {
   return isMacLike ? e.metaKey : e.ctrlKey
 }
 
-export type UnrefElementInput = ToValue<Opt<Element | VueInstance>>
-
 /**
  * A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components.
  *
@@ -657,7 +655,10 @@ export function useWheelActions(
  * Registers a "pre" event handler to run a function that captures state when a `pointerdown` event
  * occurs within the given element.
  */
-export function useStateBeforePointerdown<T>(element: UnrefElementInput, getState: () => T) {
+export function useStateBeforePointerdown<T>(
+  element: Parameters<typeof unrefElement>[0],
+  getState: () => T,
+) {
   const stateBeforeClick = ref<T>()
 
   const { globalEventRegistryPre } = useGlobalEventRegistry()
