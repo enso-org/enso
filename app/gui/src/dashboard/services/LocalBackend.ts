@@ -5,7 +5,6 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API.
  */
-import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
 import type { Logger } from '#/providers/LoggerProvider'
 import Backend, * as backend from '#/services/Backend'
 import type ProjectManager from '#/services/ProjectManager'
@@ -26,6 +25,8 @@ import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
+
+const { localRootDirectoryStore } = await import('#/layouts/Drive/persistentState')
 
 const LOCAL_API_URL = '/api'
 
@@ -51,42 +52,6 @@ export function newProjectId(path: projectManager.Path) {
 /** Create a {@link backend.FileId} from a path. */
 export function newFileId(path: projectManager.Path) {
   return backend.FileId(`${FILE_ID_PREFIX}${encodeURIComponent(path)}`)
-}
-
-/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
-interface AssetTypeAndIdRaw<Type extends backend.AssetType> {
-  readonly type: Type
-  readonly path: projectManager.Path
-}
-
-/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
-type AssetTypeAndId<Id extends backend.AssetId = backend.AssetId> =
-  | (backend.DirectoryId extends Id ? AssetTypeAndIdRaw<backend.AssetType.directory> : never)
-  | (backend.FileId extends Id ? AssetTypeAndIdRaw<backend.AssetType.file> : never)
-  | (backend.ProjectId extends Id ? AssetTypeAndIdRaw<backend.AssetType.project> : never)
-
-export function extractTypeAndPath<Id extends backend.AssetId>(id: Id): AssetTypeAndId<Id>
-/**
- * Extracts the asset type and its corresponding internal ID from a {@link backend.AssetId}.
- * @throws {Error} if the id has an unknown type.
- */
-export function extractTypeAndPath<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
-  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
-
-  switch (typeRaw) {
-    case backend.AssetType.directory:
-    case backend.AssetType.project:
-    case backend.AssetType.file: {
-      return {
-        type: typeRaw,
-        path: projectManager.Path(decodeURIComponent(idRaw)),
-      }
-    }
-    case undefined:
-    default: {
-      throw new Error(`Invalid type '${typeRaw}'`)
-    }
-  }
 }
 
 /**
@@ -142,7 +107,8 @@ export default class LocalBackend extends Backend {
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
     const { rootPath = this.rootPath() } = query
-    const parentIdRaw = query.parentId == null ? null : extractTypeAndPath(query.parentId).path
+    const parentIdRaw =
+      query.parentId == null ? null : backend.extractTypeAndPath(query.parentId).path
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
     // Catch the case where the directory does not exist.
@@ -252,7 +218,9 @@ export default class LocalBackend extends Backend {
     body: backend.CreateProjectRequestBody,
   ): Promise<backend.CreatedProject> {
     const projectsDirectory =
-      body.parentDirectoryId == null ? null : extractTypeAndPath(body.parentDirectoryId).path
+      body.parentDirectoryId == null ?
+        null
+      : backend.extractTypeAndPath(body.parentDirectoryId).path
     const project = await this.projectManager.createProject({
       name: projectManager.ProjectName(body.projectName),
       missingComponentAction: projectManager.MissingComponentAction.install,
@@ -272,7 +240,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails.
    */
   override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
-    const { path } = extractTypeAndPath(projectId)
+    const { path } = backend.extractTypeAndPath(projectId)
     try {
       await this.projectManager.closeProject({ projectPath: path })
       return
@@ -296,7 +264,7 @@ export default class LocalBackend extends Backend {
       backend.Asset<backend.AssetType.directory> | null
     : backend.Asset<Type>,
   >(assetId: Id, rootPath: backend.Path | undefined): Promise<ReturnType> {
-    const { path } = extractTypeAndPath(assetId)
+    const { path } = backend.extractTypeAndPath(assetId)
     const { directoryPath } = getDirectoryAndName(path)
 
     const directoryContents = await this.listDirectory({
@@ -329,7 +297,7 @@ export default class LocalBackend extends Backend {
     projectId: backend.ProjectId,
     _getPresignedUrl = false,
   ): Promise<backend.Project> {
-    const { path } = extractTypeAndPath(projectId)
+    const { path } = backend.extractTypeAndPath(projectId)
     const { directoryPath } = getDirectoryAndName(path)
     const state = this.projectManager.getProject(path)
     if (state == null) {
@@ -380,7 +348,7 @@ export default class LocalBackend extends Backend {
     body: backend.OpenProjectRequestBody | null,
     title: string | null,
   ): Promise<void> {
-    const { path } = extractTypeAndPath(projectId)
+    const { path } = backend.extractTypeAndPath(projectId)
     try {
       await this.projectManager.openProject({
         projectPath: path,
@@ -407,7 +375,7 @@ export default class LocalBackend extends Backend {
     projectId: backend.ProjectId,
     body: backend.UpdateProjectRequestBody,
   ): Promise<backend.UpdatedProject> {
-    const { path } = extractTypeAndPath(projectId)
+    const { path } = backend.extractTypeAndPath(projectId)
     if (body.projectName != null) {
       await this.projectManager.renameProject({
         projectPath: path,
@@ -439,7 +407,7 @@ export default class LocalBackend extends Backend {
 
   /** Duplicate a specific version of a project. */
   override async duplicateProject(projectId: backend.ProjectId): Promise<backend.CreatedProject> {
-    const { path } = extractTypeAndPath(projectId)
+    const { path } = backend.extractTypeAndPath(projectId)
     const project = await this.projectManager.duplicateProject({ projectPath: path })
     return {
       projectId: newProjectId(project.projectPath),
@@ -459,7 +427,7 @@ export default class LocalBackend extends Backend {
     _body: backend.DeleteAssetRequestBody,
     title: string | null,
   ): Promise<void> {
-    const { type, path } = extractTypeAndPath(assetId)
+    const { type, path } = backend.extractTypeAndPath(assetId)
     switch (type) {
       case backend.AssetType.directory:
       case backend.AssetType.file: {
@@ -486,13 +454,13 @@ export default class LocalBackend extends Backend {
     assetId: backend.AssetId,
     parentDirectoryId: backend.DirectoryId,
   ): Promise<backend.CopyAssetResponse> {
-    const { type, path } = extractTypeAndPath(assetId)
+    const { type, path } = backend.extractTypeAndPath(assetId)
     if (type !== backend.AssetType.project) {
       throw new Error('Only projects can be copied on the Local Backend.')
     } else {
       const project = await this.projectManager.duplicateProject({ projectPath: path })
       const parentPath = getDirectoryAndName(path).directoryPath
-      if (parentPath !== extractTypeAndPath(parentDirectoryId).path) {
+      if (parentPath !== backend.extractTypeAndPath(parentDirectoryId).path) {
         throw new Error('Cannot duplicate project to a different directory on the Local Backend.')
       }
       const asset = {
@@ -600,7 +568,7 @@ export default class LocalBackend extends Backend {
     const parentDirectoryPath =
       body.parentId == null ?
         this.projectManager.rootDirectory
-      : extractTypeAndPath(body.parentId).path
+      : backend.extractTypeAndPath(body.parentId).path
     const path = joinPath(parentDirectoryPath, body.title)
     await this.projectManager.createDirectory(path)
     return {
@@ -620,7 +588,7 @@ export default class LocalBackend extends Backend {
   ): Promise<void> {
     // Changing description is not supported on the Local Backend.
     const { parentDirectoryId, title } = body
-    const { type, path } = extractTypeAndPath(assetId)
+    const { type, path } = backend.extractTypeAndPath(assetId)
     // FIXME: This is the path, not the `currentParentDirectoryPath`, I'm pretty sure
     const currentParentDirectoryPath = path
 
@@ -634,7 +602,7 @@ export default class LocalBackend extends Backend {
         )
       }
 
-      return joinPath(extractTypeAndPath(parentDirectoryId).path, fileName)
+      return joinPath(backend.extractTypeAndPath(parentDirectoryId).path, fileName)
     })()
 
     await this.projectManager.moveFile(currentParentDirectoryPath, newParentDirectoryPath)
@@ -657,7 +625,7 @@ export default class LocalBackend extends Backend {
     const parentPath =
       body.parentDirectoryId == null ?
         this.projectManager.rootDirectory
-      : extractTypeAndPath(body.parentDirectoryId).path
+      : backend.extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
     const sourcePath =
@@ -707,7 +675,7 @@ export default class LocalBackend extends Backend {
     fileId: backend.FileId,
     body: backend.UpdateFileRequestBody,
   ): Promise<void> {
-    const typeAndId = extractTypeAndPath(fileId)
+    const typeAndId = backend.extractTypeAndPath(fileId)
     const from = typeAndId.path
     const folderPath = getFolderPath(from)
     const to = joinPath(projectManager.Path(folderPath), body.title)
@@ -716,7 +684,7 @@ export default class LocalBackend extends Backend {
 
   /** Construct a new path using the given parent directory and a file name. */
   joinPath(parentId: backend.DirectoryId, fileName: string) {
-    return joinPath(extractTypeAndPath(parentId).path, fileName)
+    return joinPath(backend.extractTypeAndPath(parentId).path, fileName)
   }
 
   /** Change the name of a directory. */
@@ -724,7 +692,7 @@ export default class LocalBackend extends Backend {
     directoryId: backend.DirectoryId,
     body: backend.UpdateDirectoryRequestBody,
   ): Promise<backend.UpdatedDirectory> {
-    const from = extractTypeAndPath(directoryId).path
+    const from = backend.extractTypeAndPath(directoryId).path
     const folderPath = projectManager.Path(getFolderPath(from))
     const to = joinPath(folderPath, body.title)
     await this.projectManager.moveFile(from, to)
@@ -743,7 +711,7 @@ export default class LocalBackend extends Backend {
     shouldUnpackProject = false,
   ) {
     const asset = backend.extractTypeFromId(id)
-    const targetPath = targetDirectoryId ? extractTypeAndPath(targetDirectoryId).path : null
+    const targetPath = targetDirectoryId ? backend.extractTypeAndPath(targetDirectoryId).path : null
 
     switch (asset.type) {
       case backend.AssetType.project: {
@@ -859,14 +827,14 @@ export default class LocalBackend extends Backend {
    * Versioning is not supported on the Local Backend, thus the `versionId` parameter is ignored.
    */
   override getFileContent(projectId: backend.ProjectId) {
-    return this.projectManager.getFileContent(extractTypeAndPath(projectId).path)
+    return this.projectManager.getFileContent(backend.extractTypeAndPath(projectId).path)
   }
 
   /**
    * Resolve the path of a project asset relative to the project `src` directory.
    */
   override resolveProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
-    const { path: projectPath } = extractTypeAndPath(projectId)
+    const { path: projectPath } = backend.extractTypeAndPath(projectId)
 
     return Promise.resolve(`enso://${projectPath}/src/${relativePath.replace('./', '')}`)
   }

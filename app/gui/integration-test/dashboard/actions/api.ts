@@ -12,12 +12,12 @@ import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
 import * as actions from '.'
 
-import type { FeatureFlags } from '#/providers/FeatureFlagsProvider'
 import {
   organizationIdToDirectoryId,
   userGroupIdToDirectoryId,
   userIdToDirectoryId,
-} from '#/services/RemoteBackend'
+} from '#/services/RemoteBackend/types'
+import type { FeatureFlags } from '$/providers/featureFlags'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -980,7 +980,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         ...(body.parentDirectoryId != null ? { parentId: body.parentDirectoryId } : {}),
       })
 
-      return { id: file.id, project: null } satisfies backend.UploadedLargeAsset
+      return { id: file.id, project: null } satisfies backend.UploadedAsset
     })
 
     await post(remoteBackendPaths.CREATE_SECRET_PATH + '*', async (_route, request) => {

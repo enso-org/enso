@@ -67,7 +67,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         showDeveloperIds: false,
         overrideProfilePicture: false,
         multiplyUserList: false,
-        unsafeDarkTheme: localStorage.getItem('enso-theme') === 'dark',
+        unsafeDarkTheme: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

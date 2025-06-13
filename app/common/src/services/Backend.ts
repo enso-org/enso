@@ -49,6 +49,42 @@ const STATUS_NOT_AUTHORIZED = 401
 /** The size, in bytes, of the chunks which the backend accepts. */
 export const S3_CHUNK_SIZE_BYTES = 10_000_000
 
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+interface AssetTypeAndIdRaw<Type extends AssetType> {
+  readonly type: Type
+  readonly path: Path
+}
+
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+type AssetTypeAndId<Id extends AssetId = AssetId> =
+  | (DirectoryId extends Id ? AssetTypeAndIdRaw<AssetType.directory> : never)
+  | (FileId extends Id ? AssetTypeAndIdRaw<AssetType.file> : never)
+  | (ProjectId extends Id ? AssetTypeAndIdRaw<AssetType.project> : never)
+
+export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId<Id>
+/**
+ * Extracts the asset type and its corresponding internal ID from a {@link AssetId}.
+ * @throws {Error} if the id has an unknown type.
+ */
+export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
+  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
+
+  switch (typeRaw) {
+    case AssetType.directory:
+    case AssetType.project:
+    case AssetType.file: {
+      return {
+        type: typeRaw,
+        path: Path(decodeURIComponent(idRaw)),
+      }
+    }
+    case undefined:
+    default: {
+      throw new Error(`Invalid type '${typeRaw}'`)
+    }
+  }
+}
+
 /**
  * Interface used to log logs, errors, etc.
  *
