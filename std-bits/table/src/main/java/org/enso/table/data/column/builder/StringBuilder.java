@@ -1,7 +1,7 @@
 package org.enso.table.data.column.builder;
 
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -52,7 +52,7 @@ public final class StringBuilder extends TypedBuilder<String> {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof TextType gotType) {
       if (type.fitsExactly(gotType)) {
         if (storage instanceof SpecializedStorage<?>) {
@@ -72,7 +72,7 @@ public final class StringBuilder extends TypedBuilder<String> {
   }
 
   @Override
-  protected Storage<String> doSeal() {
+  protected ColumnStorage<String> doSeal() {
     return new StringStorage(data, type);
   }
 }

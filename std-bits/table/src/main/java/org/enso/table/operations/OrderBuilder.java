@@ -4,7 +4,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.enso.base.ObjectComparator;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 
@@ -36,7 +36,7 @@ public class OrderBuilder {
      * @return a comparator with properties described above
      */
     public Comparator<Integer> toComparator() {
-      final Storage<?> storage = column.getStorage();
+      final ColumnStorage<?> storage = column.getStorage();
       Comparator<Object> itemCmp = ObjectComparator.DEFAULT;
 
       if (!ascending) {

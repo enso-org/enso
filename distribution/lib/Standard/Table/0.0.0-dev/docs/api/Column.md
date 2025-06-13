@@ -51,6 +51,7 @@
     - inferred_precise_value_type self -> Standard.Table.Value_Type.Value_Type
     - info self -> Standard.Table.Table.Table
     - is_blank self treat_nans_as_blank:Standard.Base.Data.Boolean.Boolean= -> Standard.Table.Column.Column
+    - is_column object:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
     - is_empty self -> Standard.Table.Column.Column
     - is_finite self -> Standard.Table.Column.Column
     - is_in self vector:(Standard.Base.Data.Vector.Vector|Standard.Table.Column.Column|Standard.Base.Data.Array.Array) -> Standard.Table.Column.Column
@@ -90,7 +91,7 @@
     - text_replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex|Standard.Table.Column.Column)= new_text:(Standard.Base.Data.Text.Text|Standard.Table.Column.Column)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Table.Column.Column
     - text_right self n:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer) -> Standard.Table.Column.Column
     - to_js_object self -> Standard.Base.Data.Json.JS_Object
-    - to_table self -> Standard.Table.Table.Table
+    - to_table self -> (Standard.Table.Table.Table|Standard.Base.Any.Any)
     - to_text self -> Standard.Base.Data.Text.Text
     - to_vector self -> Standard.Base.Data.Vector.Vector
     - trim self where:Standard.Base.Data.Text.Location.Location= what:(Standard.Base.Data.Text.Text|Standard.Table.Column.Column)= -> Standard.Table.Column.Column
@@ -99,8 +100,8 @@
     - year self -> Standard.Table.Column.Column!Standard.Table.Errors.Invalid_Value_Type
     - zip self right:(Standard.Table.Column.Column|Standard.Table.Table.Table)= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - || self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
-- column_from_implementation value:Standard.Base.Any.Any implementation:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - default_date_period column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- default_row_limit_for_read column:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Table.Column.Column.from that:Standard.Base.Data.Vector.Vector name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
 - Standard.Base.Data.Vector.Vector.from that:Standard.Table.Column.Column -> Standard.Base.Data.Vector.Vector
 - Standard.Base.Data.Vector.Vector.from that:Standard.Table.Table.Table -> Standard.Base.Data.Vector.Vector
@@ -109,3 +110,4 @@
 - Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text.from that:Standard.Table.Column.Column -> Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text
 - Standard.Base.Data.Read.Many_Files_List.Many_Files_List.from that:Standard.Table.Column.Column -> Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 - Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers.from that:Standard.Table.Column.Column -> Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
+- Standard.Table.Refined_Types.Numeric_Column.Numeric_Column.from that:Standard.Table.Column.Column -> Standard.Table.Refined_Types.Numeric_Column.Numeric_Column

@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Missing_Argument
 
 import Standard.Table.Expression.Expression
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper

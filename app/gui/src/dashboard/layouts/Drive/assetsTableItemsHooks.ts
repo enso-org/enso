@@ -73,9 +73,6 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
       return null
     } else {
       return (asset: AnyAsset) => {
-        if (asset.type === AssetType.specialEmpty || asset.type === AssetType.specialLoading) {
-          return false
-        }
         const assetType =
           asset.type === AssetType.directory ? 'folder'
           : asset.type === AssetType.datalink ? 'datalink'

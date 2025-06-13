@@ -1,7 +1,7 @@
 /** @file A hook returning the root directory id and expanded directory ids. */
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import { useUser } from '#/providers/AuthProvider'
 import { useCurrentDirectoryId, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import { useUser } from '$/providers/react'
 
 /** Options for {@link useDirectoryIds}. */
 export interface UseDirectoryIdsOptions {

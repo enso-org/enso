@@ -44,6 +44,13 @@ public sealed interface AzureCredential {
     }
   }
 
+  record BlobStorageSASToken(HideableValue token) implements AzureCredential {
+    @Override
+    public String uniqueId() {
+      return "BlobStorageSASToken(" + makeUnique(token) + ")";
+    }
+  }
+
   private static String makeUnique(HideableValue value) {
     return switch (value) {
       case HideableValue.PlainValue plainValue -> plainValue.value();

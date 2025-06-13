@@ -357,9 +357,6 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   }
 }
 
-function entryIsSelected(entry: Entry) {
-  return entry.tag instanceof ExpressionTag && selectedExpressions.value.has(entry.tag.expression)
-}
 const arrowLocation = ref()
 </script>
 
@@ -432,7 +429,6 @@ declare module '@/providers/widgetRegistry' {
       :floatReference="floatReference"
       :show="dropDownInteraction.isActive() && activity == null"
       :entries="entries"
-      :isSelected="entryIsSelected"
       :topLevel="true"
       :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"

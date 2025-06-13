@@ -1,12 +1,16 @@
 from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.Input_Stream.Input_Stream
 
 from Standard.Table import all
 import Standard.Table.Errors.Additional_Invalid_Rows
+import Standard.Table.Errors.Fixed_Width_Line_Too_Long
 import Standard.Table.Errors.Inconsistent_Fixed_Width_Lengths
 import Standard.Table.Errors.Invalid_Fixed_Width_Row
+import Standard.Table.Errors.No_Column_Names_Found
 import Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout_Entry
+import Standard.Table.Fixed_Width.Fixed_Width_Format.Infer_Layout
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -14,6 +18,8 @@ import Standard.Test.Test_Environment
 import enso_dev.Base_Tests.Data.Text.Encoding_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
+
+polyglot java import org.enso.table.read.FixedWidthReader
 
 add_direct_specs suite_builder =
     data_dir = enso_project.data / "fixed-width"
@@ -23,6 +29,13 @@ add_direct_specs suite_builder =
     formatted = data_dir / "formatted.txt"
     fixed2 = data_dir / "fixed2.txt"
     bad_chars = data_dir / "bad_chars.txt"
+    empty_fields = data_dir / "empty_fields.txt"
+    infer_headers_left = data_dir / "infer_headers_left.txt"
+    infer_headers_right = data_dir / "infer_headers_right.txt"
+    infer_headers_one_left = data_dir / "infer_headers_one_left.txt"
+    infer_headers_one_right = data_dir / "infer_headers_one_right.txt"
+    infer_headers_no_headers = data_dir / "infer_headers_no_headers.txt"
+    infer_headers_skip = data_dir / "infer_headers_skip.txt"
 
     suite_builder.group "Read fixed-width files" group_builder->
         group_builder.specify "Should make a layout from a description" <|
@@ -40,7 +53,7 @@ add_direct_specs suite_builder =
             layout . entries . should_equal expected
 
         group_builder.specify "Should make a layout from a table (no column names)" <|
-            table = Table.input [['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
+            table = Table.input [['width', [4, 1, 3, 3]], ['start', [0, Nothing, Nothing, Nothing]]]
             layout = table : Fixed_Width_Layout
             expected = []
                 + [Fixed_Width_Layout_Entry.Value 0 4 "Column 1"]
@@ -50,14 +63,70 @@ add_direct_specs suite_builder =
             layout . should_be_a Fixed_Width_Layout
             layout . entries . should_equal expected
 
-        group_builder.specify "Should make a layout from a table (column names)" <|
-            table = Table.input [['c', ["a", "b", "c", "d"]], ['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
+        group_builder.specify "Should make a layout from a table (no column names or starts)" <|
+            table = Table.input [['width', [4, 1, 3, 3]]]
+            layout = table : Fixed_Width_Layout
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value 0 4 "Column 1"]
+                + [Fixed_Width_Layout_Entry.Value 4 1 "Column 2"]
+                + [Fixed_Width_Layout_Entry.Value 5 3 "Column 3"]
+                + [Fixed_Width_Layout_Entry.Value 8 3 "Column 4"]
+            layout . should_be_a Fixed_Width_Layout
+            layout . entries . should_equal expected
+
+        group_builder.specify "Should make a layout from a table (with column names)" <|
+            table = Table.input [['start', [0, Nothing, Nothing, Nothing]], ['names', ["a", "b", "c", "d"]], ['width', [4, 1, 3, 3]]]
             layout = table : Fixed_Width_Layout
             expected = []
                 + [Fixed_Width_Layout_Entry.Value 0 4 "a"]
                 + [Fixed_Width_Layout_Entry.Value 4 1 "b"]
                 + [Fixed_Width_Layout_Entry.Value 5 3 "c"]
                 + [Fixed_Width_Layout_Entry.Value 8 3 "d"]
+            layout . should_be_a Fixed_Width_Layout
+            layout . entries . should_equal expected
+
+        group_builder.specify "Should refused make a layout from a table with missing widths" <|
+            table = Table.input [['start', [0, Nothing, Nothing, Nothing]], ['names', ["a", "b", "c", "d"]]]
+            layout = table : Fixed_Width_Layout
+            layout . should_fail_with Illegal_Argument
+
+        group_builder.specify "Should accept column name variations" <|
+            orders = [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value 0 4 "a"]
+                + [Fixed_Width_Layout_Entry.Value 4 1 "b"]
+                + [Fixed_Width_Layout_Entry.Value 5 3 "c"]
+                + [Fixed_Width_Layout_Entry.Value 8 3 "d"]
+            with_names names starts widths =
+                table_orig = Table.input [[names, ["a", "b", "c", "d"]], [starts, [0, Nothing, Nothing, Nothing]], [widths, [4, 1, 3, 3]]]
+                orders.map order->
+                    table = Table.input [table_orig.at (order.at 0), table_orig.at (order.at 1), table_orig.at (order.at 2)]
+                    layout = table : Fixed_Width_Layout
+                    layout . should_be_a Fixed_Width_Layout
+                    layout . entries . should_equal expected
+            with_names "name" "starts" "Width"
+            with_names "names" "start" "widths"
+            with_names "Names" "start" "Widths"
+
+        group_builder.specify "Should make a layout from a column" <|
+            col = Column.from_vector 'y' [4, 1, 3, 3]
+            layout = col : Fixed_Width_Layout
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value 0 4 "Column 1"]
+                + [Fixed_Width_Layout_Entry.Value 4 1 "Column 2"]
+                + [Fixed_Width_Layout_Entry.Value 5 3 "Column 3"]
+                + [Fixed_Width_Layout_Entry.Value 8 3 "Column 4"]
+            layout . should_be_a Fixed_Width_Layout
+            layout . entries . should_equal expected
+
+        group_builder.specify "Should make a layout from a vector" <|
+            v = [4, 1, 3, 3]
+            layout = v : Fixed_Width_Layout
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value 0 4 "Column 1"]
+                + [Fixed_Width_Layout_Entry.Value 4 1 "Column 2"]
+                + [Fixed_Width_Layout_Entry.Value 5 3 "Column 3"]
+                + [Fixed_Width_Layout_Entry.Value 8 3 "Column 4"]
             layout . should_be_a Fixed_Width_Layout
             layout . entries . should_equal expected
 
@@ -105,6 +174,16 @@ add_direct_specs suite_builder =
             t.at "Column 7" . to Vector . should_equal [98765, 87654]
             t.at "Column 8" . to Vector . should_equal ["fgh", "nop"]
 
+        group_builder.specify "Should support skip_rows" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Width 2 "x"]
+                + [Fixed_Width_Column_Description.Width 3 "y"]
+            layout = Fixed_Width_Layout.from_descriptions descs
+
+            t0 = fixed2.read (Fixed_Width_Format.Fixed_Width layout skip_rows=5)
+            t0.at "x" . to_vector . should_equal ["fg", "gh", "hi"]
+            t0.at "y" . to_vector . should_equal [106, 107, 108]
+
         group_builder.specify "Should support row_limit" <|
             descs = []
                 + [Fixed_Width_Column_Description.Width 2 "x"]
@@ -114,6 +193,17 @@ add_direct_specs suite_builder =
             t0 = fixed2.read (Fixed_Width_Format.Fixed_Width layout row_limit=4)
             t0.at "x" . to_vector . should_equal ["ab", "bc", "cd", "de"]
             t0.at "y" . to_vector . should_equal [101, 102, 103, 104]
+
+        group_builder.specify "Should support skip_rows and row_limit together" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Width 2 "x"]
+                + [Fixed_Width_Column_Description.Width 3 "y"]
+            layout = Fixed_Width_Layout.from_descriptions descs
+
+            t0 = fixed2.read (Fixed_Width_Format.Fixed_Width layout skip_rows=4 row_limit=2)
+            t0.at "x" . to_vector . should_equal ["ef", "fg"]
+            t0.at "y" . to_vector . should_equal [105, 106]
+
 
         group_builder.specify "Should use specified column names" <|
             descs = []
@@ -180,7 +270,7 @@ add_direct_specs suite_builder =
             Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 3 17 21) t
             t.at "Column 1" . to Vector . should_equal [1234, 2345, 6789, 4343]
             t.at "Column 2" . to Vector . should_equal [98765, 87654, 51122, 1234]
-            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", ""]
+            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", Nothing]
 
         group_builder.specify "Should drop short lines with Invalid_Rows.Drop_Invalid_Rows" <|
             descs = []
@@ -215,6 +305,69 @@ add_direct_specs suite_builder =
             t.at "x" . to Vector . should_equal [True, True, False]
             t.at "y" . to Vector . should_equal [True, False, False]
             t.at "z" . to Vector . should_equal ["J", "C", "E"]
+
+        group_builder.specify "Should treat empty fields as Nothing" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 5 3]
+                + [Fixed_Width_Column_Description.Start_And_Width 13 5]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = empty_fields.read (Fixed_Width_Format.Fixed_Width layout)
+            t.at "Column 1" . to Vector . should_equal [Nothing, 678]
+            t.at "Column 2" . to Vector . should_equal [98765, Nothing]
+
+        group_builder.specify "Should treat empty fields as the empty string" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 5 3]
+                + [Fixed_Width_Column_Description.Start_And_Width 13 5]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = empty_fields.read (Fixed_Width_Format.Fixed_Width layout on_empty_field=..As_Empty_String)
+            t.at "Column 1" . to Vector . should_equal ["", '678']
+            t.at "Column 2" . to Vector . should_equal ['98765', ""]
+
+        group_builder.specify "Can infer headers (left justified)" <|
+            t = infer_headers_left.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            t.column_names . should_equal ['one', 'two', 'three', 'four', 'five', 'six']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+            t.at 'two' . to_vector . should_equal ['abcde', 'zbcde']
+            t.at 'three' . to_vector . should_equal [234567, 834567]
+            t.at 'four' . to_vector . should_equal ['bcdef', 'zcdef']
+            t.at 'five' . to_vector . should_equal [3456789, 8456789]
+            t.at 'six' . to_vector . should_equal ['cdefg', 'zdefg']
+
+        group_builder.specify "Can infer headers (right justified)" <|
+            t = infer_headers_right.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Right)
+            t.column_names . should_equal ['one', 'two', 'three', 'four', 'five', 'six']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+            t.at 'two' . to_vector . should_equal ['abcde', 'zbcde']
+            t.at 'three' . to_vector . should_equal [234567, 834567]
+            t.at 'four' . to_vector . should_equal ['bcdef', 'zcdef']
+            t.at 'five' . to_vector . should_equal [3456789, 8456789]
+            t.at 'six' . to_vector . should_equal ['cdefg', 'zdefg']
+
+        group_builder.specify "Can infer headers when there is one column (left justified)" <|
+            t = infer_headers_one_left.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            t.column_names . should_equal ['one']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+
+        group_builder.specify "Can infer headers when there is one column (right justified)" <|
+            t = infer_headers_one_right.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Right)
+            t.column_names . should_equal ['one']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+
+        group_builder.specify "Can infer headers after skipping rows" <|
+            t = infer_headers_skip.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left skip_rows=3)
+            t.column_names . should_equal ['one', 'two', 'three', 'four', 'five', 'six']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+            t.at 'two' . to_vector . should_equal ['abcde', 'zbcde']
+            t.at 'three' . to_vector . should_equal [234567, 834567]
+            t.at 'four' . to_vector . should_equal ['bcdef', 'zcdef']
+            t.at 'five' . to_vector . should_equal [3456789, 8456789]
+            t.at 'six' . to_vector . should_equal ['cdefg', 'zdefg']
+
+        group_builder.specify "Throws an exception when inferring headers and the header row has no columns" <|
+            err = infer_headers_no_headers.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            err . should_fail_with No_Column_Names_Found
+            err.catch.to_display_text . should_equal "No column names were found in the header line."
 
         group_builder.specify "should work with all kinds of line endings" pending="https://github.com/enso-org/enso/issues/13137" <|
             descs = []
@@ -253,6 +406,30 @@ add_direct_specs suite_builder =
             t = bad_chars.read (Fixed_Width_Format.Fixed_Width layout)
             expected = Encoding_Error.Error "Failed to decode 4 code units (at positions: character 0 row 0 column 1, character 1 row 0 column 1, character 1 row 1 column 0, ...)."
             Problems.expect_warning expected t
+
+        group_builder.specify "Should respond to a missing layout with a custom message" <|
+            err = Fixed_Width_Format.Fixed_Width
+            err . should_fail_with Missing_Argument
+            err . catch . message . should_contain "A fixed-width table layout can be a Column or Vector"
+
+        group_builder.specify "Should reject a too-long line" <|
+            too_long = FixedWidthReader.MAXIMUM_LINE_LENGTH + 1
+
+            infer_format = Fixed_Width_Format.Fixed_Width Infer_Layout.Left
+
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 0 too_long "x"]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            regular_format = Fixed_Width_Format.Fixed_Width layout
+
+            [infer_format, regular_format].map format->
+                header = Vector.new too_long (_ -> 65)
+                all = header + [10, 66, 66, 66, 10]
+                stream = Input_Stream.from_bytes all
+
+                err = format.read_stream stream
+                err . should_fail_with Fixed_Width_Line_Too_Long
+                err.catch.to_display_text . should_equal ("Fixed width file line 0 is longer than the maximum length of " + FixedWidthReader.MAXIMUM_LINE_LENGTH.to_text)
 
 fixed_width_spec_from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Error) -> Text =

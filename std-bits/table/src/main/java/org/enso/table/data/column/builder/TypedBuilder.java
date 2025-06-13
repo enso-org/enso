@@ -1,8 +1,8 @@
 package org.enso.table.data.column.builder;
 
 import java.util.Arrays;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
@@ -45,7 +45,7 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType().equals(getType())) {
       if (storage instanceof SpecializedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
@@ -101,10 +101,10 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
     this.data = Arrays.copyOf(data, desiredCapacity);
   }
 
-  protected abstract Storage<T> doSeal();
+  protected abstract ColumnStorage<T> doSeal();
 
   @Override
-  public Storage<T> seal() {
+  public ColumnStorage<T> seal() {
     // We set the array to the exact size, because we want to avoid index out of bounds errors.
     // Most of the time, the builder was initialized with the right size anyway - the only
     // exceptions are e.g. reading results from a database, where the count is unknown.

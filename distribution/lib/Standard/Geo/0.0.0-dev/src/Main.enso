@@ -1,32 +1,3 @@
-from Standard.Base import all
-
-from Standard.Table import Table
-
-export project.Geo_Json.geo_json_to_table
-
 export project.Table_Extensions.geo_distance
-
-## UNSTABLE
-   ICON location
-
-   Create a `Table` representing a geographic point with the specified latitude,
-   longitude, and elevation.
-
-   Arguments:
-   - latitude: The latitude of the geographic point, specified in decimal form
-     using the [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System)
-     coordinate system.
-   - longitude: The longitude of the geographic point, specified in decimal form
-     using the [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System)
-     coordinate system.
-   - elevation: The elevation of the point from sea level, in metres.
-
-   > Example
-     Create a point representing the centre of London.
-
-         import Standard.Geo
-
-         example_point = Geo.point 51.509865 -0.118092
-point : Float -> Float -> Float -> Table
-point latitude longitude elevation=0 =
-    Table.new [["latitude", [latitude]], ["longitude", [longitude]], ["elevation", [elevation]]]
+export project.Table_Extensions.Distance_Units
+export project.Geo.Geo

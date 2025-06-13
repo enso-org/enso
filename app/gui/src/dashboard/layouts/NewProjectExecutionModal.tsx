@@ -13,10 +13,9 @@ import {
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type Backend from '#/services/Backend'
 import type {
   ProjectExecutionInfo,
@@ -24,6 +23,7 @@ import type {
   ProjectId,
 } from '#/services/Backend'
 import { useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
 import {

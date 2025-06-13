@@ -2,7 +2,6 @@
  * @file Container responsible for rendering and interactions in second half of forgot password
  * flow.
  */
-import { LOGIN_PATH } from '#/appUtils'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
 import { Button } from '#/components/Button'
@@ -16,11 +15,11 @@ import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useSessionAPI } from '#/providers/SessionProvider'
 import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { LOGIN_PATH } from '$/appUtils'
+import { useBackends, useRouter, useSession, useText } from '$/providers/react'
 import { type GetText } from '$/providers/text'
 import { toast } from 'react-toastify'
 import * as z from 'zod'
@@ -52,7 +51,7 @@ const REDIRECT_TIMEOUT = 3000
 
 /** A form for users to reset their password. */
 export default function ResetPassword() {
-  const { resetPassword } = useSessionAPI()
+  const { resetPassword } = useSession()
   const { getText } = useText()
   const { router, searchParams } = useRouter()
 

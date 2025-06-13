@@ -15,13 +15,11 @@ import {
   abstractTypeVariants,
   fieldDeserializer,
   fieldVisitor,
-  seekViewDyn,
   support,
   supportImports,
 } from './serialization.js'
 import {
   assignmentStatement,
-  forwardToSuper,
   mapIdent,
   modifiers,
   namespacedName,
@@ -32,6 +30,7 @@ const tsf: ts.NodeFactory = ts.factory
 
 const addressIdent = tsf.createIdentifier('address')
 const viewIdent = tsf.createIdentifier('view')
+const typeIdent = tsf.createIdentifier('type')
 
 // === Public API ===
 
@@ -165,13 +164,13 @@ function makeConcreteType(id: string, schema: Schema.Schema): ts.ClassDeclaratio
   return makeClass(
     [modifiers.export],
     ident,
+    undefined,
     [
-      forwardToSuper(viewIdent, support.DataView),
       makeReadMethod(
         ident,
         addressIdent,
         viewIdent,
-        tsf.createNewExpression(ident, [], [seekViewDyn(viewIdent, addressIdent)]),
+        tsf.createNewExpression(ident, [], [viewIdent, addressIdent]),
       ),
     ],
     id,
@@ -185,29 +184,16 @@ function makeReadMethod(
   viewIdent: ts.Identifier,
   returnValue: ts.Expression,
 ): ts.MethodDeclaration {
-  const offsetParam = tsf.createParameterDeclaration(
-    [],
-    undefined,
-    addressIdent,
-    undefined,
-    tsf.createTypeReferenceNode('number'),
-    undefined,
-  )
-  const cursorParam = tsf.createParameterDeclaration(
-    [],
-    undefined,
-    viewIdent,
-    undefined,
-    support.DataView,
-    undefined,
-  )
   return tsf.createMethodDeclaration(
     [modifiers.static],
     undefined,
     'read',
     undefined,
     [],
-    [cursorParam, offsetParam],
+    [
+      parameter(viewIdent, support.DataView),
+      parameter(addressIdent, tsf.createTypeReferenceNode('number')),
+    ],
     tsf.createTypeReferenceNode(typeIdent),
     tsf.createBlock([tsf.createReturnStatement(returnValue)]),
   )
@@ -246,7 +232,7 @@ function makeReadFunction(
   )
 }
 
-function makeVisitFunction(fields: Field[]): ts.MethodDeclaration {
+function makeVisitFunction(fields: Field[]): ts.MethodDeclaration | undefined {
   const ident = tsf.createIdentifier('visitChildren')
   const visitorParam = tsf.createIdentifier('visitor')
   const visitorParamDecl = tsf.createParameterDeclaration(
@@ -279,13 +265,13 @@ function makeVisitFunction(fields: Field[]): ts.MethodDeclaration {
       )
     }
   }
-  const toBool = (value: ts.Expression) =>
-    tsf.createPrefixUnaryExpression(
-      ts.SyntaxKind.ExclamationToken,
-      tsf.createPrefixUnaryExpression(ts.SyntaxKind.ExclamationToken, value),
-    )
+
+  if (fieldVisitations.length == 0) {
+    return
+  }
+
   const expression = fieldVisitations.reduce(
-    (lhs, rhs) => tsf.createBinaryExpression(lhs, ts.SyntaxKind.BarBarToken, toBool(rhs)),
+    (lhs, rhs) => tsf.createBinaryExpression(lhs, ts.SyntaxKind.BarBarToken, rhs),
     visitSuperChildren,
   )
   return tsf.createMethodDeclaration(
@@ -300,6 +286,13 @@ function makeVisitFunction(fields: Field[]): ts.MethodDeclaration {
   )
 }
 
+function castToBool(value: ts.Expression) {
+  return tsf.createPrefixUnaryExpression(
+    ts.SyntaxKind.ExclamationToken,
+    tsf.createPrefixUnaryExpression(ts.SyntaxKind.ExclamationToken, value),
+  )
+}
+
 function makeGetters(id: string, schema: Schema.Schema): ts.ClassElement[] {
   const serialization = schema.serialization[id]
   const type = schema.types[id]
@@ -311,9 +304,9 @@ function makeGetters(id: string, schema: Schema.Schema): ts.ClassElement[] {
   })
   return [
     ...fields.map(makeGetter),
-    ...fields.map(makeElementVisitor).filter((v): v is ts.ClassElement => v != null),
+    ...fields.map(makeElementVisitor),
     makeVisitFunction(fields),
-  ]
+  ].filter((v): v is ts.ClassElement => v != null)
 }
 
 function makeElementVisitor(field: Field): ts.ClassElement | undefined {
@@ -325,6 +318,7 @@ function makeElementVisitor(field: Field): ts.ClassElement | undefined {
 function makeClass(
   modifiers: ts.Modifier[],
   name: ts.Identifier,
+  typeParameters: readonly ts.TypeParameterDeclaration[] | undefined,
   members: ts.ClassElement[],
   id: string,
   schema: Schema.Schema,
@@ -332,7 +326,7 @@ function makeClass(
   return tsf.createClassDeclaration(
     modifiers,
     name,
-    undefined,
+    typeParameters,
     [
       tsf.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
         tsf.createExpressionWithTypeArguments(support.LazyObject, []),
@@ -369,44 +363,17 @@ function makeChildType(
       undefined,
       [
         tsf.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
-          tsf.createExpressionWithTypeArguments(base, []),
+          tsf.createExpressionWithTypeArguments(base, [
+            tsf.createTypeReferenceNode(tsf.createQualifiedName(typeIdent, name)),
+          ]),
         ]),
       ],
       [
-        tsf.createPropertyDeclaration(
-          [modifiers.readonly],
-          'type',
-          undefined,
-          tsf.createTypeReferenceNode(tsf.createQualifiedName(typeIdent, name)),
-          undefined,
-        ),
-        tsf.createConstructorDeclaration(
-          [],
-          [
-            tsf.createParameterDeclaration(
-              [],
-              undefined,
-              viewIdent,
-              undefined,
-              support.DataView,
-              undefined,
-            ),
-          ],
-          tsf.createBlock([
-            tsf.createExpressionStatement(
-              tsf.createCallExpression(tsf.createSuper(), [], [viewIdent]),
-            ),
-            assignmentStatement(
-              tsf.createPropertyAccessExpression(tsf.createThis(), 'type'),
-              tsf.createPropertyAccessExpression(typeIdent, name),
-            ),
-          ]),
-        ),
         makeReadMethod(
           ident,
           addressIdent,
           viewIdent,
-          tsf.createNewExpression(ident, [], [seekViewDyn(viewIdent, addressIdent)]),
+          tsf.createNewExpression(ident, [], [discriminantInt, viewIdent, addressIdent]),
         ),
         ...makeGetters(id, schema),
       ],
@@ -431,6 +398,8 @@ function makeAbstractType(
   const ident = tsf.createIdentifier(name)
   const type = tsf.createTypeReferenceNode(ident)
   const baseIdent = tsf.createIdentifier('AbstractBase')
+  const genericTypeName = tsf.createIdentifier('T')
+  const genericType = tsf.createTypeReferenceNode(genericTypeName)
   const childTypes = Array.from(Object.entries(discriminants), ([discrim, id]: [string, string]) =>
     makeChildType(baseIdent, id, discrim, schema),
   )
@@ -442,7 +411,39 @@ function makeAbstractType(
       makeClass(
         [modifiers.export, modifiers.abstract],
         baseIdent,
-        [forwardToSuper(viewIdent, support.DataView, [modifiers.protected])],
+        [
+          tsf.createTypeParameterDeclaration(
+            [],
+            genericTypeName,
+            tsf.createTypeReferenceNode('Type'),
+          ),
+        ],
+        [
+          tsf.createPropertyDeclaration(
+            [modifiers.readonly],
+            typeIdent,
+            undefined,
+            genericType,
+            undefined,
+          ),
+          tsf.createConstructorDeclaration(
+            [modifiers.protected],
+            [
+              parameter(typeIdent, genericType),
+              parameter(viewIdent, support.DataView),
+              parameter(addressIdent, tsf.createTypeReferenceNode('number')),
+            ],
+            tsf.createBlock([
+              tsf.createExpressionStatement(
+                tsf.createCallExpression(tsf.createSuper(), [], [viewIdent, addressIdent]),
+              ),
+              assignmentStatement(
+                tsf.createPropertyAccessExpression(tsf.createThis(), typeIdent),
+                typeIdent,
+              ),
+            ]),
+          ),
+        ],
         id,
         schema,
       ),
@@ -483,6 +484,10 @@ function makeAbstractType(
   return { module: moduleDecl, export: abstractTypeExport }
 }
 
+function parameter(name: ts.Identifier, type: ts.TypeReferenceNode): ts.ParameterDeclaration {
+  return tsf.createParameterDeclaration(undefined, undefined, name, undefined, type)
+}
+
 function makeExportConstVariable(
   varName: string,
   initializer: ts.Expression,
@@ -505,13 +510,7 @@ function makeExportConstVariable(
 
 function makeIsInstance(type: ts.TypeNode, baseIdent: ts.Identifier): ts.FunctionDeclaration {
   const param = tsf.createIdentifier('obj')
-  const paramDecl = tsf.createParameterDeclaration(
-    undefined,
-    undefined,
-    param,
-    undefined,
-    tsf.createTypeReferenceNode('unknown'),
-  )
+  const paramDecl = parameter(param, tsf.createTypeReferenceNode('unknown'))
   const returnValue = tsf.createBinaryExpression(param, ts.SyntaxKind.InstanceOfKeyword, baseIdent)
   return tsf.createFunctionDeclaration(
     [modifiers.export],
