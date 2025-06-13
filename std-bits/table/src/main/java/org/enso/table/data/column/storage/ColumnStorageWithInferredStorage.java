@@ -8,9 +8,13 @@ public interface ColumnStorageWithInferredStorage {
   }
 
   static ColumnStorage<?> resolveStorage(ColumnStorage<?> storage) {
-    return storage instanceof ColumnStorageWithInferredStorage withInferredStorage
-        ? resolveStorage(withInferredStorage.getInferredStorage())
-        : storage;
+    if (storage instanceof ColumnStorageWithInferredStorage withInferredStorage) {
+      var inferredStorage = withInferredStorage.getInferredStorage();
+      if (inferredStorage != null) {
+        return resolveStorage(inferredStorage);
+      }
+    }
+    return storage;
   }
 
   ColumnStorage<?> getInferredStorage();

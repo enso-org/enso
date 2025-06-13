@@ -6,6 +6,7 @@ import com.azure.resourcemanager.storage.models.StorageAccount;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.enso.table.util.LeastRecentlyUsedCache;
 
 public final class AzureResourceManager {
   private static com.azure.resourcemanager.AzureResourceManager.Authenticated getClient(
@@ -31,7 +32,7 @@ public final class AzureResourceManager {
   }
 
   private static final Map<String, List<AzureSubscription>> subscriptionsCache =
-      new LRUCache<>(100);
+      new LeastRecentlyUsedCache<>(100);
 
   /**
    * Represents an Azure subscription.

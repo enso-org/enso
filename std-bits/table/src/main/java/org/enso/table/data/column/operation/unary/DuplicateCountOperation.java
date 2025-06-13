@@ -36,8 +36,9 @@ public final class DuplicateCountOperation implements UnaryOperation {
         asObjectStorage,
         IntegerType.INT_64.makeBuilder(storage.getSize(), problemAggregator),
         (builder, index, value) -> {
-          var count = counts.put(value, counts.getOrDefault(value, 0) + 1);
-          builder.append(count);
+          long current = counts.getOrDefault(value, 0L);
+          counts.put(value, current + 1);
+          builder.append(current);
         });
   }
 }

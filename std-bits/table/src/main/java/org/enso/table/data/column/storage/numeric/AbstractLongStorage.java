@@ -7,11 +7,9 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.BlackholeProblemAggregator;
@@ -46,59 +44,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
 
   @Override
   public abstract long getItemAsLong(long index) throws ValueIsNothingException;
-
-  @Override
-  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
-    if (!options.shrinkIntegers()) {
-      // If no integer shrinking, nothing to do
-      return getType();
-    } else {
-      return findSmallestFittingType();
-    }
-  }
-
-  private IntegerType smallestFittingType = null;
-
-  private IntegerType findSmallestFittingType() {
-    if (smallestFittingType == null) {
-      smallestFittingType = computeSmallestFittingType();
-    }
-    return smallestFittingType;
-  }
-
-  private IntegerType computeSmallestFittingType() {
-    // If the type is already the smallest possible, we return it unchanged (we will return 8-bit
-    // columns as-is, although
-    // we will not shrink 16-bit columns to 8-bits even if it were possible).
-    if (type.bits().toInteger() <= 16) {
-      return type;
-    }
-
-    IntegerType[] possibleTypes =
-        new IntegerType[] {IntegerType.INT_16, IntegerType.INT_32, IntegerType.INT_64};
-
-    int currentTypeIdx = 0;
-    long n = getSize();
-    Context context = Context.getCurrent();
-    for (long i = 0; i < n; i++) {
-      if (isNothing(i)) {
-        continue;
-      }
-
-      long item = getItemAsLong(i);
-      while (!possibleTypes[currentTypeIdx].fits(item)) {
-        currentTypeIdx++;
-      }
-
-      if (currentTypeIdx >= possibleTypes.length - 1) {
-        break;
-      }
-
-      context.safepoint();
-    }
-
-    return possibleTypes[currentTypeIdx];
-  }
 
   @Override
   public ColumnStorage<Long> fillMissingFromPrevious(BoolStorage missingIndicator) {
