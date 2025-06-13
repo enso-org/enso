@@ -229,55 +229,30 @@ object JARUtils {
     */
   def readNativeCodeEntriesFromManifest(
     jarPath: Path
-  ): List[NativeCodeEntry] = {
+  ): List[NativeCodeEntry] =
     Using(new JarFile(jarPath.toFile)) { jarFile =>
-      val manifest = jarFile.getManifest
-      if (manifest == null) {
-        return List()
-      }
-      val nativeCodeHeader = manifest.getMainAttributes.getValue(
-        "Bundle-NativeCode"
-      )
-      if (nativeCodeHeader == null) {
-        return List()
-      }
-      val entries = nativeCodeHeader.split(",").map(_.trim)
-      val nativeCodeEntries = entries.map { entry =>
-        val parts                 = entry.split(";").map(_.trim)
-        var processor: String     = null
-        var osName: String        = null
-        var nativeLibPath: String = null
-        for (part <- parts) {
-          if (part.contains("=")) {
-            val key   = part.split("=", 2)(0).trim
-            val value = part.split("=", 2)(1).trim
-            key match {
-              case "processor" => processor = value
-              case "osname"    => osName    = value
-              case _ =>
-                throw new IllegalStateException(
-                  s"Unknown key in native code entry: $key"
-                )
-            }
-          } else {
-            nativeLibPath = part
-          }
-        }
-        if (processor == null || osName == null || nativeLibPath == null) {
-          throw new IllegalStateException(
-            s"Invalid Bundle-NativeCode entry: $entry"
-          )
-        }
-        NativeCodeEntry(
-          processor = processor,
-          osName    = osName,
-          libPath   = nativeLibPath
+      val parsedHeader = for {
+        manifest <- Option(jarFile.getManifest)
+        nativeCodeHeader <- Option(
+          manifest.getMainAttributes.getValue("Bundle-NativeCode")
         )
-      }
-      return nativeCodeEntries.toList
-    }
-    return List()
-  }
+      } yield nativeCodeHeader.split(",").map(_.trim).toList
+
+      parsedHeader
+        .map(entries =>
+          entries.flatMap { entry =>
+            val parsed = NativeCodeEntry.parseFromEntry(entry)
+            // `parsedFromEntry` should return Either but this will do
+            if (parsed.isEmpty) {
+              throw new IllegalStateException(
+                s"Invalid Bundle-NativeCode entry: $entry"
+              )
+            }
+            parsed
+          }
+        )
+        .getOrElse(Nil)
+    }.getOrElse(Nil)
 
   /** @param processor See `processor` in <a href="https://docs.osgi.org/specification/osgi.core/8.0.0/framework.module.html#framework.module-loading.native.code.libraries">
     *                  OSGi Bundle-NativeCode specification
@@ -291,5 +266,29 @@ object JARUtils {
     processor: String,
     osName: String,
     libPath: String
-  )
+  ) {
+    def isValid: Boolean =
+      processor != null && osName != null && libPath != null
+  }
+
+  object NativeCodeEntry {
+    def parseFromEntry(entry: String): Option[NativeCodeEntry] = {
+      val parsed = entry
+        .split(";")
+        .map(_.trim)
+        .foldLeft(NativeCodeEntry(null, null, null)) { case (element, part) =>
+          if (part.contains("=")) {
+            val Array(k, v) = part.split("=", 2).map(_.trim)
+            k match {
+              case "processor" => element.copy(processor = v)
+              case "osname"    => element.copy(osName = v)
+              case _           => element
+            }
+          } else {
+            element.copy(libPath = part)
+          }
+        }
+      if (parsed.isValid) Some(parsed) else None
+    }
+  }
 }
