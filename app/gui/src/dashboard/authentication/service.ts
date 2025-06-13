@@ -4,6 +4,7 @@
  * work with Electron.
  */
 import * as React from 'react'
+import * as toastify from 'react-toastify'
 
 import * as amplify from '@aws-amplify/auth'
 
@@ -18,7 +19,7 @@ import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 
 import * as cognitoModule from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
-import { useRouter } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 
 /**
  * Configuration for the AWS Amplify library.
@@ -209,6 +210,7 @@ function loadAmplifyConfig(
  * ignored by this handler.
  */
 function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
+  const { getText } = useText()
   window.authenticationApi.setDeepLinkHandler((urlString: string) => {
     const url = new URL(urlString)
     logger.log(`Parsed pathname: ${url.pathname}`)
@@ -273,6 +275,23 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
       }
       case '//auth/registration': {
         navigate(`${appUtils.REGISTRATION_PATH}${url.search}`)
+        break
+      }
+      // If the user is being redirected after successful or not finishing setting oauth secrets.
+      case '//oauth/confirmation': {
+        const secretName = url.searchParams.get('secret_name')
+        const status = url.searchParams.get('status')
+        const serviceName = url.searchParams.get('service_name')
+        const message =
+          status === 'error' ?
+            getText('oauthConfirmationError')
+          : getText('oauthConfirmationSuccess', secretName, serviceName)
+        toastify.toast(message, {
+          closeOnClick: true,
+          hideProgressBar: true,
+          position: 'bottom-right',
+          type: status,
+        })
         break
       }
       // If the user is being redirected from a password reset email, navigate to the password

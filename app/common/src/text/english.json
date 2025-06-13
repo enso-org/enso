@@ -1246,5 +1246,7 @@
   "oauthCallbackErrorDescription": "There was an error while authenticating using $0.",
   "oauthCallbackStartOver": "Start over",
   "oauthCallbackTitle": "OAuth Connection",
-  "redirectingToDashboard": "You will be redirected to the dashboard shortly. If you are not redirected, please click the button below."
+  "redirectingToDashboard": "You will be redirected to the dashboard shortly. If you are not redirected, please click the button below.",
+  "oauthConfirmationSuccess": "You have successfully confirmed the $0 secret for $1.",
+  "oauthConfirmationError": "Something went wrong during the confirmation. Please recreate your secret and try again."
 }

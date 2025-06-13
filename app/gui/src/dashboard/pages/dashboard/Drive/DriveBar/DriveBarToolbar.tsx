@@ -46,9 +46,9 @@ import { useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
+import * as React from 'react'
 import { z } from 'zod'
 import { useSearchParamsState } from '../../../../hooks/searchParamsStateHooks'
-import * as React from 'react'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
