@@ -5,7 +5,6 @@ import Login from '#/pages/authentication/Login'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import { Setup } from '#/pages/authentication/Setup'
-import Dashboard from '#/pages/dashboard/Dashboard'
 import { Subscribe } from '#/pages/subscribe/Subscribe'
 import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
 import {
@@ -19,32 +18,49 @@ import {
   SUBSCRIBE_PATH,
   SUBSCRIBE_SUCCESS_PATH,
 } from '$/appUtils'
-import Registration from '$/components/Registration.vue'
 import { UserSessionType } from '$/providers/auth'
 import { flagsStore } from '$/providers/featureFlags'
 import { reactComponent } from '@/util/react'
-import { defineComponent, DefineComponent, effectScope, h, onScopeDispose } from 'vue'
+import * as vueQuery from '@tanstack/vue-query'
+import { defineComponent, DefineComponent, effectScope, h } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
-import AppContainerLayout from './components/AppContainerLayout.vue'
 
 declare module 'vue' {
   interface ComponentCustomOptions {
-    dataLoader?: () => Promise<any>
+    dataLoader?: (this: undefined, queryClient: vueQuery.QueryClient) => Promise<any>
   }
 }
 
-function withDataLoader(componentPromise: () => Promise<{ default: DefineComponent }>) {
+function withDataLoader(
+  componentPromise: () => Promise<{
+    default: DefineComponent<any>
+  }>,
+) {
   return async () => {
-    const block = (await import('$/components/Registration.vue')).default
-
     const { default: component } = await componentPromise()
     const scope = effectScope()
-    const data = await scope.run(() => component.dataLoader?.())
+    let data: any
 
-    return defineComponent(() => {
-      onScopeDispose(() => scope.stop())
-
-      return () => h(component, data)
+    return defineComponent({
+      async beforeRouteEnter(to, from) {
+        const queryClient = vueQuery.useQueryClient()
+        console.debug('Data loading')
+        const result = await component.beforeRouteEnter?.bind(undefined)(to, from, () =>
+          console.error('Do not use next in withDataLoader'),
+        )
+        console.debug('Result', result)
+        if (result !== true && result !== undefined) return result
+        data = await scope.run(() => component.dataLoader?.bind(undefined)(queryClient))
+        console.debug('Set data to', data)
+        return result
+      },
+      unmounted() {
+        scope.stop()
+      },
+      render() {
+        console.debug('Rendering', data)
+        return h(component, data)
+      },
     })
   }
 }
@@ -64,23 +80,24 @@ function requireCloudBrowserEnabled() {
 const routes = [
   {
     path: UNAVAILABLE_PATH,
-    component: withDataLoader(() => import('$/components/ProtectedLayout.vue')),
+    component: withDataLoader(() => import('$/components/ProtectedLayout.vue') as any),
     children: [
       { path: LOGIN_PATH, component: reactComponent(Login), meta: { access: 'guest' as const } },
       {
         path: '/registration',
-        component: Registration,
+        component: withDataLoader(() => import('$/components/RegistrationPage.vue') as any),
         meta: { access: 'guest' as const },
       },
       {
         path: UNAVAILABLE_PATH,
         meta: { access: UserSessionType.full },
-        component: AppContainerLayout,
+        component: withDataLoader(() => import('$/components/AppContainerLayout.vue') as any),
         beforeEnter: requireCloudBrowserEnabled,
         children: [
           {
             path: DASHBOARD_PATH,
-            component: reactComponent(Dashboard),
+            component: () =>
+              import('#/pages/dashboard/Dashboard').then((comp) => reactComponent(comp.default)),
           },
           {
             path: SUBSCRIBE_PATH,

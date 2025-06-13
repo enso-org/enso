@@ -10,8 +10,7 @@ import { useBackends } from '$/providers/backends'
 import { backendQueryOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
 import { reactComponent } from '@/util/react'
-import * as vueQuery from '@tanstack/vue-query'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 const InvitedToOrganizationModal = reactComponent(InvitedToOrganizationModalReact)
 const SetupOrganizationAfterSubscribe = reactComponent(SetupOrganizationAfterSubscribeReact)
 
@@ -24,40 +23,30 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  * the "Dashboard" layer between them.
  */
 export default {
-  async beforeRouteEnter(_to, _from, next) {
-    const { remoteBackend: backend } = useBackends()
+  async dataLoader(queryClient) {
     const auth = useAuth()
-    const queryClient = vueQuery.useQueryClient()
-
-    if (auth.session?.type !== UserSessionType.full) return next()
+    const { remoteBackend: backend } = useBackends()
+    if (auth.session?.type !== UserSessionType.full) return {}
     const { isOrganizationAdmin, userId, plan = backendModule.Plan.free } = auth.session.user
-    if (!(PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin)) return next()
-
-    const organizationName = await queryClient.fetchQuery(
-      backendQueryOptions('getOrganization', [], backend),
-    )
-    const fetchedUserGroups = await queryClient.fetchQuery(
-      backendQueryOptions('listUserGroups', [], backend),
-    )
-
-    next((component) => {
-      component.setupOrganizationModalProps = { userId, organizationName, fetchedUserGroups }
-    })
+    if (!(PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin)) return {}
+    const [organizationName, fetchedUserGroups] = await Promise.all([
+      queryClient.fetchQuery(backendQueryOptions('getOrganization', [], backend)),
+      queryClient.fetchQuery(backendQueryOptions('listUserGroups', [], backend)),
+    ])
+    return { setupOrganizationModalProps: { userId, organizationName, fetchedUserGroups } }
   },
 }
 </script>
 
 <script setup lang="ts">
-const { remoteBackend } = useBackends()
+defineProps<{ setupOrganizationModalProps?: SetupOrganizationAfterSubscribeProps }>()
 
+const { remoteBackend } = useBackends()
 const logUserOpen = () => remoteBackend.logEvent('open_app')
 const logUserClose = () => remoteBackend.logEvent('close_app')
 onMounted(logUserOpen)
 onUnmounted(logUserClose)
 useEvent(window, 'beforeunload', logUserClose)
-
-const setupOrganizationModalProps = ref<SetupOrganizationAfterSubscribeProps>()
-defineExpose({ setupOrganizationModalProps })
 </script>
 
 <template>

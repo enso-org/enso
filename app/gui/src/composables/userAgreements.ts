@@ -91,5 +91,5 @@ export async function useUserAgrements(queryClient: vueQuery.QueryClient) {
       agreedToPrivacyPolicy,
       userAgreed,
     })
-  })
+  })!
 }

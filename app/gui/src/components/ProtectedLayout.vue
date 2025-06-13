@@ -15,18 +15,8 @@ import { AuthStore, useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
 import { Dialog, reactComponent, ResultComponent } from '@/util/react'
-import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
-import {
-  computed,
-  effectScope,
-  EffectScope,
-  onUnmounted,
-  ref,
-  watch,
-  watchEffect,
-  watchPostEffect,
-} from 'vue'
+import { computed, watch, watchPostEffect } from 'vue'
 import { RouteLocation, useRoute, useRouter } from 'vue-router'
 
 const AgreementsModal = reactComponent(AgreementsModalReact)
@@ -61,35 +51,43 @@ function redirect(auth: AuthStore, localStorage: LocalStorage) {
 }
 
 export default {
-  async beforeRouteEnter(to, _from, next) {
+  async beforeRouteEnter(to, _from) {
     const localStorage = LocalStorage.getInstance()
-    const queryClient = vueQuery.useQueryClient()
     const auth = useAuth()
     await auth.waitForSession()
 
     if (!routeAllowed(to, auth)) {
       const redirectVal = redirect(auth, localStorage)
-      return redirectVal ? next(redirectVal) : next(false)
+      return redirectVal ?? false
     }
 
-    if (auth.session != null) {
-      const scope = effectScope()
-      const agreementsModalProps = await scope.run(() => useUserAgrements(queryClient))
-      return next((component) => {
-        component.routeScope = scope
-        scope.run(() => watchEffect(() => (component.agreementsModalProps = agreementsModalProps)))
-      })
-    }
-    return next(true)
+    // if (auth.session != null) {
+    //   const scope = effectScope()
+    //   const agreementsModalProps = await scope.run(() => useUserAgrements(queryClient))
+    //   return next((component) => {
+    //     component.routeScope = scope
+    //     scope.run(() => watchEffect(() => (component.agreementsModalProps = agreementsModalProps)))
+    //   })
+    // }
+    return true
   },
 
-  beforeRouteLeave() {
-    this.routeScope?.stop()
+  async dataLoader(queryClient) {
+    const auth = useAuth()
+    if (auth.session != null) {
+      return { agreementsModalProps: await useUserAgrements(queryClient) }
+    } else {
+      return { agreementsModalProps: undefined }
+    }
   },
 }
 </script>
 
 <script setup lang="ts">
+const props = defineProps<{
+  agreementsModalProps: AgreementsModalProps | undefined
+}>()
+
 const session = useSession()
 const auth = useAuth()
 const route = useRoute()
@@ -121,22 +119,11 @@ watchPostEffect(() => {
 
 const modalProps = computed(() => ({ isOpen: session.isLoggingOut }))
 const displayDevTools = computed(() => auth.session?.type === UserSessionType.full)
-const tosAndPp = ref<{ composable: TosAndPP; scope: EffectScope }>()
 
-onUnmounted(() => {
-  tosAndPp.value?.scope.stop()
-})
-
-const agreementsModalProps = ref<AgreementsModalProps>()
 const shouldDisplayAgreementsModal = computed(
   () =>
-    !(agreementsModalProps.value?.agreedToTos && agreementsModalProps.value.agreedToPrivacyPolicy),
+    !(props.agreementsModalProps?.agreedToTos && props.agreementsModalProps?.agreedToPrivacyPolicy),
 )
-
-defineExpose({
-  agreementsModalProps,
-  routeScope: undefined as EffectScope | undefined,
-})
 </script>
 
 <template>
