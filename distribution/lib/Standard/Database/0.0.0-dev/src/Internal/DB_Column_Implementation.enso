@@ -632,7 +632,7 @@ round_float this_column decimal_places rounding_mode =
         (round_base:DB_Column).let "round_base" round_base->
             round_midpoint = (round_base + 0.5) / scale
             (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
-                ((scaled.truncate % 2) == 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
+                (((scaled.truncate % 2) == 0):DB_Column).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                     even_is_up = (this_column >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
                     half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= 0
                     do_round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)

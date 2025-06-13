@@ -3362,7 +3362,7 @@ private _resolve_order_descriptors table ordering operation_name:Text =
             False -> ordering.map element->
                 column = element.column
                 associated_selector = element.associated_selector
-                dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
+                dialect.prepare_order_descriptor column:Internal_Column associated_selector.direction text_ordering=Nothing
             True -> default_ordering
 
 ## PRIVATE
