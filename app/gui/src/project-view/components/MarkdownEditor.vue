@@ -29,8 +29,8 @@ const LazyMarkdownEditor = defineAsyncComponent(
       :toolbar="toolbar"
       :contentTestId="contentTestId"
     >
-      <template #toolbarRight>
-        <slot name="toolbarRight" />
+      <template #belowToolbar>
+        <slot name="belowToolbar" />
       </template>
     </LazyMarkdownEditor>
   </Suspense>
