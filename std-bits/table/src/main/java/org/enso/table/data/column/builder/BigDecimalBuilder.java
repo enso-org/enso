@@ -1,7 +1,6 @@
 package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
-
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;

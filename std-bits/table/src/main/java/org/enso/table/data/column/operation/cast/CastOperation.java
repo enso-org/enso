@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.math.BigDecimal;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -77,7 +78,7 @@ public class CastOperation {
       case IntegerType integerType -> inferIntegerType(storage, options);
       case FloatType floatType -> inferFloatType(storage, options);
       case BigIntegerType bigIntegerType -> inferBigIntegerType(storage, options);
-      case BigDecimalType bigDecimalType -> bigDecimalType; // ToDo: handle BigDecimalType
+      case BigDecimalType bigDecimalType -> inferBigDecimalType(storage, options);
       default -> storage.getType();
     };
   }
@@ -280,11 +281,73 @@ public class CastOperation {
             accumulator.accumulate((long) item, isNothing);
           });
 
-      return accumulator.getCount() == 0 ? floatType :
-          (options.shrinkIntegers() ? accumulator.resolveType() : IntegerType.INT_64);
+      return accumulator.getCount() == 0
+          ? floatType
+          : (options.shrinkIntegers() ? accumulator.resolveType() : IntegerType.INT_64);
     } catch (ArithmeticException e) {
       // If we cannot convert the value to long, we return the original type.
       return floatType;
+    }
+  }
+
+  private static class BigDecimalAccumulator extends LongAccumulator {
+    private boolean overflowed = false;
+
+    public void accumulate(BigDecimal item) {
+      if (item == null) {
+        return;
+      }
+
+      var bigIntegerValue = item.toBigIntegerExact();
+      if (!overflowed) {
+        if (IntegerType.INT_64.fits(bigIntegerValue)) {
+          super.accumulate(bigIntegerValue.longValueExact(), false);
+        } else {
+          overflowed = true;
+        }
+      }
+    }
+
+    public boolean getOverflowed() {
+      return overflowed;
+    }
+  }
+
+  private static StorageType<?> inferBigDecimalType(
+      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
+    if (!options.wholeFloatsBecomeIntegers()) {
+      return columnStorage.getType();
+    }
+
+    if (!(columnStorage.getType() instanceof BigDecimalType bigDecimalType)) {
+      throw new IllegalArgumentException(
+          "Cannot infer decimal type from non-decimal storage: " + columnStorage.getType());
+    }
+
+    // Build the min and max of values in the column.
+    try {
+      var accumulator = new BigDecimalAccumulator();
+      StorageIterators.buildOverStorage(
+          bigDecimalType.asTypedStorage(columnStorage),
+          false,
+          bigDecimalType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
+          (builder, index, item) -> accumulator.accumulate(item));
+
+      if (accumulator.getCount() == 0) {
+        // If there are no items, we return the original type.
+        return bigDecimalType;
+      }
+
+      if (accumulator.getOverflowed()) {
+        // If we overflowed, we cannot convert to long, so we return the original type.
+        return BigIntegerType.INSTANCE;
+      }
+
+      // Will fit in a long, so we can return an IntegerType.
+      return options.shrinkIntegers() ? accumulator.resolveType() : IntegerType.INT_64;
+    } catch (ArithmeticException e) {
+      // If we cannot convert the value to long, we return the original type.
+      return bigDecimalType;
     }
   }
 
@@ -371,5 +434,53 @@ public class CastOperation {
       // Could not combine so return AnyObjectType
       return AnyObjectType.INSTANCE;
     }
+  }
+
+  private static class PrecisionAccumulator {
+    private long maxPrecision = 0;
+
+    public void accumulate(BigDecimal item) {
+      if (item == null) {
+        return;
+      }
+
+      int precision = item.precision();
+      if (precision > maxPrecision) {
+        maxPrecision = precision;
+      }
+    }
+
+    public long getMaxPrecision() {
+      return maxPrecision;
+    }
+  }
+
+  /**
+   * Computes the maximum precision of the stored values in the column.
+   *
+   * @param column the column to analyze
+   * @return the maximum precision of the stored values
+   */
+  public static long maxPrecisionStored(Column column) {
+    var storage = column.getStorage();
+
+    var accumulator = new PrecisionAccumulator();
+    switch (storage.getType()) {
+      case BigDecimalType bigDecimalType -> StorageIterators.buildOverStorage(
+          bigDecimalType.asTypedStorage(storage),
+          false,
+          bigDecimalType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
+          (builder, index, item) -> accumulator.accumulate(item));
+      case BigIntegerType bigIntegerType -> StorageIterators.buildOverStorage(
+          bigIntegerType.asTypedStorage(storage),
+          false,
+          bigIntegerType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
+          (builder, index, item) ->
+              accumulator.accumulate(item == null ? null : new BigDecimal(item)));
+      default -> throw new IllegalArgumentException(
+          "Cannot compute max precision for storage type: " + storage.getType());
+    }
+
+    return accumulator.getMaxPrecision();
   }
 }

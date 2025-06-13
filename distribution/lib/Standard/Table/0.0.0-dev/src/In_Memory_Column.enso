@@ -19,6 +19,7 @@ from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Val
 from project.Internal.Column_Type_Helpers import column_from_implementation, underlying_from_column
 from project.Internal.Storage import enso_to_java
 
+polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 
@@ -108,6 +109,11 @@ type In_Memory_Column
         Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
             java_column = Java_Column.fromRepeatedItem name item repeats
             In_Memory_Column.from_java_column java_column
+
+    ## PRIVATE
+       Gets the maximum precision of decimal values in the column.
+    max_precision self = Illegal_Argument.handle_java_exception <|
+        CastOperation.maxPrecisionStored self.java_column
 
 ## PRIVATE
    Creates the Column type class instance for the In_Memory_Column.

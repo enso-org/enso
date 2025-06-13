@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage.numeric;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
@@ -29,31 +28,6 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
   @Override
   protected BigInteger[] newUnderlyingArray(int size) {
     return new BigInteger[size];
-  }
-
-  private long cachedMaxPrecisionStored = -1;
-
-  public long getMaxPrecisionStored() {
-    if (cachedMaxPrecisionStored < 0) {
-      long maxPrecision = 0;
-      for (int i = 0; i < getSize(); i++) {
-        BigInteger value = data[i];
-        if (value == null) {
-          continue;
-        }
-
-        BigDecimal asDecimal = new BigDecimal(value);
-        assert asDecimal.scale() == 0;
-        int precision = asDecimal.precision();
-        if (precision > maxPrecision) {
-          maxPrecision = precision;
-        }
-      }
-
-      cachedMaxPrecisionStored = maxPrecision;
-    }
-
-    return cachedMaxPrecisionStored;
   }
 
   /**
