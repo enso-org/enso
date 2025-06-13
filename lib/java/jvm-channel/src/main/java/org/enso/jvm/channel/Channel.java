@@ -11,7 +11,6 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.enso.persist.Persistance;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.ImageInfo;
@@ -33,7 +32,7 @@ import org.graalvm.word.WordFactory;
  *
  * @param <Data> internal data of the channel
  */
-public final class Channel<Data> implements AutoCloseable {
+public final class Channel<Data extends Channel.Config> implements AutoCloseable {
   /**
    * @GuardedBy("Channel.class")
    */
@@ -132,18 +131,18 @@ public final class Channel<Data> implements AutoCloseable {
    * @param <D> type of internal data as well as provider of the pool
    * @param jvm instance of HotSpot JVM to connect to (can be {@code null} to create a mock channel
    *     inside of a single JVM)
-   * @param dataAndPoolClass the class which has public default constructor and can supply an
-   *     instance of persistance pool to use for communication
+   * @param configClass the class which has public default constructor and can supply an instance of
+   *     persistance pool to use for communication
    * @return channel for sending messages to the HotSpot JVM
    */
-  public static synchronized <D extends Supplier<Persistance.Pool>> Channel<D> create(
-      JVM jvm, Class<? extends D> dataAndPoolClass) {
-    var data = newInstance(dataAndPoolClass);
-    Persistance.Pool pool = data.get();
+  public static synchronized <D extends Config> Channel<D> create(
+      JVM jvm, Class<? extends D> configClass) {
+    var config = newInstance(configClass);
+    Persistance.Pool pool = config.pool();
     var id = idCounter++;
     if (jvm == null) {
-      var otherData = newInstance(dataAndPoolClass);
-      return new Channel<>(data, null, otherData, id, pool);
+      var otherData = newInstance(configClass);
+      return new Channel<>(config, null, otherData, id, pool);
     }
 
     if (!ImageInfo.inImageCode()) {
@@ -152,7 +151,7 @@ public final class Channel<Data> implements AutoCloseable {
     var e = jvm.env();
     var classNameWithSlashes = Channel.class.getName().replace('.', '/');
     try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
-        var poolClassInC = CTypeConversion.toCString(dataAndPoolClass.getName());
+        var poolClassInC = CTypeConversion.toCString(configClass.getName());
         var createInC = CTypeConversion.toCString("createJvmPeerChannel");
         var createSigInC = CTypeConversion.toCString("(JJJLjava/lang/String;)Z"); //
         var handleInC = CTypeConversion.toCString("handleJvmMessage");
@@ -168,7 +167,7 @@ public final class Channel<Data> implements AutoCloseable {
       var handleMethod =
           fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
 
-      var channel = new Channel<>(id, data, pool, e, channelClass, handleMethod);
+      var channel = new Channel<>(id, config, pool, e, channelClass, handleMethod);
 
       var arg = StackValue.get(4, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
@@ -192,7 +191,7 @@ public final class Channel<Data> implements AutoCloseable {
    * @return data associated with this channel
    * @see #execute
    */
-  public final Data getData() {
+  public final Data getConfig() {
     return data;
   }
 
@@ -234,9 +233,9 @@ public final class Channel<Data> implements AutoCloseable {
   @SuppressWarnings("unchecked")
   private static boolean createJvmPeerChannel(
       long id, long threadId, long callbackFn, String poolClassName) throws Throwable {
-    var dataAndPoolClass = Class.forName(poolClassName);
-    var data = (Supplier<Persistance.Pool>) newInstance(dataAndPoolClass);
-    var pool = data.get();
+    var configClass = Class.forName(poolClassName);
+    var data = (Config) newInstance(configClass);
+    var pool = data.pool();
     var channel = new Channel<>(id, data, pool, threadId, callbackFn);
     var prev = ID_TO_CHANNEL.put(id, channel);
     return prev == null;
@@ -415,5 +414,18 @@ public final class Channel<Data> implements AutoCloseable {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Set of methods necessary for construction of a {@link Channel}. Subclasses must have a public
+   * default constructor accessible via reflection from the {@link Channel#create} method.
+   */
+  public abstract static class Config {
+    /**
+     * Creates instance of pool for persisting messages.
+     *
+     * @return the pool to use when sending messages
+     */
+    public abstract Persistance.Pool pool();
   }
 }

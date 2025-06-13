@@ -53,7 +53,7 @@ record OtherJvmMessage( // sends a message to the other side
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
     try {
       TruffleClassLoader.ctx().enter();
-      var receiver = t.getData().findObject(id);
+      var receiver = t.getConfig().findObject(id);
       assert receiver instanceof TruffleObject;
       var res = ReflectionLibrary.getUncached().send(receiver, message, args.toArray());
       return new ReturnValue<>(res);

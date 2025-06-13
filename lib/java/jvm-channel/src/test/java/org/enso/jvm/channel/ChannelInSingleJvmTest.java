@@ -4,13 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.junit.Test;
 
 public class ChannelInSingleJvmTest {
-  public static final class PrivateData implements Supplier<Persistance.Pool> {
+  public static final class PrivateData extends Channel.Config {
     static int countInstances;
     int counter;
 
@@ -19,7 +18,7 @@ public class ChannelInSingleJvmTest {
     }
 
     @Override
-    public Persistance.Pool get() {
+    public Persistance.Pool pool() {
       return Persistables.POOL;
     }
   }
@@ -42,12 +41,12 @@ public class ChannelInSingleJvmTest {
     PrivateData.countInstances = 0;
     var ch = Channel.create(null, PrivateData.class);
     assertEquals("Two channels & data created", 2, PrivateData.countInstances);
-    assertEquals("By default we are at zero", 0, ch.getData().counter);
+    assertEquals("By default we are at zero", 0, ch.getConfig().counter);
 
     var msg = new AssignPrivateData(10);
     var newMsg = ch.execute(AssignPrivateData.class, msg);
 
-    assertEquals("PrivateData.counter hasn't been changed", 0, ch.getData().counter);
+    assertEquals("PrivateData.counter hasn't been changed", 0, ch.getConfig().counter);
 
     assertNotNull("Got a value", newMsg);
     assertEquals("10 + 1", 11, newMsg.valueToSet());
@@ -78,8 +77,8 @@ public class ChannelInSingleJvmTest {
       implements Function<Channel<PrivateData>, AssignPrivateData> {
     @Override
     public AssignPrivateData apply(Channel<PrivateData> t) {
-      t.getData().counter = valueToSet;
-      return new AssignPrivateData(t.getData().counter + 1);
+      t.getConfig().counter = valueToSet;
+      return new AssignPrivateData(t.getConfig().counter + 1);
     }
   }
 }

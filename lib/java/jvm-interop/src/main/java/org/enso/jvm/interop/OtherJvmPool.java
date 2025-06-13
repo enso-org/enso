@@ -3,11 +3,11 @@ package org.enso.jvm.interop;
 import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
+import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistance;
 
 /** Pool of Truffle objects associated with {@link Channel}. */
-public final class OtherJvmPool implements Supplier<Persistance.Pool> {
+public final class OtherJvmPool extends Channel.Config {
   private static final Map<Long, TruffleObject> OBJECTS = new HashMap<>();
 
   static synchronized long registerObject(TruffleObject obj) {
@@ -21,7 +21,7 @@ public final class OtherJvmPool implements Supplier<Persistance.Pool> {
   }
 
   @Override
-  public final Persistance.Pool get() {
+  public final Persistance.Pool pool() {
     return Persistables.POOL;
   }
 }
