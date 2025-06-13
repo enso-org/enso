@@ -101,10 +101,10 @@ generate_code nesting_level:Integer -> Text =
    The thread stack size is also set to a sufficiently large value
    to ensure there is no StackOverflow.
 run_without_compiler enso_args:Vector -> Process_Result =
-    _JAVA_OPTIONS = "-Dpolyglot.engine.Compilation=false "
+    JAVA_TOOL_OPTIONS = "-Dpolyglot.engine.Compilation=false "
                 + "-XX:MaxJavaStackTraceDepth=18000 "
                 + "-Xms16M"
-    args = ["_JAVA_OPTIONS="+_JAVA_OPTIONS, enso_bin.path] + enso_args
+    args = ["JAVA_TOOL_OPTIONS="+JAVA_TOOL_OPTIONS, enso_bin.path] + enso_args
     Process.run "env" (args + enso_args)
 
 
