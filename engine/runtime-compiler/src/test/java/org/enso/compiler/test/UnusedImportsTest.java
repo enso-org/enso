@@ -20,7 +20,12 @@ import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;
 
 public class UnusedImportsTest {
-  @Rule public final WithCompilerContext compilerCtx = WithCompilerContext.createDefault();
+  @Rule
+  public final WithCompilerContext compilerCtx =
+      WithCompilerContext.newBuilder()
+          .withModifiedCompilerConfig(
+              cfg -> cfg.isLintingDisabled(false).staticAnalysisEnabled(true))
+          .build();
 
   @Test
   public void canResolveSimpleImport() {
