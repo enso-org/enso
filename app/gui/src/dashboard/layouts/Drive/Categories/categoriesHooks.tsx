@@ -19,7 +19,6 @@ import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import type Backend from '#/services/Backend'
 import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
-import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import { useBackends, useText } from '$/providers/react'
 import { createContext, useContext } from 'react'
@@ -41,6 +40,7 @@ import type {
   TrashCategory,
 } from './Category'
 import { isCloudCategory, isLocalCategory } from './Category'
+import { organizationIdToDirectoryId } from '#/services/RemoteBackend/types'
 
 /** State for {@link categoryIdStore}. */
 interface CategoryIdStoreState {
