@@ -61,8 +61,11 @@ export function createQueryParams(
       } else {
         router.replace({ query })
       }
+      anyPushed.value = false
     }
     for (const [key, value] of newQueryParams) {
+      // During update we remove duplicated param keys (as we don't read them anyway).
+      // Therefore we don't call `getQueryValue` here.
       if (route.query[key] !== value) return navigate()
     }
     for (const key of Object.keys(route.query)) {
