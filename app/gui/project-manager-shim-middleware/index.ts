@@ -69,7 +69,7 @@ interface Attributes {
 type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
 
 /** The discriminator value for {@link FileSystemEntry}. */
-export enum FileSystemEntryType {
+enum FileSystemEntryType {
   DirectoryEntry = 'DirectoryEntry',
   ProjectEntry = 'ProjectEntry',
   FileEntry = 'FileEntry',

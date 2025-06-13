@@ -5,7 +5,7 @@
  * Feature flags are used to enable or disable certain features in the application.
  */
 import { unsafeWriteValue } from '#/utilities/write'
-import { useZustantStoreRef } from '$/utils/zustand'
+import { useZustandStoreRef } from '$/utils/zustand'
 import { IS_DEV_MODE, isOnElectron } from 'enso-common/src/detect'
 import { z } from 'zod'
 import { createStore } from 'zustand'
@@ -116,7 +116,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
 
 /** Composable for getting a specific feature flag. */
 export function useFeatureFlag<Key extends keyof FeatureFlags>(key: Key) {
-  return useZustantStoreRef(flagsStore, (store) => store.featureFlags[key])
+  return useZustandStoreRef(flagsStore, (store) => store.featureFlags[key])
 }
 
 /** Set a subset of feature flags. */
