@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.cast;
 
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -55,5 +57,15 @@ public class CastOperation {
       case BigDecimalType bigDecimalType -> new ToBigDecimalConverter();
       case NullType nullType -> throw new IllegalArgumentException("Cannot cast to Null type.");
     };
+  }
+
+  public static StorageType<?> inferPreciseType(Column column) {
+    return inferPreciseType(column, PreciseTypeOptions.DEFAULT);
+  }
+
+  public static StorageType<?> inferPreciseType(Column column, PreciseTypeOptions options) {
+    var columnStorage = column.getStorage();
+    var storage = ColumnStorageWithInferredStorage.resolveStorage(columnStorage);
+    return storage.getType();
   }
 }

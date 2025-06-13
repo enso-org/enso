@@ -40,7 +40,8 @@ public interface BinaryOperation<T> {
           && rightColumn.getStorage().getType() instanceof NullType) {
         right = null;
       }
-      if (right == null || getInferredStorage(left).getType() instanceof NullType) {
+      if (right == null
+          || ColumnStorageWithInferredStorage.resolveStorage(left).getType() instanceof NullType) {
         var result =
             expectedResultType == null
                 ? Builder.fromRepeatedItem(null, left.getSize())
@@ -89,24 +90,13 @@ public interface BinaryOperation<T> {
     return new Column(newName, result);
   }
 
-  static ColumnStorage<?> getInferredStorage(Column input) {
-    var storage = input.getStorage();
-    if (storage instanceof ColumnStorageWithInferredStorage withInferredStorage) {
-      var inferredStorage = withInferredStorage.getInferredStorage();
-      if (inferredStorage != null) {
-        return inferredStorage;
-      }
-    }
-    return storage;
-  }
-
   /*
    * Gets the storage of the column resolving through inferred storages.
    * Replace with a simple call to `getStorage` if an operation should not
    * resolve inferred storages.
    * */
   default ColumnStorage<?> getStorage(Column input) {
-    return getInferredStorage(input);
+    return ColumnStorageWithInferredStorage.resolveStorage(input);
   }
 
   /**

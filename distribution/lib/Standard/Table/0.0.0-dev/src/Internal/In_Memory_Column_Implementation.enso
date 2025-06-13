@@ -586,7 +586,7 @@ type In_Memory_Column_Implementation
 
     auto_cast (this_column : Column & In_Memory_Column) shrink_types:Boolean=False -> Column =
         new_value_type = Storage.to_value_type <|
-             this_column.java_column.getStorage.inferPreciseType (PreciseTypeOptions.forAutoCast shrink_types)
+            CastOperation.inferPreciseType this_column.java_column (PreciseTypeOptions.forAutoCast shrink_types)
 
         # We run with Report_Error because we do not expect any problems.
         this_column.cast new_value_type on_problems=Problem_Behavior.Report_Error
@@ -638,7 +638,7 @@ type In_Memory_Column_Implementation
         Storage.to_value_type storage_type
 
     inferred_precise_value_type this_column -> Value_Type =
-        storage_type = (this_column:In_Memory_Column).java_column.getStorage.inferPreciseType PreciseTypeOptions.DEFAULT
+        storage_type = CastOperation.inferPreciseType (this_column:In_Memory_Column).java_column
         Storage.to_value_type storage_type
 
     should_be_selected_by_type (this_column : Column & In_Memory_Column) (value_type : Value_Type) -> Boolean =

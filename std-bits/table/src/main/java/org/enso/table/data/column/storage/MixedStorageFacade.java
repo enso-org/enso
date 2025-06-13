@@ -37,9 +37,7 @@ public class MixedStorageFacade extends Storage<Object>
   }
 
   public ColumnStorage<?> getInferredStorage() {
-    return (underlyingStorage instanceof ColumnStorageWithInferredStorage underlyingInferredStorage)
-        ? underlyingInferredStorage.getInferredStorage()
-        : underlyingStorage;
+    return underlyingStorage;
   }
 
   @Override

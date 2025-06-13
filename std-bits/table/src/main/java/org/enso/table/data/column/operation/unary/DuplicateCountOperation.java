@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.unary;
 
+import java.util.HashMap;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -7,10 +8,14 @@ import org.enso.table.data.column.storage.MixedStorageFacade;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-import java.util.HashMap;
-
+/**
+ * An operation that counts the number of occurrences of each value in a column. It returns a new
+ * column where each entry is the running count of the corresponding value in the original column.
+ */
 public final class DuplicateCountOperation implements UnaryOperation {
   public static final DuplicateCountOperation INSTANCE = new DuplicateCountOperation();
+
+  private DuplicateCountOperation() {}
 
   @Override
   public String getName() {
@@ -23,7 +28,8 @@ public final class DuplicateCountOperation implements UnaryOperation {
   }
 
   @Override
-  public ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     var asObjectStorage = new MixedStorageFacade(storage);
     final HashMap<Object, Long> counts = new HashMap<>();
     return StorageIterators.buildOverStorage(

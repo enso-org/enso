@@ -16,6 +16,7 @@ import org.enso.table.data.column.operation.text.TextConcatenate;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.DateTimeType;
@@ -257,7 +258,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @return a BinaryOperation that performs addition or concatenation
    */
   public static BinaryOperation<?> add(Column left, Object right) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> createNumeric(leftStorage.getType(), right, ADDITION);
       case TextType tt -> TextConcatenate.INSTANCE;
@@ -283,7 +284,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @return a BinaryOperation that performs subtraction
    */
   public static BinaryOperation<?> minus(Column left, Object right) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> createNumeric(leftStorage.getType(), right, SUBTRACTION);
       case DateTimeType dtt -> DateTimeSubtraction.DATE_TIME;
@@ -333,7 +334,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @return a BinaryOperation that performs division
    */
   public static BinaryOperation<?> divide(Column left, Object right) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case BigDecimalType bdt -> new BinaryOperatorBigDecimal(DIVIDE);
       case NumericType nt -> {
@@ -365,7 +366,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @return a BinaryOperation that performs division
    */
   public static BinaryOperation<?> power(Column left, Object right) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> new BinaryOperatorDouble(POWER);
       case NullType nt -> {
@@ -383,7 +384,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
 
   private static BinaryOperation<?> makeNumericBinaryOperation(
       Column left, Object right, NumericOperation operation) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> createNumeric(leftStorage.getType(), right, operation);
       case NullType nt -> {
