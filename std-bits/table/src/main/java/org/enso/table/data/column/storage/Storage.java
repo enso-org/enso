@@ -1,17 +1,14 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -187,24 +184,4 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @return a copy of the storage consisting of slices of the original data
    */
   public abstract ColumnStorage<T> slice(List<SliceRange> ranges);
-
-  /**
-   * Counts the number of times each value has been seen before in this storage.
-   *
-   * @return a storage counting the number of times each value in this one has been seen before.
-   */
-  public ColumnStorage<?> duplicateCount() {
-    HashMap<Object, Integer> occurenceCount = new HashMap<>();
-    Context context = Context.getCurrent();
-    var builder =
-        Builder.getForLong(IntegerType.INT_64, getSize(), BlackholeProblemAggregator.INSTANCE);
-    for (long i = 0; i < getSize(); i++) {
-      var value = getItemBoxed(i);
-      var count = occurenceCount.getOrDefault(value, 0);
-      builder.appendLong(count);
-      occurenceCount.put(value, count + 1);
-      context.safepoint();
-    }
-    return builder.seal();
-  }
 }

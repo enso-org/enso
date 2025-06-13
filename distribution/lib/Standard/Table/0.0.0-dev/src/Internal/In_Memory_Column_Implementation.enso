@@ -54,6 +54,7 @@ polyglot java import org.enso.table.data.column.operation.text.TextPredicates
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
+polyglot java import org.enso.table.data.column.operation.unary.DuplicateCountOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
@@ -694,7 +695,7 @@ type In_Memory_Column_Implementation
         In_Memory_Column.from_java_column (this_column.java_column.applyMask mask)
 
     duplicate_count (this_column : Column & In_Memory_Column) -> Column =
-        In_Memory_Column.from_java_column this_column.java_column.duplicateCount
+        apply_unary_operation this_column DuplicateCountOperation.INSTANCE
 
     to_text_implementation (this_column : Column & In_Memory_Column) -> Text = "(In-Memory Column "+this_column.name.to_text+")"
 
