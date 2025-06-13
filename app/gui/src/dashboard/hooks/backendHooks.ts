@@ -434,11 +434,8 @@ export function useNewFolder(backend: Backend, category: Category) {
       .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
 
     const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-    const placeholderItem = backendModule.createPlaceholderDirectoryAsset(title, parentId)
 
-    return await createDirectoryMutation([
-      { parentId: placeholderItem.parentId, title: placeholderItem.title },
-    ]).then((result) => {
+    return await createDirectoryMutation([{ parentId, title }]).then((result) => {
       setNewestFolderId(result.id)
       setSelectedAssets([{ type: AssetType.directory, ...result }])
       return result

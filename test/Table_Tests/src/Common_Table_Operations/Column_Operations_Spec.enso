@@ -7,7 +7,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
 
-from Standard.Table import Bits, Value_Type, Column_Ref, Column
+from Standard.Table import Bits, Column, Column_Ref, Value_Type
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
@@ -1617,7 +1617,7 @@ add_column_operation_specs suite_builder setup =
                 col.text_replace 'a[bcd]'.to_regex 'hey' . name . should_equal "replace([x], r/a[bcd]/, 'hey')"
                 col.text_replace (regex 'a[bcd]') 'hey' . name . should_equal "replace([x], r/a[bcd]/, 'hey')"
                 col.text_replace (regex 'a[/bcd]') 'hey' . name . should_equal "replace([x], r/a[\/bcd]/, 'hey')"
-            if supported_replace_params.contains (Replace_Params.Value DB_Column Case_Sensitivity.Default False) then
+            if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
                 col.text_replace patterns replacements . name . should_equal "replace([x], [patterns], [replacements])"
 
     suite_builder.group prefix+"(Column_Operations_Spec) Column Operations - Text Replace (in-memory only)" group_builder->
@@ -1776,7 +1776,7 @@ add_column_operation_specs suite_builder setup =
         group_builder.specify "misc"
             data.t.at "a" . min [1, 2] . name . should_equal "min([a], 1, 2)"
             data.t.at "a" . max 33 . name . should_equal "max([a], 33)"
-            data.t.at "a" . is_in [1, 2, 3] . name . should_equal "[a] in [1, 2, 3]"
+            data.t.at "a" . is_in [1, 2, 3] . name . should_equal "[a] in [Vector]"
 
         group_builder.specify "composed operations" <|
             # These look a bit weird, but they are consistent with the column name escaping scheme.
@@ -1834,9 +1834,9 @@ add_column_operation_specs suite_builder setup =
                     y = t.at "Y"
                     z = t.at "Z"
                     a = ((x - 2.3) * (y + 1)) + z
-                    b = (x - 2.3).let "xx" xx-> (xx * (y + 1)) + z
-                    c = (x - 2.3).let "xx" xx-> (y + 1).let "yy" yy-> (xx * yy) + z
-                    d = ((x - 2.3) * (y + 1)).let "xxyy" xxyy-> xxyy + z
+                    b = ((x - 2.3):DB_Column).let "xx" xx-> (xx * (y + 1)) + z
+                    c = ((x - 2.3):DB_Column).let "xx" xx-> ((y + 1):DB_Column).let "yy" yy-> (xx * yy) + z
+                    d = (((x - 2.3) * (y + 1)):DB_Column).let "xxyy" xxyy-> xxyy + z
 
                     r = t . set a "a" . set b "b" . set c "c" . set d "d" . order_by ["X"] . read
                     r.at "a" . to_vector . should_equal [5.6000000000000005, 22.2, 66.20000000000002, 386.03000000000003]

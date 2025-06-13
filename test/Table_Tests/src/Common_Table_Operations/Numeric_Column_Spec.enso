@@ -34,8 +34,14 @@ add_numeric_columns_specs suite_builder setup =
         group_builder.specify "a text column cannot be cast to Numeric_Column" <|
             column = table_builder [["X", ["txt"]]] . at "X"
             column.value_type.is_numeric . should_be_false
-            check_column column x->
-                Test.expect_panic Type_Error (x:Numeric_Column)
+            Test.with_clue "(regular column) " <|
+                (column:Numeric_Column).should_fail_with Invalid_Value_Type
+            Test.with_clue "(1-value column) " <|
+                (column.sort.take 1 : Numeric_Column).should_fail_with Invalid_Value_Type
+            Test.with_clue "(1-column table as column) " <|
+                Test.expect_panic Type_Error (column.to_table : Numeric_Column)
+            Test.with_clue "(1-value 1-column table as column) " <|
+                Test.expect_panic Type_Error (column.sort.to_table.take 1 : Numeric_Column)
 
         group_builder.specify "a numeric column supports abs operation" <|
             column = numeric_column.get

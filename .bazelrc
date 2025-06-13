@@ -44,6 +44,7 @@ common --java_language_version=21
 startup --windows_enable_symlinks
 build --enable_runfiles
 build --@rules_rust//rust/toolchain/channel=nightly
+build --compilation_mode=opt
 
 ## Allow local overrides of bazel configuration
 try-import %workspace%/.bazelrc.local

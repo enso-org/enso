@@ -95,158 +95,27 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     }
 
     private static SourceGroup[] computeSbtClassPath(EnsoSbtProject prj) {
-        var sources = new ArrayList<SourceGroup>();
-        var platform = JavaPlatform.getDefault();
-        var roots = new LinkedHashSet<FileObject>();
-        var modulePath = new LinkedHashSet<FileObject>();
-        var generatedSources = new LinkedHashSet<FileObject>();
-        var source = "21";
-        var options = new ArrayList<String>();
-        for (var ch : prj.getProjectDirectory().getChildren()) {
-            if (ch.getNameExt().startsWith(".enso-sources-")) {
-                Properties p = new Properties();
-                try (InputStream is = ch.getInputStream()) {
-                    p.load(is);
-                } catch (IOException ex) {
-                    Exceptions.printStackTrace(ex);
-                }
-                if (p.get("java.home") instanceof String javaHome) {
-                    var javaHomeFile = new File(javaHome);
+        class ConstructSourceGroupsFromDotEnsoSourceFiles extends DotEnsoSourceFiles {
+            ConstructSourceGroupsFromDotEnsoSourceFiles(FileObject projectDirectory) {
+                super(projectDirectory);
+            }
+
+            @Override
+            protected EnsoSources createSourceGroup(ClassPath cp, ClassPath moduleCp, ClassPath srcCp, String platformPath, FileObject outputDir, String source, List<String> options) {
+                var platform = JavaPlatform.getDefault();
+                if (platformPath != null) {
+                    var javaHomeFile = new File(platformPath);
                     var javaHomeFo = FileUtil.toFileObject(javaHomeFile);
                     if (javaHomeFo != null) {
                       platform = ProjectPlatform.forProject(prj, javaHomeFo, javaHomeFile.getName(), "j2se");
                     }
                 }
-
-                for (var i = 0; ; i++) {
-                    final String prop = p.getProperty("options." + i);
-                    if (prop == null) {
-                        break;
-                    }
-                    var next = p.getProperty("options." + (i + 1));
-                    if ("-source".equals(prop) && next != null) {
-                        source = next;
-                        i++;
-                        continue;
-                    }
-                    if ("-classpath".equals(prop) && next != null) {
-                        var paths = next.split(File.pathSeparator);
-                        for (var element : paths) {
-                            FileObject fo = findProjectFileObject(prj, element);
-                            if (fo != null) {
-                                if (fo.isFolder()) {
-                                    roots.add(fo);
-                                } else {
-                                    var jarRoot = FileUtil.getArchiveRoot(fo);
-                                    roots.add(jarRoot);
-                                }
-                            }
-                        }
-                        i++;
-                        continue;
-                    }
-                    if ("--module-path".equals(prop) && next != null) {
-                        var paths = next.split(File.pathSeparator);
-                        for (var element : paths) {
-                            FileObject fo = findProjectFileObject(prj, element);
-                            if (fo != null) {
-                                if (fo.isFolder()) {
-                                    modulePath.add(fo);
-                                } else {
-                                    var jarRoot = FileUtil.getArchiveRoot(fo);
-                                    modulePath.add(jarRoot);
-                                }
-                            }
-                        }
-                        i++;
-                        continue;
-                    }
-                    if ("-s".equals(prop) && next != null) {
-                        var fo = FileUtil.toFileObject(new File(next));
-                        if (fo != null) {
-                            generatedSources.add(fo);
-                        }
-                    }
-                    options.add(prop);
-                }
-                var srcRoots = new LinkedHashSet<FileObject>();
-
-                var inputSrc = p.getProperty("input");
-                var inputDir = findProjectFileObject(prj, inputSrc);
-                if (inputDir != null) {
-                  var addSibblings = true;
-                  if (inputDir.getNameExt().equals("org")) {
-                    // lib/rust/parser doesn't follow typical project conventions
-                    inputDir = inputDir.getParent();
-                    addSibblings = false;
-                  }
-                  srcRoots.add(inputDir);
-                  if (addSibblings) {
-                    for (var sibbling : inputDir.getParent().getChildren()) {
-                      if (sibbling.isFolder() && sibbling != inputDir) {
-                        srcRoots.add(sibbling);
-                      }
-                    }
-                  }
-                } else {
-                  var srcDir = prj.getProjectDirectory().getFileObject("src");
-                  if (srcDir != null) {
-                    for (var group : srcDir.getChildren()) {
-                      if (group.isFolder()) {
-                        for (var child : group.getChildren()) {
-                          if (child.isFolder()) {
-                            srcRoots.add(child);
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                srcRoots.addAll(generatedSources);
-
-                var outputSrc = p.getProperty("output");
-                FileObject outputDir = findProjectFileObject(prj, outputSrc);
-
-                var generatedSrc = p.getProperty("generated");
-                FileObject generatedDir = findProjectFileObject(prj, generatedSrc);
-                if (generatedDir != null) {
-                  srcRoots.add(generatedDir);
-                }
-
-                for (var r : srcRoots) {
-                  assert r.isFolder() : "Expecting folders in " + srcRoots;
-                }
-
-                var cp = ClassPathSupport.createClassPath(roots.toArray(new FileObject[0]));
-                var moduleCp = ClassPathSupport.createClassPath(modulePath.toArray(new FileObject[0]));
-                var srcCp = ClassPathSupport.createClassPath(srcRoots.toArray(new FileObject[0]));
-                var s = new EnsoSources(cp, moduleCp, srcCp, platform, outputDir, source, options);
-                if (s.getRootFolder() == null) {
-                    LOG.log(Level.WARNING, "Cannot find root folder for " + prj);
-                } else {
-                    if ("main".equals(s.getName())) {
-                      sources.add(0, s);
-                    } else {
-                      sources.add(s);
-                    }
-                }
+                return new EnsoSbtClassPathProvider.EnsoSources(cp, moduleCp, srcCp, platform, outputDir, source, options);
             }
-        }
-        if (prj.getProjectDirectory().getFileObject("src") instanceof FileObject src && src.isFolder()) {
-            for (var kind : src.getChildren()) {
-              TYPE: for (var type : kind.getChildren()) {
-                    for (var e : sources) {
-                      if (e.getRootFolder().equals(type)) {
-                        continue TYPE;
-                      }
-                    }
 
-                    var s = new OtherEnsoSources(kind.getNameExt(), type);
-                    sources.add(s);
-                }
-            }
         }
-        return sources.toArray(new SourceGroup[0]);
+        var dotEnsoSourceFiles = new ConstructSourceGroupsFromDotEnsoSourceFiles(prj.getProjectDirectory());
+        return dotEnsoSourceFiles.getSourceGroups();
     }
 
     private static FileObject findProjectFileObject(EnsoSbtProject prj, String path) {

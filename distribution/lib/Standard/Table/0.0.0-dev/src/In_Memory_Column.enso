@@ -8,15 +8,17 @@ import project.Internal.In_Memory_Visualization_Helpers.In_Memory_Visualization_
 import project.Internal.Java_Problems
 import project.Internal.Storage
 import project.Internal.Type_Refinements.Column_Refinements
+import project.Internal.Type_Refinements.Typed_Column_Helpers
+import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Numeric_Column_Implementation
 import project.Internal.Value_Type_Helpers
 import project.Internal.Visualization_Helpers.Visualization_Helpers
+import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
-from project.Column import column_from_implementation
 from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Value_Type
+from project.Internal.Column_Type_Helpers import column_from_implementation, underlying_from_column
 from project.Internal.Storage import enso_to_java, java_to_enso
 
-polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 
@@ -41,6 +43,10 @@ type In_Memory_Column
         name = as_column.name.pretty
         data = as_column.to_vector.pretty
         "Column.from_vector " + name + " " + data
+
+    ## PRIVATE
+    to_text self -> Text =
+        "In_Memory_Column " + (self:Column).name
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
@@ -100,8 +106,7 @@ type In_Memory_Column
     ## PRIVATE
     private from_repeated_item name:Text item:Any repeats:Integer =
         Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
-            java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                Java_Column.fromRepeatedItem name item repeats java_problem_aggregator
+            java_column = Java_Column.fromRepeatedItem name item repeats
             In_Memory_Column.from_java_column java_column
 
 ## PRIVATE
@@ -113,10 +118,14 @@ Column.from (that : In_Memory_Column) =
    Conversion that extracts the underlying in-memory column from the column,
    or fails if its of a different backend.
 In_Memory_Column.from (that : Column) =
-    if that.underlying.is_a In_Memory_Column then that.underlying else
-        Error.throw (Illegal_Argument.Error "Expected an in-memory column but got " + that.to_text)
+    underlying_from_column that In_Memory_Column
 
 ## PRIVATE
    Gets the Visualization helpers for the column.
 Visualization_Helpers.from (that : In_Memory_Column) =
     Visualization_Helpers.Value that In_Memory_Visualization_Helpers
+
+## PRIVATE
+Numeric_Column.from (that : In_Memory_Column) =
+    Value_Type.expect_numeric that <|
+        Typed_Column_Helpers.make_numeric_column that In_Memory_Numeric_Column_Implementation

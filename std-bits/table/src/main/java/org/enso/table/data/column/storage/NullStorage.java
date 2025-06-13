@@ -49,28 +49,28 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public Storage<Void> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Void> applyFilter(BitSet filterMask, int newLength) {
     return new NullStorage(newLength);
   }
 
   @Override
-  public Storage<Void> applyMask(OrderMask mask) {
+  public ColumnStorage<Void> applyMask(OrderMask mask) {
     return new NullStorage(mask.length());
   }
 
   @Override
-  public Storage<Void> slice(int offset, int limit) {
+  public ColumnStorage<Void> slice(int offset, int limit) {
     long newSize = Math.min(this.size - offset, limit);
     return new NullStorage(newSize);
   }
 
   @Override
-  public Storage<Void> slice(List<SliceRange> ranges) {
+  public ColumnStorage<Void> slice(List<SliceRange> ranges) {
     return new NullStorage(SliceRange.totalLength(ranges));
   }
 
   @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     return this;
   }
 }
