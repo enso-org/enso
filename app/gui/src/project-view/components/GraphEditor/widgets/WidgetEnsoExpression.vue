@@ -46,7 +46,9 @@ const extensions = [
 export const EnsoExpression: unique symbol = Symbol.for('WidgetInput:EnsoExpression')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [EnsoExpression]?: object
+    [EnsoExpression]?: {
+      weakMatch?: boolean
+    }
   }
 }
 
@@ -54,7 +56,7 @@ export const widgetDefinition = defineWidget(
   EnsoExpression,
   {
     priority: 150,
-    score: Score.Perfect,
+    score: (props) => (props.input[EnsoExpression].weakMatch === true ? Score.Weak : Score.Perfect),
   },
   import.meta.hot,
 )

@@ -12,8 +12,7 @@ export interface MultiSelectorOptionProps
   readonly label: string
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const MULTI_SELECTOR_OPTION_STYLES = tv({
+const MULTI_SELECTOR_OPTION_STYLES = tv({
   base: TEXT_STYLE({
     className:
       'flex flex-1 items-center justify-center min-h-8 relative overflow-clip cursor-pointer transition-[background-color,color,outline-offset] duration-200',

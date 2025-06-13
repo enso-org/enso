@@ -5,7 +5,7 @@ import type { PageCallback } from './BaseActions'
 import EditorPageActions from './EditorPageActions'
 
 /** Actions for the context menu. */
-export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
+interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly open: () => T
   readonly uploadToCloud: () => T
   readonly rename: () => T

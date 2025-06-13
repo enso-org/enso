@@ -67,10 +67,13 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     }
   }
 
-  dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
+  selectableTypes = computed(() => {
     const allTypeEntries = this.getAllEntriesOfKind(SuggestionKind.Type)
-    const filteredTypes = filter(allTypeEntries, isUserSelectableType)
-    return Array.from(filteredTypes, (ty) => ExpressionTag.FromEntry(this, ty))
+    return [...filter(allTypeEntries, isUserSelectableType)]
+  })
+
+  dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
+    return Array.from(this.selectableTypes.value, (ty) => ExpressionTag.FromEntry(this, ty))
   })
 
   /** Look up an entry by its path within a project */

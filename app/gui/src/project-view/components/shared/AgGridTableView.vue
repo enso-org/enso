@@ -252,6 +252,8 @@ function processCellForClipboard({
   formatValue: (arg: any) => string
 }) {
   if (value == null) return ''
+  else if (typeof value === 'object' && '_display_text_' in value && value['_display_text_'])
+    return String(value['_display_text_'])
   const formatted = formatValue(value)
   if (formatted.match(/[\t\n\r"]/)) {
     return `"${formatted.replaceAll(/"/g, '""')}"`
