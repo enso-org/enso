@@ -3,14 +3,13 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Excel.Excel_Range.Excel_Range
 import project.Headers.Headers
 import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
 import project.Table.Table
-from project.Errors import Duplicate_Output_Column_Names, Empty_Sheet, Invalid_Column_Names, Invalid_Location
+from project.Errors import Empty_Sheet, Invalid_Location
 from project.Table import from_java_table
 
 polyglot java import java.io.File as Java_File
