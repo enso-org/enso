@@ -131,7 +131,10 @@ impl BuiltEnso {
             .arg(test_path.as_ref())
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
             // failed on Graal/Truffle assertions, so we want to have them triggered.
-            .set_env(JAVA_TOOL_OPTIONS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
+            .set_env(
+                JAVA_TOOL_OPTIONS,
+                &ide_ci::programs::java::Option::EnableAssertions.as_ref(),
+            )?;
 
         for (k, v) in environment_overrides {
             command.env(k, &v);
