@@ -8,5 +8,3 @@
     - to_sql self -> Standard.Database.SQL_Statement.SQL_Statement
     - to_text self -> Standard.Base.Data.Text.Text
 - Standard.Table.Column.Column.from that:Standard.Database.DB_Column.DB_Column -> Standard.Table.Column.Column
-- Standard.Database.DB_Column.DB_Column.from that:Standard.Table.Column.Column -> Standard.Database.DB_Column.DB_Column
-- Standard.Table.Refined_Types.Numeric_Column.Numeric_Column.from that:Standard.Database.DB_Column.DB_Column -> Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
