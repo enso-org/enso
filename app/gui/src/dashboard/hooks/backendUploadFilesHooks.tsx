@@ -16,7 +16,6 @@ import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAss
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import type LocalBackend from '#/services/LocalBackend'
-import { extractTypeAndPath } from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
@@ -36,6 +35,7 @@ import {
   createPlaceholderProjectAsset,
   escapeSpecialCharacters,
   extractProjectExtension,
+  extractTypeAndPath,
   fileIsNotProject,
   fileIsProject,
   S3_CHUNK_SIZE_BYTES,
@@ -124,7 +124,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
                 file,
               ])
               .then((result) => {
-                if (result.id == null) {
+                if (result.jobId != null) {
                   return
                 }
                 addToSelection({
@@ -147,7 +147,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
             await uploadFileMutation
               .mutateAsync([{ fileId, fileName: title, parentDirectoryId: asset.parentId }, file])
               .then((result) => {
-                if (result.id == null) {
+                if (result.jobId != null) {
                   return
                 }
                 addToSelection({

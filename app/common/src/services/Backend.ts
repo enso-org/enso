@@ -9,34 +9,35 @@ import * as permissions from '../utilities/permissions'
 import * as uniqueString from '../utilities/uniqueString'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths'
 import {
-  Address,
-  AssetId,
-  CheckoutSessionId,
-  CredentialInput,
   DatalinkId,
   DirectoryId,
-  EmailAddress,
   EnsoPath,
-  EnsoPathValue,
   FileId,
-  HttpsUrl,
-  LabelName,
-  OrganizationId,
   ParentsPath,
   Path,
-  ProjectExecutionId,
   ProjectId,
-  ProjectSessionId,
-  S3FilePath,
-  S3ObjectVersionId,
   SecretId,
-  SubscriptionId,
-  TagId,
   UpAssetId,
-  UserGroupId,
-  UserId,
-  UserPermissionIdentifier,
   VirtualParentsPath,
+  type Address,
+  type AssetId,
+  type CheckoutSessionId,
+  type CredentialInput,
+  type EmailAddress,
+  type EnsoPathValue,
+  type HttpsUrl,
+  type LabelName,
+  type OrganizationId,
+  type ProjectExecutionId,
+  type ProjectSessionId,
+  type S3FilePath,
+  type S3ObjectVersionId,
+  type SubscriptionId,
+  type TagId,
+  type UnzipAssetsJobId,
+  type UserGroupId,
+  type UserId,
+  type UserPermissionIdentifier,
 } from './Backend/types'
 import { HttpClient, ResponseWithTypedJson } from './HttpClient'
 export { prettifyError } from 'zod/v4'
@@ -1354,19 +1355,21 @@ export interface UploadFileEndRequestBody {
 export interface UploadedFile {
   readonly id: FileId
   readonly project: null
+  readonly jobId: null
 }
 
 /** A large archive that has finished uploading. */
 export interface UploadedArchive {
-  readonly archive: true
-  readonly id: null
+  readonly id: FileId
   readonly project: null
+  readonly jobId: UnzipAssetsJobId
 }
 
 /** A large project that has finished uploading. */
 export interface UploadedProject {
   readonly id: ProjectId
   readonly project: Project
+  readonly jobId: null
 }
 
 /** A large asset (file or project) that has finished uploading. */

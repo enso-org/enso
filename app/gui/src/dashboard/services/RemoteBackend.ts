@@ -30,6 +30,8 @@ const STATUS_NOT_FOUND = 404
 const STATUS_NOT_ALLOWED = 403
 /** The interval between checks for the export status. */
 const EXPORT_STATUS_INTERVAL_MS = 5_000
+/** The interval between checks for the import status. */
+const IMPORT_STATUS_INTERVAL_MS = 5_000
 
 /** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
 export function parentsPathsToPath(
@@ -962,7 +964,20 @@ export default class RemoteBackend extends Backend {
     if (!response.ok) {
       return await this.throw(response, 'uploadFileEndBackendError')
     } else {
-      return await response.json()
+      const result = await response.json()
+      if (result.jobId != null) {
+        const statusPath = remoteBackendPaths.getImportArchiveJobStatusPath(result.jobId)
+        while (true) {
+          const statusResponse = await this.get<unknown>(statusPath)
+          const statusResult = statusResponse.ok ? await statusResponse.json() : null
+          if (statusResult == null) {
+            await delay(IMPORT_STATUS_INTERVAL_MS)
+            continue
+          }
+          return result
+        }
+      }
+      return result
     }
   }
 

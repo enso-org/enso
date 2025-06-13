@@ -646,12 +646,15 @@ export default class LocalBackend extends Backend {
       const projectPath = backend.Path(await response.text())
       const projectId = newProjectId(projectPath)
       const project = await this.getProjectDetails(projectId)
-      this.uploadedFiles.set(uploadId, { id: projectId, project })
+      this.uploadedFiles.set(uploadId, { id: projectId, project, jobId: null })
     } else if (backend.fileIsArchive(file)) {
-      // FIXME: Add new shape for uploaded archive.
-      this.uploadedFiles.set(uploadId, { archive: true, id: null, project: null })
+      this.uploadedFiles.set(uploadId, {
+        id: newFileId(filePath),
+        project: null,
+        jobId: backend.UnzipAssetsJobId(await response.text()),
+      })
     } else {
-      this.uploadedFiles.set(uploadId, { id: newFileId(filePath), project: null })
+      this.uploadedFiles.set(uploadId, { id: newFileId(filePath), project: null, jobId: null })
     }
     return { presignedUrls: [], uploadId, sourcePath: backend.S3FilePath('') }
   }
