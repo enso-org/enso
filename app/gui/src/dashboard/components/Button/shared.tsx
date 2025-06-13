@@ -90,6 +90,7 @@ export function ResetButtonGroupContext(props: PropsWithChildren) {
 }
 
 /** Hook to use the button group context */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useButtonGroupContext() {
   return useContext(ButtonGroupContext)
 }

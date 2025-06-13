@@ -9,7 +9,7 @@ import { twJoin } from 'tailwind-merge'
 export type SpinnerPhase = 'done' | 'initial' | 'loading-fast' | 'loading-medium' | 'loading-slow'
 
 /** The default size of the spinner. */
-const ROTATING_ELEMENT_SIZE = 24
+export const ROTATING_ELEMENT_SIZE = 24
 
 const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerPhase, string>> = {
   initial: 'dasharray-5 ease-linear',
