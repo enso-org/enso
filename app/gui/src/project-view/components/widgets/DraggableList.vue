@@ -397,28 +397,27 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
     "
   >
+    <slot name="header" />
     <template v-for="entry in displayedChildren" :key="entry.key">
       <template v-if="entry.type === 'item'">
         <li :ref="patchBoundingClientRectScaling" class="item">
           <div :ref="(el) => setItemRef(el, entry.index)" class="draggableContent">
-            <SizeTransition width>
-              <!-- This wrapper is needed because an SVG element cannot directly be draggable. -->
-              <div
-                v-if="props.showHandles"
-                class="deletable"
-                :class="{ hintDeletable: entry.hintDeletable.value }"
-                draggable="true"
-                @dragstart="onDragStart($event, entry.index)"
-                @dragend="onDragEnd"
-              >
-                <SvgIcon name="grab" class="handle" />
-              </div>
-            </SizeTransition>
             <div
               class="deletable"
               :class="{ hintDeletable: entry.hintDeletable.value }"
               data-testid="list-item-content"
             >
+              <SizeTransition width>
+                <!-- This wrapper is needed because an SVG element cannot directly be draggable. -->
+                <div
+                  v-if="props.showHandles"
+                  draggable="true"
+                  @dragstart="onDragStart($event, entry.index)"
+                  @dragend="onDragEnd"
+                >
+                  <SvgIcon name="grab" class="handle" />
+                </div>
+              </SizeTransition>
               <slot :item="entry.item" :index="entry.index"></slot>
             </div>
             <SizeTransition width>
@@ -595,6 +594,7 @@ div {
 }
 
 .deletable {
+  display: contents;
   opacity: 1;
   transition: opacity 0.2s ease-in-out;
   &.hintDeletable {

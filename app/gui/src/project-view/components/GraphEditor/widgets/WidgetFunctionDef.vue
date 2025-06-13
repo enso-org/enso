@@ -124,6 +124,15 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
       @remove="handleRemove"
       @reorder="handleReorder"
     >
+      <template #header>
+        <div class="ArgumentHeader">
+          <div>Name</div>
+          <div class="tokenText">&nbsp;:&nbsp;</div>
+          <div>Type</div>
+          <div class="tokenText">&nbsp;=&nbsp;</div>
+          <div>Default</div>
+        </div>
+      </template>
       <template #default="{ item, index }">
         <ArgumentRow
           :root="tree.rootElement"
@@ -169,6 +178,32 @@ export const widgetDefinition = defineWidget(
 
 .FunctionDefArguments {
   margin-left: 24px;
-  gap: 4px;
+  row-gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(9, auto);
+
+  :global(.item.item) {
+    display: contents;
+  }
+
+  :global(.draggableContent.draggableContent) {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+  }
+}
+
+.ArgumentHeader {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-row: 1;
+  grid-column: 2 / -1;
+  grid-template-columns: subgrid;
+  grid-auto-flow: row;
+}
+
+.tokenText {
+  opacity: 0.33;
 }
 </style>

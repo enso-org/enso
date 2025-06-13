@@ -224,11 +224,13 @@ const defaultEntries = [
 </template>
 
 <style scoped>
-.ArgumentRow,
-.defaultValueRoot {
-  display: flex;
-  flex-direction: row;
-  place-items: center;
+.ArgumentRow {
+  display: grid;
+  grid-column: 2 / -2;
+  grid-template-rows: 1fr;
+  grid-template-columns: subgrid;
+  grid-auto-flow: column;
+  place-items: center start;
   overflow-x: clip;
 }
 
@@ -238,6 +240,10 @@ const defaultEntries = [
 
 .defaultValueRoot {
   position: relative;
+  display: flex;
+  flex-direction: row;
+  place-items: center;
+  overflow-x: clip;
 }
 
 svg.dropdownArrow {

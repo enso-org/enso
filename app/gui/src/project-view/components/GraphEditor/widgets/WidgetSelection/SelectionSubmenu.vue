@@ -1,5 +1,4 @@
 <script setup lang="ts" generic="T extends DropdownEntry | SubmenuEntry<T>">
-import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
@@ -106,7 +105,7 @@ export interface SubmenuComponent {
 </script>
 
 <template>
-  <ConditionalTeleport :target="props.rootElement">
+  <Teleport :to="rootElement" :disabled="!rootElement">
     <div
       ref="dropdownElement"
       :style="floatingStyles"
@@ -125,11 +124,11 @@ export interface SubmenuComponent {
         />
       </SizeTransition>
     </div>
-  </ConditionalTeleport>
+  </Teleport>
   <SelectionSubmenu
     v-if="nestedEntriesPresent"
     ref="submenuRef"
-    :rootElement="props.rootElement"
+    :rootElement="rootElement"
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
     :entries="submenuEntries"
