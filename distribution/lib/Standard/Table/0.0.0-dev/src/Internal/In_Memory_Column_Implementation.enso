@@ -436,7 +436,7 @@ type In_Memory_Column_Implementation
                 _ : Text ->
                     fn = t-> s-> if t.is_nothing then Nothing else
                         if s.is_nothing || s.is_empty then t else t.replace s parsed_new case_sensitivity only_first
-                    _apply_binary_map this_column fn parsed_new new_name skip_nulls=False expected_result_type=Value_Type.Char
+                    _apply_binary_map this_column fn parsed_term new_name skip_nulls=False expected_result_type=Value_Type.Char
                 _ : Column -> Value_Type.expect_text parsed_new <|
                     ## Three Columns To Deal With (all are text)
                     fn = t-> s-> r-> if t.is_nothing then Nothing else
