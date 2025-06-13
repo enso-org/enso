@@ -73,10 +73,10 @@ public class CastOperation {
     var storage = ColumnStorageWithInferredStorage.resolveStorage(columnStorage);
 
     return switch (storage.getType()) {
-      case TextType textType -> inferTextType(columnStorage, options);
-      case IntegerType integerType -> inferIntegerType(columnStorage, options);
-      case FloatType floatType -> inferFloatType(columnStorage, options);
-      case BigIntegerType bigIntegerType -> inferBigIntegerType(columnStorage, options);
+      case TextType textType -> inferTextType(storage, options);
+      case IntegerType integerType -> inferIntegerType(storage, options);
+      case FloatType floatType -> inferFloatType(storage, options);
+      case BigIntegerType bigIntegerType -> inferBigIntegerType(storage, options);
       case BigDecimalType bigDecimalType -> bigDecimalType;
       default -> storage.getType();
     };

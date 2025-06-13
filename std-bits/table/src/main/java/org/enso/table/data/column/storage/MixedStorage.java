@@ -14,7 +14,6 @@ import org.enso.table.problems.BlackholeProblemAggregator;
  * specific type.
  */
 public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
-
   /**
    * Holds a specialized storage for the inferred type, if available.
    *

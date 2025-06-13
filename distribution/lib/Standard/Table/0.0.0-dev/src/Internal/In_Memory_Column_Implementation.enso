@@ -441,7 +441,7 @@ type In_Memory_Column_Implementation
                     ## Three Columns To Deal With (all are text)
                     fn = t-> s-> r-> if t.is_nothing then Nothing else
                         if s.is_nothing || s.is_empty then t else
-                            if r.is_nothing.not then t.replace r s case_sensitivity only_first else
+                            if r.is_nothing.not then t.replace s r case_sensitivity only_first else
                                 if t.contains s then Nothing else t
 
                     length = this_column.length
