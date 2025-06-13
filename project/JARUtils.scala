@@ -279,8 +279,12 @@ object JARUtils {
     return List()
   }
 
-  /** @param processor
-    * @param osName
+  /** @param processor See `processor` in <a href="https://docs.osgi.org/specification/osgi.core/8.0.0/framework.module.html#framework.module-loading.native.code.libraries">
+    *                  OSGi Bundle-NativeCode specification
+    *                  </a>
+    * @param osName See `osname` in <a href="https://docs.osgi.org/specification/osgi.core/8.0.0/framework.module.html#framework.module-loading.native.code.libraries">
+    *                 OSGi Bundle-NativeCode specification
+    *                 </a>
     * @param libPath Path inside the JAR
     */
   case class NativeCodeEntry(
