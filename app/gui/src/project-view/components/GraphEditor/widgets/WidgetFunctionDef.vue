@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ArgumentRow from '@/components/GraphEditor/widgets/WidgetFunctionDef/ArgumentRow.vue'
 import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
@@ -7,22 +7,26 @@ import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
 import { syntheticPortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
 import { type MethodPointer } from '@/util/methodPointer'
 import { computed, Ref } from 'vue'
 import { newArgumentDefinition } from 'ydoc-shared/ast'
 import { assertUnreachable } from 'ydoc-shared/util/assert'
+import { renameArgumentInDefaultValue } from './WidgetFunctionDef/argumentAst'
 
 const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
+const openedProject = injectCurrentProject().ref
+const tree = injectWidgetTree()
 
 const funcIcon = computed(() => {
   return input[FunctionInfoKey]?.docsData.value?.iconName ?? 'enso_logo'
 })
 
 function doEdit(editFn: (ast: Ast.MutableFunctionDef, edit: Ast.MutableModule) => void) {
-  const edit = graph.startEdit()
+  const edit = openedProject.value?.graph.startEdit()
+  if (!edit) return
   editFn(edit.getVersion(input.value), edit)
   onUpdate({ edit, directInteraction: true })
 }
@@ -56,8 +60,15 @@ function handleRemove(index: number) {
   doEdit((ast) => ast.spliceArgumentDefinitions(index, 1))
 }
 
-function handleUpdateType(index: number, typeExpr: Ast.Owned<Ast.MutableExpression>) {
+function handleUpdateType(index: number, typeExpr: Ast.Owned<Ast.MutableExpression> | undefined) {
   doEdit((ast) => ast.setArgumentType(index, typeExpr))
+}
+
+function handleUpdateDefault(
+  index: number,
+  typeExpr: Ast.Owned<Ast.MutableExpression> | undefined,
+) {
+  doEdit((ast) => ast.setArgumentDefault(index, typeExpr))
 }
 
 function handleReorder(oldIndex: number, newIndex: number) {
@@ -87,10 +98,14 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
   if (newName == null) return handleRemove(index)
 
   doEdit((ast, edit) => {
-    const oldName = ast.argumentDefinitions[index]?.pattern.node.code()
-    if (!oldName) return
+    const definition = ast.argumentDefinitions[index]
+    if (!definition) return
+    const oldNameString = definition.pattern.node.code()
+    const newNameString = newName.code()
+    if (newNameString == oldNameString) return
+    renameArgumentInDefaultValue(definition, edit, newNameString)
     ast.visitRecursive((child) => {
-      if (child instanceof Ast.Ident && child.code() === oldName)
+      if (child instanceof Ast.Ident && child.token.code() === oldNameString)
         edit.replaceValue(child.id, newName)
     })
   })
@@ -111,11 +126,13 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
     >
       <template #default="{ item, index }">
         <ArgumentRow
+          :root="tree.rootElement"
           :portIdBase="syntheticPortId(input.portId, `argRow:${index}`)"
           :definition="item"
           :onUpdate="onUpdate"
           @rename="handleRename(index, $event)"
           @updateType="handleUpdateType(index, $event)"
+          @updateDefault="handleUpdateDefault(index, $event)"
         />
       </template>
     </DraggableList>

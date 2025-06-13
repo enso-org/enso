@@ -721,7 +721,7 @@ supported_replace_params =
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
@@ -764,7 +764,7 @@ replace args metadata =
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
-        DB_Column ->
+        Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->

@@ -118,7 +118,8 @@ export class ArgumentPlaceholder extends Argument {
 
   /** TODO: Add docs */
   get value(): WidgetInputValue {
-    return this.argInfo.defaultValue === null ? undefined : this.argInfo.defaultValue
+    const value = this.argInfo.defaultValue
+    return value == null || isRequiredArgument(this.argInfo) ? undefined : value
   }
 
   /** Whether the argument should be hidden when the component isn't currently focused for editing. */

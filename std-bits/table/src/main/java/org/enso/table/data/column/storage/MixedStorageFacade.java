@@ -17,8 +17,8 @@ public class MixedStorageFacade extends Storage<Object>
     implements ColumnStorageWithInferredStorage {
   private final Storage<?> underlyingStorage;
 
-  public MixedStorageFacade(Storage<?> storage) {
-    underlyingStorage = storage;
+  public MixedStorageFacade(ColumnStorage<?> storage) {
+    underlyingStorage = (Storage<?>) storage;
   }
 
   @Override
@@ -53,32 +53,32 @@ public class MixedStorageFacade extends Storage<Object>
   }
 
   @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    Storage<?> newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
+  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+    var newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
-  public Storage<Object> applyFilter(BitSet filterMask, int newLength) {
-    Storage<?> newStorage = underlyingStorage.applyFilter(filterMask, newLength);
+  public ColumnStorage<Object> applyFilter(BitSet filterMask, int newLength) {
+    var newStorage = underlyingStorage.applyFilter(filterMask, newLength);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
-  public Storage<Object> applyMask(OrderMask mask) {
-    Storage<?> newStorage = underlyingStorage.applyMask(mask);
+  public ColumnStorage<Object> applyMask(OrderMask mask) {
+    var newStorage = underlyingStorage.applyMask(mask);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
-  public Storage<Object> slice(int offset, int limit) {
-    Storage<?> newStorage = underlyingStorage.slice(offset, limit);
+  public ColumnStorage<Object> slice(int offset, int limit) {
+    var newStorage = underlyingStorage.slice(offset, limit);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
-  public Storage<Object> slice(List<SliceRange> ranges) {
-    Storage<?> newStorage = underlyingStorage.slice(ranges);
+  public ColumnStorage<Object> slice(List<SliceRange> ranges) {
+    var newStorage = underlyingStorage.slice(ranges);
     return new MixedStorageFacade(newStorage);
   }
 }

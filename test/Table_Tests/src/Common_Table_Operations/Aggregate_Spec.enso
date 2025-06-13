@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
-import Standard.Base.Errors.Common.Missing_Argument
 
 from Standard.Table import Table, Sort_Column, Value_Type, expr
 from Standard.Table.Aggregate_Column.Aggregate_Column import all

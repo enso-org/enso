@@ -9,8 +9,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.StorageListView;
+
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -64,9 +63,7 @@ public final class IsInOperation {
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof Column argColumn) {
-      var argStorage = BinaryOperation.getInferredStorage(argColumn);
-      var argAsList = new StorageListView(argStorage);
-      return apply(left, new_name, argAsList, problemAggregator);
+      return apply(left, new_name, argColumn.asList(), problemAggregator);
     }
 
     if (!(arg instanceof List<?> list)) {
@@ -74,7 +71,7 @@ public final class IsInOperation {
     }
 
     if (list.isEmpty()) {
-      return new Column(new_name, (Storage<?>) BoolBuilder.makeConstant(left.getSize(), false));
+      return new Column(new_name, Builder.fromRepeatedItem(false, left.getSize()));
     }
 
     var leftStorage = BinaryOperation.getInferredStorage(left);
@@ -94,7 +91,7 @@ public final class IsInOperation {
               "Unsupported StorageType for `is_in`: " + leftStorage.getType());
     };
 
-    return new Column(new_name, (Storage<?>) result);
+    return new Column(new_name, result);
   }
 
   private static BigDecimal tryConvertingToBigDecimal(Object o, MapOperationProblemAggregator problemAggregator) {
@@ -173,7 +170,7 @@ public final class IsInOperation {
     if (result.uniqueValues.isEmpty()) {
       return result.hadNull()
           ? BoolBuilder.makeEmpty(storage.getSize())
-          : BoolBuilder.makeConstant(storage.getSize(), false);
+          : Builder.fromRepeatedItem(false, storage.getSize());
     }
 
     // Scan the storage and build the result
@@ -230,7 +227,7 @@ public final class IsInOperation {
     if (!flags.hadTrue && !flags.hadFalse) {
       return flags.hadNull
           ? BoolBuilder.makeEmpty(boolStorage.getSize())
-          : BoolBuilder.makeConstant(boolStorage.getSize(), false);
+          : Builder.fromRepeatedItem(false, boolStorage.getSize());
     }
 
     // Convert Size

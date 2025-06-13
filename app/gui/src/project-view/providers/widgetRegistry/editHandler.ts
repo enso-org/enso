@@ -258,6 +258,25 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     )
   }
 
+  /** Create {@link WidgetEditHandler} by manually providing a port and parent interaction. */
+  static NewNested(
+    portId: WatchSource<PortId>,
+    parent: WatchSource<WidgetEditHandlerParent | undefined>,
+    myInteraction: WidgetEditHooks,
+  ): ShallowRef<WidgetEditHandler> {
+    const widgetTree = injectWidgetTree()
+    const interactionHandler = injectInteractionHandler()
+    const instanceId = newWidgetInstanceId()
+    return WidgetEditHandler.NewRaw(
+      () => instanceId,
+      portId,
+      parent,
+      myInteraction,
+      widgetTree,
+      interactionHandler,
+    )
+  }
+
   /** Create {@link WidgetEditHandler} by manually providing all needed inputs. Useful for testing. */
   static NewRaw(
     widgetInstanceId: WatchSource<WidgetInstanceId>,

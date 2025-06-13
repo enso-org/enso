@@ -4,9 +4,6 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 
 /** A column storing arbitrary Java objects. */
 public sealed class ObjectStorage extends SpecializedStorage<Object> permits MixedStorage {
-  /** An empty object storage. */
-  public static ObjectStorage EMPTY = new ObjectStorage(new Object[0]);
-
   /**
    * @param data the underlying data
    */
