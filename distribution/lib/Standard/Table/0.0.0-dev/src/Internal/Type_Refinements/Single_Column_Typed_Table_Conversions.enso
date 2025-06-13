@@ -7,6 +7,7 @@ import project.In_Memory_Column.In_Memory_Column
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Table.Table
 from project.Internal.Type_Refinements.Single_Column_Table_Conversions import all
+from project.Internal.Type_Refinements.Typed_Column_Conversions import all
 
 ## This conversion is internal and should never be exported.
 Numeric_Column.from (that : Table) =

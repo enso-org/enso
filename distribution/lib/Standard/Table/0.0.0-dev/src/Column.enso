@@ -2253,10 +2253,6 @@ Visualization_Helpers.from (that : Column) =
     Visualization_Helpers.from that.underlying
 
 ## PRIVATE
-Numeric_Column.from (that : Column) =
-    Numeric_Column.from that.underlying
-
-## PRIVATE
    Resolves the default date period for `date_add` depending on the source column value type.
 default_date_period column = if column.value_type.has_date then Date_Period.Day else Time_Period.Hour
 
