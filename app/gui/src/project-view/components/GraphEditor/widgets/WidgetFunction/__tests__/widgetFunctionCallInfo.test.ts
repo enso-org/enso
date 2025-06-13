@@ -65,7 +65,7 @@ test.each`
   'Visualization config for $code',
   ({ code, callSuggestion, subjectSpan, attachedSpan, subjectType, methodName }) => {
     const spans = {
-      entireFunction: SourceRange.unsafeFromBounds(0, code.length),
+      entireFunction: SourceRange.fromStartAndLength(0, code.length),
       ...(subjectSpan != null ? { subject: subjectSpan } : {}),
       ...(attachedSpan != null ? { attached: attachedSpan } : {}),
     }

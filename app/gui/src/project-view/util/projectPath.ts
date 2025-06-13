@@ -88,14 +88,6 @@ export class ProjectPath {
     }
   }
 
-  /** Returns string representation of the project path. */
-  toString(): string {
-    const project = this.project ?? ''
-    const path = this.path ?? ''
-    if (path !== '' && project !== '') return `${project}.${path}`
-    return path ?? project
-  }
-
   /**
    * Checks if given full qualified name is considered a top element of some project.
    *

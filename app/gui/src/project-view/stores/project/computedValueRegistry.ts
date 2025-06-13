@@ -73,7 +73,7 @@ export class TypeInfo {
   equals(other: TypeInfo | undefined): boolean {
     if (other == null) return false
     return (
-      arrayEquals(this.visibleTypes, other.visibleTypes) &&
+      arrayEquals(this.visibleTypes, other.visibleTypes, (a, b) => a.equals(b)) &&
       arrayEquals(this.hiddenTypes, other.hiddenTypes, (a, b) => a.equals(b))
     )
   }

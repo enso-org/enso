@@ -255,7 +255,7 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
         type == null ?
           metadata.keys()
         : new Set([
-            ...(metadata.visualizationIdToType.reverseLookup(type.toString()) ?? []),
+            ...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? []),
             ...(metadata.visualizationIdToType.reverseLookup(ANY_TYPE_QN) ?? []),
           ])
       for (const type of types) yield fromVisualizationId(type)

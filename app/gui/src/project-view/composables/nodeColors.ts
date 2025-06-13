@@ -47,7 +47,7 @@ export function computeNodeColor(
   const group = getGroup()
   if (group) return groupColorStyle(group)
   const typeName = getTypeName()
-  if (typeName) return colorFromString(typeName.path ?? 'Unknown')
+  if (typeName) return colorFromString(typeName.key())
   return 'var(--node-color-no-type)'
 }
 

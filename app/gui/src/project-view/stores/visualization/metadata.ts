@@ -16,7 +16,7 @@ function getTypesFromUnion(inputType: Opt<string>): string[] {
     }
     return parsed.value
   })
-  return types?.map((type) => type.toString()) ?? [ANY_TYPE_QN]
+  return types?.map((type) => type.key()) ?? [ANY_TYPE_QN]
 }
 
 declare const visualizationIdBrand: unique symbol

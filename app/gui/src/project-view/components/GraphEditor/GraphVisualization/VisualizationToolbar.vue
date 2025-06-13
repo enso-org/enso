@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import FullscreenButton from '@/components/FullscreenButton.vue'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
@@ -21,6 +22,8 @@ import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 const isFullscreen = defineModel<boolean>('isFullscreen', { required: true })
 const currentVis = defineModel<VisualizationIdentifier>('currentVis', { required: true })
 
+const { names: projectNames } = injectCurrentProject().storesRefs
+
 const props = defineProps<{
   showControls: boolean
   hideVisualizationButton: 'show' | 'hide' | 'invisible'
@@ -37,6 +40,11 @@ const emit = defineEmits<{
 const UNKNOWN_TYPE = 'Unknown'
 const nodeShortType = computed(() =>
   props.typename?.path != null ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE,
+)
+const fullType = computed(() =>
+  props.typename != null && projectNames.value != null ?
+    projectNames.value.printProjectPath(props.typename)
+  : UNKNOWN_TYPE,
 )
 
 const interaction = provideInteractionHandler()
@@ -100,7 +108,7 @@ useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e), {
     </template>
     <div
       class="after-toolbars node-type"
-      :title="props.typename?.toString() ?? UNKNOWN_TYPE"
+      :title="fullType"
       data-testid="visualisationNodeType"
       v-text="nodeShortType"
     />
