@@ -47,7 +47,7 @@ import {
   type FileId,
   type ProjectId,
   type S3MultipartPart,
-  type UploadedLargeAsset,
+  type UploadedAsset,
   type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
@@ -123,12 +123,15 @@ export function useUploadFiles(backend: Backend, category: Category) {
                 },
                 file,
               ])
-              .then(({ id }) => {
+              .then((result) => {
+                if (result.id == null) {
+                  return
+                }
                 addToSelection({
                   type: AssetType.project,
                   // This is SAFE, because it is guarded behind `assetIsProject`.
                   // eslint-disable-next-line no-restricted-syntax
-                  id: id as ProjectId,
+                  id: result.id as ProjectId,
                   parentId: asset.parentId,
                   title,
                 })
@@ -143,12 +146,15 @@ export function useUploadFiles(backend: Backend, category: Category) {
             const title = escapeSpecialCharacters(asset.title)
             await uploadFileMutation
               .mutateAsync([{ fileId, fileName: title, parentDirectoryId: asset.parentId }, file])
-              .then(({ id }) => {
+              .then((result) => {
+                if (result.id == null) {
+                  return
+                }
                 addToSelection({
                   type: AssetType.file,
                   // This is SAFE, because it is guarded behind `assetIsFile`.
                   // eslint-disable-next-line no-restricted-syntax
-                  id: id as FileId,
+                  id: result.id as FileId,
                   parentId: asset.parentId,
                   title,
                 })
@@ -282,7 +288,7 @@ export interface UploadFileMutationOptions {
 
 /** The result of a {@link useUploadFileMutation}. */
 export type UploadFileMutationResult = UseMutationResult<
-  UploadedLargeAsset,
+  UploadedAsset,
   Error,
   [body: UploadFileRequestParams, file: File],
   unknown

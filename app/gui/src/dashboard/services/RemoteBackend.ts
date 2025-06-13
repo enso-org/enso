@@ -1053,9 +1053,9 @@ export default class RemoteBackend extends Backend {
    */
   override async uploadFileEnd(
     body: backend.UploadFileEndRequestBody,
-  ): Promise<backend.UploadedLargeAsset> {
+  ): Promise<backend.UploadedAsset> {
     const path = remoteBackendPaths.UPLOAD_FILE_END_PATH
-    const response = await this.post<backend.UploadedLargeAsset>(path, body)
+    const response = await this.post<backend.UploadedAsset>(path, body)
     if (!response.ok) {
       return await this.throw(response, 'uploadFileEndBackendError')
     } else {

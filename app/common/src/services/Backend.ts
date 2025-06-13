@@ -1315,19 +1315,26 @@ export interface UploadFileEndRequestBody {
 }
 
 /** A large file that has finished uploading. */
-export interface UploadedLargeFile {
+export interface UploadedFile {
   readonly id: FileId
   readonly project: null
 }
 
+/** A large archive that has finished uploading. */
+export interface UploadedArchive {
+  readonly archive: true
+  readonly id: null
+  readonly project: null
+}
+
 /** A large project that has finished uploading. */
-export interface UploadedLargeProject {
+export interface UploadedProject {
   readonly id: ProjectId
   readonly project: Project
 }
 
 /** A large asset (file or project) that has finished uploading. */
-export type UploadedLargeAsset = UploadedLargeFile | UploadedLargeProject
+export type UploadedAsset = UploadedFile | UploadedArchive | UploadedProject
 
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
@@ -1768,7 +1775,7 @@ export default abstract class Backend {
   /** Upload a chunk of a large file. */
   abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
   /** Finish uploading a large file. */
-  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedLargeAsset>
+  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedAsset>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 

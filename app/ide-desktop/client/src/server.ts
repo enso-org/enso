@@ -15,7 +15,7 @@ import * as projectManagement from '@/projectManagement'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import * as ydocServer from 'ydoc-server'
 
-import { tarFsPack, tarGzReadStreamToFs, unzipEntries, zipWriteStream } from '@/archive'
+import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
 import * as contentConfig from '@/contentConfig'
 import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import * as paths from '@/paths'
@@ -40,6 +40,7 @@ import {
   ProjectId,
   ProjectState,
   S3FilePath,
+  stripProjectExtension,
   UnzipAssetsJobId,
   VirtualParentsPath,
 } from 'enso-common/src/services/Backend'
@@ -63,7 +64,6 @@ import {
   mkdtemp,
   readdir,
   readFile,
-  rename,
   rm,
   rmdir,
   stat,
@@ -633,14 +633,16 @@ export class Server {
     const getDirectoryPath = async (entryPathInArchive: string) => {
       const isDirectory = isFolderPath(entryPathInArchive)
       const parentPathInArchiveRaw = getFolderPath(entryPathInArchive)
-      const parentPathInArchive =
-        parentPathInArchiveRaw === entryPathInArchive ? '' : (
-          (pathMapping[parentPathInArchiveRaw] ?? (await getDirectoryPath(parentPathInArchiveRaw)))
-        )
+      let parentPathInArchive =
+        parentPathInArchiveRaw === entryPathInArchive ? '' : pathMapping[parentPathInArchiveRaw]
+      if (parentPathInArchive == null) {
+        await getDirectoryPath(parentPathInArchiveRaw)
+        parentPathInArchive = pathMapping[parentPathInArchiveRaw] ?? ''
+      }
       let destinationPathInArchive = path.join(parentPathInArchive, getFileName(entryPathInArchive))
       const originalDestinationPath = Path(path.join(directory, destinationPathInArchive))
       let destinationPath = originalDestinationPath
-      const { title, suffix } = extractTitleAndSuffix(getFileName(destinationPath))
+      const { title, suffix } = extractTitleAndSuffix(getFileName(destinationPathInArchive))
       // If directories need to be merged in the future, the following check can be skipped
       // for directories.
       let i = 0
@@ -658,6 +660,7 @@ export class Server {
     for await (const entry of await unzipEntries(filePath)) {
       const entryPathInArchive = entry.metadata.name
       const destinationPath = await getDirectoryPath(entryPathInArchive)
+      console.log(entryPathInArchive, destinationPath)
       const isDirectory = isFolderPath(entryPathInArchive)
       const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
       const shared = {
@@ -687,28 +690,13 @@ export class Server {
         await entry.extract({
           rootDirectory: directory,
           transform: async (stream) => {
-            await tarGzReadStreamToFs(stream, destinationPath)
-            const entries = await readdir(destinationPath)
-            const originalSingleChild = entries[0]
-            // Unwrap project contents if there is only a single directory inside.
-            if (entries.length === 1 && originalSingleChild != null) {
-              let singleChild = originalSingleChild
-              while (
-                await fileExists(path.join(destinationPath, originalSingleChild, singleChild))
-              ) {
-                singleChild += '_'
-              }
-              if (singleChild !== originalSingleChild) {
-                await rename(
-                  path.join(destinationPath, originalSingleChild),
-                  path.join(destinationPath, singleChild),
-                )
-              }
-              const childPath = path.join(destinationPath, singleChild)
-              for (const entry of await readdir(childPath)) {
-                await rename(path.join(childPath, entry), path.join(destinationPath, entry))
-              }
-            }
+            const parentDirectory = getFolderPath(destinationPath)
+            const fileName = getFileName(destinationPath)
+            await projectManagement.uploadBundle(
+              stream,
+              parentDirectory,
+              stripProjectExtension(fileName),
+            )
             // Prevent default behavior.
             return false as const
           },

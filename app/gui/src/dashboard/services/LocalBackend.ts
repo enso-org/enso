@@ -98,7 +98,7 @@ export default class LocalBackend extends Backend {
   override readonly type = LocalBackend.type
   override readonly baseUrl = LOCAL_API_URL
   /** All files that have been uploaded to the Project Manager. */
-  uploadedFiles: Map<string, backend.UploadedLargeAsset> = new Map()
+  uploadedFiles: Map<string, backend.UploadedAsset> = new Map()
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
@@ -665,7 +665,7 @@ export default class LocalBackend extends Backend {
       // The non-standard `path` property is defined in Electron.
       ('path' in file && typeof file.path === 'string' && file.path !== '' ? file.path : null)
     const searchParams = new URLSearchParams([
-      ['directory', parentPath],
+      ['directory', newDirectoryId(parentPath)],
       ['file_name', body.fileName],
       ...(sourcePath != null ? [['file_path', sourcePath]] : []),
     ]).toString()
@@ -681,6 +681,7 @@ export default class LocalBackend extends Backend {
       this.uploadedFiles.set(uploadId, { id: projectId, project })
     } else if (backend.fileIsArchive(file)) {
       // FIXME: Add new shape for uploaded archive.
+      this.uploadedFiles.set(uploadId, { archive: true, id: null, project: null })
     } else {
       this.uploadedFiles.set(uploadId, { id: newFileId(filePath), project: null })
     }
@@ -694,9 +695,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** Finish uploading a large file. */
-  override uploadFileEnd(
-    body: backend.UploadFileEndRequestBody,
-  ): Promise<backend.UploadedLargeAsset> {
+  override uploadFileEnd(body: backend.UploadFileEndRequestBody): Promise<backend.UploadedAsset> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
     const file = this.uploadedFiles.get(body.uploadId)
     invariant(file, 'Uploaded file not found')

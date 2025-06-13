@@ -408,6 +408,7 @@ class App {
           height: windowSize.height,
           frame: useFrame,
           titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
+          ...(process.env.DEV_DARK_BACKGROUND ? { backgroundColor: '#36312c' } : {}),
           ...(useVibrancy ?
             {
               vibrancy: 'fullscreen-ui',
