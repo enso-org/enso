@@ -273,7 +273,7 @@ public class CastOperation {
             if (isNothing) {
               return;
             }
-            if (item % 1 != 0 && IntegerType.INT_64.fits(item)) {
+            if (item % 1 != 0 || !IntegerType.INT_64.fits(item)) {
               throw new ArithmeticException(
                   "Value is not a whole number or doesn't fit in a long: " + item);
             }
