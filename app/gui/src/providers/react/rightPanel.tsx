@@ -19,11 +19,16 @@ export const RightPanelDataProviderForReact = applyPureReactInVue(
   },
 )
 
+/**
+ * A hook to read currently focused asset for right panel, e.g. the currently selected asset
+ * in Drive View.
+ */
 export function useRightPanelFocusedAsset() {
   const rightPanel = useRightPanelData()
   return useVueValue(react.useCallback(() => rightPanel.focusedAsset, [rightPanel]))
 }
 
+/** A hook reading current category set for right panel context. */
 export function useRightPanelContextCategory() {
   const rightPanel = useRightPanelData()
   return useVueValue(react.useCallback(() => rightPanel.context?.category, [rightPanel]))
