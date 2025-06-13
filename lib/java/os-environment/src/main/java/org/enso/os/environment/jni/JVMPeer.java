@@ -13,7 +13,7 @@ public final class JVMPeer extends Channel.Config {
   public JVMPeer() {}
 
   @Override
-  public Persistance.Pool pool() {
+  public Persistance.Pool createPool(Channel<?> ignore) {
     return Persistables.POOL;
   }
 

@@ -18,7 +18,7 @@ public class ChannelInSingleJvmTest {
     }
 
     @Override
-    public Persistance.Pool pool() {
+    public Persistance.Pool createPool(Channel<?> ignore) {
       return Persistables.POOL;
     }
   }

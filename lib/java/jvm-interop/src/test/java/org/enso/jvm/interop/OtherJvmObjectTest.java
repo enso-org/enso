@@ -26,7 +26,7 @@ public class OtherJvmObjectTest {
     var bigUnwrap = ctx.unwrapValue(bigValue);
     assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
 
-    var id = OtherJvmPool.registerObject((TruffleObject) bigUnwrap);
+    var id = CHANNEL.getConfig().registerObject((TruffleObject) bigUnwrap);
     var other = new OtherJvmObject(CHANNEL, id);
     var otherValue = ctx.asValue(other);
 
@@ -53,7 +53,7 @@ public class OtherJvmObjectTest {
     var bigUnwrap = ctx.unwrapValue(bigValue);
     assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
 
-    var id = OtherJvmPool.registerObject((TruffleObject) bigUnwrap);
+    var id = CHANNEL.getConfig().registerObject((TruffleObject) bigUnwrap);
     var other = new OtherJvmObject(CHANNEL, id);
     var otherValue = ctx.asValue(other);
 
@@ -101,7 +101,7 @@ public class OtherJvmObjectTest {
     var bigUnwrap = ctx.unwrapValue(bigValue);
     assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
 
-    var id = OtherJvmPool.registerObject((TruffleObject) bigUnwrap);
+    var id = CHANNEL.getConfig().registerObject((TruffleObject) bigUnwrap);
     var other = new OtherJvmObject(CHANNEL, id);
 
     var noType = TypesLibrary.getUncached().hasType(other);

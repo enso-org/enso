@@ -59,31 +59,25 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
 
   /** The SubstrateVM side of a channel. */
   private Channel(
-      long id,
-      Data data,
-      Persistance.Pool pool,
-      JNI.JNIEnv env,
-      JNI.JClass handleClass,
-      JNI.JMethodID handleFn) {
+      long id, Data data, JNI.JNIEnv env, JNI.JClass handleClass, JNI.JMethodID handleFn) {
     this.id = id;
     this.data = data;
-    this.pool = pool;
     this.env = env;
     this.isolate = -1;
     this.callbackFn = null;
     this.channelClass = handleClass;
     this.channelHandle = handleFn;
     this.otherMockChannel = null;
+    this.pool = data.createPool(this);
   }
 
   /** The HotSpot JVM side of a channel. */
-  private Channel(long id, Data data, Persistance.Pool pool, long isolate, long callbackFn) {
+  private Channel(long id, Data data, long isolate, long callbackFn) {
     if (ImageInfo.inImageCode()) {
       throw new IllegalStateException("Only usable in HotSpot");
     }
     this.id = id;
     this.data = data;
-    this.pool = pool;
     this.isolate = isolate;
     this.env = null;
     this.channelClass = null;
@@ -99,20 +93,19 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
             ValueLayout.ADDRESS,
             ValueLayout.JAVA_LONG);
     this.callbackFn = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+    this.pool = data.createPool(this);
   }
 
   /**
    * Mock constructor. Creates a channel that simulates sending of the messages inside of the same
    * JVM. Useful for testing.
    */
-  private Channel(
-      Data myData, Channel<Data> otherOrNull, Data otherData, long id, Persistance.Pool pool) {
+  private Channel(Data myData, Channel<Data> otherOrNull, Data otherData, long id) {
     if (ImageInfo.inImageCode()) {
       throw new IllegalStateException("Only usable in HotSpot");
     }
     this.id = id;
     this.data = myData;
-    this.pool = pool;
     this.isolate = -2;
     this.callbackFn = null;
     this.env = null;
@@ -122,7 +115,8 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         otherOrNull != null
             ? otherOrNull // use other channel when provided
             : // otherwise allocate new and pass this reference to it
-            new Channel<>(otherData, this, null, id, pool);
+            new Channel<>(otherData, this, null, id);
+    this.pool = data.createPool(this);
   }
 
   /**
@@ -138,11 +132,10 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   public static synchronized <D extends Config> Channel<D> create(
       JVM jvm, Class<? extends D> configClass) {
     var config = newInstance(configClass);
-    Persistance.Pool pool = config.pool();
     var id = idCounter++;
     if (jvm == null) {
       var otherData = newInstance(configClass);
-      return new Channel<>(config, null, otherData, id, pool);
+      return new Channel<>(config, null, otherData, id);
     }
 
     if (!ImageInfo.inImageCode()) {
@@ -167,7 +160,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       var handleMethod =
           fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
 
-      var channel = new Channel<>(id, config, pool, e, channelClass, handleMethod);
+      var channel = new Channel<>(id, config, e, channelClass, handleMethod);
 
       var arg = StackValue.get(4, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
@@ -235,8 +228,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       long id, long threadId, long callbackFn, String poolClassName) throws Throwable {
     var configClass = Class.forName(poolClassName);
     var data = (Config) newInstance(configClass);
-    var pool = data.pool();
-    var channel = new Channel<>(id, data, pool, threadId, callbackFn);
+    var channel = new Channel<>(id, data, threadId, callbackFn);
     var prev = ID_TO_CHANNEL.put(id, channel);
     return prev == null;
   }
@@ -424,8 +416,9 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     /**
      * Creates instance of pool for persisting messages.
      *
+     * @param channel the channel associated with this {@code Config}
      * @return the pool to use when sending messages
      */
-    public abstract Persistance.Pool pool();
+    public abstract Persistance.Pool createPool(Channel<?> channel);
   }
 }

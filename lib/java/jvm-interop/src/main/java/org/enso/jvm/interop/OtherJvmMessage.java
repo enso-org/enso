@@ -98,21 +98,14 @@ record OtherJvmMessage( // sends a message to the other side
       if (obj instanceof OtherJvmObject other) {
         out.writeLong(other.id());
       } else {
-        var id = OtherJvmPool.registerObject(obj);
-        out.writeLong(-id);
+        throw new IOException("No other subclasses of TruffleObject should get here: " + obj);
       }
     }
 
     @Override
     protected TruffleObject readObject(Input in) throws IOException, ClassNotFoundException {
-      var id = in.readLong();
-      if (id < 0) {
-        return new OtherJvmObject(null, -id);
-      } else {
-        var cached = OtherJvmPool.findObject(id);
-        assert cached != null;
-        return cached;
-      }
+      // OtherJvmObject instance ready to be "read resolved"
+      return new OtherJvmObject(null, in.readLong());
     }
   }
 
