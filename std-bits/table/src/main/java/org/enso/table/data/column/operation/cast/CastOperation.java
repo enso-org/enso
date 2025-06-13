@@ -77,7 +77,7 @@ public class CastOperation {
       case IntegerType integerType -> inferIntegerType(storage, options);
       case FloatType floatType -> inferFloatType(storage, options);
       case BigIntegerType bigIntegerType -> inferBigIntegerType(storage, options);
-      case BigDecimalType bigDecimalType -> bigDecimalType;
+      case BigDecimalType bigDecimalType -> bigDecimalType; // ToDo: handle BigDecimalType
       default -> storage.getType();
     };
   }
@@ -244,7 +244,7 @@ public class CastOperation {
 
       return options.shrinkIntegers()
           ? accumulator.resolveType()
-          : (accumulator.getCount() > 0 ? bigIntegerType : IntegerType.INT_64);
+          : (accumulator.getCount() == 0 ? bigIntegerType : IntegerType.INT_64);
     } catch (ArithmeticException e) {
       // If we cannot convert the value to long, we return the original type.
       return bigIntegerType;
@@ -280,9 +280,8 @@ public class CastOperation {
             accumulator.accumulate((long) item, isNothing);
           });
 
-      return options.shrinkIntegers()
-          ? accumulator.resolveType()
-          : (accumulator.getCount() > 0 ? floatType : IntegerType.INT_64);
+      return accumulator.getCount() == 0 ? floatType :
+          (options.shrinkIntegers() ? accumulator.resolveType() : IntegerType.INT_64);
     } catch (ArithmeticException e) {
       // If we cannot convert the value to long, we return the original type.
       return floatType;
