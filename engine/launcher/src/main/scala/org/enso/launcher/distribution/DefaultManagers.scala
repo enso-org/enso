@@ -51,7 +51,7 @@ object DefaultManagers {
         alwaysInstallMissing
       ),
       distributionManager,
-      new GraalVersionManager(distributionManager, LauncherEnvironment),
+      new GraalVersionManager(distributionManager),
       temporaryDirectoryManager,
       defaultResourceManager,
       EngineRepository.defaultEngineReleaseProvider,

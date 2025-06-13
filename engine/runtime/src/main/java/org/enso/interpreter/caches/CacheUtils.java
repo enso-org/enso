@@ -24,8 +24,9 @@ final class CacheUtils {
   private static int BUFFER_SIZE = 1024;
 
   static Persistance.Pool createPool(CompilerContext context, boolean keepUUIDs) {
-    return Persistance.Pool.withReplaceRewrite(
-        PersistUtils.POOL, readResolve(context), writeReplace(context, keepUUIDs));
+    return PersistUtils.POOL
+        .withReadResolve(readResolve(context))
+        .withWriteReplace(writeReplace(context, keepUUIDs));
   }
 
   private static Function<Object, Object> writeReplace(CompilerContext context, boolean keepUUIDs) {

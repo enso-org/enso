@@ -228,17 +228,32 @@ public abstract class Persistance<T> implements Cloneable {
     }
 
     /**
-     * Associates write replace and/or read resolve functions with the pool.
+     * Associates this pool with a read resolve function.
      *
-     * @param pool pool to associate
-     * @param readResolve either {@code null} or function to call for each object being stored to
-     *     provide a replacement
-     * @param writeReplace {@code null} or a function that allows to convert each object before
-     *     storing it down
-     * @return new pool unchanged except being associated with resolve and replace functions instead
-     *     of any previous functions associated
+     * @param readResolve function to call when an object is read to but before it is returned from
+     *     {@link Input#readObject()} or {@link Input#readInline} methods to provide the object's
+     *     replacement
+     * @return new pool which is internally unchanged except being associated with the provided read
+     *     resolve function
      */
-    public static Pool withReplaceRewrite(
+    public Pool withReadResolve(Function<Object, Object> readResolve) {
+      return newWithResolveAndReplace(this, readResolve, this.writeReplace);
+    }
+
+    /**
+     * Associates this pool with a write replace function.
+     *
+     * @param writeReplace function to call when an object is about to be written via {@link
+     *     Output#writeObject} or {@link Output#writeInline} functions to provide the object's
+     *     replacement
+     * @return new pool which is internally unchanged except being associated with the provided
+     *     write replace function
+     */
+    public Pool withWriteReplace(Function<Object, Object> writeReplace) {
+      return newWithResolveAndReplace(this, this.readResolve, writeReplace);
+    }
+
+    private static Pool newWithResolveAndReplace(
         Pool pool, Function<Object, Object> readResolve, Function<Object, Object> writeReplace) {
       return new Pool(pool.name, readResolve, writeReplace, pool.all) {};
     }

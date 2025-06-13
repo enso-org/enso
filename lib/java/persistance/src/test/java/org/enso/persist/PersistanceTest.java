@@ -30,10 +30,8 @@ public class PersistanceTest {
   @Test
   public void readResolve() throws Exception {
     var poolWith =
-        Persistance.Pool.withReplaceRewrite(
-            Persistables.POOL,
-            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj,
-            null);
+        Persistables.POOL.withReadResolve(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
     var in = new Service(5);
     var arr = poolWith.write(in);
@@ -48,9 +46,7 @@ public class PersistanceTest {
   @Test
   public void writeReplace() throws Exception {
     var poolWith =
-        Persistance.Pool.withReplaceRewrite(
-            Persistables.POOL,
-            null,
+        Persistables.POOL.withWriteReplace(
             (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     var in = new Service(5);
     var arr = poolWith.write(in);
@@ -62,10 +58,8 @@ public class PersistanceTest {
   @Test
   public void readResolveInline() throws Exception {
     var poolWith =
-        Persistance.Pool.withReplaceRewrite(
-            Persistables.POOL,
-            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj,
-            null);
+        Persistables.POOL.withReadResolve(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
     var in = new ServiceSupply(new Service(5));
     var arr = poolWith.write(in);
@@ -80,9 +74,7 @@ public class PersistanceTest {
   @Test
   public void writeReplaceInline() throws Exception {
     var poolWith =
-        Persistance.Pool.withReplaceRewrite(
-            Persistables.POOL,
-            null,
+        Persistables.POOL.withWriteReplace(
             (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     var in = new ServiceSupply(new Service(5));
     var arr = poolWith.write(in);
@@ -94,10 +86,8 @@ public class PersistanceTest {
   @Test
   public void readResolveReference() throws Exception {
     var poolWith =
-        Persistance.Pool.withReplaceRewrite(
-            Persistables.POOL,
-            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj,
-            null);
+        Persistables.POOL.withReadResolve(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
     var in = new IntegerSupply(new Service(5));
     var arr = poolWith.write(in);
@@ -114,9 +104,7 @@ public class PersistanceTest {
   @Test
   public void writeReplaceReference() throws Exception {
     var poolWith =
-        Persistance.Pool.withReplaceRewrite(
-            Persistables.POOL,
-            null,
+        Persistables.POOL.withWriteReplace(
             (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     var in = new IntegerSupply(new Service(5));
     var arr = poolWith.write(in);
