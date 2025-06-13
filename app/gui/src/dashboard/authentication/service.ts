@@ -19,7 +19,8 @@ import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 
 import * as cognitoModule from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
-import { useRouter, useText } from '$/providers/react'
+import { useRouter } from '$/providers/react'
+import { getText, resolveDictionary } from 'enso-common/src/text'
 
 /**
  * Configuration for the AWS Amplify library.
@@ -210,7 +211,6 @@ function loadAmplifyConfig(
  * ignored by this handler.
  */
 function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
-  const { getText } = useText()
   window.authenticationApi.setDeepLinkHandler((urlString: string) => {
     const url = new URL(urlString)
     logger.log(`Parsed pathname: ${url.pathname}`)
@@ -279,18 +279,18 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
       }
       // If the user is being redirected after successful or not finishing setting oauth secrets.
       case '//oauth/confirmation': {
-        const secretName = url.searchParams.get('secret_name')
+        const secretName = url.searchParams.get('secret_name') ?? '(unknown)'
         const status = url.searchParams.get('status')
-        const serviceName = url.searchParams.get('service_name')
+        const serviceName = url.searchParams.get('service_name') ?? '(unknown)'
         const message =
           status === 'error' ?
-            getText('oauthConfirmationError')
-          : getText('oauthConfirmationSuccess', secretName, serviceName)
+            getText(resolveDictionary(), 'oauthConfirmationError')
+          : getText(resolveDictionary(), 'oauthConfirmationSuccess', secretName, serviceName)
         toastify.toast(message, {
           closeOnClick: true,
           hideProgressBar: true,
           position: 'bottom-right',
-          type: status,
+          type: status === 'error' ? 'error' : 'success',
         })
         break
       }

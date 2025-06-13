@@ -180,6 +180,7 @@ interface PlaceholderOverrides {
 
   readonly oauthCallbackSuccessDescription: [serviceName: string]
   readonly oauthCallbackErrorDescription: [serviceName: string]
+  readonly oauthConfirmationSuccess: [secretName: string, serviceName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes
