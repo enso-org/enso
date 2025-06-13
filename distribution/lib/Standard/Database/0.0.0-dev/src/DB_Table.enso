@@ -725,15 +725,15 @@ type DB_Table
              people.filter "age" (age -> (age%10 == 0))
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
-    filter self (column : (Column & DB_Column) | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
+    filter self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
         Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
             case column of
                 _ : Column ->
-                    mask (filter_column : Column & DB_Column) = case Helpers.check_integrity self filter_column of
+                    mask filter_column = case Helpers.check_integrity self (filter_column:DB_Column) of
                         False ->
                             Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
                         True ->
-                            new_filters = self.context.where_filters + [filter_column.expression]
+                            new_filters = self.context.where_filters + [(filter_column:DB_Column).expression]
                             new_ctx = self.context.set_where_filters new_filters
                             self.updated_context new_ctx
 
@@ -1141,7 +1141,7 @@ type DB_Table
                  table.set double_inventory as="total_stock"
                  table.set (expr "2 * [total_stock]") as="total_stock_expr"
     @value Simple_Expression.default_widget
-    set self (value : (Column & DB_Column) | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+    set self (value : Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names

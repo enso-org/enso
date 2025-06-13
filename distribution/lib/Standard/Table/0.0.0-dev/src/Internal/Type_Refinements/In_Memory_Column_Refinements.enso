@@ -14,21 +14,21 @@ refine_column (column : In_Memory_Column) =
     if is_single_value column then _refine_single_value_column column else _refine_column column
 
 private _refine_column column =
-    inferred_value_type = column.inferred_precise_value_type
+    inferred_value_type = (column:Column).inferred_precise_value_type
     case inferred_value_type of
         Value_Type.Integer _ -> (column : Column & In_Memory_Column & Numeric_Column)
         Value_Type.Byte -> (column : Column & In_Memory_Column & Numeric_Column)
         Value_Type.Float _ -> (column : Column & In_Memory_Column & Numeric_Column)
         Value_Type.Decimal _ _ -> (column : Column & In_Memory_Column & Numeric_Column)
-        _ -> column
+        _ -> (column : Column & In_Memory_Column)
 
 private _refine_single_value_column column =
-    inferred_value_type = column.inferred_precise_value_type
+    inferred_value_type = (column:Column).inferred_precise_value_type
     case inferred_value_type of
         Value_Type.Integer _ ->
             # `inferred_precise_value_type` will return Integer if the column was Float (or Mixed) but contained integral values - e.g. [2.0]
             # We inspect the actual value to correctly deal with both Float and Mixed base type.
-            value = column.at 0
+            value = (column:Column).at 0
             case value of
                 # If the value was really a float, we preserve that.
                 _ : Float -> (column : Column & In_Memory_Column & Numeric_Column & Float)
@@ -44,7 +44,7 @@ private _refine_single_value_column column =
             is_integer = Value_Type_Helpers.is_decimal_integer inferred_value_type
             if is_integer then (column : Column & In_Memory_Column & Numeric_Column & Integer) else (column : Column & In_Memory_Column & Numeric_Column & Decimal)
         # Other types (e.g. Mixed) are not supported.
-        _ -> column
+        _ -> (column : Column & In_Memory_Column)
 
 is_single_value column:Column -> Boolean =
     (column.length == 1) && (column.at 0 . is_nothing . not)
