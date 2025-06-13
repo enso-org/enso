@@ -12,7 +12,6 @@ import java.util.Queue;
 import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -503,7 +502,7 @@ public class DelimitedReader {
       Value expectedEnsoValueType = Value.asValue(null);
       CommonParseProblemAggregator parseProblemAggregator =
           ParseProblemAggregator.make(problemAggregator, columnName, expectedEnsoValueType);
-      Storage<?> storage = valueParser.parseColumn(stringStorage, parseProblemAggregator);
+      var storage = valueParser.parseColumn(stringStorage, parseProblemAggregator);
       columns[i] = new Column(columnName, storage);
       context.safepoint();
     }

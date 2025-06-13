@@ -3,10 +3,10 @@
  *
  * Search params state hook store a value in the URL search params.
  */
-import * as appUtils from '#/appUtils'
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 import * as safeJsonParse from '#/utilities/safeJsonParse'
+import * as appUtils from '$/appUtils'
 import { useRouter } from '$/providers/react'
 import * as React from 'react'
 import { type RouteLocationOptions } from 'vue-router'

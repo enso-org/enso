@@ -4,9 +4,9 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Errors.Common.Dry_Run_Operation
 
 from Standard.Table import all
+from Standard.Table.Errors import all
 from Standard.Tableau import Hyper_File
-import Standard.Tableau.Hyper_Errors.Hyper_Table_Not_Found
-import Standard.Tableau.Hyper_Errors.Hyper_Unsupported_Type
+from Standard.Tableau.Hyper_Errors import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
@@ -188,13 +188,108 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         written_file.delete
 
-    group_builder.specify "appends to existing file not yet supported" <|
+    group_builder.specify "appends to existing file simple happy case" <|
         written_file = get_temp_file
-        t1 = Table.input [['A', ['a']]]
+        t1 = Table.input [['Col1', ['a']]]
         t1.write written_file
-        t2 = Table.input [['B', ['b']]]
-        r = t2.write written_file on_existing_file=..Append
-        r.should_fail_with Illegal_Argument
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col1', ['b']]]
+        t2.write written_file on_existing_file=..Append
+
+        ## Data is t1 and t2
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal (t1.union t2)
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "appends with column name matching" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']], ['Col1', ['a']]]
+        t2.write written_file on_existing_file=..Append match_columns=..By_Name
+
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal (Table.input [['Col1', ['a', 'a']], ['Col2', ['b', 'b']]])
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "appends with positional matching" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']], ['Col1', ['a']]]
+        t2.write written_file on_existing_file=..Append match_columns=..By_Position
+
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal (Table.input [['Col1', ['a', 'b']], ['Col2', ['b', 'a']]])
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "additional columns is an error (by name)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']], ['Col1', ['a']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Name
+        r.should_fail_with Unmatched_Columns
+        r.catch.should_equal (Unmatched_Columns.Error ["Col2"])
+
+        ## Data is still t1 as we didn't append
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+        
+
+    group_builder.specify "additional columns is an error (by position)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']], ['Col1', ['a']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Position
+        r.should_fail_with Unmatched_Columns
+        r.catch.should_equal (Unmatched_Columns.Error ["Col1"])
 
         ## Data is still t1 as we didn't append
         written_table_in_hyper = Hyper_File.new written_file . tables . first
@@ -206,3 +301,176 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         written_file.delete
 
+    group_builder.specify "not enough columns warns (By_Name)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Name
+        Problems.expect_only_warning (Unmatched_Columns.Error ["Col1"]) r
+
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal (Table.input [['Col1', ['a', Nothing]], ['Col2', ['b', 'b']]])
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "not enough columns warns (By_Position)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Position
+        Problems.expect_only_warning (Unmatched_Columns.Error ["Col2"]) r
+
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal (Table.input [['Col1', ['a', 'b']], ['Col2', ['b', Nothing]]])
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "not enough columns can be escalated to error (By_Name)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Name on_problems=..Report_Error
+        r.should_fail_with Unmatched_Columns
+        r.catch.should_equal (Unmatched_Columns.Error ["Col1"])
+
+        ## Data is still t1 as we didn't append
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "not enough columns warning can be ignored (By_Name)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Name on_problems=..Ignore
+        Problems.assume_no_problems r
+
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal (Table.input [['Col1', ['a', Nothing]], ['Col2', ['b', 'b']]])
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "not enough columns can be escalated to error (By_Position)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Position on_problems=..Report_Error
+        r.should_fail_with Unmatched_Columns
+        r.catch.should_equal (Unmatched_Columns.Error ["Col2"])
+
+        ## Data is still t1 as we didn't append
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "not enough columns warning can be ignored (By_Position)" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']], ['Col2', ['b']]]
+        t1.write written_file
+
+        ## Data is still t1 as we didn't append yet
+        written_table_in_hyper_before_append = Hyper_File.new written_file . tables . first
+        written_table_in_hyper_before_append.read.should_equal t1
+
+        t2 = Table.input [['Col2', ['b']]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Position on_problems=..Ignore
+        Problems.assume_no_problems r
+
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal (Table.input [['Col1', ['a', 'b']], ['Col2', ['b', Nothing]]])
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "if types don't match then error" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']]]
+        t1.write written_file
+        t2 = Table.input [['Col1', [2]]]
+        r = t2.write written_file on_existing_file=..Append match_columns=..By_Name 
+        r.should_fail_with  Column_Type_Mismatch
+        r.catch.to_display_text.should_equal 'The column ["Col1"] expects type TEXT but one of the provided tables had type BIG_INT which is not compatible with it.'
+
+        ## Data is still t1 as we didn't overwrite
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "writing to 2 different tables" <|
+        written_file = get_temp_file
+        t1 = Table.input [['Col1', ['a']]]
+        t1.write written_file (..Hyper_Table "MySchemaName" "Table1")
+        t2 = Table.input [['Col2', [2]]]
+        t2.write written_file (..Hyper_Table "MySchemaName" "Table2")
+
+        written_table1_in_hyper = Hyper_File.new written_file . tables . at 0
+        written_table1_in_hyper.read.should_equal t1
+
+        written_table2_in_hyper = Hyper_File.new written_file . tables . at 1
+        written_table2_in_hyper.read.should_equal t2
+
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file_written_table_in_hyper = Hyper_File.new backup_file . tables . first
+        backup_file_written_table_in_hyper.read.should_equal t1
+        written_file.delete
+        backup_file.delete

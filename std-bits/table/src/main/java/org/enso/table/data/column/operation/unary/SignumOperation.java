@@ -5,16 +5,15 @@ import java.math.BigInteger;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public final class SignumOperation implements UnaryOperation {
   public static final UnaryOperation INSTANCE = new SignumOperation();
@@ -42,7 +41,7 @@ public final class SignumOperation implements UnaryOperation {
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     if (storage.getType() instanceof NullType) {
-      return new NullStorage(Math.toIntExact(storage.getSize()));
+      return Builder.fromRepeatedItem(null, storage.getSize());
     }
 
     if (storage instanceof ColumnLongStorage columnLongStorage) {

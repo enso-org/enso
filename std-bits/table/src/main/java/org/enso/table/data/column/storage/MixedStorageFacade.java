@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -14,11 +13,12 @@ import org.enso.table.data.mask.SliceRange;
  * <p>This is used to ensure that we can change a column's type to Mixed without changing its
  * underlying storage unnecessarily.
  */
-public class MixedStorageFacade extends Storage<Object> {
+public class MixedStorageFacade extends Storage<Object>
+    implements ColumnStorageWithInferredStorage {
   private final Storage<?> underlyingStorage;
 
-  public MixedStorageFacade(Storage<?> storage) {
-    underlyingStorage = storage;
+  public MixedStorageFacade(ColumnStorage<?> storage) {
+    underlyingStorage = (Storage<?>) storage;
   }
 
   @Override
@@ -36,6 +36,12 @@ public class MixedStorageFacade extends Storage<Object> {
     return underlyingStorage.inferPreciseType(options);
   }
 
+  public ColumnStorage<?> getInferredStorage() {
+    return (underlyingStorage instanceof ColumnStorageWithInferredStorage underlyingInferredStorage)
+        ? underlyingInferredStorage.getInferredStorage()
+        : underlyingStorage;
+  }
+
   @Override
   public boolean isNothing(long idx) {
     return underlyingStorage.isNothing(idx);
@@ -47,60 +53,32 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return underlyingStorage.isBinaryOpVectorized(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return underlyingStorage.runVectorizedBinaryMap(name, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return underlyingStorage.runVectorizedZip(name, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    Storage<?> newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
+  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+    var newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
-  public Storage<Object> applyFilter(BitSet filterMask, int newLength) {
-    Storage<?> newStorage = underlyingStorage.applyFilter(filterMask, newLength);
+  public ColumnStorage<Object> applyFilter(BitSet filterMask, int newLength) {
+    var newStorage = underlyingStorage.applyFilter(filterMask, newLength);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
-  public Storage<Object> applyMask(OrderMask mask) {
-    Storage<?> newStorage = underlyingStorage.applyMask(mask);
+  public ColumnStorage<Object> applyMask(OrderMask mask) {
+    var newStorage = underlyingStorage.applyMask(mask);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
-  public Storage<Object> slice(int offset, int limit) {
-    Storage<?> newStorage = underlyingStorage.slice(offset, limit);
+  public ColumnStorage<Object> slice(int offset, int limit) {
+    var newStorage = underlyingStorage.slice(offset, limit);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
-  public Storage<?> appendNulls(int count) {
-    Storage<?> newStorage = underlyingStorage.appendNulls(count);
+  public ColumnStorage<Object> slice(List<SliceRange> ranges) {
+    var newStorage = underlyingStorage.slice(ranges);
     return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
-  public Storage<Object> slice(List<SliceRange> ranges) {
-    Storage<?> newStorage = underlyingStorage.slice(ranges);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
-  public Storage<?> tryGettingMoreSpecializedStorage() {
-    return underlyingStorage.tryGettingMoreSpecializedStorage();
   }
 }

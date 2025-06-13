@@ -1,7 +1,7 @@
 package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
@@ -31,8 +31,8 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
    * containing the parsed elements.
    */
   @Override
-  public Storage<?> parseColumn(
-      Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
+  public ColumnStorage<?> parseColumn(
+      ColumnStorage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
     long size = sourceStorage.getSize();
     Builder builder = makeBuilderWithCapacity(size, problemAggregator);
 

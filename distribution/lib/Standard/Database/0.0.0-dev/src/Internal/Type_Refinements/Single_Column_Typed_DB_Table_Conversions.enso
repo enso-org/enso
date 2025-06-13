@@ -10,7 +10,6 @@ import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 from project.Internal.Type_Refinements.Single_Column_DB_Table_Conversions import all
-from project.Internal.Type_Refinements.Typed_DB_Column_Conversions import all
 
 ## This conversion is internal and should never be exported.
 Numeric_Column.from (that : DB_Table) =

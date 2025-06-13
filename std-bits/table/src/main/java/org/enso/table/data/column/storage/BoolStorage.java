@@ -4,22 +4,17 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
     implements ColumnBooleanStorage, ColumnStorageWithNothingMap {
-  private static final MapOperationStorage<Boolean, BoolStorage> ops = buildOps();
   private final BitSet values;
   private final BitSet isNothing;
   private final int size;
@@ -30,18 +25,6 @@ public final class BoolStorage extends Storage<Boolean>
     this.isNothing = isNothing;
     this.size = size;
     this.negated = negated;
-  }
-
-  public static BoolStorage makeEmpty(long size) {
-    int checkedSize = Builder.checkSize(size);
-
-    BitSet isNothing = new BitSet(checkedSize);
-    isNothing.set(0, checkedSize);
-    return new BoolStorage(new BitSet(), isNothing, checkedSize, false);
-  }
-
-  public static BoolStorage makeConstant(int size, boolean r) {
-    return new BoolStorage(new BitSet(), new BitSet(), size, r);
   }
 
   @Override
@@ -76,23 +59,6 @@ public final class BoolStorage extends Storage<Boolean>
     return isNothing.get((int) idx);
   }
 
-  @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return ops.isSupportedBinary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runZip(name, this, argument, problemAggregator);
-  }
-
   public boolean isNegated() {
     return negated;
   }
@@ -113,7 +79,7 @@ public final class BoolStorage extends Storage<Boolean>
    * accordingly. If `arg` is true, new values are `values || isMissing` and if `arg` is false, new
    * values are `values && (~isMissing)`.
    */
-  public BoolStorage fillMissingBoolean(boolean arg) {
+  public ColumnBooleanStorage fillMissingBoolean(boolean arg) {
     final var newValues = (BitSet) values.clone();
     if (arg != negated) {
       newValues.or(isNothing);
@@ -124,7 +90,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<?> fillMissing(
+  public ColumnStorage<?> fillMissing(
       Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     if (arg.isBoolean()) {
       return fillMissingBoolean(arg.asBoolean());
@@ -134,7 +100,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
       throw new IllegalStateException(
           "Custom missing value semantics are not supported by BoolStorage.");
@@ -168,7 +134,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<Boolean> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Boolean> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
     var builder = Builder.getForBoolean(newLength);
     for (int i = 0; i < size; i++) {
@@ -185,7 +151,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<Boolean> applyMask(OrderMask mask) {
+  public ColumnStorage<Boolean> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
     var builder = Builder.getForBoolean(mask.length());
     for (int i = 0; i < mask.length(); i++) {
@@ -198,12 +164,6 @@ public final class BoolStorage extends Storage<Boolean>
       context.safepoint();
     }
     return builder.seal();
-  }
-
-  private static MapOperationStorage<Boolean, BoolStorage> buildOps() {
-    MapOperationStorage<Boolean, BoolStorage> ops = new MapOperationStorage<>();
-    ops.add(new BooleanIsInOp());
-    return ops;
   }
 
   /** Creates a mask that selects elements corresponding to true entries in the passed storage. */
@@ -227,7 +187,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public BoolStorage slice(int offset, int limit) {
+  public ColumnStorage<Boolean> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
     return new BoolStorage(
         values.get(offset, offset + limit),
@@ -237,14 +197,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Storage<?> appendNulls(int count) {
-    BitSet isNothing = BitSets.makeDuplicate(this.isNothing);
-    isNothing.set(size, size + count);
-    return new BoolStorage(values, isNothing, size + count, negated);
-  }
-
-  @Override
-  public Storage<Boolean> slice(List<SliceRange> ranges) {
+  public ColumnStorage<Boolean> slice(List<SliceRange> ranges) {
     Context context = Context.getCurrent();
     int newSize = SliceRange.totalLength(ranges);
     var builder = Builder.getForBoolean(newSize);

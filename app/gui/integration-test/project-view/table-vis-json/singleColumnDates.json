@@ -1,0 +1,48 @@
+{
+  "header": ["Value"],
+  "value_type": [{ "type": "Value_Type", "constructor": "Date", "display_text": "Date" }],
+  "data": [
+    [
+      {
+        "_display_text_": "2025-01-02",
+        "type": "Date",
+        "constructor": "new",
+        "day": 2,
+        "month": 1,
+        "year": 2025
+      },
+      {
+        "_display_text_": "2025-01-01",
+        "type": "Date",
+        "constructor": "new",
+        "day": 1,
+        "month": 1,
+        "year": 2025
+      },
+      {
+        "_display_text_": "2025-01-03",
+        "type": "Date",
+        "constructor": "new",
+        "day": 3,
+        "month": 1,
+        "year": 2025
+      }
+    ]
+  ],
+  "all_rows_count": 3,
+  "has_index_col": true,
+  "get_child_node_action": "get_row",
+  "use_bottom_status_bar": true,
+  "enable_create_node": true,
+  "data_quality_metrics": [
+    { "name": "Count nothings", "percentage_value": [0] },
+    { "name": "Count untrimmed whitespace", "percentage_value": [null] },
+    { "name": "Count non trivial whitespace", "percentage_value": [null] }
+  ],
+  "type": "EnsoTableOrColumn",
+  "child_label": "row",
+  "is_using_server_sort_and_filter": false,
+  "requires_number_format": [false],
+  "table_version_hash": null,
+  "is_using_multi_filter": [false]
+}

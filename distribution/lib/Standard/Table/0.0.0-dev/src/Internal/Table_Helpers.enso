@@ -519,15 +519,6 @@ filter_blank_rows table when treat_nans_as_blank =
         False -> table
 
 ## PRIVATE
-   Checks if the given object implements a Table interface.
-
-   Currently, it relies on a hack - it checks if the object has a method
-   `is_table` and if it returns `True`.
-is_column obj =
-    known_types = ["Standard.Table.Column.Column", "Standard.Database.DB_Column.DB_Column"]
-    known_types.contains (obj.to Meta.Type . qualified_name)
-
-## PRIVATE
    A helper method that resolves what should be the result type of a particular
    column set based on the union settings.
 unify_result_type_for_union (column_set : Column_Set) (all_tables : Vector) (problem_builder : Problem_Builder) -> Union_Result_Type =

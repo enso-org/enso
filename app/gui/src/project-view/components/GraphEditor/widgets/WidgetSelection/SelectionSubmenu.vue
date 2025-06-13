@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T extends SubmenuEntry<T>">
+<script setup lang="ts" generic="T extends DropdownEntry | SubmenuEntry<T>">
 import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
@@ -14,7 +14,6 @@ const { extendUpwards = true, ...props } = defineProps<{
   floatReference: Opt<HTMLElement>
   show: boolean
   entries: T[]
-  isSelected: (value: T) => boolean
   topLevel?: boolean
   extendUpwards?: boolean
   color?: string | undefined
@@ -54,7 +53,9 @@ const { floatingStyles } = submenuDropdownStyles(
   rootElement,
 )
 
-const nestedEntriesPresent = computed(() => props.entries.some((entry) => entry.isNested))
+const nestedEntriesPresent = computed(() =>
+  props.entries.some((entry) => 'isNested' in entry && entry.isNested),
+)
 
 function resetSubmenu() {
   submenu.value = null
@@ -63,15 +64,14 @@ watch([() => props.show, () => props.entries], resetSubmenu)
 
 function nestedEntryToSubmenu(entry: SubmenuEntry<T>, target: HTMLElement): Submenu {
   return {
-    entries: computed(() => entry.nestedValues satisfies SubmenuEntry<T>[]),
+    entries: computed(() => entry.nestedValues),
     relativeTo: target,
   }
 }
 
-function onClick(entry: DropdownEntry, keepOpen: boolean, htmlElement: HTMLElement) {
-  if (!isSubmenuEntry(entry)) return
-  if (entry.isNested) {
-    submenu.value = nestedEntryToSubmenu(entry as SubmenuEntry<T>, htmlElement)
+function onClick(entry: T, keepOpen: boolean, htmlElement: HTMLElement) {
+  if (isSubmenuEntry(entry) && entry.isNested) {
+    submenu.value = nestedEntryToSubmenu(entry, htmlElement)
   } else {
     emit('clickedEntry', entry as T, keepOpen)
   }
@@ -135,7 +135,6 @@ export interface SubmenuComponent {
     :entries="submenuEntries"
     :color="props.color ?? 'var(--color-node-text)'"
     :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
-    :isSelected="props.isSelected"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />
 </template>

@@ -92,7 +92,7 @@ test('Collapsing nodes', async ({ page }) => {
     .locator('.grab-handle')
     .click({ modifiers: ['Shift'] })
 
-  await page.getByLabel('Group Selected Components').click()
+  await page.getByTestId('action:components.collapse').click()
   await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 2)
   await mockCollapsedFunctionInfo(page, 'prod', 'collapsed')
   await mockSuggestion(page, {
@@ -148,7 +148,7 @@ test('Display message when collapsed component ceases to exist', async ({ page }
     .graphNodeByBinding(page, 'sum')
     .locator('.grab-handle')
     .click({ modifiers: ['Shift'] })
-  await page.getByLabel('Group Selected Components').click()
+  await page.getByTestId('action:components.collapse').click()
   await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 1)
   await mockCollapsedFunctionInfo(page, 'prod', 'collapsed')
 
@@ -183,7 +183,9 @@ test('Input node', async ({ page }) => {
   await page.keyboard.press('Delete')
   await expect(inputNode).toHaveCount(1)
   await inputNode.locator('.More').click({})
-  await expect(inputNode.getByTestId('removeNode')).toHaveClass(/(?<=^| )disabled(?=$| )/)
+  await expect(inputNode.getByTestId('action:components.deleteSelected')).toHaveClass(
+    /(?<=^| )disabled(?=$| )/,
+  )
 })
 
 test('Output node', async ({ page }) => {
@@ -200,7 +202,9 @@ test('Output node', async ({ page }) => {
   await page.keyboard.press('Delete')
   await expect(outputNode).toHaveCount(1)
   await outputNode.locator('.More').click({})
-  await expect(outputNode.getByTestId('removeNode')).toHaveClass(/(?<=^| )disabled(?=$| )/)
+  await expect(outputNode.getByTestId('action:components.deleteSelected')).toHaveClass(
+    /(?<=^| )disabled(?=$| )/,
+  )
 })
 
 test('Output node is not collapsed', async ({ page }) => {
@@ -213,7 +217,7 @@ test('Output node is not collapsed', async ({ page }) => {
     .locator('.grab-handle')
     .click({ modifiers: ['Shift'] })
 
-  await page.getByLabel('Group Selected Components').click()
+  await page.getByTestId('action:components.collapse').click()
   await expect(locate.graphNodeByBinding(page, 'r').locator('.WidgetToken')).toHaveText([
     'Main',
     '.',
@@ -233,7 +237,7 @@ test('Input node is not collapsed', async ({ page }) => {
     .click({ modifiers: ['Shift'] })
   await locate.inputNode(page).click({ modifiers: ['Shift'] })
 
-  await page.getByLabel('Group Selected Components').click()
+  await page.getByTestId('action:components.collapse').click()
   await expect(locate.graphNodeByBinding(page, 'r').locator('.WidgetToken')).toHaveText([
     'Main',
     '.',

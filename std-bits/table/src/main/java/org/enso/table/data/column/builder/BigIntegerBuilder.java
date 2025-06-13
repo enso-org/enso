@@ -3,7 +3,7 @@ package org.enso.table.data.column.builder;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -15,6 +15,11 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
+  public static BigIntegerStorage makeEmpty(long size) {
+    int intSize = Builder.checkSize(size);
+    return new BigIntegerStorage(new BigInteger[intSize]);
+  }
+
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
 
@@ -59,7 +64,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  protected Storage<BigInteger> doSeal() {
+  protected ColumnStorage<BigInteger> doSeal() {
     return new BigIntegerStorage(data);
   }
 
@@ -95,7 +100,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof IntegerType) {
       if (storage instanceof ColumnLongStorage longStorage) {
         long n = longStorage.getSize();

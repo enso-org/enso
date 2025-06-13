@@ -1,13 +1,19 @@
 package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for BigDecimal columns. */
 public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
+  /** Creates a new empty BigDecimal storage with the specified size. */
+  public static ColumnStorage<BigDecimal> makeEmpty(long size) {
+    int intSize = Builder.checkSize(size);
+    return new BigDecimalStorage(new BigDecimal[intSize]);
+  }
+
   BigDecimalBuilder(int size) {
     super(BigDecimalType.INSTANCE, new BigDecimal[size]);
   }
@@ -28,7 +34,7 @@ public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   }
 
   @Override
-  protected Storage<BigDecimal> doSeal() {
+  protected ColumnStorage<BigDecimal> doSeal() {
     return new BigDecimalStorage(data);
   }
 }

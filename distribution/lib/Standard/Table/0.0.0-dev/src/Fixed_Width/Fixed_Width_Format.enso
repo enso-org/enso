@@ -8,13 +8,17 @@ import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Errors.Common import Type_Error
 from Standard.Base.Metadata.Choice import Option
 
+import project.Column.Column
 import project.Data_Formatter.Data_Formatter
-import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Fixed_Width.Internal.Column_Namer.Column_Namer
+import project.Fixed_Width.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
+import project.Fixed_Width.On_Empty_Field.On_Empty_Field
 import project.Internal.Fixed_Width_Reader
 import project.Internal.Telemetry
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
+
+polyglot java import org.enso.table.read.FixedWidthReader.Justification
 
 ## Read fixed-width files into a Table.
 
@@ -48,9 +52,12 @@ type Fixed_Width_Format
        - layout: A `Fixed_Width_Layout` object that defines the start and width
          for each column, along with an optional column name.
        - encoding: The encoding to use when reading the file.
+       - skip_rows: The number of rows to skip from the top of the file.
        - row_limit: The maximum number of rows to read from the file.
        - on_invalid_rows: Specifies how to handle rows that are not short enough
          to cover the columns specified in the layout.
+       - on_empty_field: Specifies whether to convert an empty field to
+         `Nothing` or the empty string.
        - value_formatter: formatter to parse text values into numbers, dates,
          times, etc. if `nothing` values are left as text.
 
@@ -65,7 +72,7 @@ type Fixed_Width_Format
 
              table = Table.input [['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
              layout = table : Fixed_Width_Layout
-    Fixed_Width (layout:Fixed_Width_Layout) (encoding:Encoding=Encoding.default) (row_limit:Rows_To_Read=..All_Rows) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
+    Fixed_Width (layout:(Infer_Layout | Fixed_Width_Layout)=Fixed_Width_Layout.missing_layout_argument) (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (on_empty_field:On_Empty_Field=..As_Nothing) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
 
     ## PRIVATE
        Resolve an unresolved constructor to the actual type.
@@ -179,26 +186,139 @@ type Fixed_Width_Layout
     ## PRIVATE
     entries self -> Vector = self.internal_entries
 
+    ## PRIVATE
+    missing_layout_argument =
+        Missing_Argument.throw "layout" "A fixed-width table layout can be a Column or Vector of field widths, or a Table with columns called 'start', 'width', and (optionally) 'name'."
+
+type Infer_Layout
+    ## Infer the column layout from the first line, assuming left-justified
+       column names.
+
+       Assume that the column name is left-justified in the column. The column
+       starts at the first character of the column name, and extends until the
+       last character before the start of the next column, or until the last
+       column of the line if there is no next column.
+
+       There must be at least one space between each pair of columns, or they
+       will be considered a single column.
+
+       If `skip_rows` is also specified, the header line is the first line after
+       the skipped lines.
+
+       > Example
+         The layout of a left-justified column header line
+
+         File contents:
+
+             one  two  three four five   six
+             12345abcde234567bcdef3456789cdefg
+             82345zbcde834567zcdef8456789zdefg
+
+         Parsed as:
+
+            |one  |two  |three |four |five   |six  |
+            +-----+-----+------+-----+-------+-----+
+            |12345|abcde|234567|bcdef|3456789|cdefg|
+            |82345|zbcde|834567|zcdef|8456789|zdefg|
+    Left
+
+    ## Infer the column layout from the first line, assuming right-justified
+       column names.
+
+       Assume that the column name is right-justified in the column. The column
+       ends at the last character of the column name, and starts at the first
+       character after the end of the previous column, or at the first character
+       of the line if there is no previous column.
+
+       There must be at least one space between each pair of columns, or they
+       will be considered a single column.
+
+       If `skip_rows` is also specified, the header line is the first line after
+       the skipped lines.
+
+       > Example
+         The layout of a right-justified column header line
+
+         File contents:
+
+               one  two three four   five  six
+             12345abcde234567bcdef3456789cdefg
+             82345zbcde834567zcdef8456789zdefg
+
+         Parsed as:
+
+            |  one|  two| three| four|   five|  six|
+            +-----+-----+------+-----+-------+-----+
+            |12345|abcde|234567|bcdef|3456789|cdefg|
+            |82345|zbcde|834567|zcdef|8456789|zdefg|
+    Right
+
+    ## PRIVATE
+    to_java self -> Justification = case self of
+        Infer_Layout.Left -> Justification.LEFT
+        Infer_Layout.Right -> Justification.RIGHT
+
 ## PRIVATE
 Fixed_Width_Layout.from (that:Table) =
-    num_cols = that.columns.length
-    if num_cols != 2 && num_cols != 3 then
-        Error.throw (Illegal_Argument.Error "A fixed-width column specification must have two or three columns (optional column name; start; width).")
-    has_names = num_cols == 3
-    names = if has_names then that.columns.at 0 . to_vector else Nothing
-    starts = if has_names then that.columns.at 1 . to_vector else that.columns.at 0 . to_vector
-    widths = if has_names then that.columns.at 2 . to_vector else that.columns.at 1 . to_vector
-    descriptions = 0.up_to that.row_count . map i->
-        name = if names.is_nothing then Nothing else names.at i
-        start = starts.at i
-        width = widths.at i
-        if start.is_nothing then Fixed_Width_Column_Description.Width width name else
-            Fixed_Width_Column_Description.Start_And_Width start width name
-    Fixed_Width_Layout.from_descriptions descriptions
+    columns = find_named_columns that [["names", Regex.compile "names?", False], ["starts", Regex.compile "starts?", False], ["widths", Regex.compile "widths?", True]]
+    columns.if_not_error <|
+        names_maybe = columns.at 0
+        names = names_maybe.if_not_nothing names_maybe.to_vector
+        starts_maybe = columns.at 1
+        starts = starts_maybe.if_not_nothing starts_maybe.to_vector
+        widths = columns.at 2 . to_vector
+        descriptions = 0.up_to that.row_count . map i->
+            name = names.if_not_nothing <| names.at i
+            start = starts.if_not_nothing <| starts.at i
+            width = widths.at i
+            if start.is_nothing then Fixed_Width_Column_Description.Width width name else
+                Fixed_Width_Column_Description.Start_And_Width start width name
+        Fixed_Width_Layout.from_descriptions descriptions
+
+## PRIVATE
+   Find named columns matching patterns. Returns matching columns (or nothings
+   for unmatched, non-required columns). If any required column is not found, or
+   its matcher matches more than one column, an error is thrown.
+
+   Name matching is case-insensitive.
+
+   On success, the matching columns (or unrequired column Nothings) are returned
+   in the order specified by the specs.
+
+   Arguments:
+   - specs: list of pairs of the form [Text, Regex, Boolean].
+     - 0: The canonical name for the column
+     - 1: A column name matcher
+     - 2: True if the column is required
+private find_named_columns table:Table (specs : Vector Vector) -> Vector (Column | Nothing) ! Illegal_Argument =
+    columns_or_nothings = specs.map spec->
+        matcher = spec.at 1
+        cols = table.columns_helper.select_columns matcher Case_Sensitivity.Insensitive True False Problem_Behavior.Ignore False
+        if cols.length == 1 then cols.at 0 else Nothing
+    # A non-required column is not considered missing
+    missing = specs.zip columns_or_nothings . filter x->
+        column_or_nothing = x.at 1
+        required = x.at 0 . at 2
+        (Nothing == column_or_nothing) && required
+    if missing.is_empty then columns_or_nothings else
+        Error.throw (Illegal_Argument.Error "A fixed-width column specification should have a 'widths' column, and optionally a 'starts' column and a 'names' column.")
+
+## PRIVATE
+Fixed_Width_Layout.from (that:Column) =
+    Fixed_Width_Layout.from that.to_vector
+
+## PRIVATE
+Fixed_Width_Layout.from (that:Vector) =
+    table =
+        names = Column.from_vector "names" (Vector.new that.length (_->Nothing))
+        starts = Column.from_vector "starts" (Vector.new that.length (_->Nothing))
+        widths = Column.from_vector "widths" that
+        Table.new [names, starts, widths]
+    Fixed_Width_Layout.from table
 
 ## PRIVATE
 Fixed_Width_Layout.from (that : Function) =
     is_unapplied_table_input = (that.to_text.starts_with "Table.type.new") || (that.to_text.starts_with "Table.type.input")
     if is_unapplied_table_input then
-        Error.throw (Illegal_Argument.Error "Table has not been populated. A fixed-width column specification must have two or three columns (optional column name; start; width).")
+        Error.throw (Illegal_Argument.Error "Table has not been populated. A fixed-width column specification must have columns called 'start', 'width', and (optionally) 'name'.")
     Panic.throw (Type_Error.Error Fixed_Width_Layout that "Expected to get a Fixed_Width_Layout or a Table describing it.")

@@ -2,7 +2,6 @@
  * @file
  * Setup page
  */
-import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
 import { Button } from '#/components/Button'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs'
@@ -14,9 +13,10 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useIsFirstRender } from '#/hooks/mountHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
-import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
 import { Plan } from '#/services/Backend'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
+import { UserSessionType } from '$/providers/auth'
+import { useAuth, useBackends, useRouter, useText, useUserSession } from '$/providers/react'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import type * as text from 'enso-common/src/text'
 import * as React from 'react'
@@ -326,7 +326,7 @@ const BASE_STEPS: Step[] = [
 /** Setup page */
 export function Setup() {
   const { getText } = useText()
-  const { session } = useAuth()
+  const session = useUserSession()
   const isFirstRender = useIsFirstRender()
   const { router, route } = useRouter()
 
