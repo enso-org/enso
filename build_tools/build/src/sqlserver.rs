@@ -26,6 +26,7 @@ pub mod env {
         ide_ci::define_env_var! {
             ACCEPT_EULA, String;
             MSSQL_SA_PASSWORD, String;
+            MSSQL_IP_ADDRESS, String;
         }
     }
     pub mod tests {
@@ -161,6 +162,7 @@ impl SQLServer {
         let mut opts = RunOptions::new(config.image_id());
         opts.env(&env::container::ACCEPT_EULA, "Y")?;
         opts.env(&env::container::MSSQL_SA_PASSWORD, &*config.password)?;
+        opts.env(&env::container::MSSQL_IP_ADDRESS, "0.0.0.0")?;
         match &config.endpoint {
             EndpointConfiguration::Host { port } => {
                 opts.publish_port(*port, SQLSERVER_CONTAINER_DEFAULT_PORT);
