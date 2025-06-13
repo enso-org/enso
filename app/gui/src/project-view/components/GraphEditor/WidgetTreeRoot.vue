@@ -45,11 +45,9 @@ const anyLayoutAnimationActive = computed(
   () => layoutTransitions.active.value || layoutAnimations.anyAnimationActive,
 )
 
-const rootElement = toRef(props, 'rootElement')
-
 const tree = provideWidgetTree(
   toRef(props, 'externalId'),
-  rootElement,
+  toRef(props, 'rootElement'),
   toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
   anyLayoutAnimationActive,

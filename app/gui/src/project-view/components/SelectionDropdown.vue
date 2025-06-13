@@ -11,7 +11,7 @@ import { ref, toValue } from 'vue'
 type Key = string
 
 const selected = defineModel<Key>({ required: true })
-const { options, title, labelButton, alwaysShowArrow, entriesTestId } = defineProps<{
+defineProps<{
   options: Record<Key, SelectionMenuOption>
   title?: string | undefined
   labelButton?: boolean | undefined

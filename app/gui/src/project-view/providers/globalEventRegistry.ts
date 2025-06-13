@@ -1,30 +1,25 @@
 import type { WindowEventTarget } from '@/composables/events'
 import { createContextStore } from '@/providers'
-import { identity } from '@vueuse/core'
 
-interface GlobalEventRegistry {
+export interface GlobalEventRegistry {
+  /** The main registry for global event handlers. */
   globalEventRegistry: WindowEventTarget
+  /** Maintains event handlers to be run before the handlers set in {@link globalEventRegistry}. */
   globalEventRegistryPre: WindowEventTarget
 }
 
-const [provideRegistry, useGlobalEventRegistry] = createContextStore(
-  'GlobalEvent',
-  identity<GlobalEventRegistry>,
-)
-
-export { useGlobalEventRegistry }
-
 /**
- * Create a {@link GlobalEventRegistry} and make is available to the component's children.
- * @returns the created registry
+ * Registry for capture-mode event handlers for the `window` object. This is used instead of
+ * attaching handlers to `window` directly to enable controlling the order of handlers.
  */
-export function provideGlobalEventRegistry(): GlobalEventRegistry {
-  const globalEventRegistryPre = eventRegistry()
-  const globalEventRegistry = eventRegistry(window, globalEventRegistryPre)
-  const registry = { globalEventRegistry, globalEventRegistryPre }
-  provideRegistry(registry)
-  return registry
-}
+export const [provideGlobalEventRegistry, useGlobalEventRegistry] = createContextStore(
+  'GlobalEvent',
+  (): GlobalEventRegistry => {
+    const globalEventRegistryPre = eventRegistry()
+    const globalEventRegistry = eventRegistry(window, globalEventRegistryPre)
+    return { globalEventRegistry, globalEventRegistryPre }
+  },
+)
 
 function eventRegistry(source?: EventTarget, pre?: EventTarget): WindowEventTarget {
   const registry = new Map<keyof WindowEventMap, Set<(e: Event) => void>>()

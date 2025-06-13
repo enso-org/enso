@@ -400,6 +400,10 @@ export function putTextAtCoords(view: EditorView, text: string, coords: Vec2) {
 /**
  * @returns the editor's reactive focused state, maintained by attaching the returned event handlers
  * to the editor's root element.
+ * This implements a focus state that differs from the DOM focus of any particular element. It
+ * exhibits some hysteresis: When the scrollbar is clicked, the computed focus state doesn't change.
+ * Thus, this should be used in lieu of the element's focus when the rendering of the editor's
+ * content is focus-dependent in a way that may affect its size.
  */
 export function useEditorFocus(view: EditorView) {
   const focused = ref(false)

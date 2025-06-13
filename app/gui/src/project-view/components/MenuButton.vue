@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
 import { useStateBeforePointerdown } from '@/composables/events'
-import { computed, isRef, ref, useTemplateRef } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 /**
@@ -34,7 +34,7 @@ const { stateBeforeClick } = useStateBeforePointerdown(button, () => toggledOn.v
 function onActivate() {
   tooltipTrigger.value?.hideTooltip()
   if (props.disabled) return
-  if (stateBeforeClick.value != null && isRef(toggledOn)) toggledOn.value = !stateBeforeClick.value
+  if (stateBeforeClick.value != null) toggledOn.value = !stateBeforeClick.value
   emit('activate')
 }
 </script>

@@ -329,7 +329,7 @@ const actions = registerHandlers({
     action: () => acceptComponent(),
   },
   'componentBrowser.acceptInputAsCode': {
-    available: () => input.mode.mode === 'codeEditing',
+    available: insideComponentBrowsing,
     action: acceptInput,
   },
   'componentBrowser.switchToCodeEditMode': {

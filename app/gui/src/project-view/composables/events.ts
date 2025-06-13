@@ -3,6 +3,7 @@
 import { useRaf } from '@/composables/animation'
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
+import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
@@ -154,7 +155,7 @@ export function modKey(e: KeyboardEvent | MouseEvent): boolean {
   return isMacLike ? e.metaKey : e.ctrlKey
 }
 
-export type UnrefElement = ToValue<Element | undefined | null | VueInstance>
+export type UnrefElementInput = ToValue<Opt<Element | VueInstance>>
 
 /**
  * A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components.
@@ -168,7 +169,7 @@ export type UnrefElement = ToValue<Element | undefined | null | VueInstance>
  * [^1]: https://github.com/vuejs/core/blob/ae97e5053895eeaaa443306e72cd8f45da001179/packages/runtime-core/src/componentPublicInstance.ts#L312
  */
 export function unrefElement<E extends Element>(
-  element: ToValue<E | undefined | null | VueInstance>,
+  element: ToValue<Opt<E | VueInstance>>,
 ): E | undefined {
   const plain = toValue(element)
   const result = (plain as VueInstance)?.$el ?? plain
@@ -656,7 +657,7 @@ export function useWheelActions(
  * Registers a "pre" event handler to run a function that captures state when a `pointerdown` event
  * occurs within the given element.
  */
-export function useStateBeforePointerdown<T>(element: UnrefElement, getState: () => T) {
+export function useStateBeforePointerdown<T>(element: UnrefElementInput, getState: () => T) {
   const stateBeforeClick = ref<T>()
 
   const { globalEventRegistryPre } = useGlobalEventRegistry()
