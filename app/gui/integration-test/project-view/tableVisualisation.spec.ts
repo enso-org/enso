@@ -396,34 +396,34 @@ test('Datetime test - sorting and copying', async ({ page, context }) => {
   await expectCellDataToBe(
     page,
     'Value',
-    '2025-01-02 12:13:14.123[UTC]',
-    '2025-01-01 12:13:14.123[UTC]',
-    '2025-01-03 12:13:14.123[UTC]',
+    '2025-01-02 12:13:14.123[MET]',
+    '2025-01-01 12:13:14.123[MET]',
+    '2025-01-03 12:13:14.123[MET]',
   )
   const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
   await value.click() // Sort ascending
   await expectCellDataToBe(
     page,
     'Value',
-    '2025-01-01 12:13:14.123[UTC]',
-    '2025-01-02 12:13:14.123[UTC]',
-    '2025-01-03 12:13:14.123[UTC]',
+    '2025-01-01 12:13:14.123[MET]',
+    '2025-01-02 12:13:14.123[MET]',
+    '2025-01-03 12:13:14.123[MET]',
   )
   await value.click() // Sort descending
   await expectCellDataToBe(
     page,
     'Value',
-    '2025-01-03 12:13:14.123[UTC]',
-    '2025-01-02 12:13:14.123[UTC]',
-    '2025-01-01 12:13:14.123[UTC]',
+    '2025-01-03 12:13:14.123[MET]',
+    '2025-01-02 12:13:14.123[MET]',
+    '2025-01-01 12:13:14.123[MET]',
   )
   await value.click() // remove sort
   await expectCellDataToBe(
     page,
     'Value',
-    '2025-01-02 12:13:14.123[UTC]',
-    '2025-01-01 12:13:14.123[UTC]',
-    '2025-01-03 12:13:14.123[UTC]',
+    '2025-01-02 12:13:14.123[MET]',
+    '2025-01-01 12:13:14.123[MET]',
+    '2025-01-03 12:13:14.123[MET]',
   )
   await expectCopyingColumnClipboardToBe(
     page,
@@ -431,7 +431,7 @@ test('Datetime test - sorting and copying', async ({ page, context }) => {
     'Value',
     0,
     1,
-    '2025-01-02 12:13:14.123[UTC]\r\n2025-01-01 12:13:14.123[UTC]',
+    '2025-01-02 12:13:14.123[MET]\r\n2025-01-01 12:13:14.123[MET]',
   )
 })
 
