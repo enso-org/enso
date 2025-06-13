@@ -8,16 +8,16 @@ import org.enso.persist.Persistance;
 
 /** Pool of Truffle objects associated with {@link Channel}. */
 public final class OtherJvmPool extends Channel.Config {
-  private static final Map<Long, TruffleObject> OBJECTS = new HashMap<>();
+  private final Map<Long, TruffleObject> objectsById = new HashMap<>();
 
-  synchronized long registerObject(TruffleObject obj) {
-    var size = OBJECTS.size() + 1;
-    OBJECTS.put((long) size, obj);
+  private synchronized long registerObject(TruffleObject obj) {
+    var size = objectsById.size() + 1;
+    objectsById.put((long) size, obj);
     return size;
   }
 
-  synchronized TruffleObject findObject(long id) {
-    return OBJECTS.get(id);
+  final synchronized TruffleObject findObject(long id) {
+    return objectsById.get(id);
   }
 
   @Override
@@ -35,6 +35,9 @@ public final class OtherJvmPool extends Channel.Config {
                   assert ourOwn != null;
                   yield ourOwn;
                 } else {
+                  // real truffle object in the other JVM
+                  // need to keep it as OtherJvmObject proxy
+                  // just associate channel to it
                   var proxy = OtherJvmObject.bindToChannel(other, (Channel<OtherJvmPool>) channel);
                   yield proxy;
                 }
@@ -44,16 +47,15 @@ public final class OtherJvmPool extends Channel.Config {
         (obj) ->
             switch (obj) {
               case OtherJvmObject other -> {
-                assert other.id() < 0
-                    : "Returning back an OtherJvmObject. It is from the other JVM - e.g. it has"
-                          + " negative number";
-                yield other;
+                // returning back their own OtherJvmObject - let
+                // them know it is theirs by using negative ID
+                yield new OtherJvmObject(null, -other.id());
               }
               case TruffleObject foreign -> {
                 var id = registerObject(foreign);
-                // our own objects send to the other side should
-                // have negative ID
-                yield new OtherJvmObject(null, -id);
+                // our own truffle objects send to the other side should
+                // have a positive ID
+                yield new OtherJvmObject(null, id);
               }
               default -> obj;
             });

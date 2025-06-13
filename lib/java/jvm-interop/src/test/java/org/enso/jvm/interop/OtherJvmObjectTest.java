@@ -6,11 +6,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.oracle.truffle.api.interop.TruffleObject;
 import java.math.BigDecimal;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.Value;
 import org.hamcrest.core.StringContains;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -20,15 +20,12 @@ public class OtherJvmObjectTest {
   private static final Channel<OtherJvmPool> CHANNEL = Channel.create(null, OtherJvmPool.class);
 
   @Test
-  public void wrapBigDecimal() {
-    var bigReal = new BigDecimal("432.322");
-    var bigValue = ctx.asValue(bigReal);
-    var bigUnwrap = ctx.unwrapValue(bigValue);
-    assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
-
-    var id = CHANNEL.getConfig().registerObject((TruffleObject) bigUnwrap);
-    var other = new OtherJvmObject(CHANNEL, id);
-    var otherValue = ctx.asValue(other);
+  public void wrapBigDecimal() throws Exception {
+    var testClassValue = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    assertOtherJvmObject("Represents clazz from the other JVM", testClassValue);
+    var bigReal = newBigDecimal("432.322");
+    var otherValue = testClassValue.invokeMember("newBigDecimal", "432.322");
+    assertOtherJvmObject("Represents object from the other JVM", otherValue);
 
     assertFalse("Decimal isn't array", otherValue.hasArrayElements());
     assertEquals(bigReal.toPlainString(), otherValue.invokeMember("toPlainString").asString());
@@ -36,28 +33,31 @@ public class OtherJvmObjectTest {
     var twiceReal = bigReal.add(bigReal);
     var twiceValue = otherValue.invokeMember("add", otherValue);
     assertEquals(twiceReal.toBigInteger(), twiceValue.invokeMember("toBigInteger").asBigInteger());
-    assertTrue("It is OtherJvmObject", ctx.unwrapValue(twiceValue) instanceof OtherJvmObject);
+    assertOtherJvmObject("Also other JVM object", twiceValue);
 
     var minusValue = twiceValue.invokeMember("subtract", otherValue);
     assertEquals(bigReal.toString(), minusValue.invokeMember("toString").asString());
     assertTrue("OtherJvmObject for minus", ctx.unwrapValue(minusValue) instanceof OtherJvmObject);
   }
 
-  @Test
-  public void wrapArray() {
+  public static BigDecimal newBigDecimal(String txt) {
+    return new BigDecimal(txt);
+  }
+
+  public static Object[] otherJvmArrayWithPrimitives() {
     var bigReal =
         new Object[] {
           "Ahoj", 't', (byte) 1, (short) 2, (int) 3, (long) 4, (float) 5, (double) 6, true
         };
-    var bigValue = ctx.asValue(bigReal);
-    var bigUnwrap = ctx.unwrapValue(bigValue);
-    assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
+    return bigReal;
+  }
 
-    var id = CHANNEL.getConfig().registerObject((TruffleObject) bigUnwrap);
-    var other = new OtherJvmObject(CHANNEL, id);
-    var otherValue = ctx.asValue(other);
+  @Test
+  public void wrapArray() throws Exception {
+    var testClassValue = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var otherValue = testClassValue.invokeMember("otherJvmArrayWithPrimitives");
 
-    assertTrue("Aray is array", otherValue.hasArrayElements());
+    assertTrue("Array is array", otherValue.hasArrayElements());
     assertEquals("Few elements", 9, otherValue.getArraySize());
     assertEquals("Ahoj", otherValue.getArrayElement(0).asString());
     assertEquals("t", otherValue.getArrayElement(1).asString());
@@ -72,15 +72,20 @@ public class OtherJvmObjectTest {
 
   @Test
   public void loadClassViaMessage() throws Exception {
-    var msg = new OtherJvmMessage.LoadClass("java.lang.Short");
-    var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
-    if (shortRaw instanceof OtherJvmObject other) {
-      shortRaw = new OtherJvmObject(CHANNEL, other.id());
-    }
-    var shortValue = ctx.asValue(shortRaw);
-
+    var shortValue = loadOtherJvmClass("java.lang.Short");
     var value = shortValue.invokeMember("valueOf", "32531");
     assertEquals(32531, value.asInt());
+  }
+
+  @Test
+  public void loadTestClassViaMessage() throws Exception {
+    var testClassValue = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var parsedValue = testClassValue.invokeMember("otherJvmValueOf", "32531");
+    assertEquals(32531, parsedValue.asInt());
+  }
+
+  public static short otherJvmValueOf(String txt) {
+    return Short.parseShort(txt);
   }
 
   @Test
@@ -95,16 +100,31 @@ public class OtherJvmObjectTest {
   }
 
   @Test
-  public void messageFromAnUnsupportedLibrary() {
-    var bigReal = new BigDecimal("-1.1");
-    var bigValue = ctx.asValue(bigReal);
-    var bigUnwrap = ctx.unwrapValue(bigValue);
-    assertTrue("The value is represented as truffle object", bigUnwrap instanceof TruffleObject);
-
-    var id = CHANNEL.getConfig().registerObject((TruffleObject) bigUnwrap);
-    var other = new OtherJvmObject(CHANNEL, id);
+  public void messageFromAnUnsupportedLibrary() throws Exception {
+    var testClassValue = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var bigReal = testClassValue.invokeMember("newBigDecimal", "432.322");
+    var other = ctx.unwrapValue(bigReal);
+    assertEquals("The right class", OtherJvmObject.class, other.getClass());
 
     var noType = TypesLibrary.getUncached().hasType(other);
     assertFalse("Other JVM objects don't have type", noType);
+  }
+
+  private static Value loadOtherJvmClass(String name) throws Exception {
+    var msg = new OtherJvmMessage.LoadClass(name);
+    var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
+    if (shortRaw instanceof OtherJvmObject other) {
+      shortRaw = new OtherJvmObject(CHANNEL, other.id());
+    }
+    var shortValue = ctx.asValue(shortRaw);
+    return shortValue;
+  }
+
+  private static void assertOtherJvmObject(String msg, Value value) {
+    var unwrap = ctx.unwrapValue(value);
+    if (unwrap instanceof OtherJvmObject) {
+      return;
+    }
+    fail(msg + " but got: " + unwrap);
   }
 }
