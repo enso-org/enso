@@ -272,11 +272,11 @@ public final class Channel<Data> implements AutoCloseable {
   }
 
   private static long handleWithChannel(Channel channel, ByteBuffer buf) throws IOException {
-    var ref = channel.pool.read(buf, null);
+    var ref = channel.pool.read(buf);
     var msg = ref.get(Function.class);
     @SuppressWarnings("unchecked")
     var res = msg.apply(channel);
-    var bytes = channel.pool.write(res, null);
+    var bytes = channel.pool.write(res);
     buf.put(0, bytes);
     return bytes.length;
   }
@@ -345,7 +345,7 @@ public final class Channel<Data> implements AutoCloseable {
       ) {
     var address = 0L;
     try {
-      var bytes = pool.write(msg, null);
+      var bytes = pool.write(msg);
       var size = Math.max(bytes.length, 4096);
       long len;
       ByteBuffer buffer;
@@ -374,7 +374,7 @@ public final class Channel<Data> implements AutoCloseable {
       assert len >= 0;
       buffer.position(0);
       buffer.limit((int) len);
-      var result = pool.read(buffer, null);
+      var result = pool.read(buffer);
       return result.get(replyType);
     } catch (IOException ex) {
       throw new IllegalStateException(ex);
