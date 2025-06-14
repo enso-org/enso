@@ -7,8 +7,8 @@ import { type Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
 import * as cognitoModule from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
+import { useFeatureFlag } from '$/providers/featureFlags'
 import { useRouter } from '$/providers/react'
-import { useFeatureFlag } from '$/providers/react/featureFlags'
 import * as amplify from '@aws-amplify/auth'
 import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
@@ -113,8 +113,12 @@ export function useInitAuthService(): AuthService {
   const enableDeepLinks = useFeatureFlag('enableDeepLinks')
   const { router } = useRouter()
 
-  const amplifyConfig = loadAmplifyConfig(console, enableDeepLinks, (url) => void router.push(url))
-  const cognito = new cognitoModule.Cognito(console, enableDeepLinks, amplifyConfig)
+  const amplifyConfig = loadAmplifyConfig(
+    console,
+    enableDeepLinks.value,
+    (url) => void router.push(url),
+  )
+  const cognito = new cognitoModule.Cognito(console, enableDeepLinks.value, amplifyConfig)
 
   return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }
