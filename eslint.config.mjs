@@ -45,6 +45,8 @@ const DASHBOARD_FILES = [
   'app/gui/src/react-components/**/*.ts',
   'app/gui/src/react-components/**/*.tsx',
   'app/gui/src/authentication/**/*.tsx',
+  'app/gui/src/settings/**/*.ts',
+  'app/gui/src/settings/**/*.tsx',
 ]
 
 const DASHBOARD_STORIES_FILES = [
@@ -54,6 +56,8 @@ const DASHBOARD_STORIES_FILES = [
   'app/gui/src/react-components/**/*.stories.tsx',
   'app/gui/src/authentication/**/*.stories.ts',
   'app/gui/src/authentication/**/*.stories.tsx',
+  'app/gui/src/settings/**/*.stories.ts',
+  'app/gui/src/settings/**/*.stories.tsx',
 ]
 
 const DASHBOARD_TEST_FILES = [
@@ -63,6 +67,8 @@ const DASHBOARD_TEST_FILES = [
   'app/gui/src/react-components/**/*.test.tsx',
   'app/gui/src/authentication/**/*.test.ts',
   'app/gui/src/authentication/**/*.test.tsx',
+  'app/gui/src/settings/**/*.test.ts',
+  'app/gui/src/settings/**/*.test.tsx',
 ]
 
 // =======================================

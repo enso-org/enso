@@ -9,7 +9,7 @@ import { HiddenFile } from '$/react-components/Inputs'
 import { ProfilePicture } from '$/react-components/ProfilePicture/ProfilePicture'
 import FocusRing from '$/react-components/styled/FocusRing'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { StatelessSpinner } from '../../../react-components/StatelessSpinner'
+import { StatelessSpinner } from '../react-components/StatelessSpinner'
 
 /** Props for a {@link ProfilePictureInput}. */
 export interface ProfilePictureInputProps {

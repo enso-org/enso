@@ -7,7 +7,9 @@ import * as react from 'react'
 
 const ReactDrive = react.lazy(() => import('#/layouts/Drive'))
 const ReactEditor = react.lazy(() => import('#/layouts/Editor'))
-const ReactSettings = react.lazy(() => import('#/layouts/Settings'))
+const ReactSettings = react.lazy(() =>
+  import('$/settings').then(({ Settings }) => ({ default: Settings })),
+)
 
 export const Drive = suspendedReactComponent(ReactDrive)
 export const Editor = suspendedReactComponent(ReactEditor)
