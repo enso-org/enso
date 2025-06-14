@@ -41,7 +41,7 @@ export default defineConfig({
     }),
     react({
       include: [
-        fileURLToPath(new URL('./src/dashboard/**/*.tsx', import.meta.url)),
+        fileURLToPath(new URL('./src/**/*.tsx', import.meta.url)),
         fileURLToPath(new URL('./src/dashboard/**/use*.ts', import.meta.url)),
         fileURLToPath(new URL('./src/dashboard/**/*Hooks.ts', import.meta.url)),
       ],

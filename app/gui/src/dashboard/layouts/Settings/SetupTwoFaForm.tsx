@@ -5,26 +5,19 @@
  */
 import ShieldCheck from '#/assets/shield_check.svg'
 import ShieldCrossed from '#/assets/shield_crossed.svg'
-import type { MfaType } from '#/authentication/cognito'
-import {
-  Alert,
-  Button,
-  ButtonGroup,
-  CopyBlock,
-  Dialog,
-  DialogDismiss,
-  DialogTrigger,
-  Form,
-  OTPInput,
-  Selector,
-  Switch,
-  Text,
-} from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { Button } from '#/components/Button'
+import { CopyBlock } from '#/components/CopyBlock'
+import { Dialog } from '#/components/Dialog'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { Form } from '#/components/Form'
+import { OTPInput, Selector } from '#/components/Inputs'
 import { Suspense } from '#/components/Suspense'
-import { useSessionAPI } from '#/providers/SessionProvider'
+import { Switch } from '#/components/Switch'
+import { Text } from '#/components/Text'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
+import type { MfaType } from '$/authentication/cognito'
+import { useSession, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
 
@@ -40,7 +33,7 @@ const LazyQRCode = lazy(() =>
  */
 export function SetupTwoFaForm() {
   const { getText } = useText()
-  const { getMFAPreference, updateMFAPreference, verifyTotpToken } = useSessionAPI()
+  const { getMFAPreference, updateMFAPreference, verifyTotpToken } = useSession()
 
   const { data } = useSuspenseQuery({
     queryKey: ['twoFaPreference'],
@@ -75,7 +68,7 @@ export function SetupTwoFaForm() {
             {getText('disable2FADescription')}
           </Text>
 
-          <DialogTrigger>
+          <Dialog.Trigger>
             <Button variant="delete" className="self-start" icon={ShieldCrossed}>
               {getText('disable2FA')}
             </Button>
@@ -100,15 +93,15 @@ export function SetupTwoFaForm() {
 
                 <OTPInput autoFocus name="otp" maxLength={6} label={getText('verificationCode')} />
 
-                <ButtonGroup>
+                <Button.Group>
                   <Form.Submit variant="delete">{getText('disable')}</Form.Submit>
-                  <DialogDismiss />
-                </ButtonGroup>
+                  <Dialog.Dismiss />
+                </Button.Group>
 
                 <Form.FormError />
               </Form>
             </Dialog>
-          </DialogTrigger>
+          </Dialog.Trigger>
         </div>
       </div>
     )
@@ -157,7 +150,7 @@ export function SetupTwoFaForm() {
 
 /** Two Factor Authentication Setup Form. */
 function TwoFa() {
-  const { setupTOTP } = useSessionAPI()
+  const { setupTOTP } = useSession()
   const { getText } = useText()
 
   const { data } = useSuspenseQuery({
@@ -225,11 +218,11 @@ function TwoFa() {
         />
       </div>
 
-      <ButtonGroup>
+      <Button.Group>
         <Form.Submit>{getText('enable')}</Form.Submit>
 
         <Form.Reset>{getText('cancel')}</Form.Reset>
-      </ButtonGroup>
+      </Button.Group>
 
       <Form.FormError />
     </>

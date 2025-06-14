@@ -3,8 +3,9 @@
  * Dialog for a Google credential.
  * Remember to ensure this component is added to `CREDENTIAL_INFOS` in `constants.ts`.
  */
-
-import { Checkbox, Form, Input } from '#/components/AriaComponents'
+import { Checkbox } from '#/components/Checkbox'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs'
 import { useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as google from './google'

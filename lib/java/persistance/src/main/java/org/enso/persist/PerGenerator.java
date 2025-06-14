@@ -24,20 +24,25 @@ final class PerGenerator {
   private int position;
 
   private PerGenerator(
-      OutputStream out, Histogram histogram, int position, Function<Object, Object> writeReplace) {
-    this.map = PerMap.create();
+      PerMap map,
+      OutputStream out,
+      Histogram histogram,
+      int position,
+      Function<Object, Object> writeReplace) {
+    this.map = map;
     this.main = out;
     this.writeReplace = writeReplace == null ? Function.identity() : writeReplace;
     this.position = position;
     this.histogram = histogram;
   }
 
-  static byte[] writeObject(Object obj, Function<Object, Object> writeReplace) throws IOException {
+  static byte[] writeObject(PerMap map, Object obj, Function<Object, Object> writeReplace)
+      throws IOException {
     var histogram = PerUtils.LOG.isDebugEnabled() ? new Histogram() : null;
 
     var out = new ByteArrayOutputStream();
     var data = new DataOutputStream(out);
-    var g = new PerGenerator(out, histogram, 12, writeReplace);
+    var g = new PerGenerator(map, out, histogram, 12, writeReplace);
     data.write(PerGenerator.HEADER);
     data.writeInt(g.versionStamp());
     data.write(new byte[4]); // space

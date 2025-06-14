@@ -1,19 +1,20 @@
 /** @file Settings screen. */
-import { Heading, MenuTrigger } from '#/components/aria'
-import { Button, Popover, Text } from '#/components/AriaComponents'
+import { Heading } from '#/components/aria'
+import { Button } from '#/components/Button'
+import { Popover } from '#/components/Dialog'
+import { Menu } from '#/components/Menu'
 import { useStrictPortalContext } from '#/components/Portal'
+import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useSessionAPI } from '#/providers/SessionProvider'
 import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
-import { useBackends, useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useSession, useText } from '$/providers/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import {
@@ -39,7 +40,7 @@ export function Settings() {
     includesPredicate(Object.values(SettingsTabType)),
   )
   const { user, accessToken } = useFullUserSession()
-  const { changePassword } = useSessionAPI()
+  const { changePassword } = useSession()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
@@ -186,9 +187,9 @@ export function Settings() {
   })
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-hidden pl-page-x pt-4">
+    <div className="flex h-full w-full flex-col gap-4 overflow-hidden pl-page-x pt-4">
       <Heading level={1} className="flex items-center px-heading-x">
-        <MenuTrigger>
+        <Menu.Trigger>
           <Button variant="icon" icon="3_dot_menu" className="mr-3 sm:hidden" />
           <Popover size="auto" UNSTABLE_portalContainer={root}>
             <SettingsSidebar
@@ -198,7 +199,7 @@ export function Settings() {
               setTab={setTab}
             />
           </Popover>
-        </MenuTrigger>
+        </Menu.Trigger>
 
         <Text nowrap variant="h1" className="cursor-default font-bold">
           {getText('settingsFor')}

@@ -19,13 +19,10 @@ import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Wrapped_Error.Wrapped_Error
-import project.Function.Function
 import project.Internal.Array_Like_Helpers
-import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Random.Random
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
@@ -539,8 +536,6 @@ type Vector a
     not_empty self = self.is_empty.not
 
     ## ALIAS where
-       GROUP Selections
-       ICON preparation
        MACRO equals filter=..Equal
        MACRO not_equals filter=..Not_Equal
        MACRO not_nothing filter=..Not_Nothing
@@ -555,6 +550,8 @@ type Vector a
        MACRO like filter=..Like
        MACRO regex_match filter=..Regex_Match
        MACRO predicate filter=v->v==Nothing
+       GROUP Selections
+       ICON preparation
        Selects all elements of this vector which satisfy a condition.
 
        Arguments:

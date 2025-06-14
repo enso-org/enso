@@ -273,7 +273,7 @@ impl BuiltEnso {
                 cloud_tests::env::test_controls::ENSO_CLOUD_CREDENTIALS_FILE.name().to_string(),
                 path.to_string(),
             ));
-            // We do not set ENSO_CLOUD_API_URI - we rely on the default, or any existing overrides.
+            // We do not set ENSO_CLOUD_API_URL - we rely on the default, or any existing overrides.
             environment_overrides.push((
                 cloud_tests::env::test_controls::ENSO_RUN_REAL_CLOUD_TEST.name().to_string(),
                 "1".to_string(),

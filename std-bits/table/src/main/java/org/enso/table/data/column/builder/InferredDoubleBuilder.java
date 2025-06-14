@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -79,7 +79,7 @@ public final class InferredDoubleBuilder extends DoubleBuilder implements Builde
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     throw new UnsupportedOperationException(
         "appendBulkStorage is not supported on InferredDoubleBuilder. A DoubleBuilder or"
             + " MixedBuilder should be used instead. This is a bug in the Table library.");

@@ -75,6 +75,7 @@ function handleClick(entry: Entry, altKey: boolean, htmlElement: EventTarget | n
 <script lang="ts">
 export interface DropdownEntry {
   readonly value: string
+  readonly key?: string | undefined
   readonly selected: boolean
   readonly icon?: Icon | undefined
 }
@@ -85,7 +86,7 @@ export interface DropdownEntry {
     <ul class="list scrollable" @wheel.stop.passive @scroll="emit('scroll')">
       <li
         v-for="entry in sortedValues"
-        :key="entry.value"
+        :key="entry.key ?? entry.value"
         :class="{ selected: entry.selected }"
         class="item clickable"
         @click.stop="handleClick(entry, $event.altKey, $event.currentTarget)"

@@ -692,6 +692,48 @@ public class StorageIterators {
   }
 
   /**
+   * Zips two storages together, applying an operation to each pair of values. The operation's
+   * result is appended to the builder. The builderConstructor will be passed the expected size to
+   * create a new builder. If skipNothing is true, then if either value is Nothing, the result will
+   * be Nothing and appended automatically. This is a variant that works when return type is
+   * variable.
+   *
+   * @param source1 the first source storage to read from and iterate over.
+   * @param source2 the second source storage to read from and iterate over.
+   * @param builderConstructor a function to create a new builder of the correct type.
+   * @param skipNothing if true, then if either value is Nothing, the result will be Nothing.
+   * @param operation a callback to process a pair of values.
+   * @param <R> Input Java type for the first source.
+   * @param <S> Input Java type for the second source.
+   * @return a built ColumnStorage from sealing the builder.
+   */
+  public static <R, S> ColumnStorage<?> zipOverObjectStorages(
+      ColumnStorage<R> source1,
+      ColumnStorage<S> source2,
+      LongFunction<Builder> builderConstructor,
+      boolean skipNothing,
+      ZipOperation<R, S, Object> operation) {
+    long size = Math.max(source1.getSize(), source2.getSize());
+    var builder = builderConstructor.apply(size);
+
+    try (var progressHandle = ProgressHandler.init("zipOverStorages", size)) {
+      for (long idx = 0; idx < size; idx++) {
+        R value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
+        S value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
+        if (skipNothing && (value1 == null || value2 == null)) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(idx, value1, value2);
+          builder.append(result);
+        }
+        progressHandle.advance();
+      }
+    }
+
+    return builder.seal();
+  }
+
+  /**
    * Zips two long storages together, applying an operation to each pair of values. The operation's
    * result is appended to the builder. The builderConstructor will be passed the expected size to
    * create a new builder. If skipNothing is true, then if either value is Nothing, the result will

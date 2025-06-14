@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
-import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Widget.Text_Input

@@ -15,7 +15,7 @@ import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.MultiValueIndex;
@@ -30,6 +30,7 @@ import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
@@ -39,6 +40,15 @@ public class Table {
 
   private final Column[] columns;
   private String versionId;
+
+  /**
+   * Creates a new table from a single column.
+   *
+   * @param column the column contained in this table.
+   */
+  public Table(Column column) {
+    this(new Column[] {column});
+  }
 
   /**
    * Creates a new table
@@ -224,8 +234,8 @@ public class Table {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
     int n = rowCount();
     Context context = Context.getCurrent();
-    final Storage<?>[] storages =
-        Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
+    final var storages =
+        Arrays.stream(columns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     OrderedMultiValueKey[] keys = new OrderedMultiValueKey[n];
     for (int i = 0; i < n; i++) {
       keys[i] = new OrderedMultiValueKey(storages, i, directionInts, objectComparator);
@@ -328,7 +338,7 @@ public class Table {
     if (includeLeftColumns) {
       OrderMask leftMask = joinResult.getLeftOrderMask();
       for (Column column : this.columns) {
-        Column newColumn = column.applyMask(leftMask);
+        var newColumn = column.applyMask(leftMask);
         newColumns.add(newColumn);
       }
     }
@@ -348,7 +358,7 @@ public class Table {
       for (int i = 0; i < rightColumnsToKeep.size(); ++i) {
         Column column = rightColumnsToKeep.get(i);
         String newName = newRightColumnNames.get(i);
-        Column newColumn = column.applyMask(rightMask).rename(newName);
+        var newColumn = column.applyMask(rightMask).rename(newName);
         newColumns.add(newColumn);
       }
     }
@@ -411,14 +421,37 @@ public class Table {
     int leftColumnCount = this.columns.length;
     int rightColumnCount = right.columns.length;
     for (int i = 0; i < leftColumnCount; i++) {
-      newColumns[i] = this.columns[i].resize(resultRowCount);
+      newColumns[i] = resize(this.columns[i], resultRowCount);
     }
     for (int i = 0; i < rightColumnCount; i++) {
       newColumns[leftColumnCount + i] =
-          right.columns[i].resize(resultRowCount).rename(newRightColumnNames.get(i));
+          resize(right.columns[i], resultRowCount).rename(newRightColumnNames.get(i));
     }
 
     return new Table(newColumns);
+  }
+
+  /**
+   * Resizes the given column to the provided new length.
+   *
+   * <p>If the new length is smaller than the current length, the column is truncated. If the new
+   * length is larger than the current length, the column is padded with nulls.
+   */
+  private static Column resize(Column input, int newSize) {
+    var inputSize = input.getSize();
+    if (inputSize == newSize) {
+      return input;
+    }
+
+    if (newSize < inputSize) {
+      return input.slice(0, newSize);
+    }
+
+    var storage = input.getStorage();
+    var builder = storage.getType().makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
+    builder.appendBulkStorage(storage);
+    builder.appendNulls(newSize - inputSize);
+    return new Column(input.getName(), builder.seal());
   }
 
   /**
@@ -432,7 +465,7 @@ public class Table {
         Arrays.stream(columns)
             .map(
                 column -> {
-                  Storage<?> newStorage = column.getStorage().applyMask(orderMask);
+                  var newStorage = column.getStorage().applyMask(orderMask);
                   return new Column(column.getName(), newStorage);
                 })
             .toArray(Column[]::new);
@@ -462,7 +495,7 @@ public class Table {
       int size = id_columns.length == 0 ? 0 : id_columns[0].getSize();
       var builder = Builder.getForText(TextType.VARIABLE_LENGTH, size);
       builder.appendNulls(size);
-      Storage<?> newStorage = builder.seal();
+      var newStorage = builder.seal();
       newColumns[id_columns.length] = new Column(name_field, newStorage);
       newColumns[id_columns.length + 1] = new Column(value_field, newStorage);
       return new Table(newColumns);

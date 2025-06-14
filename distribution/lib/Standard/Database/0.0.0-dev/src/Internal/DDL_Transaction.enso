@@ -6,7 +6,6 @@ import Standard.Base.Runtime.Context
 
 import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
-import project.Internal.In_Transaction.In_Transaction
 import project.SQL_Query.SQL_Query
 from project.Internal.Upload.Operations.Upload_Table import create_table_structure
 

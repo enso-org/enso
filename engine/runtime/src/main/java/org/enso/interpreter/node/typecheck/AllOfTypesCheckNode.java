@@ -36,6 +36,10 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
   @Override
   @ExplodeLoop
   Object executeCheckOrConversion(VirtualFrame frame, Object value, ExpressionNode expr) {
+    if (isAllFitValue(value)) {
+      return value;
+    }
+
     var values = new Object[checks.length];
     var valueTypes = new Type[checks.length];
     var at = 0;

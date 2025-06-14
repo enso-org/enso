@@ -136,6 +136,15 @@ export function addImports(
 }
 
 /**
+ * Create a non user-facing string representation of a required import.
+ * Meant for key generation and debugging, does not generate a valid code representation.
+ */
+export function printRequiredImport(i: RequiredImport): string {
+  if (i.kind === 'Qualified') return `${i.kind}:${i.module}`
+  return `${i.kind}:${i.from}(${i.import})`
+}
+
+/**
  * Return a suitable location in the given block to insert an import statement.
  *
  *  The location chosen will be before the first non-import line, and after all preexisting imports.

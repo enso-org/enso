@@ -43,13 +43,8 @@ import * as z from 'zod'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as appUtils from '#/appUtils'
-
-import * as authProvider from '#/providers/AuthProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
-import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
-import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
-import * as sessionProvider from '#/providers/SessionProvider'
+import ModalProvider, { setModal } from '#/providers/ModalProvider'
 
 import VersionChecker from '#/layouts/VersionChecker'
 import { RouterProvider } from 'react-aria-components'
@@ -62,11 +57,15 @@ import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import { Path } from '#/utilities/path'
 
-import { useInitAuthService } from '#/authentication/service'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter, useText } from '$/providers/react'
+
+window.menuApi?.setShowAboutModalHandler(() => {
+  setModal(<AboutModal />)
+})
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -78,18 +77,6 @@ declare module '#/utilities/LocalStorage' {
 LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
-/** Returns the URL to the main page. This is the current URL, with the current route removed. */
-function getMainPageUrl() {
-  const mainPageUrl = new URL(window.location.href)
-  mainPageUrl.pathname = mainPageUrl.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
-  return mainPageUrl
-}
-
-/** Global configuration for the `App` component. */
-export interface AppProps {
-  readonly onAuthenticated: (accessToken: string | null) => void
-}
-
 /**
  * Component called by the parent module, returning the root React component for this
  * package.
@@ -97,7 +84,7 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
-export default function App(props: React.PropsWithChildren<AppProps>) {
+export default function App(props: React.PropsWithChildren) {
   const { isOffline } = useOffline()
   const { getText } = useText()
   const queryClient = reactQuery.useQueryClient()
@@ -134,11 +121,9 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
         transition={toastify.Slide}
         limit={3}
       />
-      <LocalStorageProvider>
-        <ModalProvider>
-          <AppRouter {...props} />
-        </ModalProvider>
-      </LocalStorageProvider>
+      <ModalProvider>
+        <AppRouter {...props} />
+      </ModalProvider>
     </>
   )
 }
@@ -150,32 +135,15 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider.
  */
-function AppRouter(props: React.PropsWithChildren<AppProps>) {
-  const { onAuthenticated, children } = props
+function AppRouter(props: React.PropsWithChildren) {
+  const { children } = props
   const { router } = useRouter()
   const navigate = router.push.bind(router)
-
-  const { localStorage } = localStorageProvider.useLocalStorage()
-  const { setModal } = modalProvider.useSetModal()
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     unsafeWriteValue(window, 'navigate', navigate)
   }
-
-  const mainPageUrl = getMainPageUrl()
-
-  const authService = useInitAuthService()
-
-  const registerAuthEventListener = authService.registerAuthEventListener
-
-  React.useEffect(() => {
-    if ('menuApi' in window) {
-      window.menuApi.setShowAboutModalHandler(() => {
-        setModal(<AboutModal />)
-      })
-    }
-  }, [setModal])
 
   React.useEffect(() => {
     let isClick = false
@@ -219,29 +187,18 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
 
   return (
     <RouterProvider navigate={navigate}>
-      <sessionProvider.SessionProvider
-        onLogout={() => {
-          localStorage.clearUserSpecificEntries()
-        }}
-        authService={authService.cognito}
-        mainPageUrl={mainPageUrl}
-        registerAuthEventListener={registerAuthEventListener}
-      >
-        <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
-          <InputBindingsProvider>
-            <LocalBackendPathSynchronizer />
-            <VersionChecker />
-            {children}
-          </InputBindingsProvider>
-        </authProvider.AuthProvider>
-      </sessionProvider.SessionProvider>
+      <InputBindingsProvider>
+        <LocalBackendPathSynchronizer />
+        <VersionChecker />
+        {children}
+      </InputBindingsProvider>
     </RouterProvider>
   )
 }
 
 /** Keep `localBackend.rootPath` in sync with the saved root path state. */
 function LocalBackendPathSynchronizer() {
-  const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
+  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const { localBackend } = useBackends()
 
   if (localRootDirectory != null) {

@@ -1,7 +1,5 @@
 /** @file The categories available in the category switcher. */
-import * as z from 'zod'
-
-import type { SvgUseIcon } from '#/components/AriaComponents'
+import type { SvgUseIcon } from '#/components/types'
 import type { UserId } from '#/services/Backend'
 import {
   BackendType,
@@ -15,6 +13,7 @@ import {
 import { isUrlString } from '@/util/data/urlString'
 import { isIconName } from '@/util/iconMetadata/iconName'
 import type { DropOperation } from '@react-types/shared'
+import * as z from 'zod'
 
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)

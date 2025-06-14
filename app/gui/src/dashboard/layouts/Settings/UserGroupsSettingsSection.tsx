@@ -1,30 +1,26 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import { Cell, Column, Row, Table, TableBody, TableHeader } from '#/components/aria'
-import {
-  Button,
-  ComboBox,
-  Dialog,
-  Form,
-  Menu,
-  Popover,
-  Text,
-  VisualTooltip,
-} from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog, Popover } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { ComboBox } from '#/components/Inputs'
+import { Menu } from '#/components/Menu'
 import { PaywallDialogButton } from '#/components/Paywall'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import { Scroller } from '#/components/Scroller'
+import { Text } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
+import { VisualTooltip } from '#/components/VisualTooltip'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { NewUserGroupForm } from '#/modals/NewUserGroupForm'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type { EmailAddress } from '#/services/Backend'
 import { type User, type UserGroupInfo } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'

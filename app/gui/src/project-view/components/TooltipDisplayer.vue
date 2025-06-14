@@ -55,7 +55,7 @@ const isDisplayed = (tooltip: Opt<HoveredElement>) => {
   if (tooltip == null) return false
   if (tooltip.entry.isHidden) return false
   if (!tooltip.element.isConnected) return false
-  switch (toValue(tooltip.entry.when)) {
+  switch (toValue(tooltip.entry.props.when)) {
     case 'always':
       return true
     case 'whenOverflow':
@@ -100,7 +100,7 @@ function whileElementsMounted(
 
 const tooltip = ref<HTMLDivElement>()
 const floating = useFloating(floatTarget, tooltip, {
-  placement: 'top',
+  placement: computed(() => toValue(displayedTooltip.value?.entry.props.placement)),
   transform: false,
   middleware: [offset(5), flip(), shift()],
   whileElementsMounted,

@@ -18,7 +18,7 @@ from project.Errors import Different_Connections, SQL_Error, Table_Already_Exist
 from project.Internal.JDBC_Connection import log_sql_if_enabled
 from project.Internal.Upload.Helpers.Argument_Checks import resolve_primary_key
 from project.Internal.Upload.Helpers.Constants import default_batch_size
-from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors, internal_translate_known_upload_errors
+from project.Internal.Upload.Helpers.Error_Helpers import internal_translate_known_upload_errors
 from project.Internal.Upload.Helpers.Prepare_Structure import align_structure, validate_structure, verify_structure_hint
 from project.Internal.Upload.Helpers.SQL_Helpers import make_batched_insert_template, prepare_create_table_statement
 

@@ -2,7 +2,7 @@ package org.enso.table.aggregations;
 
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -24,7 +24,7 @@ public class StandardDeviation extends KnownTypeAggregator {
     }
   }
 
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
   private final boolean population;
 
   public StandardDeviation(String name, Column column, boolean population) {

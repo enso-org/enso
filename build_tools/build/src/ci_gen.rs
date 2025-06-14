@@ -622,12 +622,11 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
 }
 
 /// Add jobs that perform backend checks, including Scala and Standard Library tests.
-pub fn add_backend_checks_customized(
+pub fn add_backend_checks(
     workflow: &mut Workflow,
     target: Target,
     graal_edition: graalvm::Edition,
     engine_launcher: engine::EngineLauncher,
-    continue_on_error: impl Fn(&Target) -> Option<bool>,
 ) {
     let build_engine_distribution_id =
         workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
@@ -646,15 +645,10 @@ pub fn add_backend_checks_customized(
     }
 
     // Engine distribution is required to run project manager tests.
-    workflow.add_dependent_customized(
-        target,
-        job::JvmTests { graal_edition, engine_launcher },
-        &[&build_engine_distribution_id],
-        |job| {
-            job.continue_on_error = continue_on_error(&target);
-        },
-    );
-    workflow.add_dependent_customized(
+    workflow.add_dependent(target, job::JvmTests { graal_edition, engine_launcher }, &[
+        &build_engine_distribution_id,
+    ]);
+    workflow.add_dependent(
         target,
         job::StandardLibraryTests {
             graal_edition,
@@ -663,11 +657,8 @@ pub fn add_backend_checks_customized(
             native_image_mode: true,
         },
         &[&build_engine_distribution_id],
-        |job| {
-            job.continue_on_error = continue_on_error(&target);
-        },
     );
-    workflow.add_dependent_customized(
+    workflow.add_dependent(
         target,
         job::StandardLibraryTests {
             graal_edition,
@@ -676,20 +667,7 @@ pub fn add_backend_checks_customized(
             native_image_mode: false,
         },
         &[&build_engine_distribution_id],
-        |job| {
-            job.continue_on_error = continue_on_error(&target);
-        },
     );
-}
-
-/// Add jobs that perform backend checks, including Scala and Standard Library tests.
-pub fn add_backend_checks(
-    workflow: &mut Workflow,
-    target: Target,
-    graal_edition: graalvm::Edition,
-    engine_launcher: engine::EngineLauncher,
-) {
-    add_backend_checks_customized(workflow, target, graal_edition, engine_launcher, |_| None);
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -884,13 +862,7 @@ pub fn engine_checks_optional() -> Result<Workflow> {
     };
     let engine_launcher = engine::EngineLauncher::TestNative;
     for target in PR_OPTIONAL_TARGETS {
-        add_backend_checks_customized(
-            &mut workflow,
-            target,
-            graalvm::Edition::Community,
-            engine_launcher,
-            |_| Some(true),
-        );
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     Ok(workflow)
 }

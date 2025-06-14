@@ -1,7 +1,8 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { DIALOG_BACKGROUND, Underlay } from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
+import { DIALOG_BACKGROUND } from '#/components/Dialog'
 import Portal from '#/components/Portal'
+import { Underlay } from '#/components/Underlay'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { unsetModal } from '#/providers/ModalProvider'
 import {

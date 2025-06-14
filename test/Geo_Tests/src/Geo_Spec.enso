@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Table import Table
 
-import Standard.Geo
+from Standard.Geo import all
 
 from Standard.Test import all
 

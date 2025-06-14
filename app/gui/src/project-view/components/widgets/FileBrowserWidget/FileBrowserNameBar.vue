@@ -195,7 +195,6 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
     :floatReference="fileExtensionInputRoot"
     :show="fileExtensionDropdownOpened"
     :entries="fileExtensionEntries"
-    :isSelected="() => false"
     :topLevel="true"
     :color="'white'"
     :backgroundColor="'var(--background-color)'"

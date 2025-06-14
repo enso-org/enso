@@ -4,6 +4,7 @@
  * monkeypatching on `window` and generated code.
  */
 /// <reference types="vite/client" />
+import type { UserSessionType } from '$/providers/auth'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
 import type { FileFilter } from './src/project-view/util/fileFilter'
@@ -139,7 +140,7 @@ declare global {
     readonly backendApi?: BackendApi
     readonly authenticationApi: AuthenticationApi
     readonly navigationApi: NavigationApi
-    readonly menuApi: MenuApi
+    readonly menuApi?: MenuApi
     readonly systemApi?: SystemApi
     readonly projectManagementApi?: ProjectManagementApi
     readonly fileBrowserApi?: FileBrowserApi
@@ -179,5 +180,11 @@ declare module 'vite/client' {
      */
     const src: string
     export default src
+  }
+}
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    access?: 'guest' | 'anyLoggedIn' | UserSessionType
   }
 }

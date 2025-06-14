@@ -8,8 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.storage.NullStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -22,6 +21,7 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -84,7 +84,7 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
@@ -190,10 +190,12 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public Storage<?> seal() {
+  public ColumnStorage<?> seal() {
     if (currentBuilder == null) {
       // If all values that the builder got were nulls, we can return a special null storage.
-      return new NullStorage(currentSize);
+      return Builder.getForType(NullType.INSTANCE, currentSize, BlackholeProblemAggregator.INSTANCE)
+          .appendNulls(currentSize)
+          .seal();
     }
     return currentBuilder.seal();
   }

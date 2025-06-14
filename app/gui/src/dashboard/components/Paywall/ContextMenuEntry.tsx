@@ -3,7 +3,7 @@ import LockIcon from '#/assets/lock.svg'
 import type { ContextMenuEntryProps as ContextMenuEntryBaseProps } from '#/components/ContextMenuEntry'
 import ContextMenuEntryBase from '#/components/ContextMenuEntry'
 import type { PaywallFeatureName } from '#/hooks/billing'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal } from '#/providers/ModalProvider'
 import { useText } from '$/providers/react'
 import { PaywallDialog } from './PaywallDialog'
 
@@ -16,7 +16,6 @@ export interface ContextMenuEntryProps extends Omit<ContextMenuEntryBaseProps, '
 /** A context menu entry that opens a paywall dialog. */
 export function ContextMenuEntry(props: ContextMenuEntryProps) {
   const { feature, isUnderPaywall, doAction, icon, ...rest } = props
-  const { setModal } = useSetModal()
   const { getText } = useText()
 
   return (

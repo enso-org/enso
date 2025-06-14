@@ -161,7 +161,7 @@ test.each`
       widgetTree,
     )
     handlers.get(edited)?.handler.start()
-    interactionHandler.handlePointerEvent(event, 'pointerdown')
+    interactionHandler.handlePointerDown(event)
     const handlersCalled = new Set<string>()
     for (const [id, { interaction }] of handlers)
       if ((interaction.pointerdown as Mock | undefined)?.mock.lastCall) handlersCalled.add(id)

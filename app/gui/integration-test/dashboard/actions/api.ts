@@ -141,7 +141,7 @@ type TrackedCallsInternal = {
 export interface TrackedCalls extends TrackedCallsInternal {}
 
 /** Parameters for {@link mockApi}. */
-export interface MockParams {
+interface MockParams {
   readonly page: test.Page
   readonly setupAPI?: SetupAPI | null | undefined
 }

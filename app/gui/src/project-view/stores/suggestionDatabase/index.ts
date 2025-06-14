@@ -1,29 +1,27 @@
-import { createContextStore } from '@/providers'
+import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { type ProjectStore } from '@/stores/project'
 import { type ProjectNameStore } from '@/stores/projectNames'
 import {
   entryIsCallable,
+  isUserSelectableType,
   SuggestionKind,
   type CallableSuggestionEntry,
   type SuggestionEntry,
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
+import { assert } from '@/util/assert'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { type MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
 import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
-import { markRaw, proxyRefs, readonly, ref } from 'vue'
+import { filter } from 'enso-common/src/utilities/data/iter'
+import { computed, markRaw, proxyRefs, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
-
-function pathKey({ project, path }: ProjectPath): string {
-  const projectKey = project ?? '$'
-  return path ? `${projectKey}.${path}` : projectKey
-}
 
 /**
  * Suggestion Database.
@@ -36,27 +34,51 @@ function pathKey({ project, path }: ProjectPath): string {
  */
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   private readonly pathToId = new ReactiveIndex(this, (id, entry) => [
-    [pathKey(entry.definitionPath), id],
+    [entry.definitionPath.key(), id],
   ])
   readonly childIdToParentId = new ReactiveIndex(this, (id, entry) => {
     const parentAndChild = entry.definitionPath.splitAtName()
     if (parentAndChild) {
       const [parentPath] = parentAndChild
-      const parents = this.pathToId.lookup(pathKey(parentPath))
+      const parents = this.pathToId.lookup(parentPath.key())
       return Array.from(parents, (p) => [id, p])
     }
     return []
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
+  readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
 
   /** Constructor. */
   constructor() {
     super()
   }
 
+  /**
+   * Retreive all suggestions of given kind stored in the suggestion database.
+   */
+  *getAllEntriesOfKind<K extends SuggestionKind>(
+    kind: K,
+  ): IterableIterator<SuggestionEntry & { kind: K }> {
+    const ids = this.suggestionsByKind.lookup(kind)
+    for (const id of ids) {
+      const entry = this.get(id)
+      assert(entry?.kind === kind)
+      yield entry as SuggestionEntry & { kind: K }
+    }
+  }
+
+  selectableTypes = computed(() => {
+    const allTypeEntries = this.getAllEntriesOfKind(SuggestionKind.Type)
+    return [...filter(allTypeEntries, isUserSelectableType)]
+  })
+
+  dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
+    return Array.from(this.selectableTypes.value, (ty) => ExpressionTag.FromEntry(this, ty))
+  })
+
   /** Look up an entry by its path within a project */
   findByProjectPath(projectPath: ProjectPath): SuggestionId | undefined {
-    const [id] = this.pathToId.lookup(pathKey(projectPath))
+    const [id] = this.pathToId.lookup(projectPath.key())
     return id
   }
 
@@ -220,39 +242,42 @@ async function loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown
 }
 
 /** {@link useSuggestionDbStore} composable object */
-export type SuggestionDbStore = ReturnType<typeof useSuggestionDbStore>
-export const [provideSuggestionDbStore, useSuggestionDbStore] = createContextStore(
-  'suggestionDatabase',
-  (projectStore: ProjectStore, projectNames: ProjectNameStore) => {
-    const entries = new SuggestionDb()
-    const groups = ref<GroupInfo[]>([])
+export type SuggestionDbStore = ReturnType<typeof createSuggestionDbStore>
+/**
+ * A store maintaining suggestions database.
+ */
+export function createSuggestionDbStore(
+  projectStore: ProjectStore,
+  projectNames: ProjectNameStore,
+) {
+  const entries = new SuggestionDb()
+  const groups = ref<GroupInfo[]>([])
 
-    const updateProcessor = loadGroups(
-      projectStore.lsRpcConnection,
-      projectStore.firstExecution,
-    ).then((loadedGroups) => {
-      groups.value = loadedGroups
-      return new SuggestionUpdateProcessor(loadedGroups, projectNames)
-    })
+  const updateProcessor = loadGroups(
+    projectStore.lsRpcConnection,
+    projectStore.firstExecution,
+  ).then((loadedGroups) => {
+    groups.value = loadedGroups
+    return new SuggestionUpdateProcessor(loadedGroups, projectNames)
+  })
 
-    /** Add an entry to the suggestion database. */
-    function mockSuggestion(entry: lsTypes.SuggestionEntry) {
-      const id = Math.max(...entries.keys()) + 1
-      new SuggestionUpdateProcessor([], projectNames).applyUpdates(entries, [
-        {
-          type: 'Add',
-          id,
-          suggestion: entry,
-        },
-      ])
-    }
+  /** Add an entry to the suggestion database. */
+  function mockSuggestion(entry: lsTypes.SuggestionEntry) {
+    const id = Math.max(...entries.keys()) + 1
+    new SuggestionUpdateProcessor([], projectNames).applyUpdates(entries, [
+      {
+        type: 'Add',
+        id,
+        suggestion: entry,
+      },
+    ])
+  }
 
-    const _synchronizer = new Synchronizer(projectStore, entries, updateProcessor)
-    return proxyRefs({
-      entries: markRaw(entries),
-      groups: readonly(groups),
-      _synchronizer,
-      mockSuggestion,
-    })
-  },
-)
+  const _synchronizer = new Synchronizer(projectStore, entries, updateProcessor)
+  return proxyRefs({
+    entries: markRaw(entries),
+    groups: readonly(groups),
+    _synchronizer,
+    mockSuggestion,
+  })
+}
