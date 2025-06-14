@@ -1,6 +1,6 @@
 /** @file A modal with inputs for user email and permission level. */
 import { Form } from '#/components/Form'
-import { ResizableContentEditableInput } from '#/components/Inputs'
+import { ResizableContentEditableInput } from '#/components/Inputs/ResizableInput'
 import * as paywallComponents from '#/components/Paywall'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
