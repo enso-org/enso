@@ -1,4 +1,5 @@
 /** @file A table row for an arbitrary asset. */
+import { useGetAsset } from '#/data-catalog/assetsTableItemsHooks'
 import {
   useDeleteAssetsMutationState,
   useMoveAssetsMutationState,
@@ -13,7 +14,6 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
-import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'

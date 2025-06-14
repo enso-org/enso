@@ -47,6 +47,8 @@ const DASHBOARD_FILES = [
   'app/gui/src/authentication/**/*.tsx',
   'app/gui/src/settings/**/*.ts',
   'app/gui/src/settings/**/*.tsx',
+  'app/gui/src/data-catalog/**/*.ts',
+  'app/gui/src/data-catalog/**/*.tsx',
 ]
 
 const DASHBOARD_STORIES_FILES = [
@@ -58,6 +60,8 @@ const DASHBOARD_STORIES_FILES = [
   'app/gui/src/authentication/**/*.stories.tsx',
   'app/gui/src/settings/**/*.stories.ts',
   'app/gui/src/settings/**/*.stories.tsx',
+  'app/gui/src/data-catalog/**/*.stories.ts',
+  'app/gui/src/data-catalog/**/*.stories.tsx',
 ]
 
 const DASHBOARD_TEST_FILES = [
@@ -69,6 +73,8 @@ const DASHBOARD_TEST_FILES = [
   'app/gui/src/authentication/**/*.test.tsx',
   'app/gui/src/settings/**/*.test.ts',
   'app/gui/src/settings/**/*.test.tsx',
+  'app/gui/src/data-catalog/**/*.test.ts',
+  'app/gui/src/data-catalog/**/*.test.tsx',
 ]
 
 // =======================================

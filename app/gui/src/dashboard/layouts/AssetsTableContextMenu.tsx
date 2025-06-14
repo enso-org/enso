@@ -2,6 +2,7 @@
  * @file A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected.
  */
+import { useGetAsset } from '#/data-catalog/assetsTableItemsHooks'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
@@ -14,7 +15,6 @@ import {
   type Category,
   isCloudCategory,
 } from '#/layouts/CategorySwitcher/Category'
-import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'

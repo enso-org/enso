@@ -1,5 +1,10 @@
 /** @file Hooks for uploading files. */
 import {
+  useCategories,
+  useCategoriesAPI,
+  useTransferBetweenCategories,
+} from '#/data-catalog/Categories'
+import {
   backendMutationOptions,
   listDirectoryQueryOptions,
   useEnsureListDirectory,
@@ -7,11 +12,6 @@ import {
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import {
-  useCategories,
-  useCategoriesAPI,
-  useTransferBetweenCategories,
-} from '#/layouts/Drive/Categories'
 import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'

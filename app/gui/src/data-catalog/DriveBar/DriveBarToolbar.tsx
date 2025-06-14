@@ -3,6 +3,7 @@
  * the current directory and some configuration options.
  */
 import Plus2Icon from '#/assets/plus2.svg'
+import { useDirectoryIds } from '#/data-catalog/directoryIdsHooks'
 import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
@@ -24,7 +25,6 @@ import {
   isCloudCategory,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
-import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'

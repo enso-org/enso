@@ -1,5 +1,5 @@
 /** @file The icon and name of a {@link ProjectAsset}. */
-import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useGetAssetChildren } from '#/data-catalog/assetsTableItemsHooks'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
 import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'

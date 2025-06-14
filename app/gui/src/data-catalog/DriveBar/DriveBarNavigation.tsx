@@ -3,12 +3,12 @@
  * the current directory and some configuration options.
  */
 import RecentIcon from '#/assets/recent.svg'
+import { useCategories, useCategoriesAPI } from '#/data-catalog/Categories/categoriesHooks'
+import { useDirectoryIds } from '#/data-catalog/directoryIdsHooks'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
-import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
 import type { PathItem } from '#/services/utilities'

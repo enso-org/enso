@@ -1,5 +1,7 @@
 /** @file Table displaying a list of projects. */
 import DropFilesImage from '#/assets/drop_files.svg'
+import { useAssetsTableItems } from '#/data-catalog/assetsTableItemsHooks'
+import { useDirectoryIds } from '#/data-catalog/directoryIdsHooks'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
@@ -20,8 +22,6 @@ import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
-import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
@@ -112,13 +112,13 @@ import {
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
-import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
+import type { AssetsDataTransferPayload } from '../data-catalog/Categories/transferBetweenCategoriesHooks'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,
   SUGGESTIONS_FOR_NO,
   SUGGESTIONS_FOR_TYPE,
-} from './Drive/suggestionsConstants'
+} from '../data-catalog/suggestionsConstants'
 
 declare module '#/utilities/LocalStorage' {
   /** */

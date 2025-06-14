@@ -6,7 +6,7 @@ import { merger } from '#/utilities/object'
 import { useRightPanelData } from '$/providers/react'
 import EditableSpan from '$/react-components/EditableSpan'
 import { Icon } from '$/react-components/Icon'
-import { useGetAssetChildren } from '../../../../layouts/Drive/assetsTableItemsHooks'
+import { useGetAssetChildren } from '../../../../data-catalog/assetsTableItemsHooks'
 
 /** Props for a {@link DatalinkNameColumn}. */
 export interface DatalinkNameColumnProps extends AssetColumnProps {

@@ -1,5 +1,5 @@
 /** @file Various types of drag event payloads. */
-import type { Category } from '#/layouts/Drive/Categories/Category'
+import type { Category } from '#/data-catalog/Categories/Category'
 import type { AnyAsset, AssetId } from '#/services/Backend'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import type { DragEvent } from 'react'

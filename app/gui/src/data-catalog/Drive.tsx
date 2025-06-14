@@ -1,12 +1,12 @@
 /** @file The directory header bar and directory item listing. */
 import Offline from '#/assets/offline_filled.svg'
+import { DriveBar } from '#/data-catalog/DriveBar'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
 import { DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
@@ -24,7 +24,7 @@ import * as React from 'react'
 import { useDeferredValue } from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../../react-components/Suspense'
-import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
+import { useCategoriesAPI } from './Categories/categoriesHooks'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {

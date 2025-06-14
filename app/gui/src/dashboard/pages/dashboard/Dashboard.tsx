@@ -6,8 +6,8 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
+import { CategoriesProvider } from '#/data-catalog/Categories'
 import * as projectHooks from '#/hooks/projectHooks'
-import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import DriveProvider from '#/providers/DriveProvider'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -20,8 +20,8 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { useCategoriesAPI } from '#/data-catalog/Categories/categoriesHooks'
 import { usePaywall } from '#/hooks/billing'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'

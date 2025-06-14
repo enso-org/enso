@@ -3,7 +3,7 @@ import {
   dropOperationBetweenCategories,
   useTransferBetweenCategories,
   type Category,
-} from '#/layouts/Drive/Categories'
+} from '#/data-catalog/Categories'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
 import type { DirectoryId } from '#/services/Backend'
 /**

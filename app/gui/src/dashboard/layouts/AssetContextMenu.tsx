@@ -19,6 +19,7 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import * as backendModule from '#/services/Backend'
 
+import { useGetAsset } from '#/data-catalog/assetsTableItemsHooks'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -26,7 +27,6 @@ import {
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
 import { useNewProject } from '#/hooks/backendHooks'
-import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
@@ -38,12 +38,12 @@ import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import type { RightPanelData } from '$/providers/rightPanel'
 import { ContextMenuEntry as PaywallContextMenuEntry } from '$/react-components/Paywall'
 import { Separator } from '$/react-components/Separator'
+import { useCategories } from '../data-catalog/Categories'
 import {
   isUploadableAsset,
   useUploadFileToCloudMutation,
   useUploadFileToLocal,
 } from '../hooks/backendUploadFilesHooks'
-import { useCategories } from './Drive/Categories'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {

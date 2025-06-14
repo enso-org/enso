@@ -18,7 +18,7 @@ import {
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import { persist } from 'zustand/middleware'
-import type { TransferrableAsset } from '../layouts/Drive/Categories'
+import type { TransferrableAsset } from '../data-catalog/Categories'
 
 /** State for {@link categoryIdStore}. */
 interface CurrentDirectoryIdStoreState {

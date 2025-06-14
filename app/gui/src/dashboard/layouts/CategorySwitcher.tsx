@@ -1,8 +1,4 @@
 /** @file Switcher to choose the currently visible assets table category. */
-import * as mimeTypes from '#/data/mimeTypes'
-import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as offlineHooks from '#/hooks/offlineHooks'
 import {
   areCategoriesEqual,
   ASSETS_DATA_TRANSFER_PAYLOAD,
@@ -10,8 +6,12 @@ import {
   dropOperationBetweenCategories,
   useTransferBetweenCategories,
   type Category,
-} from '#/layouts/Drive/Categories'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
+} from '#/data-catalog/Categories'
+import { useCategoriesAPI } from '#/data-catalog/Categories/categoriesHooks'
+import * as mimeTypes from '#/data/mimeTypes'
+import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import * as offlineHooks from '#/hooks/offlineHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'

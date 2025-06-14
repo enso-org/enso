@@ -1,5 +1,5 @@
 /** @file The icon and name of a {@link FileAsset}. */
-import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useGetAssetChildren } from '#/data-catalog/assetsTableItemsHooks'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { titleSchema, type FileAsset } from '#/services/Backend'
 import { fileIcon } from '#/utilities/fileIcon'

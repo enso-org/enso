@@ -1,10 +1,10 @@
 /** @file Display and modify the properties of an asset. */
 import PenIcon from '#/assets/pen.svg'
+import { type Category } from '#/data-catalog/Categories'
 import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import { type Category } from '#/layouts/Drive/Categories'
 import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { SharedWithColumn } from '#/pages/dashboard/components/column'
 import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'

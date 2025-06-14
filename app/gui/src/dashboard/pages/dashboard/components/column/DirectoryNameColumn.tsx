@@ -1,5 +1,5 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
-import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useGetAssetChildren } from '#/data-catalog/assetsTableItemsHooks'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'

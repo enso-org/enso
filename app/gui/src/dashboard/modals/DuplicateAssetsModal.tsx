@@ -1,8 +1,8 @@
 /** @file A modal opened when uploaded assets. */
+import { useCategory } from '#/data-catalog/Categories'
 import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/hooks/backendHooks'
 import { useMount } from '#/hooks/mountHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import { useCategory } from '#/layouts/Drive/Categories'
 import AssetSummary from '#/pages/dashboard/components/AssetSummary'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'

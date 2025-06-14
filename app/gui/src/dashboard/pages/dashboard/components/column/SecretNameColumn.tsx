@@ -1,8 +1,8 @@
 /** @file The icon and name of a {@link SecretAsset}. */
 import KeyIcon from '#/assets/key.svg'
+import { useGetAssetChildren } from '#/data-catalog/assetsTableItemsHooks'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { setModal } from '#/providers/ModalProvider'
