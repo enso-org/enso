@@ -46,7 +46,7 @@ v.test.each([
   { name: '/', valid: false },
   { name: '......', valid: false },
   { name: '..', valid: false },
-  { name: '.', valid: true },
+  { name: '.', valid: false },
   { name: 'a.a.a.a.a.a.a.a.', valid: true },
   { name: 'a.a.a.a.a.a.a.a.a', valid: true },
   { name: '.a.a.a.a.a.a.a.a', valid: true },
