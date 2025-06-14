@@ -5,7 +5,7 @@ import { ProjectSessions as ReactProjectSessions } from '#/layouts/AssetPanel/co
 import { suspendedReactComponent } from '@/util/react'
 import * as react from 'react'
 
-const ReactDrive = react.lazy(() => import('#/data-catalog/Drive'))
+const ReactDrive = react.lazy(() => import('$/data-catalog/Drive'))
 const ReactEditor = react.lazy(() => import('#/layouts/Editor'))
 const ReactSettings = react.lazy(() =>
   import('$/settings').then(({ Settings }) => ({ default: Settings })),

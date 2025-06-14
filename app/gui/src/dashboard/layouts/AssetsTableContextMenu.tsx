@@ -2,7 +2,6 @@
  * @file A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected.
  */
-import { useGetAsset } from '#/data-catalog/assetsTableItemsHooks'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
@@ -21,6 +20,7 @@ import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
+import { useGetAsset } from '$/data-catalog/assetsTableItemsHooks'
 import { useBackends, useText, useUser } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import ContextMenu from '$/react-components/ContextMenu'

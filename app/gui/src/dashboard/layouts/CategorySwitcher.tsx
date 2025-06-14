@@ -1,13 +1,4 @@
 /** @file Switcher to choose the currently visible assets table category. */
-import {
-  areCategoriesEqual,
-  ASSETS_DATA_TRANSFER_PAYLOAD,
-  canTransferBetweenCategories,
-  dropOperationBetweenCategories,
-  useTransferBetweenCategories,
-  type Category,
-} from '#/data-catalog/Categories'
-import { useCategoriesAPI } from '#/data-catalog/Categories/categoriesHooks'
 import * as mimeTypes from '#/data/mimeTypes'
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -17,6 +8,15 @@ import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { tv } from '#/utilities/tailwindVariants'
 import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
+import {
+  areCategoriesEqual,
+  ASSETS_DATA_TRANSFER_PAYLOAD,
+  canTransferBetweenCategories,
+  dropOperationBetweenCategories,
+  useTransferBetweenCategories,
+  type Category,
+} from '$/data-catalog/Categories'
+import { useCategoriesAPI } from '$/data-catalog/Categories/categoriesHooks'
 import * as authProvider from '$/providers/react'
 import { useBackends, useRouter, useText } from '$/providers/react'
 import { AnimatedBackground } from '$/react-components/AnimatedBackground'

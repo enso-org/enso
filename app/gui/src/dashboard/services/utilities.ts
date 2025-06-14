@@ -1,7 +1,5 @@
-/**
- * @file Module containing utility functions related to any backend.
- */
-import type { AnyCategory } from '../data-catalog/Categories/Category'
+/** @file Module containing utility functions related to any backend. */
+import type { AnyCategory } from '$/data-catalog/Categories/Category'
 import type { DirectoryId } from './Backend'
 import { Path } from './Backend'
 import { DIRECTORY_ID_PREFIX, newDirectoryId } from './LocalBackend'

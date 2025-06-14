@@ -3,8 +3,6 @@
  * the current directory and some configuration options.
  */
 import RecentIcon from '#/assets/recent.svg'
-import { useCategories, useCategoriesAPI } from '#/data-catalog/Categories/categoriesHooks'
-import { useDirectoryIds } from '#/data-catalog/directoryIdsHooks'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
@@ -14,6 +12,8 @@ import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
 import type { PathItem } from '#/services/utilities'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useCategories, useCategoriesAPI } from '$/data-catalog/Categories/categoriesHooks'
+import { useDirectoryIds } from '$/data-catalog/directoryIdsHooks'
 import { useRightPanelData, useText } from '$/providers/react'
 import { Breadcrumbs, type BreadcrumbItemProps, type OnDrop } from '$/react-components/Breadcrumbs'
 import { Button } from '$/react-components/Button'

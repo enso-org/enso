@@ -1,7 +1,7 @@
 /** @file Tests for comparing assets. */
-import { assetCompareFunction } from '#/data-catalog/compareAssets'
 import { Column, type SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import { SortDirection, type SortInfo } from '#/utilities/sorting'
+import { assetCompareFunction } from '$/data-catalog/compareAssets'
 import * as fc from '@fast-check/vitest'
 import { DirectoryId, createPlaceholderFileAsset } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'

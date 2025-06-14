@@ -1,14 +1,11 @@
 /** @file The React provider (and associated hooks) for Data Catalog state. */
-import * as React from 'react'
-
-import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
-import invariant from 'tiny-invariant'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
+import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
+import type { TransferrableAsset } from '$/data-catalog/Categories'
 import {
   type AnyAsset,
   type AssetId,
@@ -17,8 +14,9 @@ import {
   type LabelName,
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
+import * as React from 'react'
+import invariant from 'tiny-invariant'
 import { persist } from 'zustand/middleware'
-import type { TransferrableAsset } from '../data-catalog/Categories'
 
 /** State for {@link categoryIdStore}. */
 interface CurrentDirectoryIdStoreState {

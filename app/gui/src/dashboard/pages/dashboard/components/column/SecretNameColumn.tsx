@@ -1,6 +1,5 @@
 /** @file The icon and name of a {@link SecretAsset}. */
 import KeyIcon from '#/assets/key.svg'
-import { useGetAssetChildren } from '#/data-catalog/assetsTableItemsHooks'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -10,6 +9,7 @@ import { isAssetCredential, titleSchema, type SecretAsset } from '#/services/Bac
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useGetAssetChildren } from '$/data-catalog/assetsTableItemsHooks'
 import { useText } from '$/providers/react'
 import EditableSpan from '$/react-components/EditableSpan'
 import SvgMask from '$/react-components/SvgMask'

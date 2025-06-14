@@ -3,10 +3,10 @@ import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { titleSchema, type DatalinkAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
+import { useGetAssetChildren } from '$/data-catalog/assetsTableItemsHooks'
 import { useRightPanelData } from '$/providers/react'
 import EditableSpan from '$/react-components/EditableSpan'
 import { Icon } from '$/react-components/Icon'
-import { useGetAssetChildren } from '../../../../data-catalog/assetsTableItemsHooks'
 
 /** Props for a {@link DatalinkNameColumn}. */
 export interface DatalinkNameColumnProps extends AssetColumnProps {

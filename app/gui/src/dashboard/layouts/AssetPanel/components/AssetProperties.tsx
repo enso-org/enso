@@ -1,6 +1,5 @@
 /** @file Display and modify the properties of an asset. */
 import PenIcon from '#/assets/pen.svg'
-import { type Category } from '#/data-catalog/Categories'
 import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -22,6 +21,7 @@ import {
 } from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
+import { type Category } from '$/data-catalog/Categories'
 import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
 import { useFeatureFlags } from '$/providers/react/featureFlags'
 import { Heading } from '$/react-components/aria'

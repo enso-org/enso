@@ -1,10 +1,10 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
-import { useGetAssetChildren } from '#/data-catalog/assetsTableItemsHooks'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useGetAssetChildren } from '$/data-catalog/assetsTableItemsHooks'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import EditableSpan from '$/react-components/EditableSpan'

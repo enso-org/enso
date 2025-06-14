@@ -1,5 +1,4 @@
 /** @file A table row for an arbitrary asset. */
-import { useGetAsset } from '#/data-catalog/assetsTableItemsHooks'
 import {
   useDeleteAssetsMutationState,
   useMoveAssetsMutationState,
@@ -38,6 +37,7 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
+import { useGetAsset } from '$/data-catalog/assetsTableItemsHooks'
 import { useFullUserSession, useRightPanelData } from '$/providers/react'
 import * as React from 'react'
 import { useTransition } from 'react'

@@ -1,10 +1,5 @@
 /** @file Hooks for uploading files. */
 import {
-  useCategories,
-  useCategoriesAPI,
-  useTransferBetweenCategories,
-} from '#/data-catalog/Categories'
-import {
   backendMutationOptions,
   listDirectoryQueryOptions,
   useEnsureListDirectory,
@@ -19,6 +14,11 @@ import type LocalBackend from '#/services/LocalBackend'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
+import {
+  useCategories,
+  useCategoriesAPI,
+  useTransferBetweenCategories,
+} from '$/data-catalog/Categories'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
 import {
   queryOptions,

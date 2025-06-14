@@ -1,7 +1,5 @@
 /** @file Table displaying a list of projects. */
 import DropFilesImage from '#/assets/drop_files.svg'
-import { useAssetsTableItems } from '#/data-catalog/assetsTableItemsHooks'
-import { useDirectoryIds } from '#/data-catalog/directoryIdsHooks'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
@@ -76,6 +74,15 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useAssetsTableItems } from '$/data-catalog/assetsTableItemsHooks'
+import type { AssetsDataTransferPayload } from '$/data-catalog/Categories/transferBetweenCategoriesHooks'
+import { useDirectoryIds } from '$/data-catalog/directoryIdsHooks'
+import {
+  SUGGESTIONS_FOR_HAS,
+  SUGGESTIONS_FOR_NEGATIVE_TYPE,
+  SUGGESTIONS_FOR_NO,
+  SUGGESTIONS_FOR_TYPE,
+} from '$/data-catalog/suggestionsConstants'
 import {
   useBackends,
   useFullUserSession,
@@ -112,13 +119,6 @@ import {
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
-import type { AssetsDataTransferPayload } from '../data-catalog/Categories/transferBetweenCategoriesHooks'
-import {
-  SUGGESTIONS_FOR_HAS,
-  SUGGESTIONS_FOR_NEGATIVE_TYPE,
-  SUGGESTIONS_FOR_NO,
-  SUGGESTIONS_FOR_TYPE,
-} from '../data-catalog/suggestionsConstants'
 
 declare module '#/utilities/LocalStorage' {
   /** */

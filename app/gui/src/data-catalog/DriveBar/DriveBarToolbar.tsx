@@ -3,7 +3,6 @@
  * the current directory and some configuration options.
  */
 import Plus2Icon from '#/assets/plus2.svg'
-import { useDirectoryIds } from '#/data-catalog/directoryIdsHooks'
 import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
@@ -37,6 +36,7 @@ import { type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useDirectoryIds } from '$/data-catalog/directoryIdsHooks'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'
