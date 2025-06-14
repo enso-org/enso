@@ -32,12 +32,38 @@ const NAME = 'enso'
 const DEFAULT_IMPORT_ONLY_MODULES =
   '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|react-keyed-flatten-children|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json|.*[.]svg|.*[.]vue$'
 const RELATIVE_MODULES =
-  'projectManager|server|configParser|authentication|config|debug|detect|fileAssociations|index|ipc|log|naming|paths|preload|projectManagement|security|urlAssociations|contentConfig|desktopEnvironment|#\\u002F.*'
+  'projectManager|server|configParser|authentication|config|debug|detect|fileAssociations|index|ipc|log|naming|paths|preload|projectManagement|security|urlAssociations|contentConfig|desktopEnvironment|#\\u002F.*|\\$\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context|interpolationFunction.+'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
+
+const DASHBOARD_FILES = [
+  'app/gui/src/dashboard/**/*.ts',
+  'app/gui/src/dashboard/**/*.tsx',
+  'app/gui/src/react-components/**/*.ts',
+  'app/gui/src/react-components/**/*.tsx',
+  'app/gui/src/authentication/**/*.tsx',
+]
+
+const DASHBOARD_STORIES_FILES = [
+  'app/gui/src/dashboard/**/*.stories.ts',
+  'app/gui/src/dashboard/**/*.stories.tsx',
+  'app/gui/src/react-components/**/*.stories.ts',
+  'app/gui/src/react-components/**/*.stories.tsx',
+  'app/gui/src/authentication/**/*.stories.ts',
+  'app/gui/src/authentication/**/*.stories.tsx',
+]
+
+const DASHBOARD_TEST_FILES = [
+  'app/gui/src/dashboard/**/*.test.ts',
+  'app/gui/src/dashboard/**/*.test.tsx',
+  'app/gui/src/react-components/**/*.test.ts',
+  'app/gui/src/react-components/**/*.test.tsx',
+  'app/gui/src/authentication/**/*.test.ts',
+  'app/gui/src/authentication/**/*.test.tsx',
+]
 
 // =======================================
 // === Restricted syntactic constructs ===
@@ -297,10 +323,10 @@ const config = [
   // === Dashboard Rules ===
   {
     ...reactRefresh.configs.vite,
-    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
+    files: DASHBOARD_FILES,
   },
   {
-    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
+    files: DASHBOARD_FILES,
     settings: {
       react: {
         version: '18.2',
@@ -540,14 +566,7 @@ const config = [
     },
   },
   {
-    files: [
-      'app/gui/src/dashboard/**/*.ts',
-      'app/gui/src/dashboard/**/*.mts',
-      'app/gui/src/dashboard/**/*.cts',
-      'app/gui/src/dashboard/**/*.tsx',
-      'app/gui/src/dashboard/**/*.mtsx',
-      'app/gui/src/dashboard/**/*.ctsx',
-    ],
+    files: DASHBOARD_FILES,
     ignores: ['**/*.d.ts'],
     rules: {
       'no-restricted-syntax': [
@@ -563,7 +582,7 @@ const config = [
     },
   },
   {
-    files: ['app/gui/src/dashboard/**/*.stories.tsx'],
+    files: DASHBOARD_STORIES_FILES,
     rules: {
       'no-restricted-syntax': 'off',
       'jsdoc/require-jsdoc': 'off',
@@ -576,7 +595,7 @@ const config = [
     },
   },
   {
-    files: ['app/gui/src/dashboard/**/*.test.tsx', 'app/gui/src/dashboard/**/*.test.ts'],
+    files: DASHBOARD_TEST_FILES,
     rules: {
       'no-restricted-syntax': 'off',
       'jsdoc/require-jsdoc': 'off',
@@ -603,7 +622,7 @@ const config = [
   },
   // === React Compiler Rules ===
   {
-    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
+    files: DASHBOARD_FILES,
     ignores: [
       '**/*.d.ts',
       '**/*.spec.ts',

@@ -4,10 +4,10 @@
  * if user lost privileges to see them.
  */
 
+import { EnsoDevtools as EnsoDevToolsReact } from '#/pages/Devtools'
 import { useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
-import { EnsoDevtools as EnsoDevToolsReact } from '$/react-components/Devtools'
 import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { computed, watch, watchPostEffect } from 'vue'
