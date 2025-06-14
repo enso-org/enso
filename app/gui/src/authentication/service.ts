@@ -8,11 +8,11 @@ import * as appUtils from '$/appUtils'
 import * as cognitoModule from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
 import { useFeatureFlag } from '$/providers/featureFlags'
-import { useRouter } from '$/providers/react'
 import * as amplify from '@aws-amplify/auth'
 import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as detect from 'enso-common/src/detect'
+import { useRouter } from 'vue-router'
 
 /**
  * Configuration for the AWS Amplify library.
@@ -111,7 +111,7 @@ export interface AuthService {
  */
 export function useInitAuthService(): AuthService {
   const enableDeepLinks = useFeatureFlag('enableDeepLinks')
-  const { router } = useRouter()
+  const router = useRouter()
 
   const amplifyConfig = loadAmplifyConfig(
     console,
