@@ -4,8 +4,8 @@
  */
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
-import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { LOGIN_PATH } from '$/appUtils'
+import AuthenticationPage from '$/authentication/AuthenticationPage'
 import { useBackends, useRouter, useSession, useText } from '$/providers/react'
 import { Form } from '$/react-components/Form'
 import { Input } from '$/react-components/Inputs'

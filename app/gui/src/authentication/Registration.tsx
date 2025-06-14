@@ -7,10 +7,10 @@ import {
   latestPrivacyPolicyQueryOptions,
   latestTermsOfServiceQueryOptions,
 } from '#/modals/AgreementsModal'
-import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import LocalStorage from '#/utilities/LocalStorage'
 import { LOGIN_PATH } from '$/appUtils'
+import AuthenticationPage from '$/authentication/AuthenticationPage'
+import { passwordWithPatternSchema } from '$/authentication/schemas'
 import { useBackends, useLocalStorage, useRouter, useSession, useText } from '$/providers/react'
 import { Alert } from '$/react-components/Alert'
 import { Button } from '$/react-components/Button'

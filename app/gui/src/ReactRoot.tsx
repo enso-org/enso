@@ -1,8 +1,8 @@
 /** @file A file containing setup for React part of application. */
 
 import App from '#/App.tsx'
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import LoggerProvider from '#/providers/LoggerProvider'
+import LoadingScreen from '$/authentication/LoadingScreen'
 import { ReactQueryDevtools } from '$/react-components/Devtools'
 import { ErrorBoundary } from '$/react-components/ErrorBoundary'
 import { OfflineNotificationManager } from '$/react-components/OfflineNotificationManager'
