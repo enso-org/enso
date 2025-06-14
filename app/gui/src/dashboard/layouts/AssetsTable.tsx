@@ -1081,6 +1081,13 @@ function AssetsTable(props: AssetsTableProps) {
         setSelectedAssets([asset])
       }
       const nodes = assets.filter((node) => newSelectedKeys.has(node.id))
+      const isPayloadInvalid = nodes.some(
+        (node) => node.type === AssetType.project && IS_OPENING_OR_OPENED[node.projectState.type],
+      )
+      if (isPayloadInvalid) {
+        event.preventDefault()
+        return
+      }
       const payload: AssetRowsDragPayload = {
         category,
         items: nodes.map((node) => ({

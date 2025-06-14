@@ -1,9 +1,12 @@
 /** @file A file containing setup for React part of application. */
 
 import App from '#/App.tsx'
+import { useMount } from '#/hooks/mountHooks'
 import { ReactQueryDevtools } from '#/pages/Devtools'
 import LoggerProvider from '#/providers/LoggerProvider'
 import LoadingScreen from '$/authentication/LoadingScreen'
+import { useBackends } from '$/providers/backends'
+import { useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { ErrorBoundary } from '$/react-components/ErrorBoundary'
 import { OfflineNotificationManager } from '$/react-components/OfflineNotificationManager'
 import { Suspense } from '$/react-components/Suspense'
@@ -28,6 +31,14 @@ export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
 
   const portalRoot = document.querySelector('#enso-portal-root')
   invariant(portalRoot instanceof HTMLElement, 'PortalRoot element not found')
+
+  const setFeatureFlag = useSetFeatureFlag()
+  const { localBackend } = useBackends()
+  useMount(() => {
+    if (typeof window !== 'undefined' && window.overrideFeatureFlags === undefined) {
+      setFeatureFlag('enableLocalBackend', localBackend != null)
+    }
+  })
 
   return (
     <StrictMode>

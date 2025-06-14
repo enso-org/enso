@@ -77,14 +77,6 @@ declare module '#/utilities/LocalStorage' {
 LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
-/** Global configuration for the `App` component. */
-export interface AppProps {
-  /**
-   * Whether the application supports deep links. This is only true when using
-   * the installed app on macOS and Windows.
-   */
-}
-
 /**
  * Component called by the parent module, returning the root React component for this
  * package.
@@ -92,7 +84,7 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
-export default function App(props: React.PropsWithChildren<AppProps>) {
+export default function App(props: React.PropsWithChildren) {
   const { isOffline } = useOffline()
   const { getText } = useText()
   const queryClient = reactQuery.useQueryClient()
@@ -143,7 +135,7 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider.
  */
-function AppRouter(props: React.PropsWithChildren<AppProps>) {
+function AppRouter(props: React.PropsWithChildren) {
   const { children } = props
   const { router } = useRouter()
   const navigate = router.push.bind(router)

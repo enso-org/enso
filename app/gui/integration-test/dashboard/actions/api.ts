@@ -201,6 +201,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   }
 
   let featureFlags: Partial<FeatureFlags> = {
+    enableLocalBackend: true,
     enableCloudExecution: true,
     enableScheduledExecution: true,
     enableAdvancedProjectExecutionOptions: true,
@@ -1392,11 +1393,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     deleteAsset,
     editAsset,
     undeleteAsset,
-    createDirectory,
-    createProject,
-    createFile,
-    createSecret,
-    createDatalink,
     addDirectory,
     addProject,
     addFile,
@@ -1423,9 +1419,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     trackCalls,
   } as const
 
-  if (setupAPI) {
-    await setupAPI(api)
-  }
+  await setupAPI?.(api)
 
   await page.addInitScript((flags) => {
     Object.defineProperty(window, 'overrideFeatureFlags', {

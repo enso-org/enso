@@ -13,7 +13,6 @@ import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
-import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
 import { computed, onScopeDispose, proxyRefs, ref, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
@@ -315,8 +314,6 @@ export function createSessionStore(
 }
 
 export const useSession = createGlobalState(() => {
-  const authService = useInitAuthService({
-    supportsDeepLinks: !IS_DEV_MODE && !isOnLinux() && isOnElectron(),
-  })
-  return createSessionStore(authService.cognito, authService.registerAuthEventListener)
+  const { cognito, registerAuthEventListener } = useInitAuthService()
+  return createSessionStore(cognito, registerAuthEventListener)
 })
