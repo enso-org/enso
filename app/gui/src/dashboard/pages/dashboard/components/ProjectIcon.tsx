@@ -1,9 +1,6 @@
 /** @file An interactive button indicating the status of a project. */
 import PlayIcon from '#/assets/play.svg'
 import StopIcon from '#/assets/stop.svg'
-import { Button } from '#/components/Button'
-import { Spinner } from '#/components/Spinner'
-import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCanOpenProjects } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
@@ -20,6 +17,9 @@ import {
 } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession, useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Spinner } from '$/react-components/Spinner'
+import { StatelessSpinner, type SpinnerState } from '$/react-components/StatelessSpinner'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: ProjectState.closed } as const

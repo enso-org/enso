@@ -4,7 +4,6 @@ import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
-import { Result } from '#/components/Result'
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally } from '#/hooks/projectHooks'
@@ -13,6 +12,7 @@ import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/service
 import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import { useBackends, useRightPanelData, useText } from '$/providers/react'
+import { Result } from '$/react-components/Result'
 import { includes } from 'enso-common/src/utilities/data/array'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'

@@ -1,9 +1,9 @@
 /** @file Settings tab for deleting the current user. */
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Text } from '#/components/Text'
 import { ConfirmDeleteUserModal } from '#/modals/ConfirmDeleteUserModal'
 import { useAuth, useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Text } from '$/react-components/Text'
 
 /** Settings tab for deleting the current user. */
 export default function DeleteUserAccountSettingsSection() {

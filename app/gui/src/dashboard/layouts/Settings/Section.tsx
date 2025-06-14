@@ -1,6 +1,6 @@
 /** @file Rendering for a settings section. */
-import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
+import { Text } from '$/react-components/Text'
 import { memo } from 'react'
 import type { SettingsContext, SettingsSectionData } from './data'
 import SettingsEntry from './Entry'

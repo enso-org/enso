@@ -1,8 +1,8 @@
 /** @file Success screen for the "invite users" modal. */
-import { Button } from '#/components/Button'
-import { CopyBlock } from '#/components/CopyBlock'
-import * as result from '#/components/Result'
 import { useRouter, useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { CopyBlock } from '$/react-components/CopyBlock'
+import * as result from '$/react-components/Result'
 import * as React from 'react'
 
 /**

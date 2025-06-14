@@ -1,5 +1,5 @@
 /** @file A modal for adding a payment method. */
-import { Dialog } from '#/components/Dialog'
+import { Dialog } from '$/react-components/Dialog'
 import type * as stripeJs from '@stripe/stripe-js'
 import { AddPaymentMethodForm } from './AddPaymentMethodForm'
 import { StripeProvider } from './StripeProvider'

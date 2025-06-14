@@ -1,8 +1,8 @@
 /** @file A context menu available everywhere in the directory. */
 import { useStore } from '#/utilities/zustand'
 
-import ContextMenu from '#/components/ContextMenu'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
+import ContextMenu from '$/react-components/ContextMenu'
+import ContextMenuEntry from '$/react-components/ContextMenuEntry'
 
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'

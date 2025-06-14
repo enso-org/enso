@@ -1,9 +1,9 @@
 /** @file A panel to switch between settings tabs. */
-import { Header } from '#/components/aria'
-import { Button } from '#/components/Button'
-import SidebarTabButton from '#/components/styled/SidebarTabButton'
-import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
+import { Header } from '$/react-components/aria'
+import { Button } from '$/react-components/Button'
+import SidebarTabButton from '$/react-components/styled/SidebarTabButton'
+import { Text } from '$/react-components/Text'
 import { memo, type Dispatch, type SetStateAction } from 'react'
 import { SETTINGS_DATA, type SettingsContext } from './data'
 import type SettingsTabType from './TabType'

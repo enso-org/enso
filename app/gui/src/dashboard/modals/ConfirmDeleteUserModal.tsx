@@ -1,9 +1,9 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Form } from '#/components/Form'
-import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Form } from '$/react-components/Form'
+import { Text } from '$/react-components/Text'
 import * as z from 'zod'
 
 /** Props for a {@link ConfirmDeleteUserModal}. */

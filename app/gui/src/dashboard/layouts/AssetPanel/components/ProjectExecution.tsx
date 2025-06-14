@@ -1,12 +1,6 @@
 /** @file Displays information describing a specific version of an asset. */
 import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { IconDisplay } from '#/components/IconDisplay'
-import { Menu } from '#/components/Menu'
-import { Text } from '#/components/Text'
-import { VisualTooltip } from '#/components/VisualTooltip'
 import {
   backendMutationOptions,
   getProjectExecutionDetailsQueryOptions,
@@ -21,6 +15,12 @@ import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { IconDisplay } from '$/react-components/IconDisplay'
+import { Menu } from '$/react-components/Menu'
+import { Text } from '$/react-components/Text'
+import { VisualTooltip } from '$/react-components/VisualTooltip'
 import {
   getLocalTimeZone,
   now,

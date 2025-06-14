@@ -1,11 +1,11 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
-import { FieldError } from '#/components/aria'
-import { Form, type FieldPath, type FormInstance, type TSchema } from '#/components/Form'
-import type * as jsonSchemaInput from '#/components/JSONSchemaInput'
-import JSONSchemaInput from '#/components/JSONSchemaInput'
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import * as datalinkValidator from '#/data/datalinkValidator'
 import * as error from '#/utilities/error'
+import { FieldError } from '$/react-components/aria'
+import { Form, type FieldPath, type FormInstance, type TSchema } from '$/react-components/Form'
+import type * as jsonSchemaInput from '$/react-components/JSONSchemaInput'
+import JSONSchemaInput from '$/react-components/JSONSchemaInput'
 
 const DEFS: Record<string, object> = SCHEMA.$defs
 

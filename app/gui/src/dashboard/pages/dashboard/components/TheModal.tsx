@@ -1,7 +1,7 @@
 /** @file A component that renders the modal instance from the modal React Context. */
-import { Pressable } from '#/components/aria'
-import { Dialog } from '#/components/Dialog'
 import * as modalProvider from '#/providers/ModalProvider'
+import { Pressable } from '$/react-components/aria'
+import { Dialog } from '$/react-components/Dialog'
 import { AnimatePresence, motion } from 'framer-motion'
 
 /** Renders the modal instance from the modal React Context (if any). */

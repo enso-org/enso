@@ -5,7 +5,7 @@
  */
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
-import * as devtools from '#/components/Devtools'
+import * as devtools from '$/react-components/Devtools'
 
 import type * as backend from '#/services/Backend'
 

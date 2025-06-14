@@ -1,5 +1,3 @@
-import { ErrorBoundary } from '#/components/ErrorBoundary'
-import { Suspense } from '#/components/Suspense'
 import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/layouts/CloudBrowserDisabled'
 import { OpenAppWatcher } from '#/layouts/OpenAppWatcher'
 import {
@@ -31,6 +29,8 @@ import {
   SUBSCRIBE_PATH,
   SUBSCRIBE_SUCCESS_PATH,
 } from '$/appUtils'
+import { ErrorBoundary } from '$/react-components/ErrorBoundary'
+import { Suspense } from '$/react-components/Suspense'
 import { reactComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { PropsWithChildren, ReactNode } from 'react'

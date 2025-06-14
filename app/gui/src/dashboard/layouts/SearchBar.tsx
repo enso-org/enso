@@ -1,6 +1,6 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
-import { Input, Label, SearchField } from '#/components/aria'
-import { Icon } from '#/components/Icon'
+import { Input, Label, SearchField } from '$/react-components/aria'
+import { Icon } from '$/react-components/Icon'
 import type { Dispatch, SetStateAction } from 'react'
 
 /** Props for a {@link SearchBar}. */

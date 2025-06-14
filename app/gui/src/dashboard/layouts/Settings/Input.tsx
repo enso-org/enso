@@ -1,6 +1,6 @@
 /** @file Rendering for an {@link SettingsInputData}. */
-import type { FieldPath, TSchema } from '#/components/Form'
 import { useText } from '$/providers/react'
+import type { FieldPath, TSchema } from '$/react-components/Form'
 import {
   SettingsAriaInput,
   SettingsAriaInputEmail,

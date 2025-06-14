@@ -4,11 +4,11 @@
  * Card component
  */
 import Check from '#/assets/check_mark.svg'
-import { Separator } from '#/components/Separator'
-import SvgMask from '#/components/SvgMask'
-import { Text } from '#/components/Text'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
+import { Separator } from '$/react-components/Separator'
+import SvgMask from '$/react-components/SvgMask'
+import { Text } from '$/react-components/Text'
 import type * as text from 'enso-common/src/text'
 import * as React from 'react'
 

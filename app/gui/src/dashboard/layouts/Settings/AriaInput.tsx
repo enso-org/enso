@@ -1,9 +1,9 @@
 /** @file A styled input for settings pages. */
-import { Form, type FieldPath, type TSchema } from '#/components/Form'
-import type { InputProps } from '#/components/Inputs'
-import { Input, Password } from '#/components/Inputs'
-import { TEXT_STYLE } from '#/components/Text'
 import { tv } from '#/utilities/tailwindVariants'
+import { Form, type FieldPath, type TSchema } from '$/react-components/Form'
+import type { InputProps } from '$/react-components/Inputs'
+import { Input, Password } from '$/react-components/Inputs'
+import { TEXT_STYLE } from '$/react-components/Text'
 
 const SETTINGS_FIELD_STYLES = tv({
   extend: Form.FIELD_STYLES,

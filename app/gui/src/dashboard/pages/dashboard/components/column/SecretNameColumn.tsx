@@ -1,7 +1,5 @@
 /** @file The icon and name of a {@link SecretAsset}. */
 import KeyIcon from '#/assets/key.svg'
-import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -13,6 +11,8 @@ import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
+import EditableSpan from '$/react-components/EditableSpan'
+import SvgMask from '$/react-components/SvgMask'
 import { toast } from 'react-toastify'
 
 /** Props for a {@link SecretNameColumn}. */

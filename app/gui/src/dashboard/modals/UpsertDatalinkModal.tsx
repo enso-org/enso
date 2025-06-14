@@ -1,13 +1,13 @@
 /** @file A modal for creating and editing a Datalink. */
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import { validateDatalink } from '#/data/datalinkValidator'
 import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import { constantValueOfSchema } from '#/utilities/jsonSchema'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Form } from '$/react-components/Form'
+import { Input } from '$/react-components/Inputs'
 
 const DEFS: Record<string, object> = SCHEMA.$defs
 const INITIAL_DATALINK_VALUE = constantValueOfSchema(DEFS, SCHEMA.$defs.DataLink, true)[0] ?? null

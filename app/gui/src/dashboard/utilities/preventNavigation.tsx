@@ -1,10 +1,10 @@
 /** @file A React hook to prevent navigation. */
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Text } from '#/components/Text'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Text } from '$/react-components/Text'
 import { isOnElectron } from 'enso-common/src/detect'
 import { useEffect } from 'react'
 

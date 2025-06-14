@@ -1,6 +1,6 @@
 /** @file Types related to the `NotificationTray`. */
-import type { IconProps } from '#/components/Icon'
-import type { SvgUseIcon } from '#/components/types'
+import type { IconProps } from '$/react-components/Icon'
+import type { SvgUseIcon } from '$/react-components/types'
 
 /** Information required to display a notification. */
 export interface NotificationInfo {

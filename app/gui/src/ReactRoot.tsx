@@ -1,13 +1,13 @@
 /** @file A file containing setup for React part of application. */
 
 import App from '#/App.tsx'
-import { ReactQueryDevtools } from '#/components/Devtools'
-import { ErrorBoundary } from '#/components/ErrorBoundary'
-import { OfflineNotificationManager } from '#/components/OfflineNotificationManager'
-import { Suspense } from '#/components/Suspense'
-import UIProviders from '#/components/UIProviders'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import LoggerProvider from '#/providers/LoggerProvider'
+import { ReactQueryDevtools } from '$/react-components/Devtools'
+import { ErrorBoundary } from '$/react-components/ErrorBoundary'
+import { OfflineNotificationManager } from '$/react-components/OfflineNotificationManager'
+import { Suspense } from '$/react-components/Suspense'
+import UIProviders from '$/react-components/UIProviders'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { QueryClient } from '@tanstack/vue-query'
 import { PropsWithChildren, StrictMode } from 'react'

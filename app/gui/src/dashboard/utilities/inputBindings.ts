@@ -2,11 +2,11 @@
  * @file Exports `defineKeybinds`, a function to define a namespace containing keyboard and mouse
  * shortcuts.
  */
-import type { SvgUseIcon } from '#/components/types'
 import * as eventModule from '#/utilities/event'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
+import type { SvgUseIcon } from '$/react-components/types'
 import * as detect from 'enso-common/src/detect'
 
 /** A keyboard key obtained from `KeyboardEvent.key`. */

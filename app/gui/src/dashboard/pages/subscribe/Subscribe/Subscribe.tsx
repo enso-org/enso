@@ -1,10 +1,10 @@
 /** @file A page in which the currently active payment plan can be changed. */
-import { Button } from '#/components/Button'
-import { Text } from '#/components/Text'
 import { PlanSelector } from '#/modules/payments'
 import { isPlan } from '#/services/Backend'
 import { DASHBOARD_PATH, SUBSCRIBE_SUCCESS_PATH } from '$/appUtils'
 import { useFullUserSession, useRouter, useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Text } from '$/react-components/Text'
 
 /**
  * A page in which the currently active payment plan can be changed.

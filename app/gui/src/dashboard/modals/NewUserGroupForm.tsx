@@ -1,13 +1,13 @@
 /** @file A form to create a user group. */
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
-import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { normalizeName } from '#/utilities/string'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Form } from '$/react-components/Form'
+import { Input } from '$/react-components/Inputs'
+import { Text } from '$/react-components/Text'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 /** A form to create a user group. */

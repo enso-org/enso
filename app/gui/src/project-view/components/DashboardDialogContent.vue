@@ -8,8 +8,8 @@ import {
   DIALOG_MODAL_STYLES,
   DIALOG_OVERLAY_STYLES,
   DIALOG_STYLES,
-} from '#/components/Dialog/variants'
-import { TEXT_STYLE } from '#/components/Text/variants'
+} from '#/react-components/Dialog/variantsriants'
+import { TEXT_STYLE } from '#/react-components/Text/variantsriants'
 import { computed } from 'vue'
 
 const { heading, blockInteractions = false } = defineProps<{

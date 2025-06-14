@@ -10,17 +10,15 @@ import { useText } from '$/providers/react'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 
-import ContextMenu from '#/components/ContextMenu'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
 import type * as assetRow from '#/pages/dashboard/components/AssetRow'
+import ContextMenu from '$/react-components/ContextMenu'
+import ContextMenuEntry from '$/react-components/ContextMenuEntry'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import * as backendModule from '#/services/Backend'
 
-import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
-import { Separator } from '#/components/Separator'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -38,6 +36,8 @@ import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/react'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import type { RightPanelData } from '$/providers/rightPanel'
+import { ContextMenuEntry as PaywallContextMenuEntry } from '$/react-components/Paywall'
+import { Separator } from '$/react-components/Separator'
 import {
   isUploadableAsset,
   useUploadFileToCloudMutation,

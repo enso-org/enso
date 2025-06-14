@@ -3,10 +3,10 @@
  * Dialog for a Google credential.
  * Remember to ensure this component is added to `CREDENTIAL_INFOS` in `constants.ts`.
  */
-import { Checkbox } from '#/components/Checkbox'
-import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
 import { useText } from '$/providers/react'
+import { Checkbox } from '$/react-components/Checkbox'
+import { Form } from '$/react-components/Form'
+import { Input } from '$/react-components/Inputs'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as google from './google'
 import type { CredentialFormProps } from './types'

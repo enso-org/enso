@@ -1,15 +1,15 @@
 /** @file A dropdown menu of user actions and settings. */
-import { useToggleEnsoDevtools } from '#/components/Devtools'
-import { Popover } from '#/components/Dialog'
-import MenuEntry from '#/components/MenuEntry'
-import { ProfilePicture } from '#/components/ProfilePicture'
-import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { useBackends, useFullUserSession, useSession, useText } from '$/providers/react'
+import { useToggleEnsoDevtools } from '$/react-components/Devtools'
+import { Popover } from '$/react-components/Dialog'
+import MenuEntry from '$/react-components/MenuEntry'
+import { ProfilePicture } from '$/react-components/ProfilePicture'
+import { Text } from '$/react-components/Text'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 /** Props for a {@link UserMenu}. */

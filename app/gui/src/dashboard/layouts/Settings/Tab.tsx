@@ -3,10 +3,10 @@ import { useMemo } from 'react'
 
 import { twMerge } from 'tailwind-merge'
 
-import { ErrorBoundary } from '#/components/ErrorBoundary'
-import { Suspense } from '#/components/Suspense'
 import { usePaywall } from '#/hooks/billing'
 import { useFullUserSession } from '$/providers/react'
+import { ErrorBoundary } from '$/react-components/ErrorBoundary'
+import { Suspense } from '$/react-components/Suspense'
 import type { SettingsContext, SettingsSectionData, SettingsTabData } from './data'
 import SettingsPaywall from './Paywall'
 import SettingsSection from './Section'

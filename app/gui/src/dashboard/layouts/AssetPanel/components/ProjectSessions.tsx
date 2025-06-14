@@ -1,9 +1,9 @@
 /** @file A list of previous versions of an asset. */
-import { Result } from '#/components/Result'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
 import { useBackends, useRightPanelData, useText } from '$/providers/react'
+import { Result } from '$/react-components/Result'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ProjectSession } from './ProjectSession'
 

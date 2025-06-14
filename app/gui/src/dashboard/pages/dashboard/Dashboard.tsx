@@ -14,7 +14,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvider'
 
-import Page from '#/components/Page'
+import Page from '$/react-components/Page'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'

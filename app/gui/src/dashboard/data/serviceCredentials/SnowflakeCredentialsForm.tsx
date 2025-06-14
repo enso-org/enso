@@ -3,11 +3,11 @@
  * Dialog for a Snowflake credential.
  * Remember to ensure this component is added to `CREDENTIAL_INFOS` in `constants.ts`.
  */
-import { Button } from '#/components/Button'
-import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Form } from '$/react-components/Form'
+import { Input } from '$/react-components/Inputs'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as snowflake from './snowflake'
 import type { CredentialFormProps } from './types'

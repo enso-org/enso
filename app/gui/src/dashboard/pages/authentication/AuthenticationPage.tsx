@@ -3,12 +3,12 @@
  * This is a component, NOT a page, but it is here because it is related to the authentication pages
  * and nothing else.
  */
-import { DIALOG_BACKGROUND } from '#/components/Dialog'
-import { Form, type FormProps, type TSchema } from '#/components/Form'
-import Page from '#/components/Page'
-import { Text } from '#/components/Text'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useText } from '$/providers/react'
+import { DIALOG_BACKGROUND } from '$/react-components/Dialog'
+import { Form, type FormProps, type TSchema } from '$/react-components/Form'
+import Page from '$/react-components/Page'
+import { Text } from '$/react-components/Text'
 import type { ReactNode } from 'react'
 import invariant from 'tiny-invariant'
 

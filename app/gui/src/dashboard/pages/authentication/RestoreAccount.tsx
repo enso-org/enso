@@ -1,10 +1,10 @@
 /** @file Restore an account that has been deleted. */
 import UntrashIcon from '#/assets/untrash.svg'
-import * as aria from '#/components/aria'
-import { Button } from '#/components/Button'
-import SvgMask from '#/components/SvgMask'
 import { LOGIN_PATH } from '$/appUtils'
 import { useAuth, useRouter, useSession, useText } from '$/providers/react'
+import * as aria from '$/react-components/aria'
+import { Button } from '$/react-components/Button'
+import SvgMask from '$/react-components/SvgMask'
 
 /** Restore an account that has been deleted. */
 export default function RestoreAccount() {

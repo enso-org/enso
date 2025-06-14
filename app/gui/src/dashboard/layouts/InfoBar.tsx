@@ -1,9 +1,9 @@
 /** @file A toolbar containing chat and the user menu. */
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Icon } from '#/components/Icon'
 import InfoMenu from '#/layouts/InfoMenu'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Icon } from '$/react-components/Icon'
 import { memo } from 'react'
 
 /** A toolbar containing chat and the user menu. */

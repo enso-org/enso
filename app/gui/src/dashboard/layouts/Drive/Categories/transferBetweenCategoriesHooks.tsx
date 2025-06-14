@@ -1,7 +1,4 @@
 /** @file The categories available in the category switcher. */
-import { Alert } from '#/components/Alert'
-import { AlertDialog, ask, type Resolution } from '#/components/AlertDialog'
-import { Text } from '#/components/Text'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -16,6 +13,9 @@ import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText, useUser } from '$/providers/react'
 import { type GetText } from '$/providers/text'
+import { Alert } from '$/react-components/Alert'
+import { AlertDialog, ask, type Resolution } from '$/react-components/AlertDialog'
+import { Text } from '$/react-components/Text'
 import type { DropOperation } from '@react-types/shared'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'

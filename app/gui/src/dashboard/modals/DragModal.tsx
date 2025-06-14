@@ -1,10 +1,10 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { Badge } from '#/components/Badge'
-import { DIALOG_BACKGROUND } from '#/components/Dialog'
-import Portal from '#/components/Portal'
-import { Underlay } from '#/components/Underlay'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { unsetModal } from '#/providers/ModalProvider'
+import { Badge } from '$/react-components/Badge'
+import { DIALOG_BACKGROUND } from '$/react-components/Dialog'
+import Portal from '$/react-components/Portal'
+import { Underlay } from '$/react-components/Underlay'
 import {
   Children,
   startTransition,

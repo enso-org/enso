@@ -1,12 +1,5 @@
 /** @file Table displaying a list of projects. */
 import DropFilesImage from '#/assets/drop_files.svg'
-import { FileTrigger, mergeProps } from '#/components/aria'
-import { Button } from '#/components/Button'
-import { ErrorDisplay } from '#/components/ErrorBoundary'
-import { IsolateLayout } from '#/components/IsolateLayout'
-import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
-import SvgMask from '#/components/SvgMask'
-import { Text } from '#/components/Text'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
@@ -90,6 +83,13 @@ import {
   useRightPanelData,
   useText,
 } from '$/providers/react'
+import { FileTrigger, mergeProps } from '$/react-components/aria'
+import { Button } from '$/react-components/Button'
+import { ErrorDisplay } from '$/react-components/ErrorBoundary'
+import { IsolateLayout } from '$/react-components/IsolateLayout'
+import { SelectionBrush, type OnDragParams } from '$/react-components/SelectionBrush'
+import SvgMask from '$/react-components/SvgMask'
+import { Text } from '$/react-components/Text'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Children,

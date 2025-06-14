@@ -1,4 +1,4 @@
-import { ICON_COLORS } from '#/components/Icon/Icon'
+import { ICON_COLORS } from '$/react-components/Icon/Icon'
 import { iconNames } from '@/util/iconMetadata/iconName'
 import type { Meta, StoryObj } from '@storybook/react'
 import { NotificationItem, type NotificationItemProps } from './NotificationItem'

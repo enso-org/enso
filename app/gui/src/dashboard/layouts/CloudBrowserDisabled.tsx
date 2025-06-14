@@ -2,10 +2,6 @@
  * @file Layout that disables the dashboard if the cloud is disabled.
  */
 
-import { Button } from '#/components/Button'
-import Page from '#/components/Page'
-import { Result } from '#/components/Result'
-import { Text } from '#/components/Text'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
@@ -13,6 +9,10 @@ import { unsafeWriteValue } from '#/utilities/write'
 import * as appUtils from '$/appUtils'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { Button } from '$/react-components/Button'
+import Page from '$/react-components/Page'
+import { Result } from '$/react-components/Result'
+import { Text } from '$/react-components/Text'
 import * as React from 'react'
 
 const DEFAULT_REDIRECT_DELAY_MS = 3_000

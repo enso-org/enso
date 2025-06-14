@@ -3,11 +3,6 @@
  * the current directory and some configuration options.
  */
 import Plus2Icon from '#/assets/plus2.svg'
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { ErrorBoundary, InlineErrorDisplay } from '#/components/ErrorBoundary'
-import { IconDisplay } from '#/components/IconDisplay'
-import { useVisualTooltip, VisualTooltip } from '#/components/VisualTooltip'
 import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
@@ -43,6 +38,11 @@ import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { ErrorBoundary, InlineErrorDisplay } from '$/react-components/ErrorBoundary'
+import { IconDisplay } from '$/react-components/IconDisplay'
+import { useVisualTooltip, VisualTooltip } from '$/react-components/VisualTooltip'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'

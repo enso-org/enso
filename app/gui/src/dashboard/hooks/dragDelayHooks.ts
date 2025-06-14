@@ -1,6 +1,6 @@
 /** @file Hooks to trigger an action on drag delay. */
-import type { DropEnterEvent, DropOptions } from '#/components/aria'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import type { DropEnterEvent, DropOptions } from '$/react-components/aria'
 import type { DOMAttributes, DragEvent } from 'react'
 import { useRef } from 'react'
 

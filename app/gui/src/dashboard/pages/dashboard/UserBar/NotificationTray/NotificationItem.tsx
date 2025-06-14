@@ -1,10 +1,10 @@
 /** @file An item in the notification tray. */
-import { CloseButton } from '#/components/Button'
-import { Icon } from '#/components/Icon'
-import { ProgressBar } from '#/components/ProgressBar'
-import { Text } from '#/components/Text'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
+import { CloseButton } from '$/react-components/Button'
+import { Icon } from '$/react-components/Icon'
+import { ProgressBar } from '$/react-components/ProgressBar'
+import { Text } from '$/react-components/Text'
 import type { NotificationInfo } from './types'
 
 const NOTIFICATION_ITEM_STYLES = tv({

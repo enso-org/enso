@@ -1,9 +1,9 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { Button, CopyButton } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Icon } from '#/components/Icon'
-import { Text } from '#/components/Text'
 import { useBackends, useText } from '$/providers/react'
+import { Button, CopyButton } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Icon } from '$/react-components/Icon'
+import { Text } from '$/react-components/Text'
 import type * as text from 'enso-common/src/text'
 import * as React from 'react'
 

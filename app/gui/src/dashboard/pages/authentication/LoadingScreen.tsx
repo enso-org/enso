@@ -1,7 +1,7 @@
 /** @file A loading screen, displayed while the user is logging in. */
-import { StatelessSpinner } from '#/components/StatelessSpinner'
-import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
+import { StatelessSpinner } from '$/react-components/StatelessSpinner'
+import { Text } from '$/react-components/Text'
 
 /** The diameter of the spinner. */
 const SPINNER_SIZE_PX = 64

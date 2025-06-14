@@ -1,6 +1,6 @@
 /** @file Return the appropriate file icon given the file name. */
-import type { SvgUseIcon } from '#/components/types'
 import { basenameAndExtension } from '#/utilities/fileInfo'
+import type { SvgUseIcon } from '$/react-components/types'
 
 /** Return the appropriate icon given the file name. */
 export function fileIcon(fileName: string): SvgUseIcon {

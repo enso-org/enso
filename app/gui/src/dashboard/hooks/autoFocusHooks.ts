@@ -3,7 +3,7 @@
  * Hooks for automatically focusing elements.
  */
 
-import { useInteractOutside } from '#/components/aria'
+import { useInteractOutside } from '$/react-components/aria'
 import { useEffect, useRef } from 'react'
 import { useEventCallback } from './eventCallbackHooks'
 import { useEventListener } from './eventListenerHooks'

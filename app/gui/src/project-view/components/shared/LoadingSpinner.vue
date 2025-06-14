@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ROTATING_ELEMENT_SIZE } from '#/components/Spinner'
+import { ROTATING_ELEMENT_SIZE } from '#/react-components/Spinnerpinner'
 import { twJoin } from '#/utilities/tailwindMerge'
 
 const SVG_VIEWBOX_SIZE = '24'

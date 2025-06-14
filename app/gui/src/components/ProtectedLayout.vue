@@ -4,7 +4,7 @@
  * if user lost privileges to see them.
  */
 
-import { EnsoDevtools as EnsoDevToolsReact } from '#/components/Devtools'
+import { EnsoDevtools as EnsoDevToolsReact } from '#/react-components/Devtoolsvtools'
 import { useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'

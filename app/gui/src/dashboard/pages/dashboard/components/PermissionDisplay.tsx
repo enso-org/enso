@@ -1,9 +1,9 @@
 /** @file Colored border around icons and text indicating permissions. */
-import type * as aria from '#/components/aria'
-import { Button } from '#/components/Button'
-import { Text } from '#/components/Text'
 import * as permissionsModule from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import type * as aria from '$/react-components/aria'
+import { Button } from '$/react-components/Button'
+import { Text } from '$/react-components/Text'
 import * as React from 'react'
 
 /** Props for a {@link PermissionDisplay}. */

@@ -1,8 +1,8 @@
 /** @file A modal for adding a payment method. */
-import { useDialogContext } from '#/components/Dialog'
-import { Form, type FormInstance, type schema } from '#/components/Form'
 import { useText } from '$/providers/react'
 import { type GetText } from '$/providers/text'
+import { useDialogContext } from '$/react-components/Dialog'
+import { Form, type FormInstance, type schema } from '$/react-components/Form'
 import { CardElement } from '@stripe/react-stripe-js'
 import type { PaymentMethod, Stripe, StripeCardElement, StripeElements } from '@stripe/stripe-js'
 import { useCreatePaymentMethodMutation } from '../api/createPaymentMethod'

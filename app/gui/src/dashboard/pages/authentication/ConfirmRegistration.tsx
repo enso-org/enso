@@ -2,14 +2,14 @@
  * @file Registration confirmation page for when a user clicks the confirmation link set to their
  * email address.
  */
-import { Button } from '#/components/Button'
-import { Result } from '#/components/Result'
 import { useMounted } from '#/hooks/mountHooks'
 import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { noop } from '#/utilities/functions'
 import { unsafeWriteValue } from '#/utilities/write'
 import * as appUtils from '$/appUtils'
 import { useRouter, useSession, useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Result } from '$/react-components/Result'
 import { useMutation } from '@tanstack/react-query'
 import AuthenticationPage from './AuthenticationPage'
 

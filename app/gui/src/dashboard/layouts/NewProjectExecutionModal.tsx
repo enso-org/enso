@@ -1,16 +1,4 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Form } from '#/components/Form'
-import {
-  ComboBox,
-  DatePicker,
-  FormDropdown,
-  Input,
-  MultiSelector,
-  Selector,
-} from '#/components/Inputs'
-import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
@@ -24,6 +12,18 @@ import type {
 } from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Form } from '$/react-components/Form'
+import {
+  ComboBox,
+  DatePicker,
+  FormDropdown,
+  Input,
+  MultiSelector,
+  Selector,
+} from '$/react-components/Inputs'
+import { Text } from '$/react-components/Text'
 import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
 import {

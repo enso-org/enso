@@ -2,10 +2,6 @@
  * @file A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected.
  */
-import ContextMenu from '#/components/ContextMenu'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
-import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
-import { Separator } from '#/components/Separator'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
@@ -27,6 +23,10 @@ import * as backendModule from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
 import { useBackends, useText, useUser } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import ContextMenu from '$/react-components/ContextMenu'
+import ContextMenuEntry from '$/react-components/ContextMenuEntry'
+import { ContextMenuEntry as PaywallContextMenuEntry } from '$/react-components/Paywall'
+import { Separator } from '$/react-components/Separator'
 import { useMutation } from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'

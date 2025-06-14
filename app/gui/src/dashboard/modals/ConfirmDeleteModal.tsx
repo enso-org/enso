@@ -1,8 +1,8 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { Alert } from '#/components/Alert'
-import { AlertDialog, type Confirmable } from '#/components/AlertDialog'
-import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
+import { Alert } from '$/react-components/Alert'
+import { AlertDialog, type Confirmable } from '$/react-components/AlertDialog'
+import { Text } from '$/react-components/Text'
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps extends Confirmable {

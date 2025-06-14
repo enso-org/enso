@@ -1,7 +1,7 @@
 /** @file Rendering for an {@link SettingsFormEntryData}. */
-import { Button } from '#/components/Button'
-import { Form } from '#/components/Form'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Form } from '$/react-components/Form'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import SettingsInput from './Input'

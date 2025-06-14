@@ -1,10 +1,10 @@
 /** @file A modal for creating and editing a secret. */
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
 import { type SecretId } from '#/services/Backend'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Form } from '$/react-components/Form'
+import { Input } from '$/react-components/Inputs'
 
 /** Props for a {@link UpsertSecretForm}. */
 export interface UpsertSecretFormProps {

@@ -1,13 +1,13 @@
 /** @file Components for column headings. */
-import { Button } from '#/components/Button'
-import { Icon } from '#/components/Icon'
-import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { AssetColumnHeadingProps } from '#/pages/dashboard/components/column'
 import { Column } from '#/pages/dashboard/components/column/columnUtils'
 import { iconIdFor, nextSortDirection, SortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Icon } from '$/react-components/Icon'
+import { Text } from '$/react-components/Text'
 
 /** A heading for the "Accessed by projects" column. */
 export function AccessedByProjectsColumnHeading(props: AssetColumnHeadingProps) {

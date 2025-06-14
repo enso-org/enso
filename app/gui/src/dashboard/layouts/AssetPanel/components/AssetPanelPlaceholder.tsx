@@ -1,5 +1,5 @@
 /** @file A {@link Result} for an `AssetPanel`. */
-import { Result } from '#/components/Result'
+import { Result } from '$/react-components/Result'
 
 /** Props for a {@link AssetPanelPlaceholder}. */
 export interface AssetPanelPlaceholderProps {

@@ -1,8 +1,8 @@
 /** @file Submit and cancel buttons, and form error for the credentials form. */
-import { Button } from '#/components/Button'
-import { Dialog } from '#/components/Dialog'
-import { Form } from '#/components/Form'
 import { useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Dialog } from '$/react-components/Dialog'
+import { Form } from '$/react-components/Form'
 
 /** Props for a {@link CredentialsFormFooter}. */
 export interface CredentialsFormFooterProps {

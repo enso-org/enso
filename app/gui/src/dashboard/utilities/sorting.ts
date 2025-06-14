@@ -1,5 +1,5 @@
 /** @file Utilities related to sorting. */
-import type { SvgUseIcon } from '#/components/types'
+import type { SvgUseIcon } from '$/react-components/types'
 
 /** Sort direction. */
 export enum SortDirection {

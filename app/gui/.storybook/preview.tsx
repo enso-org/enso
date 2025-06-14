@@ -6,7 +6,7 @@ import type { Preview as VuePreview } from '@storybook/vue3'
 import isChromatic from 'chromatic/isChromatic'
 import { StrictMode, useLayoutEffect, useState } from 'react'
 
-import UIProviders from '#/components/UIProviders'
+import UIProviders from '$/react-components/UIProviders'
 import invariant from 'tiny-invariant'
 
 import '#/tailwind.css'

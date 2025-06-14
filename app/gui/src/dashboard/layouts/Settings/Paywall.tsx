@@ -5,9 +5,9 @@
  * The paywall is shown if the user's plan does not include the feature.
  * The feature is determined by the `isFeatureUnderPaywall` hook.
  */
-import { PaywallScreen } from '#/components/Paywall'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { tv } from '#/utilities/tailwindVariants'
+import { PaywallScreen } from '$/react-components/Paywall'
 
 /** Props for a {@link SettingsPaywall}. */
 export interface SettingsPaywallProps {
