@@ -1,14 +1,14 @@
 /** @file A single breadcrumb item. */
+import { useDragDelayAction, type DragDelayCallback } from '#/hooks/dragDelayHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { noop } from '#/utilities/functions'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { mergeProps } from '$/react-components/aria'
 import { Button } from '$/react-components/Button'
 import { IconDisplay } from '$/react-components/IconDisplay'
 import { Text } from '$/react-components/Text'
 import type { Addon, IconProp, TestIdProps } from '$/react-components/types'
 import type { TooltipElementType } from '$/react-components/VisualTooltip'
-import { useDragDelayAction, type DragDelayCallback } from '#/hooks/dragDelayHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { noop } from '#/utilities/functions'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   createContext,
   useContext,

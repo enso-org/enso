@@ -1,7 +1,7 @@
 /** @file A radio button. */
-import * as aria from '$/react-components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { tv } from '#/utilities/tailwindVariants'
+import * as aria from '$/react-components/aria'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 import * as text from '../Text'

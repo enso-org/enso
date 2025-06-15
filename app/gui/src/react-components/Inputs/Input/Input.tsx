@@ -1,4 +1,7 @@
 /** @file Text input. */
+import { useAutoFocus } from '#/hooks/autoFocusHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants'
 import * as aria from '$/react-components/aria'
 import {
   Form,
@@ -12,9 +15,6 @@ import {
 import SvgMask from '$/react-components/SvgMask'
 import { Text } from '$/react-components/Text'
 import type { TestIdProps } from '$/react-components/types'
-import { useAutoFocus } from '#/hooks/autoFocusHooks'
-import { mergeRefs } from '#/utilities/mergeRefs'
-import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
 import {
   forwardRef,

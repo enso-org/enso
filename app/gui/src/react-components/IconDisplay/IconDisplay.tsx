@@ -1,9 +1,9 @@
 /** @file A text display with an icon. */
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { Icon } from '$/react-components/Icon'
 import { Text, type TextProps } from '$/react-components/Text'
 import type { IconProp } from '$/react-components/types'
 import { VisualTooltip, type TooltipElementType } from '$/react-components/VisualTooltip'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 const ICON_DISPLAY_STYLES = tv({
   base: 'flex items-center gap-2 max-w-[14.5rem] min-w-4 px-[7px] border-0.5 border-transparent',

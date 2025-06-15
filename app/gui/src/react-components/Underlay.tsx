@@ -4,8 +4,8 @@
  * Useful when you want to display a semi transparent element
  * above the other one.
  */
-import { DIALOG_BACKGROUND } from '$/react-components/Dialog'
 import type { VariantProps } from '#/utilities/tailwindVariants'
+import { DIALOG_BACKGROUND } from '$/react-components/Dialog'
 import type { HTMLAttributes } from 'react'
 
 /**

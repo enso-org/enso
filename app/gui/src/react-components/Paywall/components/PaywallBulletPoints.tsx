@@ -1,9 +1,9 @@
 /** @file A list of bullet points for a paywall. */
 import Check from '#/assets/check_mark.svg'
-import SvgMask from '$/react-components/SvgMask'
-import { Text } from '$/react-components/Text'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
+import SvgMask from '$/react-components/SvgMask'
+import { Text } from '$/react-components/Text'
 import type { TextId } from 'enso-common/src/text'
 
 /** Props for a {@link PaywallBulletPoints}. */

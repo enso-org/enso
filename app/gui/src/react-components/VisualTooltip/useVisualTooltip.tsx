@@ -1,9 +1,9 @@
 /** @file A hook for creating a visual tooltip that appears when the target element is hovered over. */
+import * as eventCallback from '#/hooks/eventCallbackHooks'
+import { unsafeWriteValue } from '#/utilities/write'
 import * as aria from '$/react-components/aria'
 import Portal from '$/react-components/Portal'
 import { TOOLTIP_STYLES, type TooltipProps } from '$/react-components/Tooltip'
-import * as eventCallback from '#/hooks/eventCallbackHooks'
-import { unsafeWriteValue } from '#/utilities/write'
 import * as React from 'react'
 
 /** Props for {@link useVisualTooltip}. */

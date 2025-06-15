@@ -3,10 +3,10 @@
  *
  * Badges are used to highlight an item's status for quick recognition.
  */
-import { TEXT_STYLE } from '$/react-components/Text'
-import type { IconPropSvgUse } from '$/react-components/types'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { TEXT_STYLE } from '$/react-components/Text'
+import type { IconPropSvgUse } from '$/react-components/types'
 import type { ReactNode } from 'react'
 import { Icon } from '../Icon'
 

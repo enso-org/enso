@@ -1,4 +1,8 @@
 /** @file A resizable input that uses a content-editable div. */
+import { useAutoFocus } from '#/hooks/autoFocusHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   Form,
   type FieldPath,
@@ -8,10 +12,6 @@ import {
   type TSchema,
 } from '$/react-components/Form'
 import { Text } from '$/react-components/Text'
-import { useAutoFocus } from '#/hooks/autoFocusHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { mergeRefs } from '#/utilities/mergeRefs'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   forwardRef,
   useEffect,

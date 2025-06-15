@@ -1,8 +1,8 @@
 /** @file A radio group. */
-import * as aria from '$/react-components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import { omit } from '#/utilities/object'
 import * as twv from '#/utilities/tailwindVariants'
+import * as aria from '$/react-components/aria'
 import * as React from 'react'
 import type { FieldVariantProps } from '../Form'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'

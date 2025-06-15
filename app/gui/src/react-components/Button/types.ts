@@ -1,4 +1,5 @@
 /** @file Types for a `Button`. */
+import type { ExtractFunction } from '#/utilities/tailwindVariants'
 import type {
   ButtonProps as AriaButtonProps,
   ButtonRenderProps as AriaButtonRenderProps,
@@ -7,7 +8,6 @@ import type {
   Placement,
   PressEvent,
 } from '$/react-components/aria'
-import type { ExtractFunction } from '#/utilities/tailwindVariants'
 import type { ReactElement, ReactNode } from 'react'
 import type { Addon, IconProp, TestIdProps } from '../types'
 import type { BUTTON_STYLES, ButtonVariants } from './variants'

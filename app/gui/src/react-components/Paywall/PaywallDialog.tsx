@@ -1,8 +1,8 @@
 /** @file A dialog that prompts the user to upgrade to a paid plan. */
-import { Dialog, type DialogProps } from '$/react-components/Dialog'
-import { Text } from '$/react-components/Text'
 import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
 import { useText } from '$/providers/react'
+import { Dialog, type DialogProps } from '$/react-components/Dialog'
+import { Text } from '$/react-components/Text'
 import { PaywallBulletPoints, PaywallLock } from './components'
 import { UpgradeButton } from './UpgradeButton'
 

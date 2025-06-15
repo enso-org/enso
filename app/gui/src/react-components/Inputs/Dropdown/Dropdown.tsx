@@ -3,6 +3,9 @@ import { forwardRef, useEffect, useRef, useState, type ForwardedRef, type ReactN
 
 import CheckMarkIcon from '#/assets/check_mark.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
+import { useSyncRef } from '#/hooks/syncRefHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   FieldError,
   ListBox,
@@ -14,9 +17,6 @@ import {
 } from '$/react-components/aria'
 import FocusRing from '$/react-components/styled/FocusRing'
 import SvgMask from '$/react-components/SvgMask'
-import { useSyncRef } from '#/hooks/syncRefHooks'
-import { mergeRefs } from '#/utilities/mergeRefs'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { DIALOG_BACKGROUND } from '../../Dialog/variants'
 import {
   Form,

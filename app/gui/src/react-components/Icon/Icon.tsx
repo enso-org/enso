@@ -6,6 +6,7 @@
 import icons from '@/assets/icons.svg'
 import { isIconName, type Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
 
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import type {
   AvailableIconReturn,
   IconProp,
@@ -14,7 +15,6 @@ import type {
   LegacyIconProp,
   TestIdProps,
 } from '$/react-components/types'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { memo } from 'react'
 import SvgMask from '../SvgMask'
 

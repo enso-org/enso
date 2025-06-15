@@ -3,12 +3,12 @@
  *
  * Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected.
  */
-import type { CheckboxProps as AriaCheckboxProps } from '$/react-components/aria'
-import { Checkbox as AriaCheckbox, CheckboxGroupStateContext } from '$/react-components/aria'
 import { mergeRefs, useMergedRef } from '#/utilities/mergeRefs'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
+import type { CheckboxProps as AriaCheckboxProps } from '$/react-components/aria'
+import { Checkbox as AriaCheckbox, CheckboxGroupStateContext } from '$/react-components/aria'
 import {
   forwardRef,
   useContext,

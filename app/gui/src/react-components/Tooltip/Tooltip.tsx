@@ -1,7 +1,7 @@
 /** @file Displays the description of an element on hover or focus. */
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as aria from '$/react-components/aria'
 import { useStrictPortalContext } from '$/react-components/Portal'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { ResetButtonGroupContext } from '../Button/shared'
 import { DIALOG_BACKGROUND } from '../Dialog/variants'
 import { TEXT_STYLE } from '../Text/variants'

@@ -1,8 +1,8 @@
 /** @file Display the result of an operation. */
 import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
-import type { TestIdProps } from '$/react-components/types'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { TestIdProps } from '$/react-components/types'
 import type { JSX, PropsWithChildren, ReactElement } from 'react'
 import { Loader } from './Loader'
 import SvgMask from './SvgMask'

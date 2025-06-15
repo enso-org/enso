@@ -1,10 +1,10 @@
 /** @file A component that adds scroll shadows to a container. */
-import type { TestIdProps } from '$/react-components/types'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { TestIdProps } from '$/react-components/types'
 import {
   startTransition,
   useCallback,

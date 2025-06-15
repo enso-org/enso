@@ -1,8 +1,8 @@
 /** @file A styled button that shows that a feature is behind a paywall. */
 import PaywallBlocked from '#/assets/lock.svg'
-import { Button, type ButtonProps } from '$/react-components/Button'
 import * as billingHooks from '#/hooks/billing'
 import { useText } from '$/providers/react'
+import { Button, type ButtonProps } from '$/react-components/Button'
 import * as React from 'react'
 
 /** Props for {@link PaywallButton}. */

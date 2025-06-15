@@ -4,8 +4,8 @@
  * Submit button for forms.
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
-import { Button, type ButtonProps } from '$/react-components/Button'
 import { useText } from '$/providers/react'
+import { Button, type ButtonProps } from '$/react-components/Button'
 import type { JSX } from 'react'
 import { useFormContext } from './FormProvider'
 import type { FieldPath, FieldValues, FormInstance, TSchema } from './types'

@@ -1,6 +1,6 @@
 /** @file A styled button representing a tab on a sidebar. */
-import { Button, type ButtonProps } from '$/react-components/Button'
 import { tv } from '#/utilities/tailwindVariants'
+import { Button, type ButtonProps } from '$/react-components/Button'
 
 const SIDEBAR_TAB_BUTTON_STYLES = tv({
   base: 'z-1 font-medium',

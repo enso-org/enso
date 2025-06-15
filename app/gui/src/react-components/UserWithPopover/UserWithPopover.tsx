@@ -1,11 +1,11 @@
 /** @file A user display with a popover for more information. */
+import type { OtherUser } from '#/services/Backend'
+import { useText } from '$/providers/react'
 import { Button, CopyButton } from '$/react-components/Button'
 import { Popover } from '$/react-components/Dialog'
 import { TEXT_WITH_ICON } from '$/react-components/patterns'
 import { ProfilePicture } from '$/react-components/ProfilePicture'
 import { Text } from '$/react-components/Text'
-import type { OtherUser } from '#/services/Backend'
-import { useText } from '$/providers/react'
 import { twMerge } from 'tailwind-merge'
 
 /** Props for a {@link UserWithPopover}. */

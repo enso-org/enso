@@ -1,5 +1,5 @@
-import { StatusBadge } from '$/react-components/StatusBadge'
 import { StoryVariants } from '#/utilities/StoryVariants'
+import { StatusBadge } from '$/react-components/StatusBadge'
 import { iconNames } from '@/util/iconMetadata/iconName'
 import type { Meta, StoryObj } from '@storybook/react'
 import { ICON_COLORS, Icon, type IconProps } from './Icon'

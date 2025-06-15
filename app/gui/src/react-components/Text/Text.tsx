@@ -1,10 +1,10 @@
 /** @file Text component */
-import * as aria from '$/react-components/aria'
-import type { TooltipElementType } from '$/react-components/VisualTooltip'
-import * as visualTooltip from '$/react-components/VisualTooltip'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import type { VariantProps } from '#/utilities/tailwindVariants'
+import * as aria from '$/react-components/aria'
+import type { TooltipElementType } from '$/react-components/VisualTooltip'
+import * as visualTooltip from '$/react-components/VisualTooltip'
 import * as React from 'react'
 import { memo } from 'react'
 import type { TestIdProps } from '../types'

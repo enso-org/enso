@@ -2,11 +2,11 @@
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'
 import FocusRing from '$/react-components/styled/FocusRing'
 import SvgMask from '$/react-components/SvgMask'
-import { mergeRefs } from '#/utilities/mergeRefs'
-import { useText } from '$/providers/react'
 
 /** Props for a {@link Link}. */
 export interface LinkProps {

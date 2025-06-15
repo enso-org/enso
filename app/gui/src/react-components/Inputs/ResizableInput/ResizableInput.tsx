@@ -1,7 +1,7 @@
 /** @file A resizable input field. */
-import * as aria from '$/react-components/aria'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 import * as mergeRefs from '#/utilities/mergeRefs'
+import * as aria from '$/react-components/aria'
 import * as React from 'react'
 import * as variants from '../variants'
 

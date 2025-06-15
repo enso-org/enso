@@ -3,8 +3,8 @@
  *
  * Variants for the ResizableInput component.
  */
-import { makeRoundedStyles } from '$/react-components/utilities'
 import { tv } from '#/utilities/tailwindVariants'
+import { makeRoundedStyles } from '$/react-components/utilities'
 import { TEXT_STYLE } from '../Text'
 
 export const INPUT_STYLES = tv({

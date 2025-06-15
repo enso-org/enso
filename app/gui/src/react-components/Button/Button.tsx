@@ -10,12 +10,12 @@ import {
   type ReactNode,
 } from 'react'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as aria from '$/react-components/aria'
 import { Icon as IconComponent } from '$/react-components/Icon'
 import { StatelessSpinner } from '$/react-components/StatelessSpinner'
 import { Tooltip, TooltipTrigger } from '$/react-components/Tooltip'
 import { useVisualTooltip } from '$/react-components/VisualTooltip'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDialogContext } from '../Dialog/DialogProvider'
 import { useContextProps } from '../hooks/useContextProps'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'

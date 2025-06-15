@@ -1,8 +1,8 @@
 /** @file An option in a selector. */
-import { AnimatedBackground } from '$/react-components/AnimatedBackground'
-import { Radio, type RadioProps } from '$/react-components/aria'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { AnimatedBackground } from '$/react-components/AnimatedBackground'
+import { Radio, type RadioProps } from '$/react-components/aria'
 import { forwardRef, memo, type ForwardedRef } from 'react'
 import { TEXT_STYLE } from '../../Text'
 

@@ -1,6 +1,6 @@
 /** @file File containing SVG icon definitions. */
-import type { TestIdProps } from '$/react-components/types'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import type { TestIdProps } from '$/react-components/types'
 import * as React from 'react'
 
 /** Props for a {@link SvgMask}. */

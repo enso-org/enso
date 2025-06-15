@@ -1,9 +1,9 @@
 /** @file */
-import { mergeProps } from '$/react-components/aria'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { mergeProps } from '$/react-components/aria'
 import type { OTPInputProps } from 'input-otp'
 import { OTPInput as BaseOTPInput, type SlotProps as OTPInputSlotProps } from 'input-otp'
 import type { ForwardedRef, Ref } from 'react'

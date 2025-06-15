@@ -1,7 +1,7 @@
 /** @file A context menu. */
-import { Popover } from '$/react-components/Dialog'
 import { unsetModal } from '#/providers/ModalProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { Popover } from '$/react-components/Dialog'
 import { isOnMacOS } from 'enso-common/src/detect'
 import type { MouseEvent, PropsWithChildren } from 'react'
 

@@ -1,10 +1,10 @@
 /** @file A paywall alert. */
 import LockIcon from '#/assets/lock.svg'
+import type * as billingHooks from '#/hooks/billing'
 import { Alert, type AlertProps } from '$/react-components/Alert'
 import * as paywall from '$/react-components/Paywall'
 import SvgMask from '$/react-components/SvgMask'
 import { Text } from '$/react-components/Text'
-import type * as billingHooks from '#/hooks/billing'
 import * as React from 'react'
 import { twJoin } from 'tailwind-merge'
 

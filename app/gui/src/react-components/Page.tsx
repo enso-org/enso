@@ -1,7 +1,7 @@
 /** @file A page. */
-import Portal from '$/react-components/Portal'
 import InfoBar from '#/layouts/InfoBar'
 import TheModal from '#/pages/dashboard/components/TheModal'
+import Portal from '$/react-components/Portal'
 import * as React from 'react'
 
 /** Props for a {@link Page}. */

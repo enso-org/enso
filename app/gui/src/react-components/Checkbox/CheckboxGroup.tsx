@@ -1,10 +1,10 @@
 /** @file A selector for one or more items from a list of choices. */
-import type { CheckboxGroupProps as AriaCheckboxGroupProps } from '$/react-components/aria'
-import { CheckboxGroup as AriaCheckboxGroup, mergeProps } from '$/react-components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { omit } from '#/utilities/object'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import type { CheckboxGroupProps as AriaCheckboxGroupProps } from '$/react-components/aria'
+import { CheckboxGroup as AriaCheckboxGroup, mergeProps } from '$/react-components/aria'
 import {
   forwardRef,
   type CSSProperties,

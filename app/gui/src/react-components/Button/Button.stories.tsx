@@ -1,11 +1,11 @@
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Plus from '#/assets/plus.svg'
 
+import { StoryVariants } from '#/utilities/StoryVariants'
 import type * as aria from '$/react-components/aria'
 import { Popover } from '$/react-components/Dialog'
 import { Separator } from '$/react-components/Separator'
 import { Text } from '$/react-components/Text'
-import { StoryVariants } from '#/utilities/StoryVariants'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, userEvent, within } from '@storybook/test'
 import { omit } from 'enso-common/src/utilities/data/object'

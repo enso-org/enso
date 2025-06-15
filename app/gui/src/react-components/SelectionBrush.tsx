@@ -1,13 +1,13 @@
 /** @file A selection brush to indicate the area being selected by the mouse drag action. */
 import * as React from 'react'
 
-import Portal from '$/react-components/Portal'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useRafThrottle } from '#/hooks/throttleHooks'
 import type * as geometry from '#/utilities/geometry'
 import { getDetailedRectangle, getDetailedRectangleFromRectangle } from '#/utilities/geometry'
 import { findScrollContainers, type HTMLOrSVGElement } from '#/utilities/scrollContainers'
+import Portal from '$/react-components/Portal'
 import { motion, useMotionValue } from 'framer-motion'
 
 /**

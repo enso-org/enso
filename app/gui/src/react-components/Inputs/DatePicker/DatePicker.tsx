@@ -1,6 +1,9 @@
 /** @file A date picker. */
 import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 import {
   DatePicker as AriaDatePicker,
   Calendar,
@@ -21,12 +24,10 @@ import {
   type DateValue,
 } from '$/react-components/aria'
 import { makeRoundedStyles } from '$/react-components/utilities'
-import type { VariantProps } from '#/utilities/tailwindVariants'
-import { tv } from '#/utilities/tailwindVariants'
-import { useText } from '$/providers/react'
 import { forwardRef, useContext, type ForwardedRef } from 'react'
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
+import { twJoin } from '#/utilities/tailwindMerge'
 import { Button } from '$/react-components/Button'
 import { Popover } from '$/react-components/Dialog'
 import {
@@ -39,7 +40,6 @@ import {
   type TSchema,
 } from '$/react-components/Form'
 import { Text, TEXT_STYLE } from '$/react-components/Text'
-import { twJoin } from '#/utilities/tailwindMerge'
 const DATE_PICKER_STYLES = tv({
   base: '',
   variants: {

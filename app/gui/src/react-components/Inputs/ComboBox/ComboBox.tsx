@@ -1,6 +1,9 @@
 /** @file A combo box with a list of items that can be filtered. */
 import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 import {
   ComboBox as AriaComboBox,
   ComboBoxStateContext,
@@ -23,9 +26,6 @@ import { BasicInput, type InputProps } from '$/react-components/Inputs/Input'
 import { Text } from '$/react-components/Text'
 import { makeRoundedStyles } from '$/react-components/utilities'
 import { VisualTooltip } from '$/react-components/VisualTooltip'
-import type { VariantProps } from '#/utilities/tailwindVariants'
-import { tv } from '#/utilities/tailwindVariants'
-import { useText } from '$/providers/react'
 import { forwardRef, useContext, useRef, type ForwardedRef, type ReactNode } from 'react'
 import invariant from 'tiny-invariant'
 

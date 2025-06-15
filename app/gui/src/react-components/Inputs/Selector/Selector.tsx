@@ -1,4 +1,6 @@
 /** @file A horizontal selector. */
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { AnimatedBackground } from '$/react-components/AnimatedBackground'
 import { mergeProps, type RadioGroupProps } from '$/react-components/aria'
 import {
@@ -11,8 +13,6 @@ import {
   type TSchema,
 } from '$/react-components/Form'
 import RadioGroup from '$/react-components/styled/RadioGroup'
-import { mergeRefs } from '#/utilities/mergeRefs'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import { SelectorOption } from './SelectorOption'
 

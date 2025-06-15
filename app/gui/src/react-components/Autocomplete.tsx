@@ -1,11 +1,11 @@
 /** @file A select menu with a dropdown. */
 import CloseIcon from '#/assets/cross.svg'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import { Button } from '$/react-components/Button'
 import { Form } from '$/react-components/Form'
 import { Input } from '$/react-components/Inputs'
 import FocusRing from '$/react-components/styled/FocusRing'
 import { Text } from '$/react-components/Text'
-import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import {
   useMemo,
   useRef,

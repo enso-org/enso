@@ -1,4 +1,6 @@
 /** @file A horizontal selector supporting multiple input. */
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   FieldError,
   ListBox,
@@ -14,8 +16,6 @@ import {
   type FieldValues,
   type TSchema,
 } from '$/react-components/Form'
-import { mergeRefs } from '#/utilities/mergeRefs'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
 import { forwardRef, useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
 import { MultiSelectorOption, type MultiSelectorOptionProps } from './MultiSelectorOption'

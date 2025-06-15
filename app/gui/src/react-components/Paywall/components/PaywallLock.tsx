@@ -1,9 +1,9 @@
 /** @file A lock icon with a label indicating the paywall level required to access a feature. */
 import LockIcon from '#/assets/lock.svg'
-import SvgMask from '$/react-components/SvgMask'
-import { Text } from '$/react-components/Text'
 import * as billingHooks from '#/hooks/billing'
 import { useText } from '$/providers/react'
+import SvgMask from '$/react-components/SvgMask'
+import { Text } from '$/react-components/Text'
 import * as tw from 'tailwind-merge'
 
 /** Props for a {@link PaywallLock}. */

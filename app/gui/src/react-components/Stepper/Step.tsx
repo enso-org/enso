@@ -3,9 +3,9 @@
  * A step component is used to represent a single step in a stepper component.
  */
 import DoneIcon from '#/assets/check_mark.svg'
+import { tv } from '#/utilities/tailwindVariants'
 import SvgMask from '$/react-components/SvgMask'
 import { Text } from '$/react-components/Text'
-import { tv } from '#/utilities/tailwindVariants'
 import { AnimatePresence, motion } from 'framer-motion'
 import * as React from 'react'
 import * as stepperProvider from './StepperProvider'

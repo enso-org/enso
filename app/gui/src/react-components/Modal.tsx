@@ -1,9 +1,9 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
 import * as React from 'react'
 
-import { ClearPressResponder } from '$/react-components/aria'
 import { unsetModal } from '#/providers/ModalProvider'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
+import { ClearPressResponder } from '$/react-components/aria'
 
 const MODAL_VARIANTS = tailwindVariants.tv({
   base: 'inset z-1',

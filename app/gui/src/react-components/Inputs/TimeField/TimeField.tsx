@@ -1,5 +1,8 @@
 /** @file A date picker. */
 import CrossIcon from '#/assets/cross.svg'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
 import {
   TimeField as AriaTimeField,
   DateInput,
@@ -21,9 +24,6 @@ import {
   type TSchema,
 } from '$/react-components/Form'
 import { Text } from '$/react-components/Text'
-import type { VariantProps } from '#/utilities/tailwindVariants'
-import { tv } from '#/utilities/tailwindVariants'
-import { useText } from '$/providers/react'
 import { forwardRef, useContext, type ForwardedRef } from 'react'
 import type { DateSegment as DateSegmentType } from 'react-stately'
 

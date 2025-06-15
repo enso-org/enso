@@ -1,9 +1,9 @@
 /** @file A visual separator. */
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   Separator as AriaSeparator,
   type SeparatorProps as AriaSeparatorProps,
 } from '$/react-components/aria'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 /** The props for {@link Separator} component. */
 export interface SeparatorProps extends AriaSeparatorProps, VariantProps<typeof SEPARATOR_STYLES> {

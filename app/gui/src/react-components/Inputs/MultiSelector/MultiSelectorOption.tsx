@@ -1,7 +1,7 @@
 /** @file An option in a selector. */
-import { ListBoxItem, type ListBoxItemProps } from '$/react-components/aria'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { ListBoxItem, type ListBoxItemProps } from '$/react-components/aria'
 import { forwardRef, type ForwardedRef } from 'react'
 import { TEXT_STYLE } from '../../Text'
 
