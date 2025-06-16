@@ -16,7 +16,7 @@ import * as React from 'react'
 
 const DEFAULT_REDIRECT_DELAY_MS = 3_000
 
-/** Props for a {@link CloudBrowserDisabledLayout}. */
+/** Props for a {@link CloudBrowserDisabledPage}. */
 export interface CloudBrowserDisabledLayoutProps {
   /** The delay in milliseconds before redirecting to the desktop edition. */
   readonly redirectDelayMs?: number
@@ -27,7 +27,7 @@ export interface CloudBrowserDisabledLayoutProps {
 /**
  * Layout that disables the dashboard if the cloud is disabled.
  */
-export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProps) {
+export function CloudBrowserDisabledPage(props: CloudBrowserDisabledLayoutProps) {
   const { redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
   const { getText } = useText()
 

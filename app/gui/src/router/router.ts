@@ -107,7 +107,7 @@ const routes = [
     name: 'cloudDisabled',
     component: () =>
       import('#/layouts/CloudBrowserDisabled').then((mod) =>
-        reactComponent(mod.CloudBrowserDisabledLayout),
+        reactComponent(mod.CloudBrowserDisabledPage),
       ),
     props: { redirectPath: DASHBOARD_PATH },
   },

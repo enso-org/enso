@@ -1,6 +1,5 @@
 import { assert } from '@/util/assert'
 import { Result } from '@/util/data/result'
-import { QueryClient } from '@tanstack/vue-query'
 import {
   Component,
   ComponentOptionsMixin,
@@ -18,12 +17,6 @@ import {
   SlotsType,
 } from 'vue'
 import { NavigationGuardReturn, RouteLocationNormalizedGeneric } from 'vue-router'
-
-declare module 'vue' {
-  interface ComponentCustomOptions {
-    dataLoader?: (this: undefined, queryClient: QueryClient) => Promise<any>
-  }
-}
 
 /**
  * A loader which needs be exported from *.vue file to be wrapped in {@link withDataLoader}.

@@ -113,10 +113,6 @@ export const dataLoader: DataLoader<{
     }
   },
 }
-
-export default {
-  name: 'ProtectedLayout',
-}
 </script>
 
 <script setup lang="ts">

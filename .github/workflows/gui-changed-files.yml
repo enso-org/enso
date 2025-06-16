@@ -32,7 +32,6 @@ jobs:
             lib/rust/**
             package.json
             *.bazel
-            tsconfig.json
             pnpm-lock.yaml
             pnpm-workspace.yaml
             eslint.config.js
@@ -41,7 +40,6 @@ jobs:
             vitest.workspace.ts
             .github/workflows/gui*
             .github/workflows/storybook.yml
-
           files_ignore: |
             app/gui/scripts/**
             app/gui/.gitignore

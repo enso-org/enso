@@ -48,10 +48,6 @@ export const dataLoader: DataLoader<{
     })
   },
 }
-
-export default {
-  name: 'AppContainerLayout',
-}
 </script>
 
 <script setup lang="ts">
