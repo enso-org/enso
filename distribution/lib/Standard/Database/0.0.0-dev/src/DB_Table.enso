@@ -1286,8 +1286,7 @@ type DB_Table
 
     ## PRIVATE
        Run a table transformer with a temporary column added.
-    with_temporary_column :  DB_Column -> (Text -> DB_Table -> DB_Table) -> DB_Table
-    with_temporary_column self new_column:DB_Column f:(Text -> DB_Table -> DB_Table) =
+    with_temporary_column self new_column:Column f:(Text -> DB_Table -> DB_Table) -> DB_Table =
         new_column_name = self.make_temp_column_name
         with_new_column = self.set new_column new_column_name set_mode=Set_Mode.Add
         modified_table = f new_column_name with_new_column
@@ -1302,6 +1301,7 @@ type DB_Table
             table.filter name Filter_Condition.Is_True
 
     ## ICON convert
+       Returns the vector of columns contained in this table.
        Returns the vector of columns contained in this table.
     columns self -> Vector DB_Column =
         Vector.from_polyglot_array <|
@@ -3071,7 +3071,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | DB_Column | Column_Ref | Expression | Regex = "") (new_text : Text | DB_Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
+    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
@@ -3203,7 +3203,7 @@ type DB_Table
                 order_descriptors = _resolve_order_descriptors self ordering "offset"
                 grouping_expressions = (grouping_columns.map (Internal_Column.from _)).map .expression
                 
-                offset_expr c:DB_Column -> SQL_IR_Expression =
+                offset_expr c -> SQL_IR_Expression =
                     Offset_Helpers.make_offset n (Internal_Column.from c) order_descriptors grouping_expressions fill_with
                 new_column_name c:Column -> Text =
                     if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
