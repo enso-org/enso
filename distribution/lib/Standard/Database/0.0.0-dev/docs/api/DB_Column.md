@@ -2,7 +2,7 @@
 ## module Standard.Database.DB_Column
 - type DB_Column
     - dialect_name self -> Standard.Base.Data.Text.Text
-    - let self name:Standard.Base.Data.Text.Text callback:Standard.Base.Any.Any -> (Standard.Table.Column.Column&Standard.Database.DB_Column.DB_Column)
+    - let self name:Standard.Base.Data.Text.Text callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - pretty self -> Standard.Base.Any.Any
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
     - to_sql self -> Standard.Database.SQL_Statement.SQL_Statement
