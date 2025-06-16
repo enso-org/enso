@@ -1,10 +1,14 @@
 package org.enso.table.data.column.operation.binary;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -15,23 +19,21 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-import java.util.BitSet;
-
-public class FillMissingOperation<T> implements BinaryOperation {
-  public static <T> FillMissingOperation<T> create(Column column, StorageType<T> resultType) {
+public class FillMissingOperation implements BinaryOperation {
+  public static FillMissingOperation create(Column column, StorageType<?> resultType) {
     var storage = column.getStorage();
     return switch (storage.getType()) {
-      case IntegerType longType -> new LongFillMissingOperation<>(resultType);
-      case FloatType floatTYpe -> new DoubleFillMissingOperation<>(resultType);
-      case BooleanType booleanType -> new BooleanFillMissingOperation<>(resultType);
-      case NullType nullType -> new NullFillMissingOperation<>(resultType);
-      default -> new FillMissingOperation<>(resultType);
+      case IntegerType longType -> new LongFillMissingOperation(resultType);
+      case FloatType floatType -> new DoubleFillMissingOperation(resultType);
+      case BooleanType booleanType -> new BooleanFillMissingOperation(resultType);
+      case NullType nullType -> new NullFillMissingOperation(resultType);
+      default -> new FillMissingOperation(resultType);
     };
   }
 
-  protected final StorageType<T> resultType;
+  protected final StorageType<?> resultType;
 
-  private FillMissingOperation(StorageType<T> resultType) {
+  private FillMissingOperation(StorageType<?> resultType) {
     this.resultType = resultType;
   }
 
@@ -46,140 +48,158 @@ public class FillMissingOperation<T> implements BinaryOperation {
   }
 
   @Override
-  public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-    var typedRightValue = resultType.valueAsType(rightValue);
-    if (typedRightValue == null) {
-      return resultType.asTypedStorage(left);
+  public ColumnStorage<?> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+    if (rightValue == null) {
+      return left;
     }
 
     var resultBuilder = resultType.makeBuilder(left.getSize(), problemAggregator);
-    var rawStorage = StorageIterators.buildObjectOverStorage(
+    return StorageIterators.buildObjectOverStorage(
         left,
         false,
         resultBuilder,
-        (builder, index, value) -> builder.append(value == null ? typedRightValue : resultType.valueAsType(value)));
-    return resultType.asTypedStorage(rawStorage);
+        (builder, index, value) -> builder.append(value == null ? rightValue : value));
   }
 
   @Override
-  public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
-    var rawStorage = StorageIterators.zipOverObjectStorages(
+  public ColumnStorage<?> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
+    return StorageIterators.zipOverObjectStorages(
         left,
         right,
         s -> resultType.makeBuilder(s, problemAggregator),
         false,
-        (idx, l, r) -> l == null ? resultType.valueAsType(r) : resultType.valueAsType(l));
-    return resultType.asTypedStorage(rawStorage);
+        (idx, l, r) -> l == null ? r : l);
   }
 
-  private static class NullFillMissingOperation<T> extends FillMissingOperation<T> {
-    public NullFillMissingOperation(StorageType<T> resultType) {
+  private static class NullFillMissingOperation extends FillMissingOperation {
+    public NullFillMissingOperation(StorageType<?> resultType) {
       super(resultType);
     }
 
     @Override
-    public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+    public ColumnStorage<?> applyMap(
+        ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
       var typedRightValue = resultType.valueAsType(rightValue);
       return resultType.asTypedStorage(Builder.fromRepeatedItem(typedRightValue, left.getSize()));
     }
 
     @Override
-    public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+    public ColumnStorage<?> applyZip(
+        ColumnStorage<?> left,
+        ColumnStorage<?> right,
+        MapOperationProblemAggregator problemAggregator) {
       return resultType.asTypedStorage(right);
     }
   }
 
-  public static class BooleanFillMissingOperation<T> extends FillMissingOperation<T> {
-    public static BoolStorage fillMissingBoolStorage(
-        BoolStorage storage, boolean fillValue) {
+  public static class BooleanFillMissingOperation extends FillMissingOperation {
+    public static BoolStorage fillMissingBoolStorage(BoolStorage storage, boolean fillValue) {
       final var newValues = (BitSet) storage.getValues().clone();
       if (fillValue != storage.isNegated()) {
         newValues.or(storage.getIsNothingMap());
       } else {
         newValues.andNot(storage.getIsNothingMap());
       }
-      return new BoolStorage(newValues, new BitSet(), (int)storage.getSize(), storage.isNegated());
+      return new BoolStorage(newValues, new BitSet(), (int) storage.getSize(), storage.isNegated());
     }
 
-    public BooleanFillMissingOperation(StorageType<T> resultType) {
+    public BooleanFillMissingOperation(StorageType<?> resultType) {
       super(resultType);
     }
 
     @Override
-    public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+    public ColumnStorage<?> applyMap(
+        ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
       if (left instanceof BoolStorage boolStorage && rightValue instanceof Boolean rightBool) {
-        return resultType.asTypedStorage(fillMissingBoolStorage(boolStorage, rightBool));
+        return fillMissingBoolStorage(boolStorage, rightBool);
       }
       return super.applyMap(left, rightValue, problemAggregator);
     }
-
-    @Override
-    public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
-      return resultType.asTypedStorage(right);
-    }
   }
 
-  public static class LongFillMissingOperation<T> extends FillMissingOperation<T> {
-    public LongFillMissingOperation(StorageType<T> resultType) {
+  public static class LongFillMissingOperation extends FillMissingOperation {
+    public LongFillMissingOperation(StorageType<?> resultType) {
       super(resultType);
     }
 
     @Override
-    public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+    public ColumnStorage<?> applyMap(
+        ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
       if (left instanceof ColumnLongStorage longStorage) {
         if (NumericConverter.isCoercibleToLong(rightValue)) {
-          var raw = StorageIterators.mapOverLongStorage(
+          long rightLongValue = NumericConverter.coerceToLong(rightValue);
+          return StorageIterators.buildOverLongStorage(
               longStorage,
-              Builder.getForLong(resultType, longStorage.getSize(), problemAggregator),
-              (builder, index, value) -> {
-                if (value == null) {
-                  builder.appendLong(NumericConverter.toLong(rightValue));
+              Builder.getForLong(IntegerType.INT_64, longStorage.getSize(), problemAggregator),
+              (builder, index, value, isNothing) ->
+                  builder.appendLong(isNothing ? rightLongValue : value));
+        } else if (rightValue instanceof BigInteger rightBigInteger) {
+          return StorageIterators.buildOverLongStorage(
+              longStorage,
+              Builder.getForBigInteger(longStorage.getSize(), problemAggregator),
+              (builder, index, value, isNothing) ->
+                  builder.append(isNothing ? rightBigInteger : BigInteger.valueOf(value)));
+        } else if (rightValue instanceof BigDecimal rightBigDecimal) {
+          return StorageIterators.buildOverLongStorage(
+              longStorage,
+              Builder.getForBigDecimal(longStorage.getSize()),
+              (builder, index, value, isNothing) ->
+                  builder.append(isNothing ? rightBigDecimal : BigDecimal.valueOf(value)));
+        } else if (NumericConverter.isCoercibleToDouble(rightValue)) {
+          double rightDoubleValue = NumericConverter.coerceToDouble(rightValue);
+          return StorageIterators.buildOverLongStorage(
+              longStorage,
+              Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
+              (builder, index, value, isNothing) -> {
+                if (isNothing) {
+                  builder.appendDouble(rightDoubleValue);
                 } else {
                   builder.appendLong(value);
                 }
               });
-          )
         }
       }
-      return super.applyMap(left, rightValue, problemAggregator);
-    }
 
-    @Override
-    public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
-      return resultType.asTypedStorage(right);
+      return super.applyMap(left, rightValue, problemAggregator);
     }
   }
 
-  public static class DoubleFillMissingOperation<T> extends FillMissingOperation<T> {
-    public DoubleFillMissingOperation(StorageType<T> resultType) {
+  public static class DoubleFillMissingOperation extends FillMissingOperation {
+    public DoubleFillMissingOperation(StorageType<?> resultType) {
       super(resultType);
     }
 
     @Override
-    public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-      if (left instanceof ColumnLongStorage longStorage) {
+    public ColumnStorage<?> applyMap(
+        ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+      if (left instanceof ColumnDoubleStorage doubleStorage) {
         if (NumericConverter.isCoercibleToLong(rightValue)) {
-          var raw = StorageIterators.mapOverLongStorage(
-              longStorage,
-              Builder.getForLong(resultType, longStorage.getSize(), problemAggregator),
-              (builder, index, value) -> {
-                if (value == null) {
-                  builder.appendLong(NumericConverter.toLong(rightValue));
+          long rightLongValue = NumericConverter.coerceToLong(rightValue);
+          return StorageIterators.buildOverDoubleStorage(
+              doubleStorage,
+              Builder.getForDouble(FloatType.FLOAT_64, doubleStorage.getSize(), problemAggregator),
+              (builder, index, value, isNothing) -> {
+                if (isNothing) {
+                  builder.appendLong(rightLongValue);
                 } else {
-                  builder.appendLong(value);
+                  builder.appendDouble(value);
                 }
               });
-          )
+        } else if (NumericConverter.isCoercibleToDouble(rightValue)
+            || rightValue instanceof BigDecimal) {
+          double rightDoubleValue = NumericConverter.coerceToDouble(rightValue);
+          return StorageIterators.buildOverDoubleStorage(
+              doubleStorage,
+              Builder.getForDouble(FloatType.FLOAT_64, doubleStorage.getSize(), problemAggregator),
+              (builder, index, value, isNothing) ->
+                  builder.appendDouble(isNothing ? rightDoubleValue : value));
         }
       }
       return super.applyMap(left, rightValue, problemAggregator);
     }
-
-    @Override
-    public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
-      return resultType.asTypedStorage(right);
-    }
   }
-
-
 }

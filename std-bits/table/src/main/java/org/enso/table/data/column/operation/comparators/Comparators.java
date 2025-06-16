@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.comparators;
 
-import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
@@ -29,7 +29,7 @@ public final class Comparators {
         || storageType instanceof NumericType;
   }
 
-  public static BinaryOperation<Boolean> eq(Column left, Object right) {
+  public static BinaryOperationTyped<Boolean> eq(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -44,7 +44,7 @@ public final class Comparators {
     };
   }
 
-  public static BinaryOperation<Boolean> notEq(Column left, Object right) {
+  public static BinaryOperationTyped<Boolean> notEq(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -59,7 +59,7 @@ public final class Comparators {
     };
   }
 
-  public static BinaryOperation<Boolean> lessThan(Column left, Object right) {
+  public static BinaryOperationTyped<Boolean> lessThan(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -74,7 +74,7 @@ public final class Comparators {
     };
   }
 
-  public static BinaryOperation<Boolean> lessThanEq(Column left, Object right) {
+  public static BinaryOperationTyped<Boolean> lessThanEq(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -89,7 +89,7 @@ public final class Comparators {
     };
   }
 
-  public static BinaryOperation<Boolean> greaterThan(Column left, Object right) {
+  public static BinaryOperationTyped<Boolean> greaterThan(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;
@@ -104,7 +104,7 @@ public final class Comparators {
     };
   }
 
-  public static BinaryOperation<Boolean> greaterThanEq(Column left, Object right) {
+  public static BinaryOperationTyped<Boolean> greaterThanEq(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NullType nt -> NullComparators.INSTANCE;

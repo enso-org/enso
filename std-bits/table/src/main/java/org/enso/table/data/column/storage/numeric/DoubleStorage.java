@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage.numeric;
 
-import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -15,13 +14,10 @@ import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.BlackholeProblemAggregator;
-import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
@@ -80,70 +76,6 @@ public final class DoubleStorage extends Storage<Double>
       throw new IndexOutOfBoundsException(idx);
     }
     return isNothing.get((int) idx);
-  }
-
-  private ColumnStorage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
-    long n = getSize();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < getSize(); i++) {
-      if (isNothing(i)) {
-        builder.appendDouble(arg);
-      } else {
-        builder.appendDouble(getItemAsDouble(i));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  /** Special handling to ensure loss of precision is reported. */
-  private ColumnStorage<?> fillMissingBigInteger(
-      BigInteger arg, ProblemAggregator problemAggregator) {
-    long n = getSize();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < n; i++) {
-      if (isNothing(i)) {
-        builder.append(arg);
-      } else {
-        builder.appendDouble(getItemAsDouble(i));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  /** Special handling to ensure loss of precision is reported. */
-  private ColumnStorage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
-    long n = getSize();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < n; i++) {
-      if (isNothing(i)) {
-        builder.appendLong(arg);
-      } else {
-        builder.appendDouble(getItemAsDouble(i));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  @Override
-  public ColumnStorage<?> fillMissing(
-      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
-    if (arg.isNumber()) {
-      if (arg.fitsInLong()) {
-        return fillMissingLong(arg.asLong(), problemAggregator);
-      } else if (arg.fitsInBigInteger()) {
-        return fillMissingBigInteger(arg.asBigInteger(), problemAggregator);
-      } else if (arg.fitsInDouble()) {
-        return fillMissingDouble(arg.asDouble(), problemAggregator);
-      }
-    }
-
-    return super.fillMissing(arg, commonType, problemAggregator);
   }
 
   @Override

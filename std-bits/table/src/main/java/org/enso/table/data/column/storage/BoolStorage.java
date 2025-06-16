@@ -8,9 +8,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>

@@ -157,4 +157,3 @@ public interface BinaryOperation {
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator);
 }
-

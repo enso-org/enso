@@ -10,8 +10,12 @@ import org.enso.table.data.table.problems.MapOperationProblemAggregator;
  */
 public interface BinaryOperationTyped<T> extends BinaryOperation {
   @Override
-  ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator);
+  ColumnStorage<T> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator);
 
   @Override
-  ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator);
+  ColumnStorage<T> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator);
 }
