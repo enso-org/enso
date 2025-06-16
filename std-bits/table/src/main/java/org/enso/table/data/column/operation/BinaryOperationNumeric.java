@@ -10,7 +10,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-public abstract class BinaryOperationNumeric<T, R> implements BinaryOperation<R> {
+public abstract class BinaryOperationNumeric<T, R> implements BinaryOperationTyped<R> {
   protected static StorageType<?> storageTypeForObject(Object right) {
     if (right == null) {
       return NullType.INSTANCE;

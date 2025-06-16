@@ -10,7 +10,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-public interface BinaryOperation<T> {
+public interface BinaryOperation {
   /**
    * Runs a 2-argument function on each element in the column.
    *
@@ -26,13 +26,13 @@ public interface BinaryOperation<T> {
    * @param problemAggregator Problem aggregator to report problems to.
    * @return a new storage containing results of the function for each row
    */
-  static <T> Column mapFunction(
+  static Column mapFunction(
       Column left,
       Object right,
       Boolean skipNulls,
       String newName,
       BiFunction<Object, Object, Object> function,
-      StorageType<T> expectedResultType,
+      StorageType<?> expectedResultType,
       MapOperationProblemAggregator problemAggregator) {
     // Special handling for nulls
     if (skipNulls) {
@@ -148,12 +148,13 @@ public interface BinaryOperation<T> {
   boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right);
 
   /** Apply the map to the pair of ColumnStorage and constant. */
-  ColumnStorage<T> applyMap(
+  ColumnStorage<?> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator);
 
   /** Apply the map to the pair of ColumnStorage. */
-  ColumnStorage<T> applyZip(
+  ColumnStorage<?> applyZip(
       ColumnStorage<?> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator);
 }
+
