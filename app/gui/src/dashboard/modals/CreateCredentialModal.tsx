@@ -4,7 +4,7 @@ import { makeCredentialCreationHandler } from '#/data/serviceCredentials/logic'
 import type { CredentialConfig, SecretId } from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { Dialog } from '$/react-components/Dialog'
-import { Dropdown } from '$/react-components/Inputs'
+import { Dropdown } from '$/react-components/Inputs/Dropdown'
 import { Text } from '$/react-components/Text'
 import { useState } from 'react'
 

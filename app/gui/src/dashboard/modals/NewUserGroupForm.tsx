@@ -6,7 +6,7 @@ import { useBackends, useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'
 import { Form } from '$/react-components/Form'
-import { Input } from '$/react-components/Inputs'
+import { Input } from '$/react-components/Inputs/Input'
 import { Text } from '$/react-components/Text'
 import { useSuspenseQuery } from '@tanstack/react-query'
 

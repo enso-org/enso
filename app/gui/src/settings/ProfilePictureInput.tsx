@@ -5,11 +5,11 @@ import type Backend from '#/services/Backend'
 import { useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'
 import { Form } from '$/react-components/Form'
-import { HiddenFile } from '$/react-components/Inputs'
+import { HiddenFile } from '$/react-components/Inputs/HiddenFile'
 import { ProfilePicture } from '$/react-components/ProfilePicture/ProfilePicture'
+import { StatelessSpinner } from '$/react-components/StatelessSpinner'
 import FocusRing from '$/react-components/styled/FocusRing'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { StatelessSpinner } from '../react-components/StatelessSpinner'
 
 /** Props for a {@link ProfilePictureInput}. */
 export interface ProfilePictureInputProps {

@@ -32,7 +32,7 @@ import {
 import { Heading } from '$/react-components/aria'
 import { Button, CopyButton } from '$/react-components/Button'
 import { Form } from '$/react-components/Form'
-import { ResizableContentEditableInput } from '$/react-components/Inputs'
+import { ResizableContentEditableInput } from '$/react-components/Inputs/ResizableInput'
 import { Result } from '$/react-components/Result'
 import { StatelessSpinner } from '$/react-components/StatelessSpinner'
 import { Text } from '$/react-components/Text'

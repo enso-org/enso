@@ -1,7 +1,4 @@
-/**
- * @file
- * Setup page
- */
+/** @file Setup page. */
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useIsFirstRender } from '#/hooks/mountHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
@@ -12,7 +9,7 @@ import { UserSessionType } from '$/providers/auth'
 import { useAuth, useBackends, useRouter, useText, useUserSession } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Form } from '$/react-components/Form'
-import { Input } from '$/react-components/Inputs'
+import { Input } from '$/react-components/Inputs/Input'
 import Page from '$/react-components/Page'
 import { Separator } from '$/react-components/Separator'
 import * as stepper from '$/react-components/Stepper'

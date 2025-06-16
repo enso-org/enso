@@ -15,14 +15,12 @@ import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { Button } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'
 import { Form } from '$/react-components/Form'
-import {
-  ComboBox,
-  DatePicker,
-  FormDropdown,
-  Input,
-  MultiSelector,
-  Selector,
-} from '$/react-components/Inputs'
+import { ComboBox } from '$/react-components/Inputs/ComboBox'
+import { DatePicker } from '$/react-components/Inputs/DatePicker'
+import { FormDropdown } from '$/react-components/Inputs/Dropdown'
+import { Input } from '$/react-components/Inputs/Input'
+import { MultiSelector } from '$/react-components/Inputs/MultiSelector'
+import { Selector } from '$/react-components/Inputs/Selector'
 import { Text } from '$/react-components/Text'
 import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'

@@ -17,7 +17,7 @@ import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFla
 import { Button, CopyButton, type ButtonProps } from '$/react-components/Button'
 import { Dialog, Popover, POPOVER_STYLES } from '$/react-components/Dialog'
 import { Form } from '$/react-components/Form'
-import { Input } from '$/react-components/Inputs'
+import { Input } from '$/react-components/Inputs/Input'
 import Portal from '$/react-components/Portal'
 import { Radio } from '$/react-components/Radio'
 import { Separator } from '$/react-components/Separator'

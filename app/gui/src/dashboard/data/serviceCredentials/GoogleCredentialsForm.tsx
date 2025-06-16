@@ -6,7 +6,7 @@
 import { useText } from '$/providers/react'
 import { Checkbox } from '$/react-components/Checkbox'
 import { Form } from '$/react-components/Form'
-import { Input } from '$/react-components/Inputs'
+import { Input } from '$/react-components/Inputs/Input'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as google from './google'
 import type { CredentialFormProps } from './types'

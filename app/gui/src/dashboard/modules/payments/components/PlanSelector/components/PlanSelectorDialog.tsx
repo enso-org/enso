@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Dialog that shows the plan details, price, and the payment form.
- */
+/** @file Dialog that shows the plan details, price, and the payment form. */
 import type { Plan } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
@@ -12,7 +8,8 @@ import { Checkbox } from '$/react-components/Checkbox'
 import { Dialog } from '$/react-components/Dialog'
 import { ErrorBoundary, ErrorDisplay } from '$/react-components/ErrorBoundary'
 import { Form } from '$/react-components/Form'
-import { Input, Selector } from '$/react-components/Inputs'
+import { Input } from '$/react-components/Inputs/Input'
+import { Selector } from '$/react-components/Inputs/Selector'
 import { Separator } from '$/react-components/Separator'
 import { Suspense } from '$/react-components/Suspense'
 import { Text } from '$/react-components/Text'

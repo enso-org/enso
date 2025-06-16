@@ -341,7 +341,7 @@ export interface FormDropdownProps<
   readonly name: TFieldName
 }
 
-/** A dynamic wizard for creating an arbitrary type of Datalink. */
+/** A dropdown. */
 export function FormDropdown<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, Constraint>,

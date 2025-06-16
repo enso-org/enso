@@ -13,7 +13,7 @@ import { Cell, Column, Row, Table, TableBody, TableHeader } from '$/react-compon
 import { Button } from '$/react-components/Button'
 import { Dialog, Popover } from '$/react-components/Dialog'
 import { Form } from '$/react-components/Form'
-import { ComboBox } from '$/react-components/Inputs'
+import { ComboBox } from '$/react-components/Inputs/ComboBox'
 import { Menu } from '$/react-components/Menu'
 import { PaywallDialogButton } from '$/react-components/Paywall'
 import { ProfilePicture } from '$/react-components/ProfilePicture'
