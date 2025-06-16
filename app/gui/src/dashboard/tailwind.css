@@ -9,7 +9,9 @@
 .theme-dark {
   filter: invert(90%) hue-rotate(180deg) brightness(1.2);
 
-  .profile-picture {
+  img,
+  .tsqd-open-btn-container,
+  use[href$="#google_color"] {
     filter: invert(90%) hue-rotate(180deg) brightness(1.2);
   }
 }

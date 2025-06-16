@@ -3,7 +3,7 @@ import { tv } from '#/utilities/tailwindVariants'
 
 /** Variants for the ProfilePicture component. */
 export const PROFILE_PICTURE_STYLES = tv({
-  base: 'profile-picture aspect-square flex-none object-cover',
+  base: 'aspect-square flex-none object-cover',
   variants: {
     size: {
       auto: 'w-auto h-auto',
