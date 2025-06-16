@@ -3,6 +3,7 @@ package org.enso.jvm.interop;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -10,7 +11,10 @@ import java.math.BigDecimal;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -86,6 +90,27 @@ public class OtherJvmObjectTest {
 
   public static short otherJvmValueOf(String txt) {
     return Short.parseShort(txt);
+  }
+
+  @Test
+  public void parsingException() throws Exception {
+    var shortClass1 = ctx.asValue(java.lang.Short.class).getMember("static");
+    try {
+      var value1 = shortClass1.invokeMember("valueOf", "not-a-number");
+      fail("Unexpected returned value: " + value1);
+    } catch (PolyglotException e) {
+      MatcherAssert.assertThat(e.getMessage(), CoreMatchers.containsString("not-a-number"));
+      assertTrue("This is host exception", e.isHostException());
+      assertNotNull("Host exception found", e.asHostException());
+    }
+    var shortClass2 = loadOtherJvmClass("java.lang.Short");
+    try {
+      var value2 = shortClass2.invokeMember("valueOf", "not-a-number");
+      fail("Unexpected returned value: " + value2);
+    } catch (PolyglotException e) {
+      MatcherAssert.assertThat(e.getMessage(), CoreMatchers.containsString("not-a-number"));
+      assertFalse("Alas this cannot be host exception", e.isHostException());
+    }
   }
 
   @Test
