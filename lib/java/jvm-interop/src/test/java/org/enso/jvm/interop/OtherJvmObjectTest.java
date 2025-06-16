@@ -5,15 +5,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
+import java.util.function.Consumer;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
@@ -190,6 +193,39 @@ public class OtherJvmObjectTest {
     var other1 = otherClass.invokeMember("otherJvmInstances", 1);
     var other2 = otherClass.invokeMember("otherJvmInstances", 1);
     assertNotEquals(other1, other2);
+  }
+
+  public static void callback(Consumer<Object> cb, Object value) {
+    cb.accept(value);
+  }
+
+  @Test
+  public void callback() throws Exception {
+    class MockProxy implements ProxyExecutable {
+      private Value last;
+
+      @Override
+      public Object execute(Value... arguments) {
+        assertNull("No args yet", last);
+        assertEquals("One arg", 1, arguments.length);
+        last = arguments[0];
+        return arguments[0];
+      }
+
+      final void assertArgs(String msg, Value exp) {
+        assertEquals(msg, exp.asString(), this.last.asString());
+        this.last = null;
+      }
+    }
+    var mock = new MockProxy();
+
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    localClass.invokeMember("callback", mock, "Real");
+    mock.assertArgs("Called with Real", ctx.asValue("Real"));
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    otherClass.invokeMember("callback", mock, "RealOther");
+    mock.assertArgs("Called with Real", ctx.asValue("RealOther"));
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
