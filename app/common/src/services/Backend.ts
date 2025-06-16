@@ -1524,7 +1524,8 @@ export function doesTitleContainInvalidCharacters(name: string) {
     name.includes('\\') ||
     name.includes('..') ||
     name === '.' ||
-    name === '..'
+    name === '..' ||
+    name === '~'
   )
 }
 
