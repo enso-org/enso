@@ -90,6 +90,7 @@ import {
   useRightPanelData,
   useText,
 } from '$/providers/react'
+import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Children,
@@ -190,7 +191,8 @@ function AssetsTable(props: AssetsTableProps) {
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const { backendForType, didLoadingProjectManagerFail, reconnectToProjectManager } = useBackends()
+  const { backendForType, reconnectToProjectManager } = useBackends()
+  const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
   const backend = backendForType(category.backend)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const localStorage = useLocalStorage()
@@ -198,8 +200,7 @@ function AssetsTable(props: AssetsTableProps) {
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
-  const { setContext: setRightPanelContext, setTemporaryTab: setRightPanelTemporaryTab } =
-    useRightPanelData()
+  const rightPanel = useRightPanelData()
 
   const columns = useMemo(
     () =>
@@ -298,14 +299,14 @@ function AssetsTable(props: AssetsTableProps) {
       const [soleId] = selectedIds
       const asset = soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-      setRightPanelContext('drive', {
+      rightPanel.setContext('drive', {
         item: asset ?? undefined,
         category,
       })
     } else {
-      setRightPanelContext('drive', { category })
+      rightPanel.setContext('drive', { category })
     }
-  }, [assets, driveStore, setRightPanelContext, category])
+  }, [assets, driveStore, rightPanel, category])
 
   useEffect(
     () =>
@@ -316,17 +317,17 @@ function AssetsTable(props: AssetsTableProps) {
             const asset =
               soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-            setRightPanelContext('drive', {
+            rightPanel.setContext('drive', {
               item: asset ?? undefined,
               category,
             })
-            setRightPanelTemporaryTab(undefined)
+            rightPanel.setTemporaryTab(undefined)
           } else {
-            setRightPanelContext('drive', { category })
+            rightPanel.setContext('drive', { category })
           }
         }
       }),
-    [category, driveStore, assets, setRightPanelContext, setRightPanelTemporaryTab],
+    [category, driveStore, assets, rightPanel],
   )
 
   useEffect(() => {
@@ -572,11 +573,11 @@ function AssetsTable(props: AssetsTableProps) {
     () =>
       driveStore.subscribe(({ selectedIds }) => {
         if (selectedIds.size !== 1) {
-          setRightPanelContext('drive', { category })
-          setRightPanelTemporaryTab(undefined)
+          rightPanel.setContext('drive', { category })
+          rightPanel.setTemporaryTab(undefined)
         }
       }),
-    [driveStore, setRightPanelContext, setRightPanelTemporaryTab, category],
+    [driveStore, rightPanel, category],
   )
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number | null>(null)
@@ -631,7 +632,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.datalink: {
                 event.preventDefault()
                 event.stopPropagation()
-                setRightPanelTemporaryTab('settings')
+                rightPanel.setTemporaryTab('settings')
                 break
               }
               case AssetType.secret: {

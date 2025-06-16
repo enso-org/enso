@@ -3,29 +3,34 @@ import { Result } from '#/components/Result'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
-import { useBackends, useRightPanelData, useText } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/rightPanel'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ProjectSession } from './ProjectSession'
 
 /** A list of previous versions of an asset. */
 export function ProjectSessions() {
   const { getText } = useText()
-  const rightPanel = useRightPanelData()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
   const { remoteBackend } = useBackends()
 
-  if (rightPanel.context?.category?.backend !== BackendType.remote) {
+  if (category?.backend !== BackendType.remote) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.localBackend')} />
   }
 
-  if (rightPanel.focusedAsset == null) {
+  if (focusedAsset == null) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notSelected')} />
   }
 
-  if (rightPanel.focusedAsset.type !== AssetType.project) {
+  if (focusedAsset.type !== AssetType.project) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notProjectAsset')} />
   }
 
-  return <AssetProjectSessionsInternal backend={remoteBackend} item={rightPanel.focusedAsset} />
+  return <AssetProjectSessionsInternal backend={remoteBackend} item={focusedAsset} />
 }
 
 /** Props for a {@link AssetProjectSessionsInternal}. */

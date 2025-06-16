@@ -2,7 +2,7 @@
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
