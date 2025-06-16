@@ -35,11 +35,17 @@ export const dataLoader: DataLoader<{
     if (auth.session?.type !== UserSessionType.full) return Ok({})
     const { isOrganizationAdmin, userId, plan = backendModule.Plan.free } = auth.session.user
     if (!(PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin)) return Ok({})
-    const [organizationName, fetchedUserGroups] = await Promise.all([
+    const [organization, fetchedUserGroups] = await Promise.all([
       queryClient.fetchQuery(backendQueryOptions('getOrganization', [], backend)),
       queryClient.fetchQuery(backendQueryOptions('listUserGroups', [], backend)),
     ])
-    return Ok({ setupOrganizationModalProps: { userId, organizationName, fetchedUserGroups } })
+    return Ok({
+      setupOrganizationModalProps: {
+        userId,
+        organizationName: organization?.name ?? null,
+        userGroupsCount: fetchedUserGroups.length,
+      },
+    })
   },
 }
 
