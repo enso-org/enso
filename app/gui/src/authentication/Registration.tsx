@@ -11,7 +11,8 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { LOGIN_PATH } from '$/appUtils'
 import AuthenticationPage from '$/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '$/authentication/schemas'
-import { useBackends, useLocalStorage, useRouter, useSession, useText } from '$/providers/react'
+import { useBackends, useLocalStorage, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { Alert } from '$/react-components/Alert'
 import { Button } from '$/react-components/Button'
 import { Checkbox } from '$/react-components/Checkbox'
@@ -42,19 +43,18 @@ const CONFIRM_SIGN_IN_INTERVAL = 5_000
 export default function Registration() {
   const { signUp, confirmSignUp, signInWithPassword } = useSession()
 
-  const { searchParams } = useRouter()
   const localStorage = useLocalStorage()
   const { getText } = useText()
   const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const initialEmail = searchParams.get('email') ?? ''
-  const organizationId = searchParams.get('organization_id')
-  const redirectTo = searchParams.get('redirect_to')
+  const [initialEmail] = useQueryParam('email')
+  const [organizationId] = useQueryParam('organization_id')
+  const [redirectTo] = useQueryParam('redirect_to')
   const [isManualCodeEntry, setIsManualCodeEntry] = useState(false)
 
   const signupForm = Form.useForm({
-    defaultValues: { email: initialEmail, agreedToTos: [], agreedToPrivacyPolicy: [] },
+    defaultValues: { email: initialEmail ?? '', agreedToTos: [], agreedToPrivacyPolicy: [] },
     resetOnSubmit: false,
     schema: (schema) =>
       schema
@@ -82,7 +82,7 @@ export default function Registration() {
       localStorage.set('termsOfService', { versionHash: tosHash })
       localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
 
-      await signUp(email, password, organizationId)
+      await signUp(email, password, organizationId ?? null)
 
       stepperState.nextStep()
     },

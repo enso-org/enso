@@ -7,6 +7,7 @@ import GoBackIcon from '#/assets/go_back.svg'
 import { LOGIN_PATH } from '$/appUtils'
 import AuthenticationPage from '$/authentication/AuthenticationPage'
 import { useBackends, useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { Form } from '$/react-components/Form'
 import { Input } from '$/react-components/Inputs'
 import Link from '$/react-components/Link'
@@ -18,12 +19,12 @@ export default function ForgotPassword() {
   const { forgotPassword } = useSession()
   const { getText } = useText()
 
-  const { router, searchParams } = useRouter()
+  const { router } = useRouter()
 
   const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const initialEmail = searchParams.get('email')
+  const [initialEmail] = useQueryParam('email')
   const [emailInput, setEmailInput] = useState(initialEmail ?? '')
 
   return (

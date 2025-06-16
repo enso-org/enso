@@ -3,6 +3,7 @@ import { PlanSelector } from '#/modules/payments'
 import { isPlan } from '#/services/Backend'
 import { DASHBOARD_PATH, SUBSCRIBE_SUCCESS_PATH } from '$/appUtils'
 import { useFullUserSession, useRouter, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { Button } from '$/react-components/Button'
 import { Text } from '$/react-components/Text'
 
@@ -22,10 +23,10 @@ import { Text } from '$/react-components/Text'
  */
 export function Subscribe() {
   const { getText } = useText()
-  const { router, searchParams } = useRouter()
+  const { router } = useRouter()
   const { user } = useFullUserSession()
 
-  const maybePlan = searchParams.get('plan')
+  const [maybePlan] = useQueryParam('plan')
 
   const chosenPlan = isPlan(maybePlan) ? maybePlan : null
 

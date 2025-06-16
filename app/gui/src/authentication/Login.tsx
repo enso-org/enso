@@ -9,6 +9,7 @@ import AuthenticationPage from '$/authentication/AuthenticationPage'
 import type { CognitoUser } from '$/authentication/cognito'
 import { passwordSchema } from '$/authentication/schemas'
 import { useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { Button } from '$/react-components/Button'
 import { Form } from '$/react-components/Form'
 import { Input, OTPInput, Password } from '$/react-components/Inputs'
@@ -20,11 +21,11 @@ import { useState } from 'react'
 
 /** A form for users to log in. */
 export default function Login() {
-  const { router, searchParams } = useRouter()
+  const { router } = useRouter()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSession()
   const { getText } = useText()
 
-  const initialEmail = searchParams.get('email') ?? ''
+  const [initialEmail] = useQueryParam('email')
 
   const form = Form.useForm({
     schema: (z) =>
@@ -35,7 +36,7 @@ export default function Login() {
           .email(getText('invalidEmailValidationError')),
         password: passwordSchema(getText),
       }),
-    defaultValues: { email: initialEmail },
+    defaultValues: { email: initialEmail ?? '' },
     onSubmit: async ({ email, password }) => {
       const res = await signInWithPassword(email, password)
 
