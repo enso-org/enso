@@ -542,6 +542,40 @@ public class BindingsMapResolutionTest {
         });
   }
 
+  @Test
+  public void resolveMainModule_FromDifferentProject() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    var libDir = tmpDir.toPath().resolve("Lib");
+    projDir.toFile().mkdirs();
+    libDir.toFile().mkdirs();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                    # Empty on purpose
+                    """)),
+        libDir);
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                    from local.Lib import all
+                    """)),
+        projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          var nameToResolve = toScalaList(List.of("local", "Lib", "Main"));
+          var res = bindingsMap.resolveQualifiedName(nameToResolve);
+          assertThat("Is resolved", res.isRight(), is(true));
+        });
+  }
+
   private Path createProject(String mainModuleSrc) throws IOException {
     var projDir = TMP_DIR.newFolder().toPath();
     var modules =
