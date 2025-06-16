@@ -114,6 +114,26 @@ public class OtherJvmObjectTest {
   }
 
   @Test
+  public void unsupportedOperation() throws Exception {
+    var shortClass1 = ctx.asValue(java.lang.Short.class).getMember("static");
+    try {
+      var value1 = shortClass1.getArrayElement(0);
+      fail("Unexpected returned value: " + value1);
+    } catch (UnsupportedOperationException e) {
+      MatcherAssert.assertThat(
+          e.getMessage(), CoreMatchers.containsString("Unsupported operation"));
+    }
+    var shortClass2 = loadOtherJvmClass("java.lang.Short");
+    try {
+      var value2 = shortClass2.getArrayElement(0);
+      fail("Unexpected returned value: " + value2);
+    } catch (UnsupportedOperationException e) {
+      MatcherAssert.assertThat(
+          e.getMessage(), CoreMatchers.containsString("Unsupported operation"));
+    }
+  }
+
+  @Test
   public void classNotFoundError() {
     var msg = new OtherJvmMessage.LoadClass("java.lang.unknown.Clazz");
     try {

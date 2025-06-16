@@ -15,6 +15,9 @@ final class OtherJvmObject implements TruffleObject {
   /** receiver for other than InteropLibrary messages */
   private static final Object POJO = new Object();
 
+  /** special message */
+  private static final Message HAS_LANGUAGE = Message.resolve(InteropLibrary.class, "hasLanguage");
+
   private final Channel<OtherJvmPool> channel;
   private final long id;
 
@@ -30,7 +33,7 @@ final class OtherJvmObject implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   Object send(Message message, Object[] args) throws Exception {
-    if (message.getLibraryClass() != InteropLibrary.class) {
+    if (message.getLibraryClass() != InteropLibrary.class || HAS_LANGUAGE == message) {
       // we need to invoke default implementation of library
       // to handle the message in a proper way
       // hence provide POJO as a receiver

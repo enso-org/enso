@@ -2,12 +2,15 @@ package org.enso.jvm.interop;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
@@ -29,13 +32,16 @@ record OtherJvmMessage( // sends a message to the other side
   @Persistable(id = 81909, allowInlining = false)
   record ThrowException<V, E extends Exception>(int kind, String msg)
       implements OtherJvmResult<V, E> {
+    private static final Map<Class<? extends Throwable>, Integer> kinds;
+
+    static {
+      kinds = new LinkedHashMap<>();
+      kinds.put(ClassNotFoundException.class, 1);
+      kinds.put(UnsupportedMessageException.class, 2);
+    }
 
     static <T, E extends Exception> ThrowException<T, E> create(E ex) {
-      var kind =
-          switch (ex.getClass().getName()) {
-            case "java.lang.ClassNotFoundException" -> 1;
-            default -> 0;
-          };
+      var kind = kinds.getOrDefault(ex.getClass(), 0);
       return new ThrowException<>(kind, ex.getMessage());
     }
 
@@ -44,6 +50,7 @@ record OtherJvmMessage( // sends a message to the other side
     public V value() throws E {
       switch (kind) {
         case 1 -> throw (E) new ClassNotFoundException(msg());
+        case 2 -> throw (E) UnsupportedMessageException.create();
         default -> throw new IllegalStateException(msg());
       }
     }
