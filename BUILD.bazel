@@ -33,7 +33,6 @@ STDLIB_SOURCES = glob(stdlib_source_patterns())
 
 # TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
 SRCS = STDLIB_SOURCES + [
-    ".jvmopts",
     ".scalafmt.conf",
     "build.sbt",
     "project/plugins.sbt",
@@ -149,6 +148,27 @@ SBT_GLOBAL_BASE = "$$TMPDIR"
 
 SBT_LOCAL_REPOS = "$$TMPDIR/.sbt/repositories"
 
+SBT_SYSTEM_PROPS = [
+    "-Dsbt.repositories.local=" + SBT_LOCAL_REPOS,
+    "-Dsbt.global.base=" + SBT_GLOBAL_BASE,
+    "-Dsbt.boot.directory=" + SBT_BOOT_DIR,
+    "-Dsbt.ivy.home=" + SBT_IVY_HOME,
+    # Copied from .jvmopts
+    # TODO: Create a rule that reads that file?
+    "-Xss16M",
+    "-Xmx4G",
+    "-XX:+UseCompressedOops",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+    "--add-exports=jdk.graal.compiler/jdk.graal.compiler.graphio=ALL-UNNAMED",
+    "--enable-native-access=ALL-UNNAMED",
+    "--sun-misc-unsafe-memory-access=allow",
+]
+
 # These system properties are needed so that sbt will known that it runs as a subprocess of Bazel.
 # In such case, it will avoid running `cargo` or `pnpm` commands on its own,
 # instead, it will expect that all the necessary artifacts are already provided
@@ -170,11 +190,6 @@ run_sbt(
         "PATH": "$(FLATC_PATH):$$PATH",
     },
     out_dirs = ["built-distribution"],
-    system_props = [
-        "-Dsbt.repositories.local=" + SBT_LOCAL_REPOS,
-        "-Dsbt.global.base=" + SBT_GLOBAL_BASE,
-        "-Dsbt.boot.directory=" + SBT_BOOT_DIR,
-        "-Dsbt.ivy.home=" + SBT_IVY_HOME,
-    ] + EXTRA_SYSTEM_PROPS,
+    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
 )
