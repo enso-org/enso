@@ -399,6 +399,8 @@ test.each([
   { name: '..', valid: false },
   { name: '.', valid: false },
   { name: '~', valid: false },
+  { name: '~a', valid: true },
+  { name: 'a~', valid: true },
   { name: 'a.a.a.a.a.a.a.a.', valid: true },
   { name: 'a.a.a.a.a.a.a.a.a', valid: true },
   { name: '.a.a.a.a.a.a.a.a', valid: true },
