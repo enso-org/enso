@@ -87,6 +87,7 @@ export default function ConfirmRegistration() {
   }
 
   if (email == null || verificationCode == null) {
+    console.debug('Redirecting to login')
     void router.replace(appUtils.LOGIN_PATH)
     return
   }

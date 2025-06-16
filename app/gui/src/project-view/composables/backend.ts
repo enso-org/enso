@@ -25,14 +25,7 @@ const methodDefaultOptions: Partial<Record<BackendQueryMethod, ExtraOptions>> = 
   getFileDetails: { ...noPersist },
 }
 
-type A = Backend
-type B = Backend | null
-
-type F<X extends Backend | null> = (x: X) => X extends Backend ? number : number | null
-
-type X = F<A>
-type Y = F<B>
-
+/** Commonly used options for tanstack queries to backend. */
 export function backendQueryOptions<Method extends BackendQueryMethod, B extends Backend | null>(
   method: Method,
   args: ToValue<Parameters<Backend[Method]> | undefined>,
@@ -122,7 +115,7 @@ export function useBackend(which: 'remote' | 'project') {
   function fetch<Method extends BackendQueryMethod>(
     method: Method,
     args: ToValue<Parameters<Backend[Method]> | undefined>,
-  ): Promise<ReturnType<Backend[Method]> | null> {
+  ) {
     return queryClient.fetchQuery(backendQueryOptions(method, args, backend))
   }
 
@@ -138,7 +131,7 @@ export function useBackend(which: 'remote' | 'project') {
   function ensureQueryData<Method extends BackendQueryMethod>(
     method: Method,
     args: ToValue<Parameters<Backend[Method]> | undefined>,
-  ): Promise<ReturnType<Backend[Method]> | null> {
+  ) {
     return queryClient.ensureQueryData(backendQueryOptions(method, args, backend))
   }
 

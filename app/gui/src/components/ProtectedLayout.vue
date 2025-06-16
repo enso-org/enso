@@ -14,10 +14,13 @@ import { useUserAgrements } from '$/composables/userAgreements'
 import { AuthStore, useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
+import type { DataLoader } from '$/router'
 import { Dialog, reactComponent, ResultComponent } from '@/util/react'
+import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
-import { computed, watch, watchPostEffect } from 'vue'
+import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
 import { RouteLocation, useRoute, useRouter } from 'vue-router'
+import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 const AgreementsModal = reactComponent(AgreementsModalReact)
 
@@ -50,36 +53,63 @@ function redirect(auth: AuthStore, localStorage: LocalStorage) {
   return undefined
 }
 
-export default {
-  async beforeRouteEnter(to, _from) {
+async function navigationGuard(to: RouteLocation) {
+  const localStorage = LocalStorage.getInstance()
+  const auth = useAuth()
+  await auth.waitForSession()
+
+  if (!routeAllowed(to, auth)) {
+    return redirect(auth, localStorage) ?? false
+  }
+  return true
+}
+
+let scope: EffectScope | undefined
+export const dataLoader: DataLoader<{
+  agreementsModalProps: AgreementsModalProps | undefined
+}> = {
+  async beforeRouteEnter(to) {
+    const queryClient = vueQuery.useQueryClient()
     const localStorage = LocalStorage.getInstance()
     const auth = useAuth()
     await auth.waitForSession()
 
     if (!routeAllowed(to, auth)) {
-      const redirectVal = redirect(auth, localStorage)
-      return redirectVal ?? false
+      return Err(redirect(auth, localStorage) ?? false)
     }
 
-    // if (auth.session != null) {
-    //   const scope = effectScope()
-    //   const agreementsModalProps = await scope.run(() => useUserAgrements(queryClient))
-    //   return next((component) => {
-    //     component.routeScope = scope
-    //     scope.run(() => watchEffect(() => (component.agreementsModalProps = agreementsModalProps)))
-    //   })
-    // }
-    return true
-  },
-
-  async dataLoader(queryClient) {
-    const auth = useAuth()
     if (auth.session != null) {
-      return { agreementsModalProps: await useUserAgrements(queryClient) }
-    } else {
-      return { agreementsModalProps: undefined }
+      scope = effectScope()
+      return Ok({ agreementsModalProps: await scope.run(() => useUserAgrements(queryClient)) })
+    }
+    return Ok({ agreementsModalProps: undefined })
+  },
+
+  async beforeRouteUpdate(to, from, data) {
+    if (to.meta.access !== from.meta.access) {
+      const queryClient = vueQuery.useQueryClient()
+      const localStorage = LocalStorage.getInstance()
+      const auth = useAuth()
+      await auth.waitForSession()
+      if (!routeAllowed(to, auth)) {
+        return redirect(auth, localStorage) ?? false
+      }
+      if (auth.session != null && data.agreementsModalProps == null) {
+        scope?.stop()
+        scope = effectScope()
+        console.log('Setting up userAgreements')
+        data.agreementsModalProps = await scope.run(() => useUserAgrements(queryClient))
+      } else if (auth.session == null && data.agreementsModalProps != null) {
+        scope?.stop()
+        console.log('Setting no userAgreements')
+        data.agreementsModalProps = undefined
+      }
     }
   },
+}
+
+export default {
+  name: 'ProtectedLayout',
 }
 </script>
 
@@ -128,16 +158,15 @@ const shouldDisplayAgreementsModal = computed(
 
 <template>
   <div v-if="auth.session == null" data-testid="before-auth-layout" aria-hidden>
-    <!-- This div is used as a flag to indicate that the user is not logged in.
-        also it guarantees that the top-level suspense boundary is already resolved -->
+    <!-- This div is used as a flag to indicate that the user is not logged in. -->
   </div>
   <div
     v-if="auth.session?.type === UserSessionType.full"
     data-testid="after-auth-layout"
     aria-hidden
   >
-    <!--This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
-        also it guarantees that the top-level suspense boundary is already resolved -->
+    <!--This div is used as a flag to indicate that the dashboard has been loaded and the user is
+    authenticated. -->
   </div>
 
   <Dialog

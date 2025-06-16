@@ -1,13 +1,17 @@
 <script lang="ts">
 import RegistrationReact from '#/pages/authentication/Registration'
 import { useUserAgrements } from '$/composables/userAgreements'
+import type { DataLoader } from '$/router'
+import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
+import { useQueryClient } from '@tanstack/vue-query'
 
 const Registration = reactComponent(RegistrationReact)
 
-export default {
-  dataLoader(queryClient) {
-    return useUserAgrements(queryClient).then(({ userAgreed }) => userAgreed)
+export const dataLoader: DataLoader<{ userAgreedFn: () => void }> = {
+  beforeRouteEnter() {
+    const queryClient = useQueryClient()
+    return useUserAgrements(queryClient).then(({ userAgreed }) => Ok({ userAgreedFn: userAgreed }))
   },
 }
 </script>
@@ -17,5 +21,5 @@ defineProps<{ userAgreedFn: () => void }>()
 </script>
 
 <template>
-  <Registration v-if="userAgreedFn" :userAgreed="userAgreedFn" />
+  <Registration :userAgreed="userAgreedFn" />
 </template>

@@ -7,10 +7,13 @@ import {
 import * as backendModule from '#/services/Backend'
 import { useAuth, UserSessionType } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
+import type { DataLoader } from '$/router'
 import { backendQueryOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
 import { reactComponent } from '@/util/react'
+import { useQueryClient } from '@tanstack/vue-query'
 import { onMounted, onUnmounted } from 'vue'
+import { Ok } from 'ydoc-shared/util/data/result'
 const InvitedToOrganizationModal = reactComponent(InvitedToOrganizationModalReact)
 const SetupOrganizationAfterSubscribe = reactComponent(SetupOrganizationAfterSubscribeReact)
 
@@ -22,19 +25,26 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  * TODO[ao]: should be merged with `AppContainer` probably, but first we need to remove
  * the "Dashboard" layer between them.
  */
-export default {
-  async dataLoader(queryClient) {
+export const dataLoader: DataLoader<{
+  setupOrganizationModalProps?: SetupOrganizationAfterSubscribeProps
+}> = {
+  async beforeRouteEnter() {
+    const queryClient = useQueryClient()
     const auth = useAuth()
     const { remoteBackend: backend } = useBackends()
-    if (auth.session?.type !== UserSessionType.full) return {}
+    if (auth.session?.type !== UserSessionType.full) return Ok({})
     const { isOrganizationAdmin, userId, plan = backendModule.Plan.free } = auth.session.user
-    if (!(PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin)) return {}
+    if (!(PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin)) return Ok({})
     const [organizationName, fetchedUserGroups] = await Promise.all([
       queryClient.fetchQuery(backendQueryOptions('getOrganization', [], backend)),
       queryClient.fetchQuery(backendQueryOptions('listUserGroups', [], backend)),
     ])
-    return { setupOrganizationModalProps: { userId, organizationName, fetchedUserGroups } }
+    return Ok({ setupOrganizationModalProps: { userId, organizationName, fetchedUserGroups } })
   },
+}
+
+export default {
+  name: 'AppContainerLayout',
 }
 </script>
 

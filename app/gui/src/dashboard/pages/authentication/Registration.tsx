@@ -13,28 +13,16 @@ import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import LocalStorage from '#/utilities/LocalStorage'
 import { LOGIN_PATH } from '$/appUtils'
 import { useBackends, useLocalStorage, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
 import { useEffect, useState } from 'react'
-import * as z from 'zod'
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly loginRedirect: string
-  }
-}
-
-LocalStorage.registerKey('loginRedirect', {
-  isUserSpecific: true,
-  schema: z.string(),
-})
 
 const CONFIRM_SIGN_IN_INTERVAL = 5_000
 
+/** Properties of {@link Registration} component. */
 export interface RegistrationProps {
+  /** A callback called when user agreed on current Terms of Service and Privacy Policy */
   readonly userAgreed: () => void
 }
 
