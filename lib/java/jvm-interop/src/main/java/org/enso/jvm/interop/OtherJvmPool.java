@@ -43,6 +43,7 @@ public final class OtherJvmPool extends Channel.Config {
                       yield proxy;
                     }
                   }
+                  case null -> null;
                   default -> obj;
                 });
     var withReadAndWrite =
@@ -60,6 +61,7 @@ public final class OtherJvmPool extends Channel.Config {
                     // have a positive ID
                     yield new OtherJvmObject(null, id);
                   }
+                  case null -> null;
                   default -> obj;
                 });
     return withReadAndWrite;

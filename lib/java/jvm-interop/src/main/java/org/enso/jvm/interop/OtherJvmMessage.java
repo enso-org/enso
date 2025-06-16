@@ -56,12 +56,17 @@ record OtherJvmMessage( // sends a message to the other side
     }
   }
 
+  private static final Message IS_IDENTICAL = Message.resolve(InteropLibrary.class, "isIdentical");
+
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
     try {
       TruffleClassLoader.ctx().enter();
       var receiver = t.getConfig().findObject(id);
       assert receiver instanceof TruffleObject;
+      if (message == IS_IDENTICAL) {
+        args.set(1, InteropLibrary.getUncached());
+      }
       var res = ReflectionLibrary.getUncached().send(receiver, message, args.toArray());
       return new ReturnValue<>(res);
     } catch (Exception ex) {

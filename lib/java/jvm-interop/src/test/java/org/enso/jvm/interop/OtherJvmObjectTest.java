@@ -3,6 +3,7 @@ package org.enso.jvm.interop;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -153,6 +154,42 @@ public class OtherJvmObjectTest {
 
     var noType = TypesLibrary.getUncached().hasType(other);
     assertFalse("Other JVM objects don't have type", noType);
+  }
+
+  private static final Object IDENTICAL = new Object();
+
+  public static Object otherJvmInstances(int kind) {
+    if (kind == 0) {
+      return IDENTICAL;
+    } else {
+      return new Object();
+    }
+  }
+
+  @Test
+  public void isIdenticalCheck() throws Exception {
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = localClass.invokeMember("otherJvmInstances", 0);
+    var local2 = localClass.invokeMember("otherJvmInstances", 0);
+    assertEquals(local1, local2);
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", 0);
+    var other2 = otherClass.invokeMember("otherJvmInstances", 0);
+    assertEquals(other1, other2);
+  }
+
+  @Test
+  public void isNotIdenticalCheck() throws Exception {
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = localClass.invokeMember("otherJvmInstances", 1);
+    var local2 = localClass.invokeMember("otherJvmInstances", 1);
+    assertNotEquals(local1, local2);
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", 1);
+    var other2 = otherClass.invokeMember("otherJvmInstances", 1);
+    assertNotEquals(other1, other2);
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
