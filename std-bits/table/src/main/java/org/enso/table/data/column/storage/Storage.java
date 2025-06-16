@@ -99,45 +99,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   /**
-   * Return a new storage, where missing elements have been replaced by arg.
-   *
-   * @param arg the value to use for missing elements
-   * @param commonType the common type of this storage and the provided value
-   * @return a new storage, with all missing elements replaced by arg
-   */
-  public ColumnStorage<?> fillMissing(
-      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
-    Builder builder = Builder.getForType(commonType, getSize(), problemAggregator);
-    Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < getSize(); i++) {
-      Object it = getItemBoxed(i);
-      builder.append(it == null ? convertedFallback : it);
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  /**
-   * Fills missing values in this storage, by using corresponding values from {@code other}.
-   *
-   * @param other the source of default values
-   * @param commonType a common type that should fit values from both storages
-   * @return a new storage with missing values filled
-   */
-  public ColumnStorage<?> fillMissingFrom(
-      Storage<?> other, StorageType<?> commonType, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForType(commonType, getSize(), problemAggregator);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < getSize(); i++) {
-      builder.append(isNothing(i) ? other.getItemBoxed(i) : getItemBoxed(i));
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  /**
    * Fills missing values with a previous non-missing value.
    *
    * <p>

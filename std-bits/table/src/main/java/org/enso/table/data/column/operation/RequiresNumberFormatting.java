@@ -15,8 +15,7 @@ public class RequiresNumberFormatting {
    * Indicates whether a column contains numbers greater than 1000000, and require formatting in viz
    */
   public static boolean apply(Column column) throws InterruptedException {
-    ColumnStorage storage = column.getStorage();
-    return applyToStorage(storage);
+    return applyToStorage(column.getStorage());
   }
 
   /**
@@ -24,7 +23,7 @@ public class RequiresNumberFormatting {
    *
    * @return true/false if the column contains large numbers
    */
-  public static boolean applyToStorage(ColumnStorage storage) throws InterruptedException {
+  public static boolean applyToStorage(ColumnStorage<?> storage) throws InterruptedException {
     if (storage instanceof NumericFormattingStorage numericStorage) {
       return numericStorage.cachedNumericFormatCheck();
     }
@@ -32,7 +31,7 @@ public class RequiresNumberFormatting {
   }
 
   /** Internal method performing the calculation on a storage. */
-  public static boolean compute(ColumnStorage storage, Context context) {
+  public static boolean compute(ColumnStorage<?> storage, Context context) {
     for (long i = 0; i < storage.getSize(); i++) {
       var val = storage.getItemBoxed(i);
       if (val == null) {

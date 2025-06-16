@@ -72,33 +72,6 @@ public final class BoolStorage extends Storage<Boolean>
     return isNothing;
   }
 
-  /**
-   * Creates a new BoolStorage in which all missing values have been replaced by arg.
-   *
-   * <p>It works by setting the new isMissing to an empty bitset and changing the values bitset
-   * accordingly. If `arg` is true, new values are `values || isMissing` and if `arg` is false, new
-   * values are `values && (~isMissing)`.
-   */
-  public ColumnBooleanStorage fillMissingBoolean(boolean arg) {
-    final var newValues = (BitSet) values.clone();
-    if (arg != negated) {
-      newValues.or(isNothing);
-    } else {
-      newValues.andNot(isNothing);
-    }
-    return new BoolStorage(newValues, new BitSet(), size, negated);
-  }
-
-  @Override
-  public ColumnStorage<?> fillMissing(
-      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
-    if (arg.isBoolean()) {
-      return fillMissingBoolean(arg.asBoolean());
-    } else {
-      return super.fillMissing(arg, commonType, problemAggregator);
-    }
-  }
-
   @Override
   public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
