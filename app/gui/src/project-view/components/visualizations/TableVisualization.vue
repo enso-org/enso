@@ -1134,7 +1134,7 @@ config.setToolbar(
 </script>
 
 <template>
-  <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
+  <div ref="rootNode" class="TableVisualization" @wheel.stop.passive @pointerdown.stop>
     <template v-if="!useBottomStatusBar">
       <div class="table-visualization-status-bar">
         <select

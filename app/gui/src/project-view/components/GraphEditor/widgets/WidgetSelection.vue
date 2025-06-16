@@ -10,6 +10,7 @@ import OptionallyKeepAlive from '@/components/OptionallyKeepAlive.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { unrefElement } from '@/composables/events'
+import { usePopoverRoot } from '@/providers/popoverRoot'
 import { injectSelectionArrow, provideSelectionArrow } from '@/providers/selectionArrow'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
@@ -48,6 +49,7 @@ const tree = injectWidgetTree()
 const widgetRoot = useTemplateRef<HTMLElement>('widgetRoot')
 const submenuRef = useTemplateRef('submenuRef')
 const activityElement = useTemplateRef<HTMLElement>('activityElement')
+const popoverRoot = usePopoverRoot()
 
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
@@ -60,11 +62,10 @@ const floatReference = computed(
   () => enclosingTopLevelArgument(widgetRoot.value, tree.rootElement) ?? widgetRoot.value,
 )
 
-const rootElement = computed(() => tree.rootElement)
 const { floatingStyles: activityStyles } = activityDropdownStyles(
   floatReference,
   activityElement,
-  rootElement,
+  popoverRoot,
 )
 
 type ExpressionFilter = (tag: ExpressionTag) => boolean
@@ -425,7 +426,6 @@ declare module '@/providers/widgetRegistry' {
     </teleport>
     <SelectionSubmenu
       ref="submenuRef"
-      :rootElement="tree.rootElement"
       :floatReference="floatReference"
       :show="dropDownInteraction.isActive() && activity == null"
       :entries="entries"
@@ -435,7 +435,7 @@ declare module '@/providers/widgetRegistry' {
     />
 
     <OptionallyKeepAlive :when="keepActivityAlive">
-      <Teleport v-if="dropDownInteraction.isActive() && activity" :to="tree.rootElement">
+      <Teleport v-if="dropDownInteraction.isActive() && activity" :to="popoverRoot">
         <div
           ref="activityElement"
           class="activityElement widgetOutOfLayout floatingElement"
@@ -472,13 +472,13 @@ svg.arrow {
   opacity: 0.5;
   /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
   pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
   &.hovered {
     opacity: 0.9;
   }
 }
 
 .activityElement {
-  --background-color: var(--color-node-primary);
   /* Above the circular menu. */
   z-index: 26;
 }

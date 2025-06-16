@@ -11,7 +11,9 @@ function decorations<T>(
   const view = new EditorView({
     state: EditorState.create({
       doc: source,
-      extensions: ensoMarkdown(),
+      extensions: ensoMarkdown({
+        tryUploadPastedImage: undefined,
+      }),
     }),
   })
   const vueHost = {

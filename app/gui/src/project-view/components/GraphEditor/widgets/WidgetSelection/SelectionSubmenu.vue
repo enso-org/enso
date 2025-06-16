@@ -3,14 +3,19 @@ import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
+import { usePopoverRoot } from '@/providers/popoverRoot'
 import { targetIsOutside } from '@/util/autoBlur'
 import { Opt } from '@/util/data/opt'
 import { computed, ComputedRef, ref, toRef, useTemplateRef, watch } from 'vue'
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
-const { extendUpwards = true, ...props } = defineProps<{
-  rootElement: Opt<HTMLElement>
+const {
+  extendUpwards = true,
+  backgroundColor = 'var(--color-node-background)',
+  color = 'var(--color-node-text)',
+  ...props
+} = defineProps<{
   floatReference: Opt<HTMLElement>
   show: boolean
   entries: T[]
@@ -20,7 +25,7 @@ const { extendUpwards = true, ...props } = defineProps<{
   backgroundColor?: string | undefined
 }>()
 const floatReference = toRef(props, 'floatReference')
-const rootElement = toRef(props, 'rootElement')
+const rootElement = usePopoverRoot()
 
 const emit = defineEmits<{
   clickedEntry: [T, boolean]
@@ -106,7 +111,7 @@ export interface SubmenuComponent {
 </script>
 
 <template>
-  <ConditionalTeleport :target="props.rootElement">
+  <ConditionalTeleport :target="rootElement">
     <div
       ref="dropdownElement"
       :style="floatingStyles"
@@ -117,8 +122,8 @@ export interface SubmenuComponent {
         <DropdownWidget
           v-if="props.show"
           :class="{ ExtendUpwards: props.topLevel && extendUpwards }"
-          :color="props.color ?? 'var(--color-node-text)'"
-          :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
+          :color="color"
+          :backgroundColor="backgroundColor"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
@@ -129,12 +134,11 @@ export interface SubmenuComponent {
   <SelectionSubmenu
     v-if="nestedEntriesPresent"
     ref="submenuRef"
-    :rootElement="props.rootElement"
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
     :entries="submenuEntries"
-    :color="props.color ?? 'var(--color-node-text)'"
-    :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
+    :color="color"
+    :backgroundColor="backgroundColor"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />
 </template>

@@ -80,6 +80,7 @@
   --color-node-primary: var(--node-group-color);
   --color-node-text: white;
   --color-node-background: var(--node-group-color);
+  --color-panel-accent: var(--node-group-color);
   --color-node-primary: var(--node-group-color);
   --color-node-text-placeholder: rgba(255, 255, 255, 0.6);
   --color-node-error: color-mix(

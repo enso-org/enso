@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Sort_Column
+from Standard.Table import Table
 
 from Standard.Test import Bench
 

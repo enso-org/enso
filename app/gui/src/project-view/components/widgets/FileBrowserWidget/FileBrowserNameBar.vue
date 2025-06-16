@@ -1,22 +1,15 @@
 <script setup lang="ts">
 import SelectionSubmenu, {
-  SubmenuComponent,
+  type SubmenuComponent,
 } from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
-import { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
-import { injectInteractionHandler, Interaction } from '@/providers/interactionHandler'
-import {
-  FileType,
-  isExtensions,
-  isFileTypes,
-  isGlobAll,
-} from '@/providers/widgetRegistry/configuration'
-import { endOnClick, targetIsOutside } from '@/util/autoBlur'
-import { Opt } from '@/util/data/opt'
-import { computed, ref, useTemplateRef } from 'vue'
-import { Filter } from './fileExtensionFilter'
+import type { Filter } from '@/components/widgets/FileBrowserWidget/fileExtensionFilter'
+import { useFileExtensions } from '@/components/widgets/FileBrowserWidget/fileExtensions'
+import type { FileType } from '@/providers/widgetRegistry/configuration'
+import type { Opt } from '@/util/data/opt'
+import { toRef, useTemplateRef } from 'vue'
 
 const filenameInput = defineModel<string>('filenameInput', { required: true })
 const extensionInput = defineModel<string>('extensionInput', {
@@ -35,117 +28,18 @@ const emit = defineEmits<{
   setFilter: [Filter]
 }>()
 
-// === File Extension Filter ===
-
-const interaction = injectInteractionHandler()
-const fileExtensionDropdownOpened = ref(false)
-const fileExtensionInputRoot = useTemplateRef<HTMLDivElement>('fileExtensionInputRoot')
-const submenuRef = useTemplateRef<SubmenuComponent>('submenuRef')
-const fileExtensionInput = useTemplateRef<InstanceType<typeof AutoSizedInput>>('fileExtensionInput')
-
-const fileExtensionEntries = computed(() => props.fileTypes.map(fileTypeToFileExtensionEntry))
-
-function isSelected(value: string): boolean {
-  if (props.fileExtensionFilter.type === 'glob') return false
-  if (props.fileExtensionFilter.type === 'userInput')
-    return props.fileExtensionFilter.input === value
-  return props.fileExtensionFilter.label === value
-}
-
-function fileTypeToFileExtensionEntry(fileType: FileType): FileExtensionEntry {
-  const nestedValues =
-    isFileTypes(fileType.extensions) ? fileType.extensions.map(fileTypeToFileExtensionEntry) : []
-  const extensions =
-    isGlobAll(fileType.extensions) ? 'all'
-    : isExtensions(fileType.extensions) ? fileType.extensions
-    : []
-  return {
-    value: fileType.label,
-    extensions,
-    selected: isSelected(fileType.label),
-    isNested: nestedValues.length > 0,
-    nestedValues: nestedValues,
-  }
-}
-
-function isOutsideDropdown(event: Event) {
-  return submenuRef.value?.isTargetOutside(event) ?? false
-}
-
-function isOutsideWidget(event: Event) {
-  return targetIsOutside(event, props.root)
-}
-
-// Close the dropdown when clicking outside of it, but also end parent interaction (file browser widget) when clicking outside of both.
-const fileExtensionDropdownInteraction: Interaction = endOnClick(
-  (event) => isOutsideDropdown(event) && !isOutsideWidget(event),
-  {
-    cancel: () => {
-      fileExtensionDropdownOpened.value = false
-    },
-    end: () => {
-      fileExtensionDropdownOpened.value = false
-    },
-    pointerdown: (event) => {
-      if (
-        isOutsideDropdown(event) &&
-        isOutsideWidget(event) &&
-        fileExtensionDropdownInteraction.parentInteraction
-      ) {
-        interaction.end(fileExtensionDropdownInteraction.parentInteraction)
-      }
-    },
-  },
-)
-
-interaction.setWhenWithParent(
-  () => fileExtensionDropdownOpened.value,
-  (parentInteraction) => {
-    fileExtensionDropdownInteraction.parentInteraction = parentInteraction
-    return fileExtensionDropdownInteraction
-  },
-)
-
-function openDropdown() {
-  if (!fileExtensionDropdownOpened.value) {
-    fileExtensionDropdownOpened.value = true
-  }
-  fileExtensionInput.value?.select()
-}
-
-function extensionSelected(entry: FileExtensionEntry) {
-  interaction.end(fileExtensionDropdownInteraction)
-  if (filenameInput.value !== entry.value) {
-    filenameInput.value = ''
-  }
-  if (entry.extensions === 'all' || entry.extensions.length === 0) {
-    emit('setFilter', {
-      type: 'glob',
-    })
-  } else {
-    emit('setFilter', {
-      type: 'predefined',
-      label: entry.value,
-      extensions: entry.extensions,
-    })
-  }
-}
-
-const fileExtensionInputModel = computed({
-  get: () => {
-    if (props.fileExtensionFilter.type === 'userInput') {
-      return props.fileExtensionFilter.input
-    }
-    return props.displayedExtension
-  },
-  set: (value) => {
-    extensionInput.value = value
-  },
+const { extensionMenu, extensionInputField } = useFileExtensions({
+  filenameInput,
+  extensionInput,
+  fileExtensionInput: useTemplateRef<InstanceType<typeof AutoSizedInput>>('fileExtensionInput'),
+  fileExtensionInputRoot: useTemplateRef<HTMLDivElement>('fileExtensionInputRoot'),
+  submenuRef: useTemplateRef<SubmenuComponent>('submenuRef'),
+  fileExtensionFilter: toRef(props, 'fileExtensionFilter'),
+  displayedExtension: toRef(props, 'displayedExtension'),
+  fileTypes: toRef(props, 'fileTypes'),
+  root: toRef(props, 'root'),
+  emit,
 })
-
-interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
-  extensions: 'all' | string[]
-}
 </script>
 
 <template>
@@ -174,12 +68,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
         class="arrow widgetOutOfLayout"
         :class="{ hovered: false }"
       />
-      <AutoSizedInput
-        ref="fileExtensionInput"
-        v-model="fileExtensionInputModel"
-        class="inputField"
-        @click="openDropdown()"
-      />
+      <AutoSizedInput ref="fileExtensionInput" v-bind="extensionInputField" class="inputField" />
     </div>
     <SvgButton
       v-if="writeMode"
@@ -189,18 +78,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
       @click.stop="emit('accept')"
     />
   </div>
-  <SelectionSubmenu
-    ref="submenuRef"
-    :rootElement="root"
-    :floatReference="fileExtensionInputRoot"
-    :show="fileExtensionDropdownOpened"
-    :entries="fileExtensionEntries"
-    :topLevel="true"
-    :color="'white'"
-    :backgroundColor="'var(--background-color)'"
-    :style="{ zIndex: -5 }"
-    @clickedEntry="extensionSelected"
-  />
+  <SelectionSubmenu ref="submenuRef" v-bind="extensionMenu" />
 </template>
 
 <style scoped>

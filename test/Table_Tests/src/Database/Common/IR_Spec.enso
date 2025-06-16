@@ -5,7 +5,6 @@ from Standard.Table import Join_Condition, Join_Kind, Table
 
 from Standard.Database import all
 import Standard.Database.DB_Column.DB_Column
-import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 
 from Standard.Test import all
 import Standard.Test.Suite.Suite_Builder

@@ -91,7 +91,10 @@ export async function openVisualization(page: Page, visName: string) {
   await aggregatedNode.click()
   await page.keyboard.press('Space')
   await locate.toggleVisualizationSelectorButton(page).click()
-  await page.locator('.VisualizationSelector').getByRole('button', { name: visName }).click()
+  await page
+    .getByTestId('visualization-selector-entries')
+    .getByRole('button', { name: visName })
+    .click()
 }
 
 // ===============

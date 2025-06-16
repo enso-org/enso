@@ -335,7 +335,10 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await expect(locate.jsonVisualization(page)).toBeVisible()
   await expect(locate.jsonVisualization(page)).toContainText('"visualizedExpr": "4"')
   await locate.toggleVisualizationSelectorButton(page).click()
-  await page.getByRole('button', { name: 'Table' }).click()
+  await page
+    .getByTestId('visualization-selector-entries')
+    .getByRole('button', { name: 'Table' })
+    .click()
   await expect(locate.tableVisualization(page)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()

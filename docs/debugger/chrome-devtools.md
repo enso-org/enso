@@ -36,6 +36,6 @@ the rest of the environment.
 
 ## Tips and tricks
 
-- Use `env JAVA_OPTS=-Dpolyglot.inspect.Path=enso_debug` to set the chrome to
-  use a fixed URL. In this case the URL is
+- Use `env JAVA_TOOL_OPTIONS=-Dpolyglot.inspect.Path=enso_debug` to set the
+  chrome to use a fixed URL. In this case the URL is
   `devtools://devtools/bundled/js_app.html?ws=127.0.0.1:9229/enso_debug`

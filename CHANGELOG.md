@@ -68,12 +68,14 @@
   [JavaScript](https://www.graalvm.org/javascript/) and
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
 - [Upgrade GraalVM from JDK 21 to JDK 24][12855]
+- [Use JAVA_TOOL_OPTIONS env variable to alter JVM arguments][13256]
 
 [12500]: https://github.com/enso-org/enso/pull/12500
 [12976]: https://github.com/enso-org/enso/pull/12976
 [12855]: https://github.com/enso-org/enso/pull/12855
 [12905]: https://github.com/enso-org/enso/pull/12905
 [13225]: https://github.com/enso-org/enso/pull/13225
+[13256]: https://github.com/enso-org/enso/pull/13256
 
 # Enso 2025.1
 
