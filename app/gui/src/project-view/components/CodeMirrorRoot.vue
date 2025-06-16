@@ -6,7 +6,13 @@ defineExpose({ highlightClasses })
 </script>
 
 <template>
-  <div class="CodeMirrorRoot" @contextmenu.stop @pointerdown.stop @pointerup.stop @click.stop>
+  <div
+    class="CodeMirrorRoot"
+    @contextmenu.stop
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop
+  >
     <slot />
   </div>
 </template>
