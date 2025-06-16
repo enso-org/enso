@@ -62,7 +62,6 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Table_Ref.Table_Ref
-import project.Internal.Type_Refinements.Table_Refinements
 import project.Internal.Union
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
