@@ -3209,7 +3209,7 @@ type DB_Table
                 new_column_name c:Column -> Text =
                     if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
                 
-                new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) c.sql_type_reference (offset_expr c))
+                new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) (c:DB_Column).sql_type_reference (offset_expr c))
 
                 updated_table = new_columns.fold self t-> col->
                     t.set (self.make_column col)
