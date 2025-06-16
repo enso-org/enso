@@ -308,7 +308,7 @@ impl Display for StandardLibraryTestsScope {
             StandardLibraryTestsScope::StandardLibrary => write!(f, "standard-library"),
             StandardLibraryTestsScope::StandardLibraryInNative =>
                 write!(f, "standard-library-in-native"),
-            StandardLibraryTestsScope::Microsoft => write!(f, "microsoft-tests"),
+            StandardLibraryTestsScope::Microsoft => write!(f, "std-microsoft"),
         }
     }
 }
