@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Database.Feature.Feature
 from Standard.Database.Errors import all
-from Standard.Table import Position, Value_Type, Bits, Table
+from Standard.Table import Position, Value_Type, Table
 from Standard.Table.Errors import all
 
 from Standard.Test import all

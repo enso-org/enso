@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Value_Type, Aggregate_Column
+from Standard.Table import Table, Value_Type
 import Standard.Table.In_Memory_Column.In_Memory_Column
 import Standard.Table.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
 import Standard.Table.Internal.Multi_Value_Key.Unordered_Multi_Value_Key

@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Test.Spec_Result.Spec_Result
 from Standard.Test import all
 
 import Standard.Database.Errors.SQL_Error
