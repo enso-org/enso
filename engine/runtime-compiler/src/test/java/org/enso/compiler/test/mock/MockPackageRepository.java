@@ -34,6 +34,7 @@ import scala.util.Right;
  * ({@code PackageRepository#TFile}).
  */
 final class MockPackageRepository implements PackageRepository {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(MockPackageRepository.class);
   private final VirtualFileSystem vfs;
   private final Path vfsRoot;
@@ -100,24 +101,71 @@ final class MockPackageRepository implements PackageRepository {
       if (!Files.exists(srcDir)) {
         Files.createDirectories(srcDir);
       }
+      var modPathInPkg = modPath.stream().skip(2).toList();
+      MockModule parentSyntheticModule = null;
+      if (!modPathInPkg.isEmpty()) {
+        parentSyntheticModule = createSyntheticModules(modPathInPkg, pkg);
+      }
       var srcPath = modPath.stream().skip(2).collect(Collectors.joining("/"));
       var subSrcDir = srcDir.resolve(srcPath);
-      if (!Files.exists(subSrcDir)) {
-        Files.createDirectories(subSrcDir);
-      }
+      assert Files.exists(subSrcDir)
+          : String.format(
+              "Subdirectory %s does not exist in package %s. It should have been "
+                  + "created by createSyntheticModules()",
+              subSrcDir, pkg.libraryName());
       var srcFile = subSrcDir.resolve(modName.item() + ".enso");
       if (Files.exists(srcFile)) {
         throw new IllegalArgumentException("Module '" + modName + "' already exists");
       }
       VirtualFileSystem.write(srcFile, content);
       var modAbsPath = vfs.getAbsolutePath(srcFile);
-      var module = new MockModule(pkg, modName, modAbsPath, content, this);
+      boolean isSynthetic = false;
+      var module = new MockModule(pkg, modName, modAbsPath, content, this, isSynthetic);
+      if (parentSyntheticModule != null) {
+        parentSyntheticModule.addSubmodule(modName);
+      }
       loadedModules.put(modName.toString(), module);
       return module;
     } catch (IOException e) {
       LOGGER.error("Failed to create module " + modName, e);
       throw new IllegalStateException(e);
     }
+  }
+
+  /**
+   * @param modPathInPkg Module path inside package, e.g., for module name {@code local.Proj.A.B.C},
+   *     it would be {@code [A, B, C]}.
+   * @param pkg Package for which synthetic modules are created.
+   * @return Returns the last synthetic module. For example, when creating synthetic modules for
+   *     {@code local.Proj.A.B.C}, it will return synthetic module for {@code local.Proj.A.B}.
+   */
+  private MockModule createSyntheticModules(java.util.List<String> modPathInPkg, Package<Path> pkg)
+      throws IOException {
+    assert !modPathInPkg.isEmpty();
+    var curDir = pkg.sourceDir();
+    var curName = QualifiedName.fromString(pkg.libraryName().toString());
+    MockModule parentModule = null;
+    for (var pathItem : modPathInPkg) {
+      curDir = curDir.resolve(pathItem);
+      curName = curName.createChild(pathItem);
+      if (!Files.exists(curDir)) {
+        Files.createDirectory(curDir);
+        var absPath = vfs.getAbsolutePath(curDir);
+        var emptySyntheticModule = createEmptySyntheticModule(curName, pkg, absPath);
+        if (parentModule != null) {
+          parentModule.addSubmodule(curName);
+        }
+        parentModule = emptySyntheticModule;
+        loadedModules.put(curName.toString(), emptySyntheticModule);
+      }
+    }
+    assert parentModule != null;
+    return parentModule;
+  }
+
+  private MockModule createEmptySyntheticModule(
+      QualifiedName modName, Package<Path> pkg, String absolutePath) {
+    return new MockModule(pkg, modName, absolutePath, "", this, true);
   }
 
   @Override
@@ -137,7 +185,9 @@ final class MockPackageRepository implements PackageRepository {
 
   @Override
   public boolean isPackageLoaded(LibraryName libraryName) {
-    return loadedPackages.containsKey(libraryName);
+    var ret = loadedPackages.containsKey(libraryName);
+    LOGGER.trace("isPackageLoaded({}) = {}", libraryName, ret);
+    return ret;
   }
 
   @Override
@@ -200,7 +250,8 @@ final class MockPackageRepository implements PackageRepository {
       var modName = src.qualifiedName();
       var srcPath = vfs.getAbsolutePath(src.file());
       var srcContent = readFile(src.file());
-      var mod = new MockModule(virtualPkg, modName, srcPath, srcContent, this);
+      var isSynthetic = false;
+      var mod = new MockModule(virtualPkg, modName, srcPath, srcContent, this, isSynthetic);
       loadedModules.put(modName.toString(), mod);
     }
     mainProjectPkg = castObjectPkg(pkg);
