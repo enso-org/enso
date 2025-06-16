@@ -1,17 +1,6 @@
 /** @file A modal to select labels for an asset. */
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type Backend from '#/services/Backend'
-import {
-  COLORS,
-  colorsAreEqual,
-  findLeastUsedColor,
-  LabelName,
-  lChColorToCssColor,
-  type AnyAsset,
-  type Label,
-  type LChColor,
-} from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
@@ -25,6 +14,17 @@ import { Input } from '$/react-components/Inputs/Input'
 import { Scroller } from '$/react-components/Scroller'
 import { Separator } from '$/react-components/Separator'
 import { Text } from '$/react-components/Text'
+import type Backend from '$/services/Backend'
+import {
+  COLORS,
+  colorsAreEqual,
+  findLeastUsedColor,
+  LabelName,
+  lChColorToCssColor,
+  type AnyAsset,
+  type Label,
+  type LChColor,
+} from '$/services/Backend'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import {
   ListBox,

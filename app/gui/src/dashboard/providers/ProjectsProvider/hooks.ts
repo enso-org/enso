@@ -1,6 +1,6 @@
 /** @file Hooks related to global projects state. */
 import { useStore } from '#/hooks/storeHooks'
-import type { ProjectId } from '#/services/Backend'
+import type { ProjectId } from '$/services/Backend'
 import { createStore } from 'zustand'
 
 export const projectsStore = createStore<{

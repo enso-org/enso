@@ -6,7 +6,7 @@
  */
 import { queryOptions, useQuery } from '@tanstack/react-query'
 
-import type { Plan } from '#/services/Backend'
+import type { Plan } from '$/services/Backend'
 
 import { DISCOUNT_MULTIPLIER_BY_DURATION, PRICE_BY_PLAN } from '../constants'
 

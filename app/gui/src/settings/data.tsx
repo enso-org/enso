@@ -3,16 +3,6 @@ import ComputerIcon from '#/assets/computer.svg'
 import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
-import type Backend from '#/services/Backend'
-import {
-  EmailAddress,
-  HttpsUrl,
-  isUserOnPlanWithOrganization,
-  type OrganizationInfo,
-  type User,
-} from '#/services/Backend'
-import type LocalBackend from '#/services/LocalBackend'
-import type RemoteBackend from '#/services/RemoteBackend'
 import { normalizePath } from '#/utilities/fileInfo'
 import { pick, unsafeEntries } from '#/utilities/object'
 import { PASSWORD_REGEX } from '#/utilities/validation'
@@ -21,6 +11,16 @@ import type { GetText } from '$/providers/text'
 import { Button } from '$/react-components/Button'
 import { ACTION_TO_TEXT_ID } from '$/react-components/MenuEntry'
 import type { SvgUseIcon } from '$/react-components/types'
+import type Backend from '$/services/Backend'
+import {
+  EmailAddress,
+  HttpsUrl,
+  isUserOnPlanWithOrganization,
+  type OrganizationInfo,
+  type User,
+} from '$/services/Backend'
+import type LocalBackend from '$/services/LocalBackend'
+import type RemoteBackend from '$/services/RemoteBackend'
 import type { QueryClient } from '@tanstack/react-query'
 import type { TextId } from 'enso-common/src/text'
 import type { HTMLInputAutoCompleteAttribute, HTMLInputTypeAttribute, ReactNode } from 'react'

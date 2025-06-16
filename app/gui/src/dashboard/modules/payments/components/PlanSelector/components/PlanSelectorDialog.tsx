@@ -1,5 +1,4 @@
 /** @file Dialog that shows the plan details, price, and the payment form. */
-import type { Plan } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import { type GetText } from '$/providers/text'
@@ -13,6 +12,7 @@ import { Selector } from '$/react-components/Inputs/Selector'
 import { Separator } from '$/react-components/Separator'
 import { Suspense } from '$/react-components/Suspense'
 import { Text } from '$/react-components/Text'
+import type { Plan } from '$/services/Backend'
 import type { PaymentMethod } from '@stripe/stripe-js'
 import { useQuery } from '@tanstack/react-query'
 import { createSubscriptionPriceQuery, useCreatePaymentMethodMutation } from '../../../api'

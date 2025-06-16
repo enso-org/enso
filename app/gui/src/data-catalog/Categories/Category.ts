@@ -1,5 +1,6 @@
 /** @file The categories available in the category switcher. */
-import type { UserId } from '#/services/Backend'
+import type { SvgUseIcon } from '$/react-components/types'
+import type { UserId } from '$/services/Backend'
 import {
   BackendType,
   FilterBy,
@@ -8,8 +9,7 @@ import {
   type User,
   type UserGroup,
   type UserGroupId,
-} from '#/services/Backend'
-import type { SvgUseIcon } from '$/react-components/types'
+} from '$/services/Backend'
 import { isUrlString } from '@/util/data/urlString'
 import { isIconName } from '@/util/iconMetadata/iconName'
 import type { DropOperation } from '@react-types/shared'

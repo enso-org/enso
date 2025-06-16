@@ -1,7 +1,7 @@
 /** @file Displays a non-interactable icon for an asset based on its type and name. */
-import * as backend from '#/services/Backend'
 import * as fileIcon from '#/utilities/fileIcon'
 import { Icon } from '$/react-components/Icon'
+import * as backend from '$/services/Backend'
 
 /** Props for an {@link AssetIcon}. */
 export interface AssetIconProps {

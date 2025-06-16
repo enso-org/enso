@@ -5,12 +5,12 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API.
  */
-import Backend, * as backend from '#/services/Backend'
-import * as projectManager from '#/services/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
+import Backend, * as backend from '$/services/Backend'
+import * as projectManager from '$/services/ProjectManager'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'

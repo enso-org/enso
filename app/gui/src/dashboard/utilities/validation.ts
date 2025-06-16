@@ -1,5 +1,5 @@
 /** @file Validation patterns for text inputs. */
-import { doesTitleContainInvalidCharacters } from '../services/Backend'
+import { doesTitleContainInvalidCharacters } from '../../services/Backend'
 
 /**
  * Regex pattern for valid AWS Cognito passwords.
@@ -43,4 +43,4 @@ export function isDirectoryNameContainInvalidCharacters(name: string) {
   return doesTitleContainInvalidCharacters(name)
 }
 
-export { doesTitleContainInvalidCharacters } from '../services/Backend'
+export { doesTitleContainInvalidCharacters } from '../../services/Backend'

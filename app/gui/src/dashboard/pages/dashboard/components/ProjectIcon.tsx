@@ -6,7 +6,12 @@ import { useCanOpenProjects } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import { projectsStore } from '#/providers/ProjectsProvider/hooks'
-import type Backend from '#/services/Backend'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
+import { useFullUserSession, useText } from '$/providers/react'
+import { Button } from '$/react-components/Button'
+import { Spinner } from '$/react-components/Spinner'
+import { StatelessSpinner, type SpinnerState } from '$/react-components/StatelessSpinner'
+import type Backend from '$/services/Backend'
 import {
   BackendType,
   IS_OPENING,
@@ -14,12 +19,7 @@ import {
   ProjectState,
   type ProjectAsset,
   type ProjectId,
-} from '#/services/Backend'
-import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-import { useFullUserSession, useText } from '$/providers/react'
-import { Button } from '$/react-components/Button'
-import { Spinner } from '$/react-components/Spinner'
-import { StatelessSpinner, type SpinnerState } from '$/react-components/StatelessSpinner'
+} from '$/services/Backend'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: ProjectState.closed } as const

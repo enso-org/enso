@@ -1,10 +1,10 @@
 /** @file Displays a few details of an asset. */
 import BreadcrumbArrowIcon from '#/assets/breadcrumb_arrow.svg'
 import AssetIcon from '#/pages/dashboard/components/AssetIcon'
-import type * as backend from '#/services/Backend'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import { Text } from '$/react-components/Text'
+import type * as backend from '$/services/Backend'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import { Badge } from '../../../../react-components/Badge'
 import { Icon } from '../../../../react-components/Icon'

@@ -1,7 +1,7 @@
 /** @file Common logic for the credential creation form. */
 
-import type { CredentialConfig, SecretId } from '#/services/Backend'
 import { openInNewBrowserTab } from '#/utilities/window'
+import type { CredentialConfig, SecretId } from '$/services/Backend'
 import type { CredentialRecipe } from './types'
 
 /**

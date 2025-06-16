@@ -1,4 +1,4 @@
-import { AssetType } from '#/services/Backend'
+import { AssetType } from '$/services/Backend'
 import { splitFilename } from '@/components/widgets/FileBrowserWidget/nameBar'
 import { computed, ref, toValue, watch, WatchSource } from 'vue'
 

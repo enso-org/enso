@@ -1,6 +1,5 @@
 /** @file The input for viewing and changing the organization's profile picture. */
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import type Backend from '#/services/Backend'
 import { useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'
 import { Form } from '$/react-components/Form'
@@ -8,6 +7,7 @@ import { HiddenFile } from '$/react-components/Inputs/HiddenFile'
 import { ProfilePicture } from '$/react-components/ProfilePicture'
 import { StatelessSpinner } from '$/react-components/StatelessSpinner'
 import FocusRing from '$/react-components/styled/FocusRing'
+import type Backend from '$/services/Backend'
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 /** Props for a {@link OrganizationProfilePictureInput}. */

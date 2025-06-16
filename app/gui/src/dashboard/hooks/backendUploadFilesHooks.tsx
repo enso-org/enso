@@ -10,8 +10,6 @@ import type { Category } from '#/layouts/CategorySwitcher/Category'
 import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import type LocalBackend from '#/services/LocalBackend'
-import { extractTypeAndId } from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import {
@@ -20,6 +18,8 @@ import {
   useTransferBetweenCategories,
 } from '$/data-catalog/Categories'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
+import type LocalBackend from '$/services/LocalBackend'
+import { extractTypeAndId } from '$/services/LocalBackend'
 import {
   queryOptions,
   useMutation,

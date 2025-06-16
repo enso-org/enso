@@ -17,7 +17,7 @@ import ContextMenuEntry from '$/react-components/ContextMenuEntry'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
-import * as backendModule from '#/services/Backend'
+import * as backendModule from '$/services/Backend'
 
 import {
   copyAssetsMutationOptions,
@@ -33,7 +33,6 @@ import {
 } from '#/hooks/backendUploadFilesHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -44,6 +43,7 @@ import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import type { RightPanelData } from '$/providers/rightPanel'
 import { ContextMenuEntry as PaywallContextMenuEntry } from '$/react-components/Paywall'
 import { Separator } from '$/react-components/Separator'
+import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '$/services/remoteBackendPaths'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {

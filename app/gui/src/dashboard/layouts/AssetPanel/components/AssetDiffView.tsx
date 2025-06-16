@@ -2,9 +2,9 @@
 import { DiffEditor } from '@monaco-editor/react'
 import { useSuspenseQueries } from '@tanstack/react-query'
 
-import type * as backendService from '#/services/Backend'
-import type Backend from '#/services/Backend'
 import { StatelessSpinner } from '$/react-components/StatelessSpinner'
+import type * as backendService from '$/services/Backend'
+import type Backend from '$/services/Backend'
 import { versionContentQueryOptions } from './queries'
 
 /** Props for an {@link AssetDiffView}. */

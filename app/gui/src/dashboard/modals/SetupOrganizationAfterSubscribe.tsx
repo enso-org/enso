@@ -1,7 +1,5 @@
 /** @file Modal for setting the organization name. */
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import * as backendModule from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
 import { ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
@@ -12,6 +10,8 @@ import { Form } from '$/react-components/Form'
 import { Input } from '$/react-components/Inputs/Input'
 import { Result } from '$/react-components/Result'
 import { Stepper } from '$/react-components/Stepper'
+import * as backendModule from '$/services/Backend'
+import type RemoteBackend from '$/services/RemoteBackend'
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 import * as React from 'react'
 

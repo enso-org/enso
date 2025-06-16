@@ -1,6 +1,6 @@
 import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
-import { AnyAsset, AssetType, ProjectId } from '#/services/Backend'
+import { AnyAsset, AssetType, ProjectId } from '$/services/Backend'
 import { createContextStore } from '@/providers'
 import { Err, Ok, Result } from '@/util/data/result'
 import { Icon } from '@/util/iconMetadata/iconName'

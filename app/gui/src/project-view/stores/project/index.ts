@@ -1,4 +1,4 @@
-import { ProjectId } from '#/services/Backend'
+import { ProjectId } from '$/services/Backend'
 import { Awareness } from '@/stores/awareness'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import {

@@ -3,8 +3,8 @@
  * the current directory and some configuration options.
  */
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type Backend from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
+import type Backend from '$/services/Backend'
 import { DriveBarNavigation } from './DriveBarNavigation'
 import { DriveBarToolbar } from './DriveBarToolbar'
 

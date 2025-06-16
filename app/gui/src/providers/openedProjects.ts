@@ -1,4 +1,4 @@
-import { ProjectId } from '#/services/Backend'
+import { ProjectId } from '$/services/Backend'
 import { createContextStore } from '@/providers'
 import { WidgetRegistry } from '@/providers/widgetRegistry'
 import { createGraphStore, GraphStore } from '@/stores/graph'

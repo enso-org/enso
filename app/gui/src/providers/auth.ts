@@ -1,6 +1,4 @@
 import * as gtagHooks from '#/hooks/gtagHooks'
-import * as backendModule from '#/services/Backend'
-import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, SETUP_PATH } from '$/appUtils'
@@ -10,6 +8,8 @@ import {
   setFeatureFlags,
   useFeatureFlag,
 } from '$/providers/featureFlags'
+import * as backendModule from '$/services/Backend'
+import RemoteBackend from '$/services/RemoteBackend'
 import { useZustandStoreRef } from '$/utils/zustand'
 import { Opt } from '@/util/data/opt'
 import { ToValue } from '@/util/reactivity'

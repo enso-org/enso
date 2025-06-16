@@ -1,5 +1,5 @@
 /** @file Paths used by the `RemoteBackend`. */
-import * as backend from '#/services/Backend'
+import * as backend from '$/services/Backend'
 import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
 
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */

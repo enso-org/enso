@@ -1,7 +1,7 @@
 /** @file Types and constants related to `Column`s. */
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import * as backend from '#/services/Backend'
 import type { SvgUseIcon } from '$/react-components/types'
+import * as backend from '$/services/Backend'
 import type * as text from 'enso-common/src/text'
 
 /** Column type. */

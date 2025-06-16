@@ -1,11 +1,11 @@
 /** @file A page to show when a user successfully subscribes to a plan. */
 import { PLAN_TO_TEXT_ID } from '#/modules/payments'
-import { Plan, isPlan } from '#/services/Backend'
 import { DASHBOARD_PATH } from '$/appUtils'
 import { useRouter, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
 import { Button } from '$/react-components/Button'
 import { Result } from '$/react-components/Result'
+import { Plan, isPlan } from '$/services/Backend'
 
 /** A page to show when a user successfully subscribes to a plan. */
 export function SubscribeSuccess() {

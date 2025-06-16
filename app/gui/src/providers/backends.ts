@@ -1,12 +1,12 @@
-import { BackendType } from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
+import HttpClient from '#/utilities/HttpClient'
+import { BackendType } from '$/services/Backend'
+import LocalBackend from '$/services/LocalBackend'
 import {
   ProjectManager,
   ProjectManagerEvents,
   Path as ProjectManagerPath,
-} from '#/services/ProjectManager'
-import RemoteBackend from '#/services/RemoteBackend'
-import HttpClient from '#/utilities/HttpClient'
+} from '$/services/ProjectManager'
+import RemoteBackend from '$/services/RemoteBackend'
 import { useEvent } from '@/composables/events'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { ToValue } from '@/util/reactivity'

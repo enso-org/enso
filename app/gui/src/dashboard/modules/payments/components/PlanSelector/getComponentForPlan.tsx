@@ -4,10 +4,10 @@
  * This file contains the logic to get the component for a given plan.
  */
 import OpenInNewTabIcon from '#/assets/open.svg'
-import * as backendModule from '#/services/Backend'
 import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import { Button } from '$/react-components/Button'
+import * as backendModule from '$/services/Backend'
 import type * as text from 'enso-common/src/text'
 import * as React from 'react'
 import invariant from 'tiny-invariant'

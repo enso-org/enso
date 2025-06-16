@@ -1,8 +1,6 @@
 /** @file Displays information describing a specific version of an asset. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import * as backendService from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { Badge } from '$/react-components/Badge'
 import { Button } from '$/react-components/Button'
@@ -12,6 +10,8 @@ import { Menu } from '$/react-components/Menu'
 import { TEXT_WITH_ICON } from '$/react-components/patterns'
 import { Text } from '$/react-components/Text'
 import { UserWithPopover } from '$/react-components/UserWithPopover'
+import type Backend from '$/services/Backend'
+import * as backendService from '$/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { AssetDiffView } from './AssetDiffView'
 

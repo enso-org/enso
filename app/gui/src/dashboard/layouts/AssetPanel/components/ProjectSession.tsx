@@ -1,11 +1,11 @@
 /** @file Displays information describing a specific version of an asset. */
 import LogsIcon from '#/assets/logs.svg'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
-import type Backend from '#/services/Backend'
-import type { ProjectSession as BackendProjectSession, ProjectAsset } from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'
+import type Backend from '$/services/Backend'
+import type { ProjectSession as BackendProjectSession, ProjectAsset } from '$/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 /** Props for a {@link ProjectSession}. */

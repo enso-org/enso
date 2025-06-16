@@ -1,13 +1,13 @@
 /** @file A list of previous versions of an asset. */
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
-import type Backend from '#/services/Backend'
-import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/rightPanel'
 import { Result } from '$/react-components/Result'
+import type Backend from '$/services/Backend'
+import { AssetType, BackendType, type ProjectAsset } from '$/services/Backend'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ProjectSession } from './ProjectSession'
 

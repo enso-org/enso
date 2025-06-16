@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Backend, { ProjectId } from '#/services/Backend'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { injectOpenedProjects } from '$/providers/openedProjects'
+import Backend, { ProjectId } from '$/services/Backend'
 import GraphEditor from '@/components/GraphEditor.vue'
 import { provideEventLogger } from '@/providers/eventLogging'
 import { provideProjectBackend } from '@/providers/projectBackend'

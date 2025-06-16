@@ -49,18 +49,6 @@ import {
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
-import type Backend from '#/services/Backend'
-import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
-import {
-  assetIsProject,
-  AssetType,
-  BackendType,
-  getAssetPermissionName,
-  IS_OPENING_OR_OPENED,
-  isAssetCredential,
-  isDirectoryId,
-  type AnyAsset,
-} from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
@@ -98,6 +86,18 @@ import { IsolateLayout } from '$/react-components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '$/react-components/SelectionBrush'
 import SvgMask from '$/react-components/SvgMask'
 import { Text } from '$/react-components/Text'
+import type Backend from '$/services/Backend'
+import type { AssetId, DirectoryId, ProjectId } from '$/services/Backend'
+import {
+  assetIsProject,
+  AssetType,
+  BackendType,
+  getAssetPermissionName,
+  IS_OPENING_OR_OPENED,
+  isAssetCredential,
+  isDirectoryId,
+  type AnyAsset,
+} from '$/services/Backend'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Children,

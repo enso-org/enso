@@ -5,7 +5,7 @@ import * as aria from '$/react-components/aria'
 import FocusRing from '$/react-components/styled/FocusRing'
 import RadioGroup from '$/react-components/styled/RadioGroup'
 
-import * as backend from '#/services/Backend'
+import * as backend from '$/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 

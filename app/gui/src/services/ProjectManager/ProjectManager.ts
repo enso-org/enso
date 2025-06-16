@@ -5,10 +5,10 @@
  */
 import invariant from 'tiny-invariant'
 
-import * as backend from '#/services/Backend'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
+import * as backend from '$/services/Backend'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-import { getFileName } from '../../utilities/fileInfo'
+import { getFileName } from '../../dashboard/utilities/fileInfo'
 import {
   MissingComponentAction,
   ProjectManagerEvents,

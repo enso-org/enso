@@ -1,7 +1,6 @@
 /** @file The icon and name of a {@link ProjectAsset}. */
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
-import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
@@ -9,6 +8,7 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import { useGetAssetChildren } from '$/data-catalog/assetsTableItemsHooks'
 import { useFullUserSession } from '$/providers/react'
 import EditableSpan from '$/react-components/EditableSpan'
+import { BackendType, titleSchema, type ProjectAsset } from '$/services/Backend'
 import { isOnMacOS } from 'enso-common/src/detect'
 
 /** Props for a {@link ProjectNameColumn}. */

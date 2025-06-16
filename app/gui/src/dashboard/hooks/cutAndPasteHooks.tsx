@@ -1,11 +1,11 @@
 /** @file Events related to changes in the asset list. */
 import type { DrivePastePayload } from '#/providers/DriveProvider'
-import type { DirectoryId } from '#/services/Backend'
 import {
   dropOperationBetweenCategories,
   useTransferBetweenCategories,
   type Category,
 } from '$/data-catalog/Categories'
+import type { DirectoryId } from '$/services/Backend'
 /**
  * Options for the paste action.
  */

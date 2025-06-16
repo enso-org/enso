@@ -2,8 +2,6 @@
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import InviteUsersModal from '#/modals/InviteUsersModal'
-import type * as backendModule from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import { Button, CopyButton } from '$/react-components/Button'
@@ -11,6 +9,8 @@ import { Dialog } from '$/react-components/Dialog'
 import * as paywall from '$/react-components/Paywall'
 import { Scroller } from '$/react-components/Scroller'
 import { Text } from '$/react-components/Text'
+import type * as backendModule from '$/services/Backend'
+import type RemoteBackend from '$/services/RemoteBackend'
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 
 const LIST_USERS_STALE_TIME_MS = 60_000

@@ -1,5 +1,5 @@
 /** @file Utilities for working with permissions. */
-import type * as backend from '#/services/Backend'
+import type * as backend from '$/services/Backend'
 import {
   type AssetPermission,
   compareAssetPermissions,

@@ -14,12 +14,6 @@ import SecretNameColumn from '#/pages/dashboard/components/column/SecretNameColu
 import Label from '#/pages/dashboard/components/Label'
 import PermissionDisplay from '#/pages/dashboard/components/PermissionDisplay'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import {
-  AssetType,
-  FALLBACK_COLOR,
-  getAssetPermissionId,
-  getAssetPermissionName,
-} from '#/services/Backend'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { PermissionAction } from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -29,6 +23,12 @@ import ContextMenu from '$/react-components/ContextMenu'
 import ContextMenuEntry from '$/react-components/ContextMenuEntry'
 import { Dialog, Popover } from '$/react-components/Dialog'
 import { Text } from '$/react-components/Text'
+import {
+  AssetType,
+  FALLBACK_COLOR,
+  getAssetPermissionId,
+  getAssetPermissionName,
+} from '$/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { useRef, useState } from 'react'
 export { PathColumn } from './PathColumn'

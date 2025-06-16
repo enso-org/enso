@@ -8,13 +8,6 @@ import { useLocalStorageState } from '#/hooks/localStoreState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
-import type Backend from '#/services/Backend'
-import {
-  AssetType,
-  BackendType,
-  type ProjectExecution as BackendProjectExecution,
-  type ProjectAsset,
-} from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends, useText } from '$/providers/react'
 import {
@@ -34,6 +27,13 @@ import { Button } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'
 import { Form } from '$/react-components/Form'
 import { Text } from '$/react-components/Text'
+import type Backend from '$/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  type ProjectExecution as BackendProjectExecution,
+  type ProjectAsset,
+} from '$/services/Backend'
 import {
   CalendarDate,
   getLocalTimeZone,

@@ -10,8 +10,6 @@ import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { setModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
@@ -21,6 +19,8 @@ import { IconDisplay } from '$/react-components/IconDisplay'
 import { Menu } from '$/react-components/Menu'
 import { Text } from '$/react-components/Text'
 import { VisualTooltip } from '$/react-components/VisualTooltip'
+import type Backend from '$/services/Backend'
+import * as backendModule from '$/services/Backend'
 import {
   getLocalTimeZone,
   now,

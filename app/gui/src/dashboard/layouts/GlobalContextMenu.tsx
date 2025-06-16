@@ -14,10 +14,10 @@ import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
+import type Backend from '$/services/Backend'
+import { BackendType, type DirectoryId } from '$/services/Backend'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenu}. */

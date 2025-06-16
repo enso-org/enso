@@ -16,9 +16,9 @@ import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvi
 
 import Page from '$/react-components/Page'
 
-import * as backendModule from '#/services/Backend'
-import * as localBackendModule from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
+import * as backendModule from '$/services/Backend'
+import * as localBackendModule from '$/services/LocalBackend'
+import * as projectManager from '$/services/ProjectManager'
 
 import { usePaywall } from '#/hooks/billing'
 import { baseName } from '#/utilities/fileInfo'

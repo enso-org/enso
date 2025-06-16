@@ -1,7 +1,7 @@
 /** @file Constants for the subscribe page. */
 import type * as text from 'enso-common/src/text'
 
-import * as backendModule from '#/services/Backend'
+import * as backendModule from '$/services/Backend'
 
 /* eslint-disable @typescript-eslint/no-magic-numbers, @typescript-eslint/naming-convention */
 

@@ -1,12 +1,12 @@
 /** @file An label that can be applied to an asset. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { Label as BackendLabel } from '#/services/Backend'
-import { lChColorToCssColor, type LChColor } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import type { PressEvent } from '$/react-components/aria'
 import { Button } from '$/react-components/Button'
 import FocusRing from '$/react-components/styled/FocusRing'
 import { Text } from '$/react-components/Text'
+import type { Label as BackendLabel } from '$/services/Backend'
+import { lChColorToCssColor, type LChColor } from '$/services/Backend'
 import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
 
 /** Props for a {@link Label}. */

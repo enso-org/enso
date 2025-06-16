@@ -1,7 +1,6 @@
 /** @file The input for viewing and changing the user's profile picture. */
 import DefaultUserIcon from '#/assets/default_user.svg'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import type Backend from '#/services/Backend'
 import { useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'
 import { Form } from '$/react-components/Form'
@@ -9,6 +8,7 @@ import { HiddenFile } from '$/react-components/Inputs/HiddenFile'
 import { ProfilePicture } from '$/react-components/ProfilePicture/ProfilePicture'
 import { StatelessSpinner } from '$/react-components/StatelessSpinner'
 import FocusRing from '$/react-components/styled/FocusRing'
+import type Backend from '$/services/Backend'
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 /** Props for a {@link ProfilePictureInput}. */

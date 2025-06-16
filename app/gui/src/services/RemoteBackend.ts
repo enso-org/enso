@@ -10,15 +10,15 @@ import type * as text from 'enso-common/src/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
-import Backend, * as backend from '#/services/Backend'
-import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+import Backend, * as backend from '$/services/Backend'
+import * as remoteBackendPaths from '$/services/remoteBackendPaths'
 
-import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import type { ResponseWithTypedJson } from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import type { GetText } from '$/providers/text'
+import { DirectoryId, UserGroupId, UserId } from '$/services/Backend'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
