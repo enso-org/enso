@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Data.Base_64.Base_64
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
-import Standard.Base.Network.HTTP.Response.Response
 
 from Standard.Test import all
 

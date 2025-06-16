@@ -12,7 +12,6 @@ import Standard.Database.Feature.Feature
 from Standard.Test import all
 
 from project.Common_Table_Operations.Util import all
-from project.Common_Table_Operations.Date_Time_Spec import as_local_date_time_repr
 import project.Util
 
 main filter=Nothing = run_default_backend add_specs filter
