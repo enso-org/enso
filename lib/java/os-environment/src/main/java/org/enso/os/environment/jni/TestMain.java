@@ -37,6 +37,7 @@ final class TestMain {
   record RequestFactorial(long n) implements Function<Channel<?>, Void> {
     @Override
     public Void apply(Channel<?> channel) {
+      assert !channel.isMaster() : "Requesting factorial is handled in the slave only";
       var res = factorial(n).toString();
       channel.execute(Void.class, new ReportResult(n, res));
       return null;

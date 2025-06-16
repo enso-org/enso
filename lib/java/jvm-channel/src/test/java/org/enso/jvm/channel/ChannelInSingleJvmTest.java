@@ -1,7 +1,9 @@
 package org.enso.jvm.channel;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.function.Function;
 import org.enso.persist.Persistable;
@@ -26,6 +28,7 @@ public class ChannelInSingleJvmTest {
   @Test
   public void exchangeMessageThatModifiesItself() {
     var ch = Channel.create(null, PrivateData.class);
+    assertTrue("The created channel is a master", ch.isMaster());
 
     var msg = new Increment(10);
 
@@ -54,7 +57,7 @@ public class ChannelInSingleJvmTest {
   }
 
   @Persistable(id = 8341)
-  static final class Increment implements Function<Object, Increment> {
+  static final class Increment implements Function<Channel<?>, Increment> {
     int valueToIncrement;
 
     Increment(int valueToIncrement) {
@@ -66,8 +69,9 @@ public class ChannelInSingleJvmTest {
     }
 
     @Override
-    public Increment apply(Object ignore) {
+    public Increment apply(Channel<?> channel) {
       valueToIncrement++;
+      assertFalse("We are processed in the slave", channel.isMaster());
       return this;
     }
   }

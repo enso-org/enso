@@ -1,6 +1,7 @@
 package org.enso.os.environment.jni;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -45,6 +46,7 @@ public class LoadClassTest {
   @Before
   public void initializeChannel() throws Exception {
     channel = Channel.create(jvm(), JVMPeer.class);
+    assertTrue("Created channel is master", channel.isMaster());
   }
 
   @Test

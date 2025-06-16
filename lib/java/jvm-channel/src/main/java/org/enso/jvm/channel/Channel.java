@@ -100,13 +100,13 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
    * Mock constructor. Creates a channel that simulates sending of the messages inside of the same
    * JVM. Useful for testing.
    */
-  private Channel(Data myData, Channel<Data> otherOrNull, Data otherData, long id) {
+  private Channel(long isolate, Data myData, Channel<Data> otherOrNull, Data otherData, long id) {
     if (ImageInfo.inImageCode()) {
       throw new IllegalStateException("Only usable in HotSpot");
     }
     this.id = id;
     this.data = myData;
-    this.isolate = -2;
+    this.isolate = isolate;
     this.callbackFn = null;
     this.env = null;
     this.channelClass = null;
@@ -115,7 +115,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         otherOrNull != null
             ? otherOrNull // use other channel when provided
             : // otherwise allocate new and pass this reference to it
-            new Channel<>(otherData, this, null, id);
+            new Channel<>(-3, otherData, this, null, id);
     this.pool = data.createPool(this);
   }
 
@@ -135,7 +135,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     var id = idCounter++;
     if (jvm == null) {
       var otherData = newInstance(configClass);
-      return new Channel<>(config, null, otherData, id);
+      return new Channel<>(-2, config, null, otherData, id);
     }
 
     if (!ImageInfo.inImageCode()) {
@@ -186,6 +186,20 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
    */
   public final Data getConfig() {
     return data;
+  }
+
+  /**
+   * Master channel check. One instance of the {@code Channel} on the initializing side is marked as
+   * master. The other one is slave.
+   *
+   * @return is master
+   */
+  public final boolean isMaster() {
+    return isolate == -1 || isolate == -2;
+  }
+
+  final boolean isDirect() {
+    return isolate == -2 || isolate == -3;
   }
 
   /**
@@ -351,7 +365,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         var memory = MemorySegment.ofBuffer(buffer);
         memory.copyFrom(MemorySegment.ofArray(bytes));
         address = memory.address();
-        len = isolate == -2 ? toDirectMessage(buffer) : toSubstrateMessage(memory);
+        len = isDirect() ? toDirectMessage(buffer) : toSubstrateMessage(memory);
       }
       if (len == -2) {
         // signals exception
