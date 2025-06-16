@@ -19,7 +19,6 @@ final class OtherJvmObject implements TruffleObject {
   private final long id;
 
   OtherJvmObject(Channel<OtherJvmPool> channel, long id) {
-    assert id > 0;
     this.channel = channel;
     this.id = id;
   }
@@ -40,7 +39,7 @@ final class OtherJvmObject implements TruffleObject {
       // proper dispatch to the other JVM
       var msg = new OtherJvmMessage(id, message, List.of(args));
       var reply = channel.execute(OtherJvmResult.class, msg);
-      return bindToChannel(reply.value(), channel);
+      return reply.value();
     }
   }
 

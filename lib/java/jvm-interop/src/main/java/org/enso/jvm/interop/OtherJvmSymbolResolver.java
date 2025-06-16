@@ -27,7 +27,7 @@ public final class OtherJvmSymbolResolver extends PolyglotSymbolResolver {
     try {
       var ch = getChannel();
       var result = ch.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
-      return OtherJvmObject.bindToChannel(result.value(), ch);
+      return result.value();
     } catch (IOException | URISyntaxException ex) {
       throw new ClassNotFoundException(name, ex);
     }

@@ -86,6 +86,7 @@ public final class EnsoContext {
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticTypeAnalysisEnabled;
+  private final boolean isHostClassLoading;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -148,6 +149,7 @@ public final class EnsoContext {
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
+    this.isHostClassLoading = getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
     this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
@@ -621,7 +623,7 @@ public final class EnsoContext {
   public TruffleObject lookupJavaClass(String className) {
     var collectedExceptions = new ArrayList<Exception>();
 
-    if (true) { // set this to false to simulate classloading via Channel
+    if (isHostClassLoading) {
       var hostSymbol =
           ClassLookup.lookupJavaClass(
               className, // name to search for

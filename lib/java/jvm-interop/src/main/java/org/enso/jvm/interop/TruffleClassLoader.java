@@ -27,6 +27,7 @@ final class TruffleClassLoader extends URLClassLoader implements TruffleObject {
       ctx =
           Context.newBuilder() // no dynamic languages needed
               .allowHostAccess(HostAccess.ALL) // all public members
+              .allowExperimentalOptions(true) // to survive any -Dpolyglot options
               .build();
     }
     return ctx;
