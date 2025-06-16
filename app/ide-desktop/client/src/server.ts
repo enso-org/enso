@@ -27,7 +27,6 @@ import {
   DirectoryAsset,
   DirectoryId,
   ExportedArchive,
-  extractTitleAndSuffix,
   extractTypeFromId,
   FileAsset,
   FileDetails,
@@ -642,13 +641,27 @@ export class Server {
       let destinationPathInArchive = path.join(parentPathInArchive, getFileName(entryPathInArchive))
       const originalDestinationPath = Path(path.join(directory, destinationPathInArchive))
       let destinationPath = originalDestinationPath
-      const { title, suffix } = extractTitleAndSuffix(getFileName(destinationPathInArchive))
+      const { basename, extension: extensionRaw } = basenameAndExtension(
+        getFileName(entryPathInArchive),
+      )
+      const extension = (() => {
+        switch (extensionRaw) {
+          case 'enso-project':
+          case 'tar.gz':
+          case '': {
+            return ''
+          }
+          default: {
+            return `.${extensionRaw}`
+          }
+        }
+      })()
       // If directories need to be merged in the future, the following check can be skipped
       // for directories.
       let i = 0
       while (await fileExists(destinationPath)) {
         i += 1
-        destinationPathInArchive = path.join(parentPathInArchive, `${title} (${i})${suffix}`)
+        destinationPathInArchive = path.join(parentPathInArchive, `${basename} (${i})${extension}`)
         destinationPath = Path(path.join(directory, destinationPathInArchive))
       }
       if (isDirectory) {
@@ -660,7 +673,6 @@ export class Server {
     for await (const entry of await unzipEntries(filePath)) {
       const entryPathInArchive = entry.metadata.name
       const destinationPath = await getDirectoryPath(entryPathInArchive)
-      console.log(entryPathInArchive, destinationPath)
       const isDirectory = isFolderPath(entryPathInArchive)
       const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
       const shared = {

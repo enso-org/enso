@@ -1512,13 +1512,6 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
-/** Extract a title and suffix from a relative path. */
-export function extractTitleAndSuffix(path: string) {
-  const [, title = path, suffix = ''] =
-    path.match(/([^/]+)((?:[/]|[.]enso-project|[.]datalink|[.]secret)?)$/) ?? []
-  return { title, suffix }
-}
-
 export interface TitleSchemaOptions {
   readonly id: AssetId
   readonly siblings?: readonly AnyAsset[] | null
