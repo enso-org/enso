@@ -179,16 +179,20 @@ EXTRA_SYSTEM_PROPS = [
     "-Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:enso_parser_jni)",
 ]
 
+ENV = {
+    "XDG_CACHE_HOME": "$$TMPDIR/.cache",
+    "PATH": "$(FLATC_PATH):$$PATH",
+    "LC_ALL": "C.UTF-8",
+    "SBT_SERVER_FORCESTART": "1",
+}
+
 run_sbt(
     name = "sbt_build_engine_distribution",
     srcs = SRCS,
     args = [
         "buildEngineDistribution",
     ],
-    env = {
-        "XDG_CACHE_HOME": "$$TMPDIR/.cache",
-        "PATH": "$(FLATC_PATH):$$PATH",
-    },
+    env = ENV,
     out_dirs = ["built-distribution"],
     system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
