@@ -41,6 +41,7 @@ from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.binary.BinaryOperator
+polyglot java import org.enso.table.data.column.operation.binary.FillMissingOperation
 polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
 polyglot java import org.enso.table.data.column.operation.BinaryOperation
 polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
@@ -338,16 +339,10 @@ type In_Memory_Column_Implementation
         if Previous_Value == default then fill_previous this_column Nothing else
             common_type = Value_Type_Helpers.find_common_type_for_arguments [this_column, default]
             common_type.if_not_error <|
-                storage = this_column.java_column.getStorage
+                java_column = this_column.java_column
                 storage_type = Storage.from_value_type_strict common_type
-                new_storage = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                    case default of
-                        col : Column ->
-                            other_storage = (col:In_Memory_Column).java_column.getStorage
-                            storage.fillMissingFrom other_storage storage_type java_problem_aggregator
-                        _ ->
-                            storage.fillMissing default storage_type java_problem_aggregator
-                In_Memory_Column.from_storage this_column.name new_storage
+                operation = FillMissingOperation.create java_column storage_type
+                _call_binary_operator this_column default this_column.name operation
 
     fill_empty (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) -> Column =
         Value_Type.expect_text this_column <|
