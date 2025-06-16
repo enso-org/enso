@@ -121,6 +121,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
     rootDirectoryId,
     getCategoryByDirectoryId,
   })
+
   const finalPath = (() => {
     if (category.type === 'recent') {
       return [

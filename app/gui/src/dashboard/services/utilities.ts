@@ -31,7 +31,7 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
   // e.g: parentsPath = 'directory-id1adsf/directory-id2adsf/directory-id3adsf'
   // eslint-disable-next-line no-restricted-syntax
   const splitPath = parentsPath.split('/') as DirectoryId[]
-  const rootDirectoryInPath = splitPath[0] ?? rootDirectoryId
+  const rootDirectoryInPath = splitPath[0] || rootDirectoryId
 
   const splitVirtualParentsPath = virtualParentsPath.split('/')
   // Virtual parents path is a string of directory names separated by slashes.
