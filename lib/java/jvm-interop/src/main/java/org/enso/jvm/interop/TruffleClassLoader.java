@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.function.Supplier;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 
@@ -22,7 +23,16 @@ final class TruffleClassLoader extends URLClassLoader implements TruffleObject {
     super(new URL[0]);
   }
 
-  static synchronized Context ctx() {
+  static <D> D withCtx(Supplier<D> action) {
+    ctx().enter();
+    try {
+      return action.get();
+    } finally {
+      ctx().leave();
+    }
+  }
+
+  private static synchronized Context ctx() {
     if (ctx == null) {
       ctx =
           Context.newBuilder() // no dynamic languages needed

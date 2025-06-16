@@ -14,18 +14,26 @@ import java.util.function.Consumer;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class OtherJvmObjectTest {
   @ClassRule public static final ContextUtils ctx = ContextUtils.newBuilder("js").build();
-  private static final Channel<OtherJvmPool> CHANNEL = Channel.create(null, OtherJvmPool.class);
+
+  private static Channel<OtherJvmPool> CHANNEL;
+
+  @BeforeClass
+  public static void initializeChannel() {
+    CHANNEL = Channel.create(null, OtherJvmPool.class);
+  }
 
   @Test
   public void wrapBigDecimal() throws Exception {
@@ -209,6 +217,9 @@ public class OtherJvmObjectTest {
         assertNull("No args yet", last);
         assertEquals("One arg", 1, arguments.length);
         last = arguments[0];
+
+        var myCtx = Context.getCurrent();
+        assertEquals("The right context", ctx.context(), myCtx);
         return arguments[0];
       }
 
@@ -218,13 +229,14 @@ public class OtherJvmObjectTest {
       }
     }
     var mock = new MockProxy();
+    var mockValue = ctx.asValue(mock);
 
     var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
-    localClass.invokeMember("callback", mock, "Real");
+    localClass.invokeMember("callback", mockValue, "Real");
     mock.assertArgs("Called with Real", ctx.asValue("Real"));
 
     var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
-    otherClass.invokeMember("callback", mock, "RealOther");
+    otherClass.invokeMember("callback", mockValue, "RealOther");
     mock.assertArgs("Called with Real", ctx.asValue("RealOther"));
   }
 

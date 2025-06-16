@@ -60,8 +60,15 @@ record OtherJvmMessage( // sends a message to the other side
 
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
+    if (t.isMaster()) {
+      return handle(t);
+    } else {
+      return TruffleClassLoader.withCtx(() -> handle(t));
+    }
+  }
+
+  private OtherJvmResult<? extends Object, ? extends Exception> handle(Channel<OtherJvmPool> t) {
     try {
-      TruffleClassLoader.ctx().enter();
       var receiver = t.getConfig().findObject(id);
       assert receiver instanceof TruffleObject;
       if (message == IS_IDENTICAL) {
@@ -71,8 +78,6 @@ record OtherJvmMessage( // sends a message to the other side
       return new ReturnValue<>(res);
     } catch (Exception ex) {
       return ThrowException.create(ex);
-    } finally {
-      TruffleClassLoader.ctx().leave();
     }
   }
 
@@ -81,6 +86,7 @@ record OtherJvmMessage( // sends a message to the other side
       implements Function<Channel, OtherJvmResult<TruffleObject, ClassNotFoundException>> {
     @Override
     public OtherJvmResult<TruffleObject, ClassNotFoundException> apply(Channel t) {
+      assert !t.isMaster() : "Class loading only works on the slave side!";
       try {
         var clazzRaw = TruffleClassLoader.loadClassObject(name);
         return ReturnValue.create(clazzRaw);
