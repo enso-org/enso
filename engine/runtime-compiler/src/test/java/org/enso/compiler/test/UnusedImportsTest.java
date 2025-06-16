@@ -734,6 +734,30 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
+  @Test
+  public void usedExtensionMethodSymbol_FromModule_InsideSyntheticModule() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Lib.A.A"),
+        """
+            static_method x = x
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Lib.Main"),
+        """
+            export project.A.A
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from local.Lib import A
+            main =
+                A.static_method 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
     var warn = getSingleWarning(importIr, UnusedSymbolsFromImport.class);
     var actualUnusedSymbols = CollectionConverters.asJava(warn.unusedSymbols());

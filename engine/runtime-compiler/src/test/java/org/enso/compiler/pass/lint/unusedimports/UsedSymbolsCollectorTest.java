@@ -12,6 +12,7 @@ import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.test.mock.WithCompilerContext;
+import org.enso.editions.LibraryName;
 import org.enso.pkg.QualifiedName;
 import org.junit.Rule;
 import org.junit.Test;
@@ -536,6 +537,31 @@ public class UsedSymbolsCollectorTest {
             """);
     compilerCtx.getCompiler().run(mainMod);
     expectUsedSymbol(mainMod, "local.Proj.A.B.B_Type");
+  }
+
+  /** {@code local.Proj.A} is just synthetic module. */
+  @Test
+  public void usedExtensionMethod_FromModule_InsideSyntheticModule() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Lib.A.A"),
+        """
+            static_method x = x
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Lib.Main"),
+        """
+            export project.A.A
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from local.Lib import A
+            main =
+                A.static_method 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Lib.A.A.static_method");
   }
 
   private static UsedSymbols collect(org.enso.compiler.context.CompilerContext.Module mod) {
