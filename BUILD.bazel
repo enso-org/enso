@@ -141,105 +141,40 @@ SRCS = STDLIB_SOURCES + [
     "std-bits/tableau/src/**",
 ])
 
-sbt_path(
-    name = "sbt_path",
-    build_setting_default = "",
-)
+SBT_BOOT_DIR = "$$TMPDIR/.sbt/boot"
 
-SBT_COMMAND = "buildEngineDistribution"
+SBT_IVY_HOME = "$$TMPDIR/.ivy2"
 
-SBT_ARGS = "-v -Dsbt.global.base=$$TMPDIR -Dsbt.ivy.home=$$TMPDIR/.ivy2/ -Dsbt.server.autostart=false"
+SBT_GLOBAL_BASE = "$$TMPDIR"
 
-SBT_ARGS += " --java-home $(JAVABASE)"
+SBT_LOCAL_REPOS = "$$TMPDIR/.sbt/repositories"
 
-# TODO: do we really need these? Rust build script does use them.
-SBT_SETTINGS = "SBT_SERVER_FORCESTART=1 LC_ALL=C.UTF-8"
-
-# updateLibraryManifest command expects HOME env var to be set
-# The directory does not have to exist, just the env var needs to be set.
-SBT_SETTINGS += " HOME=$$TMPDIR/home"
-
-# This env var is needed so that sbt will known that it runs as a subprocess of Bazel.
+# These system properties are needed so that sbt will known that it runs as a subprocess of Bazel.
 # In such case, it will avoid running `cargo` or `pnpm` commands on its own,
 # instead, it will expect that all the necessary artifacts are already provided
 # by Bazel via system properties. See docs in `project/BazelSupport.scala`.
-SBT_ARGS += " -Denso.BazelSupport.enabled=true"
-
-SBT_ARGS += " -Denso.BazelSupport.parser.javaSrcDir=$(location //lib/rust/parser:generate_java)"
-
-SBT_ARGS += " -Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:enso_parser_jni)"
-
-CMD = "PATH=$(FLATC_PATH):$$PATH JAVA_HOME=$(JAVABASE) {SBT_SETTINGS} $(SBT_BIN) {SBT_ARGS} {SBT_COMMAND}".format(
-    SBT_ARGS = SBT_ARGS,
-    SBT_COMMAND = SBT_COMMAND,
-    SBT_SETTINGS = SBT_SETTINGS,
-)
-
-# TODO: consider using `run_binary` instead, but it does not have `toolchains` attribute, and providing `sbt` is questionable.
-# `genrule` requires `bash` though.
-genrule(
-    name = "sbt_build_engine_distribution",
-    srcs = SRCS,
-    outs = ["built-distribution"],
-    cmd = CMD,
-    message = "Building engine distribution",
-    toolchains = [
-        "@rules_java//toolchains:current_java_runtime",
-        "@//toolchains/flatc:resolved_toolchain",
-        ":sbt_path",
-    ],
-    visibility = ["//visibility:public"],
-)
+EXTRA_SYSTEM_PROPS = [
+    "-Denso.BazelSupport.enabled=true",
+    "-Denso.BazelSupport.parser.javaSrcDir=$(location //lib/rust/parser:generate_java)",
+    "-Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:enso_parser_jni)",
+]
 
 run_sbt(
-    name = "debug_run_sbt",
-    args = ["--version"],
-    out_dirs = ["internal"],
-    visibility = ["//visibility:public"],
-)
-
-
-#java_binary(
-#    name = "sbt_launcher",
-#    create_executable = False,
-#    jar = "@sbt_dist//:sbt/bin/sbt-launch.jar",
-#    main_class = "",  # SBT launch JAR uses its own Main-Class
-#    runtime_deps = [":sbt_launch_jar"],
-#)
-#
-
-java_binary(
-    name = "sbt_launcher",
-    create_executable = False,
-    main_class = "",  # SBT launch JAR uses its own Main-Class
-    runtime_deps = [":sbt_import"],
-)
-
-java_import(
-    name = "sbt_import",
-    jars = [
-        "@sbt_repo//:sbt_launch_jar",
+    name = "sbt_build_engine_distribution",
+    srcs = SRCS,
+    args = [
+        "buildEngineDistribution",
     ],
-)
-
-run_binary(
-    name = "sbt",
-    srcs = [
-        "@rules_java//toolchains:current_java_runtime",
-        "@sbt_repo//:sbt_launch_jar",
-    ],
-    outs = ["sbt_version.txt"],
-    args = ["-jar $(location @sbt_repo//:sbt_launch_jar) --version"],
-    tool = "$(JAVA)",
-)
-
-genrule(
-    name = "debug",
-    srcs = ["@sbt_repo//:sbt_launch_jar"],
-    outs = ["out.txt"],
-    cmd = "$(JAVA) -jar $(location @sbt_repo//:sbt_launch_jar) --version > $@",
-    toolchains = [
-        "@rules_java//toolchains:current_java_runtime",
-    ],
+    env = {
+        "XDG_CACHE_HOME": "$$TMPDIR/.cache",
+        "PATH": "$(FLATC_PATH):$$PATH",
+    },
+    out_dirs = ["built-distribution"],
+    system_props = [
+        "-Dsbt.repositories.local=" + SBT_LOCAL_REPOS,
+        "-Dsbt.global.base=" + SBT_GLOBAL_BASE,
+        "-Dsbt.boot.directory=" + SBT_BOOT_DIR,
+        "-Dsbt.ivy.home=" + SBT_IVY_HOME,
+    ] + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
 )
