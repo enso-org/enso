@@ -56,7 +56,7 @@ jobs:
           done
       - name: 💬 Comment on PR
         uses: actions/github-script@v7
-        if: steps.gui-changed-files.outputs.any_changed == 'true'
+        if: steps.gui-changed-files.outputs.any_changed == 'true' && github.event_name == 'pull_request'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

@@ -5,12 +5,13 @@ import { PLAN_TO_TEXT_ID } from '#/modules/payments'
 import { Plan, isPlan } from '#/services/Backend'
 import { DASHBOARD_PATH } from '$/appUtils'
 import { useRouter, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 
 /** A page to show when a user successfully subscribes to a plan. */
 export function SubscribeSuccess() {
   const { getText } = useText()
-  const { router, searchParams } = useRouter()
-  const plan = searchParams.get('plan') ?? Plan.solo
+  const { router } = useRouter()
+  const [plan = Plan.solo] = useQueryParam('plan')
 
   if (!isPlan(plan)) {
     void router.replace(DASHBOARD_PATH)

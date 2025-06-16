@@ -2,9 +2,8 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, resolve_ranges, sort_and_merge_ranges, take_helper
+from Standard.Base.Data.Index_Sub_Range import drop_helper, take_helper
 
-from Standard.Table import Set_Mode
 
 import project.DB_Table.DB_Table
 from project.Errors import Unsupported_Database_Operation

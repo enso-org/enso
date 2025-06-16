@@ -62,7 +62,7 @@ export function useWidgetFunctionCallInfo(
     const funcType = info?.methodCall.methodPointer.definedOnType
     return (
       funcType != null &&
-      !subjectInfo.value?.typename?.equals(funcType.append('type' as Identifier))
+      !subjectInfo.value?.typeInfo?.primaryType?.equals(funcType.append('type' as Identifier))
     )
   })
 
@@ -138,7 +138,8 @@ export function useWidgetFunctionCallInfo(
   const subjectTypeMatchesMethod = computed(() => {
     const funcType = methodCallInfo.value?.methodCall.methodPointer.definedOnType
     return (
-      funcType != null && subjectInfo.value?.typename?.equals(funcType.append('type' as Identifier))
+      funcType != null &&
+      subjectInfo.value?.typeInfo?.primaryType?.equals(funcType.append('type' as Identifier))
     )
   })
 

@@ -6,256 +6,34 @@
 import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
-import * as newtype from '#/utilities/newtype'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-import { getFileName } from '../utilities/fileInfo'
+import { getFileName } from '../../utilities/fileInfo'
+import {
+  MissingComponentAction,
+  ProjectManagerEvents,
+  type CloseProjectParams,
+  type CreateProject,
+  type CreateProjectParams,
+  type DeleteProjectParams,
+  type DuplicatedProject,
+  type DuplicateProjectParams,
+  type FileSystemEntry,
+  type JSONRPCError,
+  type JSONRPCResponse,
+  type OpenProject,
+  type OpenProjectParams,
+  type Path,
+  type ProjectState,
+  type RenameProjectParams,
+  type UUID,
+  type VersionList,
+} from './types'
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
 /** The maximum amount of time for which the {@link ProjectManager} should try loading. */
 const MAXIMUM_DELAY_MS = 10_000
-
-/** Possible actions to take when a component is missing. */
-export enum MissingComponentAction {
-  fail = 'Fail',
-  install = 'Install',
-  forceInstallBroken = 'ForceInstallBroken',
-}
-
-/** Metadata for a JSON-RPC error. */
-interface JSONRPCError {
-  readonly code: number
-  readonly message: string
-  readonly data?: unknown
-}
-
-/** Fields common to all return values of any JSON-RPC call. */
-interface JSONRPCBaseResponse {
-  readonly jsonrpc: '2.0'
-  readonly id: number
-}
-
-/** The return value of a successful JSON-RPC call. */
-interface JSONRPCSuccessResponse<T> extends JSONRPCBaseResponse {
-  readonly result: T
-}
-
-/** The return value of a failed JSON-RPC call. */
-interface JSONRPCErrorResponse extends JSONRPCBaseResponse {
-  readonly error: JSONRPCError
-}
-
-/** The return value of a JSON-RPC call. */
-export type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
-
-// These are constructor functions that construct values of the type they are named after.
-/* eslint-disable @typescript-eslint/no-redeclare */
-
-/** A UUID. */
-export type UUID = newtype.Newtype<string, 'UUID'>
-/** Create a {@link UUID}. */
-export const UUID = newtype.newtypeConstructor<UUID>()
-/** A filesystem path. */
-export type Path = newtype.Newtype<string, 'Path'>
-/** Create a {@link Path}. */
-export const Path = newtype.newtypeConstructor<Path>()
-/** An ID of a directory. */
-export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
-/** Create a {@link DirectoryId}. */
-export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
-/** A name of a project. */
-export type ProjectName = newtype.Newtype<string, 'ProjectName'>
-/** Create a {@link ProjectName}. */
-export const ProjectName = newtype.newtypeConstructor<ProjectName>()
-/**
- * The newtype's `TypeName` is intentionally different from the name of this type alias,
- * to match the backend's newtype.
- */
-export type UTCDateTime = dateTime.Rfc3339DateTime
-/** Create a {@link UTCDateTime}. */
-export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
-
-/* eslint-enable @typescript-eslint/no-redeclare */
-
-/** Details of a project. */
-interface ProjectMetadata {
-  /** The name of the project. */
-  readonly name: string
-  /** The namespace of the project. */
-  readonly namespace: string
-  /** The project id. */
-  readonly id: UUID
-  /**
-   * The Enso Engine version to use for the project, represented by a semver version
-   * string.
-   *
-   * If the edition associated with the project could not be resolved, the
-   * engine version may be missing.
-   */
-  readonly engineVersion?: string
-  /** The project creation time. */
-  readonly created: dateTime.Rfc3339DateTime
-  /** The last opened datetime. */
-  readonly lastOpened?: dateTime.Rfc3339DateTime
-}
-
-/** Attributes of a file or folder. */
-interface Attributes {
-  readonly creationTime: dateTime.Rfc3339DateTime
-  readonly lastAccessTime: dateTime.Rfc3339DateTime
-  readonly lastModifiedTime: dateTime.Rfc3339DateTime
-  readonly byteSize: number
-}
-
-/** Metadata for an arbitrary file system entry. */
-export type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
-
-/** The discriminator value for {@link FileSystemEntry}. */
-export enum FileSystemEntryType {
-  DirectoryEntry = 'DirectoryEntry',
-  ProjectEntry = 'ProjectEntry',
-  FileEntry = 'FileEntry',
-}
-
-/** Metadata for a file. */
-interface FileEntry {
-  readonly type: FileSystemEntryType.FileEntry
-  readonly path: Path
-  readonly attributes: Attributes
-}
-
-/** Metadata for a directory. */
-interface DirectoryEntry {
-  readonly type: FileSystemEntryType.DirectoryEntry
-  readonly path: Path
-  readonly attributes: Attributes
-}
-
-/** Metadata for a project. */
-interface ProjectEntry {
-  readonly type: FileSystemEntryType.ProjectEntry
-  readonly path: Path
-  readonly metadata: ProjectMetadata
-  readonly attributes: Attributes
-}
-
-/** A value specifying the hostname and port of a socket. */
-export interface IpWithSocket {
-  readonly host: string
-  readonly port: number
-}
-
-/** The return value of the "list projects" endpoint. */
-export interface ProjectList {
-  readonly projects: ProjectMetadata[]
-}
-
-/** The return value of the "create project" endpoint. */
-export interface CreateProject {
-  readonly projectId: UUID
-  readonly projectName: string
-  readonly projectNormalizedName: string
-}
-
-/** The return value of the "open project" endpoint. */
-export interface OpenProject {
-  readonly engineVersion: string
-  readonly languageServerJsonAddress: IpWithSocket
-  readonly languageServerBinaryAddress: IpWithSocket
-  readonly projectName: ProjectName
-  readonly projectNormalizedName: string
-  readonly projectNamespace: string
-}
-
-/** The return value of the "list available engine versions" endpoint. */
-export interface EngineVersion {
-  readonly version: string
-  readonly markedAsBroken: boolean
-}
-
-/** The return value of the "list available engine versions" endpoint. */
-export interface VersionList {
-  readonly versions: readonly EngineVersion[]
-}
-
-/** The return value of the "duplicate project" endpoint. */
-export interface DuplicatedProject {
-  readonly projectId: UUID
-  readonly projectName: string
-  readonly projectNormalizedName: string
-}
-
-/** A project that is currently opening. */
-interface OpenInProgressProjectState {
-  readonly state: backend.ProjectState.openInProgress
-  readonly data: Promise<OpenProject>
-}
-
-/** A project that is currently opened. */
-interface OpenedProjectState {
-  readonly state: backend.ProjectState.opened
-  readonly data: OpenProject
-}
-
-/**
- * Possible states and associated metadata of a project.
- * The "closed" state is omitted as it is the default state.
- */
-type ProjectState = OpenedProjectState | OpenInProgressProjectState
-
-/** Parameters for the "open project" endpoint. */
-export interface OpenProjectParams {
-  readonly projectId: UUID
-  readonly missingComponentAction: MissingComponentAction
-  readonly cloudProjectDirectoryPath?: string
-  readonly projectsDirectory?: string
-}
-
-/** Parameters for the "close project" endpoint. */
-export interface CloseProjectParams {
-  readonly projectId: UUID
-}
-
-/** Parameters for the "list projects" endpoint. */
-export interface ListProjectsParams {
-  readonly numberOfProjects?: number
-}
-
-/** Parameters for the "create project" endpoint. */
-export interface CreateProjectParams {
-  readonly name: ProjectName
-  readonly projectTemplate?: string
-  readonly version?: string
-  readonly missingComponentAction?: MissingComponentAction
-  readonly projectsDirectory?: Path
-}
-
-/** Parameters for the "rename project" endpoint. */
-export interface RenameProjectParams {
-  readonly projectId: UUID
-  readonly name: ProjectName
-  readonly projectsDirectory?: Path
-}
-
-/** Parameters for the "duplicate project" endpoint. */
-export interface DuplicateProjectParams {
-  readonly projectId: UUID
-  readonly projectsDirectory?: Path
-}
-
-/** Parameters for the "delete project" endpoint. */
-export interface DeleteProjectParams {
-  readonly projectId: UUID
-  readonly projectsDirectory?: Path
-}
-
-/** Possible events that may be emitted by a {@link ProjectManager}. */
-export enum ProjectManagerEvents {
-  // If this member is renamed, the corresponding event listener should also be renamed in
-  // `app/gui/src/project-view/components/GraphEditor/toasts.ts`.
-  loadingFailed = 'project-manager-loading-failed',
-}
 
 /**
  * A {@link WebSocket} endpoint to the project manager.
@@ -263,7 +41,7 @@ export enum ProjectManagerEvents {
  * It should always be in sync with the Rust interface at
  * `app/gui/controller/engine-protocol/src/project_manager.rs`.
  */
-export default class ProjectManager {
+export class ProjectManager {
   private readonly initialRootDirectory: Path
   // This is required so that projects get recursively updated (deleted, renamed or moved).
   private readonly internalDirectories = new Map<Path, readonly FileSystemEntry[]>()
@@ -431,14 +209,12 @@ export default class ProjectManager {
 
     invariant(path, `Unknown project path for project '${projectId}'.`)
 
-    const res = await this.runStandaloneCommand<string>(
+    return await this.runStandaloneCommand<string>(
       null,
       'filesystem-read-path',
       'text',
       path + '/src/Main.enso',
     )
-
-    return res
   }
 
   /** Rename a project. */
@@ -495,9 +271,7 @@ export default class ProjectManager {
       this.internalDirectories.set(
         directoryPath,
         siblings.filter(
-          (entry) =>
-            entry.type !== FileSystemEntryType.ProjectEntry ||
-            entry.metadata.id !== params.projectId,
+          (entry) => entry.type !== 'ProjectEntry' || entry.metadata.id !== params.projectId,
         ),
       )
     }
@@ -529,22 +303,22 @@ export default class ProjectManager {
   }
 
   /** List directories, projects and files in the given folder. */
-  async listDirectory(parentId: Path | null): Promise<readonly FileSystemEntry[]> {
+  async listDirectory(parentPath: Path | null): Promise<readonly FileSystemEntry[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
       readonly entries: FileSystemEntry[]
     }
-    parentId ??= this.rootDirectory
+    parentPath ??= this.rootDirectory
     const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-list',
       'json',
-      parentId,
+      parentPath,
     )
     const result = response.entries
       .filter((entry) => {
         // Ignore hybrid project directories.
-        if (entry.type === FileSystemEntryType.DirectoryEntry) {
+        if (entry.type === 'DirectoryEntry') {
           const directoryName = getFileName(entry.path)
           return !backend.HYBRID_PROJECT_DIRECTORY_MASK.test(directoryName)
         }
@@ -556,10 +330,10 @@ export default class ProjectManager {
         path: normalizeSlashes(entry.path),
       }))
 
-    this.internalDirectories.set(parentId, result)
+    this.internalDirectories.set(parentPath, result)
 
     for (const entry of result) {
-      if (entry.type === FileSystemEntryType.ProjectEntry) {
+      if (entry.type === 'ProjectEntry') {
         this.internalProjectPaths.set(entry.metadata.id, entry.path)
       }
     }
@@ -575,9 +349,9 @@ export default class ProjectManager {
     if (siblings) {
       const now = dateTime.toRfc3339(new Date())
       this.internalDirectories.set(directoryPath, [
-        ...siblings.filter((sibling) => sibling.type === FileSystemEntryType.DirectoryEntry),
+        ...siblings.filter((sibling) => sibling.type === 'DirectoryEntry'),
         {
-          type: FileSystemEntryType.DirectoryEntry,
+          type: 'DirectoryEntry',
           attributes: {
             byteSize: 0,
             creationTime: now,
@@ -586,7 +360,7 @@ export default class ProjectManager {
           },
           path,
         },
-        ...siblings.filter((sibling) => sibling.type !== FileSystemEntryType.DirectoryEntry),
+        ...siblings.filter((sibling) => sibling.type !== 'DirectoryEntry'),
       ])
     }
   }
@@ -599,9 +373,9 @@ export default class ProjectManager {
     if (siblings) {
       const now = dateTime.toRfc3339(new Date())
       this.internalDirectories.set(directoryPath, [
-        ...siblings.filter((sibling) => sibling.type !== FileSystemEntryType.FileEntry),
+        ...siblings.filter((sibling) => sibling.type !== 'FileEntry'),
         {
-          type: FileSystemEntryType.FileEntry,
+          type: 'FileEntry',
           attributes: {
             byteSize: file.size,
             creationTime: now,
@@ -610,7 +384,7 @@ export default class ProjectManager {
           },
           path,
         },
-        ...siblings.filter((sibling) => sibling.type === FileSystemEntryType.FileEntry),
+        ...siblings.filter((sibling) => sibling.type === 'FileEntry'),
       ])
     }
   }
@@ -636,19 +410,19 @@ export default class ProjectManager {
       const removeChildren = (directoryChildren: readonly FileSystemEntry[]) => {
         for (const child of directoryChildren) {
           switch (child.type) {
-            case FileSystemEntryType.DirectoryEntry: {
+            case 'DirectoryEntry': {
               const childChildren = this.internalDirectories.get(child.path)
               if (childChildren) {
                 removeChildren(childChildren)
               }
               break
             }
-            case FileSystemEntryType.ProjectEntry: {
+            case 'ProjectEntry': {
               this.internalProjects.delete(child.metadata.id)
               this.internalProjectPaths.delete(child.metadata.id)
               break
             }
-            case FileSystemEntryType.FileEntry: {
+            case 'FileEntry': {
               // No special extra metadata is stored for files.
               break
             }

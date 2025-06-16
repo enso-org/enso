@@ -350,9 +350,7 @@ export type UploadableAsset =
   | UploadToCloudAsset<AssetType.file>
   | UploadToCloudAsset<AssetType.project>
 
-/**
- * An asset that can be uploaded to the cloud.
- */
+/** An asset that can be uploaded to the cloud. */
 export type UploadToCloudAsset<Type extends AssetType> = Pick<
   AnyAsset,
   'id' | 'parentId' | 'title'
@@ -367,9 +365,7 @@ export type UploadToCloudAsset<Type extends AssetType> = Pick<
 
 const UPLOADABLE_ASSETS_SET = new Set([AssetType.file, AssetType.project])
 
-/**
- * Whether the asset is uploadable.
- */
+/** Whether the asset is uploadable. */
 export function isUploadableAsset(asset: UploadToCloudAsset<AssetType>): asset is UploadableAsset {
   return UPLOADABLE_ASSETS_SET.has(asset.type)
 }

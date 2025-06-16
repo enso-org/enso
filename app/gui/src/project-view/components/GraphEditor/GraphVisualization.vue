@@ -13,6 +13,7 @@ import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { type BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import type { ProjectPath } from '@/util/projectPath'
 import { computed, nextTick, onUnmounted, proxyRefs, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
@@ -36,7 +37,7 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
-  typename?: string | undefined
+  typename?: ProjectPath | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
@@ -58,8 +59,8 @@ const {
   effectiveVisualization,
   effectiveVisualizationData,
   updatePreprocessor,
-  allTypes,
-  currentType,
+  allVisualizations,
+  currentVisualization,
   setToolbarDefinition,
   visualizationDefinedToolbar,
   toolbarOverlay,
@@ -95,11 +96,11 @@ const actionHandlers = registerHandlers({
   },
   'visualization.nextType': {
     action: () => {
-      const currentIndex = allTypes.value.findIndex((type) =>
-        visIdentifierEquals(type, currentType.value),
+      const currentIndex = allVisualizations.value.findIndex((type) =>
+        visIdentifierEquals(type, currentVisualization.value),
       )
-      const nextIndex = (currentIndex + 1) % allTypes.value.length
-      emit('update:id', allTypes.value[nextIndex]!)
+      const nextIndex = (currentIndex + 1) % allVisualizations.value.length
+      emit('update:id', allVisualizations.value[nextIndex]!)
     },
   },
 })
@@ -246,9 +247,9 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
         tabindex="-1"
       >
         <VisualizationToolbar
-          :currentVis="currentType"
+          :currentVis="currentVisualization"
           :showControls="!isPreview"
-          :allTypes="allTypes"
+          :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
           :typename="typename"
           :class="{ overlay: toolbarOverlay }"

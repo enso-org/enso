@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import ActionButton from '@/components/ActionButton.vue'
 import { useVisualizationSelector } from '@/components/GraphEditor/GraphVisualization/visualizationSelector'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
@@ -11,29 +12,35 @@ import {
   isTextSelectionMenu,
   isToggleButton,
 } from '@/components/visualizations/toolbar'
-import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
+import type { ProjectPath } from '@/util/projectPath'
+import { qnLastSegment } from '@/util/qualifiedName'
 import { computed, toRef, toValue } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const currentVis = defineModel<VisualizationIdentifier>('currentVis', { required: true })
 
+const { names: projectNames } = injectCurrentProject().storesRefs
+
 const props = defineProps<{
   showControls: boolean
-  allTypes: ReadonlyArray<VisualizationIdentifier>
+  allVisualizations: ReadonlyArray<VisualizationIdentifier>
   visualizationDefinedToolbar: ReadonlyArray<Readonly<ToolbarItem>> | undefined
-  typename: string | undefined
+  typename: ProjectPath | undefined
 }>()
 
 const UNKNOWN_TYPE = 'Unknown'
 const nodeShortType = computed(() =>
-  props.typename != null && isQualifiedName(props.typename) ?
-    qnLastSegment(props.typename)
+  props.typename?.path != null ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE,
+)
+const fullType = computed(() =>
+  props.typename != null && projectNames.value != null ?
+    projectNames.value.printProjectPath(props.typename)
   : UNKNOWN_TYPE,
 )
 
 const visualizationSelector = useVisualizationSelector({
   selectedType: currentVis,
-  types: toRef(props, 'allTypes'),
+  types: toRef(props, 'allVisualizations'),
 })
 </script>
 
@@ -84,7 +91,7 @@ const visualizationSelector = useVisualizationSelector({
     </template>
     <div
       class="after-toolbars node-type"
-      :title="props.typename ?? UNKNOWN_TYPE"
+      :title="fullType"
       data-testid="visualisationNodeType"
       v-text="nodeShortType"
     />

@@ -12,7 +12,11 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
 import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
-import { useBackends, useRightPanelData, useText } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/rightPanel'
 import { includes } from 'enso-common/src/utilities/data/array'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
@@ -27,9 +31,10 @@ interface AddNewVersionVariables {
 export function AssetVersions() {
   const { remoteBackend } = useBackends()
   const { getText } = useText()
-  const rightPanel = useRightPanelData()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
 
-  if (rightPanel.context?.category?.backend !== BackendType.remote) {
+  if (category?.backend !== BackendType.remote) {
     return (
       <Result
         status="info"
@@ -39,15 +44,15 @@ export function AssetVersions() {
     )
   }
 
-  if (rightPanel.focusedAsset == null) {
+  if (focusedAsset == null) {
     return <Result status="info" centered title={getText('assetVersions.notSelected')} />
   }
 
-  if (!isAllowedAssetType(rightPanel.focusedAsset)) {
+  if (!isAllowedAssetType(focusedAsset)) {
     return <Result status="info" centered title={getText('assetVersions.invalidAssetType')} />
   }
 
-  return <AssetVersionsInternal backend={remoteBackend} item={rightPanel.focusedAsset} />
+  return <AssetVersionsInternal backend={remoteBackend} item={focusedAsset} />
 }
 
 /** Props for an {@link AssetVersionsInternal}. */

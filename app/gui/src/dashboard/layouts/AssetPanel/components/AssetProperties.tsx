@@ -3,7 +3,7 @@ import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
 import { Button, CopyButton } from '#/components/Button'
 import { Form } from '#/components/Form'
-import { ResizableContentEditableInput } from '#/components/Inputs'
+import { ResizableContentEditableInput } from '#/components/Inputs/ResizableInput'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { Text } from '#/components/Text'
@@ -30,7 +30,12 @@ import {
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
 import { useFeatureFlags } from '$/providers/react/featureFlags'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/rightPanel'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
@@ -45,25 +50,26 @@ const ASSET_PROPERTIES_VARIANTS = tv({
 /** Display and modify the properties of an asset. */
 export function AssetProperties() {
   const { remoteBackend } = useBackends()
-  const rightPanel = useRightPanelData()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
   const { getText } = useText()
-  const isReadonly = rightPanel.context?.category?.type === 'trash'
+  const isReadonly = category?.type === 'trash'
 
-  if (rightPanel.context?.category?.backend !== BackendType.remote) {
+  if (category?.backend !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (rightPanel.focusedAsset == null) {
+  if (focusedAsset == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
-      key={rightPanel.focusedAsset.id}
+      key={focusedAsset.id}
       backend={remoteBackend}
-      item={rightPanel.focusedAsset}
+      item={focusedAsset}
       isReadonly={isReadonly}
-      category={rightPanel.context.category}
+      category={category}
     />
   )
 }
@@ -81,6 +87,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
   const rightPanel = useRightPanelData()
+  const spotlightOn = useVueValue(
+    React.useCallback(() => rightPanel.context?.spotlightOn, [rightPanel]),
+  )
 
   const closeSpotlight = useEventCallback(() => {
     rightPanel.updateContext('drive', (ctx) => {
@@ -92,8 +101,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
-  const isEditingDescription =
-    isEditingDescriptionRaw || rightPanel.context?.spotlightOn === 'description'
+  const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
   const setIsEditingDescription = useEventCallback(
     (valueOrUpdater: React.SetStateAction<boolean>) => {
       setIsEditingDescriptionRaw((currentValue) => {

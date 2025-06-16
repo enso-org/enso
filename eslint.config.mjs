@@ -354,6 +354,10 @@ const config = [
       ],
       'no-constant-condition': ['error', { checkLoops: false }],
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
+      'no-restricted-imports': [
+        'error',
+        { paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }] },
+      ],
       'no-restricted-properties': [
         'error',
         { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },

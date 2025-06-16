@@ -6,7 +6,6 @@ from Standard.Base.Runtime import assert
 import project.Column.Column
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Storage
-import project.Value_Type.Auto
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 from project.Errors import Invalid_Value_Type, Mixing_Date_Time_Types, No_Common_Type
