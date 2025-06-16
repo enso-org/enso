@@ -30,8 +30,16 @@ import scala.util.Left;
 import scala.util.Right;
 
 /**
- * {@link PackageRepository} emulating {@link org.apache.commons.vfs2.FileObject} as its type member
- * ({@code PackageRepository#TFile}).
+ * Implementation of {@link PackageRepository} with {@link Path} as its type member ({@code
+ * PackageRepository#TFile}).
+ *
+ * <p>Currently, it is located in test sources, but ultimately, we would like to use it as an
+ * alternative to {@code DefaultPackageRepository} which depends on Truffle file system.
+ *
+ * <p>All the {@link Path} objects passed to or returned from this class are assumed to be created
+ * by the {@link VirtualFileSystem}.
+ *
+ * @see #createModule(QualifiedName, String)
  */
 final class MockPackageRepository implements PackageRepository {
 
@@ -78,12 +86,18 @@ final class MockPackageRepository implements PackageRepository {
   }
 
   /**
-   * Creates a module. If the package of the module does not exist, it is created. If the module
-   * with the given name already exists, an {@link IllegalArgumentException} is thrown.
+   * Creates a module. If the package of the module does not exist, it is created. Note that the
+   * package name is derived from the first two items of the qualified name of the module.
    *
-   * @param modName
-   * @param content
-   * @return
+   * <p>If the module with the given name already exists, an {@link IllegalArgumentException} is
+   * thrown.
+   *
+   * @param modName Qualified name of the module. If the name is longer than 3, for example {@code
+   *     local.Proj.A.B.C}, all intermediate synthetic parent modules will be created. For example
+   *     for {@code local.Proj.A.B.C}, synthetic parent modules for {@code local.Proj.A} and {@code
+   *     local.Proj.A.B} will be created.
+   * @param content Content for the module. Can be empty, but not null.
+   * @return Created module. Not null
    */
   Module createModule(QualifiedName modName, String content) {
     assert !modName.isSimple();
