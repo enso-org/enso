@@ -27,7 +27,6 @@ import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DrivePro
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { CATEGORY_TO_FILTER_BY, type Category } from '$/data-catalog/CategorySwitcher/Category'
 import { flagsStore } from '$/providers/featureFlags'
-import { useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import type Backend from '$/services/Backend'
 import * as backendModule from '$/services/Backend'
@@ -511,45 +510,6 @@ export function useNewProject(backend: Backend, category: Category) {
         })
     },
   )
-}
-
-/** Remove the user's own permission from an asset. */
-export function useRemoveSelfPermissionMutation(backend: Backend) {
-  const { user } = useFullUserSession()
-
-  const createPermissionMutation = useMutationCallback(
-    backendMutationOptions(backend, 'createPermission', {
-      meta: {
-        invalidates: [
-          [backend.type, 'listDirectory'],
-          [backend.type, 'getAssetDetails'],
-        ],
-        awaitInvalidates: true,
-      },
-    }),
-  )
-
-  const mutate = useEventCallback((id: AssetId) => {
-    void createPermissionMutation([
-      {
-        action: null,
-        resourceId: id,
-        actorsIds: [user.userId],
-      },
-    ])
-  })
-
-  const mutateAsync = useEventCallback(async (id: AssetId) => {
-    await createPermissionMutation([
-      {
-        action: null,
-        resourceId: id,
-        actorsIds: [user.userId],
-      },
-    ])
-  })
-
-  return { ...createPermissionMutation, mutate, mutateAsync }
 }
 
 /** Build a query options object to list executions for a project. */
