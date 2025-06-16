@@ -1,8 +1,8 @@
 /** @file Metadata for rendering each settings section. */
 import ComputerIcon from '#/assets/computer.svg'
-import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
+import { BINDINGS } from '#/inputBindings'
 import { normalizePath } from '#/utilities/fileInfo'
 import { pick, unsafeEntries } from '#/utilities/object'
 import { PASSWORD_REGEX } from '#/utilities/validation'

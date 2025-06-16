@@ -1,5 +1,4 @@
 /** @file A modal for capturing an arbitrary keyboard shortcut. */
-import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import { unsetModal } from '#/providers/ModalProvider'
 import {
   modifierFlagsForEvent,
@@ -11,6 +10,7 @@ import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'
 import { Form } from '$/react-components/Form'
+import KeyboardShortcut from '$/react-components/KeyboardShortcut'
 import { Text } from '$/react-components/Text'
 import { isOnMacOS } from 'enso-common/src/detect'
 import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'

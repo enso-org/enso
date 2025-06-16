@@ -1,11 +1,11 @@
 /** @file The icon and name of a {@link ProjectAsset}. */
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
-import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
 import { twMerge } from '#/utilities/tailwindMerge'
+import type { AssetColumnProps } from '$/data-catalog/column'
 import { useGetAssetChildren } from '$/data-catalog/hooks/assetsTableItemsHooks'
+import ProjectIcon, { CLOSED_PROJECT_STATE } from '$/data-catalog/ProjectIcon'
 import { useFullUserSession } from '$/providers/react'
 import EditableSpan from '$/react-components/EditableSpan'
 import { BackendType, titleSchema, type ProjectAsset } from '$/services/Backend'

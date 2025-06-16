@@ -1,8 +1,6 @@
-import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/layouts/CloudBrowserDisabled'
-import { OpenAppWatcher } from '#/layouts/OpenAppWatcher'
-import Dashboard from '#/pages/dashboard/Dashboard'
-import { Subscribe } from '#/pages/subscribe/Subscribe'
-import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
+import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/CloudBrowserDisabled'
+import Dashboard from '#/Dashboard'
+import { OpenAppWatcher } from '#/OpenAppWatcher'
 import {
   CONFIRM_REGISTRATION_PATH,
   DASHBOARD_PATH,
@@ -31,6 +29,8 @@ import { Setup } from '$/authentication/ui/Setup'
 import { SetupOrganizationAfterSubscribe } from '$/authentication/ui/SetupOrganizationAfterSubscribe'
 import { ErrorBoundary } from '$/react-components/ErrorBoundary'
 import { Suspense } from '$/react-components/Suspense'
+import { Subscribe } from '$/subscribe/Subscribe/index'
+import { SubscribeSuccess } from '$/subscribe/SubscribeSuccess'
 import { reactComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { PropsWithChildren, ReactNode } from 'react'

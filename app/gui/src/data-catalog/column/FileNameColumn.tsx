@@ -1,29 +1,26 @@
-/** @file The icon and name of a {@link SecretAsset}. */
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
-import { isDoubleClick } from '#/utilities/event'
+/** @file The icon and name of a {@link FileAsset}. */
+import { fileIcon } from '#/utilities/fileIcon'
 import { merger } from '#/utilities/object'
+import type { AssetColumnProps } from '$/data-catalog/column'
 import { useGetAssetChildren } from '$/data-catalog/hooks/assetsTableItemsHooks'
-import { useRightPanelData } from '$/providers/react'
 import EditableSpan from '$/react-components/EditableSpan'
 import { Icon } from '$/react-components/Icon'
-import { titleSchema, type DatalinkAsset } from '$/services/Backend'
+import { titleSchema, type FileAsset } from '$/services/Backend'
 
-/** Props for a {@link DatalinkNameColumn}. */
-export interface DatalinkNameColumnProps extends AssetColumnProps {
-  readonly item: DatalinkAsset
+/** Props for a {@link FileNameColumn}. */
+export interface FileNameColumnProps extends AssetColumnProps {
+  readonly item: FileAsset
 }
 
 /**
- * The icon and name of a {@link DatalinkAsset}.
- * @throws {Error} when the asset is not a {@link DatalinkAsset}.
+ * The icon and name of a {@link FileAsset}.
+ * @throws {Error} when the asset is not a {@link FileAsset}.
  * This should never happen.
  */
-export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
+export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, rowState, setRowState, isEditable, renameAsset } = props
 
   const getAssetChildren = useGetAssetChildren()
-
-  const rightPanel = useRightPanelData()
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -44,16 +41,12 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
           event.stopPropagation()
         }
       }}
-      onClick={(event) => {
-        if (isDoubleClick(event)) {
-          event.stopPropagation()
-          rightPanel.setTemporaryTab('settings')
-        }
-      }}
     >
-      <Icon icon="connector" className="m-name-column-icon" />
+      <Icon icon={fileIcon(item.title)} className="m-name-column-icon" />
       <EditableSpan
+        data-testid="asset-row-name"
         editable={rowState.isEditingName}
+        className="grow bg-transparent font-naming"
         onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)
@@ -64,7 +57,6 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
             siblings: getAssetChildren(item.parentId),
           })
         }
-        className="grow bg-transparent font-naming"
       >
         {item.title}
       </EditableSpan>

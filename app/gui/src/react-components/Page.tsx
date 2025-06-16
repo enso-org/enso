@@ -1,7 +1,10 @@
 /** @file A page. */
-import InfoBar from '#/layouts/InfoBar'
-import TheModal from '#/pages/dashboard/components/TheModal'
+import { useModal } from '#/providers/ModalProvider'
+import { Pressable } from '$/react-components/aria'
+import { Dialog } from '$/react-components/Dialog'
 import Portal from '$/react-components/Portal'
+import InfoBar from '$/user-bar/InfoBar'
+import { AnimatePresence, motion } from 'framer-motion'
 import * as React from 'react'
 
 /** Props for a {@link Page}. */
@@ -27,5 +30,33 @@ export default function Page(props: PageProps) {
         </div>
       </Portal>
     </>
+  )
+}
+
+/** Renders the modal instance from the modal React Context (if any). */
+function TheModal() {
+  const { modal, key } = useModal()
+
+  return (
+    <AnimatePresence>
+      {modal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+          transition={{ duration: 0.2 }}
+        >
+          <Dialog.Trigger key={key} defaultOpen>
+            {/* This component suppresses the warning about the target not being pressable element. */}
+            <Pressable>
+              <></>
+            </Pressable>
+
+            {modal}
+          </Dialog.Trigger>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

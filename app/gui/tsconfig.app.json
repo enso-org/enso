@@ -11,7 +11,7 @@
     "src/util/theme.json",
     "src/**/__tests__/*.json",
     "templates/**/*"
-  ],
+, "setupDashboardTests.ts"  ],
   "exclude": ["src/**/__tests__/*", "public/**/__tests__/*"],
   "compilerOptions": {
     "composite": true,

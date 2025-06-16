@@ -1,7 +1,4 @@
-/**
- * @file Layout that disables the dashboard if the cloud is disabled.
- */
-
+/** @file Layout that disables the dashboard if the cloud is disabled. */
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
@@ -25,9 +22,7 @@ export interface CloudBrowserDisabledLayoutProps {
   readonly redirectPath?: string
 }
 
-/**
- * Layout that disables the dashboard if the cloud is disabled.
- */
+/** Layout that disables the dashboard if the cloud is disabled. */
 export function CloudBrowserDisabledLayout(
   props: React.PropsWithChildren<CloudBrowserDisabledLayoutProps>,
 ) {

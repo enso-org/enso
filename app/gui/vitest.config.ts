@@ -12,7 +12,7 @@ const config = mergeConfig(
       exclude: [...configDefaults.exclude, 'integration-test/**/*'],
       root: fileURLToPath(new URL('./', import.meta.url)),
       restoreMocks: true,
-      setupFiles: './src/dashboard/test/setup.ts',
+      setupFiles: './setupDashboardTests.ts',
     },
   }),
 )

@@ -44,12 +44,10 @@ import * as z from 'zod'
 import * as detect from 'enso-common/src/detect'
 
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
-import ModalProvider, { setModal } from '#/providers/ModalProvider'
+import ModalProvider from '#/providers/ModalProvider'
 
-import VersionChecker from '#/layouts/VersionChecker'
+import VersionChecker from '#/VersionChecker'
 import { RouterProvider } from 'react-aria-components'
-
-import AboutModal from '#/modals/AboutModal'
 
 import RemoteBackend from '$/services/RemoteBackend'
 
@@ -62,10 +60,6 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useBackends, useRouter, useText } from '$/providers/react'
-
-window.menuApi?.setShowAboutModalHandler(() => {
-  setModal(<AboutModal />)
-})
 
 declare module '#/utilities/LocalStorage' {
   /** */

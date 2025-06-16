@@ -1,9 +1,9 @@
 /** @file A column displaying the path of the asset. */
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useCategories, useCategoriesAPI, type AnyCloudCategory } from '$/data-catalog/Categories'
+import type { AssetColumnProps } from '$/data-catalog/column'
 import { useUser } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Popover } from '$/react-components/Dialog'

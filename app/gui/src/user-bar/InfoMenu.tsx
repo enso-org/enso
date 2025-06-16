@@ -1,5 +1,4 @@
 /** @file A menu containing info about the app. */
-import AboutModal from '#/modals/AboutModal'
 import { setModal } from '#/providers/ModalProvider'
 import { LOGIN_PATH } from '$/appUtils'
 import { useAuth, useRouter, useSession, useText } from '$/providers/react'
@@ -7,6 +6,7 @@ import { Popover } from '$/react-components/Dialog'
 import { Icon } from '$/react-components/Icon'
 import MenuEntry from '$/react-components/MenuEntry'
 import { Text } from '$/react-components/Text'
+import AboutModal from '$/user-bar/AboutModal'
 import { PRODUCT_NAME } from 'enso-common'
 
 /** Props for an {@link InfoMenu}. */

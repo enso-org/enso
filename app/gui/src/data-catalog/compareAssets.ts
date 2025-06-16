@@ -1,6 +1,6 @@
 /** @file Functions related to comparing assets. */
-import { Column, type SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import { SortDirection, type SortInfo } from '#/utilities/sorting'
+import { Column, type SortableColumn } from '$/data-catalog/column/columnUtils'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 
 /** Return a function to compare two assets. */

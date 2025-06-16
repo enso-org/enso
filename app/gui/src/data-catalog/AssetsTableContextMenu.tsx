@@ -4,7 +4,6 @@
  */
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useStore } from '#/utilities/zustand'
@@ -24,6 +23,7 @@ import {
 } from '$/data-catalog/hooks/backendUploadFilesHooks'
 import { useBackends, useText, useUser } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import ConfirmDeleteModal from '$/react-components/ConfirmDeleteModal'
 import ContextMenu from '$/react-components/ContextMenu'
 import ContextMenuEntry from '$/react-components/ContextMenuEntry'
 import { ContextMenuEntry as PaywallContextMenuEntry } from '$/react-components/Paywall'

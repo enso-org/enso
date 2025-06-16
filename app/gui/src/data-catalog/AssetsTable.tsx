@@ -8,22 +8,6 @@ import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import DragModal from '#/modals/DragModal'
-import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
-import { AssetRow } from '#/pages/dashboard/components/AssetRow'
-import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
-import { NameColumn } from '#/pages/dashboard/components/column'
-import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
-import {
-  Column,
-  COLUMN_CSS_CLASS,
-  COLUMN_ICONS,
-  COLUMN_SHOW_TEXT_ID,
-  DEFAULT_ENABLED_COLUMNS,
-  getColumnList,
-} from '#/pages/dashboard/components/column/columnUtils'
-import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
-import Label from '#/pages/dashboard/components/Label'
 import {
   useDriveStore,
   useSetCanDownload,
@@ -49,11 +33,25 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import type { AssetRowInnerProps } from '$/data-catalog/AssetRow'
+import { AssetRow } from '$/data-catalog/AssetRow'
+import { INITIAL_ROW_STATE } from '$/data-catalog/AssetRow/assetRowUtils'
 import type * as assetSearchBar from '$/data-catalog/AssetSearchBar'
 import { useSetSuggestions } from '$/data-catalog/AssetSearchBar'
 import AssetsTableContextMenu from '$/data-catalog/AssetsTableContextMenu'
 import type { AssetsDataTransferPayload } from '$/data-catalog/Categories/transferBetweenCategoriesHooks'
 import { type Category } from '$/data-catalog/CategorySwitcher/Category'
+import { NameColumn } from '$/data-catalog/column'
+import type { SortableColumn } from '$/data-catalog/column/columnUtils'
+import {
+  Column,
+  COLUMN_CSS_CLASS,
+  COLUMN_ICONS,
+  COLUMN_SHOW_TEXT_ID,
+  DEFAULT_ENABLED_COLUMNS,
+  getColumnList,
+} from '$/data-catalog/column/columnUtils'
+import { COLUMN_HEADING } from '$/data-catalog/columnHeading'
 import { useAssetsTableItems } from '$/data-catalog/hooks/assetsTableItemsHooks'
 import {
   backendMutationOptions,
@@ -63,6 +61,7 @@ import {
 } from '$/data-catalog/hooks/backendHooks'
 import { useUploadFiles } from '$/data-catalog/hooks/backendUploadFilesHooks'
 import { useDirectoryIds } from '$/data-catalog/hooks/directoryIdsHooks'
+import Label from '$/data-catalog/Label'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,
@@ -81,6 +80,7 @@ import {
 import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
 import { FileTrigger, mergeProps } from '$/react-components/aria'
 import { Button } from '$/react-components/Button'
+import DragModal from '$/react-components/DragModal'
 import { ErrorDisplay } from '$/react-components/ErrorBoundary'
 import { IsolateLayout } from '$/react-components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '$/react-components/SelectionBrush'

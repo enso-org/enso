@@ -1,9 +1,9 @@
 /** @file Components for column headings. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { AssetColumnHeadingProps } from '#/pages/dashboard/components/column'
-import { Column } from '#/pages/dashboard/components/column/columnUtils'
 import { iconIdFor, nextSortDirection, SortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
+import type { AssetColumnHeadingProps } from '$/data-catalog/column'
+import { Column } from '$/data-catalog/column/columnUtils'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Icon } from '$/react-components/Icon'

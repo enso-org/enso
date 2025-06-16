@@ -1,6 +1,6 @@
 /** @file Hooks for paywall-related functionality. */
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
-import * as devtools from '#/pages/Devtools'
+import * as devtools from '$/devtools'
 import type * as backend from '$/services/Backend'
 import * as paywallConfiguration from './FeaturesConfiguration'
 import * as paywallFeatures from './paywallFeaturesHooks'

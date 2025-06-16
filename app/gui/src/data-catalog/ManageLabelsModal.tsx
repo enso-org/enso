@@ -35,7 +35,7 @@ import {
   useFilter,
   type Selection,
 } from 'react-aria-components'
-import ConfirmDeleteModal from '../dashboard/modals/ConfirmDeleteModal'
+import ConfirmDeleteModal from '../react-components/ConfirmDeleteModal'
 
 /** Props for a {@link ManageLabelsModal}. */
 export interface ManageLabelsModalProps<Asset extends AnyAsset = AnyAsset> {

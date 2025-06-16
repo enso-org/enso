@@ -1,6 +1,5 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import { usePaywall } from '#/hooks/billing'
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -8,6 +7,7 @@ import { backendMutationOptions, backendQueryOptions } from '$/data-catalog/hook
 import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { Cell, Column, Row, Table, TableBody, TableHeader } from '$/react-components/aria'
 import { Button } from '$/react-components/Button'
+import ConfirmDeleteModal from '$/react-components/ConfirmDeleteModal'
 import { Dialog, Popover } from '$/react-components/Dialog'
 import { Form } from '$/react-components/Form'
 import { ComboBox } from '$/react-components/Inputs/ComboBox'

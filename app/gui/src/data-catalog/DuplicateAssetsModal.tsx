@@ -1,10 +1,10 @@
 /** @file A modal opened when uploaded assets. */
 import { useMount } from '#/hooks/mountHooks'
-import AssetSummary from '#/pages/dashboard/components/AssetSummary'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
 import { regexEscape } from '#/utilities/string'
+import AssetSummary from '$/data-catalog/AssetSummary'
 import { useCategory } from '$/data-catalog/Categories'
 import type { Category } from '$/data-catalog/CategorySwitcher/Category'
 import {

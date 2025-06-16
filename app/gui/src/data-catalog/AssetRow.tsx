@@ -4,9 +4,6 @@ import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUtils'
-import * as columnModule from '#/pages/dashboard/components/column'
-import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
 import {
   useDriveStore,
   useSetCurrentDirectoryId,
@@ -27,8 +24,11 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
 import AssetContextMenu from '$/data-catalog/AssetContextMenu'
+import * as assetRowUtils from '$/data-catalog/AssetRow/assetRowUtils'
 import type * as assetsTable from '$/data-catalog/AssetsTable'
 import { isLocalCategory } from '$/data-catalog/CategorySwitcher/Category'
+import * as columnModule from '$/data-catalog/column'
+import * as columnUtils from '$/data-catalog/column/columnUtils'
 import { useGetAsset } from '$/data-catalog/hooks/assetsTableItemsHooks'
 import {
   useDeleteAssetsMutationState,

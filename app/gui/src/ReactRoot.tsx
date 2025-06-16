@@ -2,9 +2,9 @@
 
 import App from '#/App.tsx'
 import { useMount } from '#/hooks/mountHooks'
-import { ReactQueryDevtools } from '#/pages/Devtools'
 import LoggerProvider from '#/providers/LoggerProvider'
 import LoadingScreen from '$/authentication/ui/LoadingScreen'
+import { ReactQueryDevtools } from '$/devtools'
 import { useBackends } from '$/providers/backends'
 import { useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { ErrorBoundary } from '$/react-components/ErrorBoundary'

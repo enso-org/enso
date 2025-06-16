@@ -1,6 +1,6 @@
 /** @file A modal for creating and editing a Datalink. */
-import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import { constantValueOfSchema } from '#/utilities/jsonSchema'
+import { DatalinkFormInput } from '$/data-catalog/DatalinkInput'
 import SCHEMA from '$/data/datalinkSchema.json' with { type: 'json' }
 import { validateDatalink } from '$/data/datalinkValidator'
 import { useText } from '$/providers/react'

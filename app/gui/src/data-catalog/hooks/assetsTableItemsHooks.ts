@@ -4,12 +4,12 @@ import { AssetType, getAssetPermissionName } from 'enso-common/src/services/Back
 import { PermissionAction } from 'enso-common/src/utilities/permissions'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { fileExtension } from '#/utilities/fileInfo'
 import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { createStore, useStore } from '#/utilities/zustand.ts'
+import type { SortableColumn } from '$/data-catalog/column/columnUtils'
 import { assetCompareFunction } from '$/data-catalog/compareAssets'
 import { useText } from '$/providers/react'
 import type { DirectoryId } from '$/services/ProjectManager'

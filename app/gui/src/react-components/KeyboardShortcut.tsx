@@ -4,7 +4,7 @@ import CtrlKeyIcon from '#/assets/ctrl_key.svg'
 import OptionKeyIcon from '#/assets/option_key.svg'
 import ShiftKeyIcon from '#/assets/shift_key.svg'
 import WindowsKeyIcon from '#/assets/windows_key.svg'
-import type { DashboardBindingKey } from '#/configurations/inputBindings'
+import type { DashboardBindingKey } from '#/inputBindings'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import {
   compareModifiers,

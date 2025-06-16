@@ -10,12 +10,12 @@ import { useText } from '$/providers/react'
 import * as categoryModule from '$/data-catalog/CategorySwitcher/Category'
 import { GlobalContextMenu } from '$/data-catalog/GlobalContextMenu'
 
-import type * as assetRow from '#/pages/dashboard/components/AssetRow'
+import type * as assetRow from '$/data-catalog/AssetRow'
 import ContextMenu from '$/react-components/ContextMenu'
 import ContextMenuEntry from '$/react-components/ContextMenuEntry'
 
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '$/data-catalog/ManageLabelsModal'
+import ConfirmDeleteModal from '$/react-components/ConfirmDeleteModal'
 
 import * as backendModule from '$/services/Backend'
 

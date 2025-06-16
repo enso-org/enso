@@ -1,8 +1,8 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
+import type { AssetColumnProps } from '$/data-catalog/column'
 import { useGetAssetChildren } from '$/data-catalog/hooks/assetsTableItemsHooks'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'

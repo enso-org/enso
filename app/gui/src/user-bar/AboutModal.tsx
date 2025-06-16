@@ -1,4 +1,5 @@
 /** @file Modal for confirming delete of any type of asset. */
+import { setModal } from '#/providers/ModalProvider'
 import { useBackends, useText } from '$/providers/react'
 import { Button, CopyButton } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'
@@ -6,6 +7,10 @@ import { Icon } from '$/react-components/Icon'
 import { Text } from '$/react-components/Text'
 import type * as text from 'enso-common/src/text'
 import * as React from 'react'
+
+window.menuApi?.setShowAboutModalHandler(() => {
+  setModal(<AboutModal />)
+})
 
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {

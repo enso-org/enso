@@ -4,10 +4,10 @@
  */
 import RecentIcon from '#/assets/recent.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import CategorySwitcher from '#/layouts/CategorySwitcher'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useCategories, useCategoriesAPI } from '$/data-catalog/Categories/categoriesHooks'
+import CategorySwitcher from '$/data-catalog/CategorySwitcher'
 import type { Category } from '$/data-catalog/CategorySwitcher/Category'
 import { moveAssetsMutationOptions } from '$/data-catalog/hooks/backendBatchedHooks'
 import { useDirectoryIds } from '$/data-catalog/hooks/directoryIdsHooks'

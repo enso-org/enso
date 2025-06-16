@@ -55,6 +55,12 @@ const DASHBOARD_FILES = [
   'app/gui/src/payments/**/*.tsx',
   'app/gui/src/panels/**/*.ts',
   'app/gui/src/panels/**/*.tsx',
+  'app/gui/src/devtools/**/*.ts',
+  'app/gui/src/devtools/**/*.tsx',
+  'app/gui/src/subscribe/**/*.ts',
+  'app/gui/src/subscribe/**/*.tsx',
+  'app/gui/src/user-bar/**/*.ts',
+  'app/gui/src/user-bar/**/*.tsx',
   'app/gui/src/data/**/*.ts',
   'app/gui/src/data/**/*.tsx',
 ]

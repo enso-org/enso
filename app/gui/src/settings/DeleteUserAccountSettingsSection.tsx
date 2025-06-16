@@ -1,7 +1,7 @@
 /** @file Settings tab for deleting the current user. */
-import { ConfirmDeleteUserModal } from '#/modals/ConfirmDeleteUserModal'
 import { useAuth, useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
+import { ConfirmDeleteUserModal } from '$/react-components/ConfirmDeleteUserModal'
 import { Dialog } from '$/react-components/Dialog'
 import { Text } from '$/react-components/Text'
 
