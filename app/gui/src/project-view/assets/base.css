@@ -72,6 +72,10 @@
   initial-value: white;
 }
 
+.clickable {
+  cursor: pointer;
+}
+
 /**
  * Class used on containers that need access to computed node color variables.
  * Expects variable `--node-group-color` to be defined on the element to which this class is applied.

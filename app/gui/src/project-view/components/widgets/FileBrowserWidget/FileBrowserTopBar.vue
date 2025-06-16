@@ -6,7 +6,7 @@
 
 <style scoped>
 .FileBrowserTopBar {
-  color: white;
+  color: var(--file-browser-top-bar-color, white);
   display: flex;
   flex-direction: row;
   padding: 2px 8px;

@@ -145,6 +145,6 @@ export interface SubmenuComponent {
 
 <style scoped>
 .SelectionSubmenu {
-  z-index: 21;
+  z-index: var(--z-index-selection-submenu, 21);
 }
 </style>
