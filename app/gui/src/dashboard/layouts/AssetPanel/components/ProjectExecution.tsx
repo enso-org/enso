@@ -1,16 +1,16 @@
 /** @file Displays information describing a specific version of an asset. */
 import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
-import {
-  backendMutationOptions,
-  getProjectExecutionDetailsQueryOptions,
-} from '#/hooks/backendHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { setModal } from '#/providers/ModalProvider'
 import { tv } from '#/utilities/tailwindVariants'
+import {
+  backendMutationOptions,
+  getProjectExecutionDetailsQueryOptions,
+} from '$/data-catalog/hooks/backendHooks'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { Button } from '$/react-components/Button'

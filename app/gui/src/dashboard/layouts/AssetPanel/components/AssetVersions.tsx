@@ -4,10 +4,10 @@ import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
-import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { copyAssetsMutationOptions } from '$/data-catalog/hooks/backendBatchedHooks'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,

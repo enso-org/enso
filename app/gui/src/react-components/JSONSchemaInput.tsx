@@ -1,8 +1,8 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
-import { backendQueryOptions } from '#/hooks/backendHooks'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { useBackends, useText } from '$/providers/react'
 import { Input } from '$/react-components/aria'
 import Autocomplete from '$/react-components/Autocomplete'

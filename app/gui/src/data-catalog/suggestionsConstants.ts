@@ -1,5 +1,5 @@
 /** @file Constants related to suggestions for the asset search bar. */
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import type * as assetSearchBar from '$/data-catalog/AssetSearchBar'
 
 export const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {

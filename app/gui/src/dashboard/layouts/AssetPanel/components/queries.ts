@@ -1,6 +1,6 @@
 /** @file Fetches the versions of the selected project asset. */
 
-import { backendQueryOptions } from '#/hooks/backendHooks'
+import { backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import type Backend from '$/services/Backend'
 import type { AssetId, DatalinkId, FileId, ProjectId, S3ObjectVersionId } from '$/services/Backend'
 import { queryOptions, useQuery } from '@tanstack/react-query'

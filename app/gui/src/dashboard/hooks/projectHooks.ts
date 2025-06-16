@@ -16,9 +16,9 @@ import {
 } from '#/providers/ProjectsProvider'
 import * as authProvider from '$/providers/react'
 
-import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useAddOpeningProject, useRemoveOpeningProject } from '#/providers/ProjectsProvider/hooks'
+import { useUploadFileMutation } from '$/data-catalog/hooks/backendUploadFilesHooks'
 import { useBackends } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import type Backend from '$/services/Backend'

@@ -1,6 +1,6 @@
 /** @file Hooks for computing temporary notifications. */
-import { MB_BYTES, uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { MB_BYTES, uploadingFileQueryOptions } from '$/data-catalog/hooks/backendUploadFilesHooks'
 import { useText } from '$/providers/react'
 import { useIsMutating, useQuery, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'

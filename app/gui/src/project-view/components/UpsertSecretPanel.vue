@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
+import { UpsertSecretForm } from '$/data-catalog/UpsertSecretModal'
 import DashboardDialogContent from '@/components/DashboardDialogContent.vue'
 import { reactComponent } from '@/util/react'
 

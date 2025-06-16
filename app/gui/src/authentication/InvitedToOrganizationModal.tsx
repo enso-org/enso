@@ -1,6 +1,6 @@
 /** @file Modal for accepting or rejecting an invite to an organization. */
-import { backendMutationOptions } from '#/hooks/backendHooks'
 import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '$/appUtils'
+import { backendMutationOptions } from '$/data-catalog/hooks/backendHooks'
 import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { Alert } from '$/react-components/Alert'
 import { Button } from '$/react-components/Button'
@@ -11,7 +11,7 @@ import { useMutation } from '@tanstack/react-query'
 import * as React from 'react'
 import * as z from 'zod'
 
-/** Modal for accepting the terms of service. */
+/** Modal for accepting or rejecting an invite to an organization. */
 export function InvitedToOrganizationModal({ children }: React.PropsWithChildren) {
   const { getText } = useText()
   const { remoteBackend: backend } = useBackends()

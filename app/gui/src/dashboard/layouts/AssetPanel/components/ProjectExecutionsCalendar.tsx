@@ -3,12 +3,12 @@ import { useState } from 'react'
 
 import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
-import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { tv } from '#/utilities/tailwindVariants'
+import { listProjectExecutionsQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,

@@ -1,8 +1,8 @@
 /** @file A modal with inputs for user email and permission level. */
-import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 import * as parserUserEmails from '#/utilities/parseUserEmails'
+import { backendMutationOptions } from '$/data-catalog/hooks/backendHooks'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import { Form } from '$/react-components/Form'

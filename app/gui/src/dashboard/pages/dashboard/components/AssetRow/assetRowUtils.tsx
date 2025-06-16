@@ -1,5 +1,5 @@
 /** @file Utilities related to `AssetRow`s. */
-import type * as assetsTable from '#/layouts/AssetsTable'
+import type * as assetsTable from '$/data-catalog/AssetsTable'
 
 /** The default {@link assetsTable.AssetRowState} associated with an `AssetRow`. */
 export const INITIAL_ROW_STATE: assetsTable.AssetRowState = Object.freeze({

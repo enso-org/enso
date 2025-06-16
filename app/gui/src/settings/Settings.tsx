@@ -1,5 +1,4 @@
 /** @file Settings screen. */
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
@@ -7,6 +6,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
+import { backendMutationOptions, backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { useBackends, useFullUserSession, useSession, useText } from '$/providers/react'
 import { Heading } from '$/react-components/aria'
 import { Button } from '$/react-components/Button'

@@ -1,11 +1,11 @@
 /** @file The React provider (and associated hooks) for Data Catalog state. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
 import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
 import type { TransferrableAsset } from '$/data-catalog/Categories'
+import type { Category } from '$/data-catalog/CategorySwitcher/Category'
 import {
   type AnyAsset,
   type AssetId,

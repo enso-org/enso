@@ -3,38 +3,38 @@
  * the current directory and some configuration options.
  */
 import Plus2Icon from '#/assets/plus2.svg'
-import {
-  deleteAssetsMutationOptions,
-  downloadAssetsMutationOptions,
-  getAllTrashedItems,
-} from '#/hooks/backendBatchedHooks'
-import {
-  backendMutationOptions,
-  listDirectoryQueryOptions,
-  useNewFolder,
-  useNewProject,
-} from '#/hooks/backendHooks'
-import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import AssetSearchBar from '#/layouts/AssetSearchBar'
-import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
-import {
-  canTransferBetweenCategories,
-  isCloudCategory,
-  type Category,
-} from '#/layouts/CategorySwitcher/Category'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
-import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useDirectoryIds } from '$/data-catalog/directoryIdsHooks'
+import AssetSearchBar from '$/data-catalog/AssetSearchBar'
+import type { TrashCategory } from '$/data-catalog/CategorySwitcher/Category'
+import {
+  canTransferBetweenCategories,
+  isCloudCategory,
+  type Category,
+} from '$/data-catalog/CategorySwitcher/Category'
+import { CreateCredentialModal } from '$/data-catalog/CreateCredentialModal'
+import {
+  deleteAssetsMutationOptions,
+  downloadAssetsMutationOptions,
+  getAllTrashedItems,
+} from '$/data-catalog/hooks/backendBatchedHooks'
+import {
+  backendMutationOptions,
+  listDirectoryQueryOptions,
+  useNewFolder,
+  useNewProject,
+} from '$/data-catalog/hooks/backendHooks'
+import { useUploadFiles } from '$/data-catalog/hooks/backendUploadFilesHooks'
+import { useDirectoryIds } from '$/data-catalog/hooks/directoryIdsHooks'
+import UpsertDatalinkModal from '$/data-catalog/UpsertDatalinkModal'
+import UpsertSecretModal from '$/data-catalog/UpsertSecretModal'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'

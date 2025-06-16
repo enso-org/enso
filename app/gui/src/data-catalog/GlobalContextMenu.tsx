@@ -4,17 +4,21 @@ import { useStore } from '#/utilities/zustand'
 import ContextMenu from '$/react-components/ContextMenu'
 import ContextMenuEntry from '$/react-components/ContextMenuEntry'
 
-import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import UpsertDatalinkModal from '$/data-catalog/UpsertDatalinkModal'
+import UpsertSecretModal from '$/data-catalog/UpsertSecretModal'
 
-import { backendMutationOptions, useNewFolder, useNewProject } from '#/hooks/backendHooks'
-import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import type { Category } from '$/data-catalog/CategorySwitcher/Category'
+import { CreateCredentialModal } from '$/data-catalog/CreateCredentialModal'
+import {
+  backendMutationOptions,
+  useNewFolder,
+  useNewProject,
+} from '$/data-catalog/hooks/backendHooks'
+import { useUploadFiles } from '$/data-catalog/hooks/backendUploadFilesHooks'
 import { useText } from '$/providers/react'
 import type Backend from '$/services/Backend'
 import { BackendType, type DirectoryId } from '$/services/Backend'

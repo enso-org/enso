@@ -2,7 +2,7 @@
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { fileIcon } from '#/utilities/fileIcon'
 import { merger } from '#/utilities/object'
-import { useGetAssetChildren } from '$/data-catalog/assetsTableItemsHooks'
+import { useGetAssetChildren } from '$/data-catalog/hooks/assetsTableItemsHooks'
 import EditableSpan from '$/react-components/EditableSpan'
 import { Icon } from '$/react-components/Icon'
 import { titleSchema, type FileAsset } from '$/services/Backend'

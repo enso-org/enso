@@ -1,18 +1,9 @@
 /** @file A table row for an arbitrary asset. */
-import {
-  useDeleteAssetsMutationState,
-  useMoveAssetsMutationState,
-  useRestoreAssetsMutationState,
-} from '#/hooks/backendBatchedHooks'
-import { useBackendMutationState } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import AssetContextMenu from '#/layouts/AssetContextMenu'
-import type * as assetsTable from '#/layouts/AssetsTable'
-import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
@@ -35,7 +26,16 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import { useGetAsset } from '$/data-catalog/assetsTableItemsHooks'
+import AssetContextMenu from '$/data-catalog/AssetContextMenu'
+import type * as assetsTable from '$/data-catalog/AssetsTable'
+import { isLocalCategory } from '$/data-catalog/CategorySwitcher/Category'
+import { useGetAsset } from '$/data-catalog/hooks/assetsTableItemsHooks'
+import {
+  useDeleteAssetsMutationState,
+  useMoveAssetsMutationState,
+  useRestoreAssetsMutationState,
+} from '$/data-catalog/hooks/backendBatchedHooks'
+import { useBackendMutationState } from '$/data-catalog/hooks/backendHooks'
 import { useFullUserSession, useRightPanelData } from '$/providers/react'
 import type { Label } from '$/services/Backend'
 import * as backendModule from '$/services/Backend'

@@ -23,9 +23,9 @@ import {
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
-import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { CATEGORY_TO_FILTER_BY, type Category } from '$/data-catalog/CategorySwitcher/Category'
 import { flagsStore } from '$/providers/featureFlags'
 import { useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'

@@ -2,13 +2,6 @@
 import DropFilesImage from '#/assets/drop_files.svg'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
-import {
-  backendMutationOptions,
-  backendQueryOptions,
-  listDirectoryQueryOptions,
-  useListDirectoryRefetchInterval,
-} from '#/hooks/backendHooks'
-import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
@@ -16,12 +9,7 @@ import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
-import { useSetSuggestions } from '#/layouts/AssetSearchBar'
-import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import { type Category } from '#/layouts/CategorySwitcher/Category'
 import DragModal from '#/modals/DragModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
 import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
@@ -62,15 +50,27 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useAssetsTableItems } from '$/data-catalog/assetsTableItemsHooks'
+import type * as assetSearchBar from '$/data-catalog/AssetSearchBar'
+import { useSetSuggestions } from '$/data-catalog/AssetSearchBar'
+import AssetsTableContextMenu from '$/data-catalog/AssetsTableContextMenu'
 import type { AssetsDataTransferPayload } from '$/data-catalog/Categories/transferBetweenCategoriesHooks'
-import { useDirectoryIds } from '$/data-catalog/directoryIdsHooks'
+import { type Category } from '$/data-catalog/CategorySwitcher/Category'
+import { useAssetsTableItems } from '$/data-catalog/hooks/assetsTableItemsHooks'
+import {
+  backendMutationOptions,
+  backendQueryOptions,
+  listDirectoryQueryOptions,
+  useListDirectoryRefetchInterval,
+} from '$/data-catalog/hooks/backendHooks'
+import { useUploadFiles } from '$/data-catalog/hooks/backendUploadFilesHooks'
+import { useDirectoryIds } from '$/data-catalog/hooks/directoryIdsHooks'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,
   SUGGESTIONS_FOR_NO,
   SUGGESTIONS_FOR_TYPE,
 } from '$/data-catalog/suggestionsConstants'
+import UpsertSecretModal from '$/data-catalog/UpsertSecretModal'
 import {
   useBackends,
   useFullUserSession,

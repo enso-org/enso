@@ -1,7 +1,7 @@
 /** @file Settings tab for viewing and editing account information. */
-import { backendQueryOptions } from '#/hooks/backendHooks'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Form } from '$/react-components/Form'

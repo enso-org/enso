@@ -1,8 +1,8 @@
 /** @file A modal to select labels for an asset. */
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { backendMutationOptions, backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { useText } from '$/providers/react'
 import { AnimatedBackground } from '$/react-components/AnimatedBackground'
 import { Button } from '$/react-components/Button'
@@ -35,7 +35,7 @@ import {
   useFilter,
   type Selection,
 } from 'react-aria-components'
-import ConfirmDeleteModal from './ConfirmDeleteModal'
+import ConfirmDeleteModal from '../dashboard/modals/ConfirmDeleteModal'
 
 /** Props for a {@link ManageLabelsModal}. */
 export interface ManageLabelsModalProps<Asset extends AnyAsset = AnyAsset> {

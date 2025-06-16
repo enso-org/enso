@@ -1,9 +1,9 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
+import { backendMutationOptions } from '$/data-catalog/hooks/backendHooks'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { Button } from '$/react-components/Button'

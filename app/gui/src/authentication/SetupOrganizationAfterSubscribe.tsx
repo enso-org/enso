@@ -1,6 +1,6 @@
 /** @file Modal for setting the organization name. */
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
+import { backendMutationOptions, backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'

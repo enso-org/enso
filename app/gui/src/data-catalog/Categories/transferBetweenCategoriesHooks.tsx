@@ -1,14 +1,14 @@
 /** @file The categories available in the category switcher. */
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
   moveAssetsMutationOptions,
   restoreAssetsMutationOptions,
-} from '#/hooks/backendBatchedHooks'
-import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
+} from '$/data-catalog/hooks/backendBatchedHooks'
+import { useUploadFileToCloudMutation } from '$/data-catalog/hooks/backendUploadFilesHooks'
 import { useBackends, useText, useUser } from '$/providers/react'
 import { type GetText } from '$/providers/text'
 import { Alert } from '$/react-components/Alert'

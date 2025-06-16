@@ -1,5 +1,4 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
-import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import Label from '#/pages/dashboard/components/Label'
@@ -11,6 +10,7 @@ import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { unsafeWriteValue } from '#/utilities/write'
 import { createStore, useStore } from '#/utilities/zustand'
+import { backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'
 import { Button } from '$/react-components/Button'

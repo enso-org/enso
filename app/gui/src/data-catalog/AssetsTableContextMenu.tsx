@@ -2,23 +2,26 @@
  * @file A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected.
  */
-import {
-  deleteAssetsMutationOptions,
-  restoreAssetsMutationOptions,
-} from '#/hooks/backendBatchedHooks'
-import { useUploadFileToCloudMutation, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import {
-  canTransferBetweenCategories,
-  type Category,
-  isCloudCategory,
-} from '#/layouts/CategorySwitcher/Category'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useStore } from '#/utilities/zustand'
-import { useGetAsset } from '$/data-catalog/assetsTableItemsHooks'
+import {
+  canTransferBetweenCategories,
+  type Category,
+  isCloudCategory,
+} from '$/data-catalog/CategorySwitcher/Category'
+import { useGetAsset } from '$/data-catalog/hooks/assetsTableItemsHooks'
+import {
+  deleteAssetsMutationOptions,
+  restoreAssetsMutationOptions,
+} from '$/data-catalog/hooks/backendBatchedHooks'
+import {
+  useUploadFileToCloudMutation,
+  useUploadFileToLocal,
+} from '$/data-catalog/hooks/backendUploadFilesHooks'
 import { useBackends, useText, useUser } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import ContextMenu from '$/react-components/ContextMenu'

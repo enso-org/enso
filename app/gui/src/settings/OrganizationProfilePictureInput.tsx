@@ -1,5 +1,5 @@
 /** @file The input for viewing and changing the organization's profile picture. */
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'
 import { Form } from '$/react-components/Form'

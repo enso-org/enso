@@ -1,10 +1,10 @@
 /** @file Column types and column display modes. */
 import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
-import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { SortInfo } from '#/utilities/sorting'
+import type { AssetRowState, AssetsTableState } from '$/data-catalog/AssetsTable'
+import type { Category } from '$/data-catalog/CategorySwitcher/Category'
 import type { AnyAsset, AssetId, BackendType, Label, ProjectId } from '$/services/Backend'
 import type { SortableColumn } from './columnUtils'
 import { Column } from './columnUtils'

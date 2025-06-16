@@ -1,13 +1,16 @@
 /** @file A modal opened when uploaded assets. */
-import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/hooks/backendHooks'
 import { useMount } from '#/hooks/mountHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
 import AssetSummary from '#/pages/dashboard/components/AssetSummary'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
 import { regexEscape } from '#/utilities/string'
 import { useCategory } from '$/data-catalog/Categories'
+import type { Category } from '$/data-catalog/CategorySwitcher/Category'
+import {
+  listDirectoryQueryOptions,
+  unsafe_assetFromCacheQueryOptions,
+} from '$/data-catalog/hooks/backendHooks'
 import { useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'
 import { Button } from '$/react-components/Button'

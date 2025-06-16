@@ -2,7 +2,7 @@
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
-import { useGetAssetChildren } from '$/data-catalog/assetsTableItemsHooks'
+import { useGetAssetChildren } from '$/data-catalog/hooks/assetsTableItemsHooks'
 import { useRightPanelData } from '$/providers/react'
 import EditableSpan from '$/react-components/EditableSpan'
 import { Icon } from '$/react-components/Icon'

@@ -1,12 +1,5 @@
 import { CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl } from '#/layouts/CloudBrowserDisabled'
 import { OpenAppWatcher } from '#/layouts/OpenAppWatcher'
-import {
-  AgreementsModal,
-  latestPrivacyPolicyQueryOptions,
-  latestTermsOfServiceQueryOptions,
-} from '#/modals/AgreementsModal'
-import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
-import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import { Subscribe } from '#/pages/subscribe/Subscribe'
 import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
@@ -21,14 +14,21 @@ import {
   SUBSCRIBE_PATH,
   SUBSCRIBE_SUCCESS_PATH,
 } from '$/appUtils'
+import {
+  AgreementsModal,
+  latestPrivacyPolicyQueryOptions,
+  latestTermsOfServiceQueryOptions,
+} from '$/authentication/AgreementsModal'
 import ConfirmRegistration from '$/authentication/ConfirmRegistration'
 import ForgotPassword from '$/authentication/ForgotPassword'
+import { InvitedToOrganizationModal } from '$/authentication/InvitedToOrganizationModal'
 import LoadingScreen from '$/authentication/LoadingScreen'
 import Login from '$/authentication/Login'
 import Registration from '$/authentication/Registration'
 import ResetPassword from '$/authentication/ResetPassword'
 import RestoreAccount from '$/authentication/RestoreAccount'
 import { Setup } from '$/authentication/Setup'
+import { SetupOrganizationAfterSubscribe } from '$/authentication/SetupOrganizationAfterSubscribe'
 import { ErrorBoundary } from '$/react-components/ErrorBoundary'
 import { Suspense } from '$/react-components/Suspense'
 import { reactComponent } from '@/util/react'

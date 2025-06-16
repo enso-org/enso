@@ -7,37 +7,37 @@ import * as projectHooks from '#/hooks/projectHooks'
 import * as authProvider from '$/providers/react'
 import { useText } from '$/providers/react'
 
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
+import * as categoryModule from '$/data-catalog/CategorySwitcher/Category'
+import { GlobalContextMenu } from '$/data-catalog/GlobalContextMenu'
 
 import type * as assetRow from '#/pages/dashboard/components/AssetRow'
 import ContextMenu from '$/react-components/ContextMenu'
 import ContextMenuEntry from '$/react-components/ContextMenuEntry'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import ManageLabelsModal from '#/modals/ManageLabelsModal'
+import ManageLabelsModal from '$/data-catalog/ManageLabelsModal'
 
 import * as backendModule from '$/services/Backend'
 
-import {
-  copyAssetsMutationOptions,
-  deleteAssetsMutationOptions,
-  downloadAssetsMutationOptions,
-  restoreAssetsMutationOptions,
-} from '#/hooks/backendBatchedHooks'
-import { useNewProject } from '#/hooks/backendHooks'
-import {
-  isUploadableAsset,
-  useUploadFileToCloudMutation,
-  useUploadFileToLocal,
-} from '#/hooks/backendUploadFilesHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useGetAsset } from '$/data-catalog/assetsTableItemsHooks'
 import { useCategories } from '$/data-catalog/Categories'
+import { useGetAsset } from '$/data-catalog/hooks/assetsTableItemsHooks'
+import {
+  copyAssetsMutationOptions,
+  deleteAssetsMutationOptions,
+  downloadAssetsMutationOptions,
+  restoreAssetsMutationOptions,
+} from '$/data-catalog/hooks/backendBatchedHooks'
+import { useNewProject } from '$/data-catalog/hooks/backendHooks'
+import {
+  isUploadableAsset,
+  useUploadFileToCloudMutation,
+  useUploadFileToLocal,
+} from '$/data-catalog/hooks/backendUploadFilesHooks'
 import { useBackends } from '$/providers/react'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import type { RightPanelData } from '$/providers/rightPanel'

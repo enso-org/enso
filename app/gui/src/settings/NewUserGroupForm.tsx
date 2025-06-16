@@ -1,7 +1,7 @@
 /** @file A form to create a user group. */
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { normalizeName } from '#/utilities/string'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { backendMutationOptions, backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { useBackends, useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'

@@ -1,7 +1,7 @@
 /** @file Settings tab for viewing and editing organization members. */
-import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 import InviteUsersModal from '#/modals/InviteUsersModal'
+import { backendMutationOptions, backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import { Button, CopyButton } from '$/react-components/Button'

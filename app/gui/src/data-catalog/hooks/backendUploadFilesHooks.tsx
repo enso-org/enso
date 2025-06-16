@@ -1,13 +1,6 @@
 /** @file Hooks for uploading files. */
-import {
-  backendMutationOptions,
-  listDirectoryQueryOptions,
-  useEnsureListDirectory,
-} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { noop } from '#/utilities/functions'
@@ -17,6 +10,13 @@ import {
   useCategoriesAPI,
   useTransferBetweenCategories,
 } from '$/data-catalog/Categories'
+import type { Category } from '$/data-catalog/CategorySwitcher/Category'
+import DuplicateAssetsModal, { resolveDuplications } from '$/data-catalog/DuplicateAssetsModal'
+import {
+  backendMutationOptions,
+  listDirectoryQueryOptions,
+  useEnsureListDirectory,
+} from '$/data-catalog/hooks/backendHooks'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
 import type LocalBackend from '$/services/LocalBackend'
 import { extractTypeAndId } from '$/services/LocalBackend'

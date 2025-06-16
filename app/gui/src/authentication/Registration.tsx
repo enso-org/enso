@@ -3,12 +3,12 @@ import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import LocalStorage from '#/utilities/LocalStorage'
+import { LOGIN_PATH } from '$/appUtils'
 import {
   latestPrivacyPolicyQueryOptions,
   latestTermsOfServiceQueryOptions,
-} from '#/modals/AgreementsModal'
-import LocalStorage from '#/utilities/LocalStorage'
-import { LOGIN_PATH } from '$/appUtils'
+} from '$/authentication/AgreementsModal'
 import AuthenticationPage from '$/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '$/authentication/schemas'
 import { useBackends, useLocalStorage, useSession, useText } from '$/providers/react'

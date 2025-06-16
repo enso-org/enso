@@ -1,8 +1,8 @@
 /** @file Hooks to do batched backend operations. */
-import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
-import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
-import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { getMessageOrToString } from '#/utilities/error'
+import type { TrashCategory } from '$/data-catalog/CategorySwitcher/Category'
+import { resolveDuplications } from '$/data-catalog/DuplicateAssetsModal'
+import { backendQueryOptions, mutationOptions } from '$/data-catalog/hooks/backendHooks'
 import LocalBackend from '$/services/LocalBackend'
 import RemoteBackend from '$/services/RemoteBackend'
 import {
