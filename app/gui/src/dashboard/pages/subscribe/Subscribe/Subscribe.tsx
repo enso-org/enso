@@ -1,6 +1,6 @@
 /** @file A page in which the currently active payment plan can be changed. */
-import { PlanSelector } from '#/modules/payments'
 import { DASHBOARD_PATH, SUBSCRIBE_SUCCESS_PATH } from '$/appUtils'
+import { PlanSelector } from '$/payments'
 import { useFullUserSession, useRouter, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
 import { Button } from '$/react-components/Button'

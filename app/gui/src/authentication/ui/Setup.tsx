@@ -1,9 +1,9 @@
 /** @file Setup page. */
 import { useIsFirstRender } from '#/hooks/mountHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
-import { PlanSelector } from '#/modules/payments'
 import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
 import { backendMutationOptions } from '$/data-catalog/hooks/backendHooks'
+import { PlanSelector } from '$/payments'
 import { UserSessionType } from '$/providers/auth'
 import { useAuth, useBackends, useRouter, useText, useUserSession } from '$/providers/react'
 import { Button } from '$/react-components/Button'

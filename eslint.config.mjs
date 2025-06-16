@@ -49,6 +49,8 @@ const DASHBOARD_FILES = [
   'app/gui/src/settings/**/*.tsx',
   'app/gui/src/data-catalog/**/*.ts',
   'app/gui/src/data-catalog/**/*.tsx',
+  'app/gui/src/payments/**/*.ts',
+  'app/gui/src/payments/**/*.tsx',
 ]
 
 const DASHBOARD_STORIES_FILES = [
@@ -62,6 +64,8 @@ const DASHBOARD_STORIES_FILES = [
   'app/gui/src/settings/**/*.stories.tsx',
   'app/gui/src/data-catalog/**/*.stories.ts',
   'app/gui/src/data-catalog/**/*.stories.tsx',
+  'app/gui/src/payments/**/*.stories.ts',
+  'app/gui/src/payments/**/*.stories.tsx',
 ]
 
 const DASHBOARD_TEST_FILES = [
@@ -75,6 +79,8 @@ const DASHBOARD_TEST_FILES = [
   'app/gui/src/settings/**/*.test.tsx',
   'app/gui/src/data-catalog/**/*.test.ts',
   'app/gui/src/data-catalog/**/*.test.tsx',
+  'app/gui/src/payments/**/*.test.ts',
+  'app/gui/src/payments/**/*.test.tsx',
 ]
 
 // =======================================
