@@ -14,7 +14,8 @@ import Standard.Visualization
 
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
-from Standard.Database import SQLite
+import Standard.Database.Connection.Database
+import Standard.Database.Connection.SQLite.SQLite
 
 from Standard.Test import all
 
