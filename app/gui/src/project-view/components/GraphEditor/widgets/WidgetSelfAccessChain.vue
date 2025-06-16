@@ -20,7 +20,7 @@ const baseIcon = computed(() => {
   return displayedIconOf(
     callInfo?.suggestion,
     callInfo?.methodCall.methodPointer,
-    functionInfo?.outputType ?? 'Unknown',
+    functionInfo?.outputType,
   )
 })
 const { displayedIcon } = useDisplayedIcon(graph.db, toRef(tree, 'externalId'), baseIcon)

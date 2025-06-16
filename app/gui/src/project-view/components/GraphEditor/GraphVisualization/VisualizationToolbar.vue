@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import FullscreenButton from '@/components/FullscreenButton.vue'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
@@ -13,20 +14,23 @@ import {
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { useEvent } from '@/composables/events'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
-import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
+import { ProjectPath } from '@/util/projectPath'
+import { qnLastSegment } from '@/util/qualifiedName'
 import { computed, toValue } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const isFullscreen = defineModel<boolean>('isFullscreen', { required: true })
 const currentVis = defineModel<VisualizationIdentifier>('currentVis', { required: true })
 
+const { names: projectNames } = injectCurrentProject().storesRefs
+
 const props = defineProps<{
   showControls: boolean
   hideVisualizationButton: 'show' | 'hide' | 'invisible'
   isFullscreenAllowed: boolean
-  allTypes: Iterable<VisualizationIdentifier>
+  allVisualizations: Iterable<VisualizationIdentifier>
   visualizationDefinedToolbar: Readonly<ToolbarItem[]> | undefined
-  typename: string | undefined
+  typename: ProjectPath | undefined
 }>()
 
 const emit = defineEmits<{
@@ -35,8 +39,11 @@ const emit = defineEmits<{
 
 const UNKNOWN_TYPE = 'Unknown'
 const nodeShortType = computed(() =>
-  props.typename != null && isQualifiedName(props.typename) ?
-    qnLastSegment(props.typename)
+  props.typename?.path != null ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE,
+)
+const fullType = computed(() =>
+  props.typename != null && projectNames.value != null ?
+    projectNames.value.printProjectPath(props.typename)
   : UNKNOWN_TYPE,
 )
 
@@ -58,7 +65,7 @@ useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e), {
       </div>
       <div class="toolbar">
         <FullscreenButton v-if="isFullscreenAllowed" v-model="isFullscreen" />
-        <VisualizationSelector v-model="currentVis" :types="allTypes" />
+        <VisualizationSelector v-model="currentVis" :types="allVisualizations" />
       </div>
       <div v-if="visualizationDefinedToolbar" class="visualization-defined-toolbars">
         <div class="toolbar">
@@ -101,7 +108,7 @@ useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e), {
     </template>
     <div
       class="after-toolbars node-type"
-      :title="props.typename ?? UNKNOWN_TYPE"
+      :title="fullType"
       data-testid="visualisationNodeType"
       v-text="nodeShortType"
     />

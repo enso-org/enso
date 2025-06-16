@@ -36,7 +36,7 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
-  typename?: string | undefined
+  typename?: ProjectPath | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
@@ -58,8 +58,8 @@ const {
   effectiveVisualization,
   effectiveVisualizationData,
   updatePreprocessor,
-  allTypes,
-  currentType,
+  allVisualizations,
+  currentVisualization,
   setToolbarDefinition,
   visualizationDefinedToolbar,
   toolbarOverlay,
@@ -86,11 +86,11 @@ const contentElementSize = useResizeObserver(contentElement)
 const keydownHandler = visualizationBindings.handler({
   nextType: () => {
     if (props.isFocused || focusIsIn(panelElement.value)) {
-      const currentIndex = allTypes.value.findIndex((type) =>
-        visIdentifierEquals(type, currentType.value),
+      const currentIndex = allVisualizations.value.findIndex((type) =>
+        visIdentifierEquals(type, currentVisualization.value),
       )
-      const nextIndex = (currentIndex + 1) % allTypes.value.length
-      emit('update:id', allTypes.value[nextIndex]!)
+      const nextIndex = (currentIndex + 1) % allVisualizations.value.length
+      emit('update:id', allVisualizations.value[nextIndex]!)
     } else {
       return false
     }
@@ -204,6 +204,7 @@ const resizableWidgets = injectResizableWidgetRegistry(true)
 
 <script lang="ts">
 import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
+import { ProjectPath } from '@/util/projectPath'
 import { defineCustomElement } from 'vue'
 
 // ==========================
@@ -240,7 +241,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
       >
         <VisualizationToolbar
           v-model:isFullscreen="isFullscreen"
-          :currentVis="currentType"
+          :currentVis="currentVisualization"
           :showControls="!isPreview"
           :hideVisualizationButton="
             isFullscreen ? 'hide'
@@ -248,7 +249,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
             : 'show'
           "
           :isFullscreenAllowed="isFullscreenAllowed"
-          :allTypes="allTypes"
+          :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
           :typename="typename"
           :class="{ overlay: toolbarOverlay }"

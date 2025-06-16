@@ -25,6 +25,7 @@ import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import { debouncedGetter } from '@/util/reactivity'
 import type { ComponentInstance } from 'vue'
 import { computed, onMounted, onUnmounted, ref, toValue, watch, watchEffect } from 'vue'
@@ -247,7 +248,11 @@ const previewedSuggestionReturnType = computed(() => {
     appliedEntry ? appliedEntry
     : props.usage.type === 'editNode' ? graphStore.db.getNodeMainSuggestion(props.usage.node)
     : undefined
-  return entry?.returnType(projectNames)
+  const returnType = entry?.returnType(projectNames)
+  if (returnType == null) return undefined
+  const parsed = parseAbsoluteProjectPathRaw(returnType)
+  if (parsed.ok) return parsed.value
+  return undefined
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {

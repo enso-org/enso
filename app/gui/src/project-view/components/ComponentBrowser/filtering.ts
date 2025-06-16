@@ -1,3 +1,4 @@
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { ANY_TYPE } from '@/util/ensoTypes'
 import { type ProjectPath } from '@/util/projectPath'
@@ -8,12 +9,8 @@ import { Range } from 'ydoc-shared/util/data/range'
 export type SelfArg =
   | {
       type: 'known'
-      /** Type of the self argument. */
-      typename: ProjectPath
-      /** Ancestors of the type of the self argument. Does not include `Any` type. */
+      typeInfo: TypeInfo
       ancestors: ProjectPath[]
-      /** Additional (or ‘hidden’) types of the self argument. E.g. `Column` for single-column table.*/
-      additionalTypes: ProjectPath[]
     }
   | { type: 'unknown' }
 
@@ -282,13 +279,14 @@ export class Filtering {
     if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return null
     if (this.selfArg.type !== 'known') return exactMatch()
     const entrySelfType = entry.selfType
-    if (entrySelfType.equals(this.selfArg.typename)) return exactMatch()
-    const { additionalTypes, ancestors } = this.selfArg
-    const additionalType = additionalTypes.find((t) => entrySelfType.equals(t))
-    const matchedAncestor = ancestors.find((t) => entrySelfType.equals(t))
-    if (entrySelfType.equals(ANY_TYPE) || additionalType != null || matchedAncestor != null)
-      // Matched ancestor are not added to `fromType`.
-      return { score: DIFFERENT_TYPE_PENALTY, fromType: additionalType }
+    const visibleTypes = this.selfArg.typeInfo.visibleTypes
+    const visibleTypeMatch = visibleTypes?.find((ty) => entrySelfType.equals(ty))
+    if (visibleTypeMatch != null) return exactMatch()
+    const hiddenTypeMatch = this.selfArg.typeInfo?.hiddenTypes.find((t) => entrySelfType.equals(t))
+    const matchedAncestor = this.selfArg.ancestors.find((t) => entrySelfType.equals(t))
+    if (entrySelfType.equals(ANY_TYPE) || hiddenTypeMatch != null || matchedAncestor != null)
+      // Matched ancestor are not added to `fromType`, because type casting is not needed.
+      return { score: DIFFERENT_TYPE_PENALTY, fromType: hiddenTypeMatch }
     return null
   }
 
@@ -322,7 +320,8 @@ export class Filtering {
     const selfTypeMatch = this.selfTypeMatches(entry)
     if (selfTypeMatch == null) return null
     if (this.pattern) {
-      const additionalSelfTypes = this.selfArg?.type === 'known' ? this.selfArg.additionalTypes : []
+      const additionalSelfTypes =
+        this.selfArg?.type === 'known' ? this.selfArg.typeInfo.hiddenTypes : []
       const patternMatch = this.pattern.tryMatch(
         entry.name,
         entry.aliasesAndMacros,
