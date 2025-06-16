@@ -6,7 +6,7 @@ import * as url from 'node:url'
 
 import * as v from 'vitest'
 
-import * as datalinkValidator from '#/data/datalinkValidator'
+import * as datalinkValidator from '$/data/datalinkValidator'
 
 v.test('correctly rejects invalid values as not matching the schema', () => {
   v.expect(datalinkValidator.validateDatalink({})).toBe(false)

@@ -1,5 +1,4 @@
 /** @file Switcher to choose the currently visible assets table category. */
-import * as mimeTypes from '#/data/mimeTypes'
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
@@ -17,6 +16,7 @@ import {
   type Category,
 } from '$/data-catalog/Categories'
 import { useCategoriesAPI } from '$/data-catalog/Categories/categoriesHooks'
+import * as mimeTypes from '$/data/mimeTypes'
 import * as authProvider from '$/providers/react'
 import { useBackends, useRouter, useText } from '$/providers/react'
 import { AnimatedBackground } from '$/react-components/AnimatedBackground'

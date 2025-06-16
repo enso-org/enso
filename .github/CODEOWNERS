@@ -2,13 +2,13 @@
 CHANGELOG.md
 
 # The repository settings
-/.github/ @jdunkerley  @AdRiley @hubertp @Frizi
+/.github/ @jdunkerley @AdRiley @hubertp @Frizi
 /.github/CODEOWNERS @jdunkerley @jaroslavtulach @farmaazon @AdRiley @PabloBuchu @wdanilo
 
 # Build script & utilities
-/run @jdunkerley  @AdRiley @hubertp @Frizi
-/run.bat @jdunkerley  @AdRiley @hubertp @Frizi
-/build @jdunkerley  @AdRiley @hubertp @Frizi
+/run @jdunkerley @AdRiley @hubertp @Frizi
+/run.bat @jdunkerley @AdRiley @hubertp @Frizi
+/build @jdunkerley @AdRiley @hubertp @Frizi
 
 # Rust Libraries and Related Files
 rust-toolchain.toml @vitvakatu @Frizi @kazcw @farmaazon @AdRiley
@@ -31,19 +31,16 @@ tsconfig.json
 
 # GUI/Dashboard
 /app @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/integration-test @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/src/dashboard @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/src/project-view @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app/gui @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
 /app/ide-desktop/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
 /app/ide-desktop/client/tasks/signArchivesMacOs.ts @jdunkerley @hubertp
-/app/ide-desktop/client/tests @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
 /app/ydoc-server/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 /app/ydoc-server-nodejs/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 /app/ydoc-server-polyglot/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 /app/ydoc-shared/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 # The data-link schema is owned by the libraries team
-/app/gui/src/dashboard/data/datalinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley
-/app/gui/src/dashboard/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app/gui/src/data/datalinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley
+/app/gui/src/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @PabloBuchu @indiv0 @somebody1234
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine

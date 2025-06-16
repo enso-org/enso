@@ -1,6 +1,5 @@
 /** @file Table displaying a list of projects. */
 import DropFilesImage from '#/assets/drop_files.svg'
-import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -71,6 +70,7 @@ import {
   SUGGESTIONS_FOR_TYPE,
 } from '$/data-catalog/suggestionsConstants'
 import UpsertSecretModal from '$/data-catalog/UpsertSecretModal'
+import { ASSETS_MIME_TYPE } from '$/data/mimeTypes'
 import {
   useBackends,
   useFullUserSession,

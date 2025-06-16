@@ -1,7 +1,7 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
-import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
-import * as datalinkValidator from '#/data/datalinkValidator'
 import * as error from '#/utilities/error'
+import SCHEMA from '$/data/datalinkSchema.json' with { type: 'json' }
+import * as datalinkValidator from '$/data/datalinkValidator'
 import { FieldError } from '$/react-components/aria'
 import { Form, type FieldPath, type FormInstance, type TSchema } from '$/react-components/Form'
 import type * as jsonSchemaInput from '$/react-components/JSONSchemaInput'

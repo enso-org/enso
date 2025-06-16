@@ -1,7 +1,7 @@
 /** @file Constants related to credential dialogs. */
-import { GoogleCredentialsForm } from '#/data/serviceCredentials/GoogleCredentialsForm'
-import { SnowflakeCredentialsForm } from '#/data/serviceCredentials/SnowflakeCredentialsForm'
-import type { CredentialInfo } from '#/data/serviceCredentials/types'
+import { GoogleCredentialsForm } from '$/data/serviceCredentials/GoogleCredentialsForm'
+import { SnowflakeCredentialsForm } from '$/data/serviceCredentials/SnowflakeCredentialsForm'
+import type { CredentialInfo } from '$/data/serviceCredentials/types'
 
 export const CREDENTIAL_INFOS: readonly [CredentialInfo, ...CredentialInfo[]] = [
   {

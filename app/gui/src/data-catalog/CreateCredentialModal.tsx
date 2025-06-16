@@ -1,6 +1,6 @@
 /** @file A modal for creating and editing a credential. */
-import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
-import { makeCredentialCreationHandler } from '#/data/serviceCredentials/logic'
+import { CREDENTIAL_INFOS } from '$/data/serviceCredentials'
+import { makeCredentialCreationHandler } from '$/data/serviceCredentials/logic'
 import { useText } from '$/providers/react'
 import { Dialog } from '$/react-components/Dialog'
 import { Dropdown } from '$/react-components/Inputs/Dropdown'
