@@ -34,12 +34,15 @@ Bazel only executes actions when their outputs are required, so it's never corre
         envs[k] = expand_variables(ctx, ctx.expand_location(v, targets = ctx.attr.srcs), outs = outputs, attribute_name = "env")
 
     inputs = depset(ctx.files.srcs, transitive = [java_runtime.files])
+    system_props = []
+    for p in ctx.attr.system_props:
+        system_props = system_props + split_args(expand_variables(ctx, ctx.expand_location(p, targets = ctx.attr.srcs), outs = outputs))
 
     ctx.actions.run(
         outputs = outputs,
         inputs = inputs,
         executable = java_executable_path,
-        arguments = ["-jar", sbt_bin, args],
+        arguments = system_props + ["-jar", sbt_bin, args],
         use_default_shell_env = ctx.attr.use_default_shell_env,
         env = dicts.add(ctx.configuration.default_shell_env, envs),
     )
@@ -62,6 +65,9 @@ run_sbt = rule(
         "env": attr.string_dict(),
         "srcs": attr.label_list(
             allow_files = True,
+        ),
+        "system_props": attr.string_list(
+            default = [],
         ),
         "out_dirs": attr.string_list(),
         "outs": attr.output_list(),
