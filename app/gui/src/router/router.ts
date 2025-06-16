@@ -77,6 +77,16 @@ const routes = [
         component: () =>
           import('#/pages/authentication/Setup').then((mod) => reactComponent(mod.Setup)),
       },
+      {
+        path: '/',
+        name: 'cloudDisabled',
+        meta: { access: 'anyLoggedIn' as const },
+        component: () =>
+          import('#/layouts/CloudBrowserDisabled').then((mod) =>
+            reactComponent(mod.CloudBrowserDisabledPage),
+          ),
+        props: { redirectPath: DASHBOARD_PATH },
+      },
     ],
   },
 
@@ -101,15 +111,6 @@ const routes = [
   {
     path: '/:anyPath(.*)*',
     redirect: '/',
-  },
-  {
-    path: '/',
-    name: 'cloudDisabled',
-    component: () =>
-      import('#/layouts/CloudBrowserDisabled').then((mod) =>
-        reactComponent(mod.CloudBrowserDisabledPage),
-      ),
-    props: { redirectPath: DASHBOARD_PATH },
   },
 ]
 
