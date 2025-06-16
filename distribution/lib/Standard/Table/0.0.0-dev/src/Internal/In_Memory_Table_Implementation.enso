@@ -6,7 +6,7 @@ type In_Memory_Table_Implementation
         IO.println (this_table.display show_rows format_terminal=True)
         IO.println ''
 
-    to_js_object (this_table : Table & In_Memory_Table) =
+    to_js_object_implementation (this_table : Table & In_Memory_Table) =
         cols = this_table.columns
         rows = 0.up_to this_table.row_count . map row->
             vals_kv = cols.map col-> [col.name, col.at row]

@@ -347,7 +347,7 @@ type Table
              example_to_json = Examples.inventory_table.to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        self.implementation.to_js_object self.underlying
+        self.implementation.to_js_object_implementation self.underlying
 
     ## GROUP Standard.Base.Selections
        ICON select_column
@@ -3546,7 +3546,7 @@ type Table
     ## PRIVATE
     pretty : Text
     pretty self =
-        self.implementation.pretty self.underlying
+        self.implementation.pretty_implementation self.underlying
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
