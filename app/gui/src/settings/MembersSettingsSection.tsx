@@ -1,6 +1,6 @@
 /** @file Settings tab for viewing and editing organization members. */
 import * as billingHooks from '#/hooks/billing'
-import InviteUsersModal from '#/modals/InviteUsersModal'
+import InviteUsersModal from '$/authentication/ui/InviteUsersModal'
 import { backendMutationOptions, backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'

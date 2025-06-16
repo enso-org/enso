@@ -8,8 +8,9 @@ import * as error from '#/utilities/error'
 
 export const AJV = new Ajv({
   formats: {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     'enso-secret': (value) => typeof value === 'string' && value !== '',
-
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     'enso-file': true,
   },
 })

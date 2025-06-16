@@ -1,13 +1,13 @@
 /** @file A modal with inputs for user email and permission level. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as inviteUsersForm from '#/modals/InviteUsersModal/InviteUsersForm'
-import * as inviteUsersSuccess from '#/modals/InviteUsersModal/InviteUsersSuccess'
 import * as authProvider from '$/providers/react'
 import { useText } from '$/providers/react'
 import { Dialog, Popover } from '$/react-components/Dialog'
 import { Stepper } from '$/react-components/Stepper'
 import type * as backendModule from '$/services/Backend'
 import * as React from 'react'
+import * as inviteUsersForm from './InviteUsersForm'
+import * as inviteUsersSuccess from './InviteUsersSuccess'
 
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {

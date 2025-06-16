@@ -617,7 +617,7 @@ const config = [
   // === EnsoDevtools Rules ===
   // Allow JSX strings in EnsoDevtools.tsx.
   {
-    files: ['app/gui/src/dashboard/**/EnsoDevtools*.tsx'],
+    files: ['app/gui/src/devtools/EnsoDevtools*.tsx'],
     rules: {
       'no-restricted-syntax': [
         'error',

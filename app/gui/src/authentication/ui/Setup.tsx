@@ -1,7 +1,7 @@
 /** @file Setup page. */
 import { useIsFirstRender } from '#/hooks/mountHooks'
-import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '$/appUtils'
+import { InviteUsersForm } from '$/authentication/ui/InviteUsersModal'
 import { backendMutationOptions } from '$/data-catalog/hooks/backendHooks'
 import { PlanSelector } from '$/payments'
 import { UserSessionType } from '$/providers/auth'

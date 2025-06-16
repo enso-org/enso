@@ -8,7 +8,7 @@ import * as react from 'react'
 const ReactDrive = react.lazy(() => import('$/data-catalog/Drive'))
 const ReactEditor = react.lazy(() => import('#/Editor'))
 const ReactSettings = react.lazy(() =>
-  import('$/settings').then(({ Settings }) => ({ default: Settings })),
+  import('$/settings/Settings').then(({ Settings }) => ({ default: Settings })),
 )
 
 export const Drive = suspendedReactComponent(ReactDrive)

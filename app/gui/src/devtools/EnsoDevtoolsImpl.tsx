@@ -16,6 +16,7 @@ import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFla
 import { Button, CopyButton, type ButtonProps } from '$/react-components/Button'
 import { Dialog, Popover, POPOVER_STYLES } from '$/react-components/Dialog'
 import { Form } from '$/react-components/Form'
+import { Icon } from '$/react-components/Icon'
 import { Input } from '$/react-components/Inputs/Input'
 import Portal from '$/react-components/Portal'
 import { Radio } from '$/react-components/Radio'
@@ -31,7 +32,6 @@ import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as React from 'react'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
-import { Icon } from '../../../react-components/Icon'
 import {
   useAnimationsDisabled,
   useEnableVersionChecker,
