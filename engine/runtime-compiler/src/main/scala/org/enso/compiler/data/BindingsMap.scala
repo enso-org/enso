@@ -390,16 +390,24 @@ case class BindingsMap(
     val restOfFQN                                 = name.drop(3)
     val allResolutions: ArrayBuffer[ResolvedName] = ArrayBuffer.empty
     matchingModules.foreach { mod =>
-      val resolution = resolveQualifiedNameIn(
-        ResolvedModule(mod),
-        restOfFQN.init,
-        restOfFQN.last
-      )
-      resolution match {
-        case Left(err) =>
-          return Left(err)
-        case Right(res) =>
-          allResolutions.addAll(res)
+      if (restOfFQN.nonEmpty) {
+        val resolution = resolveQualifiedNameIn(
+          ResolvedModule(mod),
+          restOfFQN.init,
+          restOfFQN.last
+        )
+        resolution match {
+          case Left(err) =>
+            return Left(err)
+          case Right(res) =>
+            allResolutions.addAll(res)
+        }
+      } else {
+        if (mod.getName.item == modName) {
+          allResolutions.addOne(
+            ResolvedModule(mod)
+          )
+        }
       }
     }
     if (allResolutions.isEmpty) {
