@@ -1302,7 +1302,6 @@ type DB_Table
 
     ## ICON convert
        Returns the vector of columns contained in this table.
-       Returns the vector of columns contained in this table.
     columns self -> Vector DB_Column =
         Vector.from_polyglot_array <|
             Array_Proxy.new self.internal_columns.length i->
