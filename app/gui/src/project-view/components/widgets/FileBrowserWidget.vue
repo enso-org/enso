@@ -5,6 +5,7 @@ export default {
 </script>
 
 <script setup lang="ts">
+import { useBackends } from '$/providers/backends'
 import ActionButton from '@/components/ActionButton.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'
@@ -28,7 +29,6 @@ import {
 import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
 import { registerHandlers } from '@/providers/action'
-import { injectProjectBackend } from '@/providers/projectBackend'
 import { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
@@ -59,7 +59,7 @@ const browserContent = useTemplateRef('browserContent')
 // === Cloud file APIs ===
 
 const { query, fetch, ensureQueryData, mutation } = useBackend('remote')
-const { remote: backend } = injectProjectBackend()
+const { remoteBackend: backend } = useBackends()
 const { userFiles, userFilesError } = useUserFiles({
   backend,
   user: query('usersMe', []),
@@ -84,7 +84,7 @@ async function assetExists(name: string): Promise<AssetExists> {
   const currentDir = currentDirectory.value
   if (currentDir == null) return { exists: false }
   const content = await listDirectory(currentDir)
-  const asset = content.find((asset) => asset.title === name)
+  const asset = content?.find((asset) => asset.title === name)
   if (!asset) return { exists: false }
   return { exists: true, type: asset.type }
 }
@@ -271,7 +271,7 @@ registerHandlers({
   background-color: var(--background-color);
   padding: var(--border-width);
   border-radius: 0 0 var(--radius-default) var(--radius-default);
-  min-width: 400px;
+  min-width: var(--file-browser-min-width, 400px);
   min-height: 200px;
   max-height: 600px;
   overflow: hidden;

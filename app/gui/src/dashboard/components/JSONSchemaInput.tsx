@@ -10,10 +10,14 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { vueComponent } from '#/utilities/vue'
 import { useBackends, useText } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
-import { Fragment, type JSX, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Fragment, type JSX, lazy, useRef, useState } from 'react'
 import { twJoin } from 'tailwind-merge'
+
+const ANIMATION_DURATION = 0.2
 
 /** Props for a {@link JSONSchemaInput}. */
 export interface JSONSchemaInputProps {
@@ -29,6 +33,14 @@ export interface JSONSchemaInputProps {
   readonly onChange: (value: NonNullable<unknown> | null) => void
 }
 
+const FileBrowserWidget = lazy(() =>
+  import('@/components/widgets/FileBrowserWidget.vue').then(({ default: vue }) =>
+    vueComponent(vue),
+  ),
+)
+/** TODO */
+export type FileBrowserWidgetProps = React.ComponentProps<typeof FileBrowserWidget>
+
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
 export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { dropdownTitle, readOnly = false, defs, schema, path, getValidator } = props
@@ -40,8 +52,13 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const [autocompleteText, setAutocompleteText] = useState(() =>
     typeof value === 'string' ? value : null,
   )
+  const [fileBrowserPath, setFileBrowserPath] = useState(() =>
+    typeof value === 'string' ? value : '',
+  )
+  const [isFileBrowserOpened, setFileBrowserOpened] = useState(false)
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
   const noChildBorder = dropdownTitle != null
+  const inputRef = useRef<HTMLInputElement>(null)
   const isSecret =
     'type' in schema &&
     schema.type === 'string' &&
@@ -58,6 +75,18 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     isInvalid && 'description' in schema && typeof schema.description === 'string' ?
       [<Text className="px-2 text-danger">{schema.description}</Text>]
     : []
+
+  // Helper function to generate rounded className based on roundedBottom prop
+  const roundedInputClassName = (roundBottom: boolean = false, outline: boolean = true) => {
+    const baseClasses =
+      'h-6 w-full grow border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only'
+    const outlineClasses =
+      outline ?
+        'focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary'
+      : ''
+    const roundedClasses = roundBottom ? 'rounded-input' : 'rounded-t-input'
+    return `${baseClasses} ${outlineClasses} ${roundedClasses}`
+  }
 
   // NOTE: `enum` schemas omitted for now as they are not yet used.
   if ('const' in schema) {
@@ -97,6 +126,76 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               </div>,
               ...errors,
             )
+          } else if ('format' in schema && schema.format === 'enso-file') {
+            children.push(
+              <div
+                className="flex flex-col"
+                style={{
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  '--background-color': 'var(--color-dashboard-background)',
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  '--file-browser-min-width': '280px',
+                }}
+              >
+                <FocusRing within={true}>
+                  <div
+                    style={{ position: 'relative' }}
+                    className="rounded-input focus-within:focus-ring-outset"
+                    onFocus={() => {
+                      setFileBrowserOpened(true)
+                    }}
+                    onBlur={() => {
+                      setFileBrowserOpened(false)
+                    }}
+                  >
+                    <Input
+                      ref={inputRef}
+                      type="text"
+                      readOnly={readOnly}
+                      value={fileBrowserPath}
+                      size={1}
+                      className={twMerge(
+                        roundedInputClassName(!isFileBrowserOpened, false),
+                        validationErrorClassName,
+                      )}
+                      placeholder={getText('enterText')}
+                      onChange={(event) => {
+                        const newValue: string = event.currentTarget.value
+                        setFileBrowserPath(newValue)
+                        onChange(newValue)
+                      }}
+                    />
+                    <AnimatePresence>
+                      {isFileBrowserOpened && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: ANIMATION_DURATION }}
+                          onMouseDown={(e: MouseEvent) => {
+                            // Prevent focus loss when clicking inside the file browser
+                            e.preventDefault()
+                            inputRef.current?.focus()
+                          }}
+                        >
+                          <FileBrowserWidget
+                            type="file"
+                            writeMode={true}
+                            choosenPath={fileBrowserPath}
+                            onPathAccepted={(p: string) => {
+                              setFileBrowserPath(p)
+                              onChange(p)
+                            }}
+                            fileTypes={[]}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </FocusRing>
+                {...errors}
+              </div>,
+            )
           } else {
             children.push(
               <div className="flex flex-col">
@@ -106,10 +205,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     readOnly={readOnly}
                     value={typeof value === 'string' ? value : ''}
                     size={1}
-                    className={twMerge(
-                      'h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
-                      validationErrorClassName,
-                    )}
+                    className={twMerge(roundedInputClassName(), validationErrorClassName)}
                     placeholder={getText('enterText')}
                     onChange={(event) => {
                       const newValue: string = event.currentTarget.value
@@ -132,10 +228,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   readOnly={readOnly}
                   value={typeof value === 'number' ? value : ''}
                   size={1}
-                  className={twMerge(
-                    'h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
-                    validationErrorClassName,
-                  )}
+                  className={twMerge(roundedInputClassName(), validationErrorClassName)}
                   placeholder={getText('enterNumber')}
                   onChange={(event) => {
                     const newValue: number = event.currentTarget.valueAsNumber
@@ -159,10 +252,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   readOnly={readOnly}
                   value={typeof value === 'number' ? value : ''}
                   size={1}
-                  className={twMerge(
-                    'h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
-                    validationErrorClassName,
-                  )}
+                  className={twMerge(roundedInputClassName(), validationErrorClassName)}
                   placeholder={getText('enterInteger')}
                   onChange={(event) => {
                     const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
