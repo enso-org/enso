@@ -1,7 +1,7 @@
-import { AssetProperties as ReactAssetProperties } from '#/layouts/AssetPanel/components/AssetProperties'
-import { AssetVersions as ReactAssetVersions } from '#/layouts/AssetPanel/components/AssetVersions'
-import { ProjectExecutionsCalendar as ReactProjectExecutionsCalendar } from '#/layouts/AssetPanel/components/ProjectExecutionsCalendar'
-import { ProjectSessions as ReactProjectSessions } from '#/layouts/AssetPanel/components/ProjectSessions'
+import { AssetProperties as ReactAssetProperties } from '$/panels/AssetProperties'
+import { AssetVersions as ReactAssetVersions } from '$/panels/AssetVersions'
+import { ProjectExecutionsCalendar as ReactProjectExecutionsCalendar } from '$/panels/ProjectExecutionsCalendar'
+import { ProjectSessions as ReactProjectSessions } from '$/panels/ProjectSessions'
 import { suspendedReactComponent } from '@/util/react'
 import * as react from 'react'
 

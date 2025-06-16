@@ -47,41 +47,21 @@ const DASHBOARD_FILES = [
   'app/gui/src/authentication/**/*.tsx',
   'app/gui/src/settings/**/*.ts',
   'app/gui/src/settings/**/*.tsx',
+  'app/gui/src/services/**/*.ts',
+  'app/gui/src/services/**/*.tsx',
   'app/gui/src/data-catalog/**/*.ts',
   'app/gui/src/data-catalog/**/*.tsx',
   'app/gui/src/payments/**/*.ts',
   'app/gui/src/payments/**/*.tsx',
+  'app/gui/src/panels/**/*.ts',
+  'app/gui/src/panels/**/*.tsx',
+  'app/gui/src/data/**/*.ts',
+  'app/gui/src/data/**/*.tsx',
 ]
 
-const DASHBOARD_STORIES_FILES = [
-  'app/gui/src/dashboard/**/*.stories.ts',
-  'app/gui/src/dashboard/**/*.stories.tsx',
-  'app/gui/src/react-components/**/*.stories.ts',
-  'app/gui/src/react-components/**/*.stories.tsx',
-  'app/gui/src/authentication/**/*.stories.ts',
-  'app/gui/src/authentication/**/*.stories.tsx',
-  'app/gui/src/settings/**/*.stories.ts',
-  'app/gui/src/settings/**/*.stories.tsx',
-  'app/gui/src/data-catalog/**/*.stories.ts',
-  'app/gui/src/data-catalog/**/*.stories.tsx',
-  'app/gui/src/payments/**/*.stories.ts',
-  'app/gui/src/payments/**/*.stories.tsx',
-]
+const DASHBOARD_STORIES_FILES = DASHBOARD_FILES.map((file) => file.replace(/[.].+$/, '.stories$&'))
 
-const DASHBOARD_TEST_FILES = [
-  'app/gui/src/dashboard/**/*.test.ts',
-  'app/gui/src/dashboard/**/*.test.tsx',
-  'app/gui/src/react-components/**/*.test.ts',
-  'app/gui/src/react-components/**/*.test.tsx',
-  'app/gui/src/authentication/**/*.test.ts',
-  'app/gui/src/authentication/**/*.test.tsx',
-  'app/gui/src/settings/**/*.test.ts',
-  'app/gui/src/settings/**/*.test.tsx',
-  'app/gui/src/data-catalog/**/*.test.ts',
-  'app/gui/src/data-catalog/**/*.test.tsx',
-  'app/gui/src/payments/**/*.test.ts',
-  'app/gui/src/payments/**/*.test.tsx',
-]
+const DASHBOARD_TEST_FILES = DASHBOARD_FILES.map((file) => file.replace(/[.].+$/, '.test$&'))
 
 // =======================================
 // === Restricted syntactic constructs ===

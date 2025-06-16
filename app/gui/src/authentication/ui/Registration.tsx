@@ -5,12 +5,12 @@ import LockIcon from '#/assets/lock.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import LocalStorage from '#/utilities/LocalStorage'
 import { LOGIN_PATH } from '$/appUtils'
+import { passwordWithPatternSchema } from '$/authentication/schemas'
 import {
   latestPrivacyPolicyQueryOptions,
   latestTermsOfServiceQueryOptions,
-} from '$/authentication/AgreementsModal'
-import AuthenticationPage from '$/authentication/AuthenticationPage'
-import { passwordWithPatternSchema } from '$/authentication/schemas'
+} from '$/authentication/ui/AgreementsModal'
+import AuthenticationPage from '$/authentication/ui/AuthenticationPage'
 import { useBackends, useLocalStorage, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
 import { Alert } from '$/react-components/Alert'

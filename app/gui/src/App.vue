@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LoadingScreenReact from '$/authentication/LoadingScreen'
+import LoadingScreenReact from '$/authentication/ui/LoadingScreen'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'

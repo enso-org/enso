@@ -1,5 +1,5 @@
 /** @file A list of previous versions of an asset. */
-import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
+import { AssetPanelPlaceholder } from '$/panels/AssetPanelPlaceholder'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
