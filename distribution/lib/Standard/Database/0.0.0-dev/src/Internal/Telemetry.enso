@@ -1,6 +1,5 @@
 private
 
-import Standard.Base.Data.Dictionary.Dictionary
 import Standard.Base.Data.Text.Text
 import Standard.Base.Data.Vector.Vector
 import Standard.Base.Nothing.Nothing

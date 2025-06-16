@@ -1,15 +1,12 @@
 private
 
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.In_Memory_Column_Implementation.apply_unary_operation
 import project.Internal.In_Memory_Column_Implementation.naming_helper
-import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Value_Type.Value_Type
-from project.Internal.Column_Type_Helpers import underlying_from_column
 
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation

@@ -97,9 +97,13 @@ test('can navigate to parent directory of an asset in the Trash category', ({ pa
 test("can't run a project in browser by default", ({ page }) =>
   mockAllAndLogin({
     page,
+    goToCloudFirst: false,
     setupAPI: async (api) => {
       api.addProject({ title: 'a' })
-      api.setFeatureFlags({ enableCloudExecution: false })
+      api.setFeatureFlags({
+        enableLocalBackend: false,
+        enableCloudExecution: false,
+      })
     },
   }).do(() => {
     expect(page.getByText(TEXT.cloudBrowserDisabledTitle)).toBeVisible()

@@ -1,11 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
-from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
 
 from Standard.Table import Value_Type
 

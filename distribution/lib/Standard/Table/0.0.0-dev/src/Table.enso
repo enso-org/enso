@@ -18,7 +18,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
-from Standard.Base.Metadata import Display, make_single_choice, Widget
+from Standard.Base.Metadata import Display, Widget
 from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
 import project.Aggregate_Column.Aggregate_Column
@@ -53,7 +53,6 @@ import project.Internal.Expand_Objects_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
 import project.Internal.Lookup_Helpers
-import project.Internal.Lookup_Helpers.Lookup_Column
 import project.Internal.Offset_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder

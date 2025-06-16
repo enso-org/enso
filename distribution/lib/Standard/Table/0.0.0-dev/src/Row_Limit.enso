@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Metadata import Display, make_single_choice, Widget
 
 ## PRIVATE
    Type to specify the maximum number of rows or unlimited.

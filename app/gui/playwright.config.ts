@@ -12,6 +12,7 @@ import path from 'node:path'
 import url from 'node:url'
 import invariant from 'tiny-invariant'
 
+const UNSAFE_SKIP_BUILD = process.env.PW_UNSAFE_SKIP_BUILD === 'true'
 const DEBUG = process.env.DEBUG_TEST === 'true'
 const isCI = process.env.CI === 'true'
 const isProd = process.env.PROD === 'true'
@@ -162,7 +163,7 @@ export default defineConfig({
         INTEGRATION_TEST: 'true',
         ENSO_IDE_PROJECT_MANAGER_URL: 'ws://__HOSTNAME__:30536',
       },
-      command: `corepack pnpm build && corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`,
+      command: `${UNSAFE_SKIP_BUILD ? '' : 'corepack pnpm build && '}corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`,
       // Build from scratch apparently can take a while on CI machines.
       timeout: 480 * 1000,
       port: ports.projectView,
@@ -173,7 +174,7 @@ export default defineConfig({
       env: { NODE_ENV: 'test' },
       command:
         isCI || isProd ?
-          `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
+          `${UNSAFE_SKIP_BUILD ? '' : 'corepack pnpm exec vite -c vite.test.config.ts build && '}corepack pnpm exec vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
         : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
       timeout: 480 * 1000,
       port: ports.dashboard,
