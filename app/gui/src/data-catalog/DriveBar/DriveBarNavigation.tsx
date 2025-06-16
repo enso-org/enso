@@ -2,10 +2,10 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
-import RecentIcon from '#/assets/recent.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import RecentIcon from '$/assets/recent.svg'
 import { useCategories, useCategoriesAPI } from '$/data-catalog/Categories/categoriesHooks'
 import CategorySwitcher from '$/data-catalog/CategorySwitcher'
 import type { Category } from '$/data-catalog/CategorySwitcher/Category'

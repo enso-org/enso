@@ -1,9 +1,9 @@
 /** @file A text `<span>` which turns into an `input` when desired. */
-import CrossIcon from '#/assets/cross.svg'
-import TickIcon from '#/assets/tick.svg'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { twJoin } from '#/utilities/tailwindMerge'
+import CrossIcon from '$/assets/cross.svg'
+import TickIcon from '$/assets/tick.svg'
 import { useText } from '$/providers/react'
 import { useInteractOutside } from '$/react-components/aria'
 import { Button } from '$/react-components/Button'

@@ -30,7 +30,7 @@ interface BaseIconProps<Render = never> extends VariantProps<typeof ICON_STYLES>
 }
 
 /**
- * @deprecated Prefer defined keys over importing from `#/assets/*.svg
+ * @deprecated Prefer defined keys over importing from `$/assets/*.svg
  */
 export interface LegacyIconProps<Icon extends string, Render = never>
   extends BaseIconProps<Render> {

@@ -1,5 +1,5 @@
 /** @file Form error component. */
-import Offline from '#/assets/offline_filled.svg'
+import Offline from '$/assets/offline_filled.svg'
 import { Alert, type AlertProps } from '$/react-components/Alert'
 import { Text } from '$/react-components/Text'
 import { useFormError, type UseFormErrorProps } from './useFormError'

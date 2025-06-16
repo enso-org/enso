@@ -28,7 +28,7 @@ export type AvailableIconReturn = ReactElement | SvgUseIcon | false | null | und
 
 /**
  * Any legacy icon.
- * @deprecated Prefer defined keys over importing from `#/assets/*.svg`.
+ * @deprecated Prefer defined keys over importing from `$/assets/*.svg`.
  */
 export type LegacyIconProp<Icon extends string, Render> =
   | LegacyAvailableIconReturn<Icon>

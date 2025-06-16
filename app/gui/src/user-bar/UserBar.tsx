@@ -1,11 +1,11 @@
 /** @file A toolbar containing chat and the user menu. */
-import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
-import Offline from '#/assets/offline_filled.svg'
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import TOPBAR_LINKS from '#/topbarLinks.json' with { type: 'json' }
 import { isAbsoluteUrl } from '#/utilities/url'
 import { SUBSCRIBE_PATH } from '$/appUtils'
+import ArrowDownIcon from '$/assets/expand_arrow_down.svg'
+import Offline from '$/assets/offline_filled.svg'
 import InviteUsersModal from '$/authentication/ui/InviteUsersModal'
 import { useFullUserSession, useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'

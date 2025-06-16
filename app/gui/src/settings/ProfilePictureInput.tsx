@@ -1,5 +1,5 @@
 /** @file The input for viewing and changing the user's profile picture. */
-import DefaultUserIcon from '#/assets/default_user.svg'
+import DefaultUserIcon from '$/assets/default_user.svg'
 import { backendMutationOptions, backendQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'

@@ -2,8 +2,8 @@
  * @file
  * An item within a menu that represents a single action or option.
  */
-import ArrowRight from '#/assets/expand_arrow_right.svg'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import ArrowRight from '$/assets/expand_arrow_right.svg'
 import { memo, type ReactElement, type ReactNode } from 'react'
 import type { MenuItemProps as AriaMenuItemProps, MenuItemRenderProps } from 'react-aria-components'
 import { MenuItem as AriaMenuItem, Keyboard } from 'react-aria-components'

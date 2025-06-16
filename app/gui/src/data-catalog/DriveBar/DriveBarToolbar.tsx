@@ -2,7 +2,6 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
-import Plus2Icon from '#/assets/plus2.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
@@ -11,6 +10,7 @@ import { unsetModal } from '#/providers/ModalProvider'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import Plus2Icon from '$/assets/plus2.svg'
 import AssetSearchBar from '$/data-catalog/AssetSearchBar'
 import type { TrashCategory } from '$/data-catalog/CategorySwitcher/Category'
 import {

@@ -1,10 +1,10 @@
 /** @file Check the version. */
-import NewTabIcon from '#/assets/new_tab.svg'
-import SnoozeIcon from '#/assets/snooze.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { download } from '#/utilities/download'
 import { getDownloadUrl, getLatestRelease } from '#/utilities/github'
+import NewTabIcon from '$/assets/new_tab.svg'
+import SnoozeIcon from '$/assets/snooze.svg'
 import { useEnableVersionChecker, useSetEnableVersionChecker } from '$/devtools'
 import { useBackends, useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'

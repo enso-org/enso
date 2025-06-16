@@ -2,8 +2,6 @@
  * @file Container responsible for rendering and interactions in second half of forgot password
  * flow.
  */
-import GoBackIcon from '#/assets/go_back.svg'
-import LockIcon from '#/assets/lock.svg'
 import { useMount } from '#/hooks/mountHooks'
 import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -11,6 +9,8 @@ import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { unsafeWriteValue } from '#/utilities/write'
 import { LOGIN_PATH } from '$/appUtils'
+import GoBackIcon from '$/assets/go_back.svg'
+import LockIcon from '$/assets/lock.svg'
 import { passwordWithPatternSchema } from '$/authentication/schemas'
 import AuthenticationPage from '$/authentication/ui/AuthenticationPage'
 import { useBackends, useRouter, useSession, useText } from '$/providers/react'

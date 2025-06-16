@@ -1,10 +1,10 @@
 /** @file A calendar showing executions of a project. */
 import { useState } from 'react'
 
-import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
-import ArrowIcon from '#/assets/folder_arrow.svg'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { tv } from '#/utilities/tailwindVariants'
+import CalendarIcon from '$/assets/calendar_repeat_outline.svg'
+import ArrowIcon from '$/assets/folder_arrow.svg'
 import { listProjectExecutionsQueryOptions } from '$/data-catalog/hooks/backendHooks'
 import { AssetPanelPlaceholder } from '$/panels/AssetPanelPlaceholder'
 import { NewProjectExecutionModal } from '$/panels/NewProjectExecutionModal'

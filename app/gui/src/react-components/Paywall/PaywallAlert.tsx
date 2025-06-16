@@ -1,6 +1,6 @@
 /** @file A paywall alert. */
-import LockIcon from '#/assets/lock.svg'
 import type * as billingHooks from '#/hooks/billing'
+import LockIcon from '$/assets/lock.svg'
 import { Alert, type AlertProps } from '$/react-components/Alert'
 import * as paywall from '$/react-components/Paywall'
 import SvgMask from '$/react-components/SvgMask'

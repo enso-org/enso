@@ -3,7 +3,7 @@
  *
  * Features list for a plan, rendered as a list of checkmarks with text
  */
-import Check from '#/assets/check_mark.svg'
+import Check from '$/assets/check_mark.svg'
 import SvgMask from '$/react-components/SvgMask'
 import { Text } from '$/react-components/Text'
 

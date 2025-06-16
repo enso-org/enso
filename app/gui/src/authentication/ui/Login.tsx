@@ -1,10 +1,10 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 
-import AtIcon from '#/assets/at.svg'
-import CreateAccountIcon from '#/assets/create_account.svg'
-import LockIcon from '#/assets/lock.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUtils'
+import AtIcon from '$/assets/at.svg'
+import CreateAccountIcon from '$/assets/create_account.svg'
+import LockIcon from '$/assets/lock.svg'
 import type { CognitoUser } from '$/authentication/cognito'
 import { passwordSchema } from '$/authentication/schemas'
 import AuthenticationPage from '$/authentication/ui/AuthenticationPage'

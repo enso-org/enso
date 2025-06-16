@@ -1,6 +1,6 @@
 /** @file Displays a few details of an asset. */
-import BreadcrumbArrowIcon from '#/assets/breadcrumb_arrow.svg'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import BreadcrumbArrowIcon from '$/assets/breadcrumb_arrow.svg'
 import AssetIcon from '$/data-catalog/AssetIcon'
 import { useText } from '$/providers/react'
 import { Text } from '$/react-components/Text'

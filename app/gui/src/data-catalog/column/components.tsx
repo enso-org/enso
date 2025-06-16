@@ -1,5 +1,4 @@
 /** @file Components for column cells. */
-import DotsIcon from '#/assets/dots.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -7,6 +6,7 @@ import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { PermissionAction } from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import DotsIcon from '$/assets/dots.svg'
 import type { AssetColumnProps } from '$/data-catalog/column'
 import DatalinkNameColumn from '$/data-catalog/column/DatalinkNameColumn'
 import DirectoryNameColumn from '$/data-catalog/column/DirectoryNameColumn'

@@ -1,8 +1,8 @@
 /** @file A date picker. */
-import CrossIcon from '#/assets/cross.svg'
-import ArrowIcon from '#/assets/folder_arrow.svg'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import CrossIcon from '$/assets/cross.svg'
+import ArrowIcon from '$/assets/folder_arrow.svg'
 import { useText } from '$/providers/react'
 import {
   DatePicker as AriaDatePicker,

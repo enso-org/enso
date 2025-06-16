@@ -1,23 +1,23 @@
 /** @file The mock API. */
 import * as test from '@playwright/test'
 
-import * as backend from '#/services/Backend'
-import type * as remoteBackend from '#/services/RemoteBackend'
-import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+import * as backend from '$/services/Backend'
+import type * as remoteBackend from '$/services/RemoteBackend'
+import * as remoteBackendPaths from '$/services/remoteBackendPaths'
 
 import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
 import * as actions from '.'
 
-import type { FeatureFlags } from '#/providers/FeatureFlagsProvider'
+import { PermissionAction } from '#/utilities/permissions'
+import type { FeatureFlags } from '$/providers/featureFlags'
 import {
   organizationIdToDirectoryId,
   userGroupIdToDirectoryId,
   userIdToDirectoryId,
-} from '#/services/RemoteBackend'
+} from '$/services/RemoteBackend'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -393,7 +393,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const createUserPermission = (
     user: backend.User,
-    permission: permissions.PermissionAction = permissions.PermissionAction.own,
+    permission: PermissionAction = PermissionAction.own,
     rest: Partial<backend.UserPermission> = {},
   ): backend.UserPermission =>
     object.merge(
@@ -406,7 +406,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const createUserGroupPermission = (
     userGroup: backend.UserGroupInfo,
-    permission: permissions.PermissionAction = permissions.PermissionAction.own,
+    permission: PermissionAction = PermissionAction.own,
     rest: Partial<backend.UserGroupPermission> = {},
   ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
 
@@ -423,7 +423,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       description: rest.description ?? '',
       labels: [],
       parentId: defaultDirectoryId,
-      permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
+      permissions: [createUserPermission(defaultUser, PermissionAction.own)],
       get parentsPath() {
         return getParentPath(this.parentId)
       },
@@ -1269,7 +1269,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
               name: defaultUsername,
               email: defaultEmail,
             },
-            permission: permissions.PermissionAction.own,
+            permission: PermissionAction.own,
           },
         ],
         projectState: state,

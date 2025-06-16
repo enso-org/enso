@@ -1,8 +1,8 @@
 /** @file Catches errors in child components. */
-import Offline from '#/assets/offline_filled.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as errorUtils from '#/utilities/error'
 import { OfflineError } from '#/utilities/HttpClient'
+import Offline from '$/assets/offline_filled.svg'
 import { useText } from '$/providers/react'
 import { Alert } from '$/react-components/Alert'
 import { Button, ButtonGroup } from '$/react-components/Button'

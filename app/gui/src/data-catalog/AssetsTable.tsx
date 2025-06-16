@@ -1,5 +1,4 @@
 /** @file Table displaying a list of projects. */
-import DropFilesImage from '#/assets/drop_files.svg'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -33,6 +32,7 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import DropFilesImage from '$/assets/drop_files.svg'
 import type { AssetRowInnerProps } from '$/data-catalog/AssetRow'
 import { AssetRow } from '$/data-catalog/AssetRow'
 import { INITIAL_ROW_STATE } from '$/data-catalog/AssetRow/assetRowUtils'

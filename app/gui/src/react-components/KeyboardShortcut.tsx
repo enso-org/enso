@@ -1,9 +1,4 @@
 /** @file A visual representation of a keyboard shortcut. */
-import CommandKeyIcon from '#/assets/command_key.svg'
-import CtrlKeyIcon from '#/assets/ctrl_key.svg'
-import OptionKeyIcon from '#/assets/option_key.svg'
-import ShiftKeyIcon from '#/assets/shift_key.svg'
-import WindowsKeyIcon from '#/assets/windows_key.svg'
 import type { DashboardBindingKey } from '#/inputBindings'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import {
@@ -14,6 +9,11 @@ import {
   type ModifierKey,
 } from '#/utilities/inputBindings'
 import { twMerge } from '#/utilities/tailwindMerge'
+import CommandKeyIcon from '$/assets/command_key.svg'
+import CtrlKeyIcon from '$/assets/ctrl_key.svg'
+import OptionKeyIcon from '$/assets/option_key.svg'
+import ShiftKeyIcon from '$/assets/shift_key.svg'
+import WindowsKeyIcon from '$/assets/windows_key.svg'
 import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import SvgMask from '$/react-components/SvgMask'

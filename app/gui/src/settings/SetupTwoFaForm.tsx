@@ -3,9 +3,9 @@
  *
  * 2FA Setup Settings Section. Allows users to setup, disable, and change their 2FA method.
  */
-import ShieldCheck from '#/assets/shield_check.svg'
-import ShieldCrossed from '#/assets/shield_crossed.svg'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import ShieldCheck from '$/assets/shield_check.svg'
+import ShieldCrossed from '$/assets/shield_crossed.svg'
 import type { MfaType } from '$/authentication/cognito'
 import { useSession, useText } from '$/providers/react'
 import { Alert } from '$/react-components/Alert'

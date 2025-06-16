@@ -1,11 +1,11 @@
 /** @file A styled dropdown. */
 import { forwardRef, useEffect, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
 
-import CheckMarkIcon from '#/assets/check_mark.svg'
-import ArrowIcon from '#/assets/folder_arrow.svg'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import CheckMarkIcon from '$/assets/check_mark.svg'
+import ArrowIcon from '$/assets/folder_arrow.svg'
 import {
   FieldError,
   ListBox,

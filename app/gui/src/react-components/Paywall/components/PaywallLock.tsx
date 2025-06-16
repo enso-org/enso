@@ -1,6 +1,6 @@
 /** @file A lock icon with a label indicating the paywall level required to access a feature. */
-import LockIcon from '#/assets/lock.svg'
 import * as billingHooks from '#/hooks/billing'
+import LockIcon from '$/assets/lock.svg'
 import { useText } from '$/providers/react'
 import SvgMask from '$/react-components/SvgMask'
 import { Text } from '$/react-components/Text'

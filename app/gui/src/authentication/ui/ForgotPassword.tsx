@@ -2,9 +2,9 @@
  * @file Container responsible for rendering and interactions in first half of forgot password
  * flow.
  */
-import AtIcon from '#/assets/at.svg'
-import GoBackIcon from '#/assets/go_back.svg'
 import { LOGIN_PATH } from '$/appUtils'
+import AtIcon from '$/assets/at.svg'
+import GoBackIcon from '$/assets/go_back.svg'
 import AuthenticationPage from '$/authentication/ui/AuthenticationPage'
 import { useBackends, useRouter, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'

@@ -172,11 +172,11 @@ declare global {
   }
 }
 
-// Add additional types for svg imports from `#/assets/*.svg`
+// Add additional types for svg imports from `$/assets/*.svg`
 declare module 'vite/client' {
-  declare module '#/assets/*.svg' {
+  declare module '$/assets/*.svg' {
     /**
-     * @deprecated Prefer defined keys over importing from `#/assets/*.svg
+     * @deprecated Prefer defined keys over importing from `$/assets/*.svg
      */
     const src: string
     export default src

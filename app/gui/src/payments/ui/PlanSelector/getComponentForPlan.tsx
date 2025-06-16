@@ -3,7 +3,7 @@
  *
  * This file contains the logic to get the component for a given plan.
  */
-import OpenInNewTabIcon from '#/assets/open.svg'
+import OpenInNewTabIcon from '$/assets/open.svg'
 import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import { Button } from '$/react-components/Button'

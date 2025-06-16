@@ -1,5 +1,5 @@
 /** @file A modal for showing logs for a project. */
-import ReloadIcon from '#/assets/reload.svg'
+import ReloadIcon from '$/assets/reload.svg'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Dialog } from '$/react-components/Dialog'

@@ -1,6 +1,6 @@
 /** @file A select menu with a dropdown. */
-import CloseIcon from '#/assets/cross.svg'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
+import CloseIcon from '$/assets/cross.svg'
 import { Button } from '$/react-components/Button'
 import { Form } from '$/react-components/Form'
 import { Input } from '$/react-components/Inputs/Input'

@@ -1,5 +1,5 @@
 /** @file Displays information describing a specific version of an asset. */
-import LogsIcon from '#/assets/logs.svg'
+import LogsIcon from '$/assets/logs.svg'
 import ProjectLogsModal from '$/panels/ProjectLogsModal'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'

@@ -1,5 +1,5 @@
-import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
-import Plus from '#/assets/plus.svg'
+import ArrowDownIcon from '$/assets/expand_arrow_down.svg'
+import Plus from '$/assets/plus.svg'
 
 import { StoryVariants } from '#/utilities/StoryVariants'
 import type * as aria from '$/react-components/aria'

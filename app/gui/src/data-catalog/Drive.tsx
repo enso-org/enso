@@ -1,5 +1,4 @@
 /** @file The directory header bar and directory item listing. */
-import Offline from '#/assets/offline_filled.svg'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -7,6 +6,7 @@ import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
 import * as appUtils from '$/appUtils'
+import Offline from '$/assets/offline_filled.svg'
 import AssetsTable, { AssetsTableAssetsUnselector } from '$/data-catalog/AssetsTable'
 import CategorySwitcher from '$/data-catalog/CategorySwitcher'
 import type { Category } from '$/data-catalog/CategorySwitcher/Category'

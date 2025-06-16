@@ -1,10 +1,10 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import AtIcon from '#/assets/at.svg'
-import GoBackIcon from '#/assets/go_back.svg'
-import LockIcon from '#/assets/lock.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import LocalStorage from '#/utilities/LocalStorage'
 import { LOGIN_PATH } from '$/appUtils'
+import AtIcon from '$/assets/at.svg'
+import GoBackIcon from '$/assets/go_back.svg'
+import LockIcon from '$/assets/lock.svg'
 import { passwordWithPatternSchema } from '$/authentication/schemas'
 import {
   latestPrivacyPolicyQueryOptions,

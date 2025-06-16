@@ -5,8 +5,8 @@
  * Categories are shortcuts to specific directories in the Cloud, e.g. team spaces, recent and trash
  * It's not the same as the categories like LocalBackend
  */
-import ComputerIcon from '#/assets/computer.svg'
-import RecentIcon from '#/assets/recent.svg'
+import ComputerIcon from '$/assets/computer.svg'
+import RecentIcon from '$/assets/recent.svg'
 
 import { useUser } from '$/providers/react'
 

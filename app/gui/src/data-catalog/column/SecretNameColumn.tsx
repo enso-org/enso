@@ -1,10 +1,10 @@
 /** @file The icon and name of a {@link SecretAsset}. */
-import KeyIcon from '#/assets/key.svg'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { setModal } from '#/providers/ModalProvider'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import KeyIcon from '$/assets/key.svg'
 import type { AssetColumnProps } from '$/data-catalog/column'
 import { useGetAssetChildren } from '$/data-catalog/hooks/assetsTableItemsHooks'
 import { backendMutationOptions } from '$/data-catalog/hooks/backendHooks'

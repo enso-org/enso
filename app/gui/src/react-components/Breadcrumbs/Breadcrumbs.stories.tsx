@@ -1,5 +1,5 @@
 /** @file Stories for the Breadcrumbs component. */
-import ArrowDown from '#/assets/expand_arrow.svg'
+import ArrowDown from '$/assets/expand_arrow.svg'
 import { Button } from '$/react-components/Button'
 import { Menu } from '$/react-components/Menu'
 import type { Meta, StoryObj } from '@storybook/react'

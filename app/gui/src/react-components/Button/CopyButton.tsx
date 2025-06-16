@@ -1,7 +1,7 @@
 /** @file A button that copies text to the clipboard. */
-import Error from '#/assets/cross.svg'
-import Done from '#/assets/tick.svg'
 import { useCopy } from '#/hooks/copyHooks'
+import Error from '$/assets/cross.svg'
+import Done from '$/assets/tick.svg'
 import { useText } from '$/providers/react'
 import type { SvgUseIcon } from '$/react-components/types'
 import { Button } from './Button'

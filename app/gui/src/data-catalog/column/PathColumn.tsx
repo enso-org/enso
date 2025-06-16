@@ -1,7 +1,7 @@
 /** @file A column displaying the path of the asset. */
-import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import FolderArrowIcon from '$/assets/folder_arrow.svg'
 import { useCategories, useCategoriesAPI, type AnyCloudCategory } from '$/data-catalog/Categories'
 import type { AssetColumnProps } from '$/data-catalog/column'
 import { useUser } from '$/providers/react'

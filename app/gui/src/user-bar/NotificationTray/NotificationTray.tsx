@@ -1,5 +1,5 @@
 /** @file A tray for displaying notifications. */
-import InboxIcon from '#/assets/inbox.svg'
+import InboxIcon from '$/assets/inbox.svg'
 import { useText } from '$/providers/react'
 import { Button } from '$/react-components/Button'
 import { Popover } from '$/react-components/Dialog'

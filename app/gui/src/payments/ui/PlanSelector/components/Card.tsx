@@ -3,8 +3,8 @@
  *
  * Card component
  */
-import Check from '#/assets/check_mark.svg'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import Check from '$/assets/check_mark.svg'
 import { useText } from '$/providers/react'
 import { Separator } from '$/react-components/Separator'
 import SvgMask from '$/react-components/SvgMask'

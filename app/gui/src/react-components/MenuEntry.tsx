@@ -1,11 +1,11 @@
 /** @file An entry in a menu. */
-import BlankIcon from '#/assets/blank.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import type * as inputBindings from '#/inputBindings'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
+import BlankIcon from '$/assets/blank.svg'
 import { useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'
 import { useDialogContext } from '$/react-components/Dialog'

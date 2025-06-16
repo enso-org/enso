@@ -1,9 +1,9 @@
 /** @file Display and modify the properties of an asset. */
-import PenIcon from '#/assets/pen.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
+import PenIcon from '$/assets/pen.svg'
 import { type Category } from '$/data-catalog/Categories'
 import { SharedWithColumn } from '$/data-catalog/column'
 import { DatalinkFormInput } from '$/data-catalog/DatalinkInput'

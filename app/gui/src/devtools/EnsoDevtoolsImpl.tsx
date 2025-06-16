@@ -1,10 +1,10 @@
 /** @file A list of toggles for paywall features. */
-import CrossIcon from '#/assets/cross.svg'
 import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
 import { SETUP_PATH } from '$/appUtils'
+import CrossIcon from '$/assets/cross.svg'
 import { UserSessionType } from '$/providers/auth'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,

@@ -1,10 +1,10 @@
 /** @file Displays information describing a specific version of an asset. */
-import LogsIcon from '#/assets/logs.svg'
-import RepeatIcon from '#/assets/repeat.svg'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import { setModal } from '#/providers/ModalProvider'
 import { tv } from '#/utilities/tailwindVariants'
+import LogsIcon from '$/assets/logs.svg'
+import RepeatIcon from '$/assets/repeat.svg'
 import {
   backendMutationOptions,
   getProjectExecutionDetailsQueryOptions,

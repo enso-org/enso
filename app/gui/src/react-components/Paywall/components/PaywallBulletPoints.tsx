@@ -1,6 +1,6 @@
 /** @file A list of bullet points for a paywall. */
-import Check from '#/assets/check_mark.svg'
 import { twMerge } from '#/utilities/tailwindMerge'
+import Check from '$/assets/check_mark.svg'
 import { useText } from '$/providers/react'
 import SvgMask from '$/react-components/SvgMask'
 import { Text } from '$/react-components/Text'

@@ -1,6 +1,6 @@
 /** @file Restore an account that has been deleted. */
-import UntrashIcon from '#/assets/untrash.svg'
 import { LOGIN_PATH } from '$/appUtils'
+import UntrashIcon from '$/assets/untrash.svg'
 import { useAuth, useRouter, useSession, useText } from '$/providers/react'
 import * as aria from '$/react-components/aria'
 import { Button } from '$/react-components/Button'
