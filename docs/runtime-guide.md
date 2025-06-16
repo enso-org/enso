@@ -103,7 +103,7 @@ order: 7
     affect overall performance of your program. You can tell runner to generate
     compilation traces via additional options:
     ```
-    JAVA_OPTS="-Dpolygot.engine.TracePerformanceWarnings=all -Dpolyglot.engine.TraceTransferToInterpreter=true -Dpolyglot.engine.TraceDeoptimizeFrame=true -Dpolyglot.engine.TraceCompilation=true -Dpolyglot.engine.TraceCompilationDetails=true"
+    JAVA_TOOL_OPTIONS="-Dpolygot.engine.TracePerformanceWarnings=all -Dpolyglot.engine.TraceTransferToInterpreter=true -Dpolyglot.engine.TraceDeoptimizeFrame=true -Dpolyglot.engine.TraceCompilation=true -Dpolyglot.engine.TraceCompilationDetails=true"
     ```
     Make sure you print trace logs by using `--log-level TRACE`.
 11. Occasionally a piece of code runs slower than we anticipated. Analyzing
@@ -113,7 +113,7 @@ order: 7
     the performance. You can tell runner to generate inlining traces via
     additional options:
     ```
-    JAVA_OPTS="-Dpolyglot.engine.TraceInlining=true -Dpolyglot.engine.TraceInliningDetails=true"
+    JAVA_TOOL_OPTIONS="-Dpolyglot.engine.TraceInlining=true -Dpolyglot.engine.TraceInliningDetails=true"
     ```
     Make sure you print trace logs by using `--log-level TRACE`. See
     [documentation](https://www.graalvm.org/22.2/graalvm-as-a-platform/language-implementation-framework/Inlining/#call-tree-states)

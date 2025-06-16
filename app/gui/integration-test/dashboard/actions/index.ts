@@ -8,6 +8,13 @@ import url from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 
 import {
+  INITIAL_LOCAL_CALLS_OBJECT,
+  mockLocalApi,
+  type LocalMockApi,
+  type LocalTrackedCalls,
+  type SetupLocalAPI,
+} from 'integration-test/dashboard/actions/localApi'
+import {
   INITIAL_CALLS_OBJECT,
   mockApi,
   type MockApi,
@@ -87,8 +94,10 @@ const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 
 /** Parameters for {@link mockDate}. */
 interface MockParams {
+  readonly goToCloudFirst?: boolean
   readonly page: Page
   readonly setupAPI?: SetupAPI | undefined
+  readonly setupLocalAPI?: SetupLocalAPI | undefined
 }
 
 /** Replace `Date` with a version that returns a fixed time. */
@@ -130,20 +139,27 @@ export async function passAgreementsDialog({ page }: MockParams) {
 
 interface Context {
   readonly api: MockApi
+  readonly localApi: LocalMockApi
   calls: TrackedCalls
+  localCalls: LocalTrackedCalls
 }
 
 /** Set up all mocks, without logging in. */
-export function mockAll({ page, setupAPI }: MockParams) {
+export function mockAll({ page, setupAPI, setupLocalAPI }: MockParams) {
   const context: { -readonly [K in keyof Context]: Context[K] } = {
     api: undefined!,
+    localApi: undefined!,
     calls: INITIAL_CALLS_OBJECT,
+    localCalls: INITIAL_LOCAL_CALLS_OBJECT,
   }
   return new LoginPageActions<Context>(page, context)
     .step('Execute all mocks', async (page) => {
       await Promise.all([
         mockApi({ page, setupAPI }).then((api) => {
           context.api = api
+        }),
+        mockLocalApi({ page, setupLocalAPI }).then((localApi) => {
+          context.localApi = localApi
         }),
         mockDate({ page }),
         mockAllAnimations({ page }),
@@ -159,13 +175,19 @@ export function mockAll({ page, setupAPI }: MockParams) {
 export interface MockAllAndLoginParams extends MockParams {}
 
 /** Set up all mocks, and log in with dummy credentials. */
-export function mockAllAndLogin({ page, setupAPI }: MockAllAndLoginParams) {
-  const actions = mockAll({ page, setupAPI })
+export function mockAllAndLogin({
+  page,
+  setupAPI,
+  setupLocalAPI,
+  goToCloudFirst = true,
+}: MockAllAndLoginParams) {
+  const actions = mockAll({ page, setupAPI, setupLocalAPI })
 
-  return actions
+  const driveActions = actions
     .step('Login', (page) => login({ page }))
     .step('Wait for dashboard to load', waitForDashboardToLoad)
     .into(DrivePageActions<Context>)
+  return goToCloudFirst ? driveActions.goToCategory.cloud() : driveActions
 }
 
 /** Mock all animations. */

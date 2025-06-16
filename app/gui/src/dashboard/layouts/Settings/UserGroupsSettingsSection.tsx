@@ -3,7 +3,7 @@ import { Cell, Column, Row, Table, TableBody, TableHeader } from '#/components/a
 import { Button } from '#/components/Button'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Form } from '#/components/Form'
-import { ComboBox } from '#/components/Inputs'
+import { ComboBox } from '#/components/Inputs/ComboBox'
 import { Menu } from '#/components/Menu'
 import { PaywallDialogButton } from '#/components/Paywall'
 import { ProfilePicture } from '#/components/ProfilePicture'

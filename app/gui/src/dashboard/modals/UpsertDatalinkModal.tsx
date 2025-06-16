@@ -2,7 +2,7 @@
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import { validateDatalink } from '#/data/datalinkValidator'
 import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'

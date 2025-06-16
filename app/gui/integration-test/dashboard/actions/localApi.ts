@@ -1,0 +1,521 @@
+import * as backend from '#/services/Backend'
+import {
+  Path,
+  ProjectName,
+  UUID,
+  type Attributes,
+  type CloseProjectParams,
+  type CreateProject,
+  type CreateProjectParams,
+  type DirectoryEntry,
+  type FileEntry,
+  type FileSystemEntry,
+  type JSONRPCResponse,
+  type OpenProject,
+  type OpenProjectParams,
+  type ProjectEntry,
+  type ProjectMetadata,
+  type ProjectState,
+} from '#/services/ProjectManager/types'
+import { unsafeMutable } from '#/utilities/object'
+import { getDirectoryAndName } from '#/utilities/path'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { uuidv4 } from 'lib0/random.js'
+import type { Page } from 'playwright'
+import test from 'playwright/test'
+
+function array<T>(): Readonly<T>[] {
+  return []
+}
+
+const ROOT_PATH = Path('/home/user/enso/enso-projects')
+
+const INITIAL_CALLS_OBJECT = {
+  getRootDirectory: array<object>(),
+  downloadProject: array<{ uuid: UUID; projectsDirectory: Path }>(),
+  getFileContent: array<{ path: string }>(),
+  createProject: array<CreateProjectParams>(),
+  openProject: array<OpenProjectParams>(),
+  closeProject: array<CloseProjectParams>(),
+}
+
+const READONLY_INITIAL_CALLS_OBJECT: TrackedCallsInternal = INITIAL_CALLS_OBJECT
+
+export { READONLY_INITIAL_CALLS_OBJECT as INITIAL_LOCAL_CALLS_OBJECT }
+
+type TrackedCallsInternal = {
+  [K in keyof typeof INITIAL_CALLS_OBJECT]: Readonly<(typeof INITIAL_CALLS_OBJECT)[K]>
+}
+
+export interface LocalTrackedCalls extends TrackedCallsInternal {}
+
+interface JSONRPCRequest<Method extends string, Params> {
+  jsonrpc: '2.0'
+  id: number
+  method: Method
+  params: Params
+}
+
+type ProjectManagerJsonRpcRequest =
+  | JSONRPCRequest<'project/create', CreateProjectParams>
+  | JSONRPCRequest<'project/open', OpenProjectParams>
+  | JSONRPCRequest<'project/close', CloseProjectParams>
+
+type DirectoryEntryWithData = {
+  type: 'DirectoryEntry'
+  entry: DirectoryEntry
+  children: FileSystemEntryWithData[]
+}
+
+type ProjectEntryWithData = {
+  type: 'ProjectEntry'
+  entry: ProjectEntry
+  metadata: {
+    projectName: ProjectName
+    projectNormalizedName: string
+  }
+}
+
+type FileEntryWithData = { type: 'FileEntry'; entry: FileEntry; content: string }
+
+type FileSystemEntryWithData = DirectoryEntryWithData | ProjectEntryWithData | FileEntryWithData
+
+/**
+ * Setup function for the mock API.
+ * use it to setup the mock API with custom handlers.
+ */
+export interface SetupLocalAPI {
+  (api: Awaited<ReturnType<typeof mockLocalApi>>): Promise<void> | void
+}
+
+/** Parameters for {@link mockApi}. */
+export interface MockParams {
+  readonly page: Page
+  readonly setupLocalAPI?: SetupLocalAPI | null | undefined
+}
+/** The return type of {@link localMockApi}. */
+export interface LocalMockApi extends Awaited<ReturnType<typeof localMockApiInternal>> {}
+
+export const mockLocalApi: (params: MockParams) => Promise<LocalMockApi> = localMockApiInternal
+
+/** Add route handlers for the mock API to a page. */
+async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
+  const fileSystem = new Map<string, FileSystemEntryWithData>()
+  const openProjects = new Map<UUID, ProjectState>()
+
+  const callsObjects = new Set<typeof INITIAL_CALLS_OBJECT>()
+
+  function trackCalls() {
+    const calls = structuredClone(INITIAL_CALLS_OBJECT)
+    callsObjects.add(calls)
+    return calls
+  }
+
+  function pushToKey<Object extends Record<keyof Object, unknown[]>, Key extends keyof Object>(
+    object: Object,
+    key: Key,
+    item: Object[Key][number],
+  ) {
+    object[key].push(item)
+  }
+
+  function called<Key extends keyof typeof INITIAL_CALLS_OBJECT>(
+    key: Key,
+    args: (typeof INITIAL_CALLS_OBJECT)[Key][number],
+  ) {
+    for (const callsObject of callsObjects) {
+      pushToKey(callsObject, key, args)
+    }
+  }
+
+  const createAttributes = (attributes: Partial<Attributes> | undefined = {}): Attributes => ({
+    creationTime: toRfc3339(new Date()),
+    lastAccessTime: toRfc3339(new Date()),
+    lastModifiedTime: toRfc3339(new Date()),
+    byteSize: 0,
+    ...attributes,
+  })
+
+  type DirectoryEntryOptions = {
+    path: Path
+    attributes?: Partial<Attributes>
+  }
+
+  const createDirectoryEntry = ({ path, attributes }: DirectoryEntryOptions): DirectoryEntry => ({
+    type: 'DirectoryEntry',
+    path,
+    attributes: createAttributes(attributes),
+  })
+
+  const createDirectory = (options: DirectoryEntryOptions): DirectoryEntryWithData => {
+    const entry = createDirectoryEntry(options)
+    return { type: 'DirectoryEntry', entry, children: [] }
+  }
+
+  const addEntry = (path: Path, entry: FileSystemEntryWithData) => {
+    fileSystem.set(path, entry)
+    const { directoryPath } = getDirectoryAndName(path)
+    const parentEntry = fileSystem.get(directoryPath)
+    if (parentEntry?.type === 'DirectoryEntry') {
+      parentEntry.children.push(entry)
+    }
+    return entry
+  }
+
+  const removeEntry = (path: Path) => {
+    const entry = fileSystem.get(path)
+    if (!entry) {
+      return
+    }
+    fileSystem.delete(path)
+    const { directoryPath } = getDirectoryAndName(path)
+    const parentEntry = fileSystem.get(directoryPath)
+    if (parentEntry?.type !== 'DirectoryEntry') {
+      return
+    }
+    const index = parentEntry.children.findIndex((child) => child.entry.path === path)
+    if (index !== -1) {
+      parentEntry.children.splice(index, 1)
+    }
+    return entry
+  }
+
+  const moveEntry = (source: Path, destination: Path) => {
+    if (!fileSystem.has(source) || fileSystem.has(destination)) {
+      return
+    }
+    const entry = removeEntry(source)
+    if (!entry) {
+      return
+    }
+    unsafeMutable(entry.entry).path = destination
+    addEntry(destination, entry)
+    return entry
+  }
+
+  const addDirectory = (options: DirectoryEntryOptions) => {
+    addEntry(options.path, createDirectory(options))
+  }
+
+  type ProjectEntryOptions = {
+    path: Path
+    metadata: ProjectMetadata
+    attributes?: Partial<Attributes>
+  }
+
+  const createProjectEntry = ({
+    path,
+    metadata,
+    attributes,
+  }: ProjectEntryOptions): ProjectEntry => ({
+    type: 'ProjectEntry',
+    path,
+    metadata,
+    attributes: createAttributes(attributes),
+  })
+
+  const createProject = (options: ProjectEntryOptions): ProjectEntryWithData => {
+    const entry = createProjectEntry(options)
+    return {
+      type: 'ProjectEntry',
+      entry,
+      metadata: {
+        projectName: ProjectName(entry.metadata.name),
+        projectNormalizedName: entry.metadata.name,
+      },
+    }
+  }
+
+  const addProject = (options: ProjectEntryOptions) => {
+    addEntry(options.path, createProject(options))
+  }
+
+  type FileEntryOptions = {
+    path: Path
+    attributes?: Partial<Attributes>
+    content?: string
+  }
+
+  const createFileEntry = ({ path, attributes }: FileEntryOptions): FileEntry => ({
+    type: 'FileEntry',
+    path,
+    attributes: createAttributes(attributes),
+  })
+
+  const createFile = (options: FileEntryOptions): FileEntryWithData => {
+    const { content = '' } = options
+    const entry = createFileEntry(options)
+    return { type: 'FileEntry', entry, content }
+  }
+
+  const addFile = (options: FileEntryOptions) => {
+    addEntry(options.path, createFile(options))
+  }
+
+  addDirectory({ path: ROOT_PATH })
+
+  await test.step('Mock Local API', async () => {
+    await page.routeWebSocket('ws://localhost:30535/', (ws) => {
+      ws.onMessage(async (messageRaw) => {
+        const message: ProjectManagerJsonRpcRequest = JSON.parse(messageRaw.toString('utf-8'))
+
+        let delay = 0
+        let response: JSONRPCResponse<unknown>
+        const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
+          jsonrpc: '2.0',
+          id: message.id,
+          result,
+        })
+        const toJSONRPCError = (errorMessage: string): JSONRPCResponse<unknown> => ({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: { code: 0, message: errorMessage },
+        })
+
+        switch (message.method) {
+          case 'project/create': {
+            const params = message.params
+            called('createProject', params)
+            const parentPath = params.projectsDirectory ?? ROOT_PATH
+            const path = Path(`${parentPath}/${params.name}`)
+            const id = UUID(uuidv4())
+            const metadata: ProjectEntryWithData['metadata'] = {
+              projectName: params.name,
+              projectNormalizedName: params.name,
+            }
+            const result: CreateProject = { projectId: id, ...metadata }
+            addProject({
+              path,
+              metadata: {
+                id,
+                name: metadata.projectName,
+                namespace: 'local',
+                created: toRfc3339(new Date()),
+              },
+            })
+            response = toJSONRPCResult(result)
+            break
+          }
+          case 'project/open': {
+            const params = message.params
+            called('openProject', params)
+            const parentDirectory = fileSystem.get(params.projectsDirectory ?? ROOT_PATH)
+            const project =
+              parentDirectory?.type === 'DirectoryEntry' ?
+                parentDirectory.children.find(
+                  (entry) =>
+                    entry.type === 'ProjectEntry' && entry.entry.metadata.id === params.projectId,
+                )
+              : null
+            if (project?.type !== 'ProjectEntry') {
+              response = toJSONRPCError(`No project with UUID '${params.projectId}'`)
+              break
+            }
+            unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
+            const result: OpenProject = {
+              engineVersion: '0.0.0-dev',
+              languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
+              languageServerJsonAddress: { host: 'ws://localhost', port: 1235 },
+              projectNamespace: 'local',
+              ...project.metadata,
+            }
+            openProjects.set(params.projectId, {
+              state: backend.ProjectState.opened,
+              data: result,
+            })
+            delay = 1_000
+            response = toJSONRPCResult(result)
+            break
+          }
+          case 'project/close': {
+            const params = message.params
+            called('closeProject', params)
+            openProjects.delete(params.projectId)
+            response = toJSONRPCResult({})
+            break
+          }
+        }
+
+        await new Promise((resolve) => {
+          setTimeout(resolve, delay)
+        })
+
+        ws.send(JSON.stringify(response))
+      })
+    })
+
+    await page.route('/api/root-directory', async (route, request) => {
+      called('getRootDirectory', {})
+      if (request.method() !== 'GET') {
+        return route.fulfill({ status: 400 })
+      }
+      return route.fulfill({
+        contentType: 'text/plain',
+        body: ROOT_PATH,
+      })
+    })
+
+    await page.route('/api/upload-file?*', async (route, request) => {
+      const params = new URL(request.url()).searchParams
+      const fileName = params.get('file_name')
+      const directoryPathRaw = params.get('directory')
+      const directoryPath = directoryPathRaw != null ? Path(directoryPathRaw) : ROOT_PATH
+      const filePath = Path(`${directoryPath}/${fileName}`)
+      if (filePath == null) {
+        return route.fulfill({ status: 400 })
+      }
+      // Remove any existing file, if one exists.
+      removeEntry(filePath)
+      addFile({ path: filePath, content: request.postData() ?? '' })
+      return route.fulfill({ body: filePath, contentType: 'text/plain' })
+    })
+
+    await page.route('/api/project-manager/projects/**', async (route, request) => {
+      const url = new URL(request.url())
+      const { uuid: uuidRaw } =
+        url.pathname.match(/^\/api\/project-manager\/projects\/(?<uuid>[^/]+)\/enso-project$/)
+          ?.groups ?? {}
+      const params = url.searchParams
+      const projectsDirectoryRaw = params.get('projectsDirectory')
+      if (request.method() !== 'GET' || uuidRaw == null || projectsDirectoryRaw == null) {
+        return route.fulfill({ status: 400 })
+      }
+      const uuid = UUID(uuidRaw)
+      const projectsDirectory = Path(projectsDirectoryRaw)
+      called('downloadProject', { uuid, projectsDirectory })
+      const response = `mock project body uuid='${uuid}' directory='${projectsDirectory}'`
+      return route.fulfill({
+        contentType: 'text/plain',
+        body: JSON.stringify(response),
+      })
+    })
+
+    await page.route('/api/run-project-manager-command?*', async (route, request) => {
+      const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
+        jsonrpc: '2.0',
+        id: 0,
+        result,
+      })
+      const succeed = (result: unknown, contentType = 'application/json') => {
+        return route.fulfill({ contentType, body: JSON.stringify(toJSONRPCResult(result)) })
+      }
+      const toJSONRPCError = (errorMessage: string): JSONRPCResponse<unknown> => ({
+        jsonrpc: '2.0',
+        id: 0,
+        error: { code: 0, message: errorMessage },
+      })
+      const fail = (errorMessage: string) => {
+        return route.fulfill({ body: JSON.stringify(toJSONRPCError(errorMessage)) })
+      }
+      if (request.method() !== 'POST') {
+        return route.fulfill({ status: 400 })
+      }
+      const cliArgumentsRaw = JSON.parse(
+        new URL(request.url()).searchParams.get('cli-arguments') ?? '[]',
+      )
+      const cliArgumentsObject =
+        cliArgumentsRaw[0] != null ?
+          { name: cliArgumentsRaw[0].slice(2), arguments: cliArgumentsRaw.slice(1) }
+        : null
+      if (!cliArgumentsObject) {
+        return fail('Missing arguments object')
+      }
+      const cliArguments: readonly string[] = cliArgumentsObject.arguments
+      switch (cliArgumentsObject.name) {
+        case 'filesystem-exists': {
+          const path = cliArguments[0]
+          if (path == null) {
+            return fail('No path provided')
+          }
+          return succeed({ exists: fileSystem.has(path) })
+        }
+        case 'filesystem-list': {
+          const folderPath = cliArguments[0]
+          const folder = folderPath != null ? fileSystem.get(folderPath) : null
+          if (folder?.type !== 'DirectoryEntry') {
+            return fail(`Could not find folder at '${folderPath}'`)
+          }
+          const entries: readonly FileSystemEntry[] = folder.children.map(({ entry }) => entry)
+          return succeed({ entries })
+        }
+        case 'filesystem-read-path': {
+          const filePath = cliArguments[0]
+          if (filePath == null) {
+            return fail('No path provided')
+          }
+          called('getFileContent', { path: filePath })
+          const file = fileSystem.get(filePath)
+          if (!file) {
+            return fail(`Could not find file at '${filePath}'`)
+          }
+          if (file.type !== 'FileEntry') {
+            return fail(`Filesystem entry at '${filePath}' is '${file?.type}', not file`)
+          }
+          return succeed(file.content, 'text/plain')
+        }
+        case 'filesystem-create-directory': {
+          const folderPath = cliArguments[0]
+          if (folderPath == null) {
+            return fail('No path provided')
+          }
+          const folder = fileSystem.get(folderPath)
+          if (folder) {
+            return fail(`Item already exists at '${folderPath}'`)
+          }
+          addDirectory({ path: Path(folderPath) })
+          return succeed({})
+        }
+        case 'filesystem-write-path': {
+          const filePath = cliArguments[0]
+          if (filePath == null) {
+            return fail('No path provided')
+          }
+          // Remove any existing file, if one exists.
+          removeEntry(Path(filePath))
+          addFile({ path: Path(filePath), content: request.postData() ?? '' })
+          return succeed({})
+        }
+        case 'filesystem-move-from': {
+          if (cliArguments[1] !== '--filesystem-move-to') {
+            return fail('`--filesystem-move-to` not found')
+          }
+          const sourcePath = cliArguments[0]
+          const destinationPath = cliArguments[2]
+          if (sourcePath == null) {
+            return fail('No source path provided')
+          }
+          if (destinationPath == null) {
+            return fail('No destination path provided')
+          }
+          moveEntry(Path(sourcePath), Path(destinationPath))
+          return succeed({})
+        }
+        case 'filesystem-delete': {
+          const path = cliArguments[0]
+          if (path == null) {
+            return fail('No path provided')
+          }
+          const entry = fileSystem.get(path)
+          if (!entry) {
+            return fail(`Item does not exist at '${path}'`)
+          }
+          removeEntry(Path(path))
+          return succeed({})
+        }
+      }
+    })
+  })
+
+  const api = {
+    rootPath: ROOT_PATH,
+    trackCalls,
+    addDirectory,
+    addProject,
+    addFile,
+    removeEntry,
+  } as const
+
+  await setupLocalAPI?.(api)
+
+  return api
+}

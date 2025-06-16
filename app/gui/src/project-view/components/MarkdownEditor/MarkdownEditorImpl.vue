@@ -1,19 +1,18 @@
 <script setup lang="ts">
 import ActionButton from '@/components/ActionButton.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
-import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
+import type { BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
 import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
+import { useDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
-import { useCodeMirror } from '@/util/codemirror'
+import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
-import { Vec2 } from '@/util/data/vec2'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { type ComponentInstance, computed, ref, useCssModule, useTemplateRef } from 'vue'
+import { type ComponentInstance, computed, useCssModule, useTemplateRef } from 'vue'
 import * as Y from 'yjs'
 
 const { content, toolbar, contentTestId } = defineProps<{
@@ -25,36 +24,22 @@ defineOptions({
   inheritAttrs: false,
 })
 
-function useEditorFocus(view: EditorView) {
-  const focused = ref(false)
-  const focusHandlers = {
-    focusin: (event: FocusEvent) => {
-      // Enable rendering the line containing the current cursor in `editing` mode if focus enters
-      // the element *inside* the scroll area--if we handled the event for the editor root, clicking
-      // the scrollbar would cause editing mode to be activated.
-      if (event.target instanceof Node && view.contentDOM.contains(event.target))
-        focused.value = true
-    },
-    focusout: () => {
-      // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
-      // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
-      focused.value = false
-    },
-  }
-  return { focused, focusHandlers }
-}
+const images = useDocumentationImages(true)
 
 const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, putTextAt, setExtraExtensions } = useCodeMirror(editorRoot, {
+const { editorView, readonly, setExtraExtensions } = useCodeMirror(editorRoot, {
   content: () => content,
   extensions: [
     drawSelection(),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     EditorView.lineWrapping,
     highlightStyle(useCssModule()),
-    EditorView.clipboardInputFilter.of(transformPastedText),
-    ensoMarkdown(),
+    ensoMarkdown({
+      tryUploadPastedImage: () =>
+        images?.value &&
+        ((item: ClipboardItem) => images.value.tryUploadPastedImage(editorView, item)),
+    }),
   ],
   vueHost: () => vueHost,
   lineMode: 'multi',
@@ -70,26 +55,19 @@ const formatting = useMarkdownFormatting(editorView)
 const { formatBindings } = useFormatActions({
   formatting,
   editing,
+  uploadImage: () => images?.value && (() => images.value.tryUploadImageFile(editorView)),
 })
 setExtraExtensions([formatBindings])
-
-defineExpose({
-  putText: (text: string) => {
-    const range = editorView.state.selection.main
-    putTextAt(text, range.from, range.to)
-  },
-  putTextAt,
-  putTextAtCoords: (text: string, coords: Vec2) => {
-    const pos = editorView.posAtCoords(coords, false)
-    putTextAt(text, pos, pos)
-  },
-})
 </script>
 
 <template>
-  <div class="MarkdownEditorRoot">
+  <div
+    class="MarkdownEditorRoot"
+    @dragover.prevent
+    @drop.prevent="images?.tryUploadDroppedImage?.(editorView, $event)"
+  >
     <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
-      <slot name="toolbarLeft" />
+      <ActionButton action="panel.fullscreen" />
       <template v-if="!readonly">
         <BlockTypeDropdown
           :modelValue="formatting.blockType.value ?? 'Unknown'"
@@ -99,8 +77,8 @@ defineExpose({
         <ActionButton action="documentationEditor.bold" />
         <ActionButton action="documentationEditor.link" />
         <ActionButton action="documentationEditor.code" />
+        <ActionButton action="documentationEditor.image" />
       </template>
-      <slot name="toolbarRight" />
     </div>
     <slot name="belowToolbar" />
     <CodeMirrorRoot
@@ -154,11 +132,6 @@ defineExpose({
     opacity: 1;
     color: black;
     font-size: 12px;
-  }
-
-  /*noinspection CssUnusedSymbol*/
-  & :deep(img.uploading) {
-    opacity: 0.5;
   }
 }
 </style>

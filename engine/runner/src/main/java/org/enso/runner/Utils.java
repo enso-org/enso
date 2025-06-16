@@ -210,7 +210,7 @@ final class Utils {
   static String adjustCwdToProject(String fileToRun) {
     assert fileToRun != null;
     if (!ImageInfo.inImageRuntimeCode()) {
-      return null;
+      return System.getProperty("enso.user.dir");
     }
     var nativeApi = WorkingDirectory.getInstance();
     var projectRoot = nativeApi.findProjectRoot(fileToRun);

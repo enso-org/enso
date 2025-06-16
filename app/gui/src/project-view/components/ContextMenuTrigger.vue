@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import ContextMenu from '@/components/ContextMenu.vue'
-import { type ActionName } from '@/providers/action'
+import { type DisplayableActionName } from '@/providers/action'
 import { provideActionContext } from '@/providers/actionContext'
 
 const { actions } = defineProps<{
-  actions: ActionName[]
+  actions: DisplayableActionName[]
 }>()
 const emit = defineEmits<{
   shown: []

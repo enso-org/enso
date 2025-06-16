@@ -1,3 +1,4 @@
+/** @file Tests for the multiline CodeMirror editor panels: documentation editor and code editor. */
 import type { Page } from '@playwright/test'
 import { test } from 'playwright/test'
 import * as actions from './actions'
@@ -25,6 +26,9 @@ test('Main method documentation', async ({ page }) => {
   for (const img of await docsContent.getByAltText('Image').all())
     await expect(img).toHaveJSProperty('naturalWidth', 3)
 
+  // The video was recognized
+  await expect(docsContent.locator('.DocumentationVideo')).toHaveCount(1)
+
   // Nested lists are rendered with hierarchical indentation
   const listItemPos = (text: string) =>
     docsContent
@@ -40,7 +44,7 @@ test('Main method documentation', async ({ page }) => {
   expect(listLevel0!.x).toBeLessThan(listLevel1!.x)
   expect(listLevel1!.x).toBeLessThan(listLevel2!.x)
 
-  // Documentation hotkey closes right-dock.p
+  // Documentation hotkey closes right-dock.
   await page.keyboard.press(`${CONTROL_KEY}+D`)
   await expect(docsContent).toBeHidden()
 })
@@ -49,9 +53,7 @@ test('Doc panel focus (regression #10471)', async ({ page }) => {
   const { docsContent } = await goToGraphAndGetDocs(page)
 
   // Open and focus code editor.
-  await page.keyboard.press(`${CONTROL_KEY}+\``)
-  const codeEditor = page.locator('.CodeEditor')
-  await expect(codeEditor).toBeVisible()
+  const { codeEditor, getCodeEditorContent } = await openCodeEditor(page)
   await codeEditor.click()
 
   await page.evaluate(() => {
@@ -65,13 +67,19 @@ test('Doc panel focus (regression #10471)', async ({ page }) => {
   await page.keyboard.press('S')
   await page.keyboard.press('T')
 
-  const content = await page.evaluate(() => {
-    const codeEditor = (window as any).__codeEditorApi
-    return codeEditor.textContent()
-  })
+  const content = await getCodeEditorContent()
   expect(content.includes('The main TEST method')).toBe(true)
   await expect(docsContent).toContainText('The main TEST method')
 })
+
+async function openCodeEditor(page: Page) {
+  await page.keyboard.press(`${CONTROL_KEY}+\``)
+  const codeEditor = page.locator('.CodeEditor')
+  await expect(codeEditor).toBeVisible()
+  const getCodeEditorContent = () =>
+    page.evaluate(() => (window as any).__codeEditorApi.textContent())
+  return { codeEditor, getCodeEditorContent }
+}
 
 test('Code editor with wide content does not take space from doc editor (#12476)', async ({
   page,
@@ -164,9 +172,7 @@ test('Insert link button inserts link and focuses editor', async ({ page }) => {
 
 test('Documentation editor: Editing with keyboard', async ({ page }) => {
   const { docsContent } = await goToGraphAndGetDocs(page)
-
-  await page.keyboard.press(`${CONTROL_KEY}+\``)
-  const getGraphCode = () => page.evaluate(() => (window as any).__codeEditorApi.textContent())
+  const { getCodeEditorContent } = await openCodeEditor(page)
 
   await docsContent
     .locator('.cm-line')
@@ -177,15 +183,34 @@ test('Documentation editor: Editing with keyboard', async ({ page }) => {
   await page.keyboard.press(`${CONTROL_KEY}+A`)
   const NEW_DOCS = 'New main method documentation'
   await page.keyboard.type(NEW_DOCS)
-  const codeAfterSettingNewDocs = await getGraphCode()
+  const codeAfterSettingNewDocs = await getCodeEditorContent()
   expect(codeAfterSettingNewDocs).toContain(`## ${NEW_DOCS}`)
 
   await page.keyboard.press(`${CONTROL_KEY}+Alt+1`)
-  const codeAfterHeaderCommand = await getGraphCode()
+  const codeAfterHeaderCommand = await getCodeEditorContent()
   expect(codeAfterHeaderCommand).toContain(`## # ${NEW_DOCS}`)
 
   await page.keyboard.press('Enter')
   await page.keyboard.type('Second line')
-  const codeAfterAddingLine = await getGraphCode()
+  const codeAfterAddingLine = await getCodeEditorContent()
   expect(codeAfterAddingLine).toContain(`## # ${NEW_DOCS}\n   Second line`)
+})
+
+test.skip('Code editor: Copy and paste (clipboard cannot be used in CI but test can be run locally)', async ({
+  page,
+}) => {
+  await actions.goToGraph(page)
+  const { codeEditor, getCodeEditorContent } = await openCodeEditor(page)
+  await codeEditor.click()
+  await page.evaluate(() => {
+    const codeEditor = (window as any).__codeEditorApi
+    const PLUS_TEN = ' + ten'
+    const plusTen = codeEditor.indexOf(PLUS_TEN)
+    codeEditor.select(plusTen, plusTen + PLUS_TEN.length)
+  })
+  await page.keyboard.press(`${CONTROL_KEY}+C`)
+  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  const codeAfterEdit = await getCodeEditorContent()
+  expect(codeAfterEdit).toContain(' + ten + ten')
 })

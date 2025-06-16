@@ -23,7 +23,7 @@ test('Start editing comment via menu', async ({ page }) => {
   const node = locate.graphNodeByBinding(page, 'final')
   await node.click()
   await locate.componentMenu(node).getByRole('button', { name: 'More' }).click()
-  await locate.componentMenu(node).getByRole('button', { name: 'Comment' }).click()
+  await locate.componentMenuMoreEntries(node).getByRole('button', { name: 'Comment' }).click()
   await expect(locate.nodeCommentContent(node)).toBeFocused()
 })
 
@@ -61,7 +61,7 @@ test('Add new comment via menu', async ({ page }) => {
 
   await node.click()
   await locate.componentMenu(node).getByRole('button', { name: 'More' }).click()
-  await locate.componentMenu(node).getByRole('button', { name: 'Comment' }).click()
+  await locate.componentMenuMoreEntries(node).getByRole('button', { name: 'Comment' }).click()
   await expect(locate.nodeCommentContent(node)).toBeFocused()
   const NEW_COMMENT = 'New comment text'
   await nodeComment.fill(NEW_COMMENT)

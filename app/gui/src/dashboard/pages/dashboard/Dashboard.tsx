@@ -27,6 +27,7 @@ import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
 import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { usePrefetchQuery } from '@tanstack/react-query'
 
@@ -76,7 +77,9 @@ function DashboardInner() {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const config = useConfig()
 
-  const initialProjectNameRaw = config.params.startup.project
+  const initialProjectNameRaw = useVueValue(
+    React.useCallback(() => config.params.startup.project, [config]),
+  )
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 

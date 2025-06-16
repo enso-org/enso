@@ -41,15 +41,6 @@ public final class JVM {
     // java.home
     jvmArgs.add("-Djava.home=" + javaHome);
 
-    var jvmOptions = System.getenv("JAVA_OPTS");
-    if (jvmOptions != null) {
-      for (var op : jvmOptions.split(" ")) {
-        if (op.isEmpty()) {
-          continue;
-        }
-        jvmArgs.add(op);
-      }
-    }
     jvmArgs.addAll(Arrays.asList(options));
     return new JVM(createJvmFn, jvmArgs.toArray(new String[0]));
   }

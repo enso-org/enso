@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
-import { computed, ref } from 'vue'
+import { useStateBeforePointerdown } from '@/composables/events'
+import { computed, ref, useTemplateRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 /**
@@ -27,12 +28,13 @@ const style = computed(() =>
   props.extraClickZone != null ? { '--extraClickZone': `${props.extraClickZone}px` } : {},
 )
 
+const button = useTemplateRef<HTMLElement>('button')
+const { stateBeforeClick } = useStateBeforePointerdown(button, () => toggledOn.value)
+
 function onActivate() {
-  if (tooltipTrigger.value) {
-    tooltipTrigger.value.hideTooltip()
-  }
+  tooltipTrigger.value?.hideTooltip()
   if (props.disabled) return
-  if (toggledOn.value != null) toggledOn.value = !toggledOn.value
+  if (stateBeforeClick.value != null) toggledOn.value = !stateBeforeClick.value
   emit('activate')
 }
 </script>
@@ -41,6 +43,7 @@ function onActivate() {
   <TooltipTrigger ref="tooltipTrigger">
     <template #default="triggerProps">
       <button
+        ref="button"
         class="MenuButton clickable"
         :aria-label="props.title ?? ''"
         :class="{ toggledOn, toggledOff: toggledOn === false, disabled }"

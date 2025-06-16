@@ -172,7 +172,8 @@ function imNotSureButPerhapsFixingRefreshingWithAuthentication() {
 }
 
 async function getRootDirPath() {
-  const supportsLocalBackend = $config.CLOUD_BUILD !== 'true'
+  const supportsLocalBackend =
+    window.overrideFeatureFlags?.enableLocalBackend ?? $config.CLOUD_BUILD !== 'true'
   if (!supportsLocalBackend) return undefined
   const rootDirRequest = await fetch(`/api/root-directory`)
   return await rootDirRequest.text()

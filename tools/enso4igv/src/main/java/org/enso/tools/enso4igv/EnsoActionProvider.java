@@ -99,6 +99,7 @@ public final class EnsoActionProvider implements ActionProvider {
                 if (isGraalVM && info.igvMode()) {
                     if (info.networkOn()) {
                         env.setVariable("JAVA_OPTS", info.toJavaOptions());
+                        env.setVariable("JAVA_TOOL_OPTIONS", info.toJavaOptions());
                     } else {
                         var icon = ImageUtilities.loadImageIcon("org/enso/tools/enso4igv/enso.svg", false);
                         var note = new Notification[1];
@@ -237,6 +238,7 @@ public final class EnsoActionProvider implements ActionProvider {
         public Process call() throws Exception {
             var port = computeAddress.get();
             builder.getEnvironment().setVariable("JAVA_OPTS", "-agentlib:jdwp=transport=dt_socket,address=" + port);
+            builder.getEnvironment().setVariable("JAVA_TOOL_OPTIONS", "-agentlib:jdwp=transport=dt_socket,address=" + port);
             return builder.call();
         }
 
