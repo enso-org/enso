@@ -17,7 +17,7 @@ import project.Sort_Column.Sort_Column
 import project.Table.Table
 import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
-from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, No_Such_Column, Too_Many_Column_Names_Provided
+from project.Errors import Ambiguous_Column_Rename, Invalid_Aggregate_Column, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, No_Such_Column, Too_Many_Column_Names_Provided
 from project.Table import from_java_table
 
 polyglot java import java.util.HashSet

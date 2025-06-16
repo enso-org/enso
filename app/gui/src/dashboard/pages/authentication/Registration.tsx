@@ -6,7 +6,8 @@ import { Alert } from '#/components/Alert'
 import { Button } from '#/components/Button'
 import { Checkbox } from '#/components/Checkbox'
 import { Form } from '#/components/Form'
-import { Input, Password } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
+import { Password } from '#/components/Inputs/Password'
 import Link from '#/components/Link'
 import { Stepper, useStepperState } from '#/components/Stepper'
 import { Text } from '#/components/Text'
@@ -19,7 +20,8 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import LocalStorage from '#/utilities/LocalStorage'
 import { LOGIN_PATH } from '$/appUtils'
-import { useBackends, useLocalStorage, useRouter, useSession, useText } from '$/providers/react'
+import { useBackends, useLocalStorage, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import * as z from 'zod'
@@ -42,19 +44,18 @@ const CONFIRM_SIGN_IN_INTERVAL = 5_000
 export default function Registration() {
   const { signUp, confirmSignUp, signInWithPassword } = useSession()
 
-  const { searchParams } = useRouter()
   const localStorage = useLocalStorage()
   const { getText } = useText()
   const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const initialEmail = searchParams.get('email') ?? ''
-  const organizationId = searchParams.get('organization_id')
-  const redirectTo = searchParams.get('redirect_to')
+  const [initialEmail] = useQueryParam('email')
+  const [organizationId] = useQueryParam('organization_id')
+  const [redirectTo] = useQueryParam('redirect_to')
   const [isManualCodeEntry, setIsManualCodeEntry] = useState(false)
 
   const signupForm = Form.useForm({
-    defaultValues: { email: initialEmail, agreedToTos: [], agreedToPrivacyPolicy: [] },
+    defaultValues: { email: initialEmail ?? '', agreedToTos: [], agreedToPrivacyPolicy: [] },
     resetOnSubmit: false,
     schema: (schema) =>
       schema
@@ -82,7 +83,7 @@ export default function Registration() {
       localStorage.set('termsOfService', { versionHash: tosHash })
       localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
 
-      await signUp(email, password, organizationId)
+      await signUp(email, password, organizationId ?? null)
 
       stepperState.nextStep()
     },

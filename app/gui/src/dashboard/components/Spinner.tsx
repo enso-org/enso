@@ -8,8 +8,10 @@ import { twJoin } from 'tailwind-merge'
 /** The state of the spinner. It should go from `initial`, to `loading`, to `done`. */
 export type SpinnerPhase = 'done' | 'initial' | 'loading-fast' | 'loading-medium' | 'loading-slow'
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerPhase, string>> = {
+/** The default size of the spinner. */
+export const ROTATING_ELEMENT_SIZE = 24
+
+const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerPhase, string>> = {
   initial: 'dasharray-5 ease-linear',
   /* eslint-disable-next-line @typescript-eslint/naming-convention */
   'loading-slow': 'dasharray-75 duration-spinner-slow ease-linear',
@@ -28,11 +30,6 @@ export interface SpinnerProps {
   readonly phase: SpinnerPhase
   readonly thickness?: number
 }
-
-/**
- * The default size of the spinner.
- */
-export const ROTATING_ELEMENT_SIZE = 24
 
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
 
@@ -70,22 +67,3 @@ export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
     </svg>
   )
 })
-
-/**
- * Props for a {@link IndefiniteSpinner}.
- */
-export interface IndefiniteSpinnerProps extends Omit<SpinnerProps, 'phase'> {}
-
-/**
- * A spinning arc that animates indefinitely.
- */
-export function IndefiniteSpinner(props: IndefiniteSpinnerProps) {
-  const { size, padding, className } = props
-
-  const cssClasses = twJoin(
-    'pointer-events-none flex-none contain-strict h-10 w-10 animate-spin ease-in-out rounded-full border-4 border-primary/10 border-l-primary',
-    className,
-  )
-
-  return <div className={cssClasses} style={{ padding, width: size, height: size }} />
-}

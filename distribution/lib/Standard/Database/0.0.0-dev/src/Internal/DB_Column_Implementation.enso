@@ -8,7 +8,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
-from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
+from Standard.Base.Widget_Helpers import make_format_chooser
 
 import Standard.Table.Fill_With.Fill_With
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
@@ -18,9 +18,9 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Sort_Column, Table, Value_Type
+from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Table, Value_Type
 from Standard.Table.Column import default_date_period
-from Standard.Table.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Value_Type
+from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
 import project.Connection.Connection.Connection

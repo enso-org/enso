@@ -1,11 +1,16 @@
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
+import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, SETUP_PATH } from '$/appUtils'
 import type * as cognitoModule from '$/authentication/cognito'
-import { featureFlagsForInternalTesting, setFeatureFlags } from '$/providers/featureFlags'
-import { useZustantStoreRef } from '$/utils/zustand'
+import {
+  featureFlagsForInternalTesting,
+  setFeatureFlags,
+  useFeatureFlag,
+} from '$/providers/featureFlags'
+import { useZustandStoreRef } from '$/utils/zustand'
 import { Opt } from '@/util/data/opt'
 import { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
@@ -120,7 +125,8 @@ function createAuthStore(
     usersMeQuery.promise.value.then((user) => (user && 'user' in user ? user.user : null)),
   )
 
-  const planOverride = useZustantStoreRef(authOverridesStore, (state) => state.planOverride)
+  const planOverride = useZustandStoreRef(authOverridesStore, (state) => state.planOverride)
+  const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
 
   const createUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
@@ -257,11 +263,18 @@ function createAuthStore(
     }
   })
 
-  const effectiveUserData = computed(() =>
-    userData.value?.type === UserSessionType.full && planOverride.value != null ?
-      { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
-    : userData.value,
-  )
+  const effectiveUserData = computed(() => {
+    const intermediate =
+      userData.value?.type === UserSessionType.full && planOverride.value != null ?
+        { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
+      : userData.value
+    return intermediate?.type === UserSessionType.full && overrideProfilePicture ?
+        {
+          ...intermediate,
+          user: { ...intermediate.user, profilePicture: BLACK_SQUARE_IMAGE_512PX },
+        }
+      : intermediate
+  })
 
   /**
    * Check if given route is allowed for the current user.

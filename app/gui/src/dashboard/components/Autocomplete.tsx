@@ -2,7 +2,7 @@
 import CloseIcon from '#/assets/cross.svg'
 import { Button } from '#/components/Button'
 import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
 import FocusRing from '#/components/styled/FocusRing'
 import { Text } from '#/components/Text'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'

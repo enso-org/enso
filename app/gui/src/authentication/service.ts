@@ -7,6 +7,7 @@ import { type Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
 import * as cognitoModule from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
+import { useFeatureFlag } from '$/providers/featureFlags'
 import * as amplify from '@aws-amplify/auth'
 import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
@@ -110,16 +111,16 @@ export interface AuthService {
  * This hook should only be called in a single place, as it performs global configuration of the
  * Amplify library.
  */
-export function useInitAuthService(authConfig: AuthConfig): AuthService {
-  const { supportsDeepLinks } = authConfig
+export function useInitAuthService(): AuthService {
+  const enableDeepLinks = useFeatureFlag('enableDeepLinks')
   const router = useRouter()
 
   const amplifyConfig = loadAmplifyConfig(
     console,
-    supportsDeepLinks,
+    enableDeepLinks.value,
     (url) => void router.push(url),
   )
-  const cognito = new cognitoModule.Cognito(console, supportsDeepLinks, amplifyConfig)
+  const cognito = new cognitoModule.Cognito(console, enableDeepLinks.value, amplifyConfig)
 
   return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }

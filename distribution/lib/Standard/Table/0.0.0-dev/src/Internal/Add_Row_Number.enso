@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder

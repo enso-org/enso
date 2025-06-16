@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 polyglot java import java.sql.ResultSetMetaData
 polyglot java import java.sql.Types

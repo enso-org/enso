@@ -43,7 +43,6 @@
           go 1
 
 from Standard.Base import all
-import Standard.Base.Runtime.Ref.Ref
 
 ## PRIVATE
 
