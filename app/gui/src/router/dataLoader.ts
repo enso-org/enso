@@ -25,13 +25,23 @@ declare module 'vue' {
   }
 }
 
-export type NavigationDataLoader<Props> = (
-  to: RouteLocationNormalizedGeneric,
-  from: RouteLocationNormalizedGeneric,
-) => Promise<Result<Props, Exclude<NavigationGuardReturn, void | undefined | true>>>
-
+/**
+ * A loader which needs be exported from *.vue file to be wrapped in {@link withDataLoader}.
+ */
 export type DataLoader<Props> = {
-  beforeRouteEnter: NavigationDataLoader<Props>
+  /**
+   * Like `beforeRouteEnter` nagivation guard, but returns data to be passed as component props,
+   * or `Err` with proper response for navigation failure/redirect.
+   */
+  beforeRouteEnter: (
+    to: RouteLocationNormalizedGeneric,
+    from: RouteLocationNormalizedGeneric,
+  ) => Promise<Result<Props, Exclude<NavigationGuardReturn, void | undefined | true>>>
+
+  /**
+   * Like `beforeRouteEnter` nagivation guard, but is given `data` object which may be modified
+   * to update component props.
+   */
   beforeRouteUpdate?(
     to: RouteLocationNormalizedGeneric,
     from: RouteLocationNormalizedGeneric,
@@ -39,6 +49,24 @@ export type DataLoader<Props> = {
   ): Promise<NavigationGuardReturn> | NavigationGuardReturn
 }
 
+/**
+ * Wrap component with data loader, creating a component which loads data as part of
+ * navigation and passed them as props for given inner component.
+ *
+ * It gives a nicer API than [the official way of doing this](https://router.vuejs.org/guide/advanced/data-fetching.html#Fetching-Before-Navigation).
+ *
+ * The inner component has to export `dataLoader` object of {@link DataLoader} type,
+ * which contains `beforeRouteEnter` and optionally `beforeRouteUpdate` navigation guards
+ * with enhanced signature:
+ * - beforeRouteEnter returns loaded data which will be passed as props to the inner component.
+ * - beforeRouteUpdate may update the data (and refresh the inner component's props)
+ *
+ * Both guards are run in global injection context and in an {@link effectScope} tied to
+ * component's lifetime. **Remember, that these both are not passed to promises, so they
+ * work only until the first await in async function.** All injections must be done before first
+ * await, and if you want to use watchers later, you must manaully run in an attached scope
+ * (see `useUserAgrements` for an example).
+ */
 export function withDataLoader<
   PropsOrPropOptions extends object,
   RawBindings,
@@ -108,6 +136,7 @@ export function withDataLoader<
         )
       },
       beforeRouteUpdate(to, from) {
+        // This in-component guard should not be called before `beforeRouteEnter`.
         DEV: assert(scope != null)
         return scope?.run(() => dataLoader.beforeRouteUpdate?.(to, from, data))
       },

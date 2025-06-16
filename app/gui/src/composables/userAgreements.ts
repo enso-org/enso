@@ -52,6 +52,10 @@ const latestPrivacyPolicyQueryOptions = vueQuery.queryOptions({
   refetchInterval: TEN_MINUTES_MS,
 })
 
+/**
+ * Composable checking and setting user agreements to the newest Terms of Service
+ * and Privacy Policy.
+ */
 export async function useUserAgrements(queryClient: vueQuery.QueryClient) {
   const localStorage = LocalStorage.getInstance()
   const cachedTosHash = computed(() => localStorage.get('termsOfService'))

@@ -2,7 +2,6 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
-import LocalStorage from '#/utilities/LocalStorage'
 import type * as cognitoModule from '$/authentication/cognito'
 import {
   featureFlagsForInternalTesting,
@@ -107,7 +106,6 @@ function createAuthStore(
   const session = toRef(sessionData, 'session')
   const { organizationId, signOut } = sessionData
   const toastSuccess = useToast.success()
-  const localStorage = LocalStorage.getInstance()
 
   const queryClient = vueQuery.useQueryClient()
 

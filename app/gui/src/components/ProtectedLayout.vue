@@ -1,7 +1,8 @@
 <script lang="ts">
 /**
  * @file A component watching changes in current user state. It hides subcomponents and redirects
- * if user lost privileges to see them.
+ * if user lost privileges to see them. Also makes sure user will agree with Terms of Service and
+ * privacy policy.
  */
 import { EnsoDevtools as EnsoDevToolsReact } from '#/components/Devtools'
 import {
@@ -21,6 +22,12 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
 import { RouteLocation, useRoute, useRouter } from 'vue-router'
 import { Err, Ok } from 'ydoc-shared/util/data/result'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    access?: 'guest' | 'anyLoggedIn' | UserSessionType | 'deleted'
+  }
+}
 
 const AgreementsModal = reactComponent(AgreementsModalReact)
 
@@ -53,15 +60,15 @@ function redirect(auth: AuthStore, localStorage: LocalStorage) {
   return undefined
 }
 
-async function navigationGuard(to: RouteLocation) {
-  const localStorage = LocalStorage.getInstance()
-  const auth = useAuth()
-  await auth.waitForSession()
-
-  if (!routeAllowed(to, auth)) {
-    return redirect(auth, localStorage) ?? false
+function requireUserAgreements(route: RouteLocation) {
+  switch (route.meta.access) {
+    case 'deleted':
+    case 'guest':
+    case undefined:
+      return false
+    default:
+      return true
   }
-  return true
 }
 
 let scope: EffectScope | undefined
@@ -78,7 +85,7 @@ export const dataLoader: DataLoader<{
       return Err(redirect(auth, localStorage) ?? false)
     }
 
-    if (auth.session != null) {
+    if (requireUserAgreements(to)) {
       scope = effectScope()
       return Ok({ agreementsModalProps: await scope.run(() => useUserAgrements(queryClient)) })
     }
@@ -94,14 +101,13 @@ export const dataLoader: DataLoader<{
       if (!routeAllowed(to, auth)) {
         return redirect(auth, localStorage) ?? false
       }
-      if (auth.session != null && data.agreementsModalProps == null) {
+      const agreementsRequired = requireUserAgreements(to)
+      if (agreementsRequired && data.agreementsModalProps == null) {
         scope?.stop()
         scope = effectScope()
-        console.log('Setting up userAgreements')
         data.agreementsModalProps = await scope.run(() => useUserAgrements(queryClient))
-      } else if (auth.session == null && data.agreementsModalProps != null) {
+      } else if (!agreementsRequired && data.agreementsModalProps != null) {
         scope?.stop()
-        console.log('Setting no userAgreements')
         data.agreementsModalProps = undefined
       }
     }
