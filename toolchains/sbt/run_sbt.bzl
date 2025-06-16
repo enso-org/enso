@@ -1,6 +1,6 @@
-load("@bazel_skylib//lib:dicts.bzl", "dicts")
-load("@aspect_bazel_lib//lib/private:expand_variables.bzl", "expand_variables")
 load("@aspect_bazel_lib//lib:strings.bzl", "split_args")
+load("@aspect_bazel_lib//lib/private:expand_variables.bzl", "expand_variables")
+load("@bazel_skylib//lib:dicts.bzl", "dicts")
 
 def _run_sbt_impl(ctx):
     sbt_bin = ctx.toolchains["@//toolchains/sbt:toolchain_type"].sbt_info.sbt_bin
@@ -51,12 +51,11 @@ Bazel only executes actions when their outputs are required, so it's never corre
         runfiles = ctx.runfiles(files = outputs),
     )
 
-    
-
 run_sbt = rule(
     implementation = _run_sbt_impl,
     toolchains = [
         "@//toolchains/sbt:toolchain_type",
+        "@//toolchains/flatc:toolchain_type",
     ],
     attrs = {
         "args": attr.string_list(
