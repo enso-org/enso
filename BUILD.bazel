@@ -181,7 +181,7 @@ EXTRA_SYSTEM_PROPS = [
 
 ENV = {
     "XDG_CACHE_HOME": "$$TMPDIR/.cache",
-    "PATH": "$(FLATC_PATH):$$PATH",
+    "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
     "LC_ALL": "C.UTF-8",
     "SBT_SERVER_FORCESTART": "1",
 }

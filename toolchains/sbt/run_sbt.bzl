@@ -56,6 +56,7 @@ run_sbt = rule(
     toolchains = [
         "@//toolchains/sbt:toolchain_type",
         "@//toolchains/flatc:toolchain_type",
+        "@bazel_tools//tools/jdk:runtime_toolchain_type",
     ],
     attrs = {
         "args": attr.string_list(
