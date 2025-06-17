@@ -519,7 +519,9 @@ public final class EnsoContext {
       try {
         var url = file.toUri().toURL();
         hostClassLoader.add(url);
-        PolyglotSymbolResolver.addToClassPath(url);
+        if (isResolverClassLoading) {
+          PolyglotSymbolResolver.addToClassPath(url);
+        }
       } catch (MalformedURLException ex) {
         throw new IllegalStateException(ex);
       }
