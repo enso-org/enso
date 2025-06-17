@@ -274,6 +274,9 @@ export function createSessionStore(
   watchEffect(() => {
     if (session.data.value) {
       // Save access token so can it be reused by backend services
+      // `saveAccessToken` passes its argument through Electron IPC.
+      // `toRaw` is required because `session.data.value` is a reactive `Proxy`,
+      // which cannot be `structuredClone`d (and therefore cannot be sent over IPC).
       authService.saveAccessToken(toRaw(session.data.value))
     }
   })
