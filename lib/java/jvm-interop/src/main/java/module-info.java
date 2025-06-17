@@ -2,10 +2,6 @@ import org.enso.common.PolyglotSymbolResolver;
 import org.enso.jvm.interop.OtherJvmSymbolResolver;
 
 module org.enso.jvm.interop {
-  // requires org.slf4j;
-  // requires org.graalvm.nativeimage;
-  // requires org.graalvm.word;
-
   requires org.enso.engine.common;
 
   provides PolyglotSymbolResolver with
