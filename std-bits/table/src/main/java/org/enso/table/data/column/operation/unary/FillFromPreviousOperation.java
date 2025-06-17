@@ -51,7 +51,8 @@ public class FillFromPreviousOperation implements UnaryOperation {
   }
 
   @Override
-  public ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     return switch (storage) {
       case NullStorage nullStorage -> nullStorage;
       case ColumnBooleanStorage boolStorage -> {
@@ -77,7 +78,8 @@ public class FillFromPreviousOperation implements UnaryOperation {
         yield StorageIterators.buildOverDoubleStorage(
             doubleStorage,
             false,
-            Builder.getForDouble(doubleStorage.getType(), doubleStorage.getSize(), problemAggregator),
+            Builder.getForDouble(
+                doubleStorage.getType(), doubleStorage.getSize(), problemAggregator),
             (builder, idx, value, isNothing) -> {
               if (!isNothing) {
                 state.isNothing = false;
