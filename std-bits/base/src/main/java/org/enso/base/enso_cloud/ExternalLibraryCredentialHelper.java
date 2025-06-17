@@ -131,7 +131,6 @@ public class ExternalLibraryCredentialHelper {
     }
 
     var tokenField = json.get("token");
-    System.out.println("AAAAA ELCH tok " + tokenField);
     if (tokenField == null || !tokenField.isTextual()) {
       throw malformedTokenResponse();
     }

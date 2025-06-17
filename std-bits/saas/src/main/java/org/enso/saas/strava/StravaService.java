@@ -21,7 +21,6 @@ public final class StravaService {
     private void refresh() throws IOException {
       var oat = accessToken;
       accessToken = ExternalLibraryCredentialHelper.requestAccessToken(credentialReference);
-      System.out.println("AAAAA refresh before " + oat + " after " + accessToken);
     }
 
     // True if we have no token or we have one but it's close to expiring.
@@ -30,9 +29,7 @@ public final class StravaService {
     }
 
     public AccessToken getAccessToken() throws IOException {
-      System.out.println("AAAAA getAccessToken " + (accessToken == null ? "null" :
-        ("" + accessToken.token() + " " + accessToken.expirationDate() + " " + ZonedDateTime.now() + " " + closeToExpiring(accessToken) + " " + shouldRefresh())));
-      if (true || shouldRefresh()) {
+      if (shouldRefresh()) {
         refresh();
       }
       return accessToken;
