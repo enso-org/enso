@@ -362,6 +362,11 @@ export interface ProjectSession {
   readonly userEmail: EmailAddress
 }
 
+export interface ProjectSessionLogs {
+  readonly scrollId: string
+  readonly hits: readonly string[]
+}
+
 export const PROJECT_PARALLEL_MODES = ['ignore', 'restart', 'parallel'] as const
 
 export const PARALLEL_MODE_TO_TEXT_ID = {
@@ -1805,7 +1810,7 @@ export default abstract class Backend {
     projectSessionId: ProjectSessionId,
     params: GetProjectSessionLogsRequestParams,
     title: string,
-  ): Promise<readonly string[]>
+  ): Promise<ProjectSessionLogs>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,

@@ -17,6 +17,7 @@ function createHttpClient() {
   return new HttpClient({
     'x-enso-ide-version': $config.VERSION ?? '',
     'x-enso-session-id': sessionID,
+    'x-enso-version': '2025-01-16',
   })
 }
 

@@ -1,11 +1,13 @@
 /** @file A modal for showing logs for a project. */
-import ReloadIcon from '#/assets/reload.svg'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
+import { Loader } from '#/components/Loader'
+import { Scroller } from '#/components/Scroller'
+import { StatelessSpinner } from '#/components/StatelessSpinner'
 import type Backend from '#/services/Backend'
 import type { ProjectSessionId } from '#/services/Backend'
 import { useText } from '$/providers/react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 
 /** Props for a {@link ProjectLogsModal}. */
 export interface ProjectLogsModalProps {
@@ -20,7 +22,7 @@ export default function ProjectLogsModal(props: ProjectLogsModalProps) {
 
   return (
     <Dialog title={getText('logs')} type="fullscreen">
-      {() => <ProjectLogsModalInternal {...props} />}
+      <ProjectLogsModalInternal {...props} />
     </Dialog>
   )
 }
@@ -30,30 +32,53 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
   const { backend, projectSessionId, projectTitle } = props
   const { getText } = useText()
 
-  const logsQuery = useSuspenseQuery({
+  const logsPages = useInfiniteQuery({
     queryKey: ['projectLogs', { projectSessionId, projectTitle }],
-    queryFn: async () => {
-      const logs = await backend.getProjectSessionLogs(projectSessionId, projectTitle)
-      return logs.join('\n')
-    },
+    queryFn: ({ pageParam }) =>
+      backend.getProjectSessionLogs(projectSessionId, { scrollId: pageParam }, projectTitle),
+    initialPageParam: ((): string | null => null)(),
+    getNextPageParam: (page) => (page.hits.length === 0 ? null : page.scrollId),
   })
+  const logs = logsPages.data?.pages.flatMap((page) => page.hits).join('\n')
+  const isLoading = logsPages.isLoading
+  const isFetching = logsPages.isFetching
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-4 self-start rounded-full border-0.5 border-primary/20 px-[11px] py-2">
+    <div className="flex h-full flex-col gap-2">
+      <Button.Group className="grow-0">
         <Button
-          size="medium"
           variant="icon"
-          icon={ReloadIcon}
+          icon="refresh"
           aria-label={getText('reload')}
-          onPress={async () => {
-            await logsQuery.refetch()
-          }}
+          onPress={() => logsPages.refetch()}
         />
-      </div>
-      <pre className="relative overflow-auto whitespace-pre-wrap">
-        <code>{logsQuery.data}</code>
-      </pre>
+      </Button.Group>
+      {isLoading ?
+        <Loader />
+      : <Scroller
+          scrollbar
+          orientation="vertical"
+          className="relative min-h-0 flex-1 after:pointer-events-none after:absolute after:inset-0 after:rounded-default after:border after:border-primary/20"
+          onScroll={(event) => {
+            if (isFetching) {
+              return
+            }
+            const element = event.currentTarget
+            if (element.scrollTop + element.clientHeight >= element.scrollHeight) {
+              void logsPages.fetchNextPage()
+            }
+          }}
+        >
+          <pre className="m-4 whitespace-pre-wrap break-words">
+            <code>{logs}</code>
+          </pre>
+          {isFetching && (
+            <div className="my-2 flex h-8 w-full flex-col items-center">
+              <StatelessSpinner size={32} phase="loading-medium" />
+            </div>
+          )}
+        </Scroller>
+      }
     </div>
   )
 }
