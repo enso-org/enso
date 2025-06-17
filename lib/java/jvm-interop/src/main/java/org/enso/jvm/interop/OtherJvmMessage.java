@@ -51,7 +51,7 @@ record OtherJvmMessage( // sends a message to the other side
       switch (kind) {
         case 1 -> throw (E) new ClassNotFoundException(msg());
         case 2 -> throw (E) UnsupportedMessageException.create();
-        default -> throw new IllegalStateException(msg());
+        default -> throw new OtherJvmException(msg());
       }
     }
   }
