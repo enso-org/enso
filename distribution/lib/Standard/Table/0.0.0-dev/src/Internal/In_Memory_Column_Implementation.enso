@@ -56,6 +56,7 @@ polyglot java import org.enso.table.data.column.operation.unary.DatePartOperatio
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
 polyglot java import org.enso.table.data.column.operation.unary.DuplicateCountOperation
+polyglot java import org.enso.table.data.column.operation.unary.FillFromPreviousOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
@@ -335,8 +336,9 @@ type In_Memory_Column_Implementation
             _ -> this_column.is_nothing
         result.rename new_name
 
-    fill_nothing (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) -> Column =
-        if Previous_Value == default then fill_previous this_column Nothing else
+    fill_nothing (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) -> Column = case default of
+        Previous_Value -> apply_unary_operation this_column FillFromPreviousOperation.INSTANCE
+        _ ->
             common_type = Value_Type_Helpers.find_common_type_for_arguments [this_column, default]
             common_type.if_not_error <|
                 java_column = this_column.java_column
@@ -344,9 +346,10 @@ type In_Memory_Column_Implementation
                 operation = FillMissingOperation.create java_column storage_type
                 _call_binary_operator this_column default this_column.name operation
 
-    fill_empty (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) -> Column =
-        Value_Type.expect_text this_column <|
-            if Previous_Value == default then fill_previous this_column this_column.is_empty else
+    fill_empty (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) -> Column = Value_Type.expect_text this_column <|
+        case default of
+            Previous_Value -> apply_unary_operation this_column FillFromPreviousOperation.FILL_EMPTY
+            _ ->
                 Value_Type.expect_text default <|
                     result = this_column.is_empty.iif default this_column
                     result.rename this_column.name
@@ -787,19 +790,6 @@ resolve_storage_type value_type = case value_type of
 ## PRIVATE
 naming_helper : Column_Naming_Helper
 naming_helper = Column_Naming_Helper.in_memory
-
-## PRIVATE
-   Fills the missing values in a provided column with the previous non-missing value.
-
-   Arguments:
-   - column: The column to fill.
-   - is_missing: A boolean column specifying which elements are deemed missing.
-     If set to `Nothing`, this will rely on the default missing value semantics
-     (`is_nothing`).
-fill_previous column is_missing =
-    missing_storage = if Nothing == is_missing then Nothing else (is_missing:In_Memory_Column).java_column.getStorage
-    new_storage = (column:In_Memory_Column).java_column.getStorage.fillMissingFromPrevious missing_storage
-    In_Memory_Column.from_storage column.name new_storage
 
 ## PRIVATE
    Applies a UnaryOperation to a column.

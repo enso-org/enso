@@ -52,11 +52,6 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    return null;
-  }
-
-  @Override
   public ColumnStorage<Long> applyFilter(BitSet filterMask, int newLength) {
     return null;
   }

@@ -71,40 +71,6 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    if (missingIndicator != null) {
-      throw new IllegalStateException(
-          "Custom missing value semantics are not supported by BoolStorage.");
-    }
-
-    boolean previousValue = false;
-    boolean hasPrevious = false;
-    long size = getSize();
-    var builder = Builder.getForBoolean(size);
-
-    Context context = Context.getCurrent();
-    for (long i = 0; i < size; i++) {
-      boolean isCurrentValueMissing = isNothing(i);
-      if (isCurrentValueMissing) {
-        if (hasPrevious) {
-          builder.appendBoolean(previousValue);
-        } else {
-          builder.appendNulls(1);
-        }
-      } else {
-        boolean currentValue = getItemAsBoolean(i);
-        builder.appendBoolean(currentValue);
-        previousValue = currentValue;
-        hasPrevious = true;
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  @Override
   public ColumnStorage<Boolean> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
     var builder = Builder.getForBoolean(newLength);

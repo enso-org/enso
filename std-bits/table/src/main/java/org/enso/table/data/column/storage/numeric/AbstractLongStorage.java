@@ -45,40 +45,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   @Override
   public abstract long getItemAsLong(long index) throws ValueIsNothingException;
 
-  @Override
-  public ColumnStorage<Long> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    if (missingIndicator != null) {
-      throw new IllegalStateException(
-          "Custom missing value semantics are not supported by AbstractLongStorage.");
-    }
-
-    long n = getSize();
-    var builder = Builder.getForLong(getType(), n, BlackholeProblemAggregator.INSTANCE);
-    long previousValue = 0;
-    boolean hasPrevious = false;
-
-    Context context = Context.getCurrent();
-    for (long i = 0; i < n; i++) {
-      boolean isCurrentNothing = isNothing(i);
-      if (isCurrentNothing) {
-        if (hasPrevious) {
-          builder.appendLong(previousValue);
-        } else {
-          builder.appendNulls(1);
-        }
-      } else {
-        long currentValue = getItemAsLong(i);
-        builder.appendLong(currentValue);
-        previousValue = currentValue;
-        hasPrevious = true;
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
   /**
    * Return an instance of storage containing the same data but with a wider type.
    *

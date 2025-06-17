@@ -46,12 +46,6 @@ public class MixedStorageFacade extends Storage<Object>
   }
 
   @Override
-  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    var newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
   public ColumnStorage<Object> applyFilter(BitSet filterMask, int newLength) {
     var newStorage = underlyingStorage.applyFilter(filterMask, newLength);
     return new MixedStorageFacade(newStorage);

@@ -79,40 +79,6 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public ColumnStorage<Double> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    if (missingIndicator != null) {
-      throw new IllegalStateException(
-          "Custom missing value semantics are not supported by DoubleStorage.");
-    }
-
-    long n = getSize();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, BlackholeProblemAggregator.INSTANCE);
-    double previousValue = 0;
-    boolean hasPrevious = false;
-
-    Context context = Context.getCurrent();
-    for (long i = 0; i < n; i++) {
-      boolean isCurrentMissing = isNothing(i);
-      if (isCurrentMissing) {
-        if (hasPrevious) {
-          builder.appendDouble(previousValue);
-        } else {
-          builder.appendNulls(1);
-        }
-      } else {
-        double value = getItemAsDouble(i);
-        builder.appendDouble(value);
-        previousValue = value;
-        hasPrevious = true;
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  @Override
   public ColumnStorage<Double> applyFilter(BitSet filterMask, int newLength) {
     var builder =
         Builder.getForDouble(FloatType.FLOAT_64, newLength, BlackholeProblemAggregator.INSTANCE);

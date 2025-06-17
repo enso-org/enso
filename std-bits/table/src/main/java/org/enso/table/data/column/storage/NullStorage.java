@@ -68,9 +68,4 @@ public class NullStorage extends Storage<Void> {
   public ColumnStorage<Void> slice(List<SliceRange> ranges) {
     return new NullStorage(SliceRange.totalLength(ranges));
   }
-
-  @Override
-  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    return this;
-  }
 }
