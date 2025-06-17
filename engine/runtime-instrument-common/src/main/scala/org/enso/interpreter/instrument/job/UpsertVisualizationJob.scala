@@ -5,13 +5,18 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}
-import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
+import org.enso.compiler.pass.analyse.{
+  CachePreferenceAnalysis,
+  DataflowAnalysis
+}
+import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
   EvaluationResult,
   ModuleNotFound,
-  RequiresCompilation
+  RequiresCompilation,
+  UpsertResult
 }
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
@@ -42,13 +47,13 @@ class UpsertVisualizationJob(
   val visualizationId: Api.VisualizationId,
   val expressionId: Api.ExpressionId,
   config: Api.VisualizationConfiguration
-) extends Job[Option[Executable]](
+) extends Job[UpsertResult](
       List(config.executionContextId),
       false,
       false,
       true
     )
-    with UniqueJob[Option[Executable]] {
+    with UniqueJob[UpsertResult] {
 
   /** @inheritdoc */
   override def equalsTo(that: UniqueJob[_]): Boolean =
@@ -59,7 +64,7 @@ class UpsertVisualizationJob(
     }
 
   /** @inheritdoc */
-  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] =
+  override def runImpl(implicit ctx: RuntimeContext): UpsertResult =
     ctx.locking.withContextLock(
       ctx.locking.getOrCreateContextLock(config.executionContextId),
       classOf[UpsertVisualizationJob],
@@ -71,7 +76,7 @@ class UpsertVisualizationJob(
 
         runtimeCache match {
           case Some(runtimeCache) =>
-            runtimeCache.registerObserver(
+            val needsExecute = runtimeCache.registerObserver(
               visualizationId,
               expressionId,
               (computedValue: scala.AnyRef) => {
@@ -114,13 +119,19 @@ class UpsertVisualizationJob(
               },
               ctx.jobControlPlane.visualizationsExecutor()
             )
-            Some(Executable(config.executionContextId, stack))
+            if (needsExecute) {
+              ctx.state.executionHooks.add(UpsertVisualizationJob.InvalidateCaches(expressionId))
+              UpsertVisualizationJob.RequiresExecution(
+                Executable(config.executionContextId, stack)
+              )
+            } else
+              UpsertVisualizationJob.NoExecution
           case None =>
             UpsertVisualizationJob.logger.trace(
               "no cache availablle for {}, aborting",
               expressionId
             )
-            None
+            UpsertVisualizationJob.EmptyStack
         }
       }
     )
@@ -689,4 +700,106 @@ object UpsertVisualizationJob {
   ): Unit =
     stack.foreach(_.syncState.setVisualizationUnsync(visualizationId))
 
+  /** Invalidate caches for a particular expression id. */
+  sealed private case class InvalidateCaches(
+    expressionId: Api.ExpressionId
+  )(implicit ctx: RuntimeContext)
+      extends Runnable {
+
+    override def run(): Unit = {
+      ctx.locking.withWriteCompilationLock(
+        classOf[UpsertVisualizationJob],
+        () => invalidateCaches(expressionId)
+      )
+    }
+
+    /** Update the caches. */
+    private def invalidateCaches(
+      expressionId: Api.ExpressionId
+    )(implicit ctx: RuntimeContext): Unit = {
+      val stacks = ctx.contextManager.getAllContexts.values
+      /* The invalidation of the first cached dependent node is required for
+       * attaching the visualizations to sub-expressions. Consider the example
+       * ```
+       * op = target.foo arg
+       * ```
+       * The result of expression `target.foo arg` is cached. If you attach the
+       * visualization to say `target`, the sub-expression `target` won't be
+       * executed because the whole expression is cached. And the visualization
+       * won't be computed.
+       * To workaround this issue, the logic below tries to identify if the
+       * visualized expression is a sub-expression and invalidate the first parent
+       * expression accordingly.
+       */
+      if (!stacks.exists(isExpressionCached(expressionId, _))) {
+        invalidateFirstDependent(expressionId)
+      }
+    }
+
+    /** Invalidate the first cached dependent node of the provided expression.
+      *
+      * @param expressionId the expression id
+      */
+    private def invalidateFirstDependent(
+      expressionId: Api.ExpressionId
+    )(implicit ctx: RuntimeContext): Unit = {
+      ctx.executionService.getContext
+        .findModuleByExpressionId(expressionId)
+        .ifPresent { module =>
+          module.getIr
+            .getMetadata(DataflowAnalysis)
+            .foreach { metadata =>
+              val externalId = expressionId
+              IRUtils
+                .findByExternalId(module.getIr, externalId)
+                .map { ir =>
+                  DataflowAnalysis.DependencyInfo.Type
+                    .Static(ir.getId, ir.getExternalId)
+                }
+                .flatMap { expressionKey =>
+                  metadata.dependents.getExternal(expressionKey)
+                }
+                .foreach { dependents =>
+                  val stacks = ctx.contextManager.getAllContexts.values
+                  stacks.foreach { stack =>
+                    stack.headOption.foreach { frame =>
+                      dependents
+                        .find { id => frame.cache.get(id) ne null }
+                        .foreach { firstDependent =>
+                          CacheInvalidation.run(
+                            stack,
+                            CacheInvalidation(
+                              CacheInvalidation.StackSelector.Top,
+                              CacheInvalidation.Command
+                                .InvalidateKeys(Seq(firstDependent))
+                            )
+                          )
+                        }
+                    }
+                  }
+                }
+            }
+        }
+    }
+
+    /** Check if the expression is cached in the execution stack.
+      *
+      * @param expressionId the expression id to check
+      * @param stack the execution stack
+      * @return `true` if the expression exists in the frame cache
+      */
+    private def isExpressionCached(
+      expressionId: Api.ExpressionId,
+      stack: Iterable[InstrumentFrame]
+    ): Boolean = {
+      stack.headOption.exists { frame =>
+        frame.cache.get(expressionId) ne null
+      }
+    }
+  }
+
+  sealed abstract class UpsertResult
+  case object EmptyStack                         extends UpsertResult
+  case class RequiresExecution(exec: Executable) extends UpsertResult
+  case object NoExecution                        extends UpsertResult
 }

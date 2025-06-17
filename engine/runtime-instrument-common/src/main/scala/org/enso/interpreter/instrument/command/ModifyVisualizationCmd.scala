@@ -69,10 +69,11 @@ class ModifyVisualizationCmd(
             )
           )
         maybeFutureExecutable flatMap {
-          case None =>
+          case UpsertVisualizationJob.NoExecution =>
             Future.successful(())
-
-          case Some(exec) =>
+          case UpsertVisualizationJob.EmptyStack =>
+            Future.successful(())
+          case UpsertVisualizationJob.RequiresExecution(exec) =>
             for {
               _ <- ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
               _ <- ctx.jobProcessor.run(ExecuteJob(exec))

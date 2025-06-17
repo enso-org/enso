@@ -1,6 +1,6 @@
 package org.enso.interpreter.instrument.job
 
-import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
+import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.annotation.unused
@@ -21,7 +21,9 @@ class SlowUpsertVisualizationJob(
   override val isCancellable: Boolean         = true
   override val mayInterruptIfRunning: Boolean = true
 
-  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
+  override def runImpl(implicit
+    ctx: RuntimeContext
+  ): UpsertVisualizationJob.UpsertResult = {
     if (
       ctx.executionService.getContext.isRandomDelayedCommandExecution && delay
     ) {

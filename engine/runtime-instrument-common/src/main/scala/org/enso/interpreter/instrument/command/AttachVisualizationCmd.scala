@@ -28,9 +28,6 @@ class AttachVisualizationCmd(
       maybeRequestId.toString,
       request.visualizationId
     )
-    ctx.endpoint.sendToClient(
-      Api.Response(maybeRequestId, Api.VisualizationAttached())
-    )
     val maybeFutureExecutable =
       ctx.jobProcessor.run(
         upsertVisualization(
@@ -42,8 +39,28 @@ class AttachVisualizationCmd(
       )
 
     maybeFutureExecutable.flatMap {
-      case None | null      => Future.successful(())
-      case Some(executable) => ctx.jobProcessor.run(ExecuteJob(executable))
+      case UpsertVisualizationJob.EmptyStack =>
+        Future.successful {
+          ctx.endpoint.sendToClient(
+            Api.Response(
+              maybeRequestId,
+              Api.EmptyStackError(
+                request.visualizationConfig.executionContextId
+              )
+            )
+          )
+        }
+      case UpsertVisualizationJob.RequiresExecution(executable) =>
+        ctx.endpoint.sendToClient(
+          Api.Response(maybeRequestId, Api.VisualizationAttached())
+        )
+        ctx.jobProcessor.run(ExecuteJob(executable))
+      case UpsertVisualizationJob.NoExecution =>
+        Future.successful {
+          ctx.endpoint.sendToClient(
+            Api.Response(maybeRequestId, Api.VisualizationAttached())
+          )
+        }
     }
   }
 
