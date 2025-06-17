@@ -5859,7 +5859,6 @@ lazy val createStdLibsIndexes =
 createStdLibsIndexes := {
   updateLibraryManifests.value
   buildEngineDistributionNoIndex.value
-  val modulesToCopy    = componentModulesPaths.value
   val distributionRoot = engineDistributionRoot.value
   val log              = streams.value.log
   val cacheFactory     = streams.value.cacheStoreFactory
