@@ -30,15 +30,19 @@ public final class StringBuilder extends TypedBuilder<String> {
   @Override
   public void append(Object o) {
     ensureSpaceToAppend();
-    try {
-      String str = (String) o;
-      if (type.fits(str)) {
-        data[currentSize++] = str;
-      } else {
-        throw new ValueTypeMismatchException(type, str);
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        String str = (String) o;
+        if (type.fits(str)) {
+          data[currentSize++] = str;
+        } else {
+          throw new ValueTypeMismatchException(type, str);
+        }
+      } catch (ClassCastException e) {
+        throw new ValueTypeMismatchException(type, o);
       }
-    } catch (ClassCastException e) {
-      throw new ValueTypeMismatchException(type, o);
     }
   }
 

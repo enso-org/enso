@@ -23,10 +23,14 @@ public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   @Override
   public void append(Object o) {
     ensureSpaceToAppend();
-    try {
-      data[currentSize++] = NumericConverter.coerceToBigDecimal(o);
-    } catch (UnsupportedOperationException e) {
-      throw new ValueTypeMismatchException(getType(), o);
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        data[currentSize++] = NumericConverter.coerceToBigDecimal(o);
+      } catch (UnsupportedOperationException e) {
+        throw new ValueTypeMismatchException(getType(), o);
+      }
     }
   }
 
