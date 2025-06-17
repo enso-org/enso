@@ -1,10 +1,7 @@
-/**
- * @file
- * Setup page
- */
+/** @file Setup page */
 import { Button } from '#/components/Button'
 import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
 import Page from '#/components/Page'
 import { Separator } from '#/components/Separator'
 import * as stepper from '#/components/Stepper'

@@ -48,8 +48,8 @@ private _concat_columns column_set tables result_type result_row_count needs_cas
                 _ : Integer ->
                     column = parent_table.at i
                     converted = if needs_cast then column.cast result_type on_problems=..Report_Error else column
-                    storage = (converted:In_Memory_Column).java_column.getStorage
-                    storage_builder.appendBulkStorage storage
+                    java_column = (converted:In_Memory_Column).java_column
+                    storage_builder.appendBulkStorage java_column
         sealed_storage = storage_builder.seal
         In_Memory_Column.from_storage column_set.name sealed_storage
 

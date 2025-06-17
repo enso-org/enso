@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ActionMenu from '@/components/ActionMenu.vue'
 import { unrefElement, useEvent, useResizeObserver } from '@/composables/events'
-import { type ActionName } from '@/providers/action'
+import { type DisplayableActionName } from '@/providers/action'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
 import { endOnClickOutside, targetIsOutside } from '@/util/autoBlur'
@@ -10,7 +10,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 
 const menu = ref<HTMLElement>()
 const { actions, point } = defineProps<{
-  actions: ActionName[]
+  actions: DisplayableActionName[]
   /** Location to display the menu near, in client coordinates. */
   point: { x: number; y: number }
 }>()

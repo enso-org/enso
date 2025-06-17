@@ -9,9 +9,10 @@ import { interactionBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
 import { useEvent } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
-import { initializeActions } from '@/providers/action'
+import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
+import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
@@ -20,6 +21,7 @@ import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoB
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
+import * as objects from 'enso-common/src/utilities/data/object'
 import { onMounted, shallowRef } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 import { provideContainerData } from './providers/container'
@@ -43,19 +45,28 @@ const queryClient = useQueryClient()
 
 provideKeyboard()
 const interaction = provideInteractionHandler()
-
-initializeActions()
+const actions = initializeActions()
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
 
-const interactionBindingsHandler = interactionBindings.handler({
-  cancel: () => interaction.cancelAll(),
-})
+const actionHandlers = registerHandlers(
+  {
+    'interaction.cancel': { action: () => interaction.cancelAll() },
+  },
+  actions,
+)
+
+const interactionBindingsHandler = interactionBindings.handler(
+  objects.mapEntries(
+    interactionBindings.bindings,
+    (actionName) => actionHandlers[actionName].action,
+  ),
+)
+
+const { globalEventRegistry } = provideGlobalEventRegistry()
 
 useEvent(window, 'keydown', interactionBindingsHandler)
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e), {
-  capture: true,
-})
+useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
 
 const platformClass = (() => {
   switch (platform()) {

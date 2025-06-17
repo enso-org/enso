@@ -2,7 +2,7 @@
 import DefaultUserIcon from '#/assets/default_user.svg'
 import * as aria from '#/components/aria'
 import { Form } from '#/components/Form'
-import { HiddenFile } from '#/components/Inputs'
+import { HiddenFile } from '#/components/Inputs/HiddenFile'
 import { ProfilePicture } from '#/components/ProfilePicture/ProfilePicture'
 import FocusRing from '#/components/styled/FocusRing'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'

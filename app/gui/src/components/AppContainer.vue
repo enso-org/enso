@@ -113,7 +113,7 @@ const onSignOut = () => {
         <div class="filler" />
         <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
       </div>
-      <div ref="fullscreenRoot" class="mainView">
+      <div class="mainView">
         <div class="panel">
           <KeepAlive>
             <Drive v-if="tab === 'drive'" :initialProjectName="initialProjectName" />
@@ -137,6 +137,7 @@ const onSignOut = () => {
           </KeepAlive>
         </div>
         <RightPanel />
+        <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop.passive />
       </div>
     </RightPanelDataProviderForReact>
   </div>
@@ -194,6 +195,18 @@ const onSignOut = () => {
 
   &.hidden {
     display: none;
+  }
+}
+
+.FullscreenRoot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  & > * {
+    pointer-events: initial;
   }
 }
 </style>

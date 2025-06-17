@@ -23,7 +23,9 @@ import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import { assert } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
 import { isUrlString } from '@/util/data/urlString'
+import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { isIconName } from '@/util/iconMetadata/iconName'
+import { ProjectPath } from '@/util/projectPath'
 import { computed, reactive } from 'vue'
 import { ErrorCode, LsRpcError, RemoteRpcError } from 'ydoc-shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'ydoc-shared/languageServerTypes'
@@ -248,13 +250,13 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       }
     })
 
-    function* types(type: Opt<string>) {
+    function* byType(type: Opt<ProjectPath>): IterableIterator<VisualizationIdentifier> {
       const types =
         type == null ?
           metadata.keys()
         : new Set([
-            ...(metadata.visualizationIdToType.reverseLookup(type) ?? []),
-            ...(metadata.visualizationIdToType.reverseLookup('Any') ?? []),
+            ...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? []),
+            ...(metadata.visualizationIdToType.reverseLookup(ANY_TYPE_QN) ?? []),
           ])
       for (const type of types) yield fromVisualizationId(type)
     }
@@ -296,6 +298,6 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       return module
     }
 
-    return { types, get, icon }
+    return { byType, get, icon }
   },
 )

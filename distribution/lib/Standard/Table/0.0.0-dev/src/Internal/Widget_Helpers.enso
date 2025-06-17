@@ -7,15 +7,10 @@ from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single
 from Standard.Base.System.File_Format import format_types
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser, make_separator_selector
 
-import project.Aggregate_Column.Aggregate_Column
 import project.Expression.Expression
 import project.Internal.Parse_Values_Helper
-import project.Join_Condition.Join_Condition
-import project.Join_Kind.Join_Kind
-import project.Sort_Column.Sort_Column
 import project.Table.Table
 import project.Value_Type.Auto
-import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Extensions.Table_Conversions import all
 

@@ -493,7 +493,7 @@ To run with a debugger first start the debugger listening on 5005, add a
 breakpoint in a test then run with
 
 ```bash
-JAVA_OPTS='-agentlib:jdwp=transport=dt_socket,server=n,address=5005' enso --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
+JAVA_TOOL_OPTIONS='-agentlib:jdwp=transport=dt_socket,server=n,address=5005' enso --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
 ```
 
 The Database tests will by default only test the SQLite backend, to test other
@@ -510,7 +510,7 @@ LANG=C enso --run test/Base_Tests
 ```
 
 Note that JVM assertions are not enabled by default, one has to pass `-ea` via
-`JAVA_OPTS` environment variable. There are also Enso-specific assertions
+`JAVA_TOOL_OPTIONS` environment variable. There are also Enso-specific assertions
 (method `Runtime.assert`) that can be enabled when `ENSO_ENABLE_ASSERTIONS`
 environment variable is set to "true". If JVM assertions are enable, Enso
 assertions are enabled as well.

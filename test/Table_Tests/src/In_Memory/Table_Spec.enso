@@ -7,14 +7,15 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Debug
 
-from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Blank_Selector, Value_Type, Auto
-from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Invalid_Value_Type, Row_Count_Mismatch
+from Standard.Table import Table, Column, Aggregate_Column, Blank_Selector, Value_Type, Auto
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, No_Such_Column, Row_Count_Mismatch
 
 import Standard.Visualization
 
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
-from Standard.Database import Database, SQLite
+import Standard.Database.Connection.Database
+import Standard.Database.Connection.SQLite.SQLite
 
 from Standard.Test import all
 

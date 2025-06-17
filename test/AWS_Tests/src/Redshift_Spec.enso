@@ -5,7 +5,6 @@ from Standard.Table import Table, Value_Type, Bits
 
 from Standard.Database import all
 import Standard.Database.Feature.Feature
-import Standard.Database.Dialect_Flag.Dialect_Flag
 
 from Standard.AWS import Redshift_Details, AWS_Credential
 

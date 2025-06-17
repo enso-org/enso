@@ -5,7 +5,7 @@ import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Runtime.Context
 
 import project.SQL_Query.SQL_Query
-from project.Errors import SQL_Error, Table_Already_Exists
+from project.Errors import Table_Already_Exists
 from project.Internal.Upload.Operations.Upload_Table import create_table_structure, resolve_temp_table_name
 
 ## PRIVATE

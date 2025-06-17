@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
-import project.Data.Vector.Vector
 import project.Enso_Cloud.Errors.Missing_Data_Link_Library
 import project.Error.Error
 import project.Errors.Common.No_Such_Conversion
@@ -15,13 +14,11 @@ import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.File_Like.File_Like
-import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.Content_Type_Metadata
 import project.System.File_Format_Metadata.File_Format_Metadata
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import all
-from project.Enso_Cloud.Public_Utils import get_required_field
 
 polyglot java import org.enso.base.enso_cloud.DataLinkSPI
 polyglot java import org.enso.base.file_format.FileFormatSPI

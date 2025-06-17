@@ -1,8 +1,8 @@
 package org.enso.table.data.column.builder;
 
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
 
@@ -24,7 +24,7 @@ public class ObjectBuilder extends TypedBuilder<Object> {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     long newSize = currentSize + storage.getSize();
     if (newSize > data.length) {
       int newSizeInt = Builder.checkSize(newSize);
@@ -47,7 +47,7 @@ public class ObjectBuilder extends TypedBuilder<Object> {
   }
 
   @Override
-  public Storage<Object> doSeal() {
+  public ColumnStorage<Object> doSeal() {
     return new ObjectStorage(data);
   }
 }

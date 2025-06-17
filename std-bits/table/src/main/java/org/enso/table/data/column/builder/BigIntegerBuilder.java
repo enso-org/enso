@@ -3,7 +3,7 @@ package org.enso.table.data.column.builder;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -64,7 +64,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  protected Storage<BigInteger> doSeal() {
+  protected ColumnStorage<BigInteger> doSeal() {
     return new BigIntegerStorage(data);
   }
 
@@ -100,7 +100,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof IntegerType) {
       if (storage instanceof ColumnLongStorage longStorage) {
         long n = longStorage.getSize();

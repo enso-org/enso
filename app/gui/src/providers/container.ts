@@ -1,7 +1,7 @@
 import { LaunchedProject } from '#/providers/ProjectsProvider'
 import { ProjectId } from '#/services/Backend'
 import { createContextStore } from '@/providers'
-import { ToValue } from '@/util/reactivity'
+import { type ToValue } from '@/util/reactivity'
 import { computed, proxyRefs, toRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 

@@ -1,10 +1,8 @@
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
 import project.Internal.JDBC_Connection.JDBC_Connection
-from project.Internal.JDBC_Connection import get_pragma_value
 
 ## PRIVATE
 type Entity_Naming_Properties

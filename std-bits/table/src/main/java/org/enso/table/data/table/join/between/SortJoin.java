@@ -5,7 +5,7 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
 import org.enso.base.ObjectComparator;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.join.JoinKind;
 import org.enso.table.data.table.join.JoinResult;
@@ -23,9 +23,9 @@ public class SortJoin implements JoinStrategy {
     Context context = Context.getCurrent();
     int nConditions = conditions.size();
     directions = new int[nConditions];
-    leftStorages = new Storage<?>[nConditions];
-    lowerStorages = new Storage<?>[nConditions];
-    upperStorages = new Storage<?>[nConditions];
+    leftStorages = new ColumnStorage<?>[nConditions];
+    lowerStorages = new ColumnStorage<?>[nConditions];
+    upperStorages = new ColumnStorage<?>[nConditions];
     for (int i = 0; i < nConditions; i++) {
       directions[i] = 1;
       leftStorages[i] = conditions.get(i).left().getStorage();
@@ -38,9 +38,9 @@ public class SortJoin implements JoinStrategy {
   private final JoinKind joinKind;
 
   private final int[] directions;
-  private final Storage<?>[] leftStorages;
-  private final Storage<?>[] lowerStorages;
-  private final Storage<?>[] upperStorages;
+  private final ColumnStorage<?>[] leftStorages;
+  private final ColumnStorage<?>[] lowerStorages;
+  private final ColumnStorage<?>[] upperStorages;
   private final BitSet matchedLeftRows = new BitSet();
 
   @Override

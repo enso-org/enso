@@ -1,0 +1,51 @@
+{
+  "header": ["Value"],
+  "value_type": [{ "type": "Value_Type", "constructor": "Time", "display_text": "Time" }],
+  "data": [
+    [
+      {
+        "_display_text_": "12:14:14.123004",
+        "type": "Time_Of_Day",
+        "constructor": "new",
+        "hour": 12,
+        "minute": 14,
+        "second": 14,
+        "nanosecond": 123004005
+      },
+      {
+        "_display_text_": "12:13:14.123004",
+        "type": "Time_Of_Day",
+        "constructor": "new",
+        "hour": 12,
+        "minute": 13,
+        "second": 14,
+        "nanosecond": 123004005
+      },
+      {
+        "_display_text_": "12:15:14.123004",
+        "type": "Time_Of_Day",
+        "constructor": "new",
+        "hour": 12,
+        "minute": 15,
+        "second": 14,
+        "nanosecond": 123004005
+      }
+    ]
+  ],
+  "all_rows_count": 3,
+  "has_index_col": true,
+  "get_child_node_action": "get_row",
+  "use_bottom_status_bar": true,
+  "enable_create_node": true,
+  "data_quality_metrics": [
+    { "name": "Count nothings", "percentage_value": [0] },
+    { "name": "Count untrimmed whitespace", "percentage_value": [null] },
+    { "name": "Count non trivial whitespace", "percentage_value": [null] }
+  ],
+  "type": "EnsoTableOrColumn",
+  "child_label": "row",
+  "is_using_server_sort_and_filter": false,
+  "requires_number_format": [false],
+  "table_version_hash": null,
+  "is_using_multi_filter": [false]
+}

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { type ActionName, resolveAction } from '@/providers/action'
+import { type DisplayableActionName, resolveAction } from '@/providers/action'
 import { computed, toValue } from 'vue'
 
-const { action: actionName } = defineProps<{ action: ActionName }>()
+const { action: actionName } = defineProps<{ action: DisplayableActionName }>()
 const action = computed(() => resolveAction(actionName))
 </script>
 

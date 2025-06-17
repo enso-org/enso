@@ -9,11 +9,11 @@ import project.Metadata.Widget
 import project.Network.HTTP.Header.Header
 import project.Nothing.Nothing
 import project.System.File.File
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, False
 from project.Data.Json import key_value_widget
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import File_Browse, Single_Choice, Text_Input, Vector_Editor
+from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
 from project.Network.HTTP.Header import content_type_widget
 from project.Widget_Helpers import make_all_selector
 

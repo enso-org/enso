@@ -8,8 +8,6 @@ import project.Clue.Clue
 import project.Group.Group
 import project.Spec.Spec
 import project.Spec_Result.Spec_Result
-import project.Suite.Suite
-import project.Suite_Config.Suite_Config
 import project.Test.Test
 import project.Test_Reporter
 import project.Test_Result.Test_Result

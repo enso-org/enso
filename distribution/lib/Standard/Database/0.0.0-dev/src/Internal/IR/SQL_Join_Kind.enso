@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-from Standard.Table import Join_Kind
 
 ## PRIVATE
 

@@ -1,17 +1,18 @@
 <script setup lang="ts">
 /** @file Provides a fullscreen mode to its slot, based on conditional teleport and conditional styling. */
 
+import { useFullscreenAnimation } from '@/components/WithFullScreenMode/fullscreenAnimation'
+import { registerHandlers, toggledAction } from '@/providers/action'
 import { useFullscreenRoot } from '@/providers/fullscreenRoot'
-import { Rect } from '@/util/data/rect'
-import { computed, ref, toRef, watch } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 
 export type SavedSize = Keyframe
 
-const props = defineProps<{
-  fullscreen: boolean
-}>()
+const fullscreen = defineModel<boolean>({ required: true })
 
-const fullscreenRoot = useFullscreenRoot()
+const { enabled = true } = defineProps<{
+  enabled?: boolean
+}>()
 
 /**
  * This value contains the non-fullscreen size of the element, stored for animating the return from fullscreen mode; the
@@ -44,52 +45,25 @@ const emit = defineEmits<{
   'update:animating': [boolean]
 }>()
 
-const content = ref<HTMLElement>()
-
-const fullscreenSize: Keyframe = {
-  top: 0,
-  left: 0,
-  height: '100%',
-  width: '100%',
-}
-
-const animating = ref(0)
-
-watch(animating, (value, oldValue) => {
-  if (value && !oldValue) emit('update:animating', true)
-  else if (!value && oldValue) emit('update:animating', false)
+const fullscreenRoot = useFullscreenRoot()
+const content = useTemplateRef('content')
+const { animating } = useFullscreenAnimation({
+  content,
+  savedSize,
+  emit,
+  fullscreenRoot,
+  fullscreen,
 })
+const active = computed(() => fullscreen.value || animating.value > 0)
 
-function animate(start: Keyframe, end: Keyframe) {
-  const el = content.value
-  if (!el) return
-  animating.value += 1
-  el.animate([start, end], { duration: 200, easing: 'ease-in-out' }).finished.then(
-    () => (animating.value -= 1),
-  )
-}
-
-watch([toRef(props, 'fullscreen'), content], ([fullscreen, el]) => {
-  const fullscreenContainer = fullscreenRoot.value
-  if (!el || !fullscreenContainer) return
-  const container = fullscreenContainer.getBoundingClientRect()
-  if (fullscreen && !savedSize.value) {
-    const inner = Rect.FromDomRect(el.getBoundingClientRect())
-    const startSize = {
-      top: `${inner.top - container.top}px`,
-      left: `${inner.left - container.left}px`,
-      height: `${inner.height}px`,
-      width: `${inner.width}px`,
-    }
-    animate(startSize, fullscreenSize)
-    savedSize.value = startSize
-  } else if (!fullscreen && savedSize.value) {
-    animate(fullscreenSize, savedSize.value)
-    savedSize.value = undefined
-  }
+registerHandlers({
+  'panel.fullscreen': {
+    ...toggledAction(fullscreen),
+    available: () => enabled,
+    icon: () => (fullscreen.value ? 'exit_fullscreen' : 'fullscreen'),
+    description: () => (fullscreen.value ? 'Exit Fullscreen' : 'Fullscreen'),
+  },
 })
-
-const active = computed(() => props.fullscreen || animating.value > 0)
 </script>
 
 <!-- The outer `div` is to avoid having a dynamic root. A component whose root may change cannot be passed to a `slot`,

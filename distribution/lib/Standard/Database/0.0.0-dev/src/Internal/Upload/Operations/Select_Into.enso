@@ -4,7 +4,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Runtime.Context
 
-import project.DB_Table.DB_Table
 import project.Internal.DDL_Transaction
 from project.Errors import SQL_Error, Table_Already_Exists
 from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
