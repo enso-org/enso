@@ -24,7 +24,7 @@ object WarningPreview {
         METHOD
       )
     val visualizationResultFuture =
-      visualizationExpressionFuture.thenApply(visualizationExpression =>
+      visualizationExpressionFuture.thenCompose(visualizationExpression =>
         ctx.executionService.callFunction(
           visualizationExpression,
           value
