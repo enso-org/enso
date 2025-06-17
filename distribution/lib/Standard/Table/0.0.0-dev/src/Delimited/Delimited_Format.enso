@@ -3,7 +3,6 @@ import Standard.Base.Errors.Common.No_Such_Argument
 import Standard.Base.Errors.Common.Not_Invokable
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata

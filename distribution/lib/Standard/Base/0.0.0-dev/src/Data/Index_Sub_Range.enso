@@ -9,7 +9,6 @@ import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
-import project.Math
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -20,7 +19,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Numeric_Input, Single_Choice, Vector_Editor
-from project.Random import get_default_seed, Random
+from project.Random import Random
 
 type Index_Sub_Range
     ## Select the first `count` items.

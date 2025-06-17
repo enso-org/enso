@@ -30,7 +30,7 @@ function menuOption(key: BlockType | 'Unknown', disableSettingTypes: boolean): S
   if (key === 'Unknown') return UNKNOWN_BLOCK_TYPE_OPTION
   const action = resolveAction(blockTypeAction[key])
   return {
-    icon: action.icon,
+    icon: toValue(action.icon),
     label: toValue(action.description),
     labelExtension: action.shortcut && `(${action.shortcut.humanReadable})`,
     disabled: disableSettingTypes ? key !== blockType.value && key !== 'Paragraph' : false,

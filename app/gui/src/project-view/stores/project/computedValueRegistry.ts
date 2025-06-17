@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@/stores/project/executionContext'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
-import { Ok, Result, unwrapOr } from '@/util/data/result'
+import { Ok, Result } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
-import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { arrayEquals } from '@/util/equals'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
 import { type ProjectPath } from '@/util/projectPath'
@@ -16,11 +15,84 @@ import type {
   ProfilingInfo,
 } from 'ydoc-shared/languageServerTypes'
 import { isSome } from 'ydoc-shared/util/data/opt'
+import { SuggestionDb } from '../suggestionDatabase'
+
+/**
+ * Represents type information for expressions, managing both visible and hidden intersection types.
+ */
+export class TypeInfo {
+  private constructor(
+    /** The primary type is the first visible type (e.g., `A` in `A & B`). */
+    public primaryType: ProjectPath,
+    /**
+     * A list of 'visible' intersection types, e.g., [`A`] in `(A & B) : A`, or [`A`, `B`] in `A & B`.
+     * It is never empty.
+     */
+    public visibleTypes: ProjectPath[],
+    /** A list of 'hidden' intersection types, e.g., [`B`] in `(A & B) : A` */
+    public hiddenTypes: ProjectPath[],
+  ) {}
+
+  /** @returns The ancestor types of the primary type by traversing the suggestion database. */
+  ancestors(db: SuggestionDb): Iterable<ProjectPath> {
+    const typename = this.primaryType
+    if (typename == null) return []
+    const entry = db.getEntryByProjectPath(typename)
+    if (entry == null) return []
+    return db.ancestors(entry)
+  }
+
+  /** Create TypeInfo from already parsed types. */
+  static fromParsedTypes(
+    visibleTypes: ProjectPath[],
+    hiddenTypes: ProjectPath[],
+  ): TypeInfo | undefined {
+    const primaryType = visibleTypes[0]
+    if (primaryType == null) return undefined
+    return new TypeInfo(primaryType, visibleTypes, hiddenTypes)
+  }
+
+  /** Create TypeInfo from language server response. */
+  static fromLsResponse(
+    visibleTypes: string[],
+    hiddenTypes: string[],
+    projectNames: ProjectNameStore,
+  ): TypeInfo | undefined {
+    const processedHiddenTypes = hiddenTypes
+      .map((t) => tryParseProjectPath(t, projectNames))
+      .filter(isSome)
+    const processedVisibleTypes = visibleTypes
+      .map((t) => tryParseProjectPath(t, projectNames))
+      .filter(isSome)
+    const primaryType = processedVisibleTypes[0]
+    if (primaryType == null) return undefined
+    return new TypeInfo(primaryType, processedVisibleTypes, processedHiddenTypes)
+  }
+
+  /** Check if this TypeInfo equals another */
+  equals(other: TypeInfo | undefined): boolean {
+    if (other == null) return false
+    return (
+      arrayEquals(this.visibleTypes, other.visibleTypes, (a, b) => a.equals(b)) &&
+      arrayEquals(this.hiddenTypes, other.hiddenTypes, (a, b) => a.equals(b))
+    )
+  }
+}
+
+function tryParseProjectPath(
+  path: string,
+  projectNames: ProjectNameStore,
+): ProjectPath | undefined {
+  const parsed = projectNames.parseProjectPathRaw(path)
+  if (!parsed.ok) {
+    parsed.error.log(`Could not parse '${path}' as a project path`)
+    return undefined
+  }
+  return parsed.value
+}
 
 export interface ExpressionInfo {
-  typename: ProjectPath | undefined
-  hiddenTypes: ProjectPath[]
-  rawTypename: string | undefined
+  typeInfo: TypeInfo | undefined
   methodCall: MethodCall | undefined
   payload: ExpressionUpdatePayload
   profilingInfo: ProfilingInfo[]
@@ -104,19 +176,14 @@ function updateInfo(
   projectNames: ProjectNameStore,
 ) {
   const newInfo = combineInfo(info, update, projectNames)
-  if (newInfo.typename !== info.typename) info.typename = newInfo.typename
-  if (!arrayEquals(newInfo.hiddenTypes, info.hiddenTypes, (a, b) => a.equals(b)))
-    info.hiddenTypes = newInfo.hiddenTypes
-  if (newInfo.rawTypename !== info.rawTypename) info.rawTypename = newInfo.rawTypename
+  if (newInfo.typeInfo && !newInfo.typeInfo.equals(info.typeInfo)) info.typeInfo = newInfo.typeInfo
   if (newInfo.methodCall !== info.methodCall) info.methodCall = newInfo.methodCall
   if (newInfo.payload !== info.payload) info.payload = newInfo.payload
   if (newInfo.profilingInfo !== info.profilingInfo) info.profilingInfo = newInfo.profilingInfo
   if (newInfo.evaluationId !== info.evaluationId) info.evaluationId = newInfo.evaluationId
   // Ensure new fields can't be added to `ExpressionInfo` without this code being updated.
   const _allFieldsHandled = {
-    typename: newInfo.typename,
-    hiddenTypes: newInfo.hiddenTypes,
-    rawTypename: newInfo.rawTypename,
+    typeInfo: newInfo.typeInfo,
     methodCall: newInfo.methodCall,
     payload: newInfo.payload,
     profilingInfo: newInfo.profilingInfo,
@@ -147,25 +214,13 @@ function combineInfo(
   projectNames: ProjectNameStore,
 ): ExpressionInfo {
   const isPending = update.payload.type === 'Pending'
-  const updateSingleValueType = update.type.at(0) // TODO: support multi-value (aka intersection) types
-  const rawTypename = updateSingleValueType ?? (isPending ? info?.rawTypename : undefined)
-  // As all objects descend from Any, we can treat Any as implicit. This reduces the depth of all type
-  // hierarchies that have to be stored and have to be walked when filtering.
-  const typename =
-    rawTypename && rawTypename !== ANY_TYPE_QN ?
-      projectNames.parseProjectPathRaw(rawTypename)
-    : undefined
-  if (typename && !typename.ok) {
-    typename.error.log('Discarding invalid type in expression update')
-  }
-  const hiddenTypes = (update.hiddenType ?? []).map((t) => {
-    const path = projectNames.parseProjectPathRaw(t)
-    if (!path.ok) {
-      path.error.log('Discarding invalid additional type in expression update')
-      return undefined
-    }
-    return path.value
-  })
+
+  // Create typeInfo from the update, or preserve existing when pending
+  const typeInfo =
+    isPending && info?.typeInfo ?
+      info.typeInfo
+    : TypeInfo.fromLsResponse(update.type, update.hiddenType ?? [], projectNames)
+
   const newMethodCall =
     update.methodCall ? translateMethodCall(update.methodCall, projectNames) : undefined
   if (newMethodCall && !newMethodCall.ok) {
@@ -177,9 +232,7 @@ function combineInfo(
       : info.evaluationId
     : 0
   return {
-    typename: typename ? unwrapOr(typename, undefined) : undefined,
-    hiddenTypes: hiddenTypes.filter(isSome),
-    rawTypename,
+    typeInfo,
     methodCall:
       newMethodCall?.ok ? newMethodCall.value
       : isPending ? info?.methodCall

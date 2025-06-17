@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Database.DB_Table.DB_Table
-import Standard.Database.DB_Column.DB_Column
 from Standard.Table import Column, Table
 
 from Standard.Test import all

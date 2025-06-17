@@ -10,7 +10,6 @@ import project.Delimited.Invalid_Rows.Invalid_Rows
 import project.Delimited.Quote_Style.Quote_Style
 import project.Headers.Headers
 import project.Internal.Java_Problems
-import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 from project.Errors import Empty_File_Error, Mismatched_Quote, Parser_Error
 from project.Table import from_java_table

@@ -5,11 +5,12 @@
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { LOGIN_PATH } from '$/appUtils'
 import { useBackends, useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 
@@ -18,12 +19,12 @@ export default function ForgotPassword() {
   const { forgotPassword } = useSession()
   const { getText } = useText()
 
-  const { router, searchParams } = useRouter()
+  const { router } = useRouter()
 
   const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const initialEmail = searchParams.get('email')
+  const [initialEmail] = useQueryParam('email')
   const [emailInput, setEmailInput] = useState(initialEmail ?? '')
 
   return (

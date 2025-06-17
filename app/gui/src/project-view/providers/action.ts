@@ -5,6 +5,7 @@ import {
   nodeEditBindings,
   panelsBindings,
   undoBindings,
+  visualizationBindings,
 } from '@/bindings'
 import { createContextStore } from '@/providers'
 import { type ActionContext, injectActionContext } from '@/providers/actionContext'
@@ -12,7 +13,8 @@ import { assert } from '@/util/assert'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { type ToValue } from '@/util/reactivity'
 import { BindingInfo } from '@/util/shortcuts'
-import { ref } from 'vue'
+import { identity } from '@vueuse/core'
+import { type Ref, ref } from 'vue'
 import { type ForbidExcessProps } from 'ydoc-shared/util/types'
 
 /**
@@ -22,14 +24,18 @@ export interface Action {
   available?: ToValue<boolean>
   enabled?: ToValue<boolean>
   action?: (ctx: ActionContext | undefined) => void
-  icon: Icon
-  description: ToValue<string>
   shortcut?: BindingInfo
-  toggled?: ToValue<boolean>
+  icon?: ToValue<Icon>
+  description?: ToValue<string>
+  toggled?: Ref<boolean> | (() => boolean)
+}
+export interface DisplayableAction extends Action {
+  icon: ToValue<Icon>
+  description: ToValue<string>
 }
 export type ActionHandler = Partial<Action> & { action: (ctx: ActionContext | undefined) => void }
 
-const actions = {
+const displayableActions = {
   // === Graph Editor ===
 
   'graphEditor.showHelp': {
@@ -78,7 +84,7 @@ const actions = {
   'component.createNewNode': {
     icon: 'add',
     description: 'Add New Component',
-    shortcut: graphBindings.bindings.openComponentBrowser,
+    shortcut: graphBindings.bindings['graph.openComponentBrowser'],
   },
   'component.toggleDocPanel': {
     icon: 'help',
@@ -87,7 +93,7 @@ const actions = {
   'component.toggleVisualization': {
     icon: 'eye',
     description: 'Show/Hide visualization',
-    shortcut: graphBindings.bindings.toggleVisualization,
+    shortcut: graphBindings.bindings['graph.toggleVisualization'],
   },
   'component.recompute': {
     icon: 'workflow_play',
@@ -123,10 +129,11 @@ const actions = {
 
   // === Graph ===
 
+  // TODO: Unify with component.createNewNode
   'graph.addComponent': {
     icon: 'add',
     description: 'Add Component',
-    shortcut: graphBindings.bindings.openComponentBrowser,
+    shortcut: graphBindings.bindings['graph.openComponentBrowser'],
   },
   'graph.toggleCodeEditor': {
     icon: 'bottom_panel',
@@ -251,7 +258,106 @@ const actions = {
     icon: 'quote',
     description: 'Quote',
   },
-} satisfies Record<string, Action>
+  'documentationEditor.image': {
+    available: false,
+    icon: 'image',
+    description: 'Insert image',
+  },
+
+  // === Visualizations ===
+
+  'visualization.hide': {
+    icon: 'eye',
+    description: 'Hide visualization',
+  },
+  'visualization.show': {
+    icon: 'eye',
+    description: 'Show visualization',
+  },
+
+  // === Fullscreen ===
+
+  'panel.fullscreen': {
+    available: false,
+    icon: 'fullscreen',
+    description: 'Fullscreen',
+  },
+} satisfies Record<string, DisplayableAction>
+export type DisplayableActionName = keyof typeof displayableActions
+const undisplayableActions = {
+  // === Component Browser ===
+
+  'componentBrowser.acceptInput': {
+    shortcut: componentBrowserBindings.bindings['componentBrowser.acceptInput'],
+  },
+  'componentBrowser.acceptAIPrompt': {
+    shortcut: componentBrowserBindings.bindings['componentBrowser.acceptAIPrompt'],
+  },
+  'componentBrowser.switchPanelFocus': {
+    shortcut: componentBrowserBindings.bindings['componentBrowser.switchPanelFocus'],
+  },
+
+  // === Graph Editor ===
+
+  'graph.openDocumentation': {
+    shortcut: graphBindings.bindings['graph.openDocumentation'],
+  },
+  'graph.openComponentBrowser': {
+    shortcut: graphBindings.bindings['graph.openComponentBrowser'],
+  },
+  'graph.toggleVisualization': {
+    shortcut: graphBindings.bindings['graph.toggleVisualization'],
+  },
+  'graph.selectAll': {
+    shortcut: graphBindings.bindings['graph.selectAll'],
+  },
+  'graph.deselectAll': {
+    shortcut: graphBindings.bindings['graph.deselectAll'],
+  },
+  'graph.pasteNode': {
+    shortcut: graphBindings.bindings['graph.pasteNode'],
+  },
+  'graph.startProfiling': {
+    shortcut: graphBindings.bindings['graph.startProfiling'],
+  },
+  'graph.stopProfiling': {
+    shortcut: graphBindings.bindings['graph.stopProfiling'],
+  },
+
+  // === Visualizations ===
+
+  'visualization.nextType': {
+    shortcut: visualizationBindings.bindings['visualization.nextType'],
+  },
+  'visualization.exitFullscreen': {
+    shortcut: visualizationBindings.bindings['visualization.exitFullscreen'],
+  },
+
+  // === Lists ===
+
+  'list.moveUp': {},
+  'list.moveDown': {},
+  'list.accept': {},
+
+  // === Grid ===
+
+  'grid.cutCells': {},
+  'grid.copyCells': {},
+  'grid.pasteCells': {},
+
+  // === Text Editors ===
+
+  'textEditor.moveLeft': {},
+  'textEditor.moveRight': {},
+  'textEditor.deleteBack': {},
+  'textEditor.deleteForward': {},
+  'textEditor.newline': {},
+
+  // === Interactions ===
+
+  'interaction.cancel': {},
+}
+export type UndisplayableActionName = keyof typeof undisplayableActions
 
 /**
  * A name of an action available in actions context.
@@ -259,18 +365,22 @@ const actions = {
  * Such a name may be passed to `ActionButton`, `ActionMenu` or similar component, making use of
  * handler defined in some ancestor.
  */
-export type ActionName = keyof typeof actions
-type Actions = Record<ActionName, Action>
+export type ActionName = DisplayableActionName | UndisplayableActionName
+type DisplayableActions = Record<DisplayableActionName, DisplayableAction>
+type UndisplayableActions = Record<UndisplayableActionName, Action>
+type Actions = DisplayableActions & UndisplayableActions
 
-const [provideActions, injectActions] = createContextStore('Actions', (a: Actions) => a)
+const [provideActions, injectActions] = createContextStore('Actions', identity<Actions>)
 
 /**
  * Create action context and fill with basic action data (description, default shortcut etc.).
  *
  * Every panel may modify the data providing action handlers using {@link registerHandlers} method.
  */
-export function initializeActions() {
+export function initializeActions(): Actions {
+  const actions = { ...displayableActions, ...undisplayableActions }
   provideActions(actions)
+  return actions
 }
 
 /**
@@ -291,8 +401,8 @@ export function initializeActions() {
  */
 export function registerHandlers<Handlers extends Partial<Record<keyof Actions, ActionHandler>>>(
   handlers: ForbidExcessProps<Handlers, Actions>,
+  actions: Actions = injectActions(),
 ): Actions & Handlers {
-  const actions = injectActions()
   const newActions: Actions = { ...actions }
 
   function isKey(k: PropertyKey): k is keyof Actions {
@@ -304,7 +414,7 @@ export function registerHandlers<Handlers extends Partial<Record<keyof Actions, 
     newActions[action] = {
       ...newActions[action],
       ...handlers[action],
-    }
+    } as (typeof newActions)[typeof action]
   }
   provideActions(newActions)
   return newActions as Actions & Handlers
@@ -320,12 +430,16 @@ export function toggledAction(toggleState = ref(false)) {
   }
 }
 
-type ResolvedAction = Action & {
-  action: () => void
+interface ResolvedAction extends Action {
   available: ToValue<boolean>
   enabled: ToValue<boolean>
+  action: () => void
 }
 
+type DisplayableResolvedAction = ResolvedAction & DisplayableAction
+
+export function resolveAction(actionName: DisplayableActionName): DisplayableResolvedAction
+export function resolveAction(actionName: ActionName): ResolvedAction
 /**
  * Potentially resolve an action by name from context. Raises an error if such action is not found.
  */

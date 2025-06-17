@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
@@ -12,18 +11,16 @@ from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Table, Value_Type
+from Standard.Table import Table
 
 import project.Column_Description.Column_Description
 import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
-import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
 import project.Internal.In_Transaction.In_Transaction
-import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement

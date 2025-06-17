@@ -42,7 +42,7 @@ of their own creation - e.g. where `Error.throw` has happened. Shall that not be
 enough, one can run with `-ea` flag, like:
 
 ```bash
-enso$ JAVA_OPTS=-ea ./built-distribution/enso-engine-*/enso-*/bin/enso --run x.enso
+enso$ JAVA_TOOL_OPTIONS=-ea ./built-distribution/enso-engine-*/enso-*/bin/enso --run x.enso
 ```
 
 to get full stack where the _broken value_ has been created. Collecting such

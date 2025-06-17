@@ -1,8 +1,6 @@
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
-import project.Error.Error
-import project.Errors.Illegal_Argument.Illegal_Argument
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, False
 
 ## ALIAS range
    GROUP Input

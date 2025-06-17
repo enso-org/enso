@@ -11,9 +11,7 @@ import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 
 import * as safeJsonParse from '#/utilities/safeJsonParse'
-import { useRouter } from '$/providers/react'
-import { useCallback } from 'react'
-import { type RouteLocationOptions } from 'vue-router'
+import { useQueryParam } from '$/providers/react/queryParams'
 
 /** The return type of the `useSearchParamsState` hook. */
 type SearchParamsStateReturnType<T> = Readonly<
@@ -40,63 +38,13 @@ export function useSearchParamsState<T = unknown>(
   defaultValue: T | (() => T),
   predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
-  const { router, searchParams: searchParamsRaw } = useRouter()
-  // TODO[ao] deferred value fixes issue for user, but is not clean, and makes unnecessary
-  // rendering for some reason. Should be investigated, replaced with something
-  // transition-friendly, or contents should be prefetched in vue-router beforeGuards.
-  //
-  // Devising a proper fix is tracked by https://github.com/enso-org/enso/issues/13039
-  const searchParams = React.useDeferredValue(searchParamsRaw)
-
-  const setSearchParams = useCallback(
-    (
-      nextSearchParams:
-        | URLSearchParams
-        | ((currentSearchParams: URLSearchParams) => URLSearchParams),
-      options: RouteLocationOptions,
-    ) => {
-      // We get window.location.search, because we ensure it's up-to-date. See comment below.
-      const params = new URLSearchParams(window.location.search)
-
-      if (nextSearchParams instanceof Function) {
-        nextSearchParams = nextSearchParams(params)
-      }
-
-      const query = Object.fromEntries(nextSearchParams.entries())
-      // TODO[ao]: router.push/router.replace are asynchronous, but we want window.location.href
-      // to be updated immediately, so any subsequent query changes won't override this one.
-      //
-      // This keeps the old way of doing (before #12803), but should be rather replaced with
-      // keeping the "intermediate" state by ourselves (in some class) and leave
-      // window.location.search management to router.
-      //
-      // Tracked by https://github.com/enso-org/enso/issues/13039
-      if (options.replace ?? false) {
-        window.history.replaceState(null, '', `?${nextSearchParams.toString()}`)
-      } else {
-        window.history.pushState(null, '', `?${nextSearchParams.toString()}`)
-      }
-      void router.replace({ query, ...options })
-    },
-    [router],
-  )
-
   const prefixedKey = `${appUtils.SEARCH_PARAMS_PREFIX}${key}`
+  const [param, setParam, clearParam] = useQueryParam(prefixedKey)
 
   const lazyDefaultValueInitializer = lazyMemo.useLazyMemoHooks(defaultValue, [])
 
-  const clear = eventCallback.useEventCallback((replace: boolean = false) => {
-    setSearchParams(
-      (currentSearchParams) => {
-        currentSearchParams.delete(prefixedKey)
-        return currentSearchParams
-      },
-      { replace },
-    )
-  })
-
   const rawValue = (() => {
-    const maybeValue = searchParams.get(prefixedKey)
+    const maybeValue = param
     const defaultValueFrom = lazyDefaultValueInitializer()
 
     return maybeValue != null ?
@@ -110,9 +58,9 @@ export function useSearchParamsState<T = unknown>(
 
   React.useEffect(() => {
     if (!isValueValid) {
-      clear(true)
+      clearParam(true)
     }
-  }, [isValueValid, clear])
+  }, [isValueValid, clearParam])
   /**
    * Set the value in the URL search params. If the next value is the same as the default value, it will remove the key from the URL search params.
    * Function reference is always the same.
@@ -128,18 +76,12 @@ export function useSearchParamsState<T = unknown>(
       }
 
       if (nextValue === lazyDefaultValueInitializer()) {
-        clear()
+        clearParam(replace)
       } else {
-        setSearchParams(
-          (currentSearchParams) => {
-            currentSearchParams.set(prefixedKey, JSON.stringify(nextValue))
-            return currentSearchParams
-          },
-          { replace },
-        )
+        setParam(JSON.stringify(nextValue), replace)
       }
     },
   )
 
-  return [value, setValue, clear]
+  return [value, setValue, clearParam]
 }

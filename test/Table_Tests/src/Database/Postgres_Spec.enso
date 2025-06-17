@@ -6,12 +6,11 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 
 from Standard.Table import Column, Table, Value_Type, Aggregate_Column, Bits, expr
-from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
+from Standard.Table.Errors import Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Feature.Feature
 import Standard.Database.Dialect_Flag.Dialect_Flag
-import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
@@ -35,7 +34,6 @@ from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
 import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
 import enso_dev.Table_Tests

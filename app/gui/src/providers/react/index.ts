@@ -1,6 +1,5 @@
 import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
-import { BackendsStore } from '$/providers/backends'
 import { SessionStore } from '$/providers/session'
 import { TextStore } from '$/providers/text'
 import { GuiConfig } from '@/providers/guiConfig'
@@ -15,6 +14,7 @@ export {
   useUser,
   useUserSession,
 } from '$/providers/react/auth'
+export { useBackends } from '$/providers/react/backends'
 export { useRightPanelData } from '$/providers/react/rightPanel'
 export { useRouter } from '$/providers/react/router'
 
@@ -26,9 +26,6 @@ export const useText = useInReactFunction(TextContext)
 
 export const HTTPClientContext = react.createContext<HttpClient | null>(null)
 export const useHttpClient = useInReactFunction(HTTPClientContext)
-
-export const BackendsContext = react.createContext<BackendsStore | null>(null)
-export const useBackends = useInReactFunction(BackendsContext)
 
 export const LocalStorageContext = react.createContext<LocalStorage | null>(null)
 export const useLocalStorage = useInReactFunction(LocalStorageContext)

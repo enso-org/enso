@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Deprecated.Deprecated
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, True
 
 ## PRIVATE
    Deprecate place holder for the Map type.

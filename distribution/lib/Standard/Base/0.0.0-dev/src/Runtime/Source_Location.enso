@@ -2,7 +2,7 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.System.File.File
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import False, True
 
 ## PRIVATE
    ADVANCED

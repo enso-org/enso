@@ -15,7 +15,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Metadata import Display, make_single_choice, Widget
+from Standard.Base.Metadata import Display, Widget
 from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
@@ -38,7 +38,6 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Table_Helpers.Union_Result_Type
 import Standard.Table.Internal.Table_Ref.Table_Ref
-import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Prefix_Name.Prefix_Name
