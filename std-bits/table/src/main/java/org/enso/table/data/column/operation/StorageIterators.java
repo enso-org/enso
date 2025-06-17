@@ -31,7 +31,7 @@ public class StorageIterators {
     try (var progressHandle = ProgressHandler.init("buildObjectOverStorage", source.getSize())) {
       long idx = 0;
       for (S item : source) {
-        if (preserveNothing && item != null) {
+        if (preserveNothing || item != null) {
           operation.apply(idx, item);
         }
         progressHandle.advance();
@@ -47,7 +47,7 @@ public class StorageIterators {
       while (iterator.moveNext()) {
         if (preserveNothing && iterator.isNothing()) {
           operation.apply(iterator.getIndex(), 0, true);
-        } else {
+        } else if (!iterator.isNothing()) {
           operation.apply(iterator.getIndex(), iterator.getItemAsLong(), false);
         }
         progressHandle.advance();
@@ -62,7 +62,7 @@ public class StorageIterators {
       while (iterator.moveNext()) {
         if (preserveNothing && iterator.isNothing()) {
           operation.apply(iterator.getIndex(), Double.NaN, true);
-        } else {
+        } else if (!iterator.isNothing()) {
           operation.apply(iterator.getIndex(), iterator.getItemAsDouble(), false);
         }
         progressHandle.advance();
