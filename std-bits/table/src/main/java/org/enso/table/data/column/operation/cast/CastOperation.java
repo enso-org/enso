@@ -1,6 +1,8 @@
 package org.enso.table.data.column.operation.cast;
 
 import java.math.BigDecimal;
+import java.util.Map;
+
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -84,8 +86,7 @@ public class CastOperation {
   }
 
   private static class TextAccumulator {
-    private static final LeastRecentlyUsedCache<String, Long> graphemeLengthCache =
-        new LeastRecentlyUsedCache<>(1000);
+    private static final Map<String, Long> graphemeLengthCache = new LeastRecentlyUsedCache<>(1000);
 
     private long count = 0;
     private long minLength = Long.MAX_VALUE;
