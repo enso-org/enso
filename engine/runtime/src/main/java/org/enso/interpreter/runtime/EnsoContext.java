@@ -97,7 +97,6 @@ public final class EnsoContext {
   private final boolean isIrCachingDisabled;
   private final boolean shouldWaitForPendingSerializationJobs;
   private final Builtins builtins;
-  private final String home;
   private final CompilerConfig compilerConfig;
   private final NotificationHandler notificationHandler;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, EnsoContext.class);
@@ -117,7 +116,6 @@ public final class EnsoContext {
    * Creates a new Enso context.
    *
    * @param language the language identifier
-   * @param home language home
    * @param environment the execution environment of the {@link TruffleLanguage}
    * @param notificationHandler a handler for notifications
    * @param lockManager the lock manager instance
@@ -125,7 +123,6 @@ public final class EnsoContext {
    */
   public EnsoContext(
       EnsoLanguage language,
-      String home,
       Env environment,
       NotificationHandler notificationHandler,
       LockManager lockManager,
@@ -165,7 +162,6 @@ public final class EnsoContext {
             .isLintingDisabled(getOption(RuntimeOptions.DISABLE_LINTING_KEY))
             .removeUnusedImports(shouldRemoveUnusedImports)
             .build();
-    this.home = home;
     this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;
     this.lockManager = lockManager;
