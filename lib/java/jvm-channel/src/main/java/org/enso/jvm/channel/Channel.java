@@ -343,11 +343,10 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     }
   }
 
-  private <R> R executeImpl( // handles this.execute
-      Persistance.Pool pool, // the pool with persitance
-      Class<R> replyType, // requested return type
-      Function<Channel<? extends Data>, ? extends R> msg // function to serde to the other JVM
-      ) {
+  private <R> R executeImpl(
+      Persistance.Pool pool,
+      Class<R> replyType,
+      Function<Channel<? extends Data>, ? extends R> msg) {
     var address = 0L;
     try {
       var bytes = pool.write(msg);
