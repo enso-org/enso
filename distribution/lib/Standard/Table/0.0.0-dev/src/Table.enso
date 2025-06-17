@@ -1,9 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
-import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Common.Incomparable_Values
@@ -11,13 +9,10 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Out_Of_Memory
 import Standard.Base.Errors.Common.Type_Error
-import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
-import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 from Standard.Base.Metadata import Display, Widget
 from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
@@ -32,37 +27,17 @@ import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Expression.Expression
 import project.Expression.Expression_Error
-import project.Extensions.Table_Conversions
 import project.Fill_With.Fill_With
 import project.Generate_Rows_Range.Generate_Rows_Range
 import project.Grouping_Method.Grouping_Method
-import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
-import project.Internal.Add_Group_Number
-import project.Internal.Add_Row_Number
-import project.Internal.Add_Running
-import project.Internal.Aggregate_Column_Helper
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
-import project.Internal.Column_Type_Helpers
 import project.Internal.Constant_Column.Constant_Column
 import project.Internal.Delimited_Reader
-import project.Internal.Delimited_Writer
-import project.Internal.Display_Helpers
-import project.Internal.Expand_Objects_Helpers
-import project.Internal.Java_Problems
-import project.Internal.Join_Helpers
-import project.Internal.Lookup_Helpers
-import project.Internal.Offset_Helper
-import project.Internal.Parse_Values_Helper
-import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Read_Many_Helpers
-import project.Internal.Replace_Helpers
-import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
-import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Union
-import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
@@ -79,10 +54,6 @@ import project.Value_Type.Auto
 import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Errors import all
-from project.Internal.Add_Row_Number import rename_columns_if_needed
-from project.Internal.Filter_Condition_Helpers import make_filter_column
-from project.Internal.Lookup_Helpers import make_java_lookup_column_description
-from project.Internal.Rows_View import Rows_View
 
 ## Represents a column-oriented table data structure.
 type Table
