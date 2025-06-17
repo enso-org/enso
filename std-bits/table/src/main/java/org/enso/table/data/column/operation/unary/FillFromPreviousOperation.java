@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.unary;
 
+import java.util.Objects;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
@@ -117,10 +118,10 @@ public class FillFromPreviousOperation implements UnaryOperation {
             false,
             Builder.getForType(storage.getType(), storage.getSize(), problemAggregator),
             (builder, idx, value) -> {
-              if (value != null && (!fillEmpty || !"".equals(value))) {
+              if (value != null && (!fillEmpty || !Objects.equals("", value))) {
                 state.prevValue = value;
               }
-              builder.append(state.prevValue);
+              builder.append(state.prevValue == null ? value : state.prevValue);
             });
       }
     };
