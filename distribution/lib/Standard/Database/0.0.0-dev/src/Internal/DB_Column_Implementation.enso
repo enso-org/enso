@@ -632,6 +632,7 @@ round_float this_column decimal_places rounding_mode =
         (round_base:DB_Column).let "round_base" round_base->
             round_midpoint = (round_base + 0.5) / scale
             (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
+                # The intermediate variable `scaled_truncate_mod_2_equals_0` is a workaround for bug #13282
                 scaled_truncate_mod_2_equals_0 = (((scaled.truncate % 2) == 0) : DB_Column)
                 scaled_truncate_mod_2_equals_0.let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                     even_is_up = (this_column >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
