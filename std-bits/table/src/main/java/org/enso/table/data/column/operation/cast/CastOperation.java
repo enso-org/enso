@@ -20,7 +20,6 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
-import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.LeastRecentlyUsedCache;
 
@@ -132,11 +131,10 @@ public class CastOperation {
 
     // Build the min and max length of the text values in the column.
     var accumulator = new TextAccumulator();
-    StorageIterators.buildOverStorage(
+    StorageIterators.forEachOverStorage(
         textType.asTypedStorage(columnStorage),
         false,
-        textType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
-        (builder, index, item) -> accumulator.accumulate(item));
+        (index, item) -> accumulator.accumulate(item));
 
     // Everything is null or empty, so return the original type.
     if (accumulator.allNull() || accumulator.getMaxLength() == 0) {
@@ -213,11 +211,10 @@ public class CastOperation {
 
     // Build the min and max of values in the column.
     var accumulator = new LongAccumulator();
-    StorageIterators.buildOverLongStorage(
+    StorageIterators.forEachOverLongStorage(
         integerType.asTypedStorage(columnStorage),
         false,
-        integerType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
-        (builder, index, item, isNothing) -> accumulator.accumulate(item, isNothing));
+        (index, item, isNothing) -> accumulator.accumulate(item, isNothing));
 
     return accumulator.resolveType();
   }
@@ -232,11 +229,10 @@ public class CastOperation {
     // Build the min and max of values in the column.
     try {
       var accumulator = new LongAccumulator();
-      StorageIterators.buildOverStorage(
+      StorageIterators.forEachOverStorage(
           bigIntegerType.asTypedStorage(columnStorage),
           false,
-          bigIntegerType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
-          (builder, index, item) -> {
+          (index, item) -> {
             if (item == null) {
               return;
             }
@@ -266,11 +262,10 @@ public class CastOperation {
     // Build the min and max of values in the column.
     try {
       var accumulator = new LongAccumulator();
-      StorageIterators.buildOverDoubleStorage(
+      StorageIterators.forEachOverDoubleStorage(
           floatType.asTypedStorage(columnStorage),
           false,
-          floatType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
-          (builder, index, item, isNothing) -> {
+          (index, item, isNothing) -> {
             if (isNothing) {
               return;
             }
@@ -327,11 +322,10 @@ public class CastOperation {
     // Build the min and max of values in the column.
     try {
       var accumulator = new BigDecimalAccumulator();
-      StorageIterators.buildOverStorage(
+      StorageIterators.forEachOverStorage(
           bigDecimalType.asTypedStorage(columnStorage),
           false,
-          bigDecimalType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
-          (builder, index, item) -> accumulator.accumulate(item));
+          (index, item) -> accumulator.accumulate(item));
 
       if (accumulator.getCount() == 0) {
         // If there are no items, we return the original type.
@@ -424,11 +418,10 @@ public class CastOperation {
     // Need to scan the column to determine the most appropriate type.
     var accumulator = new ObjectTypeAccumulator();
     try {
-      StorageIterators.buildOverStorage(
+      StorageIterators.forEachOverStorage(
           AnyObjectType.INSTANCE.asTypedStorage(columnStorage),
           false,
-          AnyObjectType.INSTANCE.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
-          (builder, index, item) -> accumulator.accumulate(item));
+          (index, item) -> accumulator.accumulate(item));
       return accumulator.getCurrentType();
     } catch (IllegalArgumentException e) {
       // Could not combine so return AnyObjectType
@@ -466,17 +459,14 @@ public class CastOperation {
 
     var accumulator = new PrecisionAccumulator();
     switch (storage.getType()) {
-      case BigDecimalType bigDecimalType -> StorageIterators.buildOverStorage(
+      case BigDecimalType bigDecimalType -> StorageIterators.forEachOverStorage(
           bigDecimalType.asTypedStorage(storage),
           false,
-          bigDecimalType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
-          (builder, index, item) -> accumulator.accumulate(item));
-      case BigIntegerType bigIntegerType -> StorageIterators.buildOverStorage(
+          (index, item) -> accumulator.accumulate(item));
+      case BigIntegerType bigIntegerType -> StorageIterators.forEachOverStorage(
           bigIntegerType.asTypedStorage(storage),
           false,
-          bigIntegerType.makeBuilder(0, BlackholeProblemAggregator.INSTANCE),
-          (builder, index, item) ->
-              accumulator.accumulate(item == null ? null : new BigDecimal(item)));
+          (index, item) -> accumulator.accumulate(item == null ? null : new BigDecimal(item)));
       default -> throw new IllegalArgumentException(
           "Cannot compute max precision for storage type: " + storage.getType());
     }
