@@ -178,6 +178,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       cache.offer(nodeId, result);
       cache.putCall(nodeId, call);
     }
+    cache.notifyObservers(nodeId, result);
     cache.putType(nodeId, resultType);
 
     callOnComputedCallback(expressionValue);

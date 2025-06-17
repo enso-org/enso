@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.CachePreferences;
@@ -43,15 +44,20 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     if (preferences.contains(key)) {
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
+      return true;
+    }
+    return false;
+  }
+
+  public void notifyObservers(UUID key, Object value) {
+    synchronized (observables) {
       Subject<Object> observable;
       synchronized (observables) {
         observable =
             observables.computeIfAbsent(key, (UUID uuid) -> ReplaySubject.createWithSize(1));
       }
       observable.onNext(value);
-      return true;
     }
-    return false;
   }
 
   /**
@@ -72,9 +78,15 @@ public final class RuntimeCache implements java.util.function.Function<String, O
       Consumer<Throwable> onFailure,
       Executor executor) {
     Subject<Object> observable;
+    AtomicBoolean newObservable = new AtomicBoolean(false);
     synchronized (observables) {
       observable =
-          observables.computeIfAbsent(expressionId, (UUID uuid) -> ReplaySubject.createWithSize(1));
+          observables.computeIfAbsent(
+              expressionId,
+              (UUID uuid) -> {
+                newObservable.set(true);
+                return ReplaySubject.createWithSize(1);
+              });
     }
     var scheduler = Schedulers.from(executor);
     var observer =
@@ -100,7 +112,12 @@ public final class RuntimeCache implements java.util.function.Function<String, O
                 });
     synchronized (observers) {
       var prev = observers.put(visualizationId, observer);
-      return prev == null;
+      if (prev != null) {
+        // Disposing a previous observer does not necessariy mean it would stop a **currently**
+        // ongoing computation. This may be undesirable with expensive computations.
+        prev.dispose();
+      }
+      return newObservable.get();
     }
   }
 
@@ -161,6 +178,14 @@ public final class RuntimeCache implements java.util.function.Function<String, O
 
   /** Clear the cached values. */
   public void clear() {
+    synchronized (observers) {
+      observers.forEach((k, o) -> o.dispose());
+      observers.clear();
+    }
+    synchronized (observables) {
+      observables.forEach((k, o) -> o.onComplete());
+      observables.clear();
+    }
     cache.clear();
   }
 
