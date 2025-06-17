@@ -8,6 +8,9 @@ import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.AccessToken;
 import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference;
 
 public final class StravaService {
+    // We refresh a token if it will expire less than this far in the future.
+    private static final long CLOSE_TO_EXPIRATION_MINUTES = 5;
+
     private final CredentialReference credentialReference;
     private AccessToken accessToken;
 
@@ -16,13 +19,26 @@ public final class StravaService {
     }
 
     private void refresh() throws IOException {
+      var oat = accessToken;
       accessToken = ExternalLibraryCredentialHelper.requestAccessToken(credentialReference);
+      System.out.println("AAAAA refresh before " + oat + " after " + accessToken);
+    }
+
+    // True if we have no token or we have one but it's close to expiring.
+    private boolean shouldRefresh() {
+      return accessToken == null || closeToExpiring(accessToken);
     }
 
     public AccessToken getAccessToken() throws IOException {
-      if (accessToken == null) {
+      System.out.println("AAAAA getAccessToken " + (accessToken == null ? "null" :
+        ("" + accessToken.token() + " " + accessToken.expirationDate() + " " + ZonedDateTime.now() + " " + closeToExpiring(accessToken) + " " + shouldRefresh())));
+      if (true || shouldRefresh()) {
         refresh();
       }
       return accessToken;
+    }
+
+    private static boolean closeToExpiring(AccessToken accessToken) {
+      return ZonedDateTime.now().isAfter(accessToken.expirationDate().minusMinutes(CLOSE_TO_EXPIRATION_MINUTES));
     }
 }
