@@ -35,10 +35,14 @@ public final class RuntimeOptions {
   private static final OptionDescriptor ENABLE_STATIC_ANALYSIS_DESCRIPTOR =
       OptionDescriptor.newBuilder(ENABLE_STATIC_ANALYSIS_KEY, ENABLE_STATIC_ANALYSIS).build();
 
-  public static final String HOST_CLASS_LOADING = optionName("hostClassLoading");
-  public static final OptionKey<Boolean> HOST_CLASS_LOADING_KEY = new OptionKey<>(true);
+  public static final String HOST_CLASS_LOADING = optionName("classLoading");
+  public static final OptionKey<String> HOST_CLASS_LOADING_KEY = new OptionKey<>("hosted");
   private static final OptionDescriptor HOST_CLASS_LOADING_DESCRIPTOR =
-      OptionDescriptor.newBuilder(HOST_CLASS_LOADING_KEY, HOST_CLASS_LOADING).build();
+      OptionDescriptor.newBuilder(HOST_CLASS_LOADING_KEY, HOST_CLASS_LOADING)
+          .help("Controls the way Enso runtime resolves polyglot java import statements")
+          .usageSyntax("Possible values are <hosted|service|all>")
+          .category(OptionCategory.INTERNAL)
+          .build();
 
   public static final String TREAT_WARNINGS_AS_ERRORS = optionName("treatWarningsAsErrors");
   public static final OptionKey<Boolean> TREAT_WARNINGS_AS_ERRORS_KEY = new OptionKey<>(false);

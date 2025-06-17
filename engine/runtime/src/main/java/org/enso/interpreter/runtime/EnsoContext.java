@@ -87,6 +87,7 @@ public final class EnsoContext {
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticTypeAnalysisEnabled;
   private final boolean isHostClassLoading;
+  private final boolean isResolverClassLoading;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -149,7 +150,20 @@ public final class EnsoContext {
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
-    this.isHostClassLoading = getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
+    {
+        var classLoading = getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
+        this.isHostClassLoading =
+        switch (classLoading) {
+            case "hosted", "all" -> true;
+            case "service" -> false;
+            case null, default -> throw new IllegalStateException(classLoading);
+        };
+        this.isResolverClassLoading = switch (classLoading) {
+            case "service", "all" -> true;
+            case "hosted" -> false;
+            case null, default -> throw new IllegalStateException(classLoading);
+        };
+    }
     this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
@@ -634,19 +648,20 @@ public final class EnsoContext {
         return (TruffleObject) hostSymbol;
       }
     }
-    var javaHome = System.getProperty("java.home");
-    logger.info(
-        () -> String.format("Class %s not found, trying to turn on JVM %s", className, javaHome));
-    var hostSymbol =
-        ClassLookup.lookupJavaClass(
-            className, // name to search for
-            PolyglotSymbolResolver::loadClass, // pluggable polyglot searches
-            collectedExceptions // collect exceptions
-            );
-    if (hostSymbol instanceof TruffleObject) {
-      return (TruffleObject) hostSymbol;
+    if (isResolverClassLoading) {
+        var javaHome = System.getProperty("java.home");
+        logger.info(
+            () -> String.format("Class %s not found, trying to turn on JVM %s", className, javaHome));
+        var hostSymbol =
+            ClassLookup.lookupJavaClass(
+                className, // name to search for
+                PolyglotSymbolResolver::loadClass, // pluggable polyglot searches
+                collectedExceptions // collect exceptions
+                );
+        if (hostSymbol instanceof TruffleObject) {
+          return (TruffleObject) hostSymbol;
+        }
     }
-
     var level = Level.WARNING;
     for (var ex : collectedExceptions) {
       logger.log(level, ex.getMessage());

@@ -6,7 +6,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.ServiceLoader;
 
-/** Generic support for loading Java polyglot symbols. */
+/**
+ * Generic support for loading Java polyglot symbols. The resolver provides two kinds of interfaces:
+ *
+ * <ul>
+ *   <li>the client API - represented by all the <b>public static</b> methods
+ *   <li>the SPI - e.g. service provider interface - those are the <b>protected abstract</b> methods
+ * </ul>
+ *
+ * Those who tend to extend the capabilities of loading Java classes into Enso runtime shall
+ * register their own implementation visible via {@link ServiceLoader}.
+ *
+ * @see RuntimeOptions#HOST_CLASS_LOADING
+ */
 public abstract class PolyglotSymbolResolver {
   private static final Collection<PolyglotSymbolResolver> ALL;
 
