@@ -33,6 +33,10 @@ import org.graalvm.word.WordFactory;
  * @param <Data> internal data of the channel
  */
 public final class Channel<Data extends Channel.Config> implements AutoCloseable {
+  private static final long ISOLATE_SVM = -1;
+  private static final long ISOLATE_MOCK_MASTER = -2;
+  private static final long ISOLATE_MOCK_SLAVE = -3;
+
   /**
    * @GuardedBy("Channel.class")
    */
@@ -63,7 +67,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     this.id = id;
     this.data = data;
     this.env = env;
-    this.isolate = -1;
+    this.isolate = ISOLATE_SVM;
     this.callbackFn = null;
     this.channelClass = handleClass;
     this.channelHandle = handleFn;
@@ -115,7 +119,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         otherOrNull != null
             ? otherOrNull // use other channel when provided
             : // otherwise allocate new and pass this reference to it
-            new Channel<>(-3, otherData, this, null, id);
+            new Channel<>(ISOLATE_MOCK_SLAVE, otherData, this, null, id);
     this.pool = data.createPool(this);
   }
 
@@ -135,7 +139,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     var id = idCounter++;
     if (jvm == null) {
       var otherData = newInstance(configClass);
-      return new Channel<>(-2, config, null, otherData, id);
+      return new Channel<>(ISOLATE_MOCK_MASTER, config, null, otherData, id);
     }
 
     if (!ImageInfo.inImageCode()) {
@@ -195,11 +199,11 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
    * @return is master
    */
   public final boolean isMaster() {
-    return isolate == -1 || isolate == -2;
+    return isolate == ISOLATE_SVM || isolate == ISOLATE_MOCK_MASTER;
   }
 
   final boolean isDirect() {
-    return isolate == -2 || isolate == -3;
+    return isolate == ISOLATE_MOCK_MASTER || isolate == ISOLATE_MOCK_SLAVE;
   }
 
   /**
