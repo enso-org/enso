@@ -13,7 +13,7 @@ import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
-import { computed, onScopeDispose, proxyRefs, ref, watchEffect } from 'vue'
+import { computed, onScopeDispose, proxyRefs, ref, toRaw, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
 
@@ -274,7 +274,10 @@ export function createSessionStore(
   watchEffect(() => {
     if (session.data.value) {
       // Save access token so can it be reused by backend services
-      authService.saveAccessToken(session.data.value)
+      // `saveAccessToken` passes its argument through Electron IPC.
+      // `toRaw` is required because `session.data.value` is a reactive `Proxy`,
+      // which cannot be `structuredClone`d (and therefore cannot be sent over IPC).
+      authService.saveAccessToken(toRaw(session.data.value))
     }
   })
 
