@@ -268,7 +268,7 @@ function createAuthStore(
       userData.value?.type === UserSessionType.full && planOverride.value != null ?
         { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
       : userData.value
-    return intermediate?.type === UserSessionType.full && overrideProfilePicture ?
+    return intermediate?.type === UserSessionType.full && overrideProfilePicture.value ?
         {
           ...intermediate,
           user: { ...intermediate.user, profilePicture: BLACK_SQUARE_IMAGE_512PX },
