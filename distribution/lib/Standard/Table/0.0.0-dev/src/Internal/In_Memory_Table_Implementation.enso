@@ -433,6 +433,9 @@ type In_Memory_Table_Implementation
         if Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
             Column.from_repeated_item value.pretty value this_table.row_count
 
+    make_constant_column_from_vector (this_table : Table & In_Memory_Table) vector:Vector =
+        Column.from_repeated_item "Vector" vector this_table.row_count
+
     make_temp_column_name (this_table : Table & In_Memory_Table) = this_table.column_naming_helper.make_temp_column_name this_table.column_names
 
     columns (this_table : Table & In_Memory_Table) -> Vector = Vector.from_polyglot_array <|
