@@ -59,11 +59,8 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
 
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
-    if (t.isMaster()) {
-      return handle(t);
-    } else {
-      return TruffleClassLoader.withCtx(() -> handle(t));
-    }
+    var res = t.getConfig().loader.withCtx(() -> handle(t));
+    return res;
   }
 
   private OtherJvmResult<? extends Object, ? extends Exception> handle(Channel<OtherJvmPool> t) {
@@ -82,12 +79,13 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
 
   @Persistable(id = 81905)
   record LoadClass(String name)
-      implements Function<Channel, OtherJvmResult<TruffleObject, ClassNotFoundException>> {
+      implements Function<
+          Channel<OtherJvmPool>, OtherJvmResult<TruffleObject, ClassNotFoundException>> {
     @Override
-    public OtherJvmResult<TruffleObject, ClassNotFoundException> apply(Channel t) {
+    public OtherJvmResult<TruffleObject, ClassNotFoundException> apply(Channel<OtherJvmPool> t) {
       assert !t.isMaster() : "Class loading only works on the slave side!";
       try {
-        var clazzRaw = TruffleClassLoader.loadClassObject(name);
+        var clazzRaw = t.getConfig().loader.loadClassObject(name);
         return ReturnValue.create(clazzRaw);
       } catch (ClassNotFoundException ex) {
         return ThrowException.create(ex);
@@ -96,10 +94,10 @@ record OtherJvmMessage(long id, Message message, List<Object> args)
   }
 
   @Persistable(id = 81906)
-  record AddToClassPath(String url) implements Function<Channel<?>, Void> {
+  record AddToClassPath(String url) implements Function<Channel<OtherJvmPool>, Void> {
     @Override
-    public Void apply(Channel t) {
-      TruffleClassLoader.addToClassPath(url);
+    public Void apply(Channel<OtherJvmPool> t) {
+      t.getConfig().loader.addToClassPath(url);
       return null;
     }
   }

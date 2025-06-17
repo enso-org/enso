@@ -15,24 +15,19 @@ import org.graalvm.polyglot.HostAccess;
 
 @ExportLibrary(value = InteropLibrary.class)
 final class TruffleClassLoader extends URLClassLoader implements TruffleObject {
-  private static final TruffleClassLoader DEFAULT = new TruffleClassLoader();
-  private static Context ctx;
+  private Context ctx;
   private Object value;
 
-  private TruffleClassLoader() {
+  TruffleClassLoader() {
     super(new URL[0]);
   }
 
-  static <D> D withCtx(Supplier<D> action) {
-    ctx().enter();
-    try {
-      return action.get();
-    } finally {
-      ctx().leave();
-    }
+  final synchronized void assignCtx(Context ctx) {
+    assert this.ctx == null;
+    this.ctx = ctx;
   }
 
-  private static synchronized Context ctx() {
+  private synchronized Context ctx() {
     if (ctx == null) {
       ctx =
           Context.newBuilder() // no dynamic languages needed
@@ -43,20 +38,29 @@ final class TruffleClassLoader extends URLClassLoader implements TruffleObject {
     return ctx;
   }
 
-  static void addToClassPath(String url) {
+  final <D> D withCtx(Supplier<D> action) {
+    ctx().enter();
     try {
-      DEFAULT.addURL(new URI(url).toURL());
+      return action.get();
+    } finally {
+      ctx().leave();
+    }
+  }
+
+  void addToClassPath(String url) {
+    try {
+      addURL(new URI(url).toURL());
     } catch (MalformedURLException | URISyntaxException ex) {
       ex.printStackTrace();
     }
   }
 
-  static TruffleObject loadClassObject(String className) throws ClassNotFoundException {
-    var clazz = DEFAULT.loadClass(className);
+  final TruffleObject loadClassObject(String className) throws ClassNotFoundException {
+    var clazz = loadClass(className);
     var clazzValue1 = ctx().asValue(clazz);
     var clazzValue2 = clazzValue1.getMember("static");
-    ctx().asValue(DEFAULT).execute(clazzValue2);
-    return (TruffleObject) DEFAULT.value;
+    ctx().asValue(this).execute(clazzValue2);
+    return (TruffleObject) value;
   }
 
   @ExportMessage

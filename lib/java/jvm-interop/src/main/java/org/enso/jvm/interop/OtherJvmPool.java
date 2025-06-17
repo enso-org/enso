@@ -10,6 +10,9 @@ import org.enso.persist.Persistance;
 public final class OtherJvmPool extends Channel.Config {
   private final Map<Long, TruffleObject> objectsById = new HashMap<>();
 
+  /** context to use when entering tests */
+  final TruffleClassLoader loader = new TruffleClassLoader();
+
   private synchronized long registerObject(TruffleObject obj) {
     var size = objectsById.size() + 1;
     objectsById.put((long) size, obj);
