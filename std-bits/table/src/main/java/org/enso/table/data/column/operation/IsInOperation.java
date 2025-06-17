@@ -3,7 +3,11 @@ package org.enso.table.data.column.operation;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.unary.NotOperation;
 
