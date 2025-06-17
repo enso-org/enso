@@ -456,12 +456,23 @@ public final class EnsoContext {
   }
 
   /**
-   * Ensures that a module is preloaded if it can be loaded at all.
+   * Ensures that a module is preloaded if it can be loaded at all. If a module needs to be loaded,
+   * an appropriate write compilation lock needs to be acquired before calling this method.
    *
    * @param moduleName name of the module to preload
    */
   public void ensureModuleIsLoaded(String moduleName) {
     LibraryName.fromModuleName(moduleName).foreach(packageRepository::ensurePackageIsLoaded);
+  }
+
+  /**
+   * Signals if a module needs to be loaded.
+   *
+   * @param moduleName module to be checked
+   * @return true if module needs to be loaded first, false otherwise
+   */
+  public boolean moduleIsLoaded(String moduleName) {
+    return LibraryName.fromModuleName(moduleName).forall(packageRepository::isPackageLoaded);
   }
 
   /**

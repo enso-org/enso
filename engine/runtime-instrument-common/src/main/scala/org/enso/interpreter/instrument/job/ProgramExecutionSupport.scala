@@ -11,11 +11,7 @@ import org.enso.interpreter.instrument.{
   Visualization,
   WarningPreview
 }
-import org.enso.interpreter.instrument.execution.{
-  ErrorResolver,
-  LocationResolver,
-  RuntimeContext
-}
+import org.enso.interpreter.instrument.execution.{ErrorResolver, RuntimeContext}
 import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode
@@ -36,7 +32,6 @@ import org.enso.interpreter.service.error.{
   TypeNotFoundException,
   VisualizationException
 }
-import org.enso.common.LanguageInfo
 import org.enso.interpreter.runtime.warning.{
   Warning,
   WarningsLibrary,
@@ -343,61 +338,47 @@ object ProgramExecutionSupport {
     */
   private def getExecutionOutcome(
     t: Throwable
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] =
-    getDiagnosticOutcome.orElse(getFailureOutcome).lift(t)
-
-  /** Extract diagnostic information from the provided exception. */
-  def getDiagnosticOutcome(implicit
-    ctx: RuntimeContext
-  ): PartialFunction[Throwable, Api.ExecutionResult.Diagnostic] = {
-    case ex: AbstractTruffleException
-        // exit exception is special, and handled as failure rather than Diagnostics.
-        if !ctx.executionService.isExitException(ex) &&
-        // The empty language is allowed because `getLanguage` returns null when
-        // the error originates in builtin node.
-        Option(ctx.executionService.getLanguage(ex))
-          .forall(_ == LanguageInfo.ID) =>
-      val section = Option(ctx.executionService.getSourceLocation(ex))
-      val source  = section.flatMap(sec => Option(sec.getSource))
-      Api.ExecutionResult.Diagnostic.error(
-        VisualizationResult.findExceptionMessage(ex),
-        source.flatMap(src => findFileByModuleName(src.getName)),
-        section.map(LocationResolver.sectionToRange),
-        section
-          .flatMap(LocationResolver.getExpressionId(_))
-          .map(_.externalId),
-        ErrorResolver.getStackTrace(ex)
-      )
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
+    val diagnostic =
+      ExecutionService.resultOf(ctx.executionService.getDiagnosticOutcome(t))
+    diagnostic
+      .map(d => Option(d.asInstanceOf[Api.ExecutionResult]))
+      .orElse(getFailureOutcomeFromException(t))
   }
 
-  /** Extract information about the failure from the provided exception. */
-  private def getFailureOutcome(implicit
+  def getDiagnosticOutcome(
+    t: Throwable
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult.Diagnostic] = {
+    val diagnostic =
+      ExecutionService.resultOf(ctx.executionService.getDiagnosticOutcome(t))
+
+    // Can't use `orElse` since inferencer gets confused
+    if (diagnostic.isEmpty) None
+    else Some(diagnostic.get().asInstanceOf[Api.ExecutionResult.Diagnostic])
+  }
+
+  private def getFailureOutcomeFromException(throwable: Throwable)(implicit
     ctx: RuntimeContext
-  ): PartialFunction[Throwable, Api.ExecutionResult.Failure] = {
+  ): Option[Api.ExecutionResult] = throwable match {
     case ex: TypeNotFoundException =>
-      Api.ExecutionResult.Failure(
-        ex.getMessage,
-        findFileByModuleName(ex.getModule)
+      Some(
+        Api.ExecutionResult.Failure(
+          ex.getMessage,
+          findFileByModuleName(ex.getModule)
+        )
       )
 
     case ex: MethodNotFoundException =>
-      Api.ExecutionResult.Failure(
-        ex.getMessage,
-        findFileByModuleName(ex.getModule)
+      Some(
+        Api.ExecutionResult.Failure(
+          ex.getMessage,
+          findFileByModuleName(ex.getModule)
+        )
       )
-
-    case exitEx: AbstractTruffleException
-        if ctx.executionService.isExitException(exitEx) =>
-      val section = Option(ctx.executionService.getSourceLocation(exitEx))
-      val source  = section.flatMap(sec => Option(sec.getSource))
-      val file    = source.flatMap(src => findFileByModuleName(src.getName))
-      Api.ExecutionResult.Failure(
-        exitEx.getMessage,
-        file
-      )
-
     case ex: ServiceException =>
-      Api.ExecutionResult.Failure(ex.getMessage, None)
+      Some(Api.ExecutionResult.Failure(ex.getMessage, None))
+    case _ =>
+      None
   }
 
   private def sendInterruptedExpressionUpdate(
@@ -495,13 +476,17 @@ object ProgramExecutionSupport {
             Api.ExpressionUpdate.Payload
               .Panic(
                 ctx.executionService.getExceptionMessage(sentinel.getPanic),
-                ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
+                ErrorResolver
+                  .getStackTrace(sentinel)(ctx.executionService)
+                  .flatMap(_.expressionId)
               )
           )
         case error: DataflowError =>
           Some(
             Api.ExpressionUpdate.Payload.DataflowError(
-              ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
+              ErrorResolver
+                .getStackTrace(error)(ctx.executionService)
+                .flatMap(_.expressionId)
             )
           )
         case panic: AbstractTruffleException =>
@@ -509,7 +494,9 @@ object ProgramExecutionSupport {
             Some(
               Api.ExpressionUpdate.Payload.Panic(
                 VisualizationResult.findExceptionMessage(panic),
-                ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
+                ErrorResolver
+                  .getStackTrace(panic)(ctx.executionService)
+                  .flatMap(_.expressionId)
               )
             )
           } else {
@@ -521,7 +508,9 @@ object ProgramExecutionSupport {
           Some(
             Api.ExpressionUpdate.Payload.DataflowError(
               ErrorResolver
-                .getStackTrace(warnings.getValue.asInstanceOf[DataflowError])
+                .getStackTrace(warnings.getValue.asInstanceOf[DataflowError])(
+                  ctx.executionService
+                )
                 .flatMap(_.expressionId)
             )
           )
@@ -740,13 +729,14 @@ object ProgramExecutionSupport {
         val message =
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         if (!TypesGen.isPanicSentinel(expressionValue)) {
-          val typeOfNode =
-            TypeOfNode.getUncached.findTypeOrError(expressionValue)
+          // FIXME: Needs to be executed within TruffleContext or it will blow up
+          //val typeOfNode =
+          //  TypeOfNode.getUncached.findTypeOrError(expressionValue)
           logger.warn(
-            "Execution of visualization [{}] on value [{}] of [{}] failed. {} | {} | {}",
+            "Execution of visualization [{}] on value [{}] failed. {} | {} | {}",
             visualizationId,
             expressionId,
-            typeOfNode,
+            //typeOfNode,
             message,
             expressionValue,
             error
@@ -765,7 +755,7 @@ object ProgramExecutionSupport {
                       expressionId
                     ),
                   message,
-                  getDiagnosticOutcome.lift(error)
+                  getDiagnosticOutcome(error)
                 )
               )
             )

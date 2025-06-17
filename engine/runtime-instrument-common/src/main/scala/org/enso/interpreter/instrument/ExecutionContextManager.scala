@@ -31,8 +31,17 @@ class ExecutionContextManager {
     */
   def destroy(id: ContextId): Unit =
     synchronized {
+      if (contexts.contains(id)) {
+        contexts.get(id).foreach(_.close())
+      }
       contexts -= id
     }
+
+  def close(): Unit = {
+    synchronized {
+      contexts.foreach(_._2.close());
+    }
+  }
 
   /** Gets a stack for a given context id.
     *
