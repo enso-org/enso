@@ -1,0 +1,88 @@
+from Standard.Base import all
+
+from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
+
+from Standard.Table import Table
+
+polyglot java import java.io.IOException
+polyglot java import org.enso.google.GoogleSheetsForEnso
+polyglot java import org.enso.google.WrappedGoogleCredentials
+
+type Google_Sheets_Workbook
+    Value workbook_id:Text java_service
+
+    ## ICON cloud
+       Initializes the Google Sheets instance using the given credentials file.
+
+       Arguments:
+       - credentials: a Cloud secret or a file containing Google Service Account credentials to use to
+         access Google services. The credentials file can be downloaded from the
+         Google Admin Console when generating a key.
+    new workbook_id:Text credentials:Enso_Secret =
+        service = GoogleSheetsForEnso.create (_wrap_credentials credentials)
+        Google_Sheets_Workbook.Value workbook_id service
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       SUGGESTED 2
+       Gets the names of all the sheets.
+    sheet_names : Vector Text
+    sheet_names self = _handle_exceptions <|
+        self.java_service.getSheetNames self.workbook_id
+
+    ## ALIAS get, import, load, open, range, sheet, worksheet
+       GROUP Standard.Base.Input
+       ICON data_input
+       SUGGESTED 1
+       Read a range into a Table.
+
+       Arguments:
+       - query: sheet name, range name or address to read from the workbook.
+       - headers: whether to use the first row as headers (default is
+         `Detect_Headers`).
+       - limit: the maximum number of rows to read.
+         If set to `Nothing`, all rows will be returned.
+    @query self-> _query_widget self
+    read self query:Text -> Table =
+        values = _handle_exceptions <|
+            self.java_service.getSheetRange self.workbook_id query
+        # The first entry is the column name (A, B, ...) and the rest are the values.
+        column_vectors = values.map v-> [v.first, v.drop 1]
+        # The column lengths may not necessarily be the same, but Table.new expects the same lengths, so we normalize:
+        row_count = column_vectors.map (p-> p.second.length) . compute ..Maximum
+        normalized = column_vectors.map p->
+            [p.first, p.second.pad row_count Nothing]
+        Table.new normalized
+
+## PRIVATE
+Table_Viz_Data.from (that:Google_Sheets_Workbook) = 
+    Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "worksheets" "worksheet" "read"] [that.sheet_names.to_vector]
+
+## Error occurred when calling the Google Sheets API
+type Google_Api_Error
+    ## PRIVATE
+    Error message cause
+
+private _handle_exceptions ~action =
+    Panic.catch IOException action caught_panic->
+        Error.throw (Google_Api_Error.Error caught_panic.payload.to_text caught_panic.payload)
+
+private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
+    case credential of
+        secret : Enso_Secret ->
+            WrappedGoogleCredentials.fromCredentialReference (as_credential_reference secret)
+        secret_file : File ->
+            secret_file.with_input_stream [File_Access.Read] stream->
+                stream.with_java_stream java_input_stream->
+                    WrappedGoogleCredentials.fromStream java_input_stream
+        _ -> Nothing
+
+## Creates a query widget for the `read` method.
+private _query_widget wb:Google_Sheets_Workbook display:Display=..Always -> Widget =
+    options = (wb.sheet_names . to_vector . map t-> Option t t.pretty)
+    Single_Choice display=display values=options
