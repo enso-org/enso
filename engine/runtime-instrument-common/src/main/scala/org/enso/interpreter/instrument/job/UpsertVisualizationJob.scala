@@ -141,10 +141,8 @@ class UpsertVisualizationJob(
     hasWriteLock: Boolean
   )(implicit ctx: RuntimeContext): Boolean = {
     UpsertVisualizationJob.logger.trace(
-      "Evaluating expression {} in observer for value {} @ {} thread",
-      expressionId,
-      value,
-      Thread.currentThread().getName
+      "Evaluating expression {} in observer",
+      expressionId
     )
     val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
       config.visualizationModule,
@@ -420,7 +418,7 @@ object UpsertVisualizationJob {
         Left(
           EvaluationFailed(
             s"Evaluation of visualization argument was interrupted [$retryCount] times.",
-            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
           )
         )
 
@@ -436,7 +434,7 @@ object UpsertVisualizationJob {
         Left(
           EvaluationFailed(
             Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
-            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
           )
         )
 
@@ -497,7 +495,7 @@ object UpsertVisualizationJob {
         Left(
           EvaluationFailed(
             s"Evaluation of visualization was interrupted [$retryCount] times.",
-            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
           )
         )
 
@@ -513,7 +511,7 @@ object UpsertVisualizationJob {
         Left(
           EvaluationFailed(
             Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
-            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
           )
         )
     }

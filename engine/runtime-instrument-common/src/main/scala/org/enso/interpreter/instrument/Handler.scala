@@ -82,6 +82,10 @@ abstract class Handler {
     }
   }
 
+  def close(): Unit = {
+    contextManager.close();
+  }
+
   def cmdFactory: CommandFactory
 }
 

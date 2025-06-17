@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
@@ -35,6 +36,9 @@ import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.TypeInfo;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
+import org.enso.interpreter.instrument.execution.ErrorResolver;
+import org.enso.interpreter.instrument.execution.LocationResolver;
+import org.enso.interpreter.instrument.job.VisualizationResult;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -62,6 +66,8 @@ import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
+import org.enso.polyglot.runtime.Runtime$Api$ExecutionResult$Diagnostic$;
+import org.enso.polyglot.runtime.Runtime$Api$ExecutionResult$Failure$;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
 import org.slf4j.Logger;
@@ -409,6 +415,43 @@ public final class ExecutionService {
           }
           return ret[0];
         });
+  }
+
+  // It's Option because Scala/Java interop for nested classes from Java is non-functional
+  public Future<Optional<Object>> getDiagnosticOutcome(Throwable t) {
+    return submitExecution(
+        () -> {
+          if (t instanceof AbstractTruffleException ex) {
+            var section = scala.Option.apply(getSourceLocation(ex));
+            var source = section.flatMap(sec -> scala.Option.apply(sec.getSource()));
+            var file = source.flatMap(src -> findFileByModuleName(src.getName()));
+            if (!isExitException(ex)) {
+              // The empty language is allowed because `getLanguage` returns null when
+              // the error originates in builtin node.
+              var lang = getLanguage(ex);
+              if (lang == null || lang.equals(LanguageInfo.ID)) {
+                return Optional.of(
+                    Runtime$Api$ExecutionResult$Diagnostic$.MODULE$.error(
+                        VisualizationResult.findExceptionMessage(ex),
+                        file,
+                        section.map(sec -> LocationResolver.sectionToRange(sec)),
+                        section
+                            .flatMap(sec -> LocationResolver.getExpressionId(sec, this))
+                            .map(LocationResolver.ExpressionId::externalId),
+                        ErrorResolver.getStackTrace(ex, this)));
+              }
+            } else {
+              return Optional.of(
+                  Runtime$Api$ExecutionResult$Failure$.MODULE$.apply(ex.getMessage(), file));
+            }
+          }
+          return Optional.empty();
+        });
+  }
+
+  private scala.Option<File> findFileByModuleName(String module) {
+    return scala.Option.apply(
+        getContext().findModule(module).map(m -> new File(m.getPath())).orElse(null));
   }
 
   private Type cacheKey() {
