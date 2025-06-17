@@ -296,7 +296,7 @@ fn enable_cloud_tests(step: Step) -> Step {
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum StandardLibraryTestsScope {
     CloudRelated,
-    StandardLibrary,
+    StandardLibraryJvm,
     StandardLibraryInNative,
     Microsoft,
 }
@@ -305,7 +305,7 @@ impl Display for StandardLibraryTestsScope {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
             StandardLibraryTestsScope::CloudRelated => write!(f, "std-cloud-related"),
-            StandardLibraryTestsScope::StandardLibrary => write!(f, "standard-library"),
+            StandardLibraryTestsScope::StandardLibraryJvm => write!(f, "standard-library"),
             StandardLibraryTestsScope::StandardLibraryInNative =>
                 write!(f, "standard-library-in-native"),
             StandardLibraryTestsScope::Microsoft => write!(f, "std-microsoft"),
@@ -323,7 +323,7 @@ pub struct StandardLibraryTests {
 impl StandardLibraryTests {
     fn title(&self) -> String {
         let title = match self.scope {
-            StandardLibraryTestsScope::StandardLibrary => "Standard Library JVM Tests",
+            StandardLibraryTestsScope::StandardLibraryJvm => "Standard Library JVM Tests",
             StandardLibraryTestsScope::StandardLibraryInNative => "Standard Library Native Tests",
             StandardLibraryTestsScope::Microsoft => "Standard Library Microsoft Tests",
             StandardLibraryTestsScope::CloudRelated => "Standard Library Cloud Tests",

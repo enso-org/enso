@@ -662,7 +662,7 @@ pub fn add_backend_checks(
         job::StandardLibraryTests {
             graal_edition,
             engine_launcher,
-            scope: job::StandardLibraryTestsScope::StandardLibrary,
+            scope: job::StandardLibraryTestsScope::StandardLibraryJvm,
         },
         &[&build_engine_distribution_id],
     );
