@@ -466,7 +466,7 @@ type In_Memory_Table_Implementation
 
         java_conditions = join_resolution.conditions
         new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-            this_table.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
+            (this_table:In_Memory_Table).java_table.join (right:In_Memory_Table).java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
         from_java_table new_java_table
 
     cross_join (this_table : Table & In_Memory_Table) (right : Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table = Out_Of_Memory.handle_java_exception "cross_join" <|
@@ -477,7 +477,7 @@ type In_Memory_Table_Implementation
             [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
         on_problems.attach_problems_before limit_problems <|
             new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                this_table.java_table.crossJoin right.java_table right_prefix java_aggregator
+                (this_table:In_Memory_Table).java_table.crossJoin (right:In_Memory_Table).java_table right_prefix java_aggregator
             from_java_table new_java_table
 
     merge (this_table : Table & In_Memory_Table) (lookup_table : Table = Missing_Argument.throw "lookup_table") (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
@@ -532,7 +532,7 @@ type In_Memory_Table_Implementation
             [Row_Count_Mismatch.Error left_row_count right_row_count]
         on_problems.attach_problems_before problems <|
             new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                this_table.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
+                (this_table:In_Memory_Table).java_table.zip (right:In_Memory_Table).java_table keep_unmatched_bool right_prefix java_aggregator
             from_java_table new_java_table
 
     union (this_table : Table & In_Memory_Table) (tables : Table | Vector = Missing_Argument.throw "tables") columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table =
