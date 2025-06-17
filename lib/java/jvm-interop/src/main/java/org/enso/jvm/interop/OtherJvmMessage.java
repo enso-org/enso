@@ -16,10 +16,9 @@ import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 
+/** Sends a message to the other side with ReflectionLibrary-like arguments. */
 @Persistable(id = 81901)
-record OtherJvmMessage( // sends a message to the other side
-    long id, Message message, List<Object> args // with ReflectionLibrary-like arguments
-    )
+record OtherJvmMessage(long id, Message message, List<Object> args)
     implements Function<
         Channel<OtherJvmPool>, OtherJvmResult<? extends Object, ? extends Exception>> {
   @Persistable(id = 81908, allowInlining = false)
