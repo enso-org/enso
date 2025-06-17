@@ -14,12 +14,12 @@ from project.Internal.Type_Refinements.Single_Column_Typed_Table_Conversions imp
 
 refine_table (table : In_Memory_Table) =
     if is_single_column table . not then (table : Table & In_Memory_Table) else
-        if is_single_value (table.at 0) then _refine_single_value_single_column_table table else
+        if is_single_value ((table:Table).at 0) then _refine_single_value_single_column_table table else
             _refine_single_column_table table
 
 ## This should be consistent with `Column_Refinements._refine_single_value_column` - the code needs to be copied because we need to spell out all the types.
 private _refine_single_value_single_column_table table =
-    column = table.at 0
+    column = (table:Table).at 0
     inferred_value_type = column.inferred_precise_value_type
     case inferred_value_type of
         Value_Type.Integer _ ->
@@ -45,7 +45,7 @@ private _refine_single_value_single_column_table table =
 
 ## This should be consistent with `Column_Refinements._refine_column` - the code needs to be copied because we need to spell out all the types.
 private _refine_single_column_table table =
-    column = table.at 0
+    column = (table:Table).at 0
     inferred_value_type = column.inferred_precise_value_type
     case inferred_value_type of
         Value_Type.Integer _ -> (table : Table & In_Memory_Table & Column & Numeric_Column)
