@@ -32,7 +32,7 @@ export type DataLoader<Props> = {
   ) => Promise<Result<Props, Exclude<NavigationGuardReturn, void | undefined | true>>>
 
   /**
-   * Like `beforeRouteEnter` nagivation guard, but is given `data` object which may be modified
+   * Like `beforeRouteUpdate` nagivation guard, but is given `data` object which may be modified
    * to update component props.
    */
   beforeRouteUpdate?(
