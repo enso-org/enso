@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.cast;
 
 import java.math.BigDecimal;
 import java.util.Map;
-
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
