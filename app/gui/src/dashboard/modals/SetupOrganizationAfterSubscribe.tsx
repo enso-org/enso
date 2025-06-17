@@ -100,26 +100,24 @@ export function SetupOrganizationAfterSubscribe(props: SetupOrganizationAfterSub
   })
 
   return (
-    <>
-      <Dialog
-        title={getText('setupOrganization')}
-        isDismissable={false}
-        isKeyboardDismissDisabled
-        hideCloseButton
-        size="xxxlarge"
-        padding="xlarge"
-        modalProps={{ isOpen: shouldShowModal }}
+    <Dialog
+      title={getText('setupOrganization')}
+      isDismissable={false}
+      isKeyboardDismissDisabled
+      hideCloseButton
+      size="xxxlarge"
+      padding="xlarge"
+      modalProps={{ isOpen: shouldShowModal }}
+    >
+      <Stepper
+        state={stepperState}
+        renderStep={(stepProps) => (
+          <Stepper.Step {...stepProps} title={steps[stepProps.index]?.title ?? ''} />
+        )}
       >
-        <Stepper
-          state={stepperState}
-          renderStep={(stepProps) => (
-            <Stepper.Step {...stepProps} title={steps[stepProps.index]?.title ?? ''} />
-          )}
-        >
-          {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
-        </Stepper>
-      </Dialog>
-    </>
+        {({ currentStep, nextStep }) => <>{steps[currentStep]?.component({ nextStep })}</>}
+      </Stepper>
+    </Dialog>
   )
 }
 

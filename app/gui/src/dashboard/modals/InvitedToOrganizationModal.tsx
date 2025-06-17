@@ -25,75 +25,71 @@ export function InvitedToOrganizationModal() {
   ).mutateAsync
 
   if (!shouldDisplay) {
-    return <></>
+    return null
   } else {
     switch (user.newOrganizationInvite) {
       case 'pending': {
         return (
-          <>
-            <Dialog
-              title={getText('organizationInviteTitle')}
-              isKeyboardDismissDisabled
-              isDismissable={false}
-              hideCloseButton
-              modalProps={{ defaultOpen: true }}
-            >
-              {({ close }) => (
-                <Form
-                  schema={z.object({})}
-                  className="flex flex-col gap-4"
-                  onSubmit={async () => {
-                    await acceptInvitation([])
-                    close()
-                  }}
-                >
-                  <div>
-                    <Text disableLineHeightCompensation>{getText('organizationInvitePrefix')}</Text>
-                    <Text disableLineHeightCompensation className="font-bold">
-                      {user.newOrganizationName}
-                    </Text>
-                    <Text disableLineHeightCompensation>{getText('organizationInviteSuffix')}</Text>
-                  </div>
-                  <Button.Group className="w-min self-end">
-                    <Button
-                      variant="outline"
-                      onPress={async () => {
-                        await declineInvitation([user.email])
-                        close()
-                      }}
-                    >
-                      {getText('decline')}
-                    </Button>
-                    <Form.Submit variant="accent">{getText('accept')}</Form.Submit>
-                  </Button.Group>
-                </Form>
-              )}
-            </Dialog>
-          </>
+          <Dialog
+            title={getText('organizationInviteTitle')}
+            isKeyboardDismissDisabled
+            isDismissable={false}
+            hideCloseButton
+            modalProps={{ defaultOpen: true }}
+          >
+            {({ close }) => (
+              <Form
+                schema={z.object({})}
+                className="flex flex-col gap-4"
+                onSubmit={async () => {
+                  await acceptInvitation([])
+                  close()
+                }}
+              >
+                <div>
+                  <Text disableLineHeightCompensation>{getText('organizationInvitePrefix')}</Text>
+                  <Text disableLineHeightCompensation className="font-bold">
+                    {user.newOrganizationName}
+                  </Text>
+                  <Text disableLineHeightCompensation>{getText('organizationInviteSuffix')}</Text>
+                </div>
+                <Button.Group className="w-min self-end">
+                  <Button
+                    variant="outline"
+                    onPress={async () => {
+                      await declineInvitation([user.email])
+                      close()
+                    }}
+                  >
+                    {getText('decline')}
+                  </Button>
+                  <Form.Submit variant="accent">{getText('accept')}</Form.Submit>
+                </Button.Group>
+              </Form>
+            )}
+          </Dialog>
         )
       }
       case 'error': {
         return (
-          <>
-            <Dialog
-              title={getText('organizationInviteTitle')}
-              // For now, allow dismissing the modal as the user account is still usable.
-              hideCloseButton
-              modalProps={{ defaultOpen: true }}
-            >
-              <Text disableLineHeightCompensation>{getText('organizationInvitePrefix')}</Text>
-              <Text disableLineHeightCompensation className="font-bold">
-                {user.newOrganizationName}
-              </Text>
-              <Text disableLineHeightCompensation>{getText('organizationInviteErrorSuffix')}</Text>
-              <Alert>
-                {getText('organizationInviteErrorMessage')}{' '}
-                <Button variant="link" href={SUPPORT_EMAIL_URL}>
-                  {SUPPORT_EMAIL}
-                </Button>
-              </Alert>
-            </Dialog>
-          </>
+          <Dialog
+            title={getText('organizationInviteTitle')}
+            // For now, allow dismissing the modal as the user account is still usable.
+            hideCloseButton
+            modalProps={{ defaultOpen: true }}
+          >
+            <Text disableLineHeightCompensation>{getText('organizationInvitePrefix')}</Text>
+            <Text disableLineHeightCompensation className="font-bold">
+              {user.newOrganizationName}
+            </Text>
+            <Text disableLineHeightCompensation>{getText('organizationInviteErrorSuffix')}</Text>
+            <Alert>
+              {getText('organizationInviteErrorMessage')}{' '}
+              <Button variant="link" href={SUPPORT_EMAIL_URL}>
+                {SUPPORT_EMAIL}
+              </Button>
+            </Alert>
+          </Dialog>
         )
       }
     }

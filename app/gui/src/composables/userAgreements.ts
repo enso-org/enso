@@ -56,7 +56,7 @@ const latestPrivacyPolicyQueryOptions = vueQuery.queryOptions({
  * Composable checking and setting user agreements to the newest Terms of Service
  * and Privacy Policy.
  */
-export async function useUserAgrements(queryClient: vueQuery.QueryClient) {
+export async function useUserAgreements(queryClient: vueQuery.QueryClient) {
   const localStorage = LocalStorage.getInstance()
   const cachedTosHash = computed(() => localStorage.get('termsOfService'))
   const cachedPrivacyPolicyHash = computed(() => localStorage.get('privacyPolicy'))

@@ -11,7 +11,7 @@ import {
 } from '#/modals/AgreementsModal'
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH, SETUP_PATH } from '$/appUtils'
-import { useUserAgrements } from '$/composables/userAgreements'
+import { useUserAgreements } from '$/composables/userAgreements'
 import { AuthStore, useAuth, UserSessionType } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
@@ -87,7 +87,7 @@ export const dataLoader: DataLoader<{
 
     if (requireUserAgreements(to)) {
       scope = effectScope()
-      return Ok({ agreementsModalProps: await scope.run(() => useUserAgrements(queryClient)) })
+      return Ok({ agreementsModalProps: await scope.run(() => useUserAgreements(queryClient)) })
     }
     return Ok({ agreementsModalProps: undefined })
   },
@@ -105,7 +105,7 @@ export const dataLoader: DataLoader<{
       if (agreementsRequired && data.agreementsModalProps == null) {
         scope?.stop()
         scope = effectScope()
-        data.agreementsModalProps = await scope.run(() => useUserAgrements(queryClient))
+        data.agreementsModalProps = await scope.run(() => useUserAgreements(queryClient))
       } else if (!agreementsRequired && data.agreementsModalProps != null) {
         scope?.stop()
         data.agreementsModalProps = undefined

@@ -1,6 +1,6 @@
 <script lang="ts">
 import RegistrationReact from '#/pages/authentication/Registration'
-import { useUserAgrements } from '$/composables/userAgreements'
+import { useUserAgreements } from '$/composables/userAgreements'
 import type { DataLoader } from '$/router'
 import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
@@ -11,7 +11,7 @@ const Registration = reactComponent(RegistrationReact)
 export const dataLoader: DataLoader<{ userAgreedFn: () => void }> = {
   beforeRouteEnter() {
     const queryClient = useQueryClient()
-    return useUserAgrements(queryClient).then(({ userAgreed }) => Ok({ userAgreedFn: userAgreed }))
+    return useUserAgreements(queryClient).then(({ userAgreed }) => Ok({ userAgreedFn: userAgreed }))
   },
 }
 </script>

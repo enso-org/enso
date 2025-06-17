@@ -1,2 +1,2 @@
-export { type DataLoader } from './dataLoader'
+export type { DataLoader } from './dataLoader'
 export { default } from './router'
