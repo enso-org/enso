@@ -134,18 +134,21 @@ public class FillMissingOperation implements BinaryOperation {
           long rightLongValue = NumericConverter.coerceToLong(rightValue);
           return StorageIterators.buildOverLongStorage(
               longStorage,
+              false,
               Builder.getForLong(IntegerType.INT_64, longStorage.getSize(), problemAggregator),
               (builder, index, value, isNothing) ->
                   builder.appendLong(isNothing ? rightLongValue : value));
         } else if (rightValue instanceof BigInteger rightBigInteger) {
           return StorageIterators.buildOverLongStorage(
               longStorage,
+              false,
               Builder.getForBigInteger(longStorage.getSize(), problemAggregator),
               (builder, index, value, isNothing) ->
                   builder.append(isNothing ? rightBigInteger : BigInteger.valueOf(value)));
         } else if (rightValue instanceof BigDecimal rightBigDecimal) {
           return StorageIterators.buildOverLongStorage(
               longStorage,
+              false,
               Builder.getForBigDecimal(longStorage.getSize()),
               (builder, index, value, isNothing) ->
                   builder.append(isNothing ? rightBigDecimal : BigDecimal.valueOf(value)));
@@ -153,6 +156,7 @@ public class FillMissingOperation implements BinaryOperation {
           double rightDoubleValue = NumericConverter.coerceToDouble(rightValue);
           return StorageIterators.buildOverLongStorage(
               longStorage,
+              false,
               Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
               (builder, index, value, isNothing) -> {
                 if (isNothing) {
@@ -181,6 +185,7 @@ public class FillMissingOperation implements BinaryOperation {
           long rightLongValue = NumericConverter.coerceToLong(rightValue);
           return StorageIterators.buildOverDoubleStorage(
               doubleStorage,
+              false,
               Builder.getForDouble(FloatType.FLOAT_64, doubleStorage.getSize(), problemAggregator),
               (builder, index, value, isNothing) -> {
                 if (isNothing) {
@@ -194,6 +199,7 @@ public class FillMissingOperation implements BinaryOperation {
           double rightDoubleValue = NumericConverter.coerceToDouble(rightValue);
           return StorageIterators.buildOverDoubleStorage(
               doubleStorage,
+              false,
               Builder.getForDouble(FloatType.FLOAT_64, doubleStorage.getSize(), problemAggregator),
               (builder, index, value, isNothing) ->
                   builder.appendDouble(isNothing ? rightDoubleValue : value));

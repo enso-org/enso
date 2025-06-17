@@ -441,8 +441,8 @@ type In_Memory_Column_Implementation
 
                     length = this_column.length
                     java_this = this_column.java_column
-                    java_term = parsed_term.java_column
-                    java_new = parsed_new.java_column
+                    java_term = (parsed_term:In_Memory_Column).java_column
+                    java_new = (parsed_new:In_Memory_Column).java_column
 
                     builder = make_string_builder length
                     0.up_to length . each i->
