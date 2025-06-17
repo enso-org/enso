@@ -38,7 +38,7 @@ public abstract class PolyglotSymbolResolver {
    * @throws java.lang.ClassNotFoundException if no name was found
    */
   public static Object loadClass(String name) throws ClassNotFoundException {
-    var ex = new ClassNotFoundException();
+    ClassNotFoundException ex = null;
     for (var p : ALL) {
       try {
         var found = p.handleLoadClass(name);
@@ -48,7 +48,11 @@ public abstract class PolyglotSymbolResolver {
         ex = cnfe;
       }
     }
-    throw ex;
+    if (ex == null) {
+      throw new ClassNotFoundException(name);
+    } else {
+      throw ex;
+    }
   }
 
   public static void addToClassPath(URL url) {
