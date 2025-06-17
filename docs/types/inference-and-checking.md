@@ -13,6 +13,22 @@ type checker capable of reasoning about Enso typed system. However, a type
 checker on its own is quite useless. For Enso to truly be usable, it must also
 have a powerful type inference engine.
 
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
+
+- [Type Inference Prototype](#type-inference-prototype)
+- [Design Goals](#design-goals)
+  - [Maximal Inference Power](#maximal-inference-power)
+  - [Type Inference Algorithm](#type-inference-algorithm)
+  - [Type Checking Algorithm](#type-checking-algorithm)
+
+<!-- /MarkdownTOC -->
+
+## Type Inference Prototype
+
+...
+
+## Design Goals
+
 > [!WARNING]
 >
 > The actionables for this section are:
@@ -28,16 +44,7 @@ have a powerful type inference engine.
 >   algorithm is likely to combine techniques from both W and M
 >   (context-insensitive and context-sensitive respectively).
 
-<!-- MarkdownTOC levels="2,3" autolink="true" -->
-
-- [Maximal Inference Power](#maximal-inference-power)
-- [Type Inference Algorithm](#type-inference-algorithm)
-  - [Inferring Dependency](#inferring-dependency)
-- [Type Checking Algorithm](#type-checking-algorithm)
-
-<!-- /MarkdownTOC -->
-
-## Maximal Inference Power
+### Maximal Inference Power
 
 In order to make Enso's type inference as helpful and friendly as possible to
 our users, we want the ability to infer the _maximal subset_ of the types that
@@ -56,19 +63,19 @@ Enso can express.
 > - Where are we okay requiring annotations? Polymorphic recursion, higher rank
 >   function parameters, constrained data and dependency?
 
-## Type Inference Algorithm
+### Type Inference Algorithm
 
 > [!WARNING] The actionables for this section are:
 >
 > - Specify the inference algorithm.
 
-### Inferring Dependency
+#### Inferring Dependency
 
 > [!WARNING] The actionables for this section are:
 >
 > - Specify how (if at all) we can infer dependent quantifiers.
 
-## Type Checking Algorithm
+### Type Checking Algorithm
 
 > [!WARNING] The actionables for this section are:
 >
