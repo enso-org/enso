@@ -1,12 +1,22 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Column.Column
+import project.Data_Formatter.Data_Formatter
+import project.Delimited.Delimited_Format.Delimited_Format
+import project.Delimited.Quote_Style.Quote_Style
+import project.Headers.Headers
 import project.In_Memory_Column.In_Memory_Column
+import project.Internal.Delimited_Writer
 import project.Table.Table
 import project.Internal.Type_Refinements.Table_Refinements
 import project.Internal.In_Memory_Table_Implementation.In_Memory_Table_Implementation
 from project.Internal.Table_Type_Helpers import table_from_implementation
+
+polyglot java import org.enso.table.data.table.Table as Java_Table
 
 # A table whose data is stored in memory.
 type In_Memory_Table

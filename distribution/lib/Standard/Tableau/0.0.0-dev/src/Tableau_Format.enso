@@ -11,7 +11,7 @@ from Standard.Base.Metadata.Choice import Option
 
 from Standard.Table import Table
 from Standard.Table.Match_Columns import Match_Columns
-from Standard.Table.Table import to_java_table
+from Standard.Table.In_Memory_Table import to_java_table
 from Standard.Table.Errors import Unmatched_Columns
 
 import project.Hyper_Errors

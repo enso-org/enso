@@ -30,15 +30,14 @@ import project.Columns_To_Keep.Columns_To_Keep
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
-import project.Delimited.Quote_Style.Quote_Style
 import project.Expression.Expression
 import project.Expression.Expression_Error
 import project.Extensions.Table_Conversions
 import project.Fill_With.Fill_With
 import project.Generate_Rows_Range.Generate_Rows_Range
 import project.Grouping_Method.Grouping_Method
-import project.Headers.Headers
 import project.In_Memory_Column.In_Memory_Column
+import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Add_Group_Number
 import project.Internal.Add_Row_Number
 import project.Internal.Add_Running
@@ -84,22 +83,6 @@ from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
-
-polyglot java import java.util.UUID
-polyglot java import org.enso.base.ObjectComparator
-polyglot java import org.enso.table.data.index.MultiValueIndex
-polyglot java import org.enso.table.data.mask.OrderMask
-polyglot java import org.enso.table.data.table.join.conditions.Between as Java_Join_Between
-polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
-polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
-polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
-polyglot java import org.enso.table.data.table.Table as Java_Table
-polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
-polyglot java import org.enso.table.error.NonUniqueLookupKey
-polyglot java import org.enso.table.error.NullValuesInKeyColumns
-polyglot java import org.enso.table.error.TooManyColumnsException
-polyglot java import org.enso.table.error.UnmatchedRow
-polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
@@ -3210,7 +3193,7 @@ type Table
     ## GROUP Standard.Base.Conversions
        ICON convert
        Creates a text representation of the table using the CSV format.
-    to_csv self -> Text = Text.from self (..Delimited delimiter =
+    to_csv self -> Text =
         self.implementation.to_csv self.underlying
 
     ## GROUP Standard.Base.Conversions
@@ -3546,21 +3529,6 @@ type Table
     pretty : Text
     pretty self =
         self.implementation.pretty_implementation self.underlying
-
-## PRIVATE
-   A helper to create a new table consisting of slices of the original table.
-slice_ranges table ranges =
-    normalized = normalize_ranges ranges
-    from_java_table (table.java_table.slice normalized)
-
-## PRIVATE
-make_join_helpers left_table right_table =
-    make_equals _ left right = Java_Join_Equals.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column
-    make_equals_ignore_case _ left right locale =
-        Java_Join_Equals_Ignore_Case.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column locale.java_locale
-    make_between _ left right_lower right_upper =
-        Java_Join_Between.new (left:In_Memory_Column).java_column (right_lower:In_Memory_Column).java_column (right_upper:In_Memory_Column).java_column
-    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
 
 ## PRIVATE
    Conversion method to a Table from a Column.

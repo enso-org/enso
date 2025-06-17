@@ -5,7 +5,7 @@ from Standard.Base.Metadata.Widget import Single_Choice, Text_Input, Vector_Edit
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Data_Formatter, Table
-from Standard.Table.Table import from_java_table
+from Standard.Table.In_Memory_Table import from_java_table
 
 import project.Google_Analytics_Account.Google_Analytics_Account
 import project.Google_Analytics_Account.Google_Analytics_Account_Filter

@@ -35,7 +35,7 @@ import project.Table.Table
 from project.Errors import Empty_Sheet, No_Rows
 from project.Internal.Excel_Reader import handle_invalid_location
 from project.Internal.Table_Helpers import duplicate_rows
-from project.Table import from_java_table
+from project.In_Memory_Table import from_java_table
 
 polyglot java import java.io.File as Java_File
 polyglot java import org.apache.poi.ss.usermodel.Workbook

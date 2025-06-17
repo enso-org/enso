@@ -13,7 +13,7 @@ import project.Internal.Java_Problems
 import project.Match_Columns.Match_Columns
 import project.Table.Table
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
-from project.Table import from_java_table
+from project.In_Memory_Table import from_java_table
 
 polyglot java import java.io.IOException
 polyglot java import java.io.PrintWriter
