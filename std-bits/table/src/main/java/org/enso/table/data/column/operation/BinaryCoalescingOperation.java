@@ -7,9 +7,7 @@ import java.util.function.BiFunction;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
@@ -19,11 +17,11 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.problems.ProblemAggregator;
-import org.graalvm.polyglot.Value;
 
-public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
+public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
   private static Column applyOperation(
       Column left,
       Object right,
@@ -32,7 +30,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
       String name,
       MapOperationProblemAggregator problemBuilder,
       BinaryOperation<?> operation,
-      Storage<?> leftStorage) {
+      ColumnStorage<?> leftStorage) {
     if (right instanceof Column rightColumn) {
       if (operation != null) {
         var rightStorage = rightColumn.getStorage();
@@ -47,10 +45,8 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
           return new Column(name, rightColumn.getStorage());
         }
 
-        var result =
-            leftStorage.zip(
-                fallback, rightColumn.getStorage(), false, leftStorage.getType(), problemBuilder);
-        return new Column(name, result);
+        return BinaryOperation.mapFunction(
+            left, rightColumn, false, name, fallback, fallbackType, problemBuilder);
       }
     }
 
@@ -63,13 +59,12 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
       // Null on left-hand side so just return the right-hand Column
       if (leftStorage.getType() instanceof NullType) {
         int checkedSize = Builder.checkSize(leftStorage.getSize());
-        var constantStorage =
-            Storage.fromRepeatedItem(Value.asValue(right), checkedSize, problemBuilder);
+        var constantStorage = Builder.fromRepeatedItem(right, checkedSize);
         return new Column(name, constantStorage);
       }
 
-      var result = leftStorage.binaryMap(fallback, right, false, fallbackType, problemBuilder);
-      return new Column(name, result);
+      return BinaryOperation.mapFunction(
+          left, right, false, name, fallback, fallbackType, problemBuilder);
     }
   }
 
@@ -160,7 +155,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
   private final BiFunction<T, T, T> zipOperation;
 
   protected BinaryCoalescingOperation(StorageType<T> validType, BiFunction<T, T, T> zipOperation) {
-    super(validType, false);
+    super(validType, validType, false);
     this.zipOperation = zipOperation;
   }
 

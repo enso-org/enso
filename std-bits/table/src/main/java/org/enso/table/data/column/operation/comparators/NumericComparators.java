@@ -7,7 +7,6 @@ import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.operation.StorageIterators;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -17,6 +16,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> {
   /**

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import MenuEntry from '@/components/MenuEntry.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
-import { type ActionName } from '@/providers/action'
+import { type DisplayableActionName } from '@/providers/action'
 
 const { actions } = defineProps<{
-  actions: ActionName[]
+  actions: DisplayableActionName[]
 }>()
 const emit = defineEmits<{ close: [] }>()
 </script>

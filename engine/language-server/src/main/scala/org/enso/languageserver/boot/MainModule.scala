@@ -10,7 +10,6 @@ import org.enso.distribution.locking.{
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
-import org.enso.filewatcher.WatcherAdapterFactory
 import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.languageserver.capability.CapabilityRouter
@@ -50,6 +49,7 @@ import org.enso.logger.masking.Masking
 import org.enso.common.RuntimeOptions
 import org.enso.common.ContextFactory
 import org.enso.common.HostEnsoUtils
+import org.enso.filewatcher.WatcherFactory
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
@@ -261,7 +261,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       ReceivesTreeUpdatesHandler.props(
         languageServerConfig,
         contentRootManagerWrapper,
-        new WatcherAdapterFactory,
+        WatcherFactory.createDefault(),
         fileSystem,
         zioExec
       ),

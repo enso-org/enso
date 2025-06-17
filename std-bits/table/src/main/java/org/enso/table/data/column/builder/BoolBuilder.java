@@ -3,7 +3,7 @@ package org.enso.table.data.column.builder;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -84,7 +84,7 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType().equals(getType())) {
       if (storage instanceof BoolStorage boolStorage) {
         // We know this is valid for a BoolStorage.
@@ -114,7 +114,7 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public Storage<Boolean> seal() {
+  public ColumnStorage<Boolean> seal() {
     return new BoolStorage(vals, isNothing, size, false);
   }
 

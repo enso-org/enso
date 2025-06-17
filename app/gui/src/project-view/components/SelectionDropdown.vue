@@ -8,13 +8,15 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import type { SelectionMenuOption } from '@/components/visualizations/toolbar'
 import { ref, toValue } from 'vue'
 
-type Key = number | string | symbol
+type Key = string
+
 const selected = defineModel<Key>({ required: true })
-const _props = defineProps<{
+defineProps<{
   options: Record<Key, SelectionMenuOption>
   title?: string | undefined
   labelButton?: boolean | undefined
   alwaysShowArrow?: boolean | undefined
+  entriesTestId?: string | undefined
 }>()
 
 const open = ref(false)
@@ -37,7 +39,7 @@ function onClick(option: SelectionMenuOption) {
       </template>
     </template>
     <template #menu>
-      <MenuPanel>
+      <MenuPanel :data-testid="entriesTestId">
         <MenuButton
           v-for="[key, option] in Object.entries(options).filter(
             ([_key, { hidden }]) => !hidden || !toValue(hidden),

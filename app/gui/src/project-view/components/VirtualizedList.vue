@@ -9,6 +9,8 @@
 import { listBindings } from '@/bindings'
 import { useApproach } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
+import { registerHandlers } from '@/providers/action'
+import * as objects from 'enso-common/src/utilities/data/object'
 import { cloneVNode, computed, h, ref, useCssModule, VNode, watch } from 'vue'
 
 const selected = defineModel<number | null>('selected', { required: false, default: null })
@@ -182,7 +184,15 @@ function accept() {
   emit('itemAccepted', item, selected.value)
 }
 
-const handler = listBindings.handler({ moveUp, moveDown, accept })
+const actions = registerHandlers({
+  'list.moveUp': { action: moveUp },
+  'list.moveDown': { action: moveDown },
+  'list.accept': { action: accept },
+})
+
+const handler = listBindings.handler(
+  objects.mapEntries(listBindings.bindings, (actionName) => actions[actionName].action),
+)
 defineExpose({ moveUp, moveDown, accept })
 </script>
 

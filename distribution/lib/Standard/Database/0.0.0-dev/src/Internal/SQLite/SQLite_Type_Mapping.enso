@@ -3,10 +3,9 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Internal.Value_Type_Helpers
-from Standard.Table import Bits, Value_Type
+from Standard.Table import Bits, Column, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import project.DB_Column.DB_Column
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -168,7 +167,7 @@ name_based_workarounds = Dictionary.from_vector <|
 operations_dict : Dictionary Text (Vector -> SQL_Type)
 operations_dict =
     find_type arg = case arg of
-        column : DB_Column -> column.value_type
+        column : Column -> column.value_type
         internal_column : Internal_Column ->
             SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
         enso_value -> Value_Type_Helpers.most_specific_value_type enso_value use_smallest=True

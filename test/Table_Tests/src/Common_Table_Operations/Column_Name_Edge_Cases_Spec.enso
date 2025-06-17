@@ -10,8 +10,6 @@ import Standard.Database.Feature.Feature
 from Standard.Test import all
 
 
-from project.Common_Table_Operations.Util import run_default_backend
-from project.Common_Table_Operations.Core_Spec import weird_names
 
 type Data
     Value ~connection

@@ -3,7 +3,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
 import project.Row.Row
-import project.Table.Table
 
 ## PRIVATE
    A special type describing how to convert an object into a set of table

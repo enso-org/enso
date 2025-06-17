@@ -327,7 +327,6 @@ lazy val enso = (project in file("."))
     `common-polyglot-core-utils`,
     `connected-lock-manager`,
     `connected-lock-manager-server`,
-    `directory-watcher-wrapper`,
     `distribution-manager`,
     downloader,
     editions,
@@ -790,8 +789,6 @@ lazy val componentModulesPaths =
     (`akka-wrapper` / Compile / exportedModuleBin).value,
     (`zio-wrapper` / Compile / exportedModuleBin).value,
     (`language-server-deps-wrapper` / Compile / exportedModuleBin).value,
-    (`directory-watcher-wrapper` / Compile / exportedModuleBin).value,
-    (`jna-wrapper` / Compile / exportedModuleBin).value,
     (`ydoc-polyfill` / Compile / exportedModuleBin).value,
     (`library-manager` / Compile / exportedModuleBin).value,
     (`logging-config` / Compile / exportedModuleBin).value,
@@ -1287,24 +1284,19 @@ lazy val filewatcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    scalaModuleDependencySetting,
-    compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
-      "commons-io"     % "commons-io" % commonsIoVersion,
-      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
+      "junit"          % "junit"           % junitVersion    % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion  % Test,
+      "org.hamcrest"   % "hamcrest-all"    % hamcrestVersion % Test
     ),
     Compile / moduleDependencies ++= slf4jApi,
-    Compile / internalModuleDependencies := Seq(
-      (`directory-watcher-wrapper` / Compile / exportedModule).value
-    ),
     Test / fork := true,
+    commands += WithDebugCommand.withDebug,
     Test / javaOptions ++= testLogProviderOptions
   )
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
-  .dependsOn(`directory-watcher-wrapper`)
-  .dependsOn(`jna-wrapper` % Test)
 
 lazy val `logging-truffle-connector` = project
   .in(file("lib/scala/logging-truffle-connector"))
@@ -1490,50 +1482,6 @@ lazy val `runtime-utils` = project
     javaModuleName := "org.enso.runtime.utils"
   )
 
-lazy val `directory-watcher-wrapper` = project
-  .in(file("lib/java/directory-watcher-wrapper"))
-  .enablePlugins(JPMSPlugin)
-  .settings(
-    modularFatJarWrapperSettings,
-    scalaModuleDependencySetting,
-    libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin" % "directory-watcher" % directoryWatcherVersion exclude ("net.java.dev.jna", "jna")
-    ),
-    javaModuleName := "org.enso.directory.watcher.wrapper",
-    assembly / assemblyExcludedJars := {
-      JPMSUtils.filterModulesFromClasspath(
-        (Compile / dependencyClasspath).value,
-        scalaLibrary ++
-        slf4jApi,
-        streams.value.log,
-        moduleName.value,
-        scalaBinaryVersion.value,
-        shouldContainAll = true
-      )
-    },
-    Compile / moduleDependencies ++= slf4jApi,
-    Compile / internalModuleDependencies := Seq(
-      (`jna-wrapper` / Compile / exportedModule).value
-    ),
-    Compile / patchModules := {
-      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
-        update.value,
-        scalaLibrary ++
-        Seq(
-          "io.methvin" % "directory-watcher" % directoryWatcherVersion
-        ),
-        streams.value.log,
-        moduleName.value,
-        scalaBinaryVersion.value,
-        shouldContainAll = true
-      )
-      Map(
-        javaModuleName.value -> scalaLibs
-      )
-    }
-  )
-  .dependsOn(`jna-wrapper` % "provided")
-
 lazy val `fansi-wrapper` = project
   .in(file("lib/java/fansi-wrapper"))
   .enablePlugins(JPMSPlugin)
@@ -1600,9 +1548,6 @@ lazy val `akka-wrapper` = project
       "com.google.protobuf" % "protobuf-java"    % googleProtobufVersion,
       "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion
     ),
-    Compile / internalModuleDependencies := Seq(
-      (`jna-wrapper` / Compile / exportedModule).value
-    ),
     assembly / assemblyExcludedJars := {
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
         update.value,
@@ -1648,7 +1593,6 @@ lazy val `akka-wrapper` = project
       )
     }
   )
-  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val `zio-wrapper` = project
   .in(file("lib/java/zio-wrapper"))
@@ -2416,7 +2360,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`connected-lock-manager-server` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
-      (`directory-watcher-wrapper` / Compile / exportedModule).value,
       (`engine-runner-common` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
@@ -2508,7 +2451,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`logging-service-logback` / Test / exportedModule).value,
       (`version-output` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
-      (`jna-wrapper` / Compile / exportedModule).value,
       (`akka-wrapper` / Compile / exportedModule).value,
       (`language-server-deps-wrapper` / Compile / exportedModule).value,
       (`fansi-wrapper` / Compile / exportedModule).value,
@@ -4069,7 +4011,6 @@ lazy val `engine-runner` = project
               "org.apache",
               "org.openxmlformats",
               "org.jline",
-              "io.methvin.watchservice",
               "zio.internal",
               "zio",
               "org.enso.runner",
@@ -4393,7 +4334,8 @@ lazy val `os-environment` =
           val exeFile =
             (Test / target).value / ("test-os-env" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
-          val res     = Process(Seq(binPath), None, "JAVA_OPTS" -> "") ! logger
+          val res =
+            Process(Seq(binPath), None, "JAVA_TOOL_OPTIONS" -> "") ! logger
           if (res != 0) {
             logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
@@ -4928,6 +4870,8 @@ val `std-snowflake-native-libs` =
   stdLibComponentRoot("Snowflake") / "polyglot" / "lib"
 val `std-microsoft-polyglot-root` =
   stdLibComponentRoot("Microsoft") / "polyglot" / "java"
+val `std-microsoft-native-libs` =
+  stdLibComponentRoot("Microsoft") / "polyglot" / "lib"
 val `std-tableau-polyglot-root` =
   stdLibComponentRoot("Tableau") / "polyglot" / "java"
 val `std-tableau-native-libs` =
@@ -5614,11 +5558,6 @@ lazy val `std-microsoft` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-microsoft-polyglot-root` / "std-microsoft.jar",
-    Compile / unmanagedJars := {
-      Seq(
-        Attributed.blank((`jna-wrapper` / assembly).value)
-      )
-    },
     libraryDependencies ++= Seq(
       "org.netbeans.api"          % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.microsoft.sqlserver"   % "mssql-jdbc"              % mssqlserverJDBCVersion,
@@ -5626,9 +5565,11 @@ lazy val `std-microsoft` = project
       "com.azure.resourcemanager" % "azure-resourcemanager"   % azureResourceVersion,
       "com.azure"                 % "azure-storage-blob"      % azureBlobStorageVersion
     ),
-    Compile / packageBin := {
-      val result            = (Compile / packageBin).value
+    extractNativeLibs := Def.task {
+      import sbt.util.CacheImplicits._
+      val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
+      val prev              = extractNativeLibs.previous
       StdBits
         .copyDependencies(
           `std-microsoft-polyglot-root`,
@@ -5655,13 +5596,47 @@ lazy val `std-microsoft` = project
           }),
           logger            = streams.value.log,
           cacheStoreFactory = cacheStoreFactory,
-          previousRun       = None
+          previousRun       = prev
         )
-      result
-    },
+      val jnaJar = (`jna-wrapper` / Compile / exportedModuleBin).value
+      StdBits
+        .extractNativeLibsFromMicrosoft(
+          microsoftPolyglotRoot = `std-microsoft-polyglot-root`,
+          microsoftNativeLibs   = `std-microsoft-native-libs`,
+          jnaJar                = jnaJar,
+          logger                = streams.value.log,
+          moduleName            = moduleName.value,
+          cacheStoreFactory     = cacheStoreFactory,
+          previousRun           = prev
+        )
+    }.value,
+    cleanPolyglotRoot := Def.task {
+      import sbt.util.CacheImplicits._
+      val forceClean = extractNativeLibs.previous.isEmpty
+      val logger     = streams.value.log
+      StdBits.ensureDirExistsAndIsClean(
+        `std-microsoft-polyglot-root`.toPath,
+        logger,
+        forceClean
+      )
+      StdBits.ensureDirExistsAndIsClean(
+        `std-microsoft-native-libs`.toPath,
+        logger,
+        forceClean
+      )
+    }.value,
+    Compile / packageBin := Def
+      .task {
+        val result = (Compile / packageBin).value
+        extractNativeLibs.value
+        result
+      }
+      .dependsOn(cleanPolyglotRoot)
+      .value,
     clean := Def.task {
       val _ = clean.value
       IO.delete(`std-microsoft-polyglot-root`)
+      IO.delete(`std-microsoft-native-libs`)
     }.value
   )
   .dependsOn(`std-base` % "provided")

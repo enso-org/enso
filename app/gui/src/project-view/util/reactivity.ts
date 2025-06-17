@@ -22,7 +22,6 @@ import {
   computed,
   effect,
   effectScope,
-  isRef,
   queuePostFlushCb,
   reactive,
   ReactiveEffect,
@@ -32,16 +31,6 @@ import {
   toValue,
   watch,
 } from 'vue'
-
-/** Cast watch source to an observable ref. */
-export function watchSourceToRef<T>(src: WatchSource<T>): Ref<T> {
-  return isRef(src) ? src : computed(src)
-}
-
-/** Get the value behind a watch source at the current time. */
-export function evalWatchSource<T>(src: WatchSource<T>): T {
-  return isRef(src) ? src.value : src()
-}
 
 /** Create a `ReactiveEffect`. This is similar to the `effect` function, but doesn't immediately run the created effect. */
 export function lazyEffect<T = any>(

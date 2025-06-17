@@ -21,6 +21,11 @@ export function extendCmEvent<E extends Event>(view: EditorView, event: E): CmEv
   return ext
 }
 
+const stopEvent = (event: Event) => {
+  event.stopImmediatePropagation()
+  return false
+}
+
 /**
  * Create a {@link KeyBinding} from an event handler compatible with those defined with our
  * `defineKeybinds` function.
@@ -47,14 +52,17 @@ function bindCommands<T extends string>(
 /** Key bindings applicable to all CodeMirror instances. */
 const baseKeymap: KeyBinding[] = [
   handlerToKeyBinding(
-    textEditorsCommonBindings.handler(
-      bindCommands({
-        moveLeft: commands.cursorCharLeft,
-        moveRight: commands.cursorCharRight,
-        deleteBack: commands.deleteCharBackward,
-        deleteForward: commands.deleteCharForward,
+    textEditorsCommonBindings.handler({
+      ...bindCommands({
+        'textEditor.moveLeft': commands.cursorCharLeft,
+        'textEditor.moveRight': commands.cursorCharRight,
+        'textEditor.deleteBack': commands.deleteCharBackward,
+        'textEditor.deleteForward': commands.deleteCharForward,
       }),
-    ),
+      'textEditor.copy': stopEvent,
+      'textEditor.cut': stopEvent,
+      'textEditor.paste': stopEvent,
+    }),
     true,
   ),
   {
@@ -281,18 +289,13 @@ export const verticalMovementKeymap: KeyBinding[] = [
   { key: 'Ctrl-v', run: commands.cursorPageDown, stopPropagation: true },
 ]
 
-const stopEvent = (event: Event) => {
-  event.stopImmediatePropagation()
-  return false
-}
-
 const autoOrMultiHandlers = handlerToKeyBinding(
-  textEditorsMultilineBindings.handler({
-    newline: (e) => {
-      e.stopImmediatePropagation()
-      return insertNewlineKeepIndent(e.codemirrorView)
-    },
-  }),
+  textEditorsMultilineBindings.handler(
+    bindCommands({
+      'textEditor.newline': insertNewlineKeepIndent,
+    }),
+  ),
+  true,
 )
 
 const standardBindings: Record<LineMode, KeyBinding[]> = {

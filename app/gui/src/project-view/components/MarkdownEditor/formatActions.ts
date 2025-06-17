@@ -1,7 +1,7 @@
 import { documentationEditorFormatBindings } from '@/bindings'
 import { actionBlockType, type BlockTypeAction } from '@/components/MarkdownEditor/blockTypeActions'
 import { type useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
-import { type ActionHandler, registerHandlers } from '@/providers/action'
+import { type Action, type ActionHandler, registerHandlers } from '@/providers/action'
 import { handlerToKeyBinding } from '@/util/codemirror/keymap'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
@@ -12,12 +12,14 @@ import { toValue } from 'vue'
 interface FormatActionsOptions {
   formatting: ReturnType<typeof useMarkdownFormatting>
   editing: ToValue<boolean>
+  uploadImage: ToValue<(() => void) | undefined>
 }
 
 /** Registers actions for the given editor's format state. */
 export function useFormatActions({
   formatting: { italic, bold, insertLink, insertCodeBlock, blockType },
   editing,
+  uploadImage,
 }: FormatActionsOptions) {
   const toastError = useToast.error()
 
@@ -30,7 +32,7 @@ export function useFormatActions({
     value: boolean
   }) {
     return {
-      disabled: () => !toValue(editing) || !format.set,
+      enabled: () => !!toValue(editing) && !!format.set,
       toggled: () => format.value,
       action: () => {
         if (!format.set) {
@@ -39,12 +41,12 @@ export function useFormatActions({
         }
         format.set(!format.value)
       },
-    }
+    } satisfies Action
   }
 
   function doFormatAction(action: ToValue<(() => void) | undefined>) {
     return {
-      disabled: () => toValue(action) == null,
+      enabled: () => toValue(action) != null,
       action: () => {
         const actionValue = toValue(action)
         if (!actionValue) {
@@ -53,15 +55,16 @@ export function useFormatActions({
         }
         actionValue()
       },
-    }
+    } satisfies Action
   }
 
   function setBlockTypeActions<T extends BlockTypeAction>(
     actions: T[],
   ): Record<T, ActionHandler & { action: () => void }> {
-    const setBlockTypeAction = (actionName: BlockTypeAction) => ({
-      action: () => blockType.set(actionBlockType[actionName]),
-    })
+    const setBlockTypeAction = (actionName: BlockTypeAction) =>
+      ({
+        action: () => blockType.set(actionBlockType[actionName]),
+      }) satisfies Action
     return objects.unsafeFromEntries(
       actions.map((actionName) => [actionName, setBlockTypeAction(actionName)]),
     )
@@ -72,6 +75,10 @@ export function useFormatActions({
     'documentationEditor.bold': toggleFormatAction(bold),
     'documentationEditor.link': doFormatAction(insertLink),
     'documentationEditor.code': doFormatAction(insertCodeBlock),
+    'documentationEditor.image': {
+      enabled: () => toValue(editing) && toValue(uploadImage) != null,
+      action: () => toValue(uploadImage)?.(),
+    },
     ...setBlockTypeActions([
       'documentationEditor.header1',
       'documentationEditor.header2',

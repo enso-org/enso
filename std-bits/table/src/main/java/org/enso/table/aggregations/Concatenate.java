@@ -1,7 +1,7 @@
 package org.enso.table.aggregations;
 
 import java.util.List;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -11,7 +11,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public class Concatenate extends KnownTypeAggregator {
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
   private final String separator;
   private final String prefix;
   private final String suffix;

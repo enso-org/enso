@@ -7,17 +7,10 @@ import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
@@ -29,26 +22,12 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
     implements ColumnDoubleStorage, ColumnStorageWithNothingMap, NumericFormattingStorage {
-  private static final MapOperationStorage<Double, DoubleStorage> OPS = buildOps();
-
-  private static MapOperationStorage<Double, DoubleStorage> buildOps() {
-    MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
-    ops.add(new AddOp<>())
-        .add(new SubOp<>())
-        .add(new MulOp<>())
-        .add(new DivideOp<>())
-        .add(new ModOp<>())
-        .add(new PowerOp<>());
-    return ops;
-  }
-
   final double[] data;
   final BitSet isNothing;
   private final int size;
@@ -105,19 +84,7 @@ public final class DoubleStorage extends Storage<Double>
     return isNothing.get((int) idx);
   }
 
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return OPS.runZip(name, this, argument, problemAggregator);
-  }
-
-  private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
+  private ColumnStorage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
     long n = getSize();
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
@@ -133,7 +100,8 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   /** Special handling to ensure loss of precision is reported. */
-  private Storage<?> fillMissingBigInteger(BigInteger arg, ProblemAggregator problemAggregator) {
+  private ColumnStorage<?> fillMissingBigInteger(
+      BigInteger arg, ProblemAggregator problemAggregator) {
     long n = getSize();
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
@@ -149,7 +117,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   /** Special handling to ensure loss of precision is reported. */
-  private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
+  private ColumnStorage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
     long n = getSize();
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
@@ -165,7 +133,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<?> fillMissing(
+  public ColumnStorage<?> fillMissing(
       Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
@@ -181,7 +149,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<Double> fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public ColumnStorage<Double> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
       throw new IllegalStateException(
           "Custom missing value semantics are not supported by DoubleStorage.");
@@ -215,7 +183,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<Double> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<Double> applyFilter(BitSet filterMask, int newLength) {
     var builder =
         Builder.getForDouble(FloatType.FLOAT_64, newLength, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
@@ -233,7 +201,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<Double> applyMask(OrderMask mask) {
+  public ColumnStorage<Double> applyMask(OrderMask mask) {
     double[] newData = new double[mask.length()];
     BitSet newIsNothing = new BitSet();
     Context context = Context.getCurrent();
@@ -251,7 +219,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Storage<Double> slice(int offset, int limit) {
+  public ColumnStorage<Double> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
     double[] newData;
 
@@ -270,17 +238,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public DoubleStorage appendNulls(int count) {
-    BitSet newIsNothing = BitSets.makeDuplicate(isNothing);
-    newIsNothing.set(size, size + count);
-
-    double[] newData = new double[size + count];
-    System.arraycopy(data, 0, newData, 0, size);
-    return new DoubleStorage(newData, size + count, newIsNothing);
-  }
-
-  @Override
-  public Storage<Double> slice(List<SliceRange> ranges) {
+  public ColumnStorage<Double> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
     double[] newData = new double[newSize];
     BitSet newIsNothing = new BitSet(newSize);

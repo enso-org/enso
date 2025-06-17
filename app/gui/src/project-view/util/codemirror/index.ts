@@ -11,8 +11,10 @@ import { CmEventExt, extendCmEvent, keyBindings } from '@/util/codemirror/keymap
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
+import type { Vec2 } from '@/util/data/vec2'
 import { elementHierarchy } from '@/util/dom'
 import { type ToValue } from '@/util/reactivity'
+import type { AnyHandlerEvent } from '@/util/shortcuts'
 import {
   Compartment,
   EditorState,
@@ -32,6 +34,7 @@ import {
   computed,
   isRef,
   onUnmounted,
+  ref,
   toValue,
   watch,
   type WatchSource,
@@ -40,7 +43,6 @@ import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
 import * as Y from 'yjs'
-import { AnyHandlerEvent } from '../shortcuts'
 
 function disableEditContextApi() {
   ;(EditorView as any).EDIT_CONTEXT = false
@@ -131,17 +133,6 @@ export function useCodeMirror(
   if (vueHost) useStateEffect(view, setVueHost, vueHost)
   sync?.connectSync(view)
 
-  /**
-   * Replace text in given document range with `text`, putting text cursor after inserted text.
-   */
-  function putTextAt(text: string, from: number, to: number) {
-    const insert = Text.of(text.split(LINE_BOUNDARIES))
-    view.dispatch({
-      changes: { from, to, insert },
-      selection: { anchor: from + insert.length },
-    })
-  }
-
   const extraExtsDebouncer = createDebouncer(0)
 
   return {
@@ -176,7 +167,6 @@ export function useCodeMirror(
      * argument, this value tracks whether the content synchronized with the document is writable.
      */
     readonly,
-    putTextAt,
     /** The DOM element containing the editor's content. */
     contentElement: view.contentDOM,
   }
@@ -381,3 +371,55 @@ export const selectOnMouseFocus = [
     return tr
   }),
 ]
+
+/**
+ * Replace text in given document range with `text`, putting text cursor after inserted text.
+ */
+export function putTextAt(view: EditorView, text: string, from: number, to: number) {
+  const insert = Text.of(text.split(LINE_BOUNDARIES))
+  view.dispatch({
+    changes: { from, to, insert },
+    selection: { anchor: from + insert.length },
+  })
+}
+
+/**
+ * Insert text at cursor or replacing any selection, putting text cursor after inserted text.
+ */
+export function putText(view: EditorView, text: string) {
+  const range = view.state.selection.main
+  putTextAt(view, text, range.from, range.to)
+}
+
+/** Insert text at the given position in the editor. */
+export function putTextAtCoords(view: EditorView, text: string, coords: Vec2) {
+  const pos = view.posAtCoords(coords, false)
+  putTextAt(view, text, pos, pos)
+}
+
+/**
+ * @returns the editor's reactive focused state, maintained by attaching the returned event handlers
+ * to the editor's root element.
+ * This implements a focus state that differs from the DOM focus of any particular element. It
+ * exhibits some hysteresis: When the scrollbar is clicked, the computed focus state doesn't change.
+ * Thus, this should be used in lieu of the element's focus when the rendering of the editor's
+ * content is focus-dependent in a way that may affect its size.
+ */
+export function useEditorFocus(view: EditorView) {
+  const focused = ref(false)
+  const focusHandlers = {
+    focusin: (event: FocusEvent) => {
+      // Enable rendering the line containing the current cursor in `editing` mode if focus enters
+      // the element *inside* the scroll area--if we handled the event for the editor root, clicking
+      // the scrollbar would cause editing mode to be activated.
+      if (event.target instanceof Node && view.contentDOM.contains(event.target))
+        focused.value = true
+    },
+    focusout: () => {
+      // If the focus leaves the whole editor, we exit editing mode. Note the asymmetry with
+      // `onFocusIn`: This way, clicking the scrollbar doesn't change edit mode.
+      focused.value = false
+    },
+  }
+  return { focused, focusHandlers }
+}

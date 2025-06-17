@@ -4,6 +4,7 @@ import { injectKeyboard } from '@/providers/keyboard'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
 import { type Rect } from '@/util/data/rect'
+import { type ProjectPath } from '@/util/projectPath'
 import { type ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 import { type ComponentProps } from 'vue-component-type-helpers'
@@ -21,11 +22,10 @@ interface Emit {
 interface NodeVisualizationOptions {
   vis: ToValue<Opt<VisualizationMetadata>>
   nodeHovered: ToValue<boolean>
-  isComponentMenuVisible: ToValue<boolean>
   nodeRect: ToValue<Rect>
   scale: ToValue<number>
   isFocused: ToValue<boolean>
-  typename: ToValue<Opt<string>>
+  typename: ToValue<Opt<ProjectPath>>
   dataSource: ToValue<Opt<VisualizationDataSource | RawDataSource>>
   emit: Emit
 }
@@ -34,7 +34,6 @@ interface NodeVisualizationOptions {
 export function useNodeVisualization({
   vis,
   nodeHovered,
-  isComponentMenuVisible,
   nodeRect,
   scale,
   isFocused,
@@ -82,7 +81,6 @@ export function useNodeVisualization({
       nodeSize,
       scale: toValue(scale),
       nodePosition,
-      isComponentMenuVisible: toValue(isComponentMenuVisible),
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
       typename: toValue(typename) ?? undefined,
@@ -96,6 +94,7 @@ export function useNodeVisualization({
       'onUpdate:id': (event) => emit('update:visualizationId', event),
       'onUpdate:enabled': (event) => emit('update:visualizationEnabled', event),
       'onUpdate:height': (event) => emit('update:visualizationHeight', event),
+      'onUpdate:width': (event) => (visualizationWidth.value = event),
     }
   })
 

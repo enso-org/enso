@@ -144,7 +144,7 @@ export class GraphDb {
     return computeNodeColor(
       () => entry.type,
       () => tryGetIndex(this.groups.value, this.getNodeMainSuggestion(id)?.groupIndex),
-      () => this.getExpressionInfo(id)?.rawTypename,
+      () => this.getExpressionInfo(id)?.typeInfo?.primaryType,
     )
   })
 

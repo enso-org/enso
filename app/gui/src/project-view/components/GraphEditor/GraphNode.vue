@@ -32,6 +32,7 @@ import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
@@ -95,6 +96,8 @@ const contentNode = ref<HTMLElement>()
 const widgetTree = ref<ComponentInstance<typeof ComponentWidgetTree>>()
 const nodeSize = useResizeObserver(rootNode)
 const widgetTreeSize = useResizeObserver(widgetTree)
+
+providePopoverRoot(rootNode)
 
 const { visibleMessage, hiddenMessage } = useNodeMessage({
   projectStore,
@@ -181,11 +184,10 @@ const {
 } = useNodeVisualization({
   vis: () => props.node.vis,
   nodeHovered: () => nodeHovered.value || outputHovered.value,
-  isComponentMenuVisible: menuVisible,
   nodeRect,
   scale,
   isFocused: isOnlyOneSelected,
-  typename: () => expressionInfo.value?.rawTypename,
+  typename: () => expressionInfo.value?.typeInfo?.primaryType,
   dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
   emit,
 })

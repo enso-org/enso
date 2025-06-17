@@ -7,7 +7,6 @@ from Standard.Table import all
 from Standard.Table.Errors import all
 from Standard.Tableau import Hyper_File
 from Standard.Tableau.Hyper_Errors import all
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
 import enso_dev.Table_Tests.Util

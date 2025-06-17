@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
@@ -62,7 +62,7 @@ public class SimpleHashJoin implements JoinStrategy {
     var storage =
         Arrays.stream(hashJoinConfig.getLeftEquals())
             .map(Column::getStorage)
-            .toArray(Storage[]::new);
+            .toArray(ColumnStorage[]::new);
     Set<UnorderedMultiValueKey> matchedRightKeys = new HashSet<>();
 
     Context context = Context.getCurrent();
@@ -109,7 +109,7 @@ public class SimpleHashJoin implements JoinStrategy {
   }
 
   public UnorderedMultiValueKey makeLeftKey(
-      Storage[] storage,
+      ColumnStorage[] storage,
       int rowNumber,
       ColumnAggregatedProblemAggregator groupingProblemAggregator) {
     var leftEquals = hashJoinConfig.getLeftEquals();

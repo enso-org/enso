@@ -30,7 +30,7 @@ import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, unrefElement, useEvent } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { ActionName, registerHandlers, toggledAction } from '@/providers/action'
+import { type DisplayableActionName, registerHandlers, toggledAction } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -39,6 +39,7 @@ import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import type { Node, NodeId } from '@/stores/graph'
 import { isInputNode, nodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -99,6 +100,8 @@ onMounted(() => viewportElem.value?.focus())
 const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
+
+providePopoverRoot(viewportElem)
 
 // === Client saved state ===
 
@@ -209,6 +212,8 @@ const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboa
 
 // === Action Handlers ===
 
+const showCodeEditor = ref(false)
+
 const actionHandlers = registerHandlers({
   'graphEditor.showHelp': {
     action: () => rightPanel.toggleTab('help'),
@@ -226,10 +231,7 @@ const actionHandlers = registerHandlers({
       createWithComponentBrowser({ placement })
     },
   },
-  'graph.toggleCodeEditor': {
-    action: () => (showCodeEditor.value = !showCodeEditor.value),
-    toggled: () => showCodeEditor.value,
-  },
+  'graph.toggleCodeEditor': toggledAction(showCodeEditor),
   'graph.toggleDocumentationEditor': {
     action: () => rightPanel.toggleTab('documentation'),
     toggled: () => rightPanel.tab === 'documentation',
@@ -261,6 +263,58 @@ const actionHandlers = registerHandlers({
     available: stackNavigator.hasBreadcrumbsBeyondRoot,
     enabled: stackNavigator.allowNavigationLeft,
     action: () => stackNavigator.exitNode(),
+  },
+  'component.enterNode': {
+    // TODO: Unify with handler in GraphNode.
+    action: () => {
+      const selectedNode = set.first(nodeSelection.selected)
+      if (selectedNode) {
+        stackNavigator.enterNode(selectedNode)
+      }
+    },
+  },
+  'graph.startProfiling': { action: () => void projectStore.lsRpcConnection.profilingStart(true) },
+  'graph.stopProfiling': { action: () => void projectStore.lsRpcConnection.profilingStop() },
+  'graph.openComponentBrowser': {
+    action: () => {
+      if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
+        createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
+      }
+    },
+  },
+  'graph.selectAll': { action: () => nodeSelection.selectAll() },
+  'graph.deselectAll': {
+    action: () => {
+      nodeSelection.deselectAll()
+      clearFocus()
+      graphStore.undoManager.undoStackBoundary()
+    },
+  },
+  'graph.toggleVisualization': {
+    action: () => {
+      // TODO: Merge with component action
+      const selected = nodeSelection.selected
+      const allVisible = iter.every(
+        selected,
+        (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
+      )
+      graphStore.batchEdits(() => {
+        for (const nodeId of selected) {
+          graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
+        }
+      })
+    },
+  },
+  'graph.pasteNode': { action: () => createNodesFromClipboard() },
+  'graph.openDocumentation': {
+    action: () => {
+      const result = tryGetSelectionDocUrl()
+      if (!result.ok) {
+        toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
+        return
+      }
+      window.open(result.value, '_blank')
+    },
   },
   ...selectionActionHandlers(
     () =>
@@ -315,72 +369,15 @@ const undoBindingsHandler = undoBindings.handler(
   objects.mapEntries(undoBindings.bindings, (actionName) => actionHandlers[actionName].action),
 )
 
-const graphBindingsHandler = graphBindings.handler({
-  ...objects.unsafeFromEntries<Partial<Record<ActionName, () => void>>>(
-    (
-      [
-        'components.deleteSelected',
-        'components.copy',
-        'components.collapse',
-        'components.pickColorMulti',
-        'graph.fitAll',
-        'graph.navigateUp',
-      ] as const
-    ).map((actionName) => [actionName, actionHandlers[actionName].action]),
+const graphBindingsHandler = graphBindings.handler(
+  objects.mapEntries(
+    graphBindings.bindings,
+    (actionName) => () => void actionHandlers[actionName].action(),
   ),
-  startProfiling() {
-    projectStore.lsRpcConnection.profilingStart(true)
-  },
-  stopProfiling() {
-    projectStore.lsRpcConnection.profilingStop()
-  },
-  openComponentBrowser() {
-    if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
-      createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
-    }
-  },
-  selectAll() {
-    nodeSelection.selectAll()
-  },
-  deselectAll() {
-    nodeSelection.deselectAll()
-    clearFocus()
-    graphStore.undoManager.undoStackBoundary()
-  },
-  toggleVisualization() {
-    const selected = nodeSelection.selected
-    const allVisible = iter.every(
-      selected,
-      (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
-    )
-    graphStore.batchEdits(() => {
-      for (const nodeId of selected) {
-        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
-      }
-    })
-  },
-  pasteNode() {
-    createNodesFromClipboard()
-  },
-  enterNode() {
-    const selectedNode = set.first(nodeSelection.selected)
-    if (selectedNode) {
-      stackNavigator.enterNode(selectedNode)
-    }
-  },
-  openDocumentation() {
-    const result = tryGetSelectionDocUrl()
-    if (!result.ok) {
-      toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
-      return
-    }
-    window.open(result.value, '_blank')
-  },
-})
+)
 
 // === Code Editor ===
 
-const showCodeEditor = ref(false)
 const panelsHandler = panelsBindings.handler(
   objects.mapEntries(panelsBindings.bindings, (actionName) => actionHandlers[actionName].action),
 )
@@ -625,7 +622,7 @@ provideNodeColors(graphStore, (variable) =>
   viewportElem.value ? getComputedStyle(viewportElem.value).getPropertyValue(variable) : '',
 )
 
-const contextMenuActions: ActionName[] = [
+const contextMenuActions: DisplayableActionName[] = [
   'graph.navigateUp',
   'graph.renameProject',
   'graph.refreshExecution',
