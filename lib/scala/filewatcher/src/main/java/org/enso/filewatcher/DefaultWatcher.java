@@ -56,7 +56,9 @@ final class DefaultWatcher implements Watcher {
             }
           });
     } catch (IOException e) {
-      throw new IllegalStateException(e);
+      LOGGER.error("Failed to start file watch service in root directory " + root, e);
+      exceptionCallback.accept(new Watcher.WatcherError(e));
+      return;
     }
     assert watchedDirs.containsKey(root);
     executor.execute(this::eventLoop);
