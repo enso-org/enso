@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,9 +34,11 @@ public class FileWatcherTest {
   private ExecutorService executor;
   private BlockingQueue<WatcherEvent> eventQueue = new LinkedBlockingDeque<>();
   private Watcher watcher;
+  private boolean isClosingWatcher;
 
   @Before
   public void before() throws IOException {
+    isClosingWatcher = false;
     executor = Executors.newSingleThreadExecutor();
     tmpDir = tmpFolder.newFolder();
     eventQueue = new LinkedBlockingDeque<>();
@@ -49,6 +52,7 @@ public class FileWatcherTest {
   public void after() throws Exception {
     assertThat(
         "No further events should be in the queue: " + eventQueue, eventQueue.isEmpty(), is(true));
+    isClosingWatcher = true;
     eventQueue.clear();
     executor.shutdown();
     watcher.close();
@@ -63,8 +67,14 @@ public class FileWatcherTest {
   }
 
   private void exceptionCallback(Watcher.WatcherError error) {
-    throw new AssertionError(
-        "Unexpected Watcher error: " + error.throwable().getMessage(), error.throwable());
+    // ClosedWatchServiceException is expected when closing the watcher
+    if (!isClosingWatcher || !(error.throwable() instanceof ClosedWatchServiceException)) {
+      var errMsg =
+          String.format(
+              "Unexpected Watcher error: %s '%s'",
+              error.throwable(), error.throwable().getMessage());
+      throw new AssertionError(errMsg);
+    }
   }
 
   @Test
