@@ -10,8 +10,8 @@ import {
   startTransition,
   useEffect,
   useState,
-  type DragEvent,
   type PropsWithChildren,
+  type DragEvent as ReactDragEvent,
 } from 'react'
 
 /** The default offset (up and to the right) of the drag element. */
@@ -22,7 +22,7 @@ export interface DragModalProps
   extends Readonly<PropsWithChildren>,
     Readonly<JSX.IntrinsicElements['div']> {
   readonly hideBadge?: boolean
-  readonly event: DragEvent
+  readonly event: DragEvent | ReactDragEvent
   readonly onDragEnd: () => void
   readonly offsetPx?: number
   readonly offsetXPx?: number

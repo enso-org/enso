@@ -2,15 +2,15 @@
 import type { Category } from '#/layouts/Drive/Categories/Category'
 import type { AnyAsset, AssetId } from '#/services/Backend'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-import type { DragEvent } from 'react'
+import type { DragEvent as ReactDragEvent } from 'react'
 
 /** Set the drag image to blank, so a custom div can be used instead. */
-export function setDragImageToBlank(event: DragEvent) {
+export function setDragImageToBlank(event: DragEvent | ReactDragEvent) {
   const blankElement = document.createElement('div')
   const image = new Image()
   // Blank GIF
   image.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-  event.dataTransfer.setDragImage(image, 0, 0)
+  event.dataTransfer?.setDragImage(image, 0, 0)
   blankElement.remove()
 }
 
@@ -25,8 +25,8 @@ class DragPayloadManager<Payload> {
   }
 
   /** Tries to get the payload associated with a {@link DragEvent}. */
-  lookup(event: DragEvent) {
-    const item = Array.from(event.dataTransfer.items).find((dataTransferItem) =>
+  lookup(event: DragEvent | ReactDragEvent) {
+    const item = Array.from(event.dataTransfer?.items ?? []).find((dataTransferItem) =>
       dataTransferItem.type.startsWith(this.mimetype),
     )
     const id = item?.type.match(this.regex)?.[1] ?? null
@@ -34,9 +34,9 @@ class DragPayloadManager<Payload> {
   }
 
   /** Associate data with a {@link DragEvent}. */
-  bind(event: DragEvent, payload: Payload) {
+  bind(event: DragEvent | ReactDragEvent, payload: Payload) {
     const id = uniqueString()
-    event.dataTransfer.setData(`${this.mimetype}; id=${id}`, JSON.stringify(payload))
+    event.dataTransfer?.setData(`${this.mimetype}; id=${id}`, JSON.stringify(payload))
     this.map.set(id, payload)
     this.reverseMap.set(payload, id)
   }

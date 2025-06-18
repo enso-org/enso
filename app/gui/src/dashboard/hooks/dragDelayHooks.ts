@@ -1,7 +1,7 @@
 /** @file Hooks to trigger an action on drag delay. */
 import type { DropEnterEvent, DropOptions } from '#/components/aria'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { DOMAttributes, DragEvent } from 'react'
+import type { DOMAttributes, DragEvent as ReactDragEvent } from 'react'
 import { useRef } from 'react'
 
 /** The default delay, in milliseconds, before the drag action triggers. */
@@ -13,7 +13,7 @@ export interface DragDelayActionOptions {
 }
 
 /** A callback for {@link useDragDelayAction}. */
-export type DragDelayCallback<T> = (event: DragEvent<T>) => void
+export type DragDelayCallback<T> = (event: DragEvent | ReactDragEvent<T>) => void
 
 /** Trigger an action on a native HTML drop target. */
 export function useDragDelayAction<T>(
@@ -32,7 +32,7 @@ export function useDragDelayAction<T>(
   })
 
   return {
-    onDragEnter: useEventCallback((event: DragEvent<T>) => {
+    onDragEnter: useEventCallback((event: DragEvent | ReactDragEvent<T>) => {
       if (
         event.currentTarget instanceof HTMLElement &&
         event.relatedTarget instanceof HTMLElement &&
@@ -45,7 +45,7 @@ export function useDragDelayAction<T>(
         callback?.(event)
       }, delayMs)
     }),
-    onDragLeave: useEventCallback((event: DragEvent<T>) => {
+    onDragLeave: useEventCallback((event: DragEvent | ReactDragEvent<T>) => {
       if (
         event.currentTarget instanceof HTMLElement &&
         event.relatedTarget instanceof HTMLElement &&

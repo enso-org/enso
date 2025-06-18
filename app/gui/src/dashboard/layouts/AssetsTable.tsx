@@ -118,9 +118,8 @@ import {
   useRef,
   useState,
   type Dispatch,
-  type DragEvent,
   type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
+  type DragEvent as ReactDragEvent,
   type ReactNode,
   type RefObject,
   type SetStateAction,
@@ -851,7 +850,7 @@ function AssetsTable(props: AssetsTableProps) {
       />
     )
 
-  const onDropzoneDragOver = (event: DragEvent<Element>) => {
+  const onDropzoneDragOver = (event: ReactDragEvent) => {
     const payload = ASSET_ROWS.lookup(event)
     // Unconditionally handle drag event even if drop target is invalid
     // otherwise the drag modal stays around.
@@ -861,16 +860,16 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }
 
-  const updateIsDraggingFiles = (event: DragEvent<Element>) => {
+  const updateIsDraggingFiles = (event: ReactDragEvent) => {
     if (event.dataTransfer.types.includes('Files')) {
       setIsDraggingFiles(true)
       setDroppedFilesCount(event.dataTransfer.items.length)
     }
   }
 
-  const handleFileDrop = (event: DragEvent) => {
+  const handleFileDrop = (event: ReactDragEvent) => {
     setIsDraggingFiles(false)
-    if (event.dataTransfer.types.includes('Files')) {
+    if (event.dataTransfer.types.includes('Files') === true) {
       event.preventDefault()
       event.stopPropagation()
       void uploadFiles(Array.from(event.dataTransfer.files), currentDirectoryId)
@@ -918,7 +917,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const calculateNewSelection = useEventCallback(
     (
-      event: MouseEvent | ReactMouseEvent,
+      event: MouseEvent,
       otherAssets: readonly SelectedAssetInfo[],
       getRange: () => readonly SelectedAssetInfo[],
     ) => {
@@ -1052,7 +1051,7 @@ function AssetsTable(props: AssetsTableProps) {
     setSelectedAssets([item])
   })
 
-  const onRowClick = useEventCallback(({ asset }: AssetRowInnerProps, event: ReactMouseEvent) => {
+  const onRowClick = useEventCallback(({ asset }: AssetRowInnerProps, event: MouseEvent) => {
     event.stopPropagation()
     const newIndex = visibleItems.findIndex((otherAset) => otherAset.id === asset.id)
     const getRange = () => {
@@ -1079,85 +1078,83 @@ function AssetsTable(props: AssetsTableProps) {
     setSelectedAssets([asset])
   })
 
-  const onRowDragStart = useEventCallback(
-    (event: DragEvent<HTMLTableRowElement>, asset: AnyAsset) => {
-      startAutoScroll()
+  const onRowDragStart = useEventCallback((event: DragEvent, asset: AnyAsset) => {
+    startAutoScroll()
 
-      onMouseEvent(event)
+    onMouseEvent(event)
 
-      let newSelectedKeys = driveStore.getState().selectedIds
+    let newSelectedKeys = driveStore.getState().selectedIds
 
-      if (!newSelectedKeys.has(asset.id)) {
-        setMostRecentlySelectedIndex(
-          visibleItems.findIndex((otherAsset) => otherAsset.id === asset.id),
-        )
-        selectionStartIndexRef.current = null
-        newSelectedKeys = new Set([asset.id])
-        setSelectedAssets([asset])
-      }
-      const nodes = assets.filter((node) => newSelectedKeys.has(node.id))
-      const isPayloadInvalid = nodes.some(
-        (node) => node.type === AssetType.project && IS_OPENING_OR_OPENED[node.projectState.type],
+    if (!newSelectedKeys.has(asset.id)) {
+      setMostRecentlySelectedIndex(
+        visibleItems.findIndex((otherAsset) => otherAsset.id === asset.id),
       )
-      if (isPayloadInvalid) {
-        event.preventDefault()
-        return
-      }
-      const payload: AssetRowsDragPayload = {
+      selectionStartIndexRef.current = null
+      newSelectedKeys = new Set([asset.id])
+      setSelectedAssets([asset])
+    }
+    const nodes = assets.filter((node) => newSelectedKeys.has(node.id))
+    const isPayloadInvalid = nodes.some(
+      (node) => node.type === AssetType.project && IS_OPENING_OR_OPENED[node.projectState.type],
+    )
+    if (isPayloadInvalid) {
+      event.preventDefault()
+      return
+    }
+    const payload: AssetRowsDragPayload = {
+      category,
+      items: nodes.map((node) => ({
+        key: node.id,
+        asset: node,
+      })),
+    }
+    event.dataTransfer?.setData(
+      ASSETS_MIME_TYPE,
+      JSON.stringify({
         category,
         items: nodes.map((node) => ({
-          key: node.id,
-          asset: node,
+          id: node.id,
+          title: node.title,
+          type: node.type,
+          parentId: node.parentId,
+          parentsPath: node.parentsPath,
+          virtualParentsPath: node.virtualParentsPath,
         })),
-      }
-      event.dataTransfer.setData(
-        ASSETS_MIME_TYPE,
-        JSON.stringify({
-          category,
-          items: nodes.map((node) => ({
-            id: node.id,
-            title: node.title,
-            type: node.type,
-            parentId: node.parentId,
-            parentsPath: node.parentsPath,
-            virtualParentsPath: node.virtualParentsPath,
-          })),
-        } satisfies AssetsDataTransferPayload),
-      )
-      setDragImageToBlank(event)
-      ASSET_ROWS.bind(event, payload)
-      setModal(
-        <DragModal
-          event={event}
-          className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
-          onDragEnd={() => {
-            ASSET_ROWS.unbind(payload)
-          }}
-        >
-          {nodes.map((node) => (
-            <NameColumn
-              isNavigating={false}
-              key={node.id}
-              item={node}
-              isOpened={false}
-              backendType={backend.type}
-              state={state}
-              rowState={INITIAL_ROW_STATE}
-              // The drag placeholder cannot be interacted with.
-              isEditable={false}
-              isPlaceholder={false}
-              setSelected={noop}
-              setRowState={noop}
-              renameAsset={noopPromise}
-              closeProject={noopPromise}
-              openProject={noopPromise}
-              labels={[]}
-            />
-          ))}
-        </DragModal>,
-      )
-    },
-  )
+      } satisfies AssetsDataTransferPayload),
+    )
+    setDragImageToBlank(event)
+    ASSET_ROWS.bind(event, payload)
+    setModal(
+      <DragModal
+        event={event}
+        className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
+        onDragEnd={() => {
+          ASSET_ROWS.unbind(payload)
+        }}
+      >
+        {nodes.map((node) => (
+          <NameColumn
+            isNavigating={false}
+            key={node.id}
+            item={node}
+            isOpened={false}
+            backendType={backend.type}
+            state={state}
+            rowState={INITIAL_ROW_STATE}
+            // The drag placeholder cannot be interacted with.
+            isEditable={false}
+            isPlaceholder={false}
+            setSelected={noop}
+            setRowState={noop}
+            renameAsset={noopPromise}
+            closeProject={noopPromise}
+            openProject={noopPromise}
+            labels={[]}
+          />
+        ))}
+      </DragModal>,
+    )
+  })
 
   const onRowDragEnd = useEventCallback(() => {
     setIsDraggingFiles(false)
@@ -1165,7 +1162,7 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const onRowDrop = useEventCallback(
-    (event: DragEvent<HTMLElement>, item: AnyAsset | null = null) => {
+    (event: DragEvent | ReactDragEvent, item: AnyAsset | null = null) => {
       if (category.type === 'trash' || category.type === 'recent') {
         return
       }
@@ -1194,7 +1191,7 @@ function AssetsTable(props: AssetsTableProps) {
         })
         return
       }
-      if (event.dataTransfer.types.includes('Files')) {
+      if (event.dataTransfer?.types.includes('Files') === true) {
         event.preventDefault()
         event.stopPropagation()
         void uploadFiles(Array.from(event.dataTransfer.files), directoryId)
@@ -1438,9 +1435,7 @@ function AssetsTable(props: AssetsTableProps) {
             onDragEnd={() => {
               setIsDraggingFiles(false)
             }}
-            onDrop={(event) => {
-              handleFileDrop(event)
-            }}
+            onDrop={handleFileDrop}
           >
             <SvgMask src={DropFilesImage} className="size-8" />
             {dropzoneText}

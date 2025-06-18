@@ -4,12 +4,12 @@ import type * as React from 'react'
 import * as detect from 'enso-common/src/detect'
 
 /** Returns `true` if and only if the event is a single click event. */
-export function isSingleClick(event: React.MouseEvent) {
+export function isSingleClick(event: MouseEvent | React.MouseEvent) {
   return event.detail === 1
 }
 
 /** Returns `true` if and only if the event is a double click event. */
-export function isDoubleClick(event: React.MouseEvent) {
+export function isDoubleClick(event: MouseEvent | React.MouseEvent) {
   return event.detail === 2
 }
 
@@ -17,7 +17,9 @@ export function isDoubleClick(event: React.MouseEvent) {
  * Returns `true` if and only if the event has the modifier key set
  * (`Ctrl` on Windows/Linux; `Cmd` on macOS).
  */
-export function isModKey(event: React.KeyboardEvent | React.MouseEvent) {
+export function isModKey(
+  event: KeyboardEvent | MouseEvent | React.KeyboardEvent | React.MouseEvent,
+) {
   return detect.isOnMacOS() ? event.metaKey : event.ctrlKey
 }
 

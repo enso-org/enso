@@ -1,4 +1,5 @@
 /** @file A table row for an arbitrary asset. */
+import { Cell, Row } from '#/components/aria'
 import {
   useDeleteAssetsMutationState,
   useMoveAssetsMutationState,
@@ -28,7 +29,7 @@ import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
-import * as eventModule from '#/utilities/event'
+import { isDoubleClick } from '#/utilities/event'
 import * as object from '#/utilities/object'
 import {
   canPermissionModifyDirectoryContents,
@@ -64,20 +65,11 @@ export interface AssetRowProps {
   readonly isKeyboardSelected: boolean
   readonly labels: readonly Label[]
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
-  readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
+  readonly onClick: (props: AssetRowInnerProps, event: MouseEvent) => void
   readonly select: (item: backendModule.AnyAsset) => void
-  readonly onDragStart: (
-    event: React.DragEvent<HTMLTableRowElement>,
-    item: backendModule.AnyAsset,
-  ) => void
-  readonly onDragEnd: (
-    event: React.DragEvent<HTMLTableRowElement>,
-    item: backendModule.AnyAsset,
-  ) => void
-  readonly onDrop: (
-    event: React.DragEvent<HTMLTableRowElement>,
-    item: backendModule.AnyAsset,
-  ) => void
+  readonly onDragStart: (event: DragEvent, item: backendModule.AnyAsset) => void
+  readonly onDragEnd: (event: DragEvent, item: backendModule.AnyAsset) => void
+  readonly onDrop: (event: DragEvent, item: backendModule.AnyAsset) => void
   readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
   readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
@@ -276,7 +268,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
     : undefined,
   )
 
-  const onDragOver = (event: React.DragEvent<Element>) => {
+  const onDragOver = (event: DragEvent) => {
     const directoryId = item.type === backendModule.AssetType.directory ? id : parentId
     const payload = drag.ASSET_ROWS.lookup(event)
     const isPayloadMatch =
@@ -304,7 +296,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
       })
     })()
 
-    if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
+    if ((isPayloadMatch && canPaste) || event.dataTransfer?.types.includes('Files') === true) {
       event.preventDefault()
       if (item.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
         setIsDraggedOver(true)
@@ -327,24 +319,122 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
       return (
         <>
-          <tr
+          <Row
             data-testid="asset-row"
-            tabIndex={0}
             data-selected={isSelected}
             data-id={item.id}
-            onDoubleClick={() => {
-              if (item.type === backendModule.AssetType.directory) {
-                startNavigation(() => {
-                  setCurrentDirectoryId(item.id)
-                })
-              }
-            }}
             ref={(element) => {
               rootRef.current = element
-
-              if (isKeyboardSelected && element?.contains(document.activeElement) === false) {
+              if (!element) {
+                return
+              }
+              if (isKeyboardSelected && element.contains(document.activeElement) === false) {
                 element.scrollIntoView({ block: 'nearest' })
                 element.focus()
+              }
+              element.onclick = (event) => {
+                unsetModal()
+                onClick(innerProps, event)
+                if (
+                  item.type === backendModule.AssetType.directory &&
+                  isDoubleClick(event) &&
+                  !rowState.isEditingName
+                ) {
+                  // This must be processed on the next tick, otherwise it will be overridden
+                  // by the default click handler.
+                  window.setTimeout(() => {
+                    setSelected(false)
+                  })
+                }
+              }
+              element.ondblclick = () => {
+                if (item.type === backendModule.AssetType.directory) {
+                  startNavigation(() => {
+                    setCurrentDirectoryId(item.id)
+                  })
+                }
+              }
+              element.oncontextmenu = (event) => {
+                // We show the asset row context menu if the asset is included in the selection.
+                // Or we click on a asset row outside of the selection. In that case we reset the
+                // selection to the clicked asset.
+                if (isSelected && isMultiSelected) {
+                  return
+                }
+
+                event.preventDefault()
+                event.stopPropagation()
+
+                if (!isSelected) {
+                  select(item)
+                }
+
+                setModal(
+                  <AssetContextMenu
+                    rootRef={tableRootRef}
+                    innerProps={innerProps}
+                    currentDirectoryId={currentDirectoryId}
+                    triggerRef={rootRef}
+                    event={event}
+                    eventTarget={
+                      event.target instanceof HTMLElement ?
+                        event.target
+                        // eslint-disable-next-line no-restricted-syntax
+                      : (event.currentTarget as HTMLElement)
+                    }
+                    doCopy={doCopy}
+                    doCut={doCut}
+                    doPaste={doPaste}
+                    rightPanel={rightPanel}
+                  />,
+                )
+              }
+              element.ondragstart = (event) => {
+                if (rowState.isEditingName) {
+                  event.preventDefault()
+                }
+
+                if (
+                  item.type === backendModule.AssetType.project &&
+                  BUSY_PROJECT_STATES.has(item.projectState.type)
+                ) {
+                  event.preventDefault()
+                }
+
+                props.onDragStart(event, item)
+              }
+              element.ondragenter = (event) => {
+                // Required because `dragover` does not fire on `mouseenter`.
+                onDragOver(event)
+                dragDelayProps.onDragEnter(event)
+              }
+              element.ondragover = (event) => {
+                if (state.category.type === 'trash' && event.dataTransfer) {
+                  event.dataTransfer.dropEffect = 'none'
+                }
+                onDragOver(event)
+              }
+              element.ondragend = (event) => {
+                setIsDraggedOver(false)
+                props.onDragEnd(event, item)
+              }
+              element.ondragleave = (event) => {
+                if (
+                  event.relatedTarget instanceof Node &&
+                  event.currentTarget instanceof Node &&
+                  event.currentTarget.contains(event.relatedTarget) !== true
+                ) {
+                  setIsDraggedOver(false)
+                  setDragTargetAssetId(null)
+                }
+                dragDelayProps.onDragLeave(event)
+              }
+              element.ondrop = (event) => {
+                event.preventDefault()
+                event.stopPropagation()
+
+                setIsDraggedOver(false)
+                props.onDrop(event, item)
               }
             }}
             className={tailwindMerge.twMerge(
@@ -353,104 +443,11 @@ export function RealAssetRow(props: RealAssetRowProps) {
               (isDraggedOver || isSelected) && 'selected',
             )}
             {...draggableProps}
-            onClick={(event) => {
-              unsetModal()
-              onClick(innerProps, event)
-              if (
-                item.type === backendModule.AssetType.directory &&
-                eventModule.isDoubleClick(event) &&
-                !rowState.isEditingName
-              ) {
-                // This must be processed on the next tick, otherwise it will be overridden
-                // by the default click handler.
-                window.setTimeout(() => {
-                  setSelected(false)
-                })
-              }
-            }}
-            onContextMenu={(event) => {
-              // We show the asset row context menu if the asset is included in the selection.
-              // Or we click on a asset row outside of the selection. In that case we reset the
-              // selection to the clicked asset.
-              if (isSelected && isMultiSelected) {
-                return
-              }
-
-              event.preventDefault()
-              event.stopPropagation()
-
-              if (!isSelected) {
-                select(item)
-              }
-
-              setModal(
-                <AssetContextMenu
-                  rootRef={tableRootRef}
-                  innerProps={innerProps}
-                  currentDirectoryId={currentDirectoryId}
-                  triggerRef={rootRef}
-                  event={event}
-                  eventTarget={
-                    event.target instanceof HTMLElement ? event.target : event.currentTarget
-                  }
-                  doCopy={doCopy}
-                  doCut={doCut}
-                  doPaste={doPaste}
-                  rightPanel={rightPanel}
-                />,
-              )
-            }}
-            onDragStart={(event) => {
-              if (rowState.isEditingName) {
-                event.preventDefault()
-              }
-
-              if (
-                item.type === backendModule.AssetType.project &&
-                BUSY_PROJECT_STATES.has(item.projectState.type)
-              ) {
-                event.preventDefault()
-              }
-
-              props.onDragStart(event, item)
-            }}
-            onDragEnter={(event) => {
-              // Required because `dragover` does not fire on `mouseenter`.
-              onDragOver(event)
-              dragDelayProps.onDragEnter(event)
-            }}
-            onDragOver={(event) => {
-              if (state.category.type === 'trash') {
-                event.dataTransfer.dropEffect = 'none'
-              }
-              onDragOver(event)
-            }}
-            onDragEnd={(event) => {
-              setIsDraggedOver(false)
-              props.onDragEnd(event, item)
-            }}
-            onDragLeave={(event) => {
-              if (
-                event.relatedTarget instanceof Node &&
-                !event.currentTarget.contains(event.relatedTarget)
-              ) {
-                setIsDraggedOver(false)
-                setDragTargetAssetId(null)
-              }
-              dragDelayProps.onDragLeave(event)
-            }}
-            onDrop={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-
-              setIsDraggedOver(false)
-              props.onDrop(event, item)
-            }}
           >
             {columns.map((column) => {
               const Render = columnModule.COLUMN_RENDERER[column]
               return (
-                <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
+                <Cell key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                   <Render
                     isNavigating={isNavigating}
                     labels={labels}
@@ -467,10 +464,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
                     closeProject={closeProject}
                     openProject={openProject}
                   />
-                </td>
+                </Cell>
               )
             })}
-          </tr>
+          </Row>
 
           {isSoleSelected && (
             // This is a copy of the context menu, since the context menu registers keyboard
