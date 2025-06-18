@@ -218,7 +218,7 @@ test('Scrollbars in editor panels', async ({ page }) => {
   const docsScrollbars = await getScrollbarState(docsScroller)
   expect(docsScrollbars).toEqual({ scrollableWidth: false, scrollableHeight: true })
 
-  const { codeEditor, codeScroller } = await openCodeEditor(page)
+  const { codeScroller } = await openCodeEditor(page)
   const codeScrollbars = await getScrollbarState(codeScroller)
   expect(codeScrollbars).toEqual({ scrollableWidth: true, scrollableHeight: true })
 })
