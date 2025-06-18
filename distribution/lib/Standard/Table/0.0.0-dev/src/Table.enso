@@ -98,7 +98,7 @@ type Table
         ? Consistent Row Count
         All columns must have the same number of rows. If a column has a
         different number of entries, an error is thrown.
-    new (columns : Vector (Vector | Column)) -> Table =
+    new (columns : Vector (Vector | Column)) -> Table & In_Memory_Table =
         In_Memory_Table.new columns
 
     ## GROUP Standard.Base.Constants
@@ -124,7 +124,7 @@ type Table
                  row_3 =  [ 3     , True  , 'c'   ]
                  Table.from_rows header [row_1, row_2, row_3]
     @header (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='"Column"')
-    from_rows header:Vector rows:Vector -> Table =
+    from_rows header:Vector rows:Vector -> Table & In_Memory_Table =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
         Table.new columns
 
@@ -156,7 +156,7 @@ type Table
         ? Consistent Row Count
         All columns must have the same number of rows. If a column has a
         different number of entries, an error is thrown.
-    input (columns : Vector (Vector | Column)) -> Table =
+    input (columns : Vector (Vector | Column)) -> Table & In_Memory_Table =
         throw_bad_column = Error.throw (Illegal_Argument.Error "Each column must be represented as a Vector of column name (Text), data (vector like elements) and optionally a type (Value_Type), or an existing column.")
         resolved_columns = columns.map c-> case c of
             _ : Column -> c

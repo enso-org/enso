@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Table.In_Memory_Table.In_Memory_Table
 from Standard.Table import Table, Column, Data_Formatter, Value_Type
 from Standard.Table.Extensions.Table_Conversions import all
 
@@ -51,14 +50,14 @@ add_specs suite_builder =
             expected_text = normalize_lines <|
                 (enso_project.data / "datetime_sample_normalized_hours.csv").read_text
             data_formatter = Data_Formatter.Value . with_datetime_formats datetime_formats=["yyyy-MM-dd HH:mm:ss"]
-            delimited = (data.expected:In_Memory_Table).to_delimited "," line_endings=..Unix value_formatter=data_formatter
+            delimited = data.expected.to_delimited "," line_endings=..Unix value_formatter=data_formatter
             delimited.should_equal expected_text
 
         group_builder.specify "should serialise dates with format" <|
             test_table = Table.new [data.c_date]
             expected_text = 'Posting date\n05.01.2015 09-00\n05.01.2015 14-00\n06.01.2015 09-00\n07.01.2015 17-30\n05.01.2011 09-00\n09.01.2011 15-30\n'
             data_formatter = Data_Formatter.Value . with_datetime_formats datetime_formats=["dd.MM.yyyy HH-mm"]
-            delimited = (test_table:In_Memory_Table).to_delimited "," value_formatter=data_formatter line_endings=..Unix
+            delimited = test_table.to_delimited "," value_formatter=data_formatter line_endings=..Unix
             delimited.should_equal expected_text
 
 main filter=Nothing =
