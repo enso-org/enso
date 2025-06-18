@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
@@ -137,12 +136,11 @@ public class ExcelReader {
       ExcelFileFormat format,
       ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException, InterruptedException {
-   return withWorkbook(
+    return withWorkbook(
         file,
         format,
         workbook ->
-            readSheetByIndex(
-                workbook, index, headers, skip_rows, row_limit, problemAggregator));
+            readSheetByIndex(workbook, index, headers, skip_rows, row_limit, problemAggregator));
   }
 
   /**
@@ -164,21 +162,21 @@ public class ExcelReader {
       Integer row_limit,
       ProblemAggregator problemAggregator)
       throws InvalidLocationException, InterruptedException {
-          int sheetCount = workbook.getNumberOfSheets();
-          if (index < 1 || index > sheetCount) {
-            throw new InvalidLocationException(
-                Integer.toString(index),
-                "Sheet " + index + " is out of range (1 to " + sheetCount + " inclusive).");
-          }
+    int sheetCount = workbook.getNumberOfSheets();
+    if (index < 1 || index > sheetCount) {
+      throw new InvalidLocationException(
+          Integer.toString(index),
+          "Sheet " + index + " is out of range (1 to " + sheetCount + " inclusive).");
+    }
 
-          return readTable(
-              workbook,
-              index - 1,
-              null,
-              headers,
-              skip_rows,
-              row_limit == null ? Integer.MAX_VALUE : row_limit,
-              problemAggregator);
+    return readTable(
+        workbook,
+        index - 1,
+        null,
+        headers,
+        skip_rows,
+        row_limit == null ? Integer.MAX_VALUE : row_limit,
+        problemAggregator);
   }
 
   /**
