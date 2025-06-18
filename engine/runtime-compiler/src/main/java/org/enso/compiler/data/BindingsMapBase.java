@@ -10,6 +10,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.pass.IRPass;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Map;
+import scala.collection.immutable.Map$;
 
 abstract class BindingsMapBase implements IRPass.IRMetadata {
   private State state;
@@ -30,7 +31,7 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
       PackageRepository pendingRepository,
       Map<String, List<ResolvedName>> exportedSymbols) {
     State(List<DefinedEntity> definedEntities, ModuleReference currentModule) {
-      this(definedEntities, currentModule, nil(), null, null);
+      this(definedEntities, currentModule, nil(), null, Map$.MODULE$.empty());
     }
 
     /**
