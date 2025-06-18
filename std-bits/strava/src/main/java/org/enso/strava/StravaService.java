@@ -19,7 +19,6 @@ public final class StravaService {
     }
 
     private void refresh() throws IOException {
-      var oat = accessToken;
       accessToken = ExternalLibraryCredentialHelper.requestAccessToken(credentialReference);
     }
 
