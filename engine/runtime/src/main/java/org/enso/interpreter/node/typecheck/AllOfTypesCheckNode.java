@@ -30,6 +30,20 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
 
   @Override
   Object findDirectMatch(VirtualFrame frame, Object value) {
+    if (value instanceof EnsoMultiValue multi) {
+      var dispatchTypes = new Type[checks.length];
+      var at = 0;
+      for (var n : checks) {
+        var result = n.findDirectMatch(frame, value);
+        if (result == null) {
+          return null;
+        }
+        var t = typeNode.findTypeOrNull(result);
+        dispatchTypes[at++] = t;
+      }
+      var node = EnsoMultiValue.NewNode.getUncached();
+      return node.renewMulti(multi, dispatchTypes);
+    }
     return null;
   }
 
@@ -38,6 +52,13 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
   Object executeCheckOrConversion(VirtualFrame frame, Object value, ExpressionNode expr) {
     if (isAllFitValue(value)) {
       return value;
+    }
+
+    {
+      var result = findDirectMatch(frame, value);
+      if (result != null) {
+        return result;
+      }
     }
 
     var values = new Object[checks.length];
