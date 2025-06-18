@@ -26,3 +26,10 @@ add_specs suite_builder =
             ## Test2
             r = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
             r.sheet_count . should_equal 5
+        group_builder.specify "can read a worksheet via sheet name or index" <|
+            ## Test2
+            r = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            r.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            r.read 'Sheet3' . column_names . should_equal (['S3A', 'S3B', 'S3C'])
+            r.read 0 . column_names . should_equal (['S1A', 'S2B', 'S3C'])
+            r.read 4 . column_names . should_equal (['S5A', 'S5B', 'S5C'])
