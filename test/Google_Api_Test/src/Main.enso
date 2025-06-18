@@ -14,9 +14,15 @@ main filter=Nothing =
 add_specs suite_builder =
     suite_builder.group "Google Sheets" group_builder->
         group_builder.specify "can read a workbook via Google_Sheets.read" <|
+            ## Test1
             r = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
             r.sheet_names.should_equal ['Sheet1']
         group_builder.specify "can read a worksheet via Google_Sheets_Workbook.read" <|
+            ## Test1
             r = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
             r.sheet_names.should_equal ['Sheet1']
             r.read 'Sheet1' . should_equal (Table.new [['X', ['Y', 'Z']]])
+        group_builder.specify "can get a count of worksheets" <|
+            ## Test2
+            r = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            r.sheet_count . should_equal 5
