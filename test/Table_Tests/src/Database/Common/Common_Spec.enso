@@ -203,6 +203,13 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
 
             (db_column : DB_Column).to_sql . should_succeed
 
+        group_builder.specify "DB_Column.is_database_column should return true even after part is hidden" <|
+            db_column = data.t1.at 'a'
+
+            hidden = db_column:Column
+            hidden.should_be_a Column
+            DB_Column.is_database_column hidden . should_be_true
+
     suite_builder.group (prefix + "Connection.query") group_builder->
         data = Basic_Data.setup default_connection.get
         

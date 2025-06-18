@@ -78,7 +78,7 @@ add_specs suite_builder =
             b2 = id_b ab
             a2 = b2:A
             a2.is_a A . should_be_true
-            a2.is_a B . should_be_true # B is hidden type
+            a2.is_a B . should_be_true # B is hidden type but `is_a` still 'sees' it
             Test.expect_panic No_Such_Method (a2.b_method)
 
             a2.a_method.should_equal "A method"
@@ -114,6 +114,16 @@ add_specs suite_builder =
                     Test.expect_panic No_Such_Method (ab_as_b.a_method)
                     ab_as_b.is_a B . should_be_true
                 _ -> Test.fail "Expected ab to go to `: B` branch"
+
+        group_builder.specify "case-of can match hidden part of intersection type" <|
+            ab = make_a_and_b
+            a = ab:A
+            r = case a of
+                b : B ->
+                    b.b_method . should_equal "B method"
+                    "B was matched"
+                _ -> Test.fail "Expected a to go to `: B` branch"
+            r.should_equal "B was matched"
 
         group_builder.specify "pattern matching does not apply conversions" <|
             ab = make_a_and_b
