@@ -6,7 +6,6 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as portal from '#/components/Portal'
 import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
@@ -58,8 +57,6 @@ export function Dialog(props: DialogProps) {
     modalProps = {},
   } = props
 
-  const root = portal.useStrictPortalContext()
-
   return (
     <aria.ModalOverlay
       className={({ isEntering, isExiting }) =>
@@ -67,7 +64,6 @@ export function Dialog(props: DialogProps) {
       }
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-      UNSTABLE_portalContainer={root}
       onOpenChange={onOpenChange}
       shouldCloseOnInteractOutside={() => false}
       {...modalProps}
@@ -79,7 +75,6 @@ export function Dialog(props: DialogProps) {
           }
           isDismissable={isDismissable}
           isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-          UNSTABLE_portalContainer={root}
           onOpenChange={onOpenChange}
           shouldCloseOnInteractOutside={() => false}
           {...modalProps}

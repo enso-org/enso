@@ -6,6 +6,8 @@ export * from 'react-aria'
 // @ts-expect-error The conflicting exports are props types ONLY
 export * from 'react-aria-components'
 // Resolve ambigouous star exports (`react-aria` and `react-aria-components`)
+// eslint-disable-next-line camelcase
+export { UNSAFE_PortalProvider } from '@react-aria/overlays'
 export { I18nProvider, RouterProvider } from 'react-aria-components'
 export {
   useTooltipTriggerState,

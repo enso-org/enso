@@ -7,7 +7,6 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as portal from '#/components/Portal'
 import * as suspense from '#/components/Suspense'
 
 import * as twv from '#/utilities/tailwindVariants'
@@ -101,7 +100,6 @@ export function Popover(props: PopoverProps) {
   } = props
 
   const popoverRef = React.useRef<HTMLDivElement>(null)
-  const root = portal.useStrictPortalContext()
   const popoverStyle = { zIndex: '' }
 
   return (
@@ -118,7 +116,6 @@ export function Popover(props: PopoverProps) {
           className: typeof className === 'function' ? className(values) : className,
         })
       }
-      UNSTABLE_portalContainer={root}
       style={popoverStyle}
       shouldCloseOnInteractOutside={() => false}
       {...(placement != null ? { placement } : {})}

@@ -1,6 +1,5 @@
 /** @file Displays the description of an element on hover or focus. */
 import * as aria from '#/components/aria'
-import { useStrictPortalContext } from '#/components/Portal'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { ResetButtonGroupContext } from '../Button/shared'
 import { DIALOG_BACKGROUND } from '../Dialog/variants'
@@ -58,7 +57,7 @@ const DEFAULT_OFFSET = 9
 
 /** Props for a {@link Tooltip}. */
 export interface TooltipProps
-  extends Omit<Readonly<aria.TooltipProps>, 'offset' | 'UNSTABLE_portalContainer'>,
+  extends Omit<Readonly<aria.TooltipProps>, 'offset'>,
     Omit<VariantProps<typeof TOOLTIP_STYLES>, 'isEntering' | 'isExiting'> {}
 
 /** Displays the description of an element on hover or focus. */
@@ -73,14 +72,11 @@ export function Tooltip(props: TooltipProps) {
     ...ariaTooltipProps
   } = props
 
-  const root = useStrictPortalContext()
-
   return (
     <ResetButtonGroupContext>
       <aria.Tooltip
         offset={DEFAULT_OFFSET}
         containerPadding={containerPadding}
-        UNSTABLE_portalContainer={root}
         className={aria.composeRenderProps(className, (classNames, values) =>
           variants({ className: classNames, variant, size, rounded, ...values }),
         )}

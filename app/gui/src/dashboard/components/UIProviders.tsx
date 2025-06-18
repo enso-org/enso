@@ -1,6 +1,6 @@
 /** @file A wrapper containing all UI-related React Provdiers. */
+import { UNSAFE_PortalProvider } from '#/components/aria'
 import { DialogStackProvider } from '#/components/Dialog'
-import { PortalProvider } from '#/components/Portal'
 import type { Spring } from 'framer-motion'
 import { MotionConfig } from 'framer-motion'
 import * as React from 'react'
@@ -43,11 +43,12 @@ export default function UIProviders(props: UIProvidersProps) {
   return (
     <RootContext.Provider value={{ portalRoot, appRoot }}>
       <MotionConfig reducedMotion="user" transition={DEFAULT_TRANSITION_OPTIONS}>
-        <PortalProvider value={portalRoot}>
+        {/* eslint-disable-next-line react/jsx-pascal-case, camelcase */}
+        <UNSAFE_PortalProvider getContainer={() => portalRoot}>
           <DialogStackProvider>
             <I18nProvider locale={locale}>{children}</I18nProvider>
           </DialogStackProvider>
-        </PortalProvider>
+        </UNSAFE_PortalProvider>
       </MotionConfig>
     </RootContext.Provider>
   )
