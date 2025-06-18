@@ -15,7 +15,7 @@ have a powerful type inference engine.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Type Inference Prototype](#type-inference-prototype)
+- [Type Checker Prototype](#type-checker-prototype)
 - [Design Goals](#design-goals)
   - [Maximal Inference Power](#maximal-inference-power)
   - [Type Inference Algorithm](#type-inference-algorithm)
@@ -23,9 +23,30 @@ have a powerful type inference engine.
 
 <!-- /MarkdownTOC -->
 
-## Type Inference Prototype
+## Type Checker Prototype
 
-...
+A prototype of a type checker has been developed that does try to reach all 
+the design goals written below, but tries to perform best effort type 
+checking to provide lints and warnings to developers to aid in development.
+
+As it is a prototype and may slow down the compilation, it is only enabled 
+if an `--enable-static-analysis` flag has been passed to the compiler.
+
+To try out the type checker you may run
+```bash
+./built-distribution/enso-engine-0.0.0-dev-windows-amd64/enso-0.0.0-dev/bin/enso --compile /path/to/Project --enable-static-analysis
+```
+
+### Design
+
+#### Local Inference and Type Propagation
+
+#### Checking type compatibility
+
+### Future work
+
+TODO
+
 
 ## Design Goals
 
