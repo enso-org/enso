@@ -31,9 +31,6 @@ non-sealed abstract class MetaTypeCheckNode extends AbstractTypeCheckNode {
 
   @Specialization
   Object verifyMetaObject(VirtualFrame frame, Object v, @Cached IsValueOfTypeNode isA) {
-    if (isAllFitValue(v)) {
-      return v;
-    }
     if (isA.execute(expectedSupplier.get(), v, true)) {
       return v;
     } else {

@@ -10,11 +10,13 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
@@ -61,6 +63,9 @@ public final class TypeCheckValueNode extends Node {
    */
   public final Object handleCheckOrConversion(
       VirtualFrame frame, Object value, ExpressionNode expr) {
+    if (isAllFitValue(value)) {
+      return value;
+    }
     if (warnings.hasWarnings(value)) {
       if (append == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -226,5 +231,9 @@ public final class TypeCheckValueNode extends Node {
 
   final boolean isAllTypes() {
     return allTypes;
+  }
+
+  private static boolean isAllFitValue(Object v) {
+    return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
   }
 }

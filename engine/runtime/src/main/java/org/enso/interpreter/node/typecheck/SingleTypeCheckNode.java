@@ -98,9 +98,6 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
 
   @ExplodeLoop
   final Object findDirectMatch(VirtualFrame frame, Object v) {
-    if (isAllFitValue(v)) {
-      return v;
-    }
     if (v instanceof Function fn && fn.isThunk()) {
       if (lazyCheck == null) {
         CompilerDirectives.transferToInterpreter();
