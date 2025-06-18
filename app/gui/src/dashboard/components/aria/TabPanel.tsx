@@ -4,8 +4,8 @@ import type { ForwardedRef } from 'react'
 import { useContext } from 'react'
 import { useFocusRing } from 'react-aria'
 import {
-  UNSTABLE_CollectionRendererContext as CollectionRendererContext,
-  UNSTABLE_DefaultCollectionRenderer as DefaultCollectionRenderer,
+  CollectionRendererContext,
+  DefaultCollectionRenderer,
   TabListStateContext,
   TabsContext,
   type TabPanelProps,
