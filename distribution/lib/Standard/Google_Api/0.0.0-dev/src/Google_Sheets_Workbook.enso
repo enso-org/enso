@@ -6,7 +6,7 @@ import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Table.Errors import Invalid_Location
 
 from Standard.Table import Table
 
@@ -62,7 +62,7 @@ type Google_Sheets_Workbook
               _ : Text -> self.java_service.getSheetRange self.workbook_id query
               _ : Integer ->
                 names = self.sheet_names
-                if (query < 1 || query >= names.length) then Error.throw (Illegal_Argument.Error "Worksheet index out of range (1 - "+names.length.to_text+").") else
+                if (query < 1 || query > names.length) then Error.throw (Invalid_Location.Error "Sheet "+query.to_text+" is out of range (1 to "+names.length.to_text+" inclusive).") else
                     self.java_service.getSheetRange self.workbook_id (names.at (query - 1))
         # The first entry is the column name (A, B, ...) and the rest are the values.
         column_vectors = values.map v-> [v.first, v.drop 1]

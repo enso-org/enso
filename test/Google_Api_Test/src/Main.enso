@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Google_Api import all
 
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Table.Errors import Invalid_Location
 
 from Standard.Test import all
 from Standard.Table import Table
@@ -40,8 +40,8 @@ add_specs suite_buildewb =
             wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
             wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
             r0 = wb.read 0
-            r0.should_fail_with Illegal_Argument
-            r0.catch.to_display_text . should_contain 'Worksheet index out of range (1 - 5).'
+            r0.should_fail_with Invalid_Location
+            r0.catch.to_display_text . should_contain 'Sheet 0 is out of range (1 to 5 inclusive).'
             r6 = wb.read 6
-            r6.should_fail_with Illegal_Argument
-            r6.catch.to_display_text . should_contain 'Worksheet index out of range (1 - 5).'
+            r6.should_fail_with Invalid_Location
+            r6.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
