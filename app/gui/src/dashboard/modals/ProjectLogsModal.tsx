@@ -2,12 +2,40 @@
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Loader } from '#/components/Loader'
-import { Scroller } from '#/components/Scroller'
-import { StatelessSpinner } from '#/components/StatelessSpinner'
+import SearchBar from '#/layouts/SearchBar'
 import type Backend from '#/services/Backend'
 import type { ProjectSessionId } from '#/services/Backend'
 import { useText } from '$/providers/react'
+import type { Monaco } from '@monaco-editor/react'
+import { Editor } from '@monaco-editor/react'
 import { useInfiniteQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+
+const MONACO_OPTIONS: NonNullable<Parameters<typeof Editor>[0]['options']> = {
+  wordWrap: 'on',
+  readOnly: true,
+}
+
+const ENSO_LOG_MONACO_LANGUAGE: Parameters<Monaco['languages']['setMonarchTokensProvider']>[1] = {
+  defaultToken: '',
+  tokenizer: {
+    root: [{ include: '@level' }, { include: '@timestamp' }, { include: '@namespace' }],
+    level: [
+      { include: '@traceLevel' },
+      { include: '@debugLevel' },
+      { include: '@infoLevel' },
+      { include: '@warnLevel' },
+      { include: '@errorLevel' },
+    ],
+    traceLevel: [[/\[TRACE\]/, 'comment']],
+    debugLevel: [[/\[DEBUG\]/, 'comment']],
+    infoLevel: [[/\[INFO\]/, 'comment']],
+    warnLevel: [[/\[WARN\]/, 'comment']],
+    errorLevel: [[/\[ERROR\]/, 'comment']],
+    timestamp: [[/\[\d+-\d+-\d+T\d+:\d+:\d+Z\]/, 'keyword']],
+    namespace: [[/\[org.[^\]]+\]/, 'type']],
+  },
+}
 
 /** Props for a {@link ProjectLogsModal}. */
 export interface ProjectLogsModalProps {
@@ -31,6 +59,7 @@ export default function ProjectLogsModal(props: ProjectLogsModalProps) {
 function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
   const { backend, projectSessionId, projectTitle } = props
   const { getText } = useText()
+  const [query, setQuery] = useState('')
 
   const logsPages = useInfiniteQuery({
     queryKey: ['projectLogs', { projectSessionId, projectTitle }],
@@ -39,13 +68,22 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
     initialPageParam: ((): string | null => null)(),
     getNextPageParam: (page) => (page.hits.length === 0 ? null : page.scrollId),
   })
-  const logs = logsPages.data?.pages.flatMap((page) => page.hits).join('\n')
+  const matchesQuery = query === '' ? () => true : (line: string) => line.includes(query)
+  const logs =
+    logsPages.data?.pages.flatMap((page) => page.hits.filter(matchesQuery)).join('\n') ?? ''
   const isLoading = logsPages.isLoading
-  const isFetching = logsPages.isFetching
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <Button.Group className="grow-0">
+      <Button.Group className="grow-0 items-center">
+        <SearchBar
+          data-testid="logs-search-bar"
+          label={getText('searchLogs')}
+          placeholder={getText('searchLogs')}
+          query={query}
+          setQuery={setQuery}
+          className="mr-auto"
+        />
         <Button
           variant="icon"
           icon="refresh"
@@ -55,29 +93,24 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
       </Button.Group>
       {isLoading ?
         <Loader />
-      : <Scroller
-          scrollbar
-          orientation="vertical"
-          className="relative min-h-0 flex-1 after:pointer-events-none after:absolute after:inset-0 after:rounded-default after:border after:border-primary/20"
-          onScroll={(event) => {
-            if (isFetching) {
-              return
-            }
-            const element = event.currentTarget
-            if (element.scrollTop + element.clientHeight >= element.scrollHeight) {
-              void logsPages.fetchNextPage()
-            }
+      : <Editor
+          beforeMount={(monaco) => {
+            monaco.editor.defineTheme('transparentBackground', {
+              base: 'vs',
+              inherit: true,
+              rules: [],
+              // The name comes from a third-party API and cannot be changed.
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              colors: { 'editor.background': '#00000000' },
+            })
+            monaco.languages.register({ id: 'ensolog' })
+            monaco.languages.setMonarchTokensProvider('ensolog', ENSO_LOG_MONACO_LANGUAGE)
           }}
-        >
-          <pre className="m-4 whitespace-pre-wrap break-words">
-            <code>{logs}</code>
-          </pre>
-          {isFetching && (
-            <div className="my-2 flex h-8 w-full flex-col items-center">
-              <StatelessSpinner size={32} phase="loading-medium" />
-            </div>
-          )}
-        </Scroller>
+          value={logs}
+          language="ensolog"
+          theme="transparentBackground"
+          options={MONACO_OPTIONS}
+        />
       }
     </div>
   )
