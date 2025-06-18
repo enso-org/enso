@@ -84,7 +84,8 @@ public final class IfOperation {
         // If both are columns, we can use the same index for both
         stepAction =
             (builder, index, value, isNothing) -> {
-              builder.append(value ? whenTrueColumn.getItem(index) : whenFalseColumn.getItem(index));
+              builder.append(
+                  value ? whenTrueColumn.getItem(index) : whenFalseColumn.getItem(index));
             };
       } else {
         // If only one is a column, we use it for true values and convert false to constant
@@ -98,13 +99,15 @@ public final class IfOperation {
       T whenTrueAsT = resultStorageType.valueAsType(whenTrue);
       if (whenFalse instanceof Column whenFalseColumn) {
         // Just False is a column
-        stepAction = (builder, index, value, isNothing) ->
-            builder.append(value ? whenTrueAsT : whenFalseColumn.getItem(index));
+        stepAction =
+            (builder, index, value, isNothing) ->
+                builder.append(value ? whenTrueAsT : whenFalseColumn.getItem(index));
       } else {
         // Otherwise, we convert the values to a constant row provider
         T whenFalseAsT = resultStorageType.valueAsType(whenFalse);
-        stepAction = (builder, index, value, isNothing) ->
-            builder.append(value ? whenTrueAsT : whenFalseAsT);
+        stepAction =
+            (builder, index, value, isNothing) ->
+                builder.append(value ? whenTrueAsT : whenFalseAsT);
       }
     }
 
