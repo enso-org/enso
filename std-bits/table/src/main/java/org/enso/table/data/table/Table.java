@@ -462,13 +462,7 @@ public class Table {
    */
   public Table applyMask(OrderMask orderMask) {
     Column[] newColumns =
-        Arrays.stream(columns)
-            .map(
-                column -> {
-                  var newStorage = column.getStorage().applyMask(orderMask);
-                  return new Column(column.getName(), newStorage);
-                })
-            .toArray(Column[]::new);
+        Arrays.stream(columns).map(column -> column.applyMask(orderMask)).toArray(Column[]::new);
     return new Table(newColumns);
   }
 

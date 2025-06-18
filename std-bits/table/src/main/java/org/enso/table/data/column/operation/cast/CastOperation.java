@@ -222,17 +222,18 @@ public class CastOperation {
 
     // Build the min and max of values in the column.
     var accumulator = new LongAccumulator();
-    var endedEarly = StorageIterators.forEachOverStorage(
-        bigIntegerType.asTypedStorage(columnStorage),
-        false,
-        (index, item) -> {
-          try {
-            return accumulator.accumulate(item.longValueExact());
-          } catch (ArithmeticException e) {
-            // If we cannot convert the value to long, we end early.
-            return true; // This will stop the iteration.
-          }
-        });
+    var endedEarly =
+        StorageIterators.forEachOverStorage(
+            bigIntegerType.asTypedStorage(columnStorage),
+            false,
+            (index, item) -> {
+              try {
+                return accumulator.accumulate(item.longValueExact());
+              } catch (ArithmeticException e) {
+                // If we cannot convert the value to long, we end early.
+                return true; // This will stop the iteration.
+              }
+            });
 
     if (endedEarly) {
       // If we ended early, it means we encountered a value that could not be converted to long.
@@ -258,16 +259,17 @@ public class CastOperation {
 
     // Build the min and max of values in the column.
     var accumulator = new LongAccumulator();
-    var endedEarly = StorageIterators.forEachOverDoubleStorage(
-        floatType.asTypedStorage(columnStorage),
-        false,
-        (index, item, isNothing) -> {
-          if (item % 1 != 0 || !IntegerType.INT_64.fits(item)) {
-            // If the value is not a whole number or does not fit in a long, we end early.
-            return true; // This will stop the iteration.
-          }
-          return accumulator.accumulate((long) item);
-        });
+    var endedEarly =
+        StorageIterators.forEachOverDoubleStorage(
+            floatType.asTypedStorage(columnStorage),
+            false,
+            (index, item, isNothing) -> {
+              if (item % 1 != 0 || !IntegerType.INT_64.fits(item)) {
+                // If the value is not a whole number or does not fit in a long, we end early.
+                return true; // This will stop the iteration.
+              }
+              return accumulator.accumulate((long) item);
+            });
 
     if (endedEarly) {
       // If we ended early, it means we encountered a value that could not be converted to long.
