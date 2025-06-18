@@ -1,6 +1,8 @@
 from Standard.Base import all
 from Standard.Google_Api import all
 
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
 from Standard.Test import all
 from Standard.Table import Table
 from enso_dev.Table_Tests.Util import all
@@ -11,25 +13,35 @@ main filter=Nothing =
     suite.run_with_filter filter
 
 
-add_specs suite_builder =
-    suite_builder.group "Google Sheets" group_builder->
+add_specs suite_buildewb =
+    suite_buildewb.group "Google Sheets" group_builder->
         group_builder.specify "can read a workbook via Google_Sheets.read" <|
             ## Test1
-            r = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
-            r.sheet_names.should_equal ['Sheet1']
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
         group_builder.specify "can read a worksheet via Google_Sheets_Workbook.read" <|
             ## Test1
-            r = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
-            r.sheet_names.should_equal ['Sheet1']
-            r.read 'Sheet1' . should_equal (Table.new [['X', ['Y', 'Z']]])
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' . should_equal (Table.new [['X', ['Y', 'Z']]])
         group_builder.specify "can get a count of worksheets" <|
             ## Test2
-            r = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
-            r.sheet_count . should_equal 5
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_count . should_equal 5
         group_builder.specify "can read a worksheet via sheet name or index" <|
             ## Test2
-            r = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
-            r.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
-            r.read 'Sheet3' . column_names . should_equal (['S3A', 'S3B', 'S3C'])
-            r.read 1 . column_names . should_equal (['S1A', 'S1B', 'S1C'])
-            r.read 5 . column_names . should_equal (['S5A', 'S5B', 'S5C'])
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            wb.read 'Sheet3' . column_names . should_equal (['S3A', 'S3B', 'S3C'])
+            wb.read 1 . column_names . should_equal (['S1A', 'S1B', 'S1C'])
+            wb.read 5 . column_names . should_equal (['S5A', 'S5B', 'S5C'])
+        group_builder.specify "out of range sheet index should error" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            r0 = wb.read 0
+            r0.should_fail_with Illegal_Argument
+            r0.catch.to_display_text . should_contain 'Worksheet index out of range (1 - 5).'
+            r6 = wb.read 6
+            r6.should_fail_with Illegal_Argument
+            r6.catch.to_display_text . should_contain 'Worksheet index out of range (1 - 5).'
