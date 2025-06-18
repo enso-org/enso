@@ -49,14 +49,14 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
 
   @Override
   @ExplodeLoop
-  Object executeCheckOrConversion(VirtualFrame frame, Object value, ExpressionNode expr) {
+  Object executeConversion(VirtualFrame frame, Object value, ExpressionNode expr) {
     var values = new Object[checks.length];
     var valueTypes = new Type[checks.length];
     var at = 0;
     var integers = 0;
     var floats = 0;
     for (var n : checks) {
-      var result = n.executeCheckOrConversion(frame, value, expr);
+      var result = n.executeConversion(frame, value, expr);
       if (result == null) {
         return null;
       }

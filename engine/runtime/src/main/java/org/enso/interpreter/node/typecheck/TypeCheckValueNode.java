@@ -95,7 +95,7 @@ public final class TypeCheckValueNode extends Node {
     if (direct != null) {
       return direct;
     }
-    var result = check.executeCheckOrConversion(frame, value, expr);
+    var result = check.executeConversion(frame, value, expr);
     if (result == null) {
       throw panicAtTheEnd(value);
     }
@@ -177,7 +177,7 @@ public final class TypeCheckValueNode extends Node {
   public static TypeCheckValueNode meta(
       String comment, Supplier<? extends Object> metaObjectSupplier) {
     var cachingSupplier = CachingSupplier.wrap(metaObjectSupplier);
-    var typeCheckNodeImpl = MetaTypeCheckNodeGen.create(comment, cachingSupplier);
+    var typeCheckNodeImpl = new MetaTypeCheckNode(comment, cachingSupplier);
     return new TypeCheckValueNode(typeCheckNodeImpl, true);
   }
 

@@ -43,7 +43,7 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
     this.expectedType = expectedType;
   }
 
-  abstract Object executeCheckOrConversion(
+  abstract Object executeConversion(
       VirtualFrame frame, Object value, ExpressionNode valueSource);
 
   @Specialization
