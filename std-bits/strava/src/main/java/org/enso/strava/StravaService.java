@@ -1,4 +1,4 @@
-package org.enso.saas.strava;
+package org.enso.strava.strava;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;

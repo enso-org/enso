@@ -2,7 +2,7 @@ from Standard.Base import all
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
-polyglot java import org.enso.saas.strava.StravaService
+polyglot java import org.enso.strava.StravaService
 
 type Strava
     ## PRIVATE
