@@ -4,6 +4,7 @@ import '#/styles.css'
 import '#/tailwind.css'
 import App from '$/App.vue'
 import router from '$/router.tsx'
+import { widgetDevtools } from '@/providers/widgetRegistry/devtools'
 import * as sentry from '@sentry/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
@@ -30,6 +31,7 @@ async function main() {
   const app = createApp(App)
   app.use(VueQueryPlugin, { queryClient, enableDevtoolsV6Plugin: true })
   app.use(router)
+  app.use(widgetDevtools)
   app.provide('rootDirPath', rootDirPath)
   app.provide('onAuthenticated', onAuthenticated)
   app.mount('#enso-app')

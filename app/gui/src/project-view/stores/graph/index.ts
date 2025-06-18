@@ -159,7 +159,9 @@ export function createGraphStore(
   )
 
   const immediateMethodAst = computed<Result<Ast.FunctionDef>>(() =>
-    syncModule.value ? getExecutedMethodAst(syncModule.value) : Err('AST not yet initialized'),
+    syncModule.value ?
+      getExecutedMethodAst(syncModule.value)
+    : Err('Graph editor not yet initialized'),
   )
 
   // When renaming a function, we temporarily lose track of edited function AST. Ensure that we

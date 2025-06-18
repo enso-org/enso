@@ -3,7 +3,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { AuthStore, useAuth } from '$/providers/auth'
 import { BackendsStore, useBackends } from '$/providers/backends'
 import { useHttpClient } from '$/providers/httpClient'
-import { QueryParams, useQueryParams } from '$/providers/queryParams'
+import { QueryParams } from '$/providers/queryParams'
 import {
   ConfigContext,
   HTTPClientContext,
@@ -20,6 +20,7 @@ import { TextStore, useText } from '$/providers/text'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import * as react from 'react'
 import { applyPureReactInVue } from 'veaury'
+import { proxyRefs } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 interface ContextsForReactProviderProps {
@@ -80,7 +81,7 @@ export const ContextsForReactProvider = applyPureReactInVue(
     useInjectPropsFromWrapper: () => {
       const route = useRoute()
       const router = useRouter()
-      return {
+      const result = proxyRefs({
         router: {
           router,
           route,
@@ -92,8 +93,10 @@ export const ContextsForReactProvider = applyPureReactInVue(
         localStorage: LocalStorage.getInstance(),
         session: useSession(),
         auth: useAuth(),
-        queryParams: useQueryParams(),
-      }
+      })
+      // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
+      // avoids the code path that assigns that property to overwrite a computed value with constant.
+      return () => result
     },
   },
 )
