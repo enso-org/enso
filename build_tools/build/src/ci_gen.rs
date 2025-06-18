@@ -653,8 +653,7 @@ pub fn add_backend_checks(
         job::StandardLibraryTests {
             graal_edition,
             engine_launcher,
-            cloud_tests_enabled: false,
-            native_image_mode: true,
+            scope: job::StandardLibraryTestsScope::StandardLibraryInNative,
         },
         &[&build_engine_distribution_id],
     );
@@ -663,8 +662,16 @@ pub fn add_backend_checks(
         job::StandardLibraryTests {
             graal_edition,
             engine_launcher,
-            cloud_tests_enabled: false,
-            native_image_mode: false,
+            scope: job::StandardLibraryTestsScope::StandardLibraryJvm,
+        },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::Microsoft,
         },
         &[&build_engine_distribution_id],
     );
@@ -922,8 +929,7 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
         job::StandardLibraryTests {
             graal_edition,
             engine_launcher,
-            cloud_tests_enabled: true,
-            native_image_mode: true,
+            scope: job::StandardLibraryTestsScope::CloudRelated,
         },
         &[&build_engine_distribution_id],
     );
