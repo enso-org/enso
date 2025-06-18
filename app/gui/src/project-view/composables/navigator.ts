@@ -462,8 +462,11 @@ export function useNavigator(
     },
   )
 
-  useEventListener(viewportElem, 'wheel', wheelEvents.wheel)
-  useEventListener(viewportElem, 'wheel', wheelEventsCapture.wheel, { capture: true })
+  useEventListener(viewportElem, 'wheel', wheelEvents.wheel, { passive: false })
+  useEventListener(viewportElem, 'wheel', wheelEventsCapture.wheel, {
+    capture: true,
+    passive: false,
+  })
   useEventListener(viewportElem, 'pointermove', wheelEventsCapture.pointermove, { capture: true })
 
   return proxyRefs({

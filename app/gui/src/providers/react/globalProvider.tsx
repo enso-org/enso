@@ -3,7 +3,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { AuthStore, useAuth } from '$/providers/auth'
 import { BackendsStore, useBackends } from '$/providers/backends'
 import { useHttpClient } from '$/providers/httpClient'
-import { QueryParams } from '$/providers/queryParams'
+import { QueryParams, useQueryParams } from '$/providers/queryParams'
 import {
   ConfigContext,
   HTTPClientContext,
@@ -93,6 +93,7 @@ export const ContextsForReactProvider = applyPureReactInVue(
         localStorage: LocalStorage.getInstance(),
         session: useSession(),
         auth: useAuth(),
+        queryParams: useQueryParams(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
       // avoids the code path that assigns that property to overwrite a computed value with constant.
