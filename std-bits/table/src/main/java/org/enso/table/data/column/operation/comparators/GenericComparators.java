@@ -4,7 +4,7 @@ import java.util.function.BiPredicate;
 import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -12,7 +12,7 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-public class GenericComparators<T> implements BinaryOperation<Boolean> {
+public class GenericComparators<T> implements BinaryOperationTyped<Boolean> {
   protected final StorageType<T> valueType;
   protected final BiPredicate<T, T> comparator;
   protected final boolean throwOnOther;

@@ -2,7 +2,6 @@ package org.enso.table_test_helpers;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -49,11 +48,6 @@ public class ExplodingStorage extends Storage<Long> {
   public Long getItemBoxed(long idx) {
     checkIndex(idx);
     return array[Math.toIntExact(idx)];
-  }
-
-  @Override
-  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    return null;
   }
 
   @Override

@@ -1,4 +1,4 @@
-package org.enso.os.environment.jni;
+package org.enso.jvm.channel;
 
 import java.io.File;
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.enso.os.environment.jni;
+package org.enso.jvm.channel;
 
 import java.io.IOException;
 import java.lang.foreign.FunctionDescriptor;
@@ -11,7 +11,6 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.enso.persist.Persistance;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.ImageInfo;
@@ -26,8 +25,18 @@ import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
 import org.graalvm.word.WordFactory;
 
-/** Channel connects two {@link JVM} instances. */
-public final class Channel implements AutoCloseable {
+/**
+ * Channel connects two {@link JVM} instances. A "channel" creates two identical instances of the
+ * {@code Channel} on both sides of the "channel" - e.g. in each of the JVMs. The instances are
+ * initialized with the same {@link Persistance.Pool}, so they both understand the same messages.
+ *
+ * @param <Data> internal data of the channel
+ */
+public final class Channel<Data extends Channel.Config> implements AutoCloseable {
+  private static final long ISOLATE_SVM = -1;
+  private static final long ISOLATE_MOCK_MASTER = -2;
+  private static final long ISOLATE_MOCK_SLAVE = -3;
+
   /**
    * @GuardedBy("Channel.class")
    */
@@ -38,6 +47,9 @@ public final class Channel implements AutoCloseable {
    */
   private static long idCounter = 1;
 
+  /** data associated with the channel */
+  private final Data data;
+
   /** persistance pool associated with this channel object */
   private final Persistance.Pool pool;
 
@@ -47,34 +59,34 @@ public final class Channel implements AutoCloseable {
   private final MethodHandle callbackFn;
   private final JNI.JClass channelClass;
   private final JNI.JMethodID channelHandle;
+  private final Channel<Data> otherMockChannel;
 
   /** The SubstrateVM side of a channel. */
   private Channel(
-      long id,
-      Persistance.Pool pool,
-      JNI.JNIEnv env,
-      JNI.JClass handleClass,
-      JNI.JMethodID handleFn) {
+      long id, Data data, JNI.JNIEnv env, JNI.JClass handleClass, JNI.JMethodID handleFn) {
     this.id = id;
-    this.pool = pool;
+    this.data = data;
     this.env = env;
-    this.isolate = -1;
+    this.isolate = ISOLATE_SVM;
     this.callbackFn = null;
     this.channelClass = handleClass;
     this.channelHandle = handleFn;
+    this.otherMockChannel = null;
+    this.pool = data.createPool(this);
   }
 
   /** The HotSpot JVM side of a channel. */
-  private Channel(long id, Persistance.Pool pool, long isolate, long callbackFn) {
+  private Channel(long id, Data data, long isolate, long callbackFn) {
     if (ImageInfo.inImageCode()) {
       throw new IllegalStateException("Only usable in HotSpot");
     }
     this.id = id;
-    this.pool = pool;
+    this.data = data;
     this.isolate = isolate;
     this.env = null;
     this.channelClass = null;
     this.channelHandle = null;
+    this.otherMockChannel = null;
 
     var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
     var fnDescriptor =
@@ -85,25 +97,58 @@ public final class Channel implements AutoCloseable {
             ValueLayout.ADDRESS,
             ValueLayout.JAVA_LONG);
     this.callbackFn = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+    this.pool = data.createPool(this);
+  }
+
+  /**
+   * Mock constructor. Creates a channel that simulates sending of the messages inside of the same
+   * JVM. Useful for testing.
+   */
+  private Channel(long isolate, Data myData, Channel<Data> otherOrNull, Data otherData, long id) {
+    if (ImageInfo.inImageCode()) {
+      throw new IllegalStateException("Only usable in HotSpot");
+    }
+    this.id = id;
+    this.data = myData;
+    this.isolate = isolate;
+    this.callbackFn = null;
+    this.env = null;
+    this.channelClass = null;
+    this.channelHandle = null;
+    this.otherMockChannel =
+        otherOrNull != null
+            ? otherOrNull // use other channel when provided
+            : // otherwise allocate new and pass this reference to it
+            new Channel<>(ISOLATE_MOCK_SLAVE, otherData, this, null, id);
+    this.pool = data.createPool(this);
   }
 
   /**
    * Factory method to initialize the Channel in the SubstrateVM.
    *
-   * @param jvm instance of HotSpot JVM to connect to
-   * @param poolClass the class which has public default constructor and can supply an instance of
+   * @param <D> type of internal data as well as provider of the pool
+   * @param jvm instance of HotSpot JVM to connect to (can be {@code null} to create a mock channel
+   *     inside of a single JVM)
+   * @param configClass the class which has public default constructor and can supply an instance of
    *     persistance pool to use for communication
    * @return channel for sending messages to the HotSpot JVM
    */
-  public static synchronized Channel create( //
-      JVM jvm, //
-      Class<? extends Supplier<Persistance.Pool>> poolClass //
-      ) {
+  public static synchronized <D extends Config> Channel<D> create(
+      JVM jvm, Class<? extends D> configClass) {
+    var config = newInstance(configClass);
     var id = idCounter++;
+    if (jvm == null) {
+      var otherData = newInstance(configClass);
+      return new Channel<>(ISOLATE_MOCK_MASTER, config, null, otherData, id);
+    }
+
+    if (!ImageInfo.inImageCode()) {
+      throw new IllegalStateException("Only usable from SubstrateVM");
+    }
     var e = jvm.env();
     var classNameWithSlashes = Channel.class.getName().replace('.', '/');
     try (var classInC = CTypeConversion.toCString(classNameWithSlashes);
-        var poolClassInC = CTypeConversion.toCString(poolClass.getName());
+        var poolClassInC = CTypeConversion.toCString(configClass.getName());
         var createInC = CTypeConversion.toCString("createJvmPeerChannel");
         var createSigInC = CTypeConversion.toCString("(JJJLjava/lang/String;)Z"); //
         var handleInC = CTypeConversion.toCString("handleJvmMessage");
@@ -119,8 +164,7 @@ public final class Channel implements AutoCloseable {
       var handleMethod =
           fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
 
-      var pool = poolClass.getConstructor().newInstance().get();
-      var channel = new Channel(id, pool, e, channelClass, handleMethod);
+      var channel = new Channel<>(id, config, e, channelClass, handleMethod);
 
       var arg = StackValue.get(4, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
@@ -133,21 +177,33 @@ public final class Channel implements AutoCloseable {
 
       ID_TO_CHANNEL.put(id, channel);
       return channel;
-    } catch (ReflectiveOperationException ex) {
-      throw new IllegalStateException(ex);
     }
   }
 
-  /** Allocates new channel with given ID in the HotSpot VM. Called via JNI/foreign interface. */
-  private static boolean createJvmPeerChannel(
-      long id, long threadId, long callbackFn, String poolClassName) throws Throwable {
-    @SuppressWarnings("unchecked")
-    var factory =
-        (Supplier<Persistance.Pool>) Class.forName(poolClassName).getConstructor().newInstance();
-    var pool = factory.get();
-    var channel = new Channel(id, pool, threadId, callbackFn);
-    var prev = ID_TO_CHANNEL.put(id, channel);
-    return prev == null;
+  /**
+   * Getter for data associated with the channel. Each instance of {@code Channel} on both sides of
+   * the "channel" gets different instance of {@code Data}. The data may be used in the functions
+   * that implement the logic in {@link #execute} message processing.
+   *
+   * @return data associated with this channel
+   * @see #execute
+   */
+  public final Data getConfig() {
+    return data;
+  }
+
+  /**
+   * Master channel check. One instance of the {@code Channel} on the initializing side is marked as
+   * master. The other one is slave.
+   *
+   * @return is master
+   */
+  public final boolean isMaster() {
+    return isolate == ISOLATE_SVM || isolate == ISOLATE_MOCK_MASTER;
+  }
+
+  final boolean isDirect() {
+    return isolate == ISOLATE_MOCK_MASTER || isolate == ISOLATE_MOCK_SLAVE;
   }
 
   /**
@@ -166,8 +222,33 @@ public final class Channel implements AutoCloseable {
    *     gets serialized and transferred back to us. Deserialized and the value is then returned
    *     from this method
    */
-  public final <R> R execute(Class<R> resultType, Function<Channel, R> msg) {
-    return executeImpl(pool, resultType, msg);
+  @SuppressWarnings("unchecked")
+  public final <C, R extends C> R execute(
+      Class<C> resultType, Function<? super Channel<Data>, R> msg) {
+    return (R) executeImpl(pool, resultType, (Function) msg);
+  }
+
+  //
+  // implementation
+  //
+
+  private static <T> T newInstance(Class<T> poolClass) {
+    try {
+      return poolClass.getConstructor().newInstance();
+    } catch (ReflectiveOperationException ex) {
+      throw new IllegalArgumentException(ex);
+    }
+  }
+
+  /** Allocates new channel with given ID in the HotSpot VM. Called via JNI/foreign interface. */
+  @SuppressWarnings("unchecked")
+  private static boolean createJvmPeerChannel(
+      long id, long threadId, long callbackFn, String poolClassName) throws Throwable {
+    var configClass = Class.forName(poolClassName);
+    var data = (Config) newInstance(configClass);
+    var channel = new Channel<>(id, data, threadId, callbackFn);
+    var prev = ID_TO_CHANNEL.put(id, channel);
+    return prev == null;
   }
 
   private static final CEntryPointLiteral<CFunctionPointer> CALLBACK_FN =
@@ -199,12 +280,12 @@ public final class Channel implements AutoCloseable {
     }
   }
 
-  private static long handleWithChannel(Channel channel, ByteBuffer buf) throws Throwable {
-    var ref = channel.pool.read(buf, null);
+  private static long handleWithChannel(Channel channel, ByteBuffer buf) throws IOException {
+    var ref = channel.pool.read(buf);
     var msg = ref.get(Function.class);
     @SuppressWarnings("unchecked")
     var res = msg.apply(channel);
-    var bytes = Persistables.POOL.write(res, null);
+    var bytes = channel.pool.write(res);
     buf.put(0, bytes);
     return bytes.length;
   }
@@ -230,6 +311,14 @@ public final class Channel implements AutoCloseable {
       printStackTrace(ex, false);
       return -1L;
     }
+  }
+
+  private long toDirectMessage(ByteBuffer buf) throws IOException {
+    assert otherMockChannel != null;
+    buf.position(0);
+    var len = handleWithChannel(otherMockChannel, buf);
+    buf.position(0);
+    return len;
   }
 
   private void checkForException(JNI.JNIEnv e) {
@@ -258,14 +347,13 @@ public final class Channel implements AutoCloseable {
     }
   }
 
-  private <R> R executeImpl( //
-      Persistance.Pool pool, //
-      Class<R> replyType, //
-      Function<Channel, R> msg //
-      ) {
+  private <R> R executeImpl(
+      Persistance.Pool pool,
+      Class<R> replyType,
+      Function<Channel<? extends Data>, ? extends R> msg) {
     var address = 0L;
     try {
-      var bytes = pool.write(msg, null);
+      var bytes = pool.write(msg);
       var size = Math.max(bytes.length, 4096);
       long len;
       ByteBuffer buffer;
@@ -280,7 +368,7 @@ public final class Channel implements AutoCloseable {
         var memory = MemorySegment.ofBuffer(buffer);
         memory.copyFrom(MemorySegment.ofArray(bytes));
         address = memory.address();
-        len = toSubstrateMessage(memory);
+        len = isDirect() ? toDirectMessage(buffer) : toSubstrateMessage(memory);
       }
       if (len == -2) {
         // signals exception
@@ -294,7 +382,7 @@ public final class Channel implements AutoCloseable {
       assert len >= 0;
       buffer.position(0);
       buffer.limit((int) len);
-      var result = pool.read(buffer, null);
+      var result = pool.read(buffer);
       return result.get(replyType);
     } catch (IOException ex) {
       throw new IllegalStateException(ex);
@@ -335,5 +423,19 @@ public final class Channel implements AutoCloseable {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Set of methods necessary for construction of a {@link Channel}. Subclasses must have a public
+   * default constructor accessible via reflection from the {@link Channel#create} method.
+   */
+  public abstract static class Config {
+    /**
+     * Creates instance of pool for persisting messages.
+     *
+     * @param channel the channel associated with this {@code Config}
+     * @return the pool to use when sending messages
+     */
+    public abstract Persistance.Pool createPool(Channel<?> channel);
   }
 }

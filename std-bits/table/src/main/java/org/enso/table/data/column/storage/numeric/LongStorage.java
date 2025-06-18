@@ -1,23 +1,16 @@
 package org.enso.table.data.column.storage.numeric;
 
-import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 
 /** A column storing 64-bit integers. */
 public final class LongStorage extends AbstractLongStorage
@@ -28,7 +21,7 @@ public final class LongStorage extends AbstractLongStorage
   // handling this just by checking the bounds
   final long[] data;
   final BitSet isNothing;
-  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
+  private final CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -66,65 +59,6 @@ public final class LongStorage extends AbstractLongStorage
   @Override
   public BitSet getIsNothingMap() {
     return isNothing;
-  }
-
-  private ColumnStorage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, getSize(), problemAggregator);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < getSize(); i++) {
-      if (isNothing(i)) {
-        builder.appendDouble(arg);
-      } else {
-        builder.appendLong(data[i]);
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  private ColumnStorage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
-    final var builder = Builder.getForLong(IntegerType.INT_64, getSize(), problemAggregator);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < getSize(); i++) {
-      if (isNothing(i)) {
-        builder.appendLong(arg);
-      } else {
-        builder.appendLong(data[i]);
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  private ColumnStorage<?> fillMissingBigInteger(
-      BigInteger bigInteger, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForBigInteger(getSize(), problemAggregator);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < getSize(); i++) {
-      builder.append(isNothing(i) ? bigInteger : BigInteger.valueOf(data[i]));
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  @Override
-  public ColumnStorage<?> fillMissing(
-      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
-    if (arg.isNumber()) {
-      if (NumericConverter.isCoercibleToLong(arg.as(Object.class))) {
-        return fillMissingLong(arg.asLong(), problemAggregator);
-      } else if (NumericConverter.isBigInteger(arg)) {
-        return fillMissingBigInteger(arg.asBigInteger(), problemAggregator);
-      } else {
-        return fillMissingDouble(arg.asDouble(), problemAggregator);
-      }
-    }
-
-    return super.fillMissing(arg, commonType, problemAggregator);
   }
 
   @Override
