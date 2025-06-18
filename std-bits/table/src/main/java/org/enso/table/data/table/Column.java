@@ -61,7 +61,7 @@ public final class Column {
   /**
    * @return the underlying storage
    */
-  public Storage<?> getStorage() {
+  public ColumnStorage<?> getStorage() {
     return storage;
   }
 

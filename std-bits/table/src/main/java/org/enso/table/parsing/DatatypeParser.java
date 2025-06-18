@@ -21,7 +21,7 @@ public abstract class DatatypeParser {
   public abstract Object parseSingleValue(String text, ParseProblemAggregator problemAggregator);
 
   /**
-   * Parses a column of texts (represented as a {@code Storage<String>}) and returns a new storage,
+   * Parses a column of texts (represented as a {@code ColumnStorage<String>}) and returns a new storage,
    * containing the parsed elements.
    */
   public final ColumnStorage<?> parseColumn(
@@ -35,7 +35,7 @@ public abstract class DatatypeParser {
   }
 
   /**
-   * Parses a column of texts (represented as a {@code Storage<String>}) and returns a new storage,
+   * Parses a column of texts (represented as a {@code ColumnStorage<String>}) and returns a new storage,
    * containing the parsed elements.
    */
   public abstract ColumnStorage<?> parseColumn(

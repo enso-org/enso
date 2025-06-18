@@ -37,7 +37,7 @@ public interface BinaryOperation {
     // Special handling for nulls
     if (skipNulls) {
       if (right instanceof Column rightColumn
-          && rightColumn.getStorage().getType() instanceof NullType) {
+          && rightColumn.getType() instanceof NullType) {
         right = null;
       }
       if (right == null
