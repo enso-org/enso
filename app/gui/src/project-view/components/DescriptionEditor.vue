@@ -1,22 +1,37 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
-import { Err, mapOk, unwrapOr } from '@/util/data/result'
+import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
 import { ResultComponent } from '@/util/react'
-import { computed } from 'vue'
+import { computed, effectScope, onScopeDispose, ref, toRef, watch } from 'vue'
+import * as Y from 'yjs'
 
 const rightPanel = useRightPanelData()
-const openedProject = injectCurrentProject().ref
-const projectId = computed(() => rightPanel.focusedProject)
+const focusedAsset = toRef(rightPanel, 'focusedAsset')
 const { backendForType } = useBackends()
 const backendForAsset = computed(() => {
   if (rightPanel.context?.category == null) return null
   return backendForType(rightPanel.context.category.backend)
+})
+
+const content = ref<Y.Text>()
+
+watch(() => rightPanel.focusedAsset, (newAsset, _, onCleanup) => {
+  if (newAsset != undefined) {
+    const description = new Y.Text(newAsset.description)
+
+    const watchers = effectScope()
+    onScopeDispose(() => watchers.stop())
+    watchers.run(() => {
+      watch(() => newAsset.description, (newDescription) => {
+        if (newDescription != )
+      })
+    })
+  }
 })
 
 const currentMethodAst = computed(() => openedProject.value?.graph.currentMethod.ast)
@@ -34,6 +49,8 @@ const displaySignatureEditor = computed(
 const editorMarkdown = computed(() => {
   if (currentMethodAst.value != null) {
     return mapOk(currentMethodAst.value, (ast) => ast.mutableDocumentationMarkdown())
+  } else if (rightPanel.focusedAsset) {
+    return Ok(rightPanel.focusedAsset.description ?? '')
   } else {
     return Err('No documentation available')
   }

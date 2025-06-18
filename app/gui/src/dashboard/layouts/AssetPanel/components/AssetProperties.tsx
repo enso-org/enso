@@ -101,7 +101,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
-  const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
+  const isEditingDescription = isEditingDescriptionRaw
   const setIsEditingDescription = useEventCallback(
     (valueOrUpdater: React.SetStateAction<boolean>) => {
       setIsEditingDescriptionRaw((currentValue) => {
@@ -130,16 +130,12 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
       },
     ),
   )
-  const descriptionSpotlight = useSpotlight({
-    enabled: rightPanel.context?.spotlightOn === 'description',
-    close: closeSpotlight,
-  })
   const secretSpotlight = useSpotlight({
-    enabled: rightPanel.context?.spotlightOn === 'secret',
+    enabled: spotlightOn === 'secret',
     close: closeSpotlight,
   })
   const datalinkSpotlight = useSpotlight({
-    enabled: rightPanel.context?.spotlightOn === 'datalink',
+    enabled: spotlightOn === 'datalink',
     close: closeSpotlight,
   })
 
@@ -192,10 +188,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
 
   return (
     <div className="flex w-full flex-col gap-8">
-      {descriptionSpotlight.spotlightElement}
       {secretSpotlight.spotlightElement}
       {datalinkSpotlight.spotlightElement}
-      <div className={styles.section()} {...descriptionSpotlight.props}>
+      <div className={styles.section()}>
         <Heading
           level={2}
           className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
