@@ -1,6 +1,8 @@
 package org.enso.filewatcher;
 
 import java.io.IOException;
+import java.nio.file.ClosedWatchServiceException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
@@ -72,18 +74,29 @@ final class DefaultWatcher implements Watcher {
   private void eventLoop() {
     try {
       while (!closed) {
-        var iterator = watchedDirs.entrySet().iterator();
-        while (iterator.hasNext()) {
-          var entry = iterator.next();
-          var dir = entry.getKey();
-          var watchKey = entry.getValue();
-          for (var event : watchKey.pollEvents()) {
-            dispatchEvent(event, dir);
-          }
-          var valid = watchKey.reset();
-          if (!valid) {
-            iterator.remove();
-          }
+        WatchKey key;
+        try {
+          // Wait for the next key
+          key = watchService.take();
+        } catch (InterruptedException | ClosedWatchServiceException e) {
+          LOGGER.debug("Watcher service interrupted or closed: {}", e.getMessage());
+          var err = new Watcher.WatcherError(e);
+          exceptionCallback.accept(err);
+          return;
+        }
+        var matchingEntry =
+            watchedDirs.entrySet().stream()
+                .filter(entry -> entry.getValue().equals(key))
+                .findFirst();
+        assert matchingEntry.isPresent();
+        var entry = matchingEntry.get();
+        var dir = entry.getKey();
+        for (var event : key.pollEvents()) {
+          dispatchEvent(event, dir);
+        }
+        var valid = key.reset();
+        if (!valid) {
+          watchedDirs.remove(dir);
         }
       }
     } catch (Throwable e) {
