@@ -61,17 +61,6 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
     return construct.execute(frame, state, expectedType, unresolved);
   }
 
-  @Specialization(rewriteOn = InvalidAssumptionException.class)
-  Object doCheckNoConversionNeeded(VirtualFrame frame, Object v, ExpressionNode ignore)
-      throws InvalidAssumptionException {
-    var ret = findDirectMatch(frame, v);
-    if (ret != null) {
-      return ret;
-    } else {
-      throw new InvalidAssumptionException();
-    }
-  }
-
   @Specialization(
       limit = "10",
       guards = {"cachedType != null", "findType(typeOfNode, v, cachedType) == cachedType"})
@@ -96,8 +85,13 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
         frame == null ? null : frame.materialize(), v, expr, type);
   }
 
-  @ExplodeLoop
+  @Override
   final Object findDirectMatch(VirtualFrame frame, Object v) {
+      return directMatchImpl(v);
+  }
+
+  @ExplodeLoop
+  private final Object directMatchImpl(Object v) {
     if (v instanceof Function fn && fn.isThunk()) {
       if (lazyCheck == null) {
         CompilerDirectives.transferToInterpreter();
@@ -191,11 +185,7 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
   private Object handleWithConversion(VirtualFrame frame, Object v, ApplicationNode convertNode)
       throws PanicException {
     if (convertNode == null) {
-      var ret = findDirectMatch(frame, v);
-      if (ret != null) {
-        return ret;
-      }
-      return null;
+      return directMatchImpl(v);
     } else {
       var converted = convertNode.executeGeneric(frame);
       return converted;

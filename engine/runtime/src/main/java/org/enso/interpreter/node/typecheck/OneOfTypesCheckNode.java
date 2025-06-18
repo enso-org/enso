@@ -19,7 +19,7 @@ final class OneOfTypesCheckNode extends AbstractTypeCheckNode {
   @ExplodeLoop
   final Object findDirectMatch(VirtualFrame frame, Object value) {
     for (var n : checks) {
-      java.lang.Object result = n.findDirectMatch(frame, value);
+      var result = n.findDirectMatch(frame, value);
       if (result != null) {
         return result;
       }
@@ -30,10 +30,6 @@ final class OneOfTypesCheckNode extends AbstractTypeCheckNode {
   @Override
   @ExplodeLoop
   Object executeCheckOrConversion(VirtualFrame frame, Object value, ExpressionNode expr) {
-    java.lang.Object direct = findDirectMatch(frame, value);
-    if (direct != null) {
-      return direct;
-    }
     for (var n : checks) {
       java.lang.Object result = n.executeCheckOrConversion(frame, value, expr);
       if (result != null) {

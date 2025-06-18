@@ -91,6 +91,10 @@ public final class TypeCheckValueNode extends Node {
 
   private final Object handleCheckOrConversionImpl(
       VirtualFrame frame, Object value, ExpressionNode expr) {
+    var direct = check.findDirectMatch(frame, value);
+    if (direct != null) {
+      return direct;
+    }
     var result = check.executeCheckOrConversion(frame, value, expr);
     if (result == null) {
       throw panicAtTheEnd(value);
