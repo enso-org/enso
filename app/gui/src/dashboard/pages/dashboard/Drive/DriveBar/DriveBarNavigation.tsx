@@ -195,7 +195,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
           )
           if (index === 0 && isCurrent) {
             return (
-              <Menu.Trigger>
+              <Menu.Trigger key={pathItem.id + index}>
                 <Button size="custom">
                   <DriveBarBreadcrumbsItem
                     key={pathItem.id + index}

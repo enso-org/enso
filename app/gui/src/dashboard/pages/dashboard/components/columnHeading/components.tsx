@@ -1,4 +1,5 @@
 /** @file Components for column headings. */
+import { ColumnResizer } from '#/components/aria'
 import { Button } from '#/components/Button'
 import { Icon } from '#/components/Icon'
 import { Text } from '#/components/Text'
@@ -30,6 +31,7 @@ export function AccessedByProjectsColumnHeading(props: AssetColumnHeadingProps) 
       <Text weight="bold" truncate="1" color="custom">
         {getText('accessedByProjectsColumnName')}
       </Text>
+      <ColumnResizer />
     </div>
   )
 }
@@ -55,6 +57,7 @@ export function AccessedDataColumnHeading(props: AssetColumnHeadingProps) {
       <Text weight="bold" truncate="1" color="custom">
         {getText('accessedDataColumnName')}
       </Text>
+      <ColumnResizer />
     </div>
   )
 }
@@ -81,6 +84,7 @@ export function LabelsColumnHeading(props: AssetColumnHeadingProps) {
       <Text weight="bold" truncate="1" color="custom">
         {getText('labelsColumnName')}
       </Text>
+      <ColumnResizer />
     </div>
   )
 }
@@ -149,6 +153,7 @@ export function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
       >
         <Text weight="bold">{getText('modifiedColumnName')}</Text>
       </Button>
+      <ColumnResizer />
     </div>
   )
 }
@@ -177,30 +182,33 @@ export function NameColumnHeading(props: AssetColumnHeadingProps) {
   })
 
   return (
-    <Button
-      fullWidth
-      size="custom"
-      variant="custom"
-      aria-label={
-        !isSortActive ? getText('sortByName')
-        : isDescending ?
-          getText('stopSortingByName')
-        : getText('sortByNameDescending')
-      }
-      addonEnd={
-        <Icon
-          icon={iconIdFor(sortInfo?.direction, isSortActive)}
-          className={twJoin(
-            'ml-1 transition-all duration-arrow',
-            isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
-          )}
-        />
-      }
-      className="group sticky left-0 flex h-table-row justify-start bg-dashboard px-name-column-x"
-      onPress={cycleSortDirection}
-    >
-      <Text weight="bold">{getText('nameColumnName')}</Text>
-    </Button>
+    <div className="isolate flex h-table-row w-full items-center gap-2">
+      <Button
+        fullWidth
+        size="custom"
+        variant="custom"
+        aria-label={
+          !isSortActive ? getText('sortByName')
+          : isDescending ?
+            getText('stopSortingByName')
+          : getText('sortByNameDescending')
+        }
+        addonEnd={
+          <Icon
+            icon={iconIdFor(sortInfo?.direction, isSortActive)}
+            className={twJoin(
+              'ml-1 transition-all duration-arrow',
+              isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
+            )}
+          />
+        }
+        className="group sticky left-0 flex h-table-row justify-start bg-dashboard px-name-column-x"
+        onPress={cycleSortDirection}
+      >
+        <Text weight="bold">{getText('nameColumnName')}</Text>
+      </Button>
+      <ColumnResizer />
+    </div>
   )
 }
 
@@ -229,6 +237,7 @@ export function PathColumnHeading(props: AssetColumnHeadingProps) {
       <Text weight="bold" truncate="1" color="custom">
         {getText('pathColumnName')}
       </Text>
+      <ColumnResizer />
     </div>
   )
 }
@@ -258,6 +267,7 @@ export function SharedWithColumnHeading(props: AssetColumnHeadingProps) {
           {getText('sharedWithColumnName')}
         </Text>
       </div>
+      <ColumnResizer />
     </div>
   )
 }

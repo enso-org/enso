@@ -156,7 +156,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
       >
         <div className="grid flex-1 gap-3 overflow-hidden sm:grid-cols-[180px_minmax(0,1fr)]">
-          <div className="grid-col-1 hidden flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1 sm:flex">
+          <div className="grid-col-1 hidden pt-1 sm:flex">
             <div className="flex flex-col gap-2">
               <Text variant="subtitle" weight="semibold">
                 {getText('category')}

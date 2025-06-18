@@ -331,12 +331,6 @@
   |* Drive page *|
   \**************/
 
-  --drive-name-column-width: 15.3125rem;
-  --drive-modified-column-width: 8.3125rem;
-  --drive-shared-with-column-width: 10rem;
-  --drive-labels-column-width: 20rem;
-  --drive-accessed-by-projects-column-width: 24rem;
-  --drive-accessed-data-column-width: 24rem;
   --name-column-padding-x: 0.375rem;
   --name-column-padding-y: 0.125rem;
   --name-column-icon-margin: 0.25rem;
@@ -346,11 +340,6 @@
   |* Left hand sidebar *|
   \*********************/
 
-  /* The vertical padding for the entire sidebar. */
-  --drive-sidebar-padding-y: 0.25rem;
-  /* The gap between the individual panels in the sidebar. */
-  --drive-sidebar-gap: 1rem;
-  --drive-sidebar-width: 7.5rem;
   --sidebar-section-heading-padding-x: 0.5rem;
   /* Only used for the settings sidebar, not the drive sidebar. */
   --sidebar-section-heading-padding-y: 0.125rem;

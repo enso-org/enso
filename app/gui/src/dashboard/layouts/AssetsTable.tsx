@@ -1,6 +1,16 @@
 /** @file Table displaying a list of projects. */
 import DropFilesImage from '#/assets/drop_files.svg'
-import { FileTrigger, mergeProps } from '#/components/aria'
+import {
+  Cell,
+  FileTrigger,
+  mergeProps,
+  ResizableTableContainer,
+  Row,
+  Table,
+  TableBody,
+  Column as TableColumn,
+  TableHeader,
+} from '#/components/aria'
 import { Button } from '#/components/Button'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
@@ -27,6 +37,10 @@ import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  useAssetsTableColumnWidths,
+  useSetAssetsTableColumnWidths,
+} from '#/layouts/Drive/assetsTableColumnWidths'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
@@ -78,6 +92,7 @@ import { fileExtension } from '#/utilities/fileInfo'
 import { noop, noopPromise } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
+import { mapEntries } from '#/utilities/object'
 import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
@@ -276,7 +291,6 @@ function AssetsTable(props: AssetsTableProps) {
   const isCloud = backend.type === BackendType.remote
   const rootRef = useRef<HTMLDivElement | null>(null)
   const mainDropzoneRef = useRef<HTMLButtonElement | null>(null)
-  const headerRowRef = useRef<HTMLTableRowElement>(null)
   const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
 
   const isMainDropzoneVisible = useIntersectionRatio(
@@ -1188,27 +1202,6 @@ function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const headerRow = (
-    <tr ref={headerRowRef} className="rounded-none text-sm font-semibold">
-      {[...columns].map((column) => {
-        // The spread on the line above is required for React Compiler to compile this component.
-        // This is a React component, even though it does not contain JSX.
-        const Heading = COLUMN_HEADING[column]
-
-        return (
-          <th key={column} className={COLUMN_CSS_CLASS[column]}>
-            <Heading
-              sortInfo={state.sortInfo}
-              hideColumn={state.hideColumn}
-              setSortInfo={state.setSortInfo}
-              category={state.category}
-            />
-          </th>
-        )
-      })}
-    </tr>
-  )
-
   const itemRows = visibleItems.map((item) => {
     const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
     const isOpenedOnTheBackend =
@@ -1254,28 +1247,51 @@ function AssetsTable(props: AssetsTableProps) {
     : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
     : null
 
+  const widths = useAssetsTableColumnWidths()
+  const setWidths = useSetAssetsTableColumnWidths()
+  const onResize: Parameters<typeof ResizableTableContainer>[0]['onResize'] = (newWidths) => {
+    setWidths(mapEntries(widths, (key, value) => newWidths.get(key) ?? value))
+  }
+
   const table = (
     <div className="flex flex-none flex-col">
-      <table className="isolate table-fixed border-collapse rounded-rows">
-        <thead className="sticky top-0 isolate z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
-          {headerRow}
-        </thead>
+      <ResizableTableContainer onResize={onResize} onResizeEnd={onResize}>
+        <Table className="isolate table-fixed border-collapse rounded-rows">
+          <TableHeader className="sticky top-0 isolate z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
+            {[...columns].map((column) => {
+              // The spread on the line above is required for React Compiler to compile this component.
+              // This is a React component, even though it does not contain JSX.
+              const Heading = COLUMN_HEADING[column]
 
-        <tbody ref={bodyRef} className="isolate">
-          {itemRows}
-          <tr className="hidden h-row first:table-row">
-            <td colSpan={columns.length} className="h-table-row bg-transparent">
-              <Text className="px-cell-x placeholder" disableLineHeightCompensation>
-                {category.type === 'trash' ?
-                  (specialEmptyText ?? getText('yourTrashIsEmpty'))
-                : category.type === 'recent' ?
-                  (specialEmptyText ?? getText('youHaveNoRecentProjects'))
-                : (specialEmptyText ?? getText('youHaveNoFiles'))}
-              </Text>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              return (
+                <TableColumn key={column} className={COLUMN_CSS_CLASS[column]}>
+                  <Heading
+                    sortInfo={state.sortInfo}
+                    hideColumn={state.hideColumn}
+                    setSortInfo={state.setSortInfo}
+                    category={state.category}
+                  />
+                </TableColumn>
+              )
+            })}
+          </TableHeader>
+
+          <TableBody ref={bodyRef} className="isolate">
+            {itemRows}
+            <Row className="hidden h-row first:table-row">
+              <Cell colSpan={columns.length} className="h-table-row bg-transparent">
+                <Text className="px-cell-x placeholder" disableLineHeightCompensation>
+                  {category.type === 'trash' ?
+                    (specialEmptyText ?? getText('yourTrashIsEmpty'))
+                  : category.type === 'recent' ?
+                    (specialEmptyText ?? getText('youHaveNoRecentProjects'))
+                  : (specialEmptyText ?? getText('youHaveNoFiles'))}
+                </Text>
+              </Cell>
+            </Row>
+          </TableBody>
+        </Table>
+      </ResizableTableContainer>
 
       <AssetsTableAssetsUnselector asChild>
         <div
