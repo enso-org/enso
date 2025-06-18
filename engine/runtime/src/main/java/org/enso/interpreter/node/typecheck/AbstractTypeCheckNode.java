@@ -7,9 +7,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
 
 /**
  * Root of hierarchy of nodes checking types. This class (and its subclasses) are an implementation
@@ -26,8 +24,7 @@ abstract sealed class AbstractTypeCheckNode extends Node
 
   abstract Object findDirectMatch(VirtualFrame frame, Object value);
 
-  abstract Object executeCheckOrConversion(
-      VirtualFrame frame, Object value, ExpressionNode valueNode);
+  abstract Object executeConversion(VirtualFrame frame, Object value, ExpressionNode valueNode);
 
   abstract String expectedTypeMessage();
 
@@ -102,9 +99,5 @@ abstract sealed class AbstractTypeCheckNode extends Node
     }
 
     return builder.toString();
-  }
-
-  static boolean isAllFitValue(Object v) {
-    return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
   }
 }
