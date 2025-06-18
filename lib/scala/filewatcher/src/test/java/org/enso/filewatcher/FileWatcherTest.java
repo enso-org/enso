@@ -31,6 +31,9 @@ public class FileWatcherTest {
   @Rule public TemporaryFolder tmpFolder = new TemporaryFolder();
 
   private File tmpDir;
+  private Path fileInTmpDir;
+  private Path nestedDir;
+  private Path fileInNestedDir;
   private ExecutorService executor;
   private BlockingQueue<WatcherEvent> eventQueue = new LinkedBlockingDeque<>();
   private Watcher watcher;
@@ -41,6 +44,12 @@ public class FileWatcherTest {
     isClosingWatcher = false;
     executor = Executors.newSingleThreadExecutor();
     tmpDir = tmpFolder.newFolder();
+    fileInTmpDir = tmpDir.toPath().resolve("file.txt");
+    Files.writeString(fileInTmpDir, "Initial content");
+    nestedDir = tmpDir.toPath().resolve("nested-dir");
+    Files.createDirectory(nestedDir);
+    fileInNestedDir = nestedDir.resolve("nested-file.txt");
+    Files.writeString(fileInNestedDir, "Initial content in nested file");
     eventQueue = new LinkedBlockingDeque<>();
     watcher =
         new DefaultWatcherFactory()
@@ -75,6 +84,18 @@ public class FileWatcherTest {
               error.throwable(), error.throwable().getMessage());
       throw new AssertionError(errMsg);
     }
+  }
+
+  @Test
+  public void tracksModificationToExistingFile() throws IOException {
+    atomicAppend(fileInTmpDir, "Appended content");
+    assertNextEventIs(modifyEvent(fileInTmpDir));
+  }
+
+  @Test
+  public void tracksModificationToExistingNestedFile() throws IOException {
+    atomicAppend(fileInNestedDir, "Appended content in nested file");
+    assertNextEventIs(modifyEvent(fileInNestedDir));
   }
 
   @Test
