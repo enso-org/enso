@@ -12,7 +12,6 @@ import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.test.mock.WithCompilerContext;
-import org.enso.editions.LibraryName;
 import org.enso.pkg.QualifiedName;
 import org.junit.Rule;
 import org.junit.Test;
