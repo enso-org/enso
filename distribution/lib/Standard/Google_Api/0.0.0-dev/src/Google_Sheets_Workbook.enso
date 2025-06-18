@@ -35,6 +35,13 @@ type Google_Sheets_Workbook
     sheet_names self = _handle_exceptions <|
         self.java_service.getSheetNames self.workbook_id
 
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Gets the number of sheets.
+    sheet_count : Integer
+    sheet_count self = _handle_exceptions <|
+        self.java_service.getNumberOfSheets self.workbook_id
+
     ## ALIAS get, import, load, open, range, sheet, worksheet
        GROUP Standard.Base.Input
        ICON data_input

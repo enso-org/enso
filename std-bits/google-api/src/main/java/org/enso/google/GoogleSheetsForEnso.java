@@ -1,13 +1,14 @@
 package org.enso.google;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.List;
+
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.util.List;
 
 public class GoogleSheetsForEnso {
 
@@ -52,5 +53,15 @@ public class GoogleSheetsForEnso {
         .stream()
         .map(sheet -> sheet.getProperties().getTitle())
         .toList();
+  }
+
+  public int getNumberOfSheets(String workbookId) throws IOException {
+    return service
+        .spreadsheets()
+        .get(workbookId)
+        .setIncludeGridData(false)
+        .execute()
+        .getSheets()
+        .size();
   }
 }
