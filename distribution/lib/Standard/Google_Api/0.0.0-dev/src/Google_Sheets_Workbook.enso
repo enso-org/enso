@@ -55,9 +55,13 @@ type Google_Sheets_Workbook
        - limit: the maximum number of rows to read.
          If set to `Nothing`, all rows will be returned.
     @query self-> _query_widget self
-    read self query:Text -> Table =
+    read self query:(Text|Integer) -> Table =
         values = _handle_exceptions <|
-            self.java_service.getSheetRange self.workbook_id query
+            case query of
+              _ : Text -> self.java_service.getSheetRange self.workbook_id query
+              _ : Integer ->
+                names = self.sheet_names
+                self.java_service.getSheetRange self.workbook_id (names.at (query - 1))
         # The first entry is the column name (A, B, ...) and the rest are the values.
         column_vectors = values.map v-> [v.first, v.drop 1]
         # The column lengths may not necessarily be the same, but Table.new expects the same lengths, so we normalize:
