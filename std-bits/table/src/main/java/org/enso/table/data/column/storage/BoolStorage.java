@@ -8,9 +8,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
@@ -70,67 +68,6 @@ public final class BoolStorage extends Storage<Boolean>
   @Override
   public BitSet getIsNothingMap() {
     return isNothing;
-  }
-
-  /**
-   * Creates a new BoolStorage in which all missing values have been replaced by arg.
-   *
-   * <p>It works by setting the new isMissing to an empty bitset and changing the values bitset
-   * accordingly. If `arg` is true, new values are `values || isMissing` and if `arg` is false, new
-   * values are `values && (~isMissing)`.
-   */
-  public ColumnBooleanStorage fillMissingBoolean(boolean arg) {
-    final var newValues = (BitSet) values.clone();
-    if (arg != negated) {
-      newValues.or(isNothing);
-    } else {
-      newValues.andNot(isNothing);
-    }
-    return new BoolStorage(newValues, new BitSet(), size, negated);
-  }
-
-  @Override
-  public ColumnStorage<?> fillMissing(
-      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
-    if (arg.isBoolean()) {
-      return fillMissingBoolean(arg.asBoolean());
-    } else {
-      return super.fillMissing(arg, commonType, problemAggregator);
-    }
-  }
-
-  @Override
-  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    if (missingIndicator != null) {
-      throw new IllegalStateException(
-          "Custom missing value semantics are not supported by BoolStorage.");
-    }
-
-    boolean previousValue = false;
-    boolean hasPrevious = false;
-    long size = getSize();
-    var builder = Builder.getForBoolean(size);
-
-    Context context = Context.getCurrent();
-    for (long i = 0; i < size; i++) {
-      boolean isCurrentValueMissing = isNothing(i);
-      if (isCurrentValueMissing) {
-        if (hasPrevious) {
-          builder.appendBoolean(previousValue);
-        } else {
-          builder.appendNulls(1);
-        }
-      } else {
-        boolean currentValue = getItemAsBoolean(i);
-        builder.appendBoolean(currentValue);
-        previousValue = currentValue;
-        hasPrevious = true;
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
   }
 
   @Override

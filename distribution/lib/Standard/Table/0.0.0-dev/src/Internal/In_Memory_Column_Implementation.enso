@@ -41,6 +41,7 @@ from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.binary.BinaryOperator
+polyglot java import org.enso.table.data.column.operation.binary.FillMissingOperation
 polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
 polyglot java import org.enso.table.data.column.operation.BinaryOperation
 polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
@@ -54,6 +55,8 @@ polyglot java import org.enso.table.data.column.operation.text.TextPredicates
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
+polyglot java import org.enso.table.data.column.operation.unary.DuplicateCountOperation
+polyglot java import org.enso.table.data.column.operation.unary.FillFromPreviousOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
@@ -333,24 +336,20 @@ type In_Memory_Column_Implementation
             _ -> this_column.is_nothing
         result.rename new_name
 
-    fill_nothing (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) -> Column =
-        if Previous_Value == default then fill_previous this_column Nothing else
+    fill_nothing (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) -> Column = case default of
+        Previous_Value -> apply_unary_operation this_column FillFromPreviousOperation.INSTANCE
+        _ ->
             common_type = Value_Type_Helpers.find_common_type_for_arguments [this_column, default]
             common_type.if_not_error <|
-                storage = this_column.java_column.getStorage
+                java_column = this_column.java_column
                 storage_type = Storage.from_value_type_strict common_type
-                new_storage = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                    case default of
-                        col : Column ->
-                            other_storage = (col:In_Memory_Column).java_column.getStorage
-                            storage.fillMissingFrom other_storage storage_type java_problem_aggregator
-                        _ ->
-                            storage.fillMissing default storage_type java_problem_aggregator
-                In_Memory_Column.from_storage this_column.name new_storage
+                operation = FillMissingOperation.create java_column storage_type
+                _call_binary_operator this_column default this_column.name operation
 
-    fill_empty (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) -> Column =
-        Value_Type.expect_text this_column <|
-            if Previous_Value == default then fill_previous this_column this_column.is_empty else
+    fill_empty (this_column : Column & In_Memory_Column) (default : Column | Previous_Value | Any) -> Column = Value_Type.expect_text this_column <|
+        case default of
+            Previous_Value -> apply_unary_operation this_column FillFromPreviousOperation.FILL_EMPTY
+            _ ->
                 Value_Type.expect_text default <|
                     result = this_column.is_empty.iif default this_column
                     result.rename this_column.name
@@ -400,41 +399,60 @@ type In_Memory_Column_Implementation
             _apply_case_sensitive_text_operation this_column string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
 
     trim (this_column : Column & In_Memory_Column) where:Location=..Both (what : Text | Column = '') -> Column = Value_Type.expect_text this_column <|
+        parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then "" else what
+
         new_name = naming_helper.function_name "trim" [this_column]
+        case parsed_what of
+            _ : Text ->
+                trim_fn = if parsed_what.is_empty then t-> t.trim where else
+                    t-> t.trim where parsed_what
+                _apply_unary_map this_column new_name trim_fn expected_result_type=Value_Type.Char
+            _ : Column -> Value_Type.expect_text parsed_what <|
+                    fn = t-> w-> if t.is_nothing then Nothing else
+                        if w.is_nothing || w.is_empty then t.trim where else t.trim where w
+                    _apply_binary_map this_column fn parsed_what new_name skip_nulls=False expected_result_type=Value_Type.Char
 
-        trim_get = wrap_text_argument_as_value_provider what
+    text_replace (this_column : Column & In_Memory_Column) (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column = Value_Type.expect_text this_column <|
+        parsed_term = if term.is_a Column && term.value_type == Value_Type.Null then "" else term
+        parsed_new = if new_text.is_a Column && new_text.value_type == Value_Type.Null then "" else new_text
 
-        trim_get.if_not_error <|
-            trim_fn t w = if w.is_empty then t.trim where else
-                t.trim where w
+        new_name = naming_helper.function_name "replace" [this_column, term, new_text]
 
-            this_column_vec = this_column.to_vector
-            mapped = this_column_vec.map_with_index i->t-> trim_fn t (trim_get i)
-            Column.from_vector new_name mapped
+        ## Text and Regex have same implementation
+        perform_scalar used_term =
+            if parsed_new.is_a Text then _apply_unary_map this_column new_name (t-> t.replace used_term parsed_new case_sensitivity only_first) expected_result_type=Value_Type.Char else
+                Value_Type.expect_text parsed_new <|
+                    fn = t-> r-> if t.is_nothing then Nothing else
+                        if r.is_nothing.not then t.replace used_term (r.if_nothing "") case_sensitivity only_first else
+                            if t.contains used_term then Nothing else t
+                    _apply_binary_map this_column fn parsed_new new_name skip_nulls=False expected_result_type=Value_Type.Char
 
-    text_replace (this_column : Column & In_Memory_Column) (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
-        Value_Type.expect_text this_column <|
-            term_fn = wrap_text_or_regex_argument_as_value_provider term
-            new_text_fn = wrap_text_argument_as_value_provider new_text
+        case parsed_term of
+            _ : Text -> if parsed_term.is_empty then this_column.rename new_name else perform_scalar parsed_term
+            _ : Regex -> perform_scalar parsed_term
+            _ : Column -> Value_Type.expect_text parsed_term <| case parsed_new of
+                _ : Text ->
+                    fn = t-> s-> if t.is_nothing then Nothing else
+                        if s.is_nothing || s.is_empty then t else t.replace s parsed_new case_sensitivity only_first
+                    _apply_binary_map this_column fn parsed_term new_name skip_nulls=False expected_result_type=Value_Type.Char
+                _ : Column -> Value_Type.expect_text parsed_new <|
+                    ## Three Columns To Deal With (all are text)
+                    fn = t-> s-> r-> if t.is_nothing then Nothing else
+                        if s.is_nothing || s.is_empty then t else
+                            if r.is_nothing.not then t.replace s r case_sensitivity only_first else
+                                if t.contains s then Nothing else t
 
-            term_fn.if_not_error <| new_text_fn.if_not_error <|
-                new_name = naming_helper.function_name "replace" [this_column, term, new_text]
+                    length = this_column.length
+                    java_this = this_column.java_column
+                    java_term = (parsed_term:In_Memory_Column).java_column
+                    java_new = (parsed_new:In_Memory_Column).java_column
 
-                do_replace index input =
-                    term = term_fn index
-                    if term.is_nothing || (term.is_a Text && term.is_empty) || input.is_nothing then input else
-                        replace = new_text_fn index
-                        input.replace term replace case_sensitivity only_first
+                    builder = make_string_builder length
+                    0.up_to length . each i->
+                        replaced = fn (java_this.getItem i) (java_term.getItem i) (java_new.getItem i)
+                        builder.append replaced
 
-                length = this_column.length
-                java_column = this_column.java_column
-
-                builder = make_string_builder length
-                0.up_to length . each i->
-                    replaced = do_replace i (java_column.getItem i)
-                    builder.append replaced
-
-                In_Memory_Column.from_storage new_name builder.seal
+                    In_Memory_Column.from_storage new_name builder.seal
 
     text_cleanse (this_column : Column & In_Memory_Column) (remove : Vector Named_Pattern) -> Column =
       remove.map (Text_Cleanse.Value _) . fold this_column (current-> tc-> tc.apply current)
@@ -566,7 +584,7 @@ type In_Memory_Column_Implementation
 
     auto_cast (this_column : Column & In_Memory_Column) shrink_types:Boolean=False -> Column =
         new_value_type = Storage.to_value_type <|
-             this_column.java_column.getStorage.inferPreciseType (PreciseTypeOptions.forAutoCast shrink_types)
+            CastOperation.inferPreciseType this_column.java_column (PreciseTypeOptions.forAutoCast shrink_types)
 
         # We run with Report_Error because we do not expect any problems.
         this_column.cast new_value_type on_problems=Problem_Behavior.Report_Error
@@ -618,7 +636,7 @@ type In_Memory_Column_Implementation
         Storage.to_value_type storage_type
 
     inferred_precise_value_type this_column -> Value_Type =
-        storage_type = (this_column:In_Memory_Column).java_column.getStorage.inferPreciseType PreciseTypeOptions.DEFAULT
+        storage_type = CastOperation.inferPreciseType (this_column:In_Memory_Column).java_column
         Storage.to_value_type storage_type
 
     should_be_selected_by_type (this_column : Column & In_Memory_Column) (value_type : Value_Type) -> Boolean =
@@ -675,7 +693,7 @@ type In_Memory_Column_Implementation
         In_Memory_Column.from_java_column (this_column.java_column.applyMask mask)
 
     duplicate_count (this_column : Column & In_Memory_Column) -> Column =
-        In_Memory_Column.from_java_column this_column.java_column.duplicateCount
+        apply_unary_operation this_column DuplicateCountOperation.INSTANCE
 
     to_text_implementation (this_column : Column & In_Memory_Column) -> Text = "(In-Memory Column "+this_column.name.to_text+")"
 
@@ -770,38 +788,8 @@ resolve_storage_type value_type = case value_type of
     _ -> Storage.from_value_type_strict value_type
 
 ## PRIVATE
-wrap_text_argument_as_value_provider val =
-    Value_Type.expect_text val <| case val of
-        text : Text -> (_-> text)
-        col : Column ->
-            java_column = (col:In_Memory_Column).java_column
-            i-> java_column.getItem i
-
-## PRIVATE
-wrap_text_or_regex_argument_as_value_provider val =
-    if val.is_a Regex then (_-> val) else wrap_text_argument_as_value_provider val
-
-## PRIVATE
-   Cast a column to a `Value_Type`, unless it already has that type.
-cast_if_needed : Column -> Value_Type -> Column
-cast_if_needed column value_type = if column.value_type == value_type then column else column.cast value_type
-
-## PRIVATE
 naming_helper : Column_Naming_Helper
 naming_helper = Column_Naming_Helper.in_memory
-
-## PRIVATE
-   Fills the missing values in a provided column with the previous non-missing value.
-
-   Arguments:
-   - column: The column to fill.
-   - is_missing: A boolean column specifying which elements are deemed missing.
-     If set to `Nothing`, this will rely on the default missing value semantics
-     (`is_nothing`).
-fill_previous column is_missing =
-    missing_storage = if Nothing == is_missing then Nothing else (is_missing:In_Memory_Column).java_column.getStorage
-    new_storage = (column:In_Memory_Column).java_column.getStorage.fillMissingFromPrevious missing_storage
-    In_Memory_Column.from_storage column.name new_storage
 
 ## PRIVATE
    Applies a UnaryOperation to a column.

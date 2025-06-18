@@ -293,21 +293,42 @@ fn enable_cloud_tests(step: Step) -> Step {
     )
 }
 
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
+pub enum StandardLibraryTestsScope {
+    CloudRelated,
+    StandardLibraryJvm,
+    StandardLibraryInNative,
+    Microsoft,
+}
+
+impl Display for StandardLibraryTestsScope {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            StandardLibraryTestsScope::CloudRelated => write!(f, "std-cloud-related"),
+            StandardLibraryTestsScope::StandardLibraryJvm => write!(f, "standard-library"),
+            StandardLibraryTestsScope::StandardLibraryInNative =>
+                write!(f, "standard-library-in-native"),
+            StandardLibraryTestsScope::Microsoft => write!(f, "std-microsoft"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
-    pub graal_edition:       graalvm::Edition,
-    pub engine_launcher:     engine::EngineLauncher,
-    pub cloud_tests_enabled: bool,
-    pub native_image_mode:   bool,
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+    pub scope:           StandardLibraryTestsScope,
 }
 
 impl StandardLibraryTests {
-    fn mode_name(&self) -> String {
-        if self.native_image_mode {
-            "native".into()
-        } else {
-            "jvm".into()
-        }
+    fn title(&self) -> String {
+        let title = match self.scope {
+            StandardLibraryTestsScope::StandardLibraryJvm => "Standard Library JVM Tests",
+            StandardLibraryTestsScope::StandardLibraryInNative => "Standard Library Native Tests",
+            StandardLibraryTestsScope::Microsoft => "Standard Library Microsoft Tests",
+            StandardLibraryTestsScope::CloudRelated => "Standard Library Cloud Tests",
+        };
+        title.to_string()
     }
 }
 
@@ -315,18 +336,10 @@ impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
-        let should_enable_cloud_tests = self.cloud_tests_enabled;
-        // If cloud tests are enabled, we run only cloud related tests.
-        let test_scope = if should_enable_cloud_tests {
-            "std-cloud-related"
-        } else if self.native_image_mode {
-            "standard-library-in-native"
-        } else {
-            "standard-library"
-        };
-        let job_mode_name = self.mode_name();
-        let job_name = format!("Standard Library Tests ({graal_edition}) ({job_mode_name})");
-        let run_command = format!("backend test {test_scope}");
+        let scope = self.scope;
+        let job_name = format!("{job_title} ({graal_edition})", job_title = self.title());
+        let run_command = format!("backend test {scope}");
+
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
             let cleanup_engine_distribution = step::cleanup_engine_distribution(engine_launcher);
 
@@ -347,8 +360,11 @@ impl JobArchetype for StandardLibraryTests {
                     crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                 );
 
-            let updated_main_step =
-                if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
+            let updated_main_step = if scope == StandardLibraryTestsScope::CloudRelated {
+                enable_cloud_tests(main_step)
+            } else {
+                main_step
+            };
 
             vec![
                 cleanup_engine_distribution,
@@ -363,7 +379,7 @@ impl JobArchetype for StandardLibraryTests {
             run_steps_builder,
             target,
             &job_name,
-            should_enable_cloud_tests,
+            self.scope,
         )
         .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
@@ -376,7 +392,7 @@ impl JobArchetype for StandardLibraryTests {
         // If running extra cloud tests, enable reporting all tests. These tests run on a nightly
         // schedule, and so the normal test reporter is not available to them. Thus we want to see
         // the full log in the CI to be able to tell which tests have been run.
-        if should_enable_cloud_tests {
+        if self.scope == StandardLibraryTestsScope::CloudRelated {
             job.env(crate::libraries_tests::env::REPORT_ALL_TESTS, "1");
         }
 
@@ -388,7 +404,7 @@ impl JobArchetype for StandardLibraryTests {
             "{}-{}-{}-{os}-{arch}",
             self.id_key_base(),
             self.graal_edition.to_string().to_kebab_case(),
-            self.mode_name(),
+            self.scope,
         )
     }
 }
@@ -569,9 +585,9 @@ fn build_job_ensuring_cloud_tests_run_on_github(
     run_steps_builder: RunStepsBuilder,
     target: Target,
     job_name: &str,
-    cloud_tests_enabled: bool,
+    scope: StandardLibraryTestsScope,
 ) -> Job {
-    if cloud_tests_enabled {
+    if scope == StandardLibraryTestsScope::CloudRelated {
         if target.0 != OS::Linux {
             panic!("If the Cloud tests are enabled, they require GitHub hosted runner for Cloud auth, so they only run on Linux.");
         }

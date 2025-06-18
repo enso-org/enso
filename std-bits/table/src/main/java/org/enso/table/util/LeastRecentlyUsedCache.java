@@ -1,20 +1,20 @@
-package org.enso.microsoft.azure;
+package org.enso.table.util;
 
 /**
- * A simple LRU cache implementation.
+ * A simple LRU cache implementation for internal optimisation.
  *
  * @param <K> the type of keys
  * @param <V> the type of values
  */
-final class LRUCache<K, V> extends java.util.LinkedHashMap<K, V> {
+public final class LeastRecentlyUsedCache<K, V> extends java.util.LinkedHashMap<K, V> {
   private final int maxSize;
 
   /**
-   * Constructs an LRUCache with the specified maximum size.
+   * Constructs an LeastRecentlyUsedCache with the specified maximum size.
    *
    * @param maxSize the maximum size of the cache
    */
-  public LRUCache(int maxSize) {
+  public LeastRecentlyUsedCache(int maxSize) {
     super(maxSize, 0.75f, true);
     this.maxSize = maxSize;
   }

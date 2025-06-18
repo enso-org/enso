@@ -120,7 +120,3 @@ from_value_type_strict value_type =
 make_builder : StorageType -> Integer -> ProblemAggregator -> Java_Builder
 make_builder storage initial_size java_problem_aggregator =
     Java_Builder.getForType storage initial_size java_problem_aggregator
-
-## PRIVATE
-   Helper function for tests to get the storage of a Column
-get_storage_for_column column:In_Memory_Column = (column:In_Memory_Column).java_column.getStorage

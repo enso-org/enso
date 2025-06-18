@@ -2,6 +2,8 @@ from Standard.Base import all
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 from Standard.Base.Metadata import make_single_choice
 
+import project.Google_Sheets_Workbook.Google_Sheets_Workbook
+
 from Standard.Table import Table
 
 polyglot java import java.io.IOException
@@ -9,66 +11,10 @@ polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.WrappedGoogleCredentials
 
 type Google_Sheets
-    ## PRIVATE
-    private Service java_service
-
-    ## ICON cloud
-       Initializes the Google Sheets instance using the given credentials file.
-
-       Arguments:
-       - credentials: a Cloud secret or a file containing Google Service Account credentials to use to
-         access Google services. The credentials file can be downloaded from the
-         Google Admin Console when generating a key.
-    initialize : File|Enso_Secret -> Google_Sheets
-    initialize credentials =
-        service = GoogleSheetsForEnso.create (_wrap_credentials credentials)
-        Google_Sheets.Service service
-
-    ## PRIVATE
-    get_sheet_names self (workbook_id : Text) =
-        _handle_exceptions <|
-            self.java_service.getSheetNames workbook_id
-
-    ## ICON data_input
-       Gets a table with the given ID and sheet range.
-
-       Arguments:
-       - workbook_id: the ID of the downloaded spreadsheet. It can be read from the
-         spreadsheet URL.
-       - sheet_range: specifies the sheet and cell range to read, e.g.
-         `'Sheet1!A1:B7'`.
-    @sheet_range _make_sheet_name_widget
-    get_table self (workbook_id : Text) (sheet_range : Text) -> Table =
-        values = _handle_exceptions <|
-            self.java_service.getSheetRange workbook_id sheet_range
-        # The first entry is the column name (A, B, ...) and the rest are the values.
-        column_vectors = values.map v-> [v.first, v.drop 1]
-        # The column lengths may not necessarily be the same, but Table.new expects the same lengths, so we normalize:
-        row_count = column_vectors.map (p-> p.second.length) . compute ..Maximum
-        normalized = column_vectors.map p->
-            [p.first, p.second.pad row_count Nothing]
-        Table.new normalized
-
-## Error occurred when calling the Google Sheets API
-type Google_Api_Error
-    ## PRIVATE
-    Error message cause
-
-private _handle_exceptions ~action =
-    Panic.catch IOException action caught_panic->
-        Error.throw (Google_Api_Error.Error caught_panic.payload.to_text caught_panic.payload)
-
-private _wrap_credentials credential:File|Enso_Secret =
-    case credential of
-        secret : Enso_Secret ->
-            WrappedGoogleCredentials.fromCredentialReference (as_credential_reference secret)
-        secret_file : File ->
-            secret_file.with_input_stream [File_Access.Read] stream->
-                stream.with_java_stream java_input_stream->
-                    WrappedGoogleCredentials.fromStream java_input_stream
-
-private _make_sheet_name_widget service:Google_Sheets cache=Nothing =
-    workbook_id = cache.if_not_nothing <| cache "workbook_id"
-    sheet_names = if workbook_id.is_nothing || workbook_id == "" then [] else
-        service.get_sheet_names workbook_id
-    make_single_choice sheet_names display=..Always
+    ## ALIAS load, open
+       GROUP Standard.Base.Web
+       ICON cloud_from
+       SUGGESTED 10
+       Reads a Google Sheet into Enso.
+    read workbook_id:Text credential:Enso_Secret -> Google_Sheets_Workbook =
+        Google_Sheets_Workbook.new workbook_id credential

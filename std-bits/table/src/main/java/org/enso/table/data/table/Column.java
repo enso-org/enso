@@ -198,11 +198,4 @@ public final class Column {
   public Column slice(List<SliceRange> ranges) {
     return new Column(name, storage.slice(ranges));
   }
-
-  /**
-   * @return a column counting value repetitions in this column.
-   */
-  public Column duplicateCount() {
-    return new Column(name + "_duplicate_count", storage.duplicateCount());
-  }
 }

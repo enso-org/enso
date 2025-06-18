@@ -60,7 +60,7 @@ public final class TextPartOperation extends BinaryOperationBase<String, String>
     long right = NumericConverter.coerceToLong(rightValue);
 
     return StorageIterators.mapOverStorage(
-        textType.asTypedStorage(left),
+        left,
         Builder.getForText(textType, left.getSize()),
         (index, value) -> function.apply(value, right));
   }
