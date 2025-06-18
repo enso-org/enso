@@ -2,8 +2,8 @@ package org.enso.table.data.column.operation.binary;
 
 import java.util.BitSet;
 import org.enso.table.data.column.builder.BoolBuilder;
-import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -18,10 +18,10 @@ import org.enso.table.util.BitSets;
  */
 public final class LogicalOperations {
   /** The logical AND operation instance. */
-  public static final BinaryOperation<Boolean> AND = new BooleanAndOperation();
+  public static final BinaryOperationTyped<Boolean> AND = new BooleanAndOperation();
 
   /** The logical OR operation instance. */
-  public static final BinaryOperation<Boolean> OR = new BooleanOrOperation();
+  public static final BinaryOperationTyped<Boolean> OR = new BooleanOrOperation();
 
   /**
    * Logical AND with support for Nulls:

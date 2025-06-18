@@ -5,7 +5,6 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import org.enso.table.data.column.operation.CountNothing;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -102,33 +101,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
       int length = range.end() - range.start();
       System.arraycopy(data, range.start(), newData, offset, length);
       offset += length;
-      context.safepoint();
-    }
-
-    return newInstance(newData);
-  }
-
-  @Override
-  public ColumnStorage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    if (missingIndicator != null && CountNothing.anyNothing(missingIndicator)) {
-      throw new IllegalArgumentException(
-          "Missing indicator must not contain missing values itself.");
-    }
-
-    T[] newData = newUnderlyingArray(data.length);
-    T previous = null;
-    boolean hasPrevious = false;
-
-    Context context = Context.getCurrent();
-    for (int i = 0; i < data.length; i++) {
-      boolean isCurrentValueMissing =
-          missingIndicator == null ? isNothing(i) : missingIndicator.getItemAsBoolean(i);
-      if (!isCurrentValueMissing) {
-        previous = data[i];
-        hasPrevious = true;
-      }
-
-      newData[i] = hasPrevious ? previous : data[i];
       context.safepoint();
     }
 

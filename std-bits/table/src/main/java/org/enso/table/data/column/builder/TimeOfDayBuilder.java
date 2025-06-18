@@ -15,10 +15,14 @@ public final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
   @Override
   public void append(Object o) {
     ensureSpaceToAppend();
-    try {
-      data[currentSize++] = (LocalTime) o;
-    } catch (ClassCastException e) {
-      throw new ValueTypeMismatchException(getType(), o);
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        data[currentSize++] = (LocalTime) o;
+      } catch (ClassCastException e) {
+        throw new ValueTypeMismatchException(getType(), o);
+      }
     }
   }
 

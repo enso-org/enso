@@ -8,7 +8,6 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -33,11 +32,8 @@ public class Mean extends KnownTypeAggregator {
   }
 
   private static StorageType<?> resultTypeFromInput(ColumnStorage<?> inputStorage) {
-    var inputType =
-        inputStorage instanceof ColumnStorageWithInferredStorage inferredStorage
-            ? inferredStorage.inferPreciseType(PreciseTypeOptions.DEFAULT)
-            : inputStorage.getType();
-
+    var resolvedStorage = ColumnStorageWithInferredStorage.resolveStorage(inputStorage);
+    var inputType = resolvedStorage.getType();
     return switch (inputType) {
       case FloatType floatType -> FloatType.FLOAT_64;
       case IntegerType integerType -> FloatType.FLOAT_64;

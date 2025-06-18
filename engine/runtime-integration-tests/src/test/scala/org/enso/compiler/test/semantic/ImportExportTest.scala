@@ -1038,20 +1038,21 @@ class ImportExportTest
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
-      val arr = org.enso.interpreter.caches.PersistUtils.POOL.write(
-        mainIr,
-        {
-          case metadata: ProcessingPass.Metadata =>
-            metadata.prepareForSerialization(
-              ctx
-                .ensoContext()
-                .getCompiler
-                .context
-                .asInstanceOf[metadata.Compiler]
-            );
-          case obj => obj
-        }
-      );
+      val arr = org.enso.interpreter.caches.PersistUtils.POOL
+        .withWriteReplace(
+          {
+            case metadata: ProcessingPass.Metadata =>
+              metadata.prepareForSerialization(
+                ctx
+                  .ensoContext()
+                  .getCompiler
+                  .context
+                  .asInstanceOf[metadata.Compiler]
+              );
+            case obj => obj
+          }
+        )
+        .write(mainIr);
       arr should not be empty
     }
 
@@ -1079,20 +1080,21 @@ class ImportExportTest
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
       try {
-        val arr = org.enso.interpreter.caches.PersistUtils.POOL.write(
-          mainIr,
-          {
-            case metadata: ProcessingPass.Metadata =>
-              metadata.prepareForSerialization(
-                ctx
-                  .ensoContext()
-                  .getCompiler
-                  .context
-                  .asInstanceOf[metadata.Compiler]
-              );
-            case obj => obj
-          }
-        );
+        val arr = org.enso.interpreter.caches.PersistUtils.POOL
+          .withWriteReplace(
+            {
+              case metadata: ProcessingPass.Metadata =>
+                metadata.prepareForSerialization(
+                  ctx
+                    .ensoContext()
+                    .getCompiler
+                    .context
+                    .asInstanceOf[metadata.Compiler]
+                );
+              case obj => obj
+            }
+          )
+          .write(mainIr);
         fail("Shouldn't return anything when there is an error" + arr)
       } catch {
         case ex: IOException =>

@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
-public abstract class BinaryOperationBase<T, R> implements BinaryOperation<R> {
+public abstract class BinaryOperationBase<T, R> implements BinaryOperationTyped<R> {
   protected final StorageType<T> validType;
   protected final StorageType<R> returnType;
   private final boolean allowNullType;

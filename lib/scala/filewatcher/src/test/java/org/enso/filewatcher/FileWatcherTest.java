@@ -22,8 +22,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 public class FileWatcherTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileWatcherTest.class);
+  private static final Level AT = Level.DEBUG;
   private static final long TIMEOUT_SECONDS = 5;
 
   @Rule public RetryTestRule retryRule = new RetryTestRule(3);
@@ -175,8 +180,15 @@ public class FileWatcherTest {
   }
 
   private void assertNextEventIs(WatcherEvent expectedEvent) {
-    var event = pollEvent();
-    assertThat(event, is(expectedEvent));
+    LOGGER.atLevel(AT).log("Expecting event: {}", expectedEvent);
+    for (; ; ) {
+      var event = pollEvent();
+      LOGGER.atLevel(AT).log("  got event: {}" + event);
+      if (expectedEvent.equals(event)) {
+        LOGGER.atLevel(AT).log("  good!");
+        return;
+      }
+    }
   }
 
   private WatcherEvent pollEvent() {

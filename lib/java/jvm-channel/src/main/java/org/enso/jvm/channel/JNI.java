@@ -1,4 +1,4 @@
-package org.enso.os.environment.jni;
+package org.enso.jvm.channel;
 
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.constant.CConstant;
@@ -18,7 +18,7 @@ import org.graalvm.nativeimage.c.type.VoidPointer;
 import org.graalvm.word.PointerBase;
 
 @CContext(JNIDirectives.class)
-public final class JNI {
+final class JNI {
   @CConstant
   static native int JNI_OK();
 

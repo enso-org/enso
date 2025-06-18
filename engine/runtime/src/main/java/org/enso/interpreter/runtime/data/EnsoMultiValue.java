@@ -109,6 +109,41 @@ public final class EnsoMultiValue extends EnsoObject {
       return new EnsoMultiValue(dt, et, values, firstDispatch);
     }
 
+    /**
+     * Recreates new multi value with different dispatch types.
+     *
+     * @param original original multi value to extract information from
+     * @param dispatchTypes new dispatch types - all of them must already be present in the {@code
+     *     dispatch} or {@code extra} types of the provided multi value
+     * @return
+     */
+    @NeverDefault
+    @TruffleBoundary
+    public final EnsoMultiValue renewMulti(EnsoMultiValue original, Type[] dispatchTypes) {
+      var allTypes = original.allTypes(true, AllTypesWith.getUncached());
+      var allValues = original.values.clone();
+      var extraCount = 0;
+      FOUND:
+      for (var searchFor = 0; searchFor < dispatchTypes.length; searchFor++) {
+        for (var i = 0; i < allTypes.length; i++) {
+          if (dispatchTypes[searchFor] == allTypes[i]) {
+            swap(allTypes, extraCount, i);
+            swap(allValues, extraCount, i);
+            extraCount++;
+            continue FOUND;
+          }
+        }
+        assert false
+            : "Cannot find " + dispatchTypes[searchFor] + " among " + Arrays.toString(allTypes);
+      }
+      assert extraCount == dispatchTypes.length : "All types found";
+      var dt = executeTypes(allTypes, 0, extraCount);
+      var et = executeTypes(allTypes, extraCount, allTypes.length);
+      assert !dt.hasIntersectionWith(et)
+          : "Dispatch (" + dt + ") and extra (" + et + ") should be disjoin!";
+      return new EnsoMultiValue(dt, et, allValues, 0);
+    }
+
     abstract EnsoMultiType executeTypes(Type[] types, int from, int to);
 
     @Specialization(
@@ -147,6 +182,12 @@ public final class EnsoMultiValue extends EnsoObject {
         }
       }
       return true;
+    }
+
+    private static void swap(Object[] arr, int i1, int i2) {
+      var tmp = arr[i1];
+      arr[i1] = arr[i2];
+      arr[i2] = tmp;
     }
   }
 

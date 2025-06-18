@@ -22,8 +22,8 @@ polyglot java import java.util.regex.Pattern
 
    To combine different objects they need to satisfy this requirement, otherwise
    the combination would be ill-formed.
-check_integrity (entity1 : DB_Table | DB_Column) (entity2 : DB_Table | DB_Column) -> Boolean =
-    ctx = entity1.context == entity2.context
+check_integrity entity1 entity2 -> Boolean =
+    ctx = (entity1 : DB_Table | DB_Column).context == (entity2 : DB_Table | DB_Column).context
     ctx && (check_connection entity1 entity2)
 
 ## PRIVATE
@@ -33,10 +33,10 @@ check_integrity (entity1 : DB_Table | DB_Column) (entity2 : DB_Table | DB_Column
    Arguments:
    - entity1: The entity to check against the second.
    - entity2: The entity to check against the first.
-check_connection (entity1 : DB_Table | DB_Column) (entity2 : DB_Table | DB_Column) -> Boolean =
+check_connection entity1 entity2 -> Boolean =
     # The `if_not_error` is needed `Meta.is_same_object` does not forward dataflow errors.
     entity1.if_not_error <| entity2.if_not_error <|
-        Meta.is_same_object entity1.connection entity2.connection
+        Meta.is_same_object (entity1 : DB_Table | DB_Column).connection (entity2 : DB_Table | DB_Column).connection
 
 ## PRIVATE
 ensure_same_connection : Text -> Vector -> Any -> Any ! Illegal_Argument

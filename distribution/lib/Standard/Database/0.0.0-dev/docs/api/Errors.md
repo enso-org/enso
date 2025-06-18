@@ -8,6 +8,8 @@
     - Error
     - to_display_text self -> Standard.Base.Data.Text.Text
     - to_text self -> Standard.Base.Data.Text.Text
+- type Implicit_DB_Table_Read
+    - to_display_text self -> Standard.Base.Data.Text.Text
 - type Integrity_Error
     - Error object_description:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any

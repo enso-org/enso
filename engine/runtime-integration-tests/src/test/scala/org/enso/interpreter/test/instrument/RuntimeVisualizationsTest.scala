@@ -36,6 +36,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           .newBuilder()
           .allowExperimentalOptions(true)
           .allowAllAccess(true)
+          .environment("NO_COLOR", "true")
           .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
           .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
           .option(

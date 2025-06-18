@@ -1,12 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Sort_Column, Aggregate_Column
+from Standard.Table import Aggregate_Column, Column, Sort_Column, Table
 from Standard.Table.Errors import all
+import Standard.Table.In_Memory_Column.In_Memory_Column
 
 from Standard.Database import all
 from Standard.Database.Errors import all
+import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 
@@ -172,6 +175,7 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
         group_builder.specify "should allow to materialize columns directly into a Vector" <|
             v = data.t1.at 'a' . to_vector
             v . should_equal [1, 4]
+            Problems.expect_only_warning Implicit_DB_Table_Read v
 
         group_builder.specify "should allow getting specific elements" <|
             test_column = data.t1.at 'a'
@@ -191,6 +195,13 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
         group_builder.specify "should not allow to set a column coming from another table" <|
             data.t1.set (data.t2.at "d") . should_fail_with Integrity_Error
 
+        group_builder.specify "DB_Column and In_Memory_Column should be distinct types" <|
+            mem_column = Column.from_vector 'm' [1, 2, 3]
+            db_column = data.t1.at 'a'
+            Test.expect_panic Type_Error (db_column : In_Memory_Column)
+            Test.expect_panic Type_Error (mem_column : DB_Column)
+
+            (db_column : DB_Column).to_sql . should_succeed
 
     suite_builder.group (prefix + "Connection.query") group_builder->
         data = Basic_Data.setup default_connection.get

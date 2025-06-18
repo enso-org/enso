@@ -1,29 +1,22 @@
 package org.enso.table.data.column.storage.numeric;
 
-import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.BlackholeProblemAggregator;
-import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
@@ -82,104 +75,6 @@ public final class DoubleStorage extends Storage<Double>
       throw new IndexOutOfBoundsException(idx);
     }
     return isNothing.get((int) idx);
-  }
-
-  private ColumnStorage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
-    long n = getSize();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < getSize(); i++) {
-      if (isNothing(i)) {
-        builder.appendDouble(arg);
-      } else {
-        builder.appendDouble(getItemAsDouble(i));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  /** Special handling to ensure loss of precision is reported. */
-  private ColumnStorage<?> fillMissingBigInteger(
-      BigInteger arg, ProblemAggregator problemAggregator) {
-    long n = getSize();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < n; i++) {
-      if (isNothing(i)) {
-        builder.append(arg);
-      } else {
-        builder.appendDouble(getItemAsDouble(i));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  /** Special handling to ensure loss of precision is reported. */
-  private ColumnStorage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
-    long n = getSize();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
-    Context context = Context.getCurrent();
-    for (long i = 0; i < n; i++) {
-      if (isNothing(i)) {
-        builder.appendLong(arg);
-      } else {
-        builder.appendDouble(getItemAsDouble(i));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  @Override
-  public ColumnStorage<?> fillMissing(
-      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
-    if (arg.isNumber()) {
-      if (arg.fitsInLong()) {
-        return fillMissingLong(arg.asLong(), problemAggregator);
-      } else if (arg.fitsInBigInteger()) {
-        return fillMissingBigInteger(arg.asBigInteger(), problemAggregator);
-      } else if (arg.fitsInDouble()) {
-        return fillMissingDouble(arg.asDouble(), problemAggregator);
-      }
-    }
-
-    return super.fillMissing(arg, commonType, problemAggregator);
-  }
-
-  @Override
-  public ColumnStorage<Double> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    if (missingIndicator != null) {
-      throw new IllegalStateException(
-          "Custom missing value semantics are not supported by DoubleStorage.");
-    }
-
-    long n = getSize();
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, BlackholeProblemAggregator.INSTANCE);
-    double previousValue = 0;
-    boolean hasPrevious = false;
-
-    Context context = Context.getCurrent();
-    for (long i = 0; i < n; i++) {
-      boolean isCurrentMissing = isNothing(i);
-      if (isCurrentMissing) {
-        if (hasPrevious) {
-          builder.appendDouble(previousValue);
-        } else {
-          builder.appendNulls(1);
-        }
-      } else {
-        double value = getItemAsDouble(i);
-        builder.appendDouble(value);
-        previousValue = value;
-        hasPrevious = true;
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
   }
 
   @Override
@@ -255,83 +150,6 @@ public final class DoubleStorage extends Storage<Double>
     }
 
     return new DoubleStorage(newData, newSize, newIsNothing);
-  }
-
-  @Override
-  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
-    // If we do not request floats becoming integers, then we can return the answer straight away.
-    if (!options.wholeFloatsBecomeIntegers()) {
-      return getType();
-    }
-
-    if (areAllIntegers()) {
-      if (options.shrinkIntegers()) {
-        return findSmallestIntegerTypeThatFits();
-      } else {
-        return IntegerType.INT_64;
-      }
-    }
-
-    return getType();
-  }
-
-  private Boolean cachedAreAllIntegers = null;
-  private StorageType<?> smallestFittingIntegerType = null;
-
-  private boolean areAllIntegers() {
-    if (cachedAreAllIntegers == null) {
-      int visitedNumbers = 0;
-      boolean areAllIntegers = true;
-      for (int i = 0; i < size; i++) {
-        if (isNothing.get(i)) {
-          continue;
-        }
-
-        double value = data[i];
-        visitedNumbers++;
-        boolean isWholeNumber = value % 1.0 == 0.0;
-        boolean canBeInteger = isWholeNumber && IntegerType.INT_64.fits(value);
-        if (!canBeInteger) {
-          areAllIntegers = false;
-          break;
-        }
-      }
-
-      // We only say 'all are integers' if there was at least one number, because we don't want an
-      // empty Float column to change its type for no good reason.
-      cachedAreAllIntegers = visitedNumbers > 0 && areAllIntegers;
-    }
-
-    return cachedAreAllIntegers;
-  }
-
-  private StorageType<?> findSmallestIntegerTypeThatFits() {
-    if (smallestFittingIntegerType != null) {
-      return smallestFittingIntegerType;
-    }
-
-    assert cachedAreAllIntegers;
-    final DoubleStorage parent = this;
-
-    // We create a Long storage that gets values by converting our storage.
-    ComputedNullableLongStorage longAdapter =
-        new ComputedNullableLongStorage(size) {
-          @Override
-          protected Long computeItem(long idx) {
-            if (parent.isNothing(idx)) {
-              return null;
-            }
-
-            double value = parent.getItemAsDouble(idx);
-            assert value % 1.0 == 0.0
-                : "The value " + value + " should be a whole number (guaranteed by checks).";
-            return (long) value;
-          }
-        };
-
-    // And rely on its shrinking logic.
-    smallestFittingIntegerType = longAdapter.inferPreciseType(PreciseTypeOptions.SHRINK);
-    return smallestFittingIntegerType;
   }
 
   /** Allow access to the underlying data array for copying. */
