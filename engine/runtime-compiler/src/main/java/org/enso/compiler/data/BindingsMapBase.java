@@ -20,7 +20,8 @@ import scala.collection.immutable.Map$;
  */
 abstract class BindingsMapBase implements IRPass.IRMetadata {
   /**
-   * @GuardedBy("this"). Either {@link State} or {@code Supplier<State>}
+   * @GuardedBy("this"). Accessed in {@link #getState} and {@link #updateState} methods. Value can
+   * be either {@link State} or {@code Supplier<State>}
    */
   private Object state;
 
@@ -48,6 +49,13 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
   // Non-public implementation for a subclass
   //
 
+  /**
+   * Obtain when a consistent state of the map is needed. All values in the state are known to have
+   * been consistent at some point of time. Never hold the state for too long. Always obtain a fresh
+   * one.
+   *
+   * @return consistent state of the "binding map" as of "now"
+   */
   final State getState() {
     while (true) {
       Supplier<?> tmp;
