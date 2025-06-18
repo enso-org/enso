@@ -90,6 +90,14 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
           aria-label={getText('reload')}
           onPress={() => logsPages.refetch()}
         />
+        <Button
+          variant="icon"
+          icon="data_download"
+          aria-label={getText('loadMore')}
+          tooltip={logsPages.hasNextPage ? null : getText('noMoreEntriesToLoad')}
+          onPress={() => logsPages.fetchNextPage()}
+          isDisabled={!logsPages.hasNextPage}
+        />
       </Button.Group>
       {isLoading ?
         <Loader />

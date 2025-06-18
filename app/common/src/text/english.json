@@ -254,6 +254,8 @@
   "logs": "Logs",
   "showLogs": "Show Logs",
   "searchLogs": "Search Logs",
+  "loadMore": "Load More",
+  "noMoreEntriesToLoad": "No more entries to load!",
   "executionsCalendar": "Scheduler",
   "accept": "Accept",
   "decline": "Decline",
