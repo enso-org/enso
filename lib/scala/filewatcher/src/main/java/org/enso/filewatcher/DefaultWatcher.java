@@ -149,27 +149,27 @@ final class DefaultWatcher implements Watcher {
     exceptionCallback.accept(watcherError);
   }
 
-  private void registerWatchService(Path path) {
-    LOGGER.debug("Registering watch service for subdir {}", path);
+  private void registerWatchService(Path dir) {
+    LOGGER.debug("Registering watch service for subdir {}", dir);
     try {
       var watchKey =
-          path.register(
+          dir.register(
               watchService,
               StandardWatchEventKinds.ENTRY_CREATE,
               StandardWatchEventKinds.ENTRY_MODIFY,
               StandardWatchEventKinds.ENTRY_DELETE,
               StandardWatchEventKinds.OVERFLOW);
-      watchedDirs.put(path, watchKey);
+      watchedDirs.put(dir, watchKey);
     } catch (IOException e) {
       exceptionCallback.accept(new Watcher.WatcherError(e));
     }
   }
 
-  private void cancelWatch(Path path) {
-    LOGGER.debug("Cancelling watch for subdir {}", path);
-    var watchKey = watchedDirs.get(path);
-    assert watchKey != null : "No watch key found for path: " + path;
+  private void cancelWatch(Path dir) {
+    LOGGER.debug("Cancelling watch for subdir {}", dir);
+    var watchKey = watchedDirs.get(dir);
+    assert watchKey != null : "No watch key found for dir: " + dir;
     watchKey.cancel();
-    watchedDirs.remove(path);
+    watchedDirs.remove(dir);
   }
 }
