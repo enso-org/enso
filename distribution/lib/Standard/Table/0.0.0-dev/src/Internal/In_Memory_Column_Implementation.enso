@@ -41,7 +41,6 @@ from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.column.dataquality.CountNothing
 polyglot java import org.enso.table.data.column.operation.binary.BinaryOperator
 polyglot java import org.enso.table.data.column.operation.binary.FillMissingOperation
 polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
@@ -53,6 +52,7 @@ polyglot java import org.enso.table.data.column.operation.IfOperation
 polyglot java import org.enso.table.data.column.operation.IsInOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
+polyglot java import org.enso.table.data.column.operation.unary.CountNothing
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
