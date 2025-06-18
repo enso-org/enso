@@ -6,10 +6,12 @@ const {
   content,
   toolbar = true,
   contentTestId,
+  scrollerTestId,
 } = defineProps<{
   content: Y.Text | string
   toolbar?: boolean
   contentTestId?: string | undefined
+  scrollerTestId?: string | undefined
 }>()
 defineOptions({
   inheritAttrs: false,
@@ -28,6 +30,7 @@ const LazyMarkdownEditor = defineAsyncComponent(
       :content="content"
       :toolbar="toolbar"
       :contentTestId="contentTestId"
+      :scrollerTestId="scrollerTestId"
     >
       <template #belowToolbar>
         <slot name="belowToolbar" />

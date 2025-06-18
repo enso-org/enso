@@ -67,6 +67,8 @@ interface CodeMirrorOptions {
   vueHost?: WatchSource<VueHost | undefined>
   /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
   contentTestId?: string | undefined
+  /** If provided, the element with class `cm-scroller` will also have the given `data-testid`. */
+  scrollerTestId?: string | undefined
   readonly?: boolean
   lineMode: ToValue<LineMode>
 }
@@ -80,6 +82,7 @@ export function useCodeMirror(
     extensions,
     vueHost,
     contentTestId,
+    scrollerTestId,
     readonly: isReadonly,
     lineMode,
   }: CodeMirrorOptions,
@@ -128,6 +131,7 @@ export function useCodeMirror(
   )
 
   if (contentTestId != null) view.contentDOM.dataset['testid'] = contentTestId
+  if (scrollerTestId != null) view.scrollDOM.dataset['testid'] = scrollerTestId
   onUnmounted(view.destroy.bind(view))
 
   if (vueHost) useStateEffect(view, setVueHost, vueHost)
