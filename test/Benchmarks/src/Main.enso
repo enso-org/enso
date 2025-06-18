@@ -46,7 +46,6 @@ import project.Vector.Operations
 import project.Vector.Sort
 import project.Vector.Zip_Benchmark
 import project.Warnings
-from Standard.Base.Runtime import Debug
 
 all_benchmarks : Vector Bench.All
 all_benchmarks =

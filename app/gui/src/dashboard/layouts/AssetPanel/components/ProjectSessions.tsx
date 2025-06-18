@@ -1,40 +1,41 @@
 /** @file A list of previous versions of an asset. */
 import { Result } from '#/components/Result'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
+import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
-import { useText } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/rightPanel'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { useAssetPanelCurrentItem } from '../AssetPanelState'
 import { ProjectSession } from './ProjectSession'
-import type { AssetPanelProps } from './types'
-
-/** Props for a {@link ProjectSessions}. */
-export interface ProjectSessionsProps extends AssetPanelProps {}
 
 /** A list of previous versions of an asset. */
-export function ProjectSessions(props: ProjectSessionsProps) {
-  const { backend } = props
+export function ProjectSessions() {
   const { getText } = useText()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
+  const { remoteBackend } = useBackends()
 
-  const item = useAssetPanelCurrentItem()
-
-  if (backend.type === BackendType.local) {
+  if (category?.backend !== BackendType.remote) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.localBackend')} />
   }
 
-  if (item == null) {
+  if (focusedAsset == null) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notSelected')} />
   }
 
-  if (item.type !== AssetType.project) {
+  if (focusedAsset.type !== AssetType.project) {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notProjectAsset')} />
   }
 
-  return <AssetProjectSessionsInternal {...props} item={item} />
+  return <AssetProjectSessionsInternal backend={remoteBackend} item={focusedAsset} />
 }
 
 /** Props for a {@link AssetProjectSessionsInternal}. */
-interface AssetProjectSessionsInternalProps extends ProjectSessionsProps {
+interface AssetProjectSessionsInternalProps {
+  readonly backend: Backend
   readonly item: ProjectAsset
 }
 

@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -23,7 +24,7 @@ public abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
     return FromPolyglotArrayBuiltinVectorNodeGen.create();
   }
 
-  abstract EnsoObject execute(Object arr);
+  abstract EnsoObject execute(@AcceptsWarning Object arr);
 
   @Specialization(guards = "interop.hasArrayElements(arr)")
   EnsoObject doObject(Object arr, @CachedLibrary(limit = "1") InteropLibrary interop) {

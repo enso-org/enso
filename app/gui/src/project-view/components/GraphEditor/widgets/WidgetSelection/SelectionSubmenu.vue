@@ -1,34 +1,41 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends DropdownEntry | SubmenuEntry<T>">
+import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
+import { usePopoverRoot } from '@/providers/popoverRoot'
 import { targetIsOutside } from '@/util/autoBlur'
-import { computed, ComputedRef, ref, useTemplateRef, watch } from 'vue'
+import { Opt } from '@/util/data/opt'
+import { computed, ComputedRef, ref, toRef, useTemplateRef, watch } from 'vue'
 import { submenuDropdownStyles } from './styles'
-import { Entry, ExpressionTag, isEntry, NestedChoiceTag } from './tags'
+import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
-const props = defineProps<{
-  rootElement: HTMLElement | undefined
-  floatReference: HTMLElement | undefined
+const {
+  extendUpwards = true,
+  backgroundColor = 'var(--color-node-background)',
+  color = 'var(--color-node-text)',
+  ...props
+} = defineProps<{
+  floatReference: Opt<HTMLElement>
   show: boolean
-  entries: Entry[]
-  selectedExpressions: Set<string>
+  entries: T[]
   topLevel?: boolean
+  extendUpwards?: boolean
+  color?: string | undefined
+  backgroundColor?: string | undefined
 }>()
+const floatReference = toRef(props, 'floatReference')
+const rootElement = usePopoverRoot()
 
 const emit = defineEmits<{
-  clickedEntry: [Entry, boolean]
+  clickedEntry: [T, boolean]
 }>()
 
-export interface Submenu {
-  entries: ComputedRef<Entry[]>
+interface Submenu {
+  entries: ComputedRef<T[]>
   relativeTo: HTMLElement
 }
 
-/** Referring to the type of the component in the current file is hard, so we define a helper type. */
-interface SubmenuComponent {
-  isTargetOutside: (event: Event) => boolean
-}
 function isSubmenuComponent(component: unknown): component is SubmenuComponent {
   return (
     component != null &&
@@ -43,8 +50,6 @@ const submenuEntries = computed(() => submenu.value?.entries ?? [])
 const submenuRef = useTemplateRef('submenuRef')
 
 const dropdownElement = useTemplateRef('dropdownElement')
-const floatReference = computed(() => props.floatReference)
-const rootElement = computed(() => props.rootElement)
 
 const { floatingStyles } = submenuDropdownStyles(
   floatReference,
@@ -54,7 +59,7 @@ const { floatingStyles } = submenuDropdownStyles(
 )
 
 const nestedEntriesPresent = computed(() =>
-  props.entries.some((entry) => isEntry(entry) && entry.tag instanceof NestedChoiceTag),
+  props.entries.some((entry) => 'isNested' in entry && entry.isNested),
 )
 
 function resetSubmenu() {
@@ -62,28 +67,18 @@ function resetSubmenu() {
 }
 watch([() => props.show, () => props.entries], resetSubmenu)
 
-function nestedChoiceTagToSubmenu(tag: NestedChoiceTag, target: HTMLElement): Submenu {
-  const isSelected = (tag: ExpressionTag | NestedChoiceTag) =>
-    tag instanceof ExpressionTag && props.selectedExpressions.has(tag.expression)
-  const choiceToEntry = (choice: ExpressionTag | NestedChoiceTag): Entry => ({
-    value: choice.label,
-    selected: isSelected(choice),
-    tag: choice,
-  })
-
+function nestedEntryToSubmenu(entry: SubmenuEntry<T>, target: HTMLElement): Submenu {
   return {
-    entries: computed(() => tag.choices.map(choiceToEntry) satisfies Entry[]),
+    entries: computed(() => entry.nestedValues),
     relativeTo: target,
   }
 }
 
-function onClick(entry: DropdownEntry, keepOpen: boolean, htmlElement: HTMLElement) {
-  if (!isEntry(entry)) return
-  const tag = entry.tag
-  if (tag instanceof NestedChoiceTag) {
-    submenu.value = nestedChoiceTagToSubmenu(tag, htmlElement)
+function onClick(entry: T, keepOpen: boolean, htmlElement: HTMLElement) {
+  if (isSubmenuEntry(entry) && entry.isNested) {
+    submenu.value = nestedEntryToSubmenu(entry, htmlElement)
   } else {
-    emit('clickedEntry', entry, keepOpen)
+    emit('clickedEntry', entry as T, keepOpen)
   }
 }
 
@@ -102,32 +97,48 @@ function isTargetOutside(event: Event) {
 defineExpose({
   isTargetOutside,
 })
+
+defineOptions({
+  inheritAttrs: false,
+})
+</script>
+
+<script lang="ts">
+/** Referring to the type of the component in the current file is hard, so we define a helper type. */
+export interface SubmenuComponent {
+  isTargetOutside: (event: Event) => boolean
+}
 </script>
 
 <template>
-  <Teleport v-if="props.rootElement" :to="props.rootElement">
-    <div ref="dropdownElement" :style="floatingStyles" class="SelectionSubmenu widgetOutOfLayout">
+  <ConditionalTeleport :target="rootElement">
+    <div
+      ref="dropdownElement"
+      :style="floatingStyles"
+      class="SelectionSubmenu widgetOutOfLayout"
+      v-bind="$attrs"
+    >
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
-          :class="{ ExtendUpwards: props.topLevel }"
-          color="var(--color-node-text)"
-          backgroundColor="var(--color-node-background)"
+          :class="{ ExtendUpwards: props.topLevel && extendUpwards }"
+          :color="color"
+          :backgroundColor="backgroundColor"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
         />
       </SizeTransition>
     </div>
-  </Teleport>
+  </ConditionalTeleport>
   <SelectionSubmenu
     v-if="nestedEntriesPresent"
     ref="submenuRef"
-    :rootElement="props.rootElement"
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
     :entries="submenuEntries"
-    :selectedExpressions="props.selectedExpressions"
+    :color="color"
+    :backgroundColor="backgroundColor"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />
 </template>

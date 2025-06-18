@@ -1,6 +1,7 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.HashSet;
@@ -143,6 +144,31 @@ public class EnsoMultiValueTest {
     assertStartsWith("(A_Ctor", texts.get(0));
     assertStartsWith("(B_Ctor", texts.get(1));
     assertStartsWith("(C_Ctor", texts.get(2));
+  }
+
+  @Test
+  public void dataflowErrorPassingThroughMultiChecks() {
+    var code =
+        """
+    from Standard.Base import Error
+
+    type A
+    type B
+    type My_Error
+        Error msg
+
+    make -> A & B =
+        Error.throw (My_Error.Error "msg")
+
+    foo =
+        a = make
+        fun (x : A & B) = x
+        fun a
+    """;
+
+    var foo = ctxRule.evalModule(code, "dataflow.enso", "foo");
+    assertTrue("Returns a dataflow error", foo.isException());
+    assertEquals("(Error: (My_Error.Error 'msg'))", foo.toString());
   }
 
   private static void assertStartsWith(String exp, String actual) {

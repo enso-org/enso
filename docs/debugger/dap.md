@@ -6,7 +6,7 @@ protocol for VSCode and as such, works only via VSCode. To start Enso with DAP
 server waiting for a client to attach, launch enso via:
 
 ```
-env JAVA_OPTS='-Dpolyglot.dap' ./built-distribution/enso-engine-*/enso-*/bin/enso --run *.enso
+env JAVA_TOOL_OPTIONS='-Dpolyglot.dap' ./built-distribution/enso-engine-*/enso-*/bin/enso --run *.enso
 ```
 
 Once DAP server is started and ready for a client to be attached, the following

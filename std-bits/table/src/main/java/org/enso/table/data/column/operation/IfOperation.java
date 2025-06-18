@@ -4,8 +4,7 @@ import java.util.function.LongFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.NullStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -15,8 +14,8 @@ import org.graalvm.polyglot.Value;
 
 public final class IfOperation {
   /**
-   * The IfOperation class provides a way to apply a conditional operation on a column. It checks if
-   * the condition is valid.
+   * The IfOperation class provides a way to apply a conditional operation on a column. This
+   * verifies if the condition is valid for the operation.
    */
   private static boolean canApply(ColumnStorage<?> condition) {
     var conditionType = condition.getType();
@@ -42,7 +41,7 @@ public final class IfOperation {
       StorageType<T> resultStorageType,
       ProblemAggregator problemAggregator) {
     // Check if the condition is valid
-    var conditionStorage = BinaryOperation.getInferredStorage(condition);
+    var conditionStorage = ColumnStorageWithInferredStorage.resolveStorage(condition);
     if (!canApply(conditionStorage)) {
       throw new IllegalStateException(
           "Unsupported condition type: "
@@ -52,7 +51,7 @@ public final class IfOperation {
 
     var result =
         (resultStorageType instanceof NullType)
-            ? new NullStorage(condition.getSize())
+            ? Builder.fromRepeatedItem(null, condition.getSize())
             : computeColumnStorage(
                 condition,
                 when_true,
@@ -60,7 +59,7 @@ public final class IfOperation {
                 resultStorageType,
                 problemAggregator,
                 conditionStorage);
-    return new Column(new_name, (Storage<?>) result);
+    return new Column(new_name, result);
   }
 
   private static <T> ColumnStorage<T> computeColumnStorage(

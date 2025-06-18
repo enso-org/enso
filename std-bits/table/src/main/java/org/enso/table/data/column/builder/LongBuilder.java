@@ -1,11 +1,13 @@
 package org.enso.table.data.column.builder;
 
+import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -18,6 +20,13 @@ import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
 public class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
+  public static LongStorage makeEmpty(long size, IntegerType type) {
+    int intSize = Builder.checkSize(size);
+    var isNothing = new BitSet(intSize);
+    isNothing.set(0, intSize);
+    return new LongStorage(new long[0], intSize, isNothing, type);
+  }
+
   protected final ProblemAggregator problemAggregator;
   protected long[] data;
 
@@ -61,7 +70,8 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   @Override
   public boolean canRetypeTo(StorageType<?> type) {
     return Objects.equals(type, FloatType.FLOAT_64)
-        || Objects.equals(type, BigIntegerType.INSTANCE);
+        || Objects.equals(type, BigIntegerType.INSTANCE)
+        || Objects.equals(type, BigDecimalType.INSTANCE);
   }
 
   @Override
@@ -70,6 +80,8 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
       return BigIntegerBuilder.retypeFromLongBuilder(this);
     } else if (Objects.equals(type, FloatType.FLOAT_64)) {
       return InferredDoubleBuilder.retypeFromLongBuilder(this);
+    } else if (Objects.equals(type, BigDecimalType.INSTANCE)) {
+      return BigDecimalBuilder.retypeFromLongBuilder(this);
     } else {
       throw new UnsupportedOperationException();
     }
@@ -86,7 +98,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (Objects.equals(storage.getType(), getType())
         && storage instanceof LongStorage longStorage) {
       // A fast path for the same type - no conversions/checks needed.
@@ -166,7 +178,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   @Override
-  public Storage<Long> seal() {
+  public ColumnStorage<Long> seal() {
     return new LongStorage(data, currentSize, isNothing, getType());
   }
 }

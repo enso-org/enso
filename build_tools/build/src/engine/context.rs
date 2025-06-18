@@ -315,6 +315,18 @@ impl RunContext {
             sbt.call_arg(command).await?;
         }
 
+        if self.config.build_small_jdk {
+            if self.config.small_jdk_dir.is_none() {
+                return Err(anyhow::anyhow!(
+                    "Small JDK directory is not set. Please set `small_jdk_dir` in the build configuration."
+                ));
+            }
+            let target_dir = self.config.small_jdk_dir.as_ref().unwrap();
+            debug!("Building small JDK in {}", target_dir.display());
+            let sbt_cmd = format!("buildSmallJdkForRelease {}", target_dir.as_str());
+            sbt.call_arg(sbt_cmd).await?;
+        }
+
         // === End of Build project-manager distribution and native image ===
 
         let ret = self.expected_artifacts();

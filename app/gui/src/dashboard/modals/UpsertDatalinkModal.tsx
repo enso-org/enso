@@ -1,8 +1,11 @@
 /** @file A modal for creating and editing a Datalink. */
-import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
-import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs/Input'
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import { validateDatalink } from '#/data/datalinkValidator'
+import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import { constantValueOfSchema } from '#/utilities/jsonSchema'
 import { useText } from '$/providers/react'
 
@@ -44,10 +47,10 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
           <DatalinkFormInput name="value" dropdownTitle={getText('type')} />
         </div>
 
-        <ButtonGroup>
+        <Button.Group>
           <Form.Submit>{getText('create')}</Form.Submit>
-          <DialogDismiss />
-        </ButtonGroup>
+          <Dialog.Dismiss />
+        </Button.Group>
 
         <Form.FormError />
       </Form>

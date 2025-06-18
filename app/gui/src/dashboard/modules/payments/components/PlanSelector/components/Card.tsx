@@ -3,17 +3,14 @@
  *
  * Card component
  */
-import * as React from 'react'
-
-import type * as text from 'enso-common/src/text'
-
 import Check from '#/assets/check_mark.svg'
-
-import { useText } from '$/providers/react'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Separator } from '#/components/Separator'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { useText } from '$/providers/react'
+import type * as text from 'enso-common/src/text'
+import * as React from 'react'
 
 /** Card props */
 export interface CardProps extends React.PropsWithChildren, VariantProps<typeof CARD_STYLES> {
@@ -94,34 +91,25 @@ export function Card(props: CardProps) {
 
   return (
     <div className={classes.base({ className })}>
-      <ariaComponents.Text.Heading level={2} disableLineHeightCompensation>
+      <Text.Heading level={2} disableLineHeightCompensation>
         {getText(title)}
-      </ariaComponents.Text.Heading>
+      </Text.Heading>
 
-      <ariaComponents.Text
-        elementType="p"
-        variant="subtitle"
-        weight="medium"
-        disableLineHeightCompensation
-      >
+      <Text elementType="p" variant="subtitle" weight="medium" disableLineHeightCompensation>
         {getText(subtitle)}
-      </ariaComponents.Text>
+      </Text>
 
       {pricing && (
-        <ariaComponents.Text variant="body" weight="bold" disableLineHeightCompensation>
+        <Text variant="body" weight="bold" disableLineHeightCompensation>
           {getText(pricing)}
-        </ariaComponents.Text>
+        </Text>
       )}
 
       {submitButton != null ?
         <div className="my-4">{submitButton}</div>
       : null}
 
-      <ariaComponents.Separator
-        variant="primary"
-        className={classes.separator()}
-        orientation="horizontal"
-      />
+      <Separator variant="primary" className={classes.separator()} orientation="horizontal" />
 
       {features.length > 0 && (
         <div className="mt-4">
@@ -132,9 +120,9 @@ export function Card(props: CardProps) {
                   <SvgMask src={Check} className="text-green" />
                 </span>
 
-                <ariaComponents.Text variant="body" weight="medium" disableLineHeightCompensation>
+                <Text variant="body" weight="medium" disableLineHeightCompensation>
                   {feature}
-                </ariaComponents.Text>
+                </Text>
               </li>
             ))}
           </ul>

@@ -6,24 +6,23 @@ import { merge } from 'enso-common/src/utilities/data/object'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import {
   useAddLaunchedProject,
   useProjectsStore,
   useRemoveLaunchedProject,
-  useSetPage,
   useUpdateLaunchedProjects,
   type LaunchedProject,
   type LaunchedProjectId,
 } from '#/providers/ProjectsProvider'
+import * as authProvider from '$/providers/react'
 
 import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useAddOpeningProject, useRemoveOpeningProject } from '#/providers/ProjectsProvider/hooks'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { useBackends } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { z } from 'zod'
 import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
 
@@ -590,21 +589,11 @@ export function useOpenProjectLocally() {
   )
 }
 
-/** A function to open the editor. */
-export function useOpenEditor() {
-  const setPage = useSetPage()
-  return eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
-    setPage(projectId)
-  })
-}
-
 /** A function to close a project. */
 export function useCloseProject() {
   const client = reactQuery.useQueryClient()
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = useRemoveLaunchedProject()
-  const setPage = useSetPage()
-  const projectsStore = useProjectsStore()
 
   return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
     client
@@ -633,10 +622,6 @@ export function useCloseProject() {
       })
 
     removeLaunchedProject(project.id)
-
-    if (projectsStore.getState().page === project.id) {
-      setPage('drive')
-    }
 
     await promise
   })

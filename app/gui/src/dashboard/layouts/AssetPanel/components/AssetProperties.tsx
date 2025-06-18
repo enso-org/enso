@@ -1,33 +1,22 @@
 /** @file Display and modify the properties of an asset. */
-import * as React from 'react'
-
 import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
-import {
-  Button,
-  ButtonGroup,
-  CopyButton,
-  Form,
-  ResizableContentEditableInput,
-  Text,
-} from '#/components/AriaComponents'
-import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
-import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
-import Label from '#/components/dashboard/Label'
+import { Button, CopyButton } from '#/components/Button'
+import { Form } from '#/components/Form'
+import { ResizableContentEditableInput } from '#/components/Inputs/ResizableInput'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
+import { Text } from '#/components/Text'
 import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import {
-  assetPanelStore,
-  useAssetPanelCurrentItem,
-  useSetAssetPanelProps,
-} from '#/layouts/AssetPanel/'
+import { type Category } from '#/layouts/Drive/Categories'
 import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
+import { SharedWithColumn } from '#/pages/dashboard/components/column'
+import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
+import Label from '#/pages/dashboard/components/Label'
+import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -40,11 +29,16 @@ import {
 } from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
-import { useStore } from '#/utilities/zustand'
-import { useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
+import { useFeatureFlags } from '$/providers/react/featureFlags'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/rightPanel'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import type { AssetPanelProps } from './types'
+import * as React from 'react'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -53,35 +47,27 @@ const ASSET_PROPERTIES_VARIANTS = tv({
   },
 })
 
-/** Possible elements in this screen to spotlight on. */
-export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
-
-/** Props for an {@link AssetPropertiesProps}. */
-export interface AssetPropertiesProps extends AssetPanelProps {
-  readonly isReadonly?: boolean
-}
-
 /** Display and modify the properties of an asset. */
-export function AssetProperties(props: AssetPropertiesProps) {
-  const { isReadonly = false, backend, category } = props
-
-  const item = useAssetPanelCurrentItem()
-
+export function AssetProperties() {
+  const { remoteBackend } = useBackends()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
   const { getText } = useText()
+  const isReadonly = category?.type === 'trash'
 
-  if (backend.type === BackendType.local) {
+  if (category?.backend !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (item == null) {
+  if (focusedAsset == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
-      key={item.id}
-      backend={backend}
-      item={item}
+      key={focusedAsset.id}
+      backend={remoteBackend}
+      item={focusedAsset}
       isReadonly={isReadonly}
       category={category}
     />
@@ -89,7 +75,10 @@ export function AssetProperties(props: AssetPropertiesProps) {
 }
 
 /** Props for an {@link AssetPropertiesInternal}. */
-export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
+export interface AssetPropertiesInternalProps {
+  readonly backend: Backend
+  readonly category: Category
+  readonly isReadonly: boolean
   readonly item: AnyAsset
 }
 
@@ -97,16 +86,16 @@ export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
-
-  const spotlightOn = useStore(assetPanelStore, (state) => state.assetPanelProps.spotlightOn, {
-    unsafeEnableTransition: true,
-  })
-
-  const setAssetPanelProps = useSetAssetPanelProps()
+  const rightPanel = useRightPanelData()
+  const spotlightOn = useVueValue(
+    React.useCallback(() => rightPanel.context?.spotlightOn, [rightPanel]),
+  )
 
   const closeSpotlight = useEventCallback(() => {
-    const assetPanelProps = assetPanelStore.getState().assetPanelProps
-    setAssetPanelProps({ ...assetPanelProps, spotlightOn: null })
+    rightPanel.updateContext('drive', (ctx) => {
+      ctx.spotlightOn = undefined
+      return ctx
+    })
   })
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
@@ -142,15 +131,15 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     ),
   )
   const descriptionSpotlight = useSpotlight({
-    enabled: spotlightOn === 'description',
+    enabled: rightPanel.context?.spotlightOn === 'description',
     close: closeSpotlight,
   })
   const secretSpotlight = useSpotlight({
-    enabled: spotlightOn === 'secret',
+    enabled: rightPanel.context?.spotlightOn === 'secret',
     close: closeSpotlight,
   })
   const datalinkSpotlight = useSpotlight({
-    enabled: spotlightOn === 'datalink',
+    enabled: rightPanel.context?.spotlightOn === 'datalink',
     close: closeSpotlight,
   })
 
@@ -237,9 +226,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                 name="description"
                 mode="onBlur"
               />
-              <ButtonGroup>
+              <Button.Group>
                 <Form.Submit>{getText('update')}</Form.Submit>
-              </ButtonGroup>
+              </Button.Group>
             </Form>
           }
         </div>
@@ -485,10 +474,10 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   />
 
                   {canEditThisAsset && form.formState.isDirty && (
-                    <ButtonGroup>
+                    <Button.Group>
                       <Form.Submit>{getText('update')}</Form.Submit>
                       <Form.Reset />
-                    </ButtonGroup>
+                    </Button.Group>
                   )}
 
                   <Form.FormError />

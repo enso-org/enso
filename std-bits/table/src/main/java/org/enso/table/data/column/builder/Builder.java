@@ -1,7 +1,17 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.util.BitSet;
 import java.util.Objects;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.NullStorage;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
+import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -15,21 +25,17 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.data.table.Column;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
+import org.graalvm.polyglot.Context;
 
 /** Interface defining a builder for creating columns dynamically. */
 public interface Builder {
   /**
-   * The maximum size of a builder.
-   * Currently, just the maximum value of an integer, but should be tested and limited.
-   * For array based builders, must be less than the maximum array size.
-   * */
+   * The maximum size of a builder. Currently, just the maximum value of an integer, but should be
+   * tested and limited. For array based builders, must be less than the maximum array size.
+   */
   int MAX_SIZE = Integer.MAX_VALUE;
 
   /** Checks that the size is within the maximum allowed. */
@@ -38,7 +44,31 @@ public interface Builder {
       throw new IllegalArgumentException("Columns cannot exceed " + MAX_SIZE + " rows.");
     }
 
-    return (int)size;
+    return (int) size;
+  }
+
+  static ColumnStorage<?> fromRepeatedItem(Object item, long size) {
+    if (size < 0) {
+      throw new IllegalArgumentException("Repeat count must be non-negative.");
+    }
+
+    return switch (item) {
+      case null -> new NullStorage(size);
+      case Long longValue -> new LongConstantStorage(longValue, checkSize(size));
+      case Boolean booleanValue -> new BoolStorage(
+          new BitSet(), new BitSet(), checkSize(size), booleanValue);
+      default -> {
+        var storageType = StorageType.forBoxedItem(item, PreciseTypeOptions.DEFAULT);
+        Builder builder =
+            Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
+        Context context = Context.getCurrent();
+        for (long i = 0; i < size; i++) {
+          builder.append(item);
+          context.safepoint();
+        }
+        yield builder.seal();
+      }
+    };
   }
 
   /**
@@ -50,17 +80,17 @@ public interface Builder {
   static Builder getForType(StorageType<?> type, long size, ProblemAggregator problemAggregator) {
     Builder builder =
         switch (type) {
-          case AnyObjectType _ -> getForAnyObject(size);
-          case BooleanType _ -> getForBoolean(size);
-          case DateType _ -> getForDate(size);
-          case DateTimeType _ -> getForDateTime(size);
-          case TimeOfDayType _ -> getForTime(size);
+          case AnyObjectType t -> getForAnyObject(size);
+          case BooleanType t -> getForBoolean(size);
+          case DateType t -> getForDate(size);
+          case DateTimeType t -> getForDateTime(size);
+          case TimeOfDayType t -> getForTime(size);
           case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
           case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
           case TextType textType -> getForText(textType, size);
-          case BigDecimalType _ -> getForBigDecimal(size);
-          case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
-          case NullType x -> new NullBuilder();
+          case BigDecimalType t -> getForBigDecimal(size);
+          case BigIntegerType t -> getForBigInteger(size, problemAggregator);
+          case NullType t -> new NullBuilder();
           case null -> getInferredBuilder(size, problemAggregator);
         };
 
@@ -121,8 +151,7 @@ public interface Builder {
   }
 
   /**
-   * Constructs a builder for storing objects.
-   * No operations will be supported on this builder.
+   * Constructs a builder for storing objects. No operations will be supported on this builder.
    *
    * @param size the initial size of the builder.
    */
@@ -141,7 +170,8 @@ public interface Builder {
     return new BigDecimalBuilder(checkedSize);
   }
 
-  static BuilderForType<BigInteger> getForBigInteger(long size, ProblemAggregator problemAggregator) {
+  static BuilderForType<BigInteger> getForBigInteger(
+      long size, ProblemAggregator problemAggregator) {
     int checkedSize = checkSize(size);
     return new BigIntegerBuilder(checkedSize, problemAggregator);
   }
@@ -185,6 +215,19 @@ public interface Builder {
   Builder appendNulls(int count);
 
   /**
+   * Appends the whole contents of some other column.
+   *
+   * <p>This may be used to efficiently copy a whole column into the builder. Used for example when
+   * concatenating columns.
+   *
+   * <p>If the provided storage type is not compatible with the type of this builder, a {@code
+   * StorageTypeMismatch} exception may be thrown.
+   */
+  default void appendBulkStorage(Column column) {
+    appendBulkStorage(column.getStorage());
+  }
+
+  /**
    * Appends the whole contents of some other storage.
    *
    * <p>This may be used to efficiently copy a whole storage into the builder. Used for example when
@@ -193,7 +236,7 @@ public interface Builder {
    * <p>If the provided storage type is not compatible with the type of this builder, a {@code
    * StorageTypeMismatch} exception may be thrown.
    */
-  void appendBulkStorage(Storage<?> storage);
+  void appendBulkStorage(ColumnStorage<?> storage);
 
   /**
    * @return the number of appended elements
@@ -203,7 +246,7 @@ public interface Builder {
   /**
    * @return a storage containing all the items appended so far
    */
-  Storage<?> seal();
+  ColumnStorage<?> seal();
 
   /**
    * @return the current storage type of this builder

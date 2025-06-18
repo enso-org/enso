@@ -1,7 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Vector
 - type Builder
-    - add_warnings self x:Standard.Base.Any.Any -> Standard.Base.Nothing.Nothing
     - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
     - append self item:Standard.Base.Any.Any!Standard.Base.Error.Error -> Standard.Base.Nothing.Nothing!Standard.Base.Error.Error
     - append_vector_range self vector:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= end:Standard.Base.Any.Any= -> Standard.Base.Nothing.Nothing!Standard.Base.Error.Error

@@ -1,0 +1,24 @@
+private
+
+from Standard.Base import all
+
+import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
+import project.Internal.In_Memory_Column_Implementation.apply_unary_operation
+import project.Internal.In_Memory_Column_Implementation.naming_helper
+import project.Value_Type.Value_Type
+
+polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
+polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
+
+
+type In_Memory_Numeric_Column_Implementation
+    abs (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "abs" [column]
+            apply_unary_operation column AbsOperation.INSTANCE new_name
+
+    signum (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "signum" [column]
+            apply_unary_operation column SignumOperation.INSTANCE new_name

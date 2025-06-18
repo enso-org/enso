@@ -14,7 +14,6 @@ private
 
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder as Vector_Builder
-import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.Process.Process_Builder.Process_Result
 
 from Standard.Test import all
@@ -101,10 +100,10 @@ generate_code nesting_level:Integer -> Text =
    The thread stack size is also set to a sufficiently large value
    to ensure there is no StackOverflow.
 run_without_compiler enso_args:Vector -> Process_Result =
-    java_opts = "-Dpolyglot.engine.Compilation=false "
+    JAVA_TOOL_OPTIONS = "-Dpolyglot.engine.Compilation=false "
                 + "-XX:MaxJavaStackTraceDepth=18000 "
                 + "-Xms16M"
-    args = ["JAVA_OPTS="+java_opts, enso_bin.path] + enso_args
+    args = ["JAVA_TOOL_OPTIONS="+JAVA_TOOL_OPTIONS, enso_bin.path] + enso_args
     Process.run "env" (args + enso_args)
 
 

@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Test.Spec_Result.Spec_Result
 from Standard.Test import all
 
 import Standard.Database.Connection.Database
@@ -8,7 +7,6 @@ import Standard.Database.Errors.SQL_Error
 import Standard.Database.SQL_Query.SQL_Query
 
 import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
-import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Details
 
 import project.Generic_JDBC_Connection_Spec
 

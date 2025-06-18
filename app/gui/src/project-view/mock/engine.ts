@@ -65,6 +65,10 @@ func2 a =
    ![Image](/images/image.png)
    ![Image](../images/image.png)
    ![Image](</images/image.png>)
+   
+   This is a video:
+
+   ![Video](<https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ>)
 
    Here is a link: <https://example.com>
 

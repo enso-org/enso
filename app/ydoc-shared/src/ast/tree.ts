@@ -125,29 +125,7 @@ const nodeMetadataKeys = allKeys<NodeMetadataFields>({
 export type NodeMetadata = FixedMapView<NodeMetadataFields & MetadataFields>
 export type MutableNodeMetadata = FixedMap<NodeMetadataFields & MetadataFields>
 
-export const astTypes = [
-  'App',
-  'Assignment',
-  'BodyBlock',
-  'ExpressionStatement',
-  'FunctionDef',
-  'Generic',
-  'Group',
-  'Ident',
-  'Import',
-  'Invalid',
-  'NegationApp',
-  'NumericLiteral',
-  'OprApp',
-  'PropertyAccess',
-  'TextLiteral',
-  'UnaryOprApp',
-  'AutoscopedIdentifier',
-  'Vector',
-  'Wildcard',
-  'TypeAnnotated',
-] as const
-export type AstType = (typeof astTypes)[number]
+export type AstType = (typeof astTypeConstructors)[number][0]
 
 /** @internal */
 interface RawAstFields {
@@ -770,10 +748,13 @@ export interface MutableStatement extends BaseMutableStatement {
   mutableDocumentationText?: () => Y.Text
 }
 
+/** A base class for all {@link Expression} ASTs */
 abstract class BaseExpression extends Ast {
+  /** See {@link Ast.isAllowedInStatementContext}. */
   override isAllowedInStatementContext() {
     return false
   }
+  /** See {@link Ast.isAllowedInExpressionContext}. */
   override isAllowedInExpressionContext(): true {
     return true
   }
@@ -1294,22 +1275,22 @@ export class PropertyAccess extends BaseExpression {
 
   /** TODO: Add docs */
   static Sequence(
-    segments: [StrictIdentLike, ...StrictIdentLike[]],
+    segments: readonly [StrictIdentLike, ...StrictIdentLike[]],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent>
   /** TODO: Add docs */
   static Sequence(
-    segments: [StrictIdentLike, ...StrictIdentLike[], IdentLike],
+    segments: readonly [StrictIdentLike, ...StrictIdentLike[], IdentLike],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent>
   /** TODO: Add docs */
   static Sequence(
-    segments: IdentLike[],
+    segments: readonly IdentLike[],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined
   /** TODO: Add docs */
   static Sequence(
-    segments: IdentLike[],
+    segments: readonly IdentLike[],
     module: MutableModule,
   ): Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined {
     let path: Owned<MutablePropertyAccess> | Owned<MutableIdent> | undefined
@@ -1890,6 +1871,7 @@ export class TextLiteral extends BaseExpression {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
+  /** Check if this text literal is a block literal, i.e. can be multiline. */
   get isBlock(): boolean {
     return (this.open?.code().length ?? 1) > 1
   }
@@ -2193,6 +2175,15 @@ export class Invalid extends Ast implements Statement, Expression {
     return asOwned(new MutableInvalid(module, invalidFields(module, base, expression)))
   }
 
+  /** Create an Invalid node with no inner expression. */
+  static empty(module?: MutableModule) {
+    const mod = module ?? MutableModule.Transient()
+    return Invalid.concrete(mod, {
+      whitespace: undefined,
+      node: BodyBlock.concrete(mod, []),
+    })
+  }
+
   /** TODO: Add docs */
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
@@ -2386,7 +2377,7 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
 export function newArgumentDefinition(
   name: string,
   module?: MutableModule,
-): OwnedArgumentDefinitions {
+): OwnedArgumentDefinition {
   const expr = parseExpression(name, module)
   assert(expr != null)
   return {
@@ -2399,7 +2390,7 @@ interface ArgumentDefault<T extends TreeRefs = RawRefs> {
   expression: T['ast']
 }
 
-interface ArgumentType<T extends TreeRefs = RawRefs> {
+export interface ArgumentType<T extends TreeRefs = RawRefs> {
   operator: T['token']
   type: T['ast']
 }
@@ -2646,7 +2637,7 @@ function* argumentDefinitionToConcrete(def: DeepReadonly<ArgumentDefinition>, ve
   if (close) yield ensureSpacedOnlyIf(close, spacedInsideParen1 ?? false, verbatim)
 }
 
-type OwnedArgumentDefinitions = ArgumentDefinition<OwnedRefs>
+type OwnedArgumentDefinition = ArgumentDefinition<OwnedRefs>
 
 /** TODO: Add docs */
 export class MutableFunctionDef extends FunctionDef implements MutableStatement {
@@ -2659,14 +2650,14 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
   setBody<T extends MutableExpression | MutableBodyBlock>(value: Owned<T> | undefined) {
     this.fields.set('body', unspaced(this.claimChild(value)))
   }
-  setArgumentDefinitions(defs: OwnedArgumentDefinitions[]) {
+  setArgumentDefinitions(defs: OwnedArgumentDefinition[]) {
     this.fields.set(
       'argumentDefinitions',
       defs.map((def) => mapRefs(def, ownedToRaw(this.module, this.id))),
     )
   }
 
-  pushArgumentDefinitions(value: OwnedArgumentDefinitions) {
+  pushArgumentDefinition(value: OwnedArgumentDefinition) {
     const defs = this.fields.get('argumentDefinitions')
     const def = mapRefs(value, ownedToRaw(this.module, this.id))
     this.fields.set('argumentDefinitions', [...defs, def])
@@ -2691,12 +2682,46 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
   spliceArgumentDefinitions(
     start: number,
     deletedCount: number,
-    ...newValues: OwnedArgumentDefinitions[]
+    ...newValues: OwnedArgumentDefinition[]
   ) {
     const defs = [...this.fields.get('argumentDefinitions')]
     const newDefs = newValues.map((def) => mapRefs(def, ownedToRaw(this.module, this.id)))
     defs.splice(start, deletedCount, ...newDefs)
     this.fields.set('argumentDefinitions', defs)
+  }
+
+  setArgumentType(index: number, typeExpr: Owned<MutableExpression> | undefined) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    if (defs.length > index) {
+      const def = defs[index]!
+      const type: ArgumentType | undefined =
+        typeExpr ?
+          {
+            operator:
+              def.type?.operator ?? unspaced(Token.new(':', TokenType.TypeAnnotationOperator)),
+            type: concreteChild(this.module, autospaced(typeExpr), this.id),
+          }
+        : undefined
+      defs[index] = { ...def, type }
+      this.fields.set('argumentDefinitions', defs)
+    }
+  }
+
+  setArgumentDefault(index: number, defaultExpr: Owned<MutableExpression> | undefined) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    if (defs.length > index) {
+      const def = defs[index]!
+      const defaultValue: ArgumentDefault | undefined =
+        defaultExpr ?
+          {
+            equals:
+              def.defaultValue?.equals ?? unspaced(Token.new('=', TokenType.AssignmentOperator)),
+            expression: concreteChild(this.module, autospaced(defaultExpr), this.id),
+          }
+        : undefined
+      defs[index] = { ...def, defaultValue }
+      this.fields.set('argumentDefinitions', defs)
+    }
   }
 
   /** Returns the body, after converting it to a block if it was empty or an inline expression. */
@@ -3376,101 +3401,37 @@ export type Mutable<T extends Ast = Ast> =
   : T extends Expression ? MutableExpression
   : MutableAst
 
+const astTypeConstructors = [
+  ['App', MutableApp],
+  ['Assignment', MutableAssignment],
+  ['BodyBlock', MutableBodyBlock],
+  ['ExpressionStatement', MutableExpressionStatement],
+  ['FunctionDef', MutableFunctionDef],
+  ['Generic', MutableGeneric],
+  ['Group', MutableGroup],
+  ['Ident', MutableIdent],
+  ['Import', MutableImport],
+  ['Invalid', MutableInvalid],
+  ['NegationApp', MutableNegationApp],
+  ['NumericLiteral', MutableNumericLiteral],
+  ['OprApp', MutableOprApp],
+  ['PropertyAccess', MutablePropertyAccess],
+  ['TextLiteral', MutableTextLiteral],
+  ['UnaryOprApp', MutableUnaryOprApp],
+  ['AutoscopedIdentifier', MutableAutoscopedIdentifier],
+  ['Vector', MutableVector],
+  ['Wildcard', MutableWildcard],
+  ['TypeAnnotated', MutableTypeAnnotated],
+] as const
+
+export const astTypes = astTypeConstructors.map(([name]) => name)
+const mutableTypeMap = new Map(astTypeConstructors.map(([name, mutable]) => [name, mutable]))
+
 /** TODO: Add docs */
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
   const type = fields.get('type')
-  const fieldsForType = fields as FixedMap<any>
-  switch (type) {
-    case 'App':
-      return new MutableApp(module, fieldsForType)
-    case 'Assignment':
-      return new MutableAssignment(module, fieldsForType)
-    case 'BodyBlock':
-      return new MutableBodyBlock(module, fieldsForType)
-    case 'ExpressionStatement':
-      return new MutableExpressionStatement(module, fieldsForType)
-    case 'FunctionDef':
-      return new MutableFunctionDef(module, fieldsForType)
-    case 'Generic':
-      return new MutableGeneric(module, fieldsForType)
-    case 'Group':
-      return new MutableGroup(module, fieldsForType)
-    case 'Ident':
-      return new MutableIdent(module, fieldsForType)
-    case 'Import':
-      return new MutableImport(module, fieldsForType)
-    case 'Invalid':
-      return new MutableInvalid(module, fieldsForType)
-    case 'NegationApp':
-      return new MutableNegationApp(module, fieldsForType)
-    case 'NumericLiteral':
-      return new MutableNumericLiteral(module, fieldsForType)
-    case 'OprApp':
-      return new MutableOprApp(module, fieldsForType)
-    case 'PropertyAccess':
-      return new MutablePropertyAccess(module, fieldsForType)
-    case 'TextLiteral':
-      return new MutableTextLiteral(module, fieldsForType)
-    case 'UnaryOprApp':
-      return new MutableUnaryOprApp(module, fieldsForType)
-    case 'AutoscopedIdentifier':
-      return new MutableAutoscopedIdentifier(module, fieldsForType)
-    case 'Vector':
-      return new MutableVector(module, fieldsForType)
-    case 'Wildcard':
-      return new MutableWildcard(module, fieldsForType)
-    case 'TypeAnnotated':
-      return new MutableTypeAnnotated(module, fieldsForType)
-  }
-  bail(`Invalid type: ${type}`)
-}
-
-/** TODO: Add docs */
-export function materialize(module: Module, fields: FixedMapView<AstFields>): Ast {
-  const type = fields.get('type')
-  const fields_ = fields as FixedMapView<any>
-  switch (type) {
-    case 'App':
-      return new App(module, fields_)
-    case 'Assignment':
-      return new Assignment(module, fields_)
-    case 'BodyBlock':
-      return new BodyBlock(module, fields_)
-    case 'ExpressionStatement':
-      return new ExpressionStatement(module, fields_)
-    case 'FunctionDef':
-      return new FunctionDef(module, fields_)
-    case 'Generic':
-      return new Generic(module, fields_)
-    case 'Group':
-      return new Group(module, fields_)
-    case 'Ident':
-      return new Ident(module, fields_)
-    case 'Import':
-      return new Import(module, fields_)
-    case 'Invalid':
-      return new Invalid(module, fields_)
-    case 'NegationApp':
-      return new NegationApp(module, fields_)
-    case 'NumericLiteral':
-      return new NumericLiteral(module, fields_)
-    case 'OprApp':
-      return new OprApp(module, fields_)
-    case 'PropertyAccess':
-      return new PropertyAccess(module, fields_)
-    case 'TextLiteral':
-      return new TextLiteral(module, fields_)
-    case 'UnaryOprApp':
-      return new UnaryOprApp(module, fields_)
-    case 'AutoscopedIdentifier':
-      return new AutoscopedIdentifier(module, fields_)
-    case 'Vector':
-      return new Vector(module, fields_)
-    case 'Wildcard':
-      return new Wildcard(module, fields_)
-    case 'TypeAnnotated':
-      return new TypeAnnotated(module, fields_)
-  }
+  const klass = mutableTypeMap.get(type)
+  if (klass) return new klass(module, fields as FixedMap<any>)
   bail(`Invalid type: ${type}`)
 }
 

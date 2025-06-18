@@ -1,11 +1,8 @@
 private
 
 from Standard.Base import all
-import Standard.Base.Errors.Common.Unsupported_Argument_Types
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Statistics import check_running_support
 
-import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Add_Row_Number
 import project.Internal.Java_Problems
@@ -15,7 +12,6 @@ import project.Set_Mode.Set_Mode
 import project.Sort_Column.Sort_Column
 import project.Table.Table
 import project.Value_Type.Value_Type
-from project.Errors import Duplicate_Output_Column_Names
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage

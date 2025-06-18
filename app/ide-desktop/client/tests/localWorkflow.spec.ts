@@ -73,6 +73,7 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'collapsed'])
 
   // Rename collapsed function
+  await page.getByRole('tab', { name: 'Documentation' }).click()
   await page
     .locator('.FunctionSignatureEditor')
     .getByTestId('widget-function-name-content')
@@ -115,7 +116,7 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
   // Press `Write once` button.
   await writeNode.locator('.More').click()
-  await writeNode.getByTestId('recompute').click()
+  await writeNode.getByTestId('action:component.recompute').click()
   await page.mouse.move(0, 0) // Avoid showing a tooltip
   await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
 
@@ -136,8 +137,8 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
     clipboard.writeImage(image)
   })
 
-  // Open docpanel and paste an image.
-  await page.getByRole('button', { name: 'Documentation Panel' }).click()
+  // Paste an image in documentation.
+  // (the panel is opened in previous steps)
   await page.locator('.DocumentationEditor').click()
   await page.keyboard.press(`${CONTROL_KEY}+V`)
   const docImageElement = page.locator('.DocumentationEditor').getByAltText('Image')

@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Aggregate_Column, Value_Type, Table, Bits
 from Standard.Table.Errors import Inexact_Type_Coercion

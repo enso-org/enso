@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import {
+  useGraphStore,
+  useProjectNames,
+  useProjectStore,
+} from '$/components/WithCurrentProject.vue'
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import {
   defineWidget,
@@ -7,10 +12,7 @@ import {
   WidgetInput,
   widgetProps,
 } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { usePersisted } from '@/stores/persisted'
-import { useProjectStore } from '@/stores/project'
-import { injectProjectNames } from '@/stores/projectNames'
 import { Ast } from '@/util/ast'
 import { Err, Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
@@ -21,9 +23,9 @@ import { type ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore(true)
+const graph = useGraphStore()
 const persisted = usePersisted(true)
-const projectNames = injectProjectNames()
+const projectNames = useProjectNames()
 
 const project = useProjectStore()
 
@@ -52,7 +54,7 @@ async function renameFunction(newName: string): Promise<UpdateResult> {
       ...oldMethodPointer,
       name: refactorResult.value.newName as IdentifierOrOperatorIdentifier,
     }
-    graph?.db.insertSyntheticMethodPointerUpdate(oldMethodPointer, newMethodPointer)
+    graph.db.insertSyntheticMethodPointerUpdate(oldMethodPointer, newMethodPointer)
     persisted?.handleModifiedMethodPointer(oldMethodPointer, newMethodPointer)
   }
   return Ok()

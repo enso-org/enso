@@ -87,10 +87,12 @@ export function abstract(
   code: string,
   substitutor?: (key: NodeKey) => Owned | undefined,
 ): { root: Owned; spans: SpanMap } {
-  const abstractor = new Abstractor(module, code, substitutor)
-  const root = abstractor.abstractTree(tree).node
-  const spans = { tokens: abstractor.tokens, nodes: abstractor.nodes }
-  return { root: root as Owned<MutableBodyBlock>, spans }
+  return module.transact(() => {
+    const abstractor = new Abstractor(module, code, substitutor)
+    const root = abstractor.abstractTree(tree).node
+    const spans = { tokens: abstractor.tokens, nodes: abstractor.nodes }
+    return { root: root as Owned<MutableBodyBlock>, spans }
+  })
 }
 
 /** Produces `Ast` types from `RawAst` parser output. */
@@ -392,6 +394,7 @@ class Abstractor {
       } else {
         child.visitChildren(visitor)
       }
+      return false
     }
     tree.visitChildren(visitor)
     return children

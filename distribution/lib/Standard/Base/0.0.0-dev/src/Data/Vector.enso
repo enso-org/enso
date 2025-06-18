@@ -14,8 +14,8 @@ import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Wrapped_Error.Wrapped_Error
-import project.Function.Function
 import project.Internal.Array_Like_Helpers
+import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
@@ -511,8 +511,6 @@ type Vector a
     not_empty self = self.is_empty.not
 
     ## ALIAS where
-       GROUP Selections
-       ICON preparation
        MACRO equals filter=..Equal
        MACRO not_equals filter=..Not_Equal
        MACRO not_nothing filter=..Not_Nothing
@@ -527,6 +525,8 @@ type Vector a
        MACRO like filter=..Like
        MACRO regex_match filter=..Regex_Match
        MACRO predicate filter=v->v==Nothing
+       GROUP Selections
+       ICON preparation
        Selects all elements of this vector which satisfy a condition.
 
        Arguments:
@@ -1410,9 +1410,8 @@ type Builder
 
     ## PRIVATE
        Save any attached warnings in self.warnings_java_builder.
-    add_warnings : Any -> Nothing
-    add_warnings self x -> Nothing =
-        warnings = Warning.get_all x . map .value
+    private add_warnings self x -> Nothing =
+        warnings = Warning.get_all x
         append_result = self.warnings_java_builder.appendTo warnings
         Nothing
 
@@ -1512,7 +1511,7 @@ type Builder
         without_warnings = self.elements_java_builder.toArray
         if self.propagate_warnings.not then without_warnings else
             warnings_vector = self.warnings_java_builder.toArray
-            Warning.attach_multiple warnings_vector without_warnings
+            Warning.set without_warnings warnings_vector
 
 ## PRIVATE
    Describes an error attached to a value within a `Vector`. The `index` field

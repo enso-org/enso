@@ -1,15 +1,16 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import { useEffect, useState } from 'react'
-
-import * as z from 'zod'
-
-import { LOGIN_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import { Alert, Button, Checkbox, Form, Input, Password, Text } from '#/components/AriaComponents'
+import { Alert } from '#/components/Alert'
+import { Button } from '#/components/Button'
+import { Checkbox } from '#/components/Checkbox'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs/Input'
+import { Password } from '#/components/Inputs/Password'
 import Link from '#/components/Link'
 import { Stepper, useStepperState } from '#/components/Stepper'
+import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import {
   latestPrivacyPolicyQueryOptions,
@@ -17,11 +18,13 @@ import {
 } from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useLocalStorage } from '#/providers/LocalStorageProvider'
-import { useSessionAPI } from '#/providers/SessionProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { LOGIN_PATH } from '$/appUtils'
+import { useBackends, useLocalStorage, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import * as z from 'zod'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -39,21 +42,20 @@ const CONFIRM_SIGN_IN_INTERVAL = 5_000
 
 /** A form for users to register an account. */
 export default function Registration() {
-  const { signUp, confirmSignUp, signInWithPassword } = useSessionAPI()
+  const { signUp, confirmSignUp, signInWithPassword } = useSession()
 
-  const { searchParams } = useRouter()
-  const { localStorage } = useLocalStorage()
+  const localStorage = useLocalStorage()
   const { getText } = useText()
   const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const initialEmail = searchParams.get('email') ?? ''
-  const organizationId = searchParams.get('organization_id')
-  const redirectTo = searchParams.get('redirect_to')
+  const [initialEmail] = useQueryParam('email')
+  const [organizationId] = useQueryParam('organization_id')
+  const [redirectTo] = useQueryParam('redirect_to')
   const [isManualCodeEntry, setIsManualCodeEntry] = useState(false)
 
   const signupForm = Form.useForm({
-    defaultValues: { email: initialEmail, agreedToTos: [], agreedToPrivacyPolicy: [] },
+    defaultValues: { email: initialEmail ?? '', agreedToTos: [], agreedToPrivacyPolicy: [] },
     resetOnSubmit: false,
     schema: (schema) =>
       schema
@@ -81,7 +83,7 @@ export default function Registration() {
       localStorage.set('termsOfService', { versionHash: tosHash })
       localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
 
-      await signUp(email, password, organizationId)
+      await signUp(email, password, organizationId ?? null)
 
       stepperState.nextStep()
     },

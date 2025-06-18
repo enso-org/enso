@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import { injectFunctionInfo } from '@/providers/functionInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { unwrapGroups } from '@/util/ast/abstract'
 import { displayedIconOf, useDisplayedIcon } from '@/util/getIconName'
@@ -20,7 +20,7 @@ const baseIcon = computed(() => {
   return displayedIconOf(
     callInfo?.suggestion,
     callInfo?.methodCall.methodPointer,
-    functionInfo?.outputType ?? 'Unknown',
+    functionInfo?.outputType,
   )
 })
 const { displayedIcon } = useDisplayedIcon(graph.db, toRef(tree, 'externalId'), baseIcon)

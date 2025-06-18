@@ -1,4 +1,5 @@
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
   makeConstructor,
@@ -9,12 +10,10 @@ import {
   makeModuleMethod,
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/mockSuggestion'
-import { assert } from '@/util/assert'
-import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
+import { stdPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
 import { type Opt } from 'ydoc-shared/util/data/opt'
-import { unwrap } from 'ydoc-shared/util/data/result'
 
 test.each([
   makeModuleMethod('Standard.Base.Data.read', { group: 'Standard.Base.MockGroup1' }),
@@ -40,24 +39,32 @@ test.each([
   expect(filtering.filter(entry)).toBeNull()
 })
 
-function stdPath(path: string) {
-  assert(path.startsWith('Standard.'))
-  return unwrap(parseAbsoluteProjectPathRaw(path))
-}
+test.each`
+  visibleTypes                                                        | entry1Matched | entry2Matched
+  ${['Standard.Base.Data.Table']}                                     | ${false}      | ${true}
+  ${['Standard.Base.Data.Vector.Vector']}                             | ${true}       | ${false}
+  ${['Standard.Base.Data.Vector.Vector', 'Standard.Base.Data.Table']} | ${true}       | ${true}
+  ${['Standard.Base.Data.Table', 'Standard.Base.Data.Vector.Vector']} | ${true}       | ${true}
+`(
+  `Visible types are taken into account when filtering: $visibleTypes`,
+  ({ visibleTypes, entry1Matched, entry2Matched }) => {
+    const entry1 = makeMethod('Standard.Base.Data.Vector.Vector.get')
+    const entry2 = makeMethod('Standard.Base.Data.Table.get')
+    const filtering = new Filtering({
+      selfArg: {
+        type: 'known',
+        typeInfo: TypeInfo.fromParsedTypes(visibleTypes.map(stdPath), [])!,
+        ancestors: [],
+      },
+    })
+    expect(filtering.filter(entry1)).toEqual(entry1Matched ? { score: 0 } : null)
+    expect(filtering.filter(entry2)).toEqual(entry2Matched ? { score: 0 } : null)
+  },
+)
 
-test('An Instance method is shown when self arg matches', () => {
+test('Filtering methods with no self type information', () => {
   const entry1 = makeMethod('Standard.Base.Data.Vector.Vector.get')
   const entry2 = makeMethod('Standard.Base.Data.Table.get')
-  const filteringWithSelfType = new Filtering({
-    selfArg: {
-      type: 'known',
-      typename: stdPath('Standard.Base.Data.Vector.Vector'),
-      additionalTypes: [],
-      ancestors: [],
-    },
-  })
-  expect(filteringWithSelfType.filter(entry1)).not.toBeNull()
-  expect(filteringWithSelfType.filter(entry2)).toBeNull()
   const filteringWithAnySelfType = new Filtering({
     selfArg: { type: 'unknown' },
   })
@@ -74,8 +81,7 @@ test('`Any` type methods taken into account when filtering', () => {
   const filtering = new Filtering({
     selfArg: {
       type: 'known',
-      typename: stdPath('Standard.Base.Data.Vector.Vector'),
-      additionalTypes: [],
+      typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Base.Data.Vector.Vector')], [])!,
       ancestors: [],
     },
   })
@@ -87,20 +93,25 @@ test('`Any` type methods taken into account when filtering', () => {
   expect(filteringWithoutSelfType.filter(entry2)).toBeNull()
 })
 
-test('Additional self types and ancestors are taken into account when filtering', () => {
+test('Hidden self types and ancestors are taken into account when filtering', () => {
   const entry1 = makeMethod('Standard.Base.Data.Numbers.Float.abs')
   const entry2 = makeMethod('Standard.Base.Data.Numbers.Number.sqrt')
-  const additionalSelfType = stdPath('Standard.Base.Data.Numbers.Number')
-  const filteringWithAdditionalSelfType = new Filtering({
+  const hiddenSelfType = 'Standard.Base.Data.Numbers.Number'
+  const filteringWithHiddenSelfType = new Filtering({
     selfArg: {
       type: 'known',
-      typename: stdPath('Standard.Base.Data.Numbers.Float'),
-      additionalTypes: [additionalSelfType],
+      typeInfo: TypeInfo.fromParsedTypes(
+        [stdPath('Standard.Base.Data.Numbers.Float')],
+        [stdPath(hiddenSelfType)],
+      )!,
       ancestors: [],
     },
   })
-  expect(filteringWithAdditionalSelfType.filter(entry1)).not.toBeNull()
-  expect(filteringWithAdditionalSelfType.filter(entry2)).not.toBeNull()
+  expect(filteringWithHiddenSelfType.filter(entry1)).toEqual({ score: 0 })
+  expect(filteringWithHiddenSelfType.filter(entry2)).toEqual({
+    score: 1,
+    fromType: stdPath(hiddenSelfType),
+  })
 
   const filteringWithoutSelfType = new Filtering({})
   expect(filteringWithoutSelfType.filter(entry1)).toBeNull()
@@ -109,13 +120,15 @@ test('Additional self types and ancestors are taken into account when filtering'
   const filteringWithAncestors = new Filtering({
     selfArg: {
       type: 'known',
-      typename: stdPath('Standard.Base.Data.Numbers.Float'),
-      additionalTypes: [],
-      ancestors: [additionalSelfType],
+      typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Base.Data.Numbers.Float')], [])!,
+      ancestors: [stdPath(hiddenSelfType)],
     },
   })
-  expect(filteringWithAncestors.filter(entry1)).not.toBeNull()
-  expect(filteringWithAncestors.filter(entry2)).not.toBeNull()
+  expect(filteringWithAncestors.filter(entry1)).toEqual({ score: 0 })
+  expect(filteringWithAncestors.filter(entry2)).toEqual({
+    score: 1,
+    fromType: undefined,
+  })
 })
 
 test.each([
@@ -130,8 +143,7 @@ test.each([
   const filtering = new Filtering({
     selfArg: {
       type: 'known',
-      typename: stdPath('Standard.Base.Data.Vector.Vector'),
-      additionalTypes: [],
+      typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Base.Data.Vector.Vector')], [])!,
       ancestors: [],
     },
   })

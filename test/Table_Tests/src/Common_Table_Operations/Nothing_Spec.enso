@@ -6,7 +6,6 @@ from Standard.Table import all
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Feature.Feature
 
-from Standard.Test import Test
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend

@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.typecheck;
 
-import java.util.Arrays;
 
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;

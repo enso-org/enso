@@ -3,9 +3,9 @@ import type { AnyAsset, AssetId } from 'enso-common/src/services/Backend'
 import { AssetType, getAssetPermissionName } from 'enso-common/src/services/Backend'
 import { PermissionAction } from 'enso-common/src/utilities/permissions'
 
-import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
+import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import type { DirectoryId } from '#/services/ProjectManager'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { fileExtension } from '#/utilities/fileInfo'
@@ -73,9 +73,6 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
       return null
     } else {
       return (asset: AnyAsset) => {
-        if (asset.type === AssetType.specialEmpty || asset.type === AssetType.specialLoading) {
-          return false
-        }
         const assetType =
           asset.type === AssetType.directory ? 'folder'
           : asset.type === AssetType.datalink ? 'datalink'

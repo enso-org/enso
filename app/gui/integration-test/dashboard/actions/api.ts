@@ -84,8 +84,6 @@ const INITIAL_CALLS_OBJECT = {
     labels?: backend.LabelName[]
     recent_projects?: boolean
   }>(),
-  listFiles: array<object>(),
-  listProjects: array<object>(),
   listSecrets: array<object>(),
   listTags: array<object>(),
   listUsers: array<object>(),
@@ -143,7 +141,7 @@ type TrackedCallsInternal = {
 export interface TrackedCalls extends TrackedCallsInternal {}
 
 /** Parameters for {@link mockApi}. */
-export interface MockParams {
+interface MockParams {
   readonly page: test.Page
   readonly setupAPI?: SetupAPI | null | undefined
 }
@@ -203,8 +201,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   }
 
   let featureFlags: Partial<FeatureFlags> = {
+    enableLocalBackend: true,
     enableCloudExecution: true,
-    enableAsyncExecution: true,
+    enableScheduledExecution: true,
     enableAdvancedProjectExecutionOptions: true,
     enableAssetsTableBackgroundRefresh: false,
   }
@@ -406,7 +405,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     )
 
   const createUserGroupPermission = (
-    userGroup: backend.UserGroup,
+    userGroup: backend.UserGroupInfo,
     permission: permissions.PermissionAction = permissions.PermissionAction.own,
     rest: Partial<backend.UserGroupPermission> = {},
   ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
@@ -708,14 +707,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       called('listDirectory', query)
       const json: remoteBackend.ListDirectoryResponseBody = { assets: listDirectory(query) }
       route.fulfill({ json })
-    })
-    await get(remoteBackendPaths.LIST_FILES_PATH + '*', () => {
-      called('listFiles', {})
-      return { files: [] } satisfies remoteBackend.ListFilesResponseBody
-    })
-    await get(remoteBackendPaths.LIST_PROJECTS_PATH + '*', () => {
-      called('listProjects', {})
-      return { projects: [] } satisfies remoteBackend.ListProjectsResponseBody
     })
     await get(remoteBackendPaths.LIST_SECRETS_PATH + '*', () => {
       called('listSecrets', {})
@@ -1402,11 +1393,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     deleteAsset,
     editAsset,
     undeleteAsset,
-    createDirectory,
-    createProject,
-    createFile,
-    createSecret,
-    createDatalink,
     addDirectory,
     addProject,
     addFile,
@@ -1433,9 +1419,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     trackCalls,
   } as const
 
-  if (setupAPI) {
-    await setupAPI(api)
-  }
+  await setupAPI?.(api)
 
   await page.addInitScript((flags) => {
     Object.defineProperty(window, 'overrideFeatureFlags', {

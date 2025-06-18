@@ -27,9 +27,11 @@ async function main() {
   const queryClient = createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath()
 
-  const app = createApp(App, { onAuthenticated, rootDirPath })
-  app.use(VueQueryPlugin, { queryClient })
+  const app = createApp(App)
+  app.use(VueQueryPlugin, { queryClient, enableDevtoolsV6Plugin: true })
   app.use(router)
+  app.provide('rootDirPath', rootDirPath)
+  app.provide('onAuthenticated', onAuthenticated)
   app.mount('#enso-app')
 }
 
@@ -170,7 +172,8 @@ function imNotSureButPerhapsFixingRefreshingWithAuthentication() {
 }
 
 async function getRootDirPath() {
-  const supportsLocalBackend = $config.CLOUD_BUILD !== 'true'
+  const supportsLocalBackend =
+    window.overrideFeatureFlags?.enableLocalBackend ?? $config.CLOUD_BUILD !== 'true'
   if (!supportsLocalBackend) return undefined
   const rootDirRequest = await fetch(`/api/root-directory`)
   return await rootDirRequest.text()

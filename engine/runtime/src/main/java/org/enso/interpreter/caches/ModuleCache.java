@@ -18,7 +18,6 @@ import org.enso.common.CompilationStage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.persist.Persistance;
 import org.enso.version.BuildVersion;
 
 public final class ModuleCache
@@ -58,9 +57,8 @@ public final class ModuleCache
 
   @Override
   public byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
-    var arr =
-        Persistance.write(
-            entry.moduleIR(), CacheUtils.writeReplace(context.getCompiler().context(), true));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    var arr = pool.write(entry.moduleIR());
     return arr;
   }
 
@@ -68,7 +66,8 @@ public final class ModuleCache
   public CachedModule deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws IOException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    var ref = pool.read(data);
     var mod = ref.get(Module.class);
     return new CachedModule(
         mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());

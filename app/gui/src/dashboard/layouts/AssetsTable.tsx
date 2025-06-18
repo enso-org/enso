@@ -1,49 +1,12 @@
 /** @file Table displaying a list of projects. */
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  memo,
-  startTransition,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type DragEvent,
-  type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
-  type ReactNode,
-  type RefObject,
-  type SetStateAction,
-} from 'react'
-
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { toast } from 'react-toastify'
-import * as z from 'zod'
-
 import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
-import { Button, Text } from '#/components/AriaComponents'
-import type { AssetRowInnerProps } from '#/components/dashboard/AssetRow'
-import { AssetRow } from '#/components/dashboard/AssetRow'
-import { INITIAL_ROW_STATE } from '#/components/dashboard/AssetRow/assetRowUtils'
-import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
-import {
-  Column,
-  COLUMN_CSS_CLASS,
-  COLUMN_ICONS,
-  COLUMN_SHOW_TEXT_ID,
-  DEFAULT_ENABLED_COLUMNS,
-  getColumnList,
-} from '#/components/dashboard/column/columnUtils'
-import NameColumn from '#/components/dashboard/column/NameColumn'
-import { COLUMN_HEADING } from '#/components/dashboard/columnHeading'
-import Label from '#/components/dashboard/Label'
+import { Button } from '#/components/Button'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
@@ -60,12 +23,6 @@ import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import {
-  assetPanelStore,
-  useResetAssetPanelProps,
-  useSetAssetPanelProps,
-  useSetIsAssetPanelTemporarilyVisible,
-} from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
@@ -74,7 +31,21 @@ import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
+import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
+import { AssetRow } from '#/pages/dashboard/components/AssetRow'
+import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
+import { NameColumn } from '#/pages/dashboard/components/column'
+import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
+import {
+  Column,
+  COLUMN_CSS_CLASS,
+  COLUMN_ICONS,
+  COLUMN_SHOW_TEXT_ID,
+  DEFAULT_ENABLED_COLUMNS,
+  getColumnList,
+} from '#/pages/dashboard/components/column/columnUtils'
+import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
+import Label from '#/pages/dashboard/components/Label'
 import {
   useDriveStore,
   useSetCanDownload,
@@ -85,8 +56,7 @@ import {
   type SelectedAssetInfo,
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useLocalStorage } from '#/providers/LocalStorageProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
 import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
@@ -113,8 +83,36 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useText } from '$/providers/react'
+import {
+  useBackends,
+  useFullUserSession,
+  useLocalStorage,
+  useRightPanelData,
+  useText,
+} from '$/providers/react'
+import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  memo,
+  startTransition,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type DragEvent,
+  type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+} from 'react'
+import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
+import * as z from 'zod'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
   SUGGESTIONS_FOR_HAS,
@@ -193,18 +191,16 @@ function AssetsTable(props: AssetsTableProps) {
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const { backendForType, didLoadingProjectManagerFail, reconnectToProjectManager } = useBackends()
+  const { backendForType, reconnectToProjectManager } = useBackends()
+  const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
   const backend = backendForType(category.backend)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
-  const { setModal, unsetModal } = useSetModal()
-  const { localStorage } = useLocalStorage()
+  const localStorage = useLocalStorage()
   const { getText } = useText()
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
-  const setAssetPanelProps = useSetAssetPanelProps()
-  const resetAssetPanelProps = useResetAssetPanelProps()
+  const rightPanel = useRightPanelData()
 
   const columns = useMemo(
     () =>
@@ -303,13 +299,14 @@ function AssetsTable(props: AssetsTableProps) {
       const [soleId] = selectedIds
       const asset = soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-      if (asset) {
-        setAssetPanelProps({ item: asset })
-      } else {
-        setAssetPanelProps({ item: null })
-      }
+      rightPanel.setContext('drive', {
+        item: asset ?? undefined,
+        category,
+      })
+    } else {
+      rightPanel.setContext('drive', { category })
     }
-  }, [assets, driveStore, setAssetPanelProps])
+  }, [assets, driveStore, rightPanel, category])
 
   useEffect(
     () =>
@@ -320,40 +317,17 @@ function AssetsTable(props: AssetsTableProps) {
             const asset =
               soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-            if (asset && asset.id !== assetPanelStore.getState().assetPanelProps.item?.id) {
-              setAssetPanelProps({ backend, item: asset })
-              setIsAssetPanelTemporarilyVisible(false)
-            }
+            rightPanel.setContext('drive', {
+              item: asset ?? undefined,
+              category,
+            })
+            rightPanel.setTemporaryTab(undefined)
           } else {
-            let commonDirectoryId: AssetId | null = null
-            let otherCandidateDirectoryId: AssetId | null = null
-            const map = new Map(assets.map((asset) => [asset.id, asset]))
-            for (const id of selectedIds) {
-              const asset = map.get(id)
-              if (asset != null) {
-                if (commonDirectoryId == null) {
-                  commonDirectoryId = asset.parentId
-                  otherCandidateDirectoryId = asset.type === AssetType.directory ? asset.id : null
-                } else if (asset.id === commonDirectoryId || asset.parentId === commonDirectoryId) {
-                  otherCandidateDirectoryId = null
-                } else if (
-                  otherCandidateDirectoryId != null &&
-                  (asset.id === otherCandidateDirectoryId ||
-                    asset.parentId === otherCandidateDirectoryId)
-                ) {
-                  commonDirectoryId = otherCandidateDirectoryId
-                  otherCandidateDirectoryId = null
-                } else {
-                  // No match; there is no common parent directory for the entire selection.
-                  commonDirectoryId = null
-                  break
-                }
-              }
-            }
+            rightPanel.setContext('drive', { category })
           }
         }
       }),
-    [backend, driveStore, assets, setAssetPanelProps, setIsAssetPanelTemporarilyVisible],
+    [category, driveStore, assets, rightPanel],
   )
 
   useEffect(() => {
@@ -366,15 +340,9 @@ function AssetsTable(props: AssetsTableProps) {
       addToQuery: (oldQuery) => oldQuery.addToLastTerm({ [key]: [node.title] }),
       deleteFromQuery: (oldQuery) => oldQuery.deleteFromLastTerm({ [key]: [node.title] }),
     })
-    const allVisibleNodes = () =>
-      assets.filter(
-        (asset) => asset.type !== AssetType.specialEmpty && asset.type !== AssetType.specialLoading,
-      )
 
     const allVisible = (negative = false) => {
-      return allVisibleNodes().map((node) =>
-        nodeToSuggestion(node, negative ? 'negativeNames' : 'names'),
-      )
+      return assets.map((node) => nodeToSuggestion(node, negative ? 'negativeNames' : 'names'))
     }
 
     const terms = AssetQuery.terms(query.query)
@@ -417,7 +385,7 @@ function AssetsTable(props: AssetsTableProps) {
         case '-ext':
         case 'extension':
         case '-extension': {
-          const extensions = allVisibleNodes()
+          const extensions = assets
             .filter((node) => node.type === AssetType.file)
             .map((node) => fileExtension(node.title))
           setSuggestions(
@@ -605,11 +573,11 @@ function AssetsTable(props: AssetsTableProps) {
     () =>
       driveStore.subscribe(({ selectedIds }) => {
         if (selectedIds.size !== 1) {
-          resetAssetPanelProps()
-          setIsAssetPanelTemporarilyVisible(false)
+          rightPanel.setContext('drive', { category })
+          rightPanel.setTemporaryTab(undefined)
         }
       }),
-    [driveStore, resetAssetPanelProps, setIsAssetPanelTemporarilyVisible],
+    [driveStore, rightPanel, category],
   )
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number | null>(null)
@@ -664,7 +632,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.datalink: {
                 event.preventDefault()
                 event.stopPropagation()
-                setIsAssetPanelTemporarilyVisible(true)
+                rightPanel.setTemporaryTab('settings')
                 break
               }
               case AssetType.secret: {
@@ -691,9 +659,6 @@ function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case AssetType.file:
-              case AssetType.specialLoading:
-              case AssetType.specialEmpty:
-              case AssetType.specialError:
               case AssetType.specialUp:
               default: {
                 break
@@ -726,25 +691,11 @@ function AssetsTable(props: AssetsTableProps) {
         if (!event.shiftKey) {
           selectionStartIndexRef.current = null
         }
-        let index = prevIndex ?? 0
-        let oldIndex = index
-        if (prevIndex != null) {
-          let itemType = visibleItems[index]?.type
-          do {
-            oldIndex = index
-            index =
-              event.key === 'ArrowUp' ?
-                Math.max(0, index - 1)
-              : Math.min(visibleItems.length - 1, index + 1)
-            itemType = visibleItems[index]?.type
-          } while (
-            index !== oldIndex &&
-            (itemType === AssetType.specialEmpty || itemType === AssetType.specialLoading)
-          )
-          if (itemType === AssetType.specialEmpty || itemType === AssetType.specialLoading) {
-            index = prevIndex
-          }
-        }
+        const oldIndex = prevIndex ?? 0
+        const index =
+          event.key === 'ArrowUp' ?
+            Math.max(0, oldIndex - 1)
+          : Math.min(visibleItems.length - 1, oldIndex + 1)
         setMostRecentlySelectedIndex(index, true)
         if (event.shiftKey) {
           event.preventDefault()
@@ -874,6 +825,7 @@ function AssetsTable(props: AssetsTableProps) {
   const hiddenContextMenu =
     isSingleSelectedDirectoryItem ? null : (
       <AssetsTableContextMenu
+        rootRef={rootRef}
         hidden
         backend={backend}
         category={category}
@@ -1130,6 +1082,13 @@ function AssetsTable(props: AssetsTableProps) {
         setSelectedAssets([asset])
       }
       const nodes = assets.filter((node) => newSelectedKeys.has(node.id))
+      const isPayloadInvalid = nodes.some(
+        (node) => node.type === AssetType.project && IS_OPENING_OR_OPENED[node.projectState.type],
+      )
+      if (isPayloadInvalid) {
+        event.preventDefault()
+        return
+      }
       const payload: AssetRowsDragPayload = {
         category,
         items: nodes.map((node) => ({
@@ -1278,6 +1237,7 @@ function AssetsTable(props: AssetsTableProps) {
         renameAsset={doRenameAsset}
         closeProject={closeProjectMutationCallback}
         openProject={doOpenProject}
+        tableRootRef={rootRef}
       />
     )
   })
@@ -1428,6 +1388,7 @@ function AssetsTable(props: AssetsTableProps) {
               event.stopPropagation()
               setModal(
                 <AssetsTableContextMenu
+                  rootRef={rootRef}
                   backend={backend}
                   category={category}
                   event={event}

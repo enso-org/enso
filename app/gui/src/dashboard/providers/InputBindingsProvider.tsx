@@ -7,8 +7,8 @@ import * as React from 'react'
 import * as inputBindingsModule from '#/configurations/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
+import { useLocalStorage } from '$/providers/react'
 import { z } from 'zod'
-import { useLocalStorage } from './LocalStorageProvider'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -46,7 +46,7 @@ export interface InputBindingsProviderProps extends Readonly<React.PropsWithChil
 export default function InputBindingsProvider(props: InputBindingsProviderProps) {
   const { children } = props
 
-  const { localStorage } = useLocalStorage()
+  const localStorage = useLocalStorage()
 
   const [inputBindings] = React.useState(() => {
     const inputBindingsRaw = inputBindingsModule.createBindings()

@@ -273,7 +273,7 @@ object DistributionPackage {
           val runningProcess = Process(
             command,
             Some(path.getAbsoluteFile.getParentFile),
-            "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
+            "JAVA_TOOL_OPTIONS" -> "-Dorg.jline.terminal.dumb=true"
           ).run
           // Poor man's solution to stuck index generation
           val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
@@ -332,14 +332,25 @@ object DistributionPackage {
     jvmOptName: String,
     envToFill: java.util.Map[String, String]
   ): Unit = {
+    var atEnv = args.indexOf("--env")
+    while (atEnv >= 0) {
+      var keyAndValue = args.get(atEnv + 1).split("=")
+      envToFill.put(keyAndValue(0), keyAndValue(1))
+      args.remove(atEnv)
+      args.remove(atEnv)
+      atEnv = args.indexOf("--env")
+    }
+
     var prevValue = System.getenv(jvmOptName)
     if (prevValue == null) {
       prevValue = "-ea";
+    } else {
+      prevValue = prevValue + " -ea"
     }
 
     val at = args.indexOf("--debug")
     if (at >= 0) {
-      args.set(at, "--jvm")
+      args.set(at, "--jvm=" + System.getProperty("java.home"))
       val newValue =
         prevValue + " " + WithDebugCommand.DEBUG_OPTION
       envToFill.put(jvmOptName, newValue)
@@ -369,7 +380,7 @@ object DistributionPackage {
 
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
-    reduceArgs(all, "JAVA_OPTS", pb.environment)
+    reduceArgs(all, "JAVA_TOOL_OPTIONS", pb.environment)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
@@ -466,6 +477,7 @@ object DistributionPackage {
     pb.command(all)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
+    pb.environment().put("ENSO_OPENSEARCH_APPENDER_ENABLED", "false")
     reduceArgs(all, "ENSO_JVM_OPTS", pb.environment)
     pb.inheritIO()
     val p        = pb.start()
@@ -667,7 +679,7 @@ object DistributionPackage {
     ensoVersion: String,
     graalVersion: String,
     graalJavaVersion: String,
-    artifactRoot: File
+    val artifactRoot: File
   ) {
 
     def artifactName(
@@ -676,9 +688,6 @@ object DistributionPackage {
       architecture: Architecture
     ): String =
       s"enso-$component-$ensoVersion-${os.name}-${architecture.name}"
-
-    def graalInPackageName: String =
-      s"graalvm-ce-java$graalJavaVersion-$graalVersion"
 
     private def extractZip(archive: File, root: File): Unit = {
       IO.createDirectory(root)
@@ -714,26 +723,11 @@ object DistributionPackage {
       }
     }
 
-    private def listTarGz(archive: File): Seq[File] = {
-      val suppressStdErr = ProcessLogger(_ => ())
-      val tarList =
-        Process(Seq("tar", "tf", archive.toPath.toAbsolutePath.toString))
-      tarList.lineStream(suppressStdErr).map(file)
-    }
-
     private def extract(archive: File, root: File): Unit = {
       if (archive.getName.endsWith("zip")) {
         extractZip(archive, root)
       } else {
         extractTarGz(archive, root)
-      }
-    }
-
-    private def list(archive: File): Seq[File] = {
-      if (archive.getName.endsWith("zip")) {
-        listZip(archive)
-      } else {
-        listTarGz(archive)
       }
     }
 
@@ -748,31 +742,6 @@ object DistributionPackage {
       packageDir / (archiveName + os.archiveExt)
     }
 
-    private def downloadGraal(
-      log: ManagedLogger,
-      os: OS,
-      architecture: Architecture
-    ): File = {
-      val archive = graalArchive(os, architecture)
-      if (!archive.exists()) {
-        log.info(
-          s"Downloading GraalVM $graalVersion Java $graalJavaVersion " +
-          s"for $os $architecture"
-        )
-        val graalUrl =
-          s"https://github.com/graalvm/graalvm-ce-builds/releases/download/" +
-          s"jdk-$graalJavaVersion/" +
-          s"graalvm-community-jdk-${graalJavaVersion}_${os.name}-" +
-          s"${architecture.graalName}_bin${os.archiveExt}"
-        val exitCode = (url(graalUrl) #> archive).!
-        if (exitCode != 0) {
-          throw new RuntimeException(s"Graal download from $graalUrl failed.")
-        }
-      }
-
-      archive
-    }
-
     private def copyGraal(
       os: OS,
       architecture: Architecture,
@@ -780,110 +749,6 @@ object DistributionPackage {
     ): Unit = {
       val archive = graalArchive(os, architecture)
       extract(archive, runtimeDir)
-    }
-
-    /** Prepare the GraalVM package.
-      *
-      * @param log the logger
-      * @param os the system type
-      * @param architecture the architecture type
-      * @return the path to the created GraalVM package
-      */
-    def createGraalPackage(
-      log: ManagedLogger,
-      os: OS,
-      architecture: Architecture
-    ): File = {
-      log.info("Building GraalVM distribution")
-      val archive = downloadGraal(log, os, architecture)
-
-      if (os.hasSupportForSulong) {
-        log.info("Building GraalVM distribution2")
-        val packageDir         = archive.getParentFile
-        val archiveRootDir     = list(archive).head.getTopDirectory.getName
-        val extractedGraalDir0 = packageDir / archiveRootDir
-        val graalRuntimeDir =
-          s"graalvm-ce-java${graalJavaVersion}-${graalVersion}"
-        val extractedGraalDir = packageDir / graalRuntimeDir
-
-        if (extractedGraalDir0.exists()) {
-          IO.delete(extractedGraalDir0)
-        }
-        if (extractedGraalDir.exists()) {
-          IO.delete(extractedGraalDir)
-        }
-
-        log.info(s"Extracting $archive to $packageDir")
-        extract(archive, packageDir)
-
-        if (extractedGraalDir0 != extractedGraalDir) {
-          log.info(s"Standardizing GraalVM directory name")
-          IO.move(extractedGraalDir0, extractedGraalDir)
-        }
-
-        log.info("Installing components")
-        gu(log, os, extractedGraalDir, "install", "python")
-
-        log.info(s"Re-creating $archive")
-        IO.delete(archive)
-        makeArchive(packageDir, graalRuntimeDir, archive)
-
-        log.info(s"Cleaning up $extractedGraalDir")
-        IO.delete(extractedGraalDir)
-      }
-      archive
-    }
-
-    /** Run the `gu` executable from the GraalVM distribution.
-      *
-      * @param log the logger
-      * @param os the system type
-      * @param graalDir the directory with a GraalVM distribution
-      * @param arguments the command arguments
-      * @return Stdout from the `gu` command.
-      */
-    def gu(
-      log: ManagedLogger,
-      os: OS,
-      graalDir: File,
-      arguments: String*
-    ): String = {
-      val shallowFile = graalDir / "bin" / "gu"
-      val deepFile    = graalDir / "Contents" / "Home" / "bin" / "gu"
-      val executableFile = os match {
-        case OS.Linux =>
-          shallowFile
-        case _: OS.MacOS =>
-          if (deepFile.exists) {
-            deepFile
-          } else {
-            shallowFile
-          }
-        case OS.Windows =>
-          graalDir / "bin" / "gu.cmd"
-      }
-      val javaHomeFile = executableFile.getParentFile.getParentFile
-      val javaHome     = javaHomeFile.toPath.toAbsolutePath
-      val command =
-        executableFile.toPath.toAbsolutePath.toString +: arguments
-
-      log.debug(
-        s"Running $command in $graalDir with JAVA_HOME=${javaHome.toString}"
-      )
-
-      try {
-        Process(
-          command,
-          Some(graalDir),
-          ("JAVA_HOME", javaHome.toString),
-          ("GRAALVM_HOME", javaHome.toString)
-        ).!!
-      } catch {
-        case _: RuntimeException =>
-          throw new RuntimeException(
-            s"Failed to run '${command.mkString(" ")}'"
-          )
-      }
     }
 
     def copyEngine(os: OS, architecture: Architecture, distDir: File): Unit = {

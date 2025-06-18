@@ -277,8 +277,14 @@ public final class ContextUtils implements TestRule, AutoCloseable {
    */
   private <T> Value executeInContext(Callable<T> callable) {
     var ctx = currentCtx();
-    // Force initialization of the context
-    ctx.eval("enso", "value = 0");
+    try {
+      // Force initialization of the context
+      ctx.eval("enso", "value = 0");
+    } catch (Exception ex) {
+      if (!"Access to language 'enso' is not permitted. ".equals(ex.getMessage())) {
+        throw ex;
+      }
+    }
     var err = new Exception[1];
     ctx.getPolyglotBindings()
         .putMember(

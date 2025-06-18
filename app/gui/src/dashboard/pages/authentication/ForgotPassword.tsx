@@ -2,29 +2,29 @@
  * @file Container responsible for rendering and interactions in first half of forgot password
  * flow.
  */
-import { useState } from 'react'
-
-import { LOGIN_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
-import { Form, Input } from '#/components/AriaComponents'
+import { Form } from '#/components/Form'
+import { Input } from '#/components/Inputs/Input'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-import { useSessionAPI } from '#/providers/SessionProvider'
-import { useBackends, useRouter, useText } from '$/providers/react'
+import { LOGIN_PATH } from '$/appUtils'
+import { useBackends, useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
+import { useState } from 'react'
 import { toast } from 'react-toastify'
 
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
-  const { forgotPassword } = useSessionAPI()
+  const { forgotPassword } = useSession()
   const { getText } = useText()
 
-  const { router, searchParams } = useRouter()
+  const { router } = useRouter()
 
   const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const initialEmail = searchParams.get('email')
+  const [initialEmail] = useQueryParam('email')
   const [emailInput, setEmailInput] = useState(initialEmail ?? '')
 
   return (

@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useEventConditional } from '@/composables/events'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract'
 import { Vec2 } from '@/util/data/vec2'
@@ -39,17 +41,25 @@ const editingEdge: Interaction = {
       e.stopPropagation()
     }
   },
-  pointerup: (e: PointerEvent) => {
+}
+
+useEventConditional(
+  window,
+  'pointerup',
+  () => interaction.getCurrent() === editingEdge,
+  (e: PointerEvent) => {
     const originEvent = graph.mouseEditedEdge?.event
     if (originEvent?.type === 'pointerdown') {
       const delta = new Vec2(e.screenX, e.screenY).sub(
         new Vec2(originEvent.screenX, originEvent.screenY),
       )
-      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) return edgeInteractionClick()
+      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) {
+        if (edgeInteractionClick()) e.stopPropagation()
+      }
     }
-    return false
   },
-}
+  { capture: true },
+)
 
 function edgeInteractionClick() {
   if (graph.mouseEditedEdge == null) return false
@@ -128,6 +138,11 @@ function createEdge(source: AstId, target: PortId) {
 const nodeIdsWithOutputPorts = computed(() =>
   [...graph.db.nodeOutputPorts.allForward()].map(([id]) => id),
 )
+
+function onNewNodeClick(id: NodeId) {
+  nodeSelection?.setSelection(new Set([id]))
+  emit('createNodeFromPort', id, [{ commit: false, content: undefined }])
+}
 </script>
 
 <template>
@@ -144,10 +159,7 @@ const nodeIdsWithOutputPorts = computed(() =>
         <GraphNodeOutputPorts
           :nodeId="id"
           :forceVisible="graph.nodeHovered.get(id) ?? false"
-          @newNodeClick="
-            (nodeSelection?.setSelection(new Set([id])),
-            emit('createNodeFromPort', id, [{ commit: false, content: undefined }]))
-          "
+          @newNodeClick="onNewNodeClick(id)"
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
           @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
           @update:visible="graph.setNodeOutputVisible(id, $event)"

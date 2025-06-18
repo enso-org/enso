@@ -11,7 +11,8 @@ order: 3
 [`NativeImage`](../../project/NativeImage.scala) defines a task that is used for
 compiling a project into a native binary using Graal's Native Image. It compiles
 the project and runs the Native Image tool which builds the image. Currently,
-Native Image is used for building the Launcher.
+Native Image is used for building the `ensoup` launcher, `project-manager` and
+also `enso` executable once one **opts-in** to it via `ENSO_LAUNCHER` option.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -116,7 +117,7 @@ Note that for convenience, you can run the launcher/engine runtime via
 `bin/enso`, e.g.
 
 ```bash
-env JAVA_OPTS="-agentlib:native-image-agent=config-merge-dir=./engine/runner/src/main/resources/META-INF/native-image/org/enso/runner" ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run tmp.enso
+env JAVA_TOOL_OPTIONS="-agentlib:native-image-agent=config-merge-dir=./engine/runner/src/main/resources/META-INF/native-image/org/enso/runner" ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run tmp.enso
 ```
 
 The command may need to be re-run with different arguments to ensure that all
@@ -292,10 +293,11 @@ $ ENSO_JAVA=espresso ./built-distribution/enso-engine-*/enso-*/bin/enso --run he
 Unless you see a warning containing _"No language for id java found."_ your code
 has just successfully been executed by
 [Espresso](https://www.graalvm.org/jdk17/reference-manual/java-on-truffle/)! To
-debug just add `JAVA_OPTS` environment variable set to your IDE favorite value:
+debug just add `JAVA_TOOL_OPTIONS` environment variable set to your IDE favorite
+value:
 
 ```bash
-$ JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005 ENSO_JAVA=espresso enso --run hello.enso
+$ JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,address=5005 ENSO_JAVA=espresso enso --run hello.enso
 ```
 
 Espresso support works also with

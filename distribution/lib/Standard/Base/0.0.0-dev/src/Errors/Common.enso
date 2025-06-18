@@ -7,7 +7,9 @@ import project.Function.Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
-from project.Data.Boolean import Boolean, False, True
+import project.Runtime
+import project.Runtime.Source_Location.Source_Location
+from project.Data.Boolean import False, True
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
@@ -566,7 +568,7 @@ type Out_Of_Range
         extra = if self.message.is_nothing then "" else " (message = "+self.message.to_text+")"
         "(Out_Of_Range (value = "+self.value.to_text+")" + extra + ")"
 
-## Indiciates that the response from a remote endpoint is over the size limit.
+## Indicates that the response from a remote endpoint is over the size limit.
 type Response_Too_Large
     ## PRIVATE
     Error actual_size:Integer|Nothing limit:Integer

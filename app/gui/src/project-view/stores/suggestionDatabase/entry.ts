@@ -1,7 +1,7 @@
 import { type ProjectNameStore } from '@/stores/projectNames'
 import { type DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { type MethodPointer } from '@/util/methodPointer'
-import { type ProjectPath } from '@/util/projectPath'
+import { standardBaseMainPath, type ProjectPath } from '@/util/projectPath'
 import {
   Identifier,
   qnJoin,
@@ -84,6 +84,34 @@ export interface TypeSuggestionEntry extends SuggestionEntryCommon, Reexportable
   /** Qualified name of the parent type. */
   parentType: ProjectPath | undefined
 }
+
+/**
+ * Determine if a specific suggestion entry represent a "blessed" type that is supposed to be
+ * displayed in general type selector drodpowns. Currently this list is effectively hardcoded.
+ * We might consider more data-driven selection in the future, but for now this is what was
+ * explicitly requested to be present.
+ */
+export function isUserSelectableType(entry: TypeSuggestionEntry) {
+  return (
+    !entry.isPrivate &&
+    (entry.reexportedIn?.equals(standardBaseMainPath) ?? false) &&
+    blessedTypes.has(entry.name)
+  )
+}
+
+const blessedTypes = new Set([
+  'Boolean',
+  'Column',
+  'Date',
+  'Decimal',
+  'Dictionary',
+  'Float',
+  'Integer',
+  'Number',
+  'Table',
+  'Text',
+  'Vector',
+])
 
 export interface ConstructorSuggestionEntry
   extends SuggestionEntryCommon,

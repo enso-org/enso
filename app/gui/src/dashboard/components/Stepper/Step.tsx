@@ -2,16 +2,12 @@
  * @file Step component.
  * A step component is used to represent a single step in a stepper component.
  */
-import * as React from 'react'
-
-import { AnimatePresence, motion } from 'framer-motion'
-
 import DoneIcon from '#/assets/check_mark.svg'
-
-import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
-
+import { Text } from '#/components/Text'
 import { tv } from '#/utilities/tailwindVariants'
+import { AnimatePresence, motion } from 'framer-motion'
+import * as React from 'react'
 import * as stepperProvider from './StepperProvider'
 import type { RenderStepProps } from './types'
 import type * as stepperState from './useStepperState'
@@ -69,9 +65,9 @@ export function Step(props: StepProps) {
     className,
     children,
     icon = (
-      <ariaComponents.Text variant="subtitle" color="current" aria-hidden>
+      <Text variant="subtitle" color="current" aria-hidden>
         {index + 1}
-      </ariaComponents.Text>
+      </Text>
     ),
     completeIcon = DoneIcon,
   } = props
@@ -170,9 +166,9 @@ export function Step(props: StepProps) {
         {titleElement != null && (
           <div>
             {typeof titleElement === 'string' ?
-              <ariaComponents.Text nowrap color="current">
+              <Text nowrap color="current">
                 {titleElement}
-              </ariaComponents.Text>
+              </Text>
             : titleElement}
           </div>
         )}
@@ -180,9 +176,9 @@ export function Step(props: StepProps) {
         {descriptionElement != null && (
           <div>
             {typeof descriptionElement === 'string' ?
-              <ariaComponents.Text variant="body" color="current" truncate="2">
+              <Text variant="body" color="current" truncate="2">
                 {descriptionElement}
-              </ariaComponents.Text>
+              </Text>
             : descriptionElement}
           </div>
         )}

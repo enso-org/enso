@@ -1,21 +1,23 @@
 import { BackendType } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import ProjectManager, {
+import {
+  ProjectManager,
   ProjectManagerEvents,
   Path as ProjectManagerPath,
 } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 import HttpClient from '#/utilities/HttpClient'
 import { useEvent } from '@/composables/events'
-import { createContextStore } from '@/providers'
-import { GuiConfig } from '@/providers/guiConfig'
+import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { ToValue } from '@/util/reactivity'
+import { createGlobalState } from '@vueuse/core'
 import invariant from 'tiny-invariant'
-import { computed, proxyRefs, readonly, ref, toValue, watchEffect } from 'vue'
-import { GetText } from './text'
+import { computed, inject, proxyRefs, readonly, ref, toValue, watchEffect } from 'vue'
+import { useHttpClient } from './httpClient'
+import { GetText, useText } from './text'
 
 export type BackendsStore = ReturnType<typeof useBackends>
-function useBackends(
+function initializeBackends(
   httpClient: HttpClient,
   config: ToValue<GuiConfig>,
   rootDirPath: ToValue<string | undefined>,
@@ -72,4 +74,6 @@ function useBackends(
   })
 }
 
-export const [provideBackends, injectBackends] = createContextStore('backends', useBackends)
+export const useBackends = createGlobalState(() =>
+  initializeBackends(useHttpClient(), injectGuiConfig(), inject('rootDirPath'), useText().getText),
+)

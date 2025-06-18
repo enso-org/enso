@@ -20,8 +20,9 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Internal.Array_Like_Helpers
 import project.Nothing.Nothing
-import project.Panic.Panic
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, False
+from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
@@ -417,8 +418,6 @@ type Array
         Array_Like_Helpers.flat_map self function on_problems
 
     ## ALIAS where
-       GROUP Selections
-       ICON preparation
        MACRO equals filter=..Equal
        MACRO not_equals filter=..Not_Equal
        MACRO not_nothing filter=..Not_Nothing
@@ -433,6 +432,8 @@ type Array
        MACRO like filter=..Like
        MACRO regex_match filter=..Regex_Match
        MACRO predicate filter=v->v==Nothing
+       GROUP Selections
+       ICON preparation
        Selects all elements of this array which satisfy a condition.
 
        Arguments:

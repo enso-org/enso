@@ -3,8 +3,8 @@ private
 from Standard.Base import all
 
 import project.Column.Column
-import project.In_Memory_Column.In_Memory_Column
 import project.Fill_With.Fill_With
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.mask.OrderMask;
@@ -42,7 +42,7 @@ public class LookupJoin {
 
   private final MultiValueIndex<UnorderedMultiValueKey> lookupIndex;
 
-  private final Storage<?>[] baseKeyStorages;
+  private final ColumnStorage<?>[] baseKeyStorages;
   private final List<TextFoldingStrategy> textFoldingStrategies;
   private final int baseTableRowCount;
   private final boolean allowUnmatchedRows;
@@ -57,7 +57,7 @@ public class LookupJoin {
       boolean allowUnmatchedRows,
       ProblemAggregator problemAggregator) {
     baseKeyStorages =
-        keys.stream().map(Equals::left).map(Column::getStorage).toArray(Storage[]::new);
+        keys.stream().map(Equals::left).map(Column::getStorage).toArray(ColumnStorage[]::new);
     this.columnDescriptions = columnDescriptions;
     this.allowUnmatchedRows = allowUnmatchedRows;
     this.problemAggregator = problemAggregator;
@@ -158,8 +158,8 @@ public class LookupJoin {
       case LookupColumnDescription.MergeColumns mergeColumns -> {
         String name = mergeColumns.original().getName();
         if (allowUnmatchedRows) {
-          Storage<?> original = mergeColumns.original().getStorage();
-          Storage<?> lookupReplacement = mergeColumns.lookupReplacement().getStorage();
+          var original = mergeColumns.original().getStorage();
+          var lookupReplacement = mergeColumns.lookupReplacement().getStorage();
           Builder builder =
               Builder.getForType(mergeColumns.commonType(), baseTableRowCount, problemAggregator);
           yield new LookupOutputColumn.MergeColumns(name, original, lookupReplacement, builder);
@@ -189,7 +189,7 @@ public class LookupJoin {
     }
 
     record MergeColumns(
-        String name, Storage<?> original, Storage<?> lookupReplacement, Builder builder)
+        String name, ColumnStorage<?> original, ColumnStorage<?> lookupReplacement, Builder builder)
         implements LookupOutputColumn {
       @Override
       public Column build(int[] orderMask) {

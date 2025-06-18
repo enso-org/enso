@@ -795,3 +795,61 @@ describe('Soft breaks', () => {
     expect(blockElements).toBe(2)
   })
 })
+
+// === YAML frontmatter ===
+
+describe('YAML frontmatter', () => {
+  test.each`
+    source                                             | expectedContent
+    ${'---\nsomething: false\n---\nParagraph'}         | ${'something: false'}
+    ${'   --- \nsomething: false\n\n\n---\nParagraph'} | ${'something: false'}
+    ${'---\n---\nParagraph'}                           | ${''}
+  `('YAML frontmatter is parsed succesfully: $source', ({ source, expectedContent }) => {
+    const tree = debugTree(ensoStandardMarkdownParser.parse(source), source)
+    expectYamlFrontmatter(tree, expectedContent)
+  })
+
+  test('Unfinished YAML frontmatter', () => {
+    const source = '---\nParagraph'
+    const tree = debugTree(ensoStandardMarkdownParser.parse(source), source)
+    expect(tree.length).toBe(2)
+    expect(tree[1]).toBe(source)
+  })
+
+  test('YAML frontmatter must be at the beginning of the document', () => {
+    const source = 'Paragraph\n---\n---\nParagraph'
+    const tree = debugTree(ensoStandardMarkdownParser.parse(source), source)
+    expect(tree.length).toBe(5)
+    for (const node of tree) {
+      expect(node).not.toContain('YAMLFrontMatter')
+    }
+  })
+
+  test('Only a single YAML frontmatter is parsed', () => {
+    const source = '---\nsomething: false\n---\nParagraph\n---\n---\nParagraph'
+    const tree = debugTree(ensoStandardMarkdownParser.parse(source), source)
+    expect(tree.length).toBe(6)
+    expectYamlFrontmatter(tree, 'something: false')
+    for (let i = 2; i < tree.length; i++) {
+      expect(tree[i]).not.toContain('YAMLFrontMatter')
+    }
+  })
+})
+
+function getStringOrValue(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : String(value)
+}
+
+function expectYamlFrontmatter(tree: DebugTree, expectedContent: string) {
+  expect(tree[1]).toContain('YAMLFrontMatter')
+  const yamlFrontmatter = tree[1]!
+  expect(yamlFrontmatter.length).toBe(4)
+  expect(yamlFrontmatter[0]).toBe('YAMLFrontMatter')
+  expect(yamlFrontmatter[1]?.[0]).toBe('YAMLMarker')
+  expect(yamlFrontmatter[2]?.[0]).toBe('YAMLContent')
+  expect(yamlFrontmatter[3]?.[0]).toBe('YAMLMarker')
+
+  expect(getStringOrValue(yamlFrontmatter[1]?.[1])).toBe('---')
+  expect(getStringOrValue(yamlFrontmatter[2]?.[1])).toBe(expectedContent)
+  expect(getStringOrValue(yamlFrontmatter[3]?.[1])).toBe('---')
+}

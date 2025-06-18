@@ -6,7 +6,6 @@
  * the API.
  */
 import Backend, * as backend from '#/services/Backend'
-import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
@@ -115,10 +114,10 @@ export default class LocalBackend extends Backend {
   readonly type = LocalBackend.type
   /** All files that have been uploaded to the Project Manager. */
   uploadedFiles: Map<string, backend.UploadedLargeAsset> = new Map()
-  private readonly projectManager: ProjectManager
+  private readonly projectManager: projectManager.ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(projectManagerInstance: ProjectManager) {
+  constructor(projectManagerInstance: projectManager.ProjectManager) {
     super()
 
     this.projectManager = projectManagerInstance
@@ -139,7 +138,7 @@ export default class LocalBackend extends Backend {
     this.projectManager.resetRootDirectory()
   }
 
-  /** Tell the {@link ProjectManager} to reconnect. */
+  /** Tell the {@link projectManager.ProjectManager} to reconnect. */
   async reconnectProjectManager() {
     await this.projectManager.reconnect()
   }
@@ -220,7 +219,7 @@ export default class LocalBackend extends Backend {
           } satisfies Partial<backend.DirectoryAsset>
 
           switch (entry.type) {
-            case projectManager.FileSystemEntryType.DirectoryEntry: {
+            case 'DirectoryEntry': {
               const id = newDirectoryId(entry.path)
 
               return {
@@ -232,7 +231,7 @@ export default class LocalBackend extends Backend {
                 title: getFileName(entry.path),
               } satisfies backend.DirectoryAsset
             }
-            case projectManager.FileSystemEntryType.ProjectEntry: {
+            case 'ProjectEntry': {
               return {
                 ...shared,
                 type: backend.AssetType.project,
@@ -247,7 +246,7 @@ export default class LocalBackend extends Backend {
                 },
               } satisfies backend.ProjectAsset
             }
-            case projectManager.FileSystemEntryType.FileEntry: {
+            case 'FileEntry': {
               return {
                 ...shared,
                 type: backend.AssetType.file,
@@ -276,27 +275,6 @@ export default class LocalBackend extends Backend {
     }
 
     return result
-  }
-
-  /**
-   * Return a list of projects belonging to the current user.
-   * @throws An error if the JSON-RPC call fails.
-   */
-  override async listProjects(): Promise<readonly backend.ListedProject[]> {
-    const result = await this.projectManager.listProjects({})
-    return result.projects.map((project) => ({
-      name: project.name,
-      organizationId: backend.OrganizationId('organization-'),
-      projectId: newProjectId(project.id, this.projectManager.rootDirectory),
-      packageName: project.name,
-      state: {
-        type: backend.ProjectState.closed,
-        volumeId: '',
-      },
-      jsonAddress: null,
-      binaryAddress: null,
-      ydocAddress: null,
-    }))
   }
 
   /**
@@ -406,9 +384,7 @@ export default class LocalBackend extends Backend {
     if (state == null) {
       const entries = await this.projectManager.listDirectory(directory)
       const project = entries
-        .flatMap((entry) =>
-          entry.type === projectManager.FileSystemEntryType.ProjectEntry ? [entry.metadata] : [],
-        )
+        .flatMap((entry) => (entry.type === 'ProjectEntry' ? [entry.metadata] : []))
         .find((metadata) => metadata.id === id)
       if (project == null) {
         throw new Error(`Could not get details of project.`)
@@ -493,10 +469,7 @@ export default class LocalBackend extends Backend {
     const parentPath = getDirectoryAndName(this.projectManager.getProjectPath(id)).directoryPath
     const result = await this.projectManager.listDirectory(parentPath)
     const project = result.flatMap((listedProject) =>
-      (
-        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
-        listedProject.metadata.id === id
-      ) ?
+      listedProject.type === 'ProjectEntry' && listedProject.metadata.id === id ?
         [listedProject.metadata]
       : [],
     )[0]
@@ -841,7 +814,7 @@ export default class LocalBackend extends Backend {
     id: backend.AssetId,
     title: string,
     _targetDirectoryId: backend.DirectoryId | null,
-    shouldUnpackProject = true,
+    shouldUnpackProject = false,
   ) {
     const asset = backend.extractTypeFromId(id)
     if (asset.type === backend.AssetType.project) {
@@ -869,16 +842,6 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override listAssetVersions() {
     return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override checkResources() {
-    return this.invalidOperation()
-  }
-
-  /** Return an empty array. This function should never need to be called. */
-  override listFiles() {
-    return Promise.resolve([])
   }
 
   /** Invalid operation. */

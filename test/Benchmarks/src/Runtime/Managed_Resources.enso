@@ -1,10 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
-import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Bench
 
-from project.Config import extended_tests
 
 options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
 

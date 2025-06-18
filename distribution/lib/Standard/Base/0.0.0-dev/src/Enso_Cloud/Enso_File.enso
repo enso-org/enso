@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Color.Color
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Vector_Lexicographic_Order
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
@@ -45,7 +44,6 @@ import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-from project.Enso_Cloud.Data_Link_Helpers import data_link_extension
 from project.Enso_Cloud.Internal.Enso_File_Helpers import all
 from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File import find_extension_from_name

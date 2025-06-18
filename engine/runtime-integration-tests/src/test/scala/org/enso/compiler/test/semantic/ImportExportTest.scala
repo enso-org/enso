@@ -9,7 +9,6 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.phase.exports.ExportsResolution
 import org.enso.compiler.pass.analyse.{BindingAnalysis, GatherDiagnostics}
 import org.enso.interpreter.runtime
-import org.enso.persist.Persistance
 import org.enso.pkg.QualifiedName
 import org.enso.pkg.Package
 import org.enso.common.LanguageInfo
@@ -691,10 +690,10 @@ class ImportExportTest
   "Import resolution from another library from micro-distribution honor Main" should {
     "resolve Api from Main" in {
       val mainIr = """
-                     |from Test.Logical_Export import Api
+                     |from Test.Logical_Export import Element
                      |
                      |main =
-                     |    element = Api.Element.Element.create
+                     |    element = Element.Element.create
                      |    element.describe
                      |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
@@ -705,7 +704,7 @@ class ImportExportTest
         .asInstanceOf[Import.Module]
 
       in.name.name should include("Test.Logical_Export.Main")
-      in.onlyNames.get.map(_.name) shouldEqual List("Api")
+      in.onlyNames.get.map(_.name) shouldEqual List("Element")
 
       val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
       errors.size shouldEqual 0
@@ -1039,20 +1038,21 @@ class ImportExportTest
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
       warn.size shouldEqual 1
-      val arr = Persistance.write(
-        mainIr,
-        {
-          case metadata: ProcessingPass.Metadata =>
-            metadata.prepareForSerialization(
-              ctx
-                .ensoContext()
-                .getCompiler
-                .context
-                .asInstanceOf[metadata.Compiler]
-            );
-          case obj => obj
-        }
-      );
+      val arr = org.enso.interpreter.caches.PersistUtils.POOL
+        .withWriteReplace(
+          {
+            case metadata: ProcessingPass.Metadata =>
+              metadata.prepareForSerialization(
+                ctx
+                  .ensoContext()
+                  .getCompiler
+                  .context
+                  .asInstanceOf[metadata.Compiler]
+              );
+            case obj => obj
+          }
+        )
+        .write(mainIr);
       arr should not be empty
     }
 
@@ -1080,20 +1080,21 @@ class ImportExportTest
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
       ambiguousImport.symbolName shouldEqual "A_Type"
       try {
-        val arr = Persistance.write(
-          mainIr,
-          {
-            case metadata: ProcessingPass.Metadata =>
-              metadata.prepareForSerialization(
-                ctx
-                  .ensoContext()
-                  .getCompiler
-                  .context
-                  .asInstanceOf[metadata.Compiler]
-              );
-            case obj => obj
-          }
-        );
+        val arr = org.enso.interpreter.caches.PersistUtils.POOL
+          .withWriteReplace(
+            {
+              case metadata: ProcessingPass.Metadata =>
+                metadata.prepareForSerialization(
+                  ctx
+                    .ensoContext()
+                    .getCompiler
+                    .context
+                    .asInstanceOf[metadata.Compiler]
+                );
+              case obj => obj
+            }
+          )
+          .write(mainIr);
         fail("Shouldn't return anything when there is an error" + arr)
       } catch {
         case ex: IOException =>
