@@ -13,14 +13,19 @@ import scala.collection.immutable.Map;
 import scala.collection.immutable.Map$;
 
 /**
- * Represents immutable (as much as possible) view of a "binding map". A utility structure for
- * resolving symbols in a given module.
+ * A utility structure for resolving symbols in a given module. Represents immutable (as much as
+ * possible) view of a "binding map". The {@code state} can mutate, but it is guaranteed to be
+ * changed atomically to ensure consistency - all elements of the state are always changed at once.
  */
 abstract class BindingsMapBase implements IRPass.IRMetadata {
-  /** either {@link State} or {@code Supplier<State>} */
+  /**
+   * @GuardedBy("this"). Either {@link State} or {@code Supplier<State>}
+   */
   private Object state;
 
-  BindingsMapBase() {}
+  BindingsMapBase(State initial) {
+    this.state = initial;
+  }
 
   public final List<DefinedEntity> definedEntities() {
     return getState().definedEntities();
@@ -43,26 +48,45 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
   //
 
   final State getState() {
-    return switch (this.state) {
-      case State s -> s;
-      case Supplier<?> supply -> {
-        var s = (State) supply.get();
-        assert s != null;
-        this.state = s;
-        yield s;
+    AGAIN:
+    for (; ; ) {
+      Object tmp;
+      synchronized (this) {
+        tmp = this.state;
       }
-      default -> throw new IllegalStateException();
-    };
+      var currentState =
+          switch (tmp) {
+            case State s -> s;
+            case Supplier<?> supply -> {
+              var s = (State) supply.get();
+              assert s != null;
+              synchronized (this) {
+                if (this.state != tmp) {
+                  // try again
+                  yield null;
+                } else {
+                  this.state = s;
+                  yield s;
+                }
+              }
+            }
+            default -> throw new IllegalStateException();
+          };
+      if (currentState != null) {
+        return currentState;
+      }
+    }
   }
 
   /**
    * Modifies the state of the "bindings map". This is the only way to mutate the state to a
    * concrete value.
    *
+   * @param originalState the previous state we want to update
    * @param newState new state to use since now
    * @see #setLazyState
    */
-  final void setState(State newState) {
+  final synchronized void setState(State newState) {
     this.state = newState;
   }
 
@@ -70,10 +94,11 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
    * Modifies the state of the "bindings map". This is the only way to mutate the state to a
    * "supplier" of the state.
    *
+   * @param originalState the previous state we want to update
    * @param newState new state to use since now
    * @see #setState
    */
-  final void setLazyState(Supplier<State> futureState) {
+  final synchronized void setLazyState(Supplier<State> futureState) {
     this.state = futureState;
   }
 

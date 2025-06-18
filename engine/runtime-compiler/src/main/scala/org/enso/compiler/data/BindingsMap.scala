@@ -18,8 +18,8 @@ import scala.collection.mutable.ArrayBuffer
 
 /** A utility structure for resolving symbols in a given module.
   */
-case class BindingsMap(
-) extends BindingsMapBase {
+final class BindingsMap private (initial: BindingsMapBase.State)
+    extends BindingsMapBase(initial) {
   import BindingsMap._
 
   /** Constructor with entities and module reference.
@@ -27,10 +27,8 @@ case class BindingsMap(
     * @param definedEntities the list of entities defined in the current module
     * @param currentModule the module holding these bindings
     */
-  def this(de: List[DefinedEntity], cm: ModuleReference) = {
-    this()
-    setState(new BindingsMapBase.State(de, cm))
-  }
+  def this(de: List[DefinedEntity], cm: ModuleReference) =
+    this(new BindingsMapBase.State(de, cm))
 
   override val metadataName: String = "Bindings Map"
 
@@ -82,21 +80,17 @@ case class BindingsMap(
     * @return `this` with module references converted to abstract
     */
   def toAbstract: BindingsMap = {
-    val copy = this.copy()
-    val cm   = getState().currentModule.toAbstract
-    val ri   = getState().resolvedImports.map(_.toAbstract)
-    val es = getState().exportedSymbols.map { case (key, value) =>
+    val initial = getState()
+    val cm      = initial.currentModule.toAbstract
+    val ri      = initial.resolvedImports.map(_.toAbstract)
+    val es = initial.exportedSymbols.map { case (key, value) =>
       key -> value.map(name => name.toAbstract)
     }
-    copy.setState(
-      new BindingsMapBase.State(
-        getState().definedEntities,
-        cm,
-        ri,
-        es
-      )
-    )
-    copy
+    val state = initial
+      .withCurrentModule(cm)
+      .withResolvedImports(ri)
+      .withExportedSymbols(es)
+    new BindingsMap(state)
   }
 
   private def toConcrete(
