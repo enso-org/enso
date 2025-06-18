@@ -27,7 +27,7 @@
     "zod": "^3.23.0"
   },
   "dependencies": {
-    "@internationalized/date": "3.7.0",
+    "@internationalized/date": "3.8.1",
     "@tanstack/query-persist-client-core": "5.59.20",
     "@tanstack/vue-query": "5.59.20",
     "@types/node": "^20.11.21",

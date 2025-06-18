@@ -6,8 +6,8 @@ import * as React from 'react'
 
 import invariant from 'tiny-invariant'
 
+import { useUNSAFE_PortalContext } from '#/components/aria'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as portalProvider from './PortalProvider'
 import type * as types from './types'
 
 /**
@@ -17,24 +17,25 @@ import type * as types from './types'
 export function usePortal(props: types.PortalProps) {
   const { children, isDisabled = false, root = null, onMount = () => {} } = props
 
-  const portalContext = portalProvider.usePortalContext()
+  const portalContext = useUNSAFE_PortalContext()
   const [mountRoot, setMountRoot] = React.useState<Element | null>(null)
 
   const onMountEventCallback = useEventCallback(onMount)
 
   React.useEffect(() => {
     if (!isDisabled) {
-      const contextRoot = portalContext.root
+      const contextRoot = portalContext.getContainer?.()
       const currentRoot = root?.current ?? null
+      const combinedRoot = currentRoot ?? contextRoot
 
       invariant(
-        !(contextRoot == null && currentRoot == null),
+        combinedRoot,
         'Before using Portal, you need to specify a root, where the component should be mounted or put the component under the <Root /> component',
       )
 
-      setMountRoot(currentRoot ?? contextRoot)
+      setMountRoot(combinedRoot)
     }
-  }, [root, portalContext.root, isDisabled])
+  }, [root, portalContext, isDisabled])
 
   React.useEffect(() => {
     if (isDisabled || mountRoot) {
