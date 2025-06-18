@@ -2,6 +2,7 @@ package org.enso.compiler.data;
 
 import static org.enso.scala.wrapper.ScalaConversions.nil;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.compiler.data.BindingsMap.ModuleReference;
@@ -48,58 +49,55 @@ abstract class BindingsMapBase implements IRPass.IRMetadata {
   //
 
   final State getState() {
-    AGAIN:
-    for (; ; ) {
-      Object tmp;
+    while (true) {
+      Supplier<?> tmp;
       synchronized (this) {
-        tmp = this.state;
+        if (this.state instanceof State s) {
+          return s;
+        } else {
+          tmp = (Supplier<?>) this.state;
+        }
       }
-      var currentState =
-          switch (tmp) {
-            case State s -> s;
-            case Supplier<?> supply -> {
-              var s = (State) supply.get();
-              assert s != null;
-              synchronized (this) {
-                if (this.state != tmp) {
-                  // try again
-                  yield null;
-                } else {
-                  this.state = s;
-                  yield s;
-                }
-              }
-            }
-            default -> throw new IllegalStateException();
-          };
-      if (currentState != null) {
-        return currentState;
+      var s = (State) tmp.get();
+      assert s != null;
+      synchronized (this) {
+        if (this.state == tmp) {
+          this.state = s;
+        }
       }
     }
   }
 
   /**
    * Modifies the state of the "bindings map". This is the only way to mutate the state to a
-   * concrete value.
+   * different value.
    *
-   * @param originalState the previous state we want to update
-   * @param newState new state to use since now
-   * @see #setLazyState
+   * @param updator function that takes current version of state and updates it to new version, the
+   *     function may be invoke multiple times when there are concurrent requests to update the
+   *     state
+   * @param lazy delay the update until the state is requested
    */
-  final synchronized void setState(State newState) {
-    this.state = newState;
-  }
-
-  /**
-   * Modifies the state of the "bindings map". This is the only way to mutate the state to a
-   * "supplier" of the state.
-   *
-   * @param originalState the previous state we want to update
-   * @param newState new state to use since now
-   * @see #setState
-   */
-  final synchronized void setLazyState(Supplier<State> futureState) {
-    this.state = futureState;
+  final void updateState(Function<State, State> updator, boolean lazy) {
+    while (true) {
+      var currentState = this.getState();
+      if (lazy) {
+        synchronized (this) {
+          if (this.state == currentState) {
+            Supplier<State> fn = () -> updator.apply(currentState);
+            this.state = fn;
+            return;
+          }
+        }
+      } else {
+        var newState = updator.apply(currentState);
+        synchronized (this) {
+          if (this.state == currentState) {
+            this.state = newState;
+            return;
+          }
+        }
+      }
+    }
   }
 
   /** Immutable state of a binding map. */

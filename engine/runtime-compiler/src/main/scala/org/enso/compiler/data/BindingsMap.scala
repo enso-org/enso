@@ -35,11 +35,11 @@ final class BindingsMap private (initial: BindingsMapBase.State)
   override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
 
   def resolvedImports(v: List[ResolvedImport]): Unit = {
-    setState(getState().withResolvedImports(v))
+    updateState(_.withResolvedImports(v), false)
   }
 
   def exportedSymbols(v: Map[String, List[ResolvedName]]): Unit = {
-    setState(getState().withExportedSymbols(v))
+    updateState(_.withExportedSymbols(v), false)
   }
 
   /** @inheritdoc */
@@ -53,10 +53,10 @@ final class BindingsMap private (initial: BindingsMapBase.State)
   override def restoreFromSerialization(
     compiler: Compiler
   ): Option[BindingsMap] = {
-    val repo  = compiler.getPackageRepository
-    val state = getState()
-
-    def ensureConvertedToConcrete(): BindingsMapBase.State = {
+    val repo = compiler.getPackageRepository
+    def ensureConvertedToConcrete(
+      state: BindingsMapBase.State
+    ): BindingsMapBase.State = {
       toConcrete(state, repo, repo.getModuleMap).flatMap { s =>
         val cm = s.currentModule
         val es = s.exportedSymbols
@@ -71,7 +71,8 @@ final class BindingsMap private (initial: BindingsMapBase.State)
         )
       }.get
     }
-    this.setLazyState(() => ensureConvertedToConcrete())
+    // lazily update state
+    this.updateState(ensureConvertedToConcrete, true)
     Some(this)
   }
 
