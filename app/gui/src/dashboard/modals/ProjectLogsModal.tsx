@@ -19,21 +19,22 @@ const MONACO_OPTIONS: NonNullable<Parameters<typeof Editor>[0]['options']> = {
 const ENSO_LOG_MONACO_LANGUAGE: Parameters<Monaco['languages']['setMonarchTokensProvider']>[1] = {
   defaultToken: '',
   tokenizer: {
-    root: [{ include: '@level' }, { include: '@timestamp' }, { include: '@namespace' }],
-    level: [
-      { include: '@traceLevel' },
-      { include: '@debugLevel' },
-      { include: '@infoLevel' },
-      { include: '@warnLevel' },
-      { include: '@errorLevel' },
+    root: [
+      { include: '@level' },
+      { include: '@timestamp' },
+      { include: '@namespace' },
+      { include: '@functionReference' },
     ],
-    traceLevel: [[/\[TRACE\]/, 'comment']],
-    debugLevel: [[/\[DEBUG\]/, 'comment']],
-    infoLevel: [[/\[INFO\]/, 'comment']],
-    warnLevel: [[/\[WARN\]/, 'comment']],
-    errorLevel: [[/\[ERROR\]/, 'comment']],
+    level: [
+      [/\[TRACE\]/, 'comment'],
+      [/\[DEBUG\]/, 'comment'],
+      [/\[INFO\]/, 'comment'],
+      [/\[WARN\]/, 'comment'],
+      [/\[ERROR\]/, 'comment'],
+    ],
     timestamp: [[/\[\d+-\d+-\d+T\d+:\d+:\d+Z\]/, 'keyword']],
     namespace: [[/\[org.[^\]]+\]/, 'type']],
+    functionReference: [[/\(org.[^\]]+\)/, 'variable']],
   },
 }
 
