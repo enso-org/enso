@@ -67,7 +67,10 @@ type Column
 
     ## PRIVATE
        Checks if the given object represents a Column type.
-    is_column object -> Boolean = object.is_a Column
+    is_column object -> Boolean =
+        Panic.catch Type_Error handler=_->False <|
+            _ = object:Column
+            True
 
     ## PRIVATE
        ADVANCED

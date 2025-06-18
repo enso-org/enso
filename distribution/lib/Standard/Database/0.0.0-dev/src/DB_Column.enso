@@ -87,7 +87,10 @@ type DB_Column
 
     ## PRIVATE
        A method that allows to check if the given object represents a `DB_Column`.
-    is_database_column object:Any -> Boolean = object.is_a DB_Column
+    is_database_column object:Any -> Boolean =
+        Panic.catch Type_Error handler=_->False <|
+            _ = object:DB_Column
+            True
 
 ## PRIVATE
 Column.from (that : DB_Column) =
