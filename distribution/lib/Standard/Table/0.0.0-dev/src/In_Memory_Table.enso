@@ -77,7 +77,7 @@ type In_Memory_Table
 
 ## PRIVATE
    Helper method for internal use to make a Table from a Java Table.
-from_java_table java_table -> Table =
+from_java_table java_table -> Table & In_Memory_Table =
     Table_Refinements.refine_table <|
         In_Memory_Table.Value java_table
 
