@@ -68,6 +68,7 @@ import project.Value_Type.Auto
 import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Errors import all
+from project.Extensions.Table_Conversions import all
 from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
