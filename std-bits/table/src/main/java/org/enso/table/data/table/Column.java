@@ -33,7 +33,7 @@ public final class Column {
     this.storage = (Storage<?>) storage;
 
     // Trigger the computation of data quality metrics
-    DataQualityMetrics.getMetrics(storage);
+    DataQualityMetrics.get(storage);
   }
 
   public static boolean isColumnNameValid(String name) {

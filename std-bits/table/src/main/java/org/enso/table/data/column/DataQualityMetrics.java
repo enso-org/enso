@@ -36,11 +36,23 @@ public abstract class DataQualityMetrics {
     return _cachedMetrics;
   }
 
+  /**
+   * Returns the data quality metrics for the given column.
+   *
+   * @param column the column to get metrics for
+   * @return a map of metrics
+   */
   public static Map<String, Object> get(Column column) {
-    return getMetrics(column.getStorage()).getMetrics();
+    return get(column.getStorage()).getMetrics();
   }
 
-  public static DataQualityMetrics getMetrics(ColumnStorage<?> columnStorage) {
+  /**
+   * Returns a DataQualityMetrics instance for the given column storage.
+   *
+   * @param columnStorage the column storage to get metrics for
+   * @return a DataQualityMetrics instance
+   */
+  public static DataQualityMetrics get(ColumnStorage<?> columnStorage) {
     return cachedMetrics().computeIfAbsent(columnStorage, DataQualityMetrics::createMetrics);
   }
 
