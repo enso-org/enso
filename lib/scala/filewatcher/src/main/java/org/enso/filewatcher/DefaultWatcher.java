@@ -5,10 +5,12 @@ import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -44,17 +46,19 @@ final class DefaultWatcher implements Watcher {
     }
     LOGGER.debug("Starting watcher for root directory {}", root.toAbsolutePath());
     try {
-      var watchKey =
-          root.register(
-              watchService,
-              StandardWatchEventKinds.ENTRY_MODIFY,
-              StandardWatchEventKinds.ENTRY_CREATE,
-              StandardWatchEventKinds.ENTRY_DELETE,
-              StandardWatchEventKinds.OVERFLOW);
-      watchedDirs.put(root, watchKey);
+      Files.walkFileTree(
+          root,
+          new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+              registerWatchService(dir);
+              return FileVisitResult.CONTINUE;
+            }
+          });
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
+    assert watchedDirs.containsKey(root);
     executor.execute(this::eventLoop);
   }
 
