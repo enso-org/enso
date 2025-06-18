@@ -408,3 +408,16 @@ Type.from (that:Any) =
        # everything else is an error
        _ -> Base_Error.throw
            Private_Access.Error Nothing Nothing "meta" "Doesn't represent a Type"
+
+type Multi_Type
+    Type visible extra
+
+    get value =
+        array = Vector.from_polyglot_array <| Meta_Helpers.get_multi_values_builtin value
+        Multi_Type.Type array.first array.second
+
+    to_text self =
+        visible_part = self.visible.map .to_text . join " & "
+        extra_part = self.extra.map .to_text . join " & "
+        if extra_part.is_empty then visible_part else
+            visible_part + " & hidden (" + extra_part + ")"
