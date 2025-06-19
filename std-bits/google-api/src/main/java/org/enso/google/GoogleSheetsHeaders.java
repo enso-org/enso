@@ -29,8 +29,7 @@ public class GoogleSheetsHeaders {
       return CellReference.convertNumToColString(column);
     }
 
-    int idx = column;
-    String name = idx < names.length ? names[idx] : "";
+    String name = column < names.length ? names[column] : "";
     if (name == null || name.isEmpty()) {
       name = deduplicator.makeUnique(name);
     }
