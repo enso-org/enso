@@ -109,7 +109,7 @@ final class JobExecutionEngine(
             val timeSinceRequestedToCancel = now - timeRequestedToCancel
             assertInJvm(timeSinceRequestedToCancel > 0)
             val timeToCancel =
-              forceInterruptTimeout - timeSinceRequestedToCancel
+              Math.max(forceInterruptTimeout - timeSinceRequestedToCancel, 0)
             logger.trace(
               "About to wait {}ms  to cancel job {}",
               timeToCancel,
