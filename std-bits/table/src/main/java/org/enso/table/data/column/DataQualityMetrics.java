@@ -31,6 +31,19 @@ import org.enso.table.data.table.Column;
 import org.enso.table.util.LeastRecentlyUsedCache;
 
 public abstract class DataQualityMetrics {
+  public static final String IS_INCOMPLETE = "_Is Incomplete";
+  public static final String NOTHING_COUNT = "# Nothing";
+  public static final String DISTINCT_COUNT = "# Distinct";
+  public static final String SINGLE_VALUE = "_Single Value";
+  public static final String MINIMUM = "Minimum";
+  public static final String MAXIMUM = "Maximum";
+  public static final String SAMPLED = "_Sampled";
+  public static final String EMPTY_COUNT = "@ Empty";
+  public static final String UNTRIMMED_COUNT = "@ Untrimmed";
+  public static final String ODD_SPACE_COUNT = "@ Non-Trivial Whitespace";
+  public static final String NEEDS_FORMATTING = "_Needs Formatting";
+  public static final String TYPE_RECORD = "Types and Counts";
+
   // Default seed for random number generation (no specific reason for this value, just stability on
   // results).
   public static final long RANDOM_SEED = 677280131;
@@ -55,6 +68,18 @@ public abstract class DataQualityMetrics {
    */
   public static Map<String, Object> get(Column column) {
     return get(column.getStorage()).getMetrics();
+  }
+
+  /**
+   * Awaits the completion of any asynchronous computations and returns the metrics for the given
+   *
+   * @param column the column to get metrics for
+   * @return a map of metrics
+   */
+  public static Map<String, Object> join(Column column) {
+    var metrics = get(column.getStorage());
+    metrics.join();
+    return metrics.getMetrics();
   }
 
   /**
@@ -98,6 +123,11 @@ public abstract class DataQualityMetrics {
     return new HashMap<>();
   }
 
+  protected void join() {
+    // This method is a no-op by default, but can be overridden by subclasses to wait for
+    // asynchronous computations to complete.
+  }
+
   private static class NullQualityMetrics extends DataQualityMetrics {
     private final long nothingCount;
 
@@ -116,8 +146,8 @@ public abstract class DataQualityMetrics {
     @Override
     public Map<String, Object> getMetrics() {
       var current = super.getMetrics();
-      current.put("nothingCount", getNothingCount());
-      current.put("distinctCount", getDistinctCount());
+      current.put(NOTHING_COUNT, getNothingCount());
+      current.put(DISTINCT_COUNT, getDistinctCount());
       return current;
     }
   }
@@ -146,9 +176,9 @@ public abstract class DataQualityMetrics {
 
     public BaseQualityMetrics(ColumnStorage<?> storage) {
       if (storage.getType() instanceof NullType) {
-        this.result = CompletableFuture.completedFuture(new Result(0, 0));
+        result = CompletableFuture.completedFuture(new Result(0, 0));
       } else {
-        this.result =
+        result =
             CompletableFuture.supplyAsync(
                 () -> {
                   Accumulator accumulator = new Accumulator();
@@ -156,6 +186,12 @@ public abstract class DataQualityMetrics {
                   return accumulator.getResult();
                 });
       }
+    }
+
+    @Override
+    protected void join() {
+      result.join();
+      super.join();
     }
 
     public Long getNothingCount() {
@@ -174,10 +210,10 @@ public abstract class DataQualityMetrics {
 
       var currentResult = result.getNow(null);
       if (currentResult != null) {
-        current.put("nothingCount", currentResult.nothingCount);
-        current.put("distinctCount", currentResult.distinctCount);
+        current.put(NOTHING_COUNT, currentResult.nothingCount);
+        current.put(DISTINCT_COUNT, currentResult.distinctCount);
       } else if (!result.isDone()) {
-        current.put("computationIncomplete", true);
+        current.put(IS_INCOMPLETE, true);
       }
 
       return current;
@@ -217,13 +253,19 @@ public abstract class DataQualityMetrics {
 
     public MinMaxQualityMetrics(ColumnStorage<T> storage, Comparator<T> comparator) {
       super(storage);
-      this.result =
+      result =
           CompletableFuture.supplyAsync(
               () -> {
                 Accumulator<T> accumulator = new Accumulator<>(comparator);
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
               });
+    }
+
+    @Override
+    protected void join() {
+      result.join();
+      super.join();
     }
 
     public T getMinimum() {
@@ -242,11 +284,11 @@ public abstract class DataQualityMetrics {
 
       var currentResult = result.getNow(null);
       if (currentResult != null && currentResult.minimum != null) {
-        current.put("minmaxAreSame", currentResult.minimum.equals(currentResult.maximum));
-        current.put("minimum", currentResult.minimum);
-        current.put("maximum", currentResult.maximum);
+        current.put(SINGLE_VALUE, currentResult.minimum.equals(currentResult.maximum));
+        current.put(MINIMUM, currentResult.minimum);
+        current.put(MAXIMUM, currentResult.maximum);
       } else if (!result.isDone()) {
-        current.put("computationIncomplete", true);
+        current.put(IS_INCOMPLETE, true);
       }
 
       return current;
@@ -287,13 +329,19 @@ public abstract class DataQualityMetrics {
 
     public StringQualityMetrics(ColumnStorage<String> storage) {
       super(storage, String::compareTo);
-      this.result =
+      result =
           CompletableFuture.supplyAsync(
               () -> {
                 var accumulator = new Accumulator();
                 DataQualityMetrics.loopOverSample(storage, accumulator::process);
                 return accumulator.getResult(storage.getSize() > DEFAULT_SAMPLE_SIZE);
               });
+    }
+
+    @Override
+    protected void join() {
+      result.join();
+      super.join();
     }
 
     public Boolean getSampled() {
@@ -322,12 +370,14 @@ public abstract class DataQualityMetrics {
 
       var currentResult = result.getNow(null);
       if (currentResult != null) {
-        current.put("sampled", currentResult.sampled);
-        current.put("countEmpty", currentResult.empty);
-        current.put("countUntrimmed", currentResult.untrimmed);
-        current.put("notTrivialWhitespaceCount", currentResult.notTrivialWhitespace);
+        if (currentResult.sampled) {
+          current.put(SAMPLED, currentResult.sampled);
+        }
+        current.put(EMPTY_COUNT, currentResult.empty);
+        current.put(UNTRIMMED_COUNT, currentResult.untrimmed);
+        current.put(ODD_SPACE_COUNT, currentResult.notTrivialWhitespace);
       } else if (!result.isDone()) {
-        current.put("computationIncomplete", true);
+        current.put(IS_INCOMPLETE, true);
       }
 
       return current;
@@ -398,7 +448,7 @@ public abstract class DataQualityMetrics {
 
       var currentResult = getNeedsFormatting();
       if (currentResult != null) {
-        current.put("needsFormatting", currentResult);
+        current.put(NEEDS_FORMATTING, currentResult);
       }
 
       return current;
@@ -427,7 +477,7 @@ public abstract class DataQualityMetrics {
         } else if (value instanceof ZonedDateTime) {
           typeCounts.merge("Date_Time", 1L, Long::sum);
         } else if (value instanceof String) {
-          typeCounts.merge("String", 1L, Long::sum);
+          typeCounts.merge("Char", 1L, Long::sum);
         } else if (value instanceof Boolean) {
           typeCounts.merge("Boolean", 1L, Long::sum);
         } else {
@@ -440,7 +490,7 @@ public abstract class DataQualityMetrics {
             typeCounts.entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .map(entry -> entry.getKey() + ": " + entry.getValue())
-                .reduce((a, b) -> a + "<br/>" + b)
+                .reduce((a, b) -> a + "\n" + b)
                 .orElse(null);
         return new Result(typeRecord);
       }
@@ -452,13 +502,19 @@ public abstract class DataQualityMetrics {
 
     public AnyObjectQualityMetric(ColumnStorage<Object> storage) {
       super(storage);
-      this.result =
+      result =
           CompletableFuture.supplyAsync(
               () -> {
                 Accumulator accumulator = new Accumulator();
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
               });
+    }
+
+    @Override
+    protected void join() {
+      result.join();
+      super.join();
     }
 
     public String getTypeRecord() {
@@ -472,9 +528,9 @@ public abstract class DataQualityMetrics {
 
       var currentResult = result.getNow(null);
       if (currentResult != null && currentResult.typeRecord != null) {
-        current.put("typeRecord", currentResult.typeRecord);
+        current.put(TYPE_RECORD, currentResult.typeRecord);
       } else if (!result.isDone()) {
-        current.put("computationIncomplete", true);
+        current.put(IS_INCOMPLETE, true);
       }
 
       return current;

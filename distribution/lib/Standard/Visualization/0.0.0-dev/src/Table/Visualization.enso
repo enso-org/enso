@@ -199,12 +199,11 @@ private _make_json_for_db_table t max_rows is_column =
      only a fragment is displayed.
 make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
 make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
-
     act_max = if max_rows < all_rows_count then max_rows else all_rows_count
     get_vector c               = Warning.set (Vector.new act_max i-> _make_json_for_value (c.get i)) []
     columns                    = dataframe.columns
 
-    column_vis_helpers         = columns.map (Visualization_Helpers.from _)
+    column_vis_helpers         = columns.map (c -> c:Visualization_Helpers)
     make_data_quality_entry name:Text method displayType:Text =
         if column_vis_helpers.all v-> (method v . is_nothing) then [] else
             values = column_vis_helpers.map method
