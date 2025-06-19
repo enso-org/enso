@@ -1,12 +1,16 @@
 package org.enso.filewatcher;
 
 import java.io.IOException;
+import java.nio.file.ClosedWatchServiceException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -42,17 +46,21 @@ final class DefaultWatcher implements Watcher {
     }
     LOGGER.debug("Starting watcher for root directory {}", root.toAbsolutePath());
     try {
-      var watchKey =
-          root.register(
-              watchService,
-              StandardWatchEventKinds.ENTRY_MODIFY,
-              StandardWatchEventKinds.ENTRY_CREATE,
-              StandardWatchEventKinds.ENTRY_DELETE,
-              StandardWatchEventKinds.OVERFLOW);
-      watchedDirs.put(root, watchKey);
+      Files.walkFileTree(
+          root,
+          new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+              registerWatchService(dir);
+              return FileVisitResult.CONTINUE;
+            }
+          });
     } catch (IOException e) {
-      throw new IllegalStateException(e);
+      LOGGER.error("Failed to start file watch service in root directory " + root, e);
+      exceptionCallback.accept(new Watcher.WatcherError(e));
+      return;
     }
+    assert watchedDirs.containsKey(root);
     executor.execute(this::eventLoop);
   }
 
@@ -72,18 +80,29 @@ final class DefaultWatcher implements Watcher {
   private void eventLoop() {
     try {
       while (!closed) {
-        var iterator = watchedDirs.entrySet().iterator();
-        while (iterator.hasNext()) {
-          var entry = iterator.next();
-          var dir = entry.getKey();
-          var watchKey = entry.getValue();
-          for (var event : watchKey.pollEvents()) {
-            dispatchEvent(event, dir);
-          }
-          var valid = watchKey.reset();
-          if (!valid) {
-            iterator.remove();
-          }
+        WatchKey key;
+        try {
+          // Wait for the next key
+          key = watchService.take();
+        } catch (InterruptedException e) {
+          LOGGER.debug("Watcher service interrupted: {}", e.getMessage());
+          var err = new Watcher.WatcherError(e);
+          exceptionCallback.accept(err);
+          continue;
+        } catch (ClosedWatchServiceException e) {
+          // ClosedWatchServiceException is a "standard" exception thrown when
+          // the watch service is closed. We don't even have to log it.
+          return;
+        }
+        var dir = (Path) key.watchable();
+        assert watchedDirs.containsKey(dir)
+            : "Directory " + dir + " is not registered in watchedDirs";
+        for (var event : key.pollEvents()) {
+          dispatchEvent(event, dir);
+        }
+        var valid = key.reset();
+        if (!valid) {
+          watchedDirs.remove(dir);
         }
       }
     } catch (Throwable e) {
@@ -149,27 +168,27 @@ final class DefaultWatcher implements Watcher {
     exceptionCallback.accept(watcherError);
   }
 
-  private void registerWatchService(Path path) {
-    LOGGER.debug("Registering watch service for subdir {}", path);
+  private void registerWatchService(Path dir) {
+    LOGGER.debug("Registering watch service for subdir {}", dir);
     try {
       var watchKey =
-          path.register(
+          dir.register(
               watchService,
               StandardWatchEventKinds.ENTRY_CREATE,
               StandardWatchEventKinds.ENTRY_MODIFY,
               StandardWatchEventKinds.ENTRY_DELETE,
               StandardWatchEventKinds.OVERFLOW);
-      watchedDirs.put(path, watchKey);
+      watchedDirs.put(dir, watchKey);
     } catch (IOException e) {
       exceptionCallback.accept(new Watcher.WatcherError(e));
     }
   }
 
-  private void cancelWatch(Path path) {
-    LOGGER.debug("Cancelling watch for subdir {}", path);
-    var watchKey = watchedDirs.get(path);
-    assert watchKey != null : "No watch key found for path: " + path;
+  private void cancelWatch(Path dir) {
+    LOGGER.debug("Cancelling watch for subdir {}", dir);
+    var watchKey = watchedDirs.get(dir);
+    assert watchKey != null : "No watch key found for dir: " + dir;
     watchKey.cancel();
-    watchedDirs.remove(path);
+    watchedDirs.remove(dir);
   }
 }
