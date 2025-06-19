@@ -970,8 +970,11 @@ function AssetsTable(props: AssetsTableProps) {
     const { target } = event
 
     if (target instanceof HTMLElement) {
+      if (target.classList.contains('ColumnResizer')) {
+        return true
+      }
       const row = target.closest('tr')
-      return Boolean(row?.dataset.selected === 'true')
+      return row?.dataset.selected === 'true'
     }
 
     return false
@@ -1312,7 +1315,7 @@ function AssetsTable(props: AssetsTableProps) {
                       setSortInfo={state.setSortInfo}
                       category={state.category}
                     />
-                    <ColumnResizer className="relative z-1 mr-1 w-[0.375rem] min-w-[0.375rem] cursor-ew-resize bg-primary/20 transition-colors" />
+                    <ColumnResizer className="ColumnResizer relative z-1 mr-1 w-[0.375rem] min-w-[0.375rem] cursor-ew-resize bg-primary/20 transition-colors" />
                   </div>
                 </TableColumn>
               )

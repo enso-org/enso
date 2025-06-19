@@ -1,6 +1,4 @@
 /** @file A selection brush to indicate the area being selected by the mouse drag action. */
-import * as React from 'react'
-
 import Portal from '#/components/Portal'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useEventListener } from '#/hooks/eventListenerHooks'
@@ -9,19 +7,18 @@ import type * as geometry from '#/utilities/geometry'
 import { getDetailedRectangle, getDetailedRectangleFromRectangle } from '#/utilities/geometry'
 import { findScrollContainers, type HTMLOrSVGElement } from '#/utilities/scrollContainers'
 import { motion, useMotionValue } from 'framer-motion'
+import * as React from 'react'
 
 /**
- * Defines the minimal distance that the mouse must move before
- * we consider that user has started a selection.
+ * Defines the minimal distance that the mouse must move
+ * before we consider that user has started a selection.
  */
 const DEAD_ZONE_SIZE = 24
 
 // eslint-disable-next-line no-restricted-syntax
 const noop = () => {}
 
-/**
- * Parameters for the onDrag callback.
- */
+/** Parameters for the onDrag callback. */
 export interface OnDragParams {
   readonly diff: geometry.Coordinate2D
   readonly start: geometry.Coordinate2D
@@ -30,65 +27,31 @@ export interface OnDragParams {
   readonly event: PointerEvent
 }
 
-/**
- * Props for a {@link SelectionBrush}.
- */
+/** Props for a {@link SelectionBrush}. */
 export interface SelectionBrushV2Props {
   readonly onDragStart?: (event: PointerEvent) => void
   readonly onDrag?: (params: OnDragParams) => void
   readonly onDragEnd?: (event: PointerEvent) => void
   readonly onDragCancel?: () => void
-
   readonly targetRef: React.RefObject<HTMLElement>
   readonly isDisabled?: boolean
   readonly preventDrag?: (event: PointerEvent) => boolean
 }
 
-/**
- * The direction of the Drag/Scroll.
- */
+/** The direction of the Drag/Scroll. */
 const enum DIRECTION {
-  /**
-   * •
-   */
   NONE = 0,
-  /**
-   * ⬅️
-   */
   LEFT = 1,
-  /**
-   * ➡️
-   */
   RIGHT = 2,
-  /**
-   * ⬆️
-   */
   TOP = 3,
-  /**
-   * ⬇️
-   */
   BOTTOM = 4,
-  /**
-   * ↙️
-   */
   BOTTOM_LEFT = 5,
-  /**
-   * ↘️
-   */
   BOTTOM_RIGHT = 6,
-  /**
-   * ↖️
-   */
   TOP_LEFT = 7,
-  /**
-   * ↗️
-   */
   TOP_RIGHT = 8,
 }
 
-/**
- * A selection brush to indicate the area being selected by the mouse drag action.
- */
+/** A selection brush to indicate the area being selected by the mouse drag action. */
 export function SelectionBrush(props: SelectionBrushV2Props) {
   const {
     targetRef,
