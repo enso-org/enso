@@ -66,13 +66,13 @@ public class GoogleSheetsForEnso {
               BlackholeProblemAggregator.INSTANCE);
 
     Column[] columns = new Column[rawData.size()];
+    var skipRowCount = headers != GoogleSheetsHeaders.HeaderBehavior.DEFAULT_COLUMN_NAMES ? 1 : 0;
     for (int i = 0; i < rawData.size(); i++) {
         var column = rawData.get(i);
         var builder = Builder.getForText(TextType.VARIABLE_LENGTH, column.size());
         column.stream()
-            .skip(headers != GoogleSheetsHeaders.HeaderBehavior.DEFAULT_COLUMN_NAMES ? 1 : 0)
+            .skip(skipRowCount)
             .forEach(builder::append);
-        var name = columnNames.get(i);
         columns[i] = new Column(columnNames.get(i), builder.seal());
     }
     return new Table(columns);
