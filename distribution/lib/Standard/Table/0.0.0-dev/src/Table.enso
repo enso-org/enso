@@ -3222,7 +3222,8 @@ type Table
         raw_table = Table.new [["Column", cols.map .name], ["Items Count", col_data.map c-> (self.row_count - (c.get Visualization_Helpers.count_nothing_column 0))], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
         expanded = raw_table.expand_column "Metrics" prefix=..None
         tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get Visualization_Helpers.sampled_column then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
-        tagged.remove_columns [regex "_.*"] error_on_missing_columns=False on_problems=..Ignore
+        tidied = tagged.remove_columns [regex "_.*"] error_on_missing_columns=False on_problems=..Ignore
+        tidied.reorder_columns ["Column", "Items Count", "Value Type", "# Nothing", "# Distinct", "Minimum", "Maximum", "# Empty", "# Untrimmed"] error_on_missing_columns=False on_problems=..Ignore
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
