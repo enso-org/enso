@@ -110,7 +110,6 @@ function DashboardInner() {
       }
       return null
     },
-    staleTime: Infinity,
   })
 
   React.useEffect(() => {

@@ -3,7 +3,7 @@ import UntrashIcon from '#/assets/untrash.svg'
 import * as aria from '#/components/aria'
 import { Button } from '#/components/Button'
 import SvgMask from '#/components/SvgMask'
-import { LOGIN_PATH } from '$/appUtils'
+import { DASHBOARD_PATH, LOGIN_PATH } from '$/appUtils'
 import { useAuth, useRouter, useSession, useText } from '$/providers/react'
 
 /** Restore an account that has been deleted. */
@@ -16,11 +16,7 @@ export default function RestoreAccount() {
   return (
     <div className="flex h-full w-full overflow-auto">
       <div className="flex min-h-96 w-full flex-col items-center justify-center">
-        <SvgMask
-          src={UntrashIcon}
-          className="bg-icon-selected mb-4 aspect-square h-12"
-          color={''}
-        />
+        <SvgMask src={UntrashIcon} className="bg-icon-selected mb-4 aspect-square h-12" color="" />
         <aria.Heading level={1} className="mb-4 text-3xl">
           {getText('restoreAccount')}
         </aria.Heading>
@@ -31,23 +27,14 @@ export default function RestoreAccount() {
 
         <div className="mt-8 flex items-center gap-8">
           <Button
-            onPress={async () => {
-              await restoreUser()
-            }}
+            onPress={() => restoreUser().then(() => router.push(DASHBOARD_PATH))}
             variant="icon"
             className="flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-auth-input-y text-white transition-all duration-auth selectable enabled:active"
           >
             {getText('restoreAccountSubmit')}
           </Button>
 
-          <Button
-            variant="icon"
-            onPress={async () => {
-              await signOut().then(() => {
-                void router.push(LOGIN_PATH)
-              })
-            }}
-          >
+          <Button variant="icon" onPress={() => signOut().then(() => router.push(LOGIN_PATH))}>
             {getText('signOutShortcut')}
           </Button>
         </div>

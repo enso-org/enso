@@ -8,6 +8,7 @@ import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
+import { toValue } from 'vue'
 
 declare module '@tanstack/query-core' {
   /** Query client with additional methods. */
@@ -114,7 +115,8 @@ export function createQueryClient<TStorageValue = string>(
           (queryKey) => !invalidatesToAwait.includes(queryKey),
         )
 
-        for (const queryKey of invalidatesToIgnore) {
+        for (const queryKeyRaw of invalidatesToIgnore) {
+          const queryKey = queryKeyRaw.map(toValue)
           void queryClient.invalidateQueries({
             predicate: (query) => queryCore.matchQuery({ queryKey }, query),
             refetchType,
@@ -123,12 +125,13 @@ export function createQueryClient<TStorageValue = string>(
 
         if (invalidatesToAwait.length > 0) {
           return Promise.all(
-            invalidatesToAwait.map((queryKey) =>
-              queryClient.invalidateQueries({
+            invalidatesToAwait.map((queryKeyRaw) => {
+              const queryKey = queryKeyRaw.map(toValue)
+              return queryClient.invalidateQueries({
                 predicate: (query) => queryCore.matchQuery({ queryKey }, query),
                 refetchType,
-              }),
-            ),
+              })
+            }),
           )
         }
       },
