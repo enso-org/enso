@@ -8,6 +8,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.problems.BlackholeProblemAggregator;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
@@ -37,8 +38,8 @@ public class GoogleSheetsForEnso {
     return new GoogleSheetsForEnso(builder.build());
   }
 
-  public Table getSheetRange(String sheetId, String range) throws IOException {
-    var raw_data = service
+  public Table getSheetRange(String sheetId, String range, GoogleSheetsHeaders.HeaderBehavior headers) throws IOException {
+    var rawData = service
         .spreadsheets()
         .values()
         .get(sheetId, range)
@@ -47,14 +48,34 @@ public class GoogleSheetsForEnso {
         .execute()
         .getValues();
 
-    var columns = raw_data.stream()
-        .map(column -> {
-            var builder = Builder.getForText(TextType.VARIABLE_LENGTH, column.size());
-            column.stream().skip(1).forEach(builder::append);
-            return new Column(column.get(0).toString(), builder.seal());
-        })
-        .toArray(Column[]::new);
-      return new Table(columns);
+    var firstTwoRows = service
+        .spreadsheets()
+        .values()
+        .get(sheetId, range)
+        .setMajorDimension("ROWS")
+        .setValueRenderOption("UNFORMATTED_VALUE")
+        .execute()
+        .getValues()
+        .stream()
+        .limit(2)
+        .toList();
+
+    GoogleSheetsHeaders columnNames = new GoogleSheetsHeaders(
+              headers,
+              firstTwoRows,
+              BlackholeProblemAggregator.INSTANCE);
+
+    Column[] columns = new Column[rawData.size()];
+    for (int i = 0; i < rawData.size(); i++) {
+        var column = rawData.get(i);
+        var builder = Builder.getForText(TextType.VARIABLE_LENGTH, column.size());
+        column.stream()
+            .skip(headers != GoogleSheetsHeaders.HeaderBehavior.DEFAULT_COLUMN_NAMES ? 1 : 0)
+            .forEach(builder::append);
+        var name = columnNames.get(i);
+        columns[i] = new Column(columnNames.get(i), builder.seal());
+    }
+    return new Table(columns);
   }
 
   public List<String> getSheetNames(String workbookId) throws IOException {

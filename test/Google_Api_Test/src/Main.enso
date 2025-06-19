@@ -45,7 +45,7 @@ add_specs suite_buildewb =
             r6 = wb.read 6
             r6.should_fail_with Invalid_Location
             r6.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
-        group_builder.specify "should be able to read with no headers" pending="true" <|
+        group_builder.specify "should be able to read with no headers" <|
             ## Test1
             wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
             wb.read 'Sheet1' ..No_Headers . should_equal (Table.new [['A', ['X', 'Y', 'Z']]])
