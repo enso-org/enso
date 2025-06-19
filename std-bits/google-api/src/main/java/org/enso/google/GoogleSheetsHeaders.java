@@ -58,20 +58,20 @@ public class GoogleSheetsHeaders {
           return null;
         }
 
-    // if (row == null || nextRow == null) {
-    //   return null;
-    // }
+        // Two rows of all string data => No headers
+        boolean allStrings = true;
+        for (int i = 0; i < rawData.size(); i++) {
+            Object cell1 = rawData.get(i).get(0);
+            Object cell2 = rawData.get(i).get(1);
+            if (!(cell1 instanceof String) || !(cell2 instanceof String)) {
+              allStrings = false;
+              break;
+            }
+        }
+        if (allStrings) {
+            return null;
+        }
 
-    // String[] rowNames = row.getCellsAsText(startCol, endCol);
-    // if (rowNames == null) {
-    //   return null;
-    // }
-
-    // if (nextRow.getCellsAsText(startCol, endCol) != null) {
-    //   return null;
-    // }
-
-    // return readRowAsHeaders(row, startCol, endCol, deduplicator);
     return readFirstRowAsHeaders(rawData, deduplicator);
   }
 
