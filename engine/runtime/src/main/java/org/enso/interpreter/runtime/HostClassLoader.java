@@ -31,13 +31,7 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
   // boot module layer.
   private static final boolean isRuntimeModInBootLayer;
 
-  private static final HostClassLoader INSTANCE = new HostClassLoader();
-
-  public static HostClassLoader getClassLoader() {
-    return INSTANCE;
-  }
-
-  private HostClassLoader() {
+  public HostClassLoader() {
     super(new URL[0]);
   }
 
@@ -66,7 +60,7 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
       logger.trace("Class {} found in cache", name);
       return l;
     }
-    synchronized (INSTANCE) {
+    synchronized (this) {
       l = loadedClasses.get(name);
       if (l != null) {
         logger.trace("Class {} found in cache", name);
@@ -92,6 +86,9 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable {
       } catch (ClassNotFoundException ex) {
         logger.trace("Class {} not found, delegating to super", name);
         return super.loadClass(name, resolve);
+      } catch (Throwable e) {
+        logger.trace("Failure while loading a class: " + e.getMessage(), e);
+        throw e;
       }
     }
   }

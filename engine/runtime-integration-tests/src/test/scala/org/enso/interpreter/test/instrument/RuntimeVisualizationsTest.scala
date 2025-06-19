@@ -358,8 +358,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      val attachVisualizationResponses = context.receiveNIgnoreExpressionUpdates(2)
-      attachVisualizationResponses should contain (
+      val attachVisualizationResponses =
+        context.receiveNIgnoreExpressionUpdates(2)
+      attachVisualizationResponses should contain(
         Api.Response(requestId, Api.VisualizationAttached())
       )
       val Some(data) = attachVisualizationResponses.collectFirst {
@@ -770,8 +771,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
       val attachVisualizationResponses = context.receiveN(2)
-      attachVisualizationResponses should contain (
-        Api.Response(requestId, Api.VisualizationAttached()),
+      attachVisualizationResponses should contain(
+        Api.Response(requestId, Api.VisualizationAttached())
       )
       val expectedExpressionId = context.Main.idMainZ
       val Some(data) = attachVisualizationResponses.collectFirst {
@@ -1339,7 +1340,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     val editFileResponses =
-      context.receiveNIgnoreExpressionUpdates(5)
+      context.receiveNIgnoreExpressionUpdates(3)
 
     editFileResponses should contain(
       context.executionComplete(contextId)
@@ -1390,10 +1391,10 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
     val modifyVisualizationResponses =
-      context.receiveNIgnoreExpressionUpdates(3)
+      context.receiveNIgnoreExpressionUpdates(2)
 
-    modifyVisualizationResponses should contain (
-      Api.Response(requestId, Api.VisualizationModified()),
+    modifyVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationModified())
     )
     val visualizationUpdates2 =
       modifyVisualizationResponses.collect {
@@ -1472,7 +1473,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      context.receiveN(2) should contain theSameElementsAs Seq(
+      val emptyStack = context.receiveN(1)
+      emptyStack should contain(
         Api.Response(requestId, Api.EmptyStackError(contextId))
       )
 
@@ -1486,7 +1488,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Api.Request(requestId, Api.PushContextRequest(contextId, item1))
       )
       val pushResponses =
-        context.receiveNIgnorePendingExpressionUpdates(6, timeoutSeconds = 10)
+        context.receiveNIgnorePendingExpressionUpdates(5, timeoutSeconds = 10)
       pushResponses should contain allOf (
         Api.Response(requestId, Api.PushContextResponse(contextId)),
         context.Main.Update.mainX(contextId),
@@ -2010,7 +2012,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val attachVisualizationResponses = context.receiveN(6)
+      val attachVisualizationResponses = context.receiveN(5)
       attachVisualizationResponses should contain(
         Api.Response(requestId, Api.VisualizationAttached())
       )
@@ -5309,7 +5311,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      val attachVisualizationResponses2 = context.receiveN(3)
+      val attachVisualizationResponses2 = context.receiveN(2)
       attachVisualizationResponses2 should contain(
         Api.Response(requestId, Api.VisualizationAttached())
       )
