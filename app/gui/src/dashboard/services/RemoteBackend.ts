@@ -351,10 +351,14 @@ export default class RemoteBackend extends Backend {
 
   /**
    * Delete a user.
-   * FIXME: Not implemented on backend yet.
    */
-  override async removeUser(): Promise<void> {
-    return await this.throw(null, 'removeUserBackendError')
+  override async removeUser(userId: backend.UserId): Promise<void> {
+    const response = await this.delete(remoteBackendPaths.removeUserPath(userId))
+    if (!response.ok) {
+      return await this.throw(response, 'removeUserBackendError')
+    } else {
+      return
+    }
   }
 
   /** Invite a new user to the organization by email. */
