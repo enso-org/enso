@@ -211,6 +211,7 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
             defaultOpen={true}
             cannotUndo={true}
             actionText={getText('deleteUserConfirmation', userUsername, userEmail)}
+            alert={getText('deleteUserAlert')}
             onConfirm={async () => {
               await removeMutation.mutateAsync([userId])
             }}
