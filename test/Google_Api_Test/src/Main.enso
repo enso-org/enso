@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Google_Api import all
 
-from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names
+from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Empty_Sheet
 
 from Standard.Test import all
 from Standard.Table import Table
@@ -13,8 +13,8 @@ main filter=Nothing =
     suite.run_with_filter filter
 
 
-add_specs suite_buildewb =
-    suite_buildewb.group "Google Sheets" group_builder->
+add_specs suite_builder =
+    suite_builder.group "Google Sheets" group_builder->
         group_builder.specify "can read a workbook via Google_Sheets.read" <|
             ## Test1
             wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
@@ -47,6 +47,8 @@ add_specs suite_buildewb =
             r6.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
         group_builder.specify "Missing sheet name should error" pending='X' <|
             x = 1
+
+    suite_builder.group "Google Sheets - Headers" group_builder->
         group_builder.specify "should be able to read with no headers" <|
             ## Test1
             wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
@@ -72,6 +74,12 @@ add_specs suite_buildewb =
             ws = wb.read 'DuplicateHeaders' on_problems=..Ignore
             ws . should_equal (Table.new [['Col1', ['A', 'B', 'C']],['Col2', ['D', 'E', 'F']],['Col2 1', ['G', 'H', 'I']]])
             Problems.get_attached_warnings ws . should_equal []
+        group_builder.specify "No Data Errors" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read 'NoData' ..Detect_Headers
+            ws.should_fail_with Empty_Sheet
+            ws.catch.to_display_text . should_contain 'There is no data in the sheet.'
 
 
 

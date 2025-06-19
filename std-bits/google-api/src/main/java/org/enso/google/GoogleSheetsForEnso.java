@@ -8,6 +8,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.error.EmptySheetException;
 import org.enso.table.problems.ProblemAggregator;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -47,6 +48,10 @@ public class GoogleSheetsForEnso {
         .setValueRenderOption("UNFORMATTED_VALUE")
         .execute()
         .getValues();
+
+    if (rawData == null) {
+        throw new EmptySheetException();
+    }
 
     var firstTwoRows = service
         .spreadsheets()
