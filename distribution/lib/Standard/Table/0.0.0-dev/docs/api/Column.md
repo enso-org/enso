@@ -110,4 +110,3 @@
 - Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text.from that:Standard.Table.Column.Column -> Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text
 - Standard.Base.Data.Read.Many_Files_List.Many_Files_List.from that:Standard.Table.Column.Column -> Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 - Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers.from that:Standard.Table.Column.Column -> Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
-- Standard.Table.Refined_Types.Numeric_Column.Numeric_Column.from that:Standard.Table.Column.Column -> Standard.Table.Refined_Types.Numeric_Column.Numeric_Column

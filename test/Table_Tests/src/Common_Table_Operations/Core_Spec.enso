@@ -11,7 +11,7 @@ import Standard.Table.Expression.Expression_Error
 
 from Standard.Database import all
 import Standard.Database.Internal.Internals_Access
-from Standard.Database.Errors import Integrity_Error
+from Standard.Database.Errors import Implicit_DB_Table_Read, Integrity_Error
 import Standard.Database.Feature.Feature
 
 from Standard.Test import all
@@ -193,10 +193,9 @@ add_core_specs suite_builder setup =
             t0 = (Table.new [["X", [3, 2, 1]]]).select_into_database_table alternative_connection "T0" temporary=True
             c0 = t0.at "X"
 
-            r1 = t1.set c0
             case setup.is_database of
-                True ->  r1.should_fail_with Integrity_Error
-                False -> r1.should_fail_with Illegal_Argument
+                True ->  (t1.set c0).should_fail_with Integrity_Error
+                False -> Test.expect_panic Type_Error (t1.set c0)
 
     suite_builder.group prefix+"(Core_Spec) Table.column_names" group_builder->
         group_builder.specify "should return the names of all columns" <|
@@ -347,8 +346,15 @@ add_core_specs suite_builder setup =
                     r2.length . should_equal 1500
                     Problems.assume_no_problems r2
 
-            # to_vector always downloads the whole column, even if its large
-            c1.to_vector.length . should_equal 1500
+            v1 = c1.to_vector
+            case setup.is_database of
+                True ->
+                    v1.length . should_equal 1000
+                    Problems.expect_warning Implicit_DB_Table_Read v1
+                    Problems.expect_warning Not_All_Rows_Downloaded v1
+                False ->
+                    v1.length . should_equal 1500
+                    Problems.assume_no_problems v1
 
             r3 = c1.read (..First_With_Warning 10)
             r3.length . should_equal 10

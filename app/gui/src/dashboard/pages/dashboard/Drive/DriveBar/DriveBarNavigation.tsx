@@ -198,7 +198,6 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
               <Menu.Trigger key={pathItem.id + index}>
                 <Button size="custom">
                   <DriveBarBreadcrumbsItem
-                    key={pathItem.id + index}
                     id={pathItem.id}
                     icon={pathItem.icon}
                     navigateToDirectory={navigateToDirectory}

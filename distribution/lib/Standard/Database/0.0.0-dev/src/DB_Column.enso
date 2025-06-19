@@ -1,9 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Column, Value_Type
-from Standard.Table.Internal.Column_Type_Helpers import column_from_implementation, underlying_from_column
-import Standard.Table.Internal.Type_Refinements.Typed_Column_Helpers
+from Standard.Table.Internal.Column_Type_Helpers import column_from_implementation
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 
 import project.Connection.Connection.Connection
@@ -12,7 +12,6 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Type_Refinements.DB_Column_Refinements
-import project.Internal.Type_Refinements.Typed_DB_Column_Implementations.DB_Numeric_Column_Implementation
 import project.SQL_Statement.SQL_Statement
 
 type DB_Column
@@ -39,7 +38,7 @@ type DB_Column
 
        It can perform some additional operations, like refining the type,
        so it should always be preferred over calling `DB_Column.Value` directly.
-    private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source -> Column & DB_Column =
+    private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source -> Column =
         DB_Column_Refinements.refine_column <|
             DB_Column.Value internal_name connection sql_type_reference expression context
 
@@ -73,7 +72,7 @@ type DB_Column
     to_text self -> Text = "DB_Column " + (self:Column).name
 
     ## PRIVATE
-    let self (name : Text) (callback : (Column -> Column)) -> Column & DB_Column =
+    let self (name : Text) (callback : (Column -> Column)) =
         use_ctes = self.connection.dialect.flagged ..Supports_Nested_With_Clause
 
         if use_ctes.not then callback self else
@@ -86,16 +85,13 @@ type DB_Column
             let_expression = SQL_IR_Expression.Let name binder self.expression inner_value.expression
             DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
 
+    ## PRIVATE
+       A method that allows to check if the given object represents a `DB_Column`.
+    is_database_column object:Any -> Boolean =
+        Panic.catch Type_Error handler=_->False <|
+            _ = object:DB_Column
+            True
 
 ## PRIVATE
 Column.from (that : DB_Column) =
     column_from_implementation that DB_Column_Implementation
-
-## PRIVATE
-DB_Column.from (that : Column) =
-    underlying_from_column that DB_Column
-
-## PRIVATE
-Numeric_Column.from (that : DB_Column) =
-    Value_Type.expect_numeric that <|
-        Typed_Column_Helpers.make_numeric_column that DB_Numeric_Column_Implementation

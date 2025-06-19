@@ -7,16 +7,14 @@ import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Impleme
 import project.Internal.In_Memory_Visualization_Helpers.In_Memory_Visualization_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Storage
-import project.Internal.Type_Refinements.Column_Refinements
-import project.Internal.Type_Refinements.Typed_Column_Helpers
-import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Numeric_Column_Implementation
+import project.Internal.Type_Refinements.In_Memory_Column_Refinements
 import project.Internal.Value_Type_Helpers
 import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Value_Type
-from project.Internal.Column_Type_Helpers import column_from_implementation, underlying_from_column
+from project.Internal.Column_Type_Helpers import column_from_implementation
 from project.Internal.Storage import enso_to_java
 
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
@@ -60,7 +58,7 @@ type In_Memory_Column
        Creates a new column given a Java Column object.
     private from_java_column java_column:Java_Column -> Column =
         column = In_Memory_Column.Value java_column
-        Column_Refinements.refine_column column
+        In_Memory_Column_Refinements.refine_column column
 
     ## PRIVATE
        Implementation fro `Column.from_vector`.
@@ -121,17 +119,6 @@ Column.from (that : In_Memory_Column) =
     column_from_implementation that In_Memory_Column_Implementation
 
 ## PRIVATE
-   Conversion that extracts the underlying in-memory column from the column,
-   or fails if its of a different backend.
-In_Memory_Column.from (that : Column) =
-    underlying_from_column that In_Memory_Column
-
-## PRIVATE
    Gets the Visualization helpers for the column.
 Visualization_Helpers.from (that : In_Memory_Column) =
     Visualization_Helpers.Value that In_Memory_Visualization_Helpers
-
-## PRIVATE
-Numeric_Column.from (that : In_Memory_Column) =
-    Value_Type.expect_numeric that <|
-        Typed_Column_Helpers.make_numeric_column that In_Memory_Numeric_Column_Implementation

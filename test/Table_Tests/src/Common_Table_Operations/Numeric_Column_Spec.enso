@@ -35,9 +35,9 @@ add_numeric_columns_specs suite_builder setup =
             column = table_builder [["X", ["txt"]]] . at "X"
             column.value_type.is_numeric . should_be_false
             Test.with_clue "(regular column) " <|
-                (column:Numeric_Column).should_fail_with Invalid_Value_Type
+                Test.expect_panic Type_Error (column:Numeric_Column)
             Test.with_clue "(1-value column) " <|
-                (column.sort.take 1 : Numeric_Column).should_fail_with Invalid_Value_Type
+                Test.expect_panic Type_Error (column.sort.take 1 : Numeric_Column)
             Test.with_clue "(1-column table as column) " <|
                 Test.expect_panic Type_Error (column.to_table : Numeric_Column)
             Test.with_clue "(1-value 1-column table as column) " <|
