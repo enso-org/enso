@@ -94,13 +94,8 @@ final class DefaultWatcher implements Watcher {
           // the watch service is closed. We don't even have to log it.
           return;
         }
-        var matchingEntry =
-            watchedDirs.entrySet().stream()
-                .filter(entry -> entry.getValue().equals(key))
-                .findFirst();
-        assert matchingEntry.isPresent();
-        var entry = matchingEntry.get();
-        var dir = entry.getKey();
+        var dir = (Path) key.watchable();
+        assert watchedDirs.containsKey(dir) : "Directory " + dir + " is not registered in watchedDirs";
         for (var event : key.pollEvents()) {
           dispatchEvent(event, dir);
         }
