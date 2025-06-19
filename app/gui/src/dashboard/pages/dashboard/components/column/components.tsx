@@ -167,7 +167,11 @@ export function LabelsColumn(props: AssetColumnProps) {
 export function ModifiedColumn(props: AssetColumnProps) {
   const { item } = props
 
-  return <Text nowrap>{toReadableIsoString(new Date(item.modifiedAt))}</Text>
+  return (
+    <Text nowrap truncate="1">
+      {toReadableIsoString(new Date(item.modifiedAt))}
+    </Text>
+  )
 }
 
 /** The icon and name of an {@link backendModule.Asset}. */

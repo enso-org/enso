@@ -49,7 +49,7 @@ export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {
 } satisfies { [C in Column]: `${C}ColumnShow` }
 
 const COLUMN_CSS_CLASSES =
-  'text-left bg-clip-padding last:border-r-0 last:rounded-r-full last:w-full'
+  'min-w-0 text-left bg-clip-padding last:border-r-0 last:rounded-r-full last:w-full'
 const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py rounded-rows-have-level ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */

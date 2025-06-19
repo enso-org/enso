@@ -323,6 +323,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             data-testid="asset-row"
             data-selected={isSelected}
             data-id={item.id}
+            id={item.id}
             ref={(element) => {
               rootRef.current = element
               if (!element) {
@@ -442,9 +443,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
               visibility,
               (isDraggedOver || isSelected) && 'selected',
             )}
+            columns={columns.map((column) => ({ id: column }))}
             {...draggableProps}
           >
-            {columns.map((column) => {
+            {({ id: column }) => {
               const Render = columnModule.COLUMN_RENDERER[column]
               return (
                 <Cell key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
@@ -466,7 +468,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
                   />
                 </Cell>
               )
-            })}
+            }}
           </Row>
 
           {isSoleSelected && (

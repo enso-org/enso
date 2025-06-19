@@ -2,6 +2,7 @@
 import DropFilesImage from '#/assets/drop_files.svg'
 import {
   Cell,
+  ColumnResizer,
   FileTrigger,
   mergeProps,
   ResizableTableContainer,
@@ -38,7 +39,7 @@ import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
 import {
-  useAssetsTableColumnWidths,
+  assetsTableColumnWidthsStore,
   useSetAssetsTableColumnWidths,
 } from '#/layouts/Drive/assetsTableColumnWidths'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -92,11 +93,11 @@ import { fileExtension } from '#/utilities/fileInfo'
 import { noop, noopPromise } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import { mapEntries } from '#/utilities/object'
+import { mapEntries, unsafeEntries } from '#/utilities/object'
 import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
-import { twMerge } from '#/utilities/tailwindMerge'
+import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import {
   useBackends,
@@ -1244,33 +1245,78 @@ function AssetsTable(props: AssetsTableProps) {
     : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
     : null
 
-  const widths = useAssetsTableColumnWidths()
   const setWidths = useSetAssetsTableColumnWidths()
   const onResize: Parameters<typeof ResizableTableContainer>[0]['onResize'] = (newWidths) => {
-    setWidths(mapEntries(widths, (key, value) => newWidths.get(key) ?? value))
+    setWidths(
+      mapEntries(
+        assetsTableColumnWidthsStore.getState().widths,
+        (key, value) => newWidths.get(key) ?? value,
+      ),
+    )
   }
+  const columnRefs = useRef<Partial<Record<Column, HTMLTableCellElement | undefined>>>({})
+
+  useEffect(
+    () =>
+      assetsTableColumnWidthsStore.subscribe(({ widths }, { widths: prevWidths }) => {
+        if (widths === prevWidths) {
+          return
+        }
+        for (const [column, width] of unsafeEntries(widths)) {
+          const columnRef = columnRefs.current[column]
+          if (!columnRef) {
+            continue
+          }
+          columnRef.style.width = typeof width === 'string' ? width : `${width}px`
+        }
+      }),
+    [],
+  )
+  const nonReactiveWidths = assetsTableColumnWidthsStore.getState().widths
 
   const table = (
     <div className="flex flex-none flex-col">
       <ResizableTableContainer onResize={onResize} onResizeEnd={onResize}>
-        <Table className="isolate table-fixed border-collapse rounded-rows">
-          <TableHeader className="sticky top-0 isolate z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
-            {[...columns].map((column) => {
+        <Table className="isolate border-collapse rounded-rows">
+          <TableHeader
+            columns={columns.map((column) => ({ id: column }))}
+            className="sticky top-0 isolate z-1 bg-dashboard"
+          >
+            {({ id: column }) => {
               // The spread on the line above is required for React Compiler to compile this component.
               // This is a React component, even though it does not contain JSX.
               const Heading = COLUMN_HEADING[column]
 
               return (
-                <TableColumn key={column} className={COLUMN_CSS_CLASS[column]}>
-                  <Heading
-                    sortInfo={state.sortInfo}
-                    hideColumn={state.hideColumn}
-                    setSortInfo={state.setSortInfo}
-                    category={state.category}
-                  />
+                <TableColumn
+                  ref={(el) => {
+                    if (el) {
+                      // eslint-disable-next-line no-restricted-syntax
+                      columnRefs.current[column] = el as HTMLTableCellElement
+                    } else {
+                      columnRefs.current[column] = undefined
+                    }
+                  }}
+                  key={column}
+                  width={nonReactiveWidths[column]}
+                  className={twJoin(
+                    'before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard',
+                    COLUMN_CSS_CLASS[column],
+                  )}
+                  isRowHeader={column === Column.name}
+                >
+                  <div className="flex gap-2">
+                    <Heading
+                      sortInfo={state.sortInfo}
+                      hideColumn={state.hideColumn}
+                      setSortInfo={state.setSortInfo}
+                      category={state.category}
+                    />
+                    <ColumnResizer className="relative z-1 mr-1 w-[0.375rem] min-w-[0.375rem] cursor-ew-resize bg-primary/20 transition-colors" />
+                  </div>
                 </TableColumn>
               )
-            })}
+            }}
           </TableHeader>
 
           <TableBody ref={bodyRef} className="isolate">
@@ -1395,7 +1441,7 @@ function AssetsTable(props: AssetsTableProps) {
             preventDrag={preventSelection}
           />
           <div
-            className="flex h-max min-h-full w-max min-w-full flex-col"
+            className="flex h-max min-h-full flex-col"
             onContextMenu={(event) => {
               event.preventDefault()
               event.stopPropagation()
@@ -1414,7 +1460,7 @@ function AssetsTable(props: AssetsTableProps) {
             }}
           >
             <div
-              className="flex h-full w-min min-w-full grow flex-col px-1"
+              className="flex h-full grow flex-col px-1"
               onDrop={(event) => {
                 onRowDrop(event, null)
               }}

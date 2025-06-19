@@ -1,16 +1,13 @@
 /** @file Widths for Assets Table columns. */
-import type { ResizableTableContainer } from '#/components/aria'
+import type { ColumnProps } from '#/components/aria'
 import { useStore } from '#/hooks/storeHooks'
 import { Column } from '#/pages/dashboard/components/column/columnUtils'
+import { mapEntries, unsafeEntries } from '#/utilities/object'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 /** The size of a column for a React Aria table. */
-type ColumnSize = NonNullable<
-  ReturnType<
-    Parameters<NonNullable<Parameters<typeof ResizableTableContainer>[0]['onResize']>>[0]['get']
-  >
->
+type ColumnSize = NonNullable<ColumnProps['width']>
 
 /** Assets table column widths store. */
 export interface AssetsTableColumnWidthsStore {
@@ -20,7 +17,7 @@ export interface AssetsTableColumnWidthsStore {
 
 export const assetsTableColumnWidthsStore = createStore<AssetsTableColumnWidthsStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       widths: {
         /* eslint-disable @typescript-eslint/no-magic-numbers */
         [Column.name]: 320,
@@ -33,12 +30,38 @@ export const assetsTableColumnWidthsStore = createStore<AssetsTableColumnWidthsS
         /* eslint-enable @typescript-eslint/no-magic-numbers */
       },
       setWidths: (widths) => {
-        set({ widths })
+        const currentWidths = get().widths
+        if (unsafeEntries(currentWidths).some(([column, width]) => widths[column] !== width)) {
+          set({ widths })
+        }
       },
     }),
     {
       name: 'enso-column-widths',
       version: 1,
+      merge: (persisted, current) => {
+        if (
+          typeof persisted !== 'object' ||
+          persisted == null ||
+          !('widths' in persisted) ||
+          typeof persisted.widths !== 'object' ||
+          persisted.widths == null
+        ) {
+          return current
+        }
+        const persistedWidths: Record<string, unknown> = { ...persisted.widths }
+        return {
+          ...current,
+          widths: mapEntries(current.widths, (column, width) => {
+            const persistedEntry = persistedWidths[column]
+            if (typeof persistedEntry !== 'string' && typeof persistedEntry !== 'number') {
+              return width
+            }
+            // eslint-disable-next-line no-restricted-syntax
+            return persistedEntry as ColumnSize
+          }),
+        }
+      },
     },
   ),
 )

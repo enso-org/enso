@@ -1,5 +1,4 @@
 /** @file Components for column headings. */
-import { ColumnResizer } from '#/components/aria'
 import { Button } from '#/components/Button'
 import { Icon } from '#/components/Icon'
 import { Text } from '#/components/Text'
@@ -31,7 +30,6 @@ export function AccessedByProjectsColumnHeading(props: AssetColumnHeadingProps) 
       <Text weight="bold" truncate="1" color="custom">
         {getText('accessedByProjectsColumnName')}
       </Text>
-      <ColumnResizer />
     </div>
   )
 }
@@ -57,7 +55,6 @@ export function AccessedDataColumnHeading(props: AssetColumnHeadingProps) {
       <Text weight="bold" truncate="1" color="custom">
         {getText('accessedDataColumnName')}
       </Text>
-      <ColumnResizer />
     </div>
   )
 }
@@ -84,7 +81,6 @@ export function LabelsColumnHeading(props: AssetColumnHeadingProps) {
       <Text weight="bold" truncate="1" color="custom">
         {getText('labelsColumnName')}
       </Text>
-      <ColumnResizer />
     </div>
   )
 }
@@ -126,7 +122,7 @@ export function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
           getText('stopSortingByModificationDate')
         : getText('sortByModificationDateDescending')
       }
-      className="group flex h-table-row w-full cursor-pointer items-center gap-2"
+      className="group isolate z-1 flex h-table-row w-full cursor-pointer items-center gap-2"
     >
       <Button
         variant="icon"
@@ -153,7 +149,6 @@ export function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
       >
         <Text weight="bold">{getText('modifiedColumnName')}</Text>
       </Button>
-      <ColumnResizer />
     </div>
   )
 }
@@ -207,7 +202,6 @@ export function NameColumnHeading(props: AssetColumnHeadingProps) {
       >
         <Text weight="bold">{getText('nameColumnName')}</Text>
       </Button>
-      <ColumnResizer />
     </div>
   )
 }
@@ -237,7 +231,6 @@ export function PathColumnHeading(props: AssetColumnHeadingProps) {
       <Text weight="bold" truncate="1" color="custom">
         {getText('pathColumnName')}
       </Text>
-      <ColumnResizer />
     </div>
   )
 }
@@ -267,7 +260,6 @@ export function SharedWithColumnHeading(props: AssetColumnHeadingProps) {
           {getText('sharedWithColumnName')}
         </Text>
       </div>
-      <ColumnResizer />
     </div>
   )
 }

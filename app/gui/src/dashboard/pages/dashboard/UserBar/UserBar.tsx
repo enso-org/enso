@@ -84,7 +84,7 @@ export function UserBar(props: UserBarProps) {
 
   return (
     <div className="pt-0.5">
-      <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-2">
+      <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x">
         <AnimatePresence initial={false}>
           {isOffline && (
             <motion.div
