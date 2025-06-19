@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Google_Api import all
 
-from Standard.Table.Errors import Invalid_Location
+from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names
 
 from Standard.Test import all
 from Standard.Table import Table
@@ -55,7 +55,10 @@ add_specs suite_buildewb =
             ## Test3
             wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
             wb.read 'BlankHeaders' . should_equal (Table.new [['Col1', ['A', 'B', 'C']],['Column 1', ['D', 'E', 'F']],['Col3', ['G', 'H', 'I']]])
-        group_builder.specify "Should handle duplicate headers with warnings" pending='X' <|
-            x = 1
+        group_builder.specify "Should handle duplicate headers with warnings" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            wb.read 'DuplicateHeaders' . should_equal (Table.new [['Col1', ['A', 'B', 'C']],['Col2', ['D', 'E', 'F']],['Col2 1', ['G', 'H', 'I']]])
+            Problems.get_attached_warnings wb . should_equal [Duplicate_Output_Column_Names.Error ["Col2"]]
 
 
