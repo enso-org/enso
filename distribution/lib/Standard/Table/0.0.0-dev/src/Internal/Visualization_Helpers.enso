@@ -8,6 +8,12 @@ type Visualization_Helpers
     Value column implementation
 
     ## PRIVATE
+       Checks if the calculation of metrics is finished for the column.
+    is_incomplete : Text | Nothing
+    is_incomplete self =
+        if self.implementation.get_metrics self.column . get "computationIncomplete" False then "Still computing indicators..." else Nothing
+
+    ## PRIVATE
        Counts the number of Nothing values.
     count_nothing : Integer | Nothing
     count_nothing self =

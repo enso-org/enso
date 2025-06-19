@@ -2,7 +2,6 @@ package org.enso.table_test_helpers;
 
 import java.util.BitSet;
 import java.util.List;
-
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;

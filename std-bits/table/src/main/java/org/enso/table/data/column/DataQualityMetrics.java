@@ -179,6 +179,8 @@ public abstract class DataQualityMetrics {
       if (currentResult != null) {
         current.put("nothingCount", currentResult.nothingCount);
         current.put("distinctCount", currentResult.distinctCount);
+      } else if (!result.isDone()) {
+        current.put("computationIncomplete", true);
       }
 
       return current;
@@ -246,6 +248,8 @@ public abstract class DataQualityMetrics {
         current.put("minmaxAreSame", currentResult.minimum.equals(currentResult.maximum));
         current.put("minimum", currentResult.minimum);
         current.put("maximum", currentResult.maximum);
+      } else if (!result.isDone()) {
+        current.put("computationIncomplete", true);
       }
 
       return current;
@@ -325,6 +329,8 @@ public abstract class DataQualityMetrics {
         current.put("countEmpty", currentResult.empty);
         current.put("countUntrimmed", currentResult.untrimmed);
         current.put("notTrivialWhitespaceCount", currentResult.notTrivialWhitespace);
+      } else if (!result.isDone()) {
+        current.put("computationIncomplete", true);
       }
 
       return current;
@@ -470,6 +476,8 @@ public abstract class DataQualityMetrics {
       var currentResult = result.getNow(null);
       if (currentResult != null && currentResult.typeRecord != null) {
         current.put("typeRecord", currentResult.typeRecord);
+      } else if (!result.isDone()) {
+        current.put("computationIncomplete", true);
       }
 
       return current;
