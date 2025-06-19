@@ -130,3 +130,9 @@ add_specs suite_builder =
             operation_type_mapping = SQLite_Type_Mapping.operations_dict
 
             operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
