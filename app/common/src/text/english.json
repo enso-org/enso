@@ -1235,5 +1235,6 @@
   "manageLabelsModal.nextColor": "Next color",
   "manageLabelsModal.chooseColor": "Choose a color",
   "manageLabelsModal.labelAlreadyExists": "Label already exists",
-  "manageLabelsModal.selectedLabels": "Selected labels"
+  "manageLabelsModal.selectedLabels": "Selected labels",
+  "resizeThisColumn": "Resize this column"
 }

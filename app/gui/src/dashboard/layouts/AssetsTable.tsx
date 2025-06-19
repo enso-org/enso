@@ -18,6 +18,7 @@ import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
 import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
+import { VisualTooltip } from '#/components/VisualTooltip'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
@@ -1315,7 +1316,13 @@ function AssetsTable(props: AssetsTableProps) {
                       setSortInfo={state.setSortInfo}
                       category={state.category}
                     />
-                    <ColumnResizer className="ColumnResizer relative z-1 mr-1 w-[0.375rem] min-w-[0.375rem] cursor-ew-resize bg-primary/20 transition-colors" />
+                    <VisualTooltip
+                      tooltip={getText('resizeThisColumn')}
+                      tooltipPlacement="top"
+                      className="m-1 w-[0.375rem] min-w-[0.375rem]"
+                    >
+                      <ColumnResizer className="ColumnResizer relative z-1 h-full w-full cursor-ew-resize rounded-full bg-primary/20 transition-colors" />
+                    </VisualTooltip>
                   </div>
                 </TableColumn>
               )
