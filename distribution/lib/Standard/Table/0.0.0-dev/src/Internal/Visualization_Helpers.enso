@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+from project.Internal.Storage import java_to_enso
+
 ## PRIVATE
 type Visualization_Helpers
     ## PRIVATE
@@ -29,12 +31,18 @@ type Visualization_Helpers
     range : Text | Nothing
     range self =
         metrics = self.implementation.get_metrics self.column
-        minimum = metrics.get "minimum" Nothing
+        minimum = java_to_enso (metrics.get "minimum" Nothing)
         if minimum.is_nothing then Nothing else
             if metrics.get "minmaxAreSame" False then minimum.to_display_text else
-                maximum = metrics.get "maximum" Nothing
+                maximum = java_to_enso (metrics.get "maximum" Nothing)
                 if maximum.is_nothing then Nothing else
                     minimum.to_display_text + " - " + maximum.to_display_text
+
+    ## PRIVATE
+       Counts the number of distinct values.
+    type_record : Text | Nothing
+    type_record self =
+        self.implementation.get_metrics self.column . get "typeRecord" Nothing
 
     ## PRIVATE
        Indicates if sampling was used for non-trivial metrics.

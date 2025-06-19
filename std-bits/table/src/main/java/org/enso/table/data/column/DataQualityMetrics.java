@@ -12,12 +12,21 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 import org.enso.base.Text_Utils;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.util.LeastRecentlyUsedCache;
 import org.slf4j.Logger;
@@ -64,24 +73,27 @@ public abstract class DataQualityMetrics {
   }
 
   private static DataQualityMetrics createMetrics(ColumnStorage<?> columnStorage) {
-    return switch (ColumnStorageWithInferredStorage.resolveStorage(columnStorage).getType()) {
-      case NullType nullType -> new NullQualityMetrics(columnStorage);
-      case TextType textType -> new StringQualityMetrics(textType.asTypedStorage(columnStorage));
+    var resolvedStorage = ColumnStorageWithInferredStorage.resolveStorage(columnStorage);
+    return switch (resolvedStorage.getType()) {
+      case NullType nullType -> new NullQualityMetrics(resolvedStorage);
+      case TextType textType -> new StringQualityMetrics(textType.asTypedStorage(resolvedStorage));
       case FloatType floatType -> NumericQualityMetrics.forDouble(
-          floatType.asTypedStorage(columnStorage));
+          floatType.asTypedStorage(resolvedStorage));
       case IntegerType integerType -> NumericQualityMetrics.forLong(
-          integerType.asTypedStorage(columnStorage));
+          integerType.asTypedStorage(resolvedStorage));
       case BigIntegerType bigIntegerType -> NumericQualityMetrics.forBigInteger(
-          bigIntegerType.asTypedStorage(columnStorage));
+          bigIntegerType.asTypedStorage(resolvedStorage));
       case BigDecimalType bigDecimalType -> NumericQualityMetrics.forBigDecimal(
-          bigDecimalType.asTypedStorage(columnStorage));
+          bigDecimalType.asTypedStorage(resolvedStorage));
       case DateType dateType -> new MinMaxQualityMetrics<>(
-          dateType.asTypedStorage(columnStorage), LocalDate::compareTo);
+          dateType.asTypedStorage(resolvedStorage), LocalDate::compareTo);
       case TimeOfDayType timeType -> new MinMaxQualityMetrics<>(
-          timeType.asTypedStorage(columnStorage), LocalTime::compareTo);
+          timeType.asTypedStorage(resolvedStorage), LocalTime::compareTo);
       case DateTimeType dateTimeType -> new MinMaxQualityMetrics<>(
-          dateTimeType.asTypedStorage(columnStorage), ZonedDateTime::compareTo);
-      default -> new BaseQualityMetrics(columnStorage);
+          dateTimeType.asTypedStorage(resolvedStorage), ZonedDateTime::compareTo);
+      case AnyObjectType anyObjectType -> new AnyObjectQualityMetric(
+          anyObjectType.asTypedStorage(resolvedStorage));
+      default -> new BaseQualityMetrics(resolvedStorage);
     };
   }
 
@@ -163,14 +175,10 @@ public abstract class DataQualityMetrics {
     public Map<String, Object> getMetrics() {
       var current = super.getMetrics();
 
-      try {
-        var currentResult = result.getNow(null);
-        if (currentResult != null) {
-          current.put("nothingCount", currentResult.nothingCount);
-          current.put("distinctCount", currentResult.distinctCount);
-        }
-      } catch (CompletionException e) {
-        LOGGER.warn("Failed to compute base metrics for column storage: {}", e.getMessage());
+      var currentResult = result.getNow(null);
+      if (currentResult != null) {
+        current.put("nothingCount", currentResult.nothingCount);
+        current.put("distinctCount", currentResult.distinctCount);
       }
 
       return current;
@@ -233,15 +241,11 @@ public abstract class DataQualityMetrics {
     public Map<String, Object> getMetrics() {
       var current = super.getMetrics();
 
-      try {
-        var currentResult = result.getNow(null);
-        if (currentResult != null && currentResult.minimum != null) {
-          current.put("minmaxAreSame", currentResult.minimum.equals(currentResult.maximum));
-          current.put("minimum", currentResult.minimum);
-          current.put("maximum", currentResult.maximum);
-        }
-      } catch (CompletionException e) {
-        LOGGER.warn("Failed to compute min/max metrics for column storage: {}", e.getMessage());
+      var currentResult = result.getNow(null);
+      if (currentResult != null && currentResult.minimum != null) {
+        current.put("minmaxAreSame", currentResult.minimum.equals(currentResult.maximum));
+        current.put("minimum", currentResult.minimum);
+        current.put("maximum", currentResult.maximum);
       }
 
       return current;
@@ -287,7 +291,7 @@ public abstract class DataQualityMetrics {
               () -> {
                 var accumulator = new Accumulator();
                 DataQualityMetrics.loopOverSample(storage, accumulator::process);
-                return accumulator.getResult(storage.getSize() <= DEFAULT_SAMPLE_SIZE);
+                return accumulator.getResult(storage.getSize() > DEFAULT_SAMPLE_SIZE);
               });
     }
 
@@ -315,17 +319,12 @@ public abstract class DataQualityMetrics {
     public Map<String, Object> getMetrics() {
       var current = super.getMetrics();
 
-      try {
-        var currentResult = result.getNow(null);
-        if (currentResult != null) {
-          current.put("sampled", currentResult.sampled);
-          current.put("countEmpty", currentResult.empty);
-          current.put("untrimmedCount", currentResult.untrimmed);
-          current.put("notTrivialWhitespaceCount", currentResult.notTrivialWhitespace);
-        }
-      } catch (CompletionException e) {
-        LOGGER.warn(
-            "Failed to compute string quality metrics for column storage: {}", e.getMessage());
+      var currentResult = result.getNow(null);
+      if (currentResult != null) {
+        current.put("sampled", currentResult.sampled);
+        current.put("countEmpty", currentResult.empty);
+        current.put("countUntrimmed", currentResult.untrimmed);
+        current.put("notTrivialWhitespaceCount", currentResult.notTrivialWhitespace);
       }
 
       return current;
@@ -397,6 +396,80 @@ public abstract class DataQualityMetrics {
       var currentResult = getNeedsFormatting();
       if (currentResult != null) {
         current.put("needsFormatting", currentResult);
+      }
+
+      return current;
+    }
+  }
+
+  private static class AnyObjectQualityMetric extends BaseQualityMetrics {
+    private static class Accumulator {
+      private final Map<String, Long> typeCounts = new HashMap<>();
+
+      public void process(Object value) {
+        if (value == null) {
+          return;
+        }
+
+        if (value instanceof BigDecimal) {
+          typeCounts.merge("Decimal", 1L, Long::sum);
+        } else if (NumericConverter.isCoercibleToBigInteger(value)) {
+          typeCounts.merge("Integer", 1L, Long::sum);
+        } else if (NumericConverter.isCoercibleToDouble(value)) {
+          typeCounts.merge("Float", 1L, Long::sum);
+        } else if (value instanceof LocalDate) {
+          typeCounts.merge("Date", 1L, Long::sum);
+        } else if (value instanceof LocalTime) {
+          typeCounts.merge("Time", 1L, Long::sum);
+        } else if (value instanceof ZonedDateTime) {
+          typeCounts.merge("Date_Time", 1L, Long::sum);
+        } else if (value instanceof String) {
+          typeCounts.merge("String", 1L, Long::sum);
+        } else if (value instanceof Boolean) {
+          typeCounts.merge("Boolean", 1L, Long::sum);
+        } else {
+          typeCounts.merge("Other", 1L, Long::sum);
+        }
+      }
+
+      public Result getResult() {
+        String typeRecord =
+            typeCounts.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .map(entry -> entry.getKey() + ": " + entry.getValue())
+                .reduce((a, b) -> a + "<br/>" + b)
+                .orElse(null);
+        return new Result(typeRecord);
+      }
+    }
+
+    private record Result(String typeRecord) {}
+
+    private final CompletableFuture<Result> result;
+
+    public AnyObjectQualityMetric(ColumnStorage<Object> storage) {
+      super(storage);
+      this.result =
+          CompletableFuture.supplyAsync(
+              () -> {
+                Accumulator accumulator = new Accumulator();
+                DataQualityMetrics.loopOverAll(storage, accumulator::process);
+                return accumulator.getResult();
+              });
+    }
+
+    public String getTypeRecord() {
+      var current = result.getNow(null);
+      return current != null ? current.typeRecord : null;
+    }
+
+    @Override
+    public Map<String, Object> getMetrics() {
+      var current = super.getMetrics();
+
+      var currentResult = result.getNow(null);
+      if (currentResult != null && currentResult.typeRecord != null) {
+        current.put("typeRecord", currentResult.typeRecord);
       }
 
       return current;
