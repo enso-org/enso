@@ -38,7 +38,7 @@ public class GoogleSheetsForEnso {
   }
 
   public Table getSheetRange(String sheetId, String range) throws IOException {
-    var data = service
+    var raw_data = service
         .spreadsheets()
         .values()
         .get(sheetId, range)
@@ -47,7 +47,7 @@ public class GoogleSheetsForEnso {
         .execute()
         .getValues();
 
-    var columns = data.stream()
+    var columns = raw_data.stream()
         .map(column -> {
             var builder = Builder.getForText(TextType.VARIABLE_LENGTH, column.size());
             column.stream().skip(1).forEach(builder::append);
