@@ -2,15 +2,15 @@ package org.enso.table.data.column.operation.comparators;
 
 import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.operation.unary.NotOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 final class BooleanComparators {
-  public static final BinaryOperation<Boolean> EQ =
+  public static final BinaryOperationTyped<Boolean> EQ =
       new BinaryOperationBoolean(true, false, false) {
         @Override
         protected Boolean applySingle(
@@ -28,7 +28,7 @@ final class BooleanComparators {
         }
       };
 
-  public static final BinaryOperation<Boolean> NEQ =
+  public static final BinaryOperationTyped<Boolean> NEQ =
       new BinaryOperationBoolean(true, false, true) {
         @Override
         protected Boolean applySingle(
@@ -46,7 +46,7 @@ final class BooleanComparators {
         }
       };
 
-  public static final BinaryOperation<Boolean> LT =
+  public static final BinaryOperationTyped<Boolean> LT =
       new BinaryOperationBoolean() {
         @Override
         protected Boolean applySingle(
@@ -67,7 +67,7 @@ final class BooleanComparators {
         }
       };
 
-  public static final BinaryOperation<Boolean> LTE =
+  public static final BinaryOperationTyped<Boolean> LTE =
       new BinaryOperationBoolean() {
         @Override
         protected Boolean applySingle(
@@ -88,7 +88,7 @@ final class BooleanComparators {
         }
       };
 
-  public static final BinaryOperation<Boolean> GT =
+  public static final BinaryOperationTyped<Boolean> GT =
       new BinaryOperationBoolean() {
         @Override
         protected Boolean applySingle(
@@ -109,7 +109,7 @@ final class BooleanComparators {
         }
       };
 
-  public static final BinaryOperation<Boolean> GTE =
+  public static final BinaryOperationTyped<Boolean> GTE =
       new BinaryOperationBoolean() {
         @Override
         protected Boolean applySingle(

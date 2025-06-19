@@ -1,4 +1,4 @@
-package org.enso.os.environment.jni;
+package org.enso.jvm.channel;
 
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;

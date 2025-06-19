@@ -380,7 +380,7 @@ type Snowflake_Dialect
            Window function [FIRST_VALUE(T.A) OVER (PARTITION BY T.B ORDER BY T.C ASC NULLS LAST)] may not appear inside an aggregate function.
     custom_build_aggregate self =
         create_row_number_for orderings key_columns =
-            order_descriptors = orderings.map o-> self.prepare_order_descriptor o.column o.direction text_ordering=Nothing
+            order_descriptors = orderings.map o-> self.prepare_order_descriptor (o.column:Internal_Column) o.direction text_ordering=Nothing
             key_expressions_for_orderings = key_columns.map .expression
             expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
             Pair.new "row-number" expression

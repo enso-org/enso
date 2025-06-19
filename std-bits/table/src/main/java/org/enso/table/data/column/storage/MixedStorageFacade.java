@@ -31,15 +31,8 @@ public class MixedStorageFacade extends Storage<Object>
     return AnyObjectType.INSTANCE;
   }
 
-  @Override
-  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
-    return underlyingStorage.inferPreciseType(options);
-  }
-
   public ColumnStorage<?> getInferredStorage() {
-    return (underlyingStorage instanceof ColumnStorageWithInferredStorage underlyingInferredStorage)
-        ? underlyingInferredStorage.getInferredStorage()
-        : underlyingStorage;
+    return underlyingStorage;
   }
 
   @Override
@@ -50,12 +43,6 @@ public class MixedStorageFacade extends Storage<Object>
   @Override
   public Object getItemBoxed(long idx) {
     return underlyingStorage.getItemBoxed(idx);
-  }
-
-  @Override
-  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    var newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
-    return new MixedStorageFacade(newStorage);
   }
 
   @Override

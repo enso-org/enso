@@ -17,7 +17,6 @@ import project.Fill_With.Fill_With
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Date_Time_Helpers
 import project.Internal.Read_Many_Helpers
-import project.Internal.Type_Refinements.Column_Refinements
 import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Internal.Widget_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
@@ -2220,9 +2219,7 @@ Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 
 ## PRIVATE
    Conversion method from a Column to a Vector.
-Vector.from (that:Column) =
-    if that.underlying.is_a In_Memory_Column then that.to_vector else
-        Error.throw (Illegal_Argument.Error that.to_text+" must be .read into memory before converting to Vector.")
+Vector.from (that:Column) = that.to_vector
 
 ## PRIVATE
    Conversion method to a Table to a Vector.
@@ -2242,19 +2239,13 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_wit
 
 ## PRIVATE
 Many_Files_List.from (that : Column) =
-    # Ensure that only in-memory columns can be used as Many_Files_List
-    (that:In_Memory_Column).if_not_error <|
-        Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
-            Many_Files_List.Value that that.to_vector
+    Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
+        Many_Files_List.Value that that.to_vector
 
 ## PRIVATE
    Gets the Visualization helpers for a Column.
 Visualization_Helpers.from (that : Column) =
     Visualization_Helpers.from that.underlying
-
-## PRIVATE
-Numeric_Column.from (that : Column) =
-    Numeric_Column.from that.underlying
 
 ## PRIVATE
    Resolves the default date period for `date_add` depending on the source column value type.

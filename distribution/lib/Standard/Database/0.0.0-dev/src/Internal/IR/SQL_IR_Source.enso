@@ -159,13 +159,13 @@ type SQL_IR_Source
     as_subquery self alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
         rewrite_internal_column column =
-            Internal_Column.Value column.name column.sql_type_reference (SQL_IR_Expression.Column alias column.name)
+            Internal_Column.Value column.name (column:Internal_Column).sql_type_reference (SQL_IR_Expression.Column alias column.name)
 
         new_columns = column_lists.map on_problems=No_Wrap.Value columns->
             columns.map on_problems=No_Wrap.Value rewrite_internal_column
 
         encapsulated_columns = column_lists.flat_map columns->
-            columns.map column-> [column.name, column.expression]
+            columns.map column-> [column.name, (column:Internal_Column).expression]
         new_from = SQL_IR_From_Part.Sub_Query encapsulated_columns self alias
 
         Subquery_Setup.Value new_from new_columns rewrite_internal_column

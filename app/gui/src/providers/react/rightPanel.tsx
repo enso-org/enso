@@ -12,9 +12,11 @@ export const RightPanelDataProviderForReact = applyPureReactInVue(
   },
   {
     useInjectPropsFromWrapper: () => {
-      return {
+      const result = {
         value: useRightPanelDataVue(),
       }
+      // Avoid annoying warning about __veauryInjectedProps__ property by returning a function.
+      return () => result
     },
   },
 )

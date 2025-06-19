@@ -4,6 +4,7 @@ import java.util.function.LongFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -40,7 +41,7 @@ public final class IfOperation {
       StorageType<T> resultStorageType,
       ProblemAggregator problemAggregator) {
     // Check if the condition is valid
-    var conditionStorage = BinaryOperation.getInferredStorage(condition);
+    var conditionStorage = ColumnStorageWithInferredStorage.resolveStorage(condition);
     if (!canApply(conditionStorage)) {
       throw new IllegalStateException(
           "Unsupported condition type: "

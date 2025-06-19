@@ -10,10 +10,11 @@ import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from project.Semantic.Type_Refinement.Types import A, B, make_a_and_b
+from project.Semantic.Type_Refinement.Types import A, B, X, make_a_and_b, make_abx
 
 id_a (x : A) -> A = x
 id_b (x : B) -> B = x
+id_x (x : X) -> X = x
 
 type C
     C_Ctor x
@@ -29,6 +30,12 @@ add_specs suite_builder =
             Test.expect_panic Type_Error (just_a:B)
             Test.expect_panic No_Such_Conversion (B.from just_a)
             Test.expect_panic Type_Error (id_b just_a)
+
+        group_builder.specify "conversion A&B -> X should not be available" <|
+            ab = make_a_and_b
+            Test.expect_panic Type_Error (ab:X)
+            Test.expect_panic No_Such_Conversion (X.from ab)
+            Test.expect_panic Type_Error (id_x ab)
 
         group_builder.specify "make_a_and_b->A&B presents as both A and B" <|
             ab = make_a_and_b
@@ -352,6 +359,22 @@ add_specs suite_builder =
             r3.is_a B . should_be_true
             r3.a_method . should_equal "A method"
             r3.b_method . should_equal "B method"
+
+        group_builder.specify "narrowing A & B & X to A & B should hide X but allow to unhide it via cast" <|
+            abx = make_abx
+            abx.a_method.should_equal "A method"
+            abx.b_method.should_equal "B method"
+            abx.x_method.should_equal "X method"
+
+            ab = (abx : A & B)
+            ab.a_method.should_equal "A method"
+            ab.b_method.should_equal "B method"
+
+            # X is hidden in A & B
+            Test.expect_panic No_Such_Method (ab.x_method)
+            # but should still be possible to uncover it
+            x = (ab:X)
+            x.x_method.should_equal "X method"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

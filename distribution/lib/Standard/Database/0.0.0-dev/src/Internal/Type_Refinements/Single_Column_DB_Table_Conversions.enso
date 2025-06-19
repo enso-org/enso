@@ -17,5 +17,5 @@ DB_Column.from (that : DB_Table) -> DB_Column =
     that.at 0
 
 ## This conversion is internal and should never be exported.
-Column.from (that : DB_Table) -> DB_Column =
+Column.from (that : DB_Table) =
     Column.from (DB_Column.from that)

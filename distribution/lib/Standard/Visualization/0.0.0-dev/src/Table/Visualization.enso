@@ -35,8 +35,7 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
             all_rows_count = t.row_count
             make_json_for_table t max_rows all_rows_count False False
         c : Column ->
-            is_database = (c:DB_Column).if_not_error True . catch Illegal_Argument _->False
-            case is_database of
+            case DB_Column.is_database_column c of
                 False -> make_json_for_table c.to_table max_rows c.length False True
                 True -> _make_json_for_db_table c.to_table max_rows is_column=True
         t : DB_Table -> _make_json_for_db_table t max_rows is_column=False
