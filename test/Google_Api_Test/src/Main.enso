@@ -80,6 +80,11 @@ add_specs suite_builder =
             ws = wb.read 'NoData' ..Detect_Headers
             ws.should_fail_with Empty_Sheet
             ws.catch.to_display_text . should_contain 'There is no data in the sheet.'
+        group_builder.specify "One row of data gives no headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GS')
+            ws = wb.read '1RowStringData' ..Detect_Headers
+            ws . should_equal (Table.new [['A', ['X']],['B', ['Y']],['C', ['Z']]])
 
 
 
