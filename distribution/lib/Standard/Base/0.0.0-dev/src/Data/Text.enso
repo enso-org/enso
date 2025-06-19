@@ -1,4 +1,3 @@
-import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Text.Normalization.Normalization

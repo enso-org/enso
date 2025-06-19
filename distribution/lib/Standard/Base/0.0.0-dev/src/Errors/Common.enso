@@ -7,8 +7,6 @@ import project.Function.Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Runtime
-import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import False, True
 
 polyglot java import java.lang.ArithmeticException

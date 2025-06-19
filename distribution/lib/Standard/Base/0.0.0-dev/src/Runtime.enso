@@ -13,7 +13,6 @@ import project.Internal.Runtime_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
-import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import Boolean, True
 from project.Data.Text.Extensions import all
 from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output
@@ -111,7 +110,6 @@ value_for_uuid id:Text -> Any = Meta_Helpers.instrumentor_builtin "uuid" id
 ## PRIVATE
    Converts a primitive stack trace element into the regular one.
 private wrap_primitive_stack_trace_element el =
-    loc = if Polyglot.has_source_location el then Source_Location.Value (Polyglot.get_source_location el) else Nothing
     name = Panic.catch Type_Error (Polyglot.get_executable_name el) _->
         # Workaround for a bug where some stack frames' root nodes do not have a name.
         "<unknown node>"
@@ -123,12 +121,10 @@ private wrap_primitive_stack_trace_element el =
    Represents a single stack frame in an Enso stack trace.
 type Stack_Trace_Element
     ## PRIVATE
-    Value name source_location
 
     ## PRIVATE
     to_display_text : Text
     to_display_text self =
-        loc = case self.source_location of
             Nothing -> "Unknown location"
             loc -> loc.formatted_coordinates
         "at "+self.name+" ("+loc+")"

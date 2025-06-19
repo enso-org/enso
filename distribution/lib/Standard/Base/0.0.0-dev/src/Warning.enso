@@ -8,8 +8,6 @@ import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Nothing.Nothing
-import project.Runtime
-import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False
 from project.Function import flip
 

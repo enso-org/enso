@@ -15,7 +15,6 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Wrapped_Error.Wrapped_Error
 import project.Internal.Array_Like_Helpers
-import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
