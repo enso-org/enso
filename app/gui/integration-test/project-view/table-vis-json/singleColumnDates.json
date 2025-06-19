@@ -1,7 +1,5 @@
 {
-  "header": [
-    "Value"
-  ],
+  "header": ["Value"],
   "value_type": [
     {
       "type": "Value_Type",
@@ -45,34 +43,24 @@
   "data_quality_metrics": [
     {
       "name": "Range",
-      "values": [
-        "2025-01-01 - 2025-01-03"
-      ],
+      "values": ["2025-01-01 - 2025-01-03"],
       "type": "Text"
     },
     {
       "name": "Number of distinct",
-      "values": [
-        3
-      ],
+      "values": [3],
       "type": "Count"
     },
     {
       "name": "% nothing",
-      "values": [
-        0
-      ],
+      "values": [0],
       "type": "Percentage"
     }
   ],
   "type": "EnsoTableOrColumn",
   "child_label": "row",
   "is_using_server_sort_and_filter": false,
-  "requires_number_format": [
-    false
-  ],
+  "requires_number_format": [false],
   "table_version_hash": null,
-  "is_using_multi_filter": [
-    true
-  ]
+  "is_using_multi_filter": [true]
 }
