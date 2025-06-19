@@ -8,7 +8,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.problems.BlackholeProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
@@ -38,7 +38,7 @@ public class GoogleSheetsForEnso {
     return new GoogleSheetsForEnso(builder.build());
   }
 
-  public Table getSheetRange(String sheetId, String range, GoogleSheetsHeaders.HeaderBehavior headers) throws IOException {
+  public Table getSheetRange(String sheetId, String range, GoogleSheetsHeaders.HeaderBehavior headers, ProblemAggregator problemAggregator) throws IOException {
     var rawData = service
         .spreadsheets()
         .values()
@@ -63,7 +63,7 @@ public class GoogleSheetsForEnso {
     GoogleSheetsHeaders columnNames = new GoogleSheetsHeaders(
               headers,
               firstTwoRows,
-              BlackholeProblemAggregator.INSTANCE);
+              problemAggregator);
 
     Column[] columns = new Column[rawData.size()];
     var skipRowCount = headers != GoogleSheetsHeaders.HeaderBehavior.DEFAULT_COLUMN_NAMES ? 1 : 0;
