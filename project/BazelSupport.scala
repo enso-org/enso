@@ -16,9 +16,9 @@ import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
   * The basic support for Bazel was added in https://github.com/enso-org/enso/pull/13239
   */
 object BazelSupport extends AutoPlugin {
-  val ENABLED_PROP = "enso.BazelSupport.enabled"
+  val ENABLED_PROP                  = "enso.BazelSupport.enabled"
   val RUST_PARSER_JAVA_SRC_DIR_PROP = "enso.BazelSupport.parser.javaSrcDir"
-  val RUST_PARSER_LIB_PROP         = "enso.BazelSupport.parser.lib"
+  val RUST_PARSER_LIB_PROP          = "enso.BazelSupport.parser.lib"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
@@ -58,7 +58,13 @@ object BazelSupport extends AutoPlugin {
     Seq(
       Bazel / rustParserJavaSourceDir := {
         val prop = System.getProperty(RUST_PARSER_JAVA_SRC_DIR_PROP)
-        new File(prop)
+        if (prop != null) {
+          new File(prop)
+        } else {
+          // We don't care if the file does not exist. If the prop is not set,
+          // it should not be used at all.
+          new File("FOO")
+        }
       },
       Bazel / rustParserJavaSources := {
         val logger = streams.value.log
@@ -73,8 +79,8 @@ object BazelSupport extends AutoPlugin {
         FileUtils.listFiles(srcDir, Array("java"), true).asScala.toSeq
       },
       Bazel / rustParserLib := {
-        val logger  = streams.value.log
-        val prop = System.getProperty(RUST_PARSER_LIB_PROP)
+        val logger = streams.value.log
+        val prop   = System.getProperty(RUST_PARSER_LIB_PROP)
         if (prop == null) {
           logger.error(
             s"Rust parser library not set in ${RUST_PARSER_LIB_PROP} property."

@@ -200,7 +200,7 @@ object DistributionPackage {
     stdLibVersion: String,
     ensoVersion: String,
     stdLibRoot: File,
-    ensoExecutable: File,
+    javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
     log: Logger
   ): Unit = {
@@ -212,7 +212,7 @@ object DistributionPackage {
         libName,
         stdLibVersion,
         ensoVersion,
-        ensoExecutable,
+        javaOpts,
         cacheFactory,
         log
       )
@@ -223,7 +223,7 @@ object DistributionPackage {
     libName: File,
     stdLibVersion: String,
     ensoVersion: String,
-    ensoExecutable: File,
+    javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
     log: Logger
   ): Unit = {
@@ -237,89 +237,66 @@ object DistributionPackage {
     ) { diff =>
       if (diff.modified.nonEmpty) {
         log.info(s"Generating index for $libName ")
-        val fileToExecute = new File(
-          ensoExecutable.getParentFile,
-          batOrExeName(ensoExecutable.getName)
-        )
 
-        def assertExecutable(when: String) = {
-          if (!fileToExecute.canExecute()) {
-            log.warn(s"Not an executable file ${fileToExecute} $when")
-            var dir = fileToExecute
-            while (dir != null && !dir.exists()) {
-              dir = dir.getParentFile
-            }
-            var count = 0
-            if (dir != null) {
-              log.warn(s"Content of ${dir}")
-              Option(dir.listFiles).map(_.map { file =>
-                log.warn(s"  ${file}")
-                count += 1
-              })
-            }
-            log.warn(s"Found ${count} files.")
-          }
-        }
-        assertExecutable("before launching")
+        val javaCommand =
+          ProcessHandle.current().info().command().asScala.getOrElse("java")
+
         val command = Seq(
-          fileToExecute.getAbsolutePath,
+          javaCommand
+        ) ++ javaOpts ++ Seq(
           "--no-compile-dependencies",
           "--no-global-cache",
           "--compile",
           path.getAbsolutePath
         )
         log.debug(command.mkString(" "))
-        try {
-          val runningProcess = Process(
-            command,
-            Some(path.getAbsoluteFile.getParentFile),
-            "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
-          ).run
-          // Poor man's solution to stuck index generation
-          val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
-          var current                  = 0
-          var timeout                  = false
-          while (runningProcess.isAlive() && !timeout) {
-            if (current > GENERATING_INDEX_TIMEOUT) {
-              java.lang.System.err
-                .println(
-                  "Reached timeout when generating index. Terminating..."
-                )
-              try {
-                val pidOfProcess = pid(runningProcess)
-                val javaHome     = System.getProperty("java.home")
-                val jstack =
-                  if (javaHome == null) "jstack"
-                  else
-                    Paths.get(javaHome, "bin", "jstack").toAbsolutePath.toString
-                val in = java.lang.Runtime.getRuntime
-                  .exec(Array(jstack, pidOfProcess.toString))
-                  .getInputStream
+        val runningProcess = Process(
+          command,
+          Some(path.getAbsoluteFile.getParentFile),
+          "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
+        ).run()
+        // Poor man's solution to stuck index generation
+        val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
+        var current                  = 0
+        var timeout                  = false
+        while (runningProcess.isAlive() && !timeout) {
+          if (current > GENERATING_INDEX_TIMEOUT) {
+            java.lang.System.err
+              .println(
+                "Reached timeout when generating index. Terminating..."
+              )
+            try {
+              val pidOfProcess = pid(runningProcess)
+              val javaHome     = System.getProperty("java.home")
+              val jstack =
+                if (javaHome == null) "jstack"
+                else
+                  Paths.get(javaHome, "bin", "jstack").toAbsolutePath.toString
+              val in = java.lang.Runtime.getRuntime
+                .exec(Array(jstack, pidOfProcess.toString))
+                .getInputStream
 
-                System.err.println(IOUtils.toString(in, "UTF-8"))
-              } catch {
-                case e: Throwable =>
-                  java.lang.System.err
-                    .println("Failed to get threaddump of a stuck process", e);
-              } finally {
-                timeout = true
-                runningProcess.destroy()
-              }
-            } else {
-              Thread.sleep(1000)
-              current += 1
+              System.err.println(IOUtils.toString(in, "UTF-8"))
+            } catch {
+              case e: Throwable =>
+                java.lang.System.err
+                  .println("Failed to get threaddump of a stuck process", e);
+            } finally {
+              timeout = true
+              runningProcess.destroy()
             }
+          } else {
+            Thread.sleep(1000)
+            current += 1
           }
-          if (timeout) {
-            throw new RuntimeException(
-              s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
-            )
-          }
-          if (runningProcess.exitValue() != 0) {
-            throw new RuntimeException(s"Cannot compile $libName.")
-          }
-        } finally {
-          assertExecutable("after execution")
+        }
+        if (timeout) {
+          throw new RuntimeException(
+            s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
+          )
+        }
+        if (runningProcess.exitValue() != 0) {
+          throw new RuntimeException(s"Cannot compile $libName.")
         }
       } else {
         log.debug(s"No modified files. Not generating index for $libName.")

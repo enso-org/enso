@@ -3878,7 +3878,6 @@ lazy val `engine-runner` = project
       // files this way.
       Package.ManifestAttributes(("Multi-Release", "true"))
     ),
-    Compile / run / mainClass := Some("org.enso.runner.Main"),
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= GraalVM.modules ++ GraalVM.toolsPkgs ++ jline ++ Seq(
@@ -3920,6 +3919,20 @@ lazy val `engine-runner` = project
       (`logging-utils` / Compile / exportedModule).value
     ),
     run / connectInput := true
+  )
+  .settings(
+    Runtime / javaOptions ++= {
+      val runnerCp   = (Runtime / fullClasspath).value
+      val runtimeCp  = (`runtime` / Runtime / fullClasspath).value
+      val fullCp     = (runnerCp ++ runtimeCp).distinct
+      val modulePath = componentModulesPaths.value
+      Seq(
+        "--module-path",
+        modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
+        "-m",
+        "org.enso.runner/org.enso.runner.Main"
+      )
+    }
   )
   .settings(
     NativeImage.smallJdk := Some(buildSmallJdk.value),
@@ -5834,18 +5847,18 @@ lazy val createStdLibsIndexes =
 createStdLibsIndexes := {
   updateLibraryManifests.value
   buildEngineDistributionNoIndex.value
-  val modulesToCopy    = componentModulesPaths.value
   val distributionRoot = engineDistributionRoot.value
   val log              = streams.value.log
   val cacheFactory     = streams.value.cacheStoreFactory
+  val javaOpts         = (`engine-runner` / Runtime / javaOptions).value
 
   DistributionPackage.indexStdLibs(
-    stdLibVersion  = targetStdlibVersion,
-    ensoVersion    = ensoVersion,
-    stdLibRoot     = distributionRoot / "lib",
-    ensoExecutable = distributionRoot / "bin" / "enso",
-    cacheFactory   = cacheFactory.sub("stdlib"),
-    log            = log
+    stdLibVersion = targetStdlibVersion,
+    ensoVersion   = ensoVersion,
+    stdLibRoot    = distributionRoot / "lib",
+    javaOpts      = javaOpts,
+    cacheFactory  = cacheFactory.sub("stdlib"),
+    log           = log
   )
   log.info(s"Standard library indexes create for $distributionRoot")
 }
@@ -6144,13 +6157,14 @@ pkgStdLibInternal := Def.inputTask {
     )
     if (generateIndex) {
       val stdlibStandardRoot = root / "lib" / standardNamespace
+      val javaOpts           = (`engine-runner` / Runtime / javaOptions).value
       DistributionPackage.indexStdLib(
-        libName        = stdlibStandardRoot / lib,
-        stdLibVersion  = defaultDevEnsoVersion,
-        ensoVersion    = defaultDevEnsoVersion,
-        ensoExecutable = root / "bin" / "enso",
-        cacheFactory   = cacheFactory.sub("stdlib"),
-        log            = log
+        libName       = stdlibStandardRoot / lib,
+        stdLibVersion = defaultDevEnsoVersion,
+        ensoVersion   = defaultDevEnsoVersion,
+        javaOpts      = javaOpts,
+        cacheFactory  = cacheFactory.sub("stdlib"),
+        log           = log
       )
     }
   }
