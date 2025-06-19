@@ -38,6 +38,10 @@ class AttachVisualizationCmd(
         )
       )
 
+    ctx.endpoint.sendToClient(
+      Api.Response(maybeRequestId, Api.VisualizationAttached())
+    )
+
     maybeFutureExecutable.flatMap {
       case UpsertVisualizationJob.EmptyStack =>
         Future.successful {
@@ -51,16 +55,9 @@ class AttachVisualizationCmd(
           )
         }
       case UpsertVisualizationJob.RequiresExecution(executable) =>
-        ctx.endpoint.sendToClient(
-          Api.Response(maybeRequestId, Api.VisualizationAttached())
-        )
         ctx.jobProcessor.run(ExecuteJob(executable))
-      case UpsertVisualizationJob.NoExecution =>
-        Future.successful {
-          ctx.endpoint.sendToClient(
-            Api.Response(maybeRequestId, Api.VisualizationAttached())
-          )
-        }
+      case _ =>
+        Future.successful(())
     }
   }
 
