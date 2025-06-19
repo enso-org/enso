@@ -3,7 +3,6 @@ package org.enso.google;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.TextType;
@@ -48,27 +47,13 @@ public class GoogleSheetsForEnso {
         .execute()
         .getValues();
 
-    var builders = new Builder[data.size()];
-    for (int i = 0; i < data.size(); i++) {
-      builders[i] = Builder.getForText(TextType.VARIABLE_LENGTH, data.get(i).size());
-    }
-    
-    for (int i = 0; i < data.size(); i++) {
-      var column = data.get(i);
-      var builder = builders[i];
-      for (int j = 1; j < column.size(); j++) {
-        builder.append(column.get(j));
-      }
-    }
-          // Convert to Java Table
-      var columns =
-          IntStream.range(0, builders.length)
-              .mapToObj(
-                  i ->
-                      new Column(
-                          data.get(i).get(0).toString(),
-                          builders[i].seal()))
-              .toArray(Column[]::new);
+    var columns = data.stream()
+        .map(column -> {
+            var builder = Builder.getForText(TextType.VARIABLE_LENGTH, column.size());
+            column.stream().skip(1).forEach(builder::append);
+            return new Column(column.get(0).toString(), builder.seal());
+        })
+        .toArray(Column[]::new);
       return new Table(columns);
   }
 
