@@ -95,7 +95,8 @@ final class DefaultWatcher implements Watcher {
           return;
         }
         var dir = (Path) key.watchable();
-        assert watchedDirs.containsKey(dir) : "Directory " + dir + " is not registered in watchedDirs";
+        assert watchedDirs.containsKey(dir)
+            : "Directory " + dir + " is not registered in watchedDirs";
         for (var event : key.pollEvents()) {
           dispatchEvent(event, dir);
         }
