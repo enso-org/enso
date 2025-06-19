@@ -36,7 +36,7 @@ public class CountNothing {
 
     var accumulator = new Accumulator();
     StorageIterators.forEachOverStorage(
-        storage, true, (value, index) -> accumulator.process(value));
+        storage, true, (index, value) -> accumulator.process(value));
     return accumulator.getCount();
   }
 

@@ -29,11 +29,8 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.util.LeastRecentlyUsedCache;
-import org.slf4j.Logger;
 
 public abstract class DataQualityMetrics {
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(DataQualityMetrics.class);
-
   // Default seed for random number generation (no specific reason for this value, just stability on
   // results).
   public static final long RANDOM_SEED = 677280131;
