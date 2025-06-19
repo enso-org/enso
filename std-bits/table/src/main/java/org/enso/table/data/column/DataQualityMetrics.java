@@ -14,8 +14,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
-
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
@@ -60,20 +58,29 @@ public abstract class DataQualityMetrics {
    * @return a DataQualityMetrics instance
    */
   public static DataQualityMetrics get(ColumnStorage<?> columnStorage) {
-    return cachedMetrics().computeIfAbsent(columnStorage.uniqueKey(), k -> DataQualityMetrics.createMetrics(columnStorage));
+    return cachedMetrics()
+        .computeIfAbsent(
+            columnStorage.uniqueKey(), k -> DataQualityMetrics.createMetrics(columnStorage));
   }
 
   private static DataQualityMetrics createMetrics(ColumnStorage<?> columnStorage) {
     return switch (ColumnStorageWithInferredStorage.resolveStorage(columnStorage).getType()) {
       case NullType nullType -> new NullQualityMetrics(columnStorage);
       case TextType textType -> new StringQualityMetrics(textType.asTypedStorage(columnStorage));
-      case FloatType floatType -> NumericQualityMetrics.forDouble(floatType.asTypedStorage(columnStorage));
-      case IntegerType integerType -> NumericQualityMetrics.forLong(integerType.asTypedStorage(columnStorage));
-      case BigIntegerType bigIntegerType -> NumericQualityMetrics.forBigInteger(bigIntegerType.asTypedStorage(columnStorage));
-      case BigDecimalType bigDecimalType -> NumericQualityMetrics.forBigDecimal(bigDecimalType.asTypedStorage(columnStorage));
-      case DateType dateType -> new MinMaxQualityMetrics<>(dateType.asTypedStorage(columnStorage), LocalDate::compareTo);
-      case TimeOfDayType timeType -> new MinMaxQualityMetrics<>(timeType.asTypedStorage(columnStorage), LocalTime::compareTo);
-      case DateTimeType dateTimeType -> new MinMaxQualityMetrics<>(dateTimeType.asTypedStorage(columnStorage), ZonedDateTime::compareTo);
+      case FloatType floatType -> NumericQualityMetrics.forDouble(
+          floatType.asTypedStorage(columnStorage));
+      case IntegerType integerType -> NumericQualityMetrics.forLong(
+          integerType.asTypedStorage(columnStorage));
+      case BigIntegerType bigIntegerType -> NumericQualityMetrics.forBigInteger(
+          bigIntegerType.asTypedStorage(columnStorage));
+      case BigDecimalType bigDecimalType -> NumericQualityMetrics.forBigDecimal(
+          bigDecimalType.asTypedStorage(columnStorage));
+      case DateType dateType -> new MinMaxQualityMetrics<>(
+          dateType.asTypedStorage(columnStorage), LocalDate::compareTo);
+      case TimeOfDayType timeType -> new MinMaxQualityMetrics<>(
+          timeType.asTypedStorage(columnStorage), LocalTime::compareTo);
+      case DateTimeType dateTimeType -> new MinMaxQualityMetrics<>(
+          dateTimeType.asTypedStorage(columnStorage), ZonedDateTime::compareTo);
       default -> new BaseQualityMetrics(columnStorage);
     };
   }
@@ -124,8 +131,7 @@ public abstract class DataQualityMetrics {
       }
     }
 
-    private record Result(long nothingCount, long distinctCount) {
-    }
+    private record Result(long nothingCount, long distinctCount) {}
 
     private final CompletableFuture<Result> result;
 
@@ -198,8 +204,7 @@ public abstract class DataQualityMetrics {
       }
     }
 
-    private record Result<T>(T minimum, T maximum) {
-    }
+    private record Result<T>(T minimum, T maximum) {}
 
     private final CompletableFuture<Result<T>> result;
 
@@ -319,7 +324,8 @@ public abstract class DataQualityMetrics {
           current.put("notTrivialWhitespaceCount", currentResult.notTrivialWhitespace);
         }
       } catch (CompletionException e) {
-        LOGGER.warn("Failed to compute string quality metrics for column storage: {}", e.getMessage());
+        LOGGER.warn(
+            "Failed to compute string quality metrics for column storage: {}", e.getMessage());
       }
 
       return current;
@@ -330,26 +336,39 @@ public abstract class DataQualityMetrics {
     private static final long FORMAT_NUMBER_LIMIT = 999999;
 
     public static NumericQualityMetrics<Double> forDouble(ColumnStorage<Double> storage) {
-      return new NumericQualityMetrics<>(storage, Double::compareTo, (double)-FORMAT_NUMBER_LIMIT, (double)FORMAT_NUMBER_LIMIT);
+      return new NumericQualityMetrics<>(
+          storage, Double::compareTo, (double) -FORMAT_NUMBER_LIMIT, (double) FORMAT_NUMBER_LIMIT);
     }
 
     public static NumericQualityMetrics<Long> forLong(ColumnStorage<Long> storage) {
-      return new NumericQualityMetrics<>(storage, Long::compareTo, -FORMAT_NUMBER_LIMIT, FORMAT_NUMBER_LIMIT);
+      return new NumericQualityMetrics<>(
+          storage, Long::compareTo, -FORMAT_NUMBER_LIMIT, FORMAT_NUMBER_LIMIT);
     }
 
-    public static NumericQualityMetrics<BigInteger> forBigInteger(ColumnStorage<BigInteger> storage) {
-      return new NumericQualityMetrics<>(storage, BigInteger::compareTo, BigInteger.valueOf(-FORMAT_NUMBER_LIMIT), BigInteger.valueOf(FORMAT_NUMBER_LIMIT));
+    public static NumericQualityMetrics<BigInteger> forBigInteger(
+        ColumnStorage<BigInteger> storage) {
+      return new NumericQualityMetrics<>(
+          storage,
+          BigInteger::compareTo,
+          BigInteger.valueOf(-FORMAT_NUMBER_LIMIT),
+          BigInteger.valueOf(FORMAT_NUMBER_LIMIT));
     }
 
-    public static NumericQualityMetrics<BigDecimal> forBigDecimal(ColumnStorage<BigDecimal> storage) {
-      return new NumericQualityMetrics<>(storage, BigDecimal::compareTo, BigDecimal.valueOf(-FORMAT_NUMBER_LIMIT), BigDecimal.valueOf(FORMAT_NUMBER_LIMIT));
+    public static NumericQualityMetrics<BigDecimal> forBigDecimal(
+        ColumnStorage<BigDecimal> storage) {
+      return new NumericQualityMetrics<>(
+          storage,
+          BigDecimal::compareTo,
+          BigDecimal.valueOf(-FORMAT_NUMBER_LIMIT),
+          BigDecimal.valueOf(FORMAT_NUMBER_LIMIT));
     }
 
     private final Comparator<T> comparator;
     private final T minLimit;
     private final T maxLimit;
 
-    private NumericQualityMetrics(ColumnStorage<T> storage, Comparator<T> comparator, T minLimit, T maxLimit) {
+    private NumericQualityMetrics(
+        ColumnStorage<T> storage, Comparator<T> comparator, T minLimit, T maxLimit) {
       super(storage, comparator);
       this.comparator = comparator;
       this.minLimit = minLimit;
@@ -367,7 +386,8 @@ public abstract class DataQualityMetrics {
         return null;
       }
 
-      return (comparator.compare(minimum, minLimit) < 0) || (comparator.compare(maximum, maxLimit) > 0);
+      return (comparator.compare(minimum, minLimit) < 0)
+          || (comparator.compare(maximum, maxLimit) > 0);
     }
 
     @Override

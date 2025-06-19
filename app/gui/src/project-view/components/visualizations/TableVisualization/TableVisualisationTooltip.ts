@@ -31,7 +31,7 @@ export class TableVisualisationTooltip implements ITooltipComp {
       color: '#333',
     })
 
-    const getPercentage = (value: number) => ((value / params.total) * 100)
+    const getPercentage = (value: number) => (value / params.total) * 100
     const createIndicator = (value: number) => {
       const color =
         value < 33 ? 'green'
@@ -42,8 +42,11 @@ export class TableVisualisationTooltip implements ITooltipComp {
 
     const getDataQualityTemplate = () => {
       let template = ''
-      params.dataQualityMetrics.forEach(obj => {
-        const rendered = obj.displayType === 'Percentage' ? `${getPercentage(obj.value).toFixed(2)}% ${createIndicator(getPercentage(obj.value))}` : `${obj.value}`
+      params.dataQualityMetrics.forEach((obj) => {
+        const rendered =
+          obj.displayType === 'Percentage' ?
+            `${getPercentage(obj.value).toFixed(2)}% ${createIndicator(getPercentage(obj.value))}`
+          : `${obj.value}`
         const metricTemplate = `<div>${obj.name}: ${rendered}</div>`
         template = template + metricTemplate
       })

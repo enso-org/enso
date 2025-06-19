@@ -31,10 +31,10 @@ type Visualization_Helpers
         metrics = self.implementation.get_metrics self.column
         minimum = metrics.get "minimum" Nothing
         if minimum.is_nothing then Nothing else
-            if metrics.get "minmaxAreSame" False then minimum.to_text else
+            if metrics.get "minmaxAreSame" False then minimum.to_display_text else
                 maximum = metrics.get "maximum" Nothing
                 if maximum.is_nothing then Nothing else
-                    minimum.to_text + " - " + maximum.to_text
+                    minimum.to_display_text + " - " + maximum.to_display_text
 
     ## PRIVATE
        Indicates if sampling was used for non-trivial metrics.
