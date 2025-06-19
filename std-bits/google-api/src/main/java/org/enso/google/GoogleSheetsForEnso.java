@@ -3,6 +3,12 @@ package org.enso.google;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.stream.IntStream;
+
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Table;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
@@ -32,8 +38,8 @@ public class GoogleSheetsForEnso {
     return new GoogleSheetsForEnso(builder.build());
   }
 
-  public List<List<Object>> getSheetRange(String sheetId, String range) throws IOException {
-    return service
+  public Table getSheetRange(String sheetId, String range) throws IOException {
+    var data = service
         .spreadsheets()
         .values()
         .get(sheetId, range)
@@ -41,6 +47,29 @@ public class GoogleSheetsForEnso {
         .setValueRenderOption("UNFORMATTED_VALUE")
         .execute()
         .getValues();
+
+    var builders = new Builder[data.size()];
+    for (int i = 0; i < data.size(); i++) {
+      builders[i] = Builder.getForText(TextType.VARIABLE_LENGTH, data.get(i).size());
+    }
+    
+    for (int i = 0; i < data.size(); i++) {
+      var column = data.get(i);
+      var builder = builders[i];
+      for (int j = 1; j < column.size(); j++) {
+        builder.append(column.get(j));
+      }
+    }
+          // Convert to Java Table
+      var columns =
+          IntStream.range(0, builders.length)
+              .mapToObj(
+                  i ->
+                      new Column(
+                          data.get(i).get(0).toString(),
+                          builders[i].seal()))
+              .toArray(Column[]::new);
+      return new Table(columns);
   }
 
   public List<String> getSheetNames(String workbookId) throws IOException {
