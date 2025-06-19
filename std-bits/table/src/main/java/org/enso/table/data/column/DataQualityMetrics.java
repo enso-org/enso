@@ -2,24 +2,31 @@ package org.enso.table.data.column;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.NumericType;
-import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 import org.enso.table.util.LeastRecentlyUsedCache;
+import org.slf4j.Logger;
 
 public abstract class DataQualityMetrics {
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(DataQualityMetrics.class);
+
   // Default seed for random number generation (no specific reason for this value, just stability on
   // results).
   public static final long RANDOM_SEED = 677280131;
@@ -57,12 +64,16 @@ public abstract class DataQualityMetrics {
   }
 
   private static DataQualityMetrics createMetrics(ColumnStorage<?> columnStorage) {
-    return switch (columnStorage.getType()) {
+    return switch (ColumnStorageWithInferredStorage.resolveStorage(columnStorage).getType()) {
       case NullType nullType -> new NullQualityMetrics(columnStorage);
       case TextType textType -> new StringQualityMetrics(textType.asTypedStorage(columnStorage));
-      case AnyObjectType anyObjectType -> new StringQualityMetrics(
-          anyObjectType.asTypedStorage(columnStorage), true);
-      case NumericType numericType -> new NumericQualityMetrics(columnStorage);
+      case FloatType floatType -> NumericQualityMetrics.forDouble(floatType.asTypedStorage(columnStorage));
+      case IntegerType integerType -> NumericQualityMetrics.forLong(integerType.asTypedStorage(columnStorage));
+      case BigIntegerType bigIntegerType -> NumericQualityMetrics.forBigInteger(bigIntegerType.asTypedStorage(columnStorage));
+      case BigDecimalType bigDecimalType -> NumericQualityMetrics.forBigDecimal(bigDecimalType.asTypedStorage(columnStorage));
+      case DateType dateType -> new MinMaxQualityMetrics<>(dateType.asTypedStorage(columnStorage), LocalDate::compareTo);
+      case TimeOfDayType timeType -> new MinMaxQualityMetrics<>(timeType.asTypedStorage(columnStorage), LocalTime::compareTo);
+      case DateTimeType dateTimeType -> new MinMaxQualityMetrics<>(dateTimeType.asTypedStorage(columnStorage), ZonedDateTime::compareTo);
       default -> new BaseQualityMetrics(columnStorage);
     };
   }
@@ -113,7 +124,8 @@ public abstract class DataQualityMetrics {
       }
     }
 
-    private record Result(long nothingCount, long distinctCount) {}
+    private record Result(long nothingCount, long distinctCount) {
+    }
 
     private final CompletableFuture<Result> result;
 
@@ -145,17 +157,93 @@ public abstract class DataQualityMetrics {
     public Map<String, Object> getMetrics() {
       var current = super.getMetrics();
 
-      var currentResult = result.getNow(null);
-      if (currentResult != null) {
-        current.put("nothingCount", currentResult.nothingCount);
-        current.put("distinctCount", currentResult.distinctCount);
+      try {
+        var currentResult = result.getNow(null);
+        if (currentResult != null) {
+          current.put("nothingCount", currentResult.nothingCount);
+          current.put("distinctCount", currentResult.distinctCount);
+        }
+      } catch (CompletionException e) {
+        LOGGER.warn("Failed to compute base metrics for column storage: {}", e.getMessage());
       }
 
       return current;
     }
   }
 
-  private static class StringQualityMetrics extends BaseQualityMetrics {
+  private static class MinMaxQualityMetrics<T> extends BaseQualityMetrics {
+    private static class Accumulator<T> {
+      private final Comparator<T> comparator;
+      private T minimum = null;
+      private T maximum = null;
+
+      public Accumulator(Comparator<T> comparator) {
+        this.comparator = comparator;
+      }
+
+      public void process(T value) {
+        if (value == null) {
+          return;
+        }
+        if (minimum == null || comparator.compare(value, minimum) < 0) {
+          minimum = value;
+        }
+        if (maximum == null || comparator.compare(value, maximum) > 0) {
+          maximum = value;
+        }
+      }
+
+      public Result<T> getResult() {
+        return new Result<>(minimum, maximum);
+      }
+    }
+
+    private record Result<T>(T minimum, T maximum) {
+    }
+
+    private final CompletableFuture<Result<T>> result;
+
+    public MinMaxQualityMetrics(ColumnStorage<T> storage, Comparator<T> comparator) {
+      super(storage);
+      this.result =
+          CompletableFuture.supplyAsync(
+              () -> {
+                Accumulator<T> accumulator = new Accumulator<>(comparator);
+                DataQualityMetrics.loopOverAll(storage, accumulator::process);
+                return accumulator.getResult();
+              });
+    }
+
+    public T getMinimum() {
+      var current = result.getNow(null);
+      return current != null ? current.minimum : null;
+    }
+
+    public T getMaximum() {
+      var current = result.getNow(null);
+      return current != null ? current.maximum : null;
+    }
+
+    @Override
+    public Map<String, Object> getMetrics() {
+      var current = super.getMetrics();
+
+      try {
+        var currentResult = result.getNow(null);
+        if (currentResult != null && currentResult.minimum != null) {
+          current.put("minmaxAreSame", currentResult.minimum.equals(currentResult.maximum));
+          current.put("minimum", currentResult.minimum);
+          current.put("maximum", currentResult.maximum);
+        }
+      } catch (CompletionException e) {
+        LOGGER.warn("Failed to compute min/max metrics for column storage: {}", e.getMessage());
+      }
+
+      return current;
+    }
+  }
+
+  private static class StringQualityMetrics extends MinMaxQualityMetrics<String> {
     private static class Accumulator {
       private long emptyCount = 0;
       private long untrimmedCount = 0;
@@ -188,29 +276,12 @@ public abstract class DataQualityMetrics {
     private final CompletableFuture<Result> result;
 
     public StringQualityMetrics(ColumnStorage<String> storage) {
-      super(storage);
+      super(storage, String::compareTo);
       this.result =
           CompletableFuture.supplyAsync(
               () -> {
                 var accumulator = new Accumulator();
                 DataQualityMetrics.loopOverSample(storage, accumulator::process);
-                return accumulator.getResult(storage.getSize() <= DEFAULT_SAMPLE_SIZE);
-              });
-    }
-
-    public StringQualityMetrics(ColumnStorage<Object> storage, boolean anyObject) {
-      super(storage);
-      this.result =
-          CompletableFuture.supplyAsync(
-              () -> {
-                var accumulator = new Accumulator();
-                DataQualityMetrics.loopOverSample(
-                    storage,
-                    value -> {
-                      if (value instanceof String str) {
-                        accumulator.process(str);
-                      }
-                    });
                 return accumulator.getResult(storage.getSize() <= DEFAULT_SAMPLE_SIZE);
               });
     }
@@ -239,87 +310,76 @@ public abstract class DataQualityMetrics {
     public Map<String, Object> getMetrics() {
       var current = super.getMetrics();
 
-      var currentResult = result.getNow(null);
-      if (currentResult != null) {
-        current.put("sampled", currentResult.sampled);
-        current.put("emptyCount", currentResult.empty);
-        current.put("untrimmedCount", currentResult.untrimmed);
-        current.put("notTrivialWhitespaceCount", currentResult.notTrivialWhitespace);
+      try {
+        var currentResult = result.getNow(null);
+        if (currentResult != null) {
+          current.put("sampled", currentResult.sampled);
+          current.put("countEmpty", currentResult.empty);
+          current.put("untrimmedCount", currentResult.untrimmed);
+          current.put("notTrivialWhitespaceCount", currentResult.notTrivialWhitespace);
+        }
+      } catch (CompletionException e) {
+        LOGGER.warn("Failed to compute string quality metrics for column storage: {}", e.getMessage());
       }
 
       return current;
     }
   }
 
-  private static class NumericQualityMetrics extends BaseQualityMetrics {
-    private static final int FORMAT_NUMBER_LIMIT = 999999;
+  private static class NumericQualityMetrics<T> extends MinMaxQualityMetrics<T> {
+    private static final long FORMAT_NUMBER_LIMIT = 999999;
 
-    private static class Accumulator {
-      private boolean needsFormatting = false;
-
-      public boolean process(Object value) {
-        needsFormatting =
-            switch (value) {
-              case Long longValue -> longValue < -FORMAT_NUMBER_LIMIT
-                  || longValue > FORMAT_NUMBER_LIMIT;
-              case Double doubleValue -> doubleValue < -FORMAT_NUMBER_LIMIT
-                  || doubleValue > FORMAT_NUMBER_LIMIT;
-              case BigInteger bigIntegerValue -> bigIntegerValue.compareTo(
-                          BigInteger.valueOf(-FORMAT_NUMBER_LIMIT))
-                      < 0
-                  || bigIntegerValue.compareTo(BigInteger.valueOf(FORMAT_NUMBER_LIMIT)) > 0;
-              case BigDecimal bigDecimalValue -> bigDecimalValue.compareTo(
-                          BigDecimal.valueOf(-FORMAT_NUMBER_LIMIT))
-                      < 0
-                  || bigDecimalValue.compareTo(BigDecimal.valueOf(FORMAT_NUMBER_LIMIT)) > 0;
-              default -> false;
-            };
-
-        return needsFormatting;
-      }
-
-      public boolean getNeedsFormatting() {
-        return needsFormatting;
-      }
+    public static NumericQualityMetrics<Double> forDouble(ColumnStorage<Double> storage) {
+      return new NumericQualityMetrics<>(storage, Double::compareTo, (double)-FORMAT_NUMBER_LIMIT, (double)FORMAT_NUMBER_LIMIT);
     }
 
-    private final CompletableFuture<Boolean> needsFormatting;
+    public static NumericQualityMetrics<Long> forLong(ColumnStorage<Long> storage) {
+      return new NumericQualityMetrics<>(storage, Long::compareTo, -FORMAT_NUMBER_LIMIT, FORMAT_NUMBER_LIMIT);
+    }
 
-    public NumericQualityMetrics(ColumnStorage<?> storage) {
-      super(storage);
-      this.needsFormatting =
-          CompletableFuture.supplyAsync(
-              () -> {
-                var accumulator = new Accumulator();
-                DataQualityMetrics.loopOverAll(storage, accumulator::process);
-                return accumulator.getNeedsFormatting();
-              });
+    public static NumericQualityMetrics<BigInteger> forBigInteger(ColumnStorage<BigInteger> storage) {
+      return new NumericQualityMetrics<>(storage, BigInteger::compareTo, BigInteger.valueOf(-FORMAT_NUMBER_LIMIT), BigInteger.valueOf(FORMAT_NUMBER_LIMIT));
+    }
+
+    public static NumericQualityMetrics<BigDecimal> forBigDecimal(ColumnStorage<BigDecimal> storage) {
+      return new NumericQualityMetrics<>(storage, BigDecimal::compareTo, BigDecimal.valueOf(-FORMAT_NUMBER_LIMIT), BigDecimal.valueOf(FORMAT_NUMBER_LIMIT));
+    }
+
+    private final Comparator<T> comparator;
+    private final T minLimit;
+    private final T maxLimit;
+
+    private NumericQualityMetrics(ColumnStorage<T> storage, Comparator<T> comparator, T minLimit, T maxLimit) {
+      super(storage, comparator);
+      this.comparator = comparator;
+      this.minLimit = minLimit;
+      this.maxLimit = maxLimit;
     }
 
     public Boolean getNeedsFormatting() {
-      return needsFormatting.getNow(null);
+      var minimum = getMinimum();
+      if (minimum == null) {
+        return null;
+      }
+
+      var maximum = getMaximum();
+      if (maximum == null) {
+        return null;
+      }
+
+      return (comparator.compare(minimum, minLimit) < 0) || (comparator.compare(maximum, maxLimit) > 0);
     }
 
     @Override
     public Map<String, Object> getMetrics() {
       var current = super.getMetrics();
 
-      var currentResult = needsFormatting.getNow(null);
+      var currentResult = getNeedsFormatting();
       if (currentResult != null) {
         current.put("needsFormatting", currentResult);
       }
 
       return current;
-    }
-  }
-
-  private static <S> void loopOverAll(ColumnStorage<S> storage, Predicate<S> predicate) {
-    long size = storage.getSize();
-    for (long idx = 0; idx < size; idx++) {
-      // Generate a random index to sample from the storage.
-      if (predicate.test(storage.getItemBoxed(idx))) {
-        return;
-      }
     }
   }
 

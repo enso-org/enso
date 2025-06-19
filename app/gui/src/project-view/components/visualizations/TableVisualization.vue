@@ -120,9 +120,28 @@ interface EnsoTableOrColumn {
   table_version_hash?: string
 }
 
-type DataQualityMetric = {
+type DataQualityMetricNumber = {
   name: string
-  percentage_value: number[]
+  values: (number | null)[]
+  type: 'Percentage' | 'Count'
+}
+
+type DataQualityMetricText = {
+  name: string
+  values: (string | null)[]
+  type: 'Text'
+}
+
+type DataQualityMetric = DataQualityMetricNumber | DataQualityMetricText
+
+export type DataQualityMetricValue = {
+  name: string
+  value: number
+  displayType: 'Percentage' | 'Count'
+} | {
+  name: string
+  value: string
+  displayType: 'Text'
 }
 
 export type TextFormatOptions = 'full' | 'partial' | 'off'
@@ -636,12 +655,15 @@ function toField(
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
       props.data.data_quality_metrics.map((metric: DataQualityMetric) => {
-        return { [metric.name]: metric.percentage_value[index!] ?? 0 }
-      })
+        const result: DataQualityMetricValue = metric.type === 'Text'
+        ? { name: metric.name, value: metric.values[index!] || "", displayType: 'Text' }
+        : { name: metric.name, displayType: metric.type, value: metric.values[index!] || 0 }
+        return metric.values[index!] === null || (result.displayType === 'Percentage' && result.value === 0) ? null : result
+      }).filter(obj => obj !== null)
     : []
 
-  const showDataQuality =
-    dataQualityMetrics.filter((obj) => (Object.values(obj)[0] as number) > 0).length > 0
+  const hasDataQualityMetrics = dataQualityMetrics.length > 0
+  const showDataQuality = dataQualityMetrics.filter(obj => obj.displayType === 'Percentage').length > 0
 
   const svgTemplateWarning = showDataQuality ? getSvgTemplate('warning') : ''
   const menu = `<span data-ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
@@ -674,7 +696,7 @@ function toField(
     tooltipComponentParams: {
       dataQualityMetrics,
       total: typeof props.data === 'object' ? props.data.all_rows_count : 0,
-      showDataQuality,
+      showDataQuality: hasDataQualityMetrics
     },
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,

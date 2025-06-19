@@ -2,49 +2,12 @@ private
 
 from Standard.Base import all
 
-import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
-import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.data.column.DataQualityMetrics
 
 type In_Memory_Visualization_Helpers
     ## PRIVATE
-       Counts the number of nothing values.
-    count_nothing this_column -> Integer | Nothing =
-        DataQualityMetrics.get (this_column:In_Memory_Column).java_column . get "nothingCount" Nothing
-
-    ## PRIVATE
-       Counts the number of distinct values
-       Used for determining which filters should be used
-    count_distinct_values this_column -> Integer | Nothing =
-        DataQualityMetrics.get (this_column:In_Memory_Column).java_column . get "distinctCount" Nothing
-
-    ## PRIVATE
-       Indicates if sampling was used for non-trivial metrics.
-    sampled : Boolean
-    sampled this_column =
-        DataQualityMetrics.get (this_column:In_Memory_Column).java_column . get "sampled" False
-
-    ## PRIVATE
-       Counts the number of text values which were empty.
-       Used for data quality indicator in Table Viz.
-    count_empty this_column -> Integer | Nothing =
-        DataQualityMetrics.get (this_column:In_Memory_Column).java_column . get "countEmpty" Nothing
-
-    ## PRIVATE
-       Counts the number of text values with leading or trailing whitespace.
-       Used for data quality indicator in Table Viz.
-    count_untrimmed this_column -> Integer | Nothing =
-        DataQualityMetrics.get (this_column:In_Memory_Column).java_column . get "countUntrimmed" Nothing
-
-    ## PRIVATE
-       Counts the number of text values with non trivial whitespace.
-       Used for data quality indicator in Table Viz.
-    count_non_trivial_whitespace this_column -> Integer | Nothing =
-        DataQualityMetrics.get (this_column:In_Memory_Column).java_column . get "notTrivialWhitespaceCount" Nothing
-
-    ## PRIVATE
-       Indicates if a numeric column requires formatting in table viz
-    requires_numeric_formatter_check this_column -> Boolean =
-        DataQualityMetrics.get (this_column:In_Memory_Column).java_column . get "needsFormatting" False
+       Gets the computed metrics for a column.
+    get_metrics this_column -> Dictionary =
+        DataQualityMetrics.get (this_column:In_Memory_Column).java_column
