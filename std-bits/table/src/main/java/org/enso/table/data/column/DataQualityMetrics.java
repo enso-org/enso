@@ -27,9 +27,9 @@ public abstract class DataQualityMetrics {
   // Default sample size for counting untrimmed cells.
   public static final long DEFAULT_SAMPLE_SIZE = 10000;
 
-  private static Map<ColumnStorage<?>, DataQualityMetrics> _cachedMetrics;
+  private static Map<Long, DataQualityMetrics> _cachedMetrics;
 
-  private static Map<ColumnStorage<?>, DataQualityMetrics> cachedMetrics() {
+  private static Map<Long, DataQualityMetrics> cachedMetrics() {
     if (_cachedMetrics == null) {
       _cachedMetrics = new LeastRecentlyUsedCache<>(1000);
     }
@@ -53,7 +53,7 @@ public abstract class DataQualityMetrics {
    * @return a DataQualityMetrics instance
    */
   public static DataQualityMetrics get(ColumnStorage<?> columnStorage) {
-    return cachedMetrics().computeIfAbsent(columnStorage, DataQualityMetrics::createMetrics);
+    return cachedMetrics().computeIfAbsent(columnStorage.uniqueKey(), k -> DataQualityMetrics.createMetrics(columnStorage));
   }
 
   private static DataQualityMetrics createMetrics(ColumnStorage<?> columnStorage) {
