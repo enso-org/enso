@@ -48,7 +48,9 @@ export class TableVisualisationTooltip implements ITooltipComp {
             `${getPercentage(obj.value).toFixed(2)}% ${createIndicator(getPercentage(obj.value))}`
           : `${obj.value}`
         const metricTemplate =
-          obj.name !== '' ? `<div>${obj.name}: ${rendered}</div>` : `<div>${rendered.replaceAll("\n", "<br/>")}</div>`
+          obj.name !== '' ?
+            `<div>${obj.name}: ${rendered}</div>`
+          : `<div>${rendered.replaceAll('\n', '<br/>')}</div>`
         template = template + metricTemplate
       })
       return template
