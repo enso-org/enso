@@ -32,9 +32,9 @@ add_specs suite_builder =
             ## Test2
             wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')
             wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
-            wb.read 'Sheet3' . column_names . should_equal (['S3A', 'S3B', 'S3C'])
-            wb.read 1 . column_names . should_equal (['S1A', 'S1B', 'S1C'])
-            wb.read 5 . column_names . should_equal (['S5A', 'S5B', 'S5C'])
+            wb.read 'Sheet3' ..Has_Headers . column_names . should_equal (['S3A', 'S3B', 'S3C'])
+            wb.read 1 ..Has_Headers . column_names . should_equal (['S1A', 'S1B', 'S1C'])
+            wb.read 5 ..Has_Headers . column_names . should_equal (['S5A', 'S5B', 'S5C'])
         group_builder.specify "out of range sheet index should error" <|
             ## Test2
             wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GS')

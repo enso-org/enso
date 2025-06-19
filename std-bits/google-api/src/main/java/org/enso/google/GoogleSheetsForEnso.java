@@ -53,30 +53,17 @@ public class GoogleSheetsForEnso {
         throw new EmptySheetException();
     }
 
-    var firstTwoRows = service
-        .spreadsheets()
-        .values()
-        .get(sheetId, range)
-        .setMajorDimension("ROWS")
-        .setValueRenderOption("UNFORMATTED_VALUE")
-        .execute()
-        .getValues()
-        .stream()
-        .limit(2)
-        .toList();
-
     GoogleSheetsHeaders columnNames = new GoogleSheetsHeaders(
               headers,
-              firstTwoRows,
+              rawData,
               problemAggregator);
 
     Column[] columns = new Column[rawData.size()];
-    var skipRowCount = headers != GoogleSheetsHeaders.HeaderBehavior.DEFAULT_COLUMN_NAMES ? 1 : 0;
     for (int i = 0; i < rawData.size(); i++) {
         var column = rawData.get(i);
         var builder = Builder.getForText(TextType.VARIABLE_LENGTH, column.size());
         column.stream()
-            .skip(skipRowCount)
+            .skip(columnNames.getRowsUsed())
             .forEach(builder::append);
         columns[i] = new Column(columnNames.get(i), builder.seal());
     }

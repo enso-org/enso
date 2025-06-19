@@ -12,15 +12,15 @@ public class GoogleSheetsHeaders {
 
   public GoogleSheetsHeaders(
       HeaderBehavior headers,
-      List<List<Object>> firstTwoRows,
+      List<List<Object>> rawData,
       ProblemAggregator problemAggregator) {
     deduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     names =
         switch (headers) {
           case DEFAULT_COLUMN_NAMES -> null;
-          case USE_FIRST_ROW_AS_HEADERS -> readRowAsHeaders(firstTwoRows, deduplicator);
-          case INFER -> readRowAsHeaders(firstTwoRows, deduplicator);
+          case USE_FIRST_ROW_AS_HEADERS -> readFirstRowAsHeaders(rawData, deduplicator);
+          case INFER -> inferHeaders(rawData, deduplicator);
         };
   }
 
@@ -40,28 +40,24 @@ public class GoogleSheetsHeaders {
     return this.names == null ? 0 : 1;
   }
 
-  private static String[] readRowAsHeaders(
-      List<List<Object>> firstTwoRows, NameDeduplicator deduplicator) {
-    if (firstTwoRows == null) {
-      return null;
-    }
-
-    if (firstTwoRows.isEmpty()) {
-      return null;
-    }
-
-    List<Object> firstRow = firstTwoRows.get(0);
-    String[] headers = new String[firstRow.size()];
-    for (int i = 0; i < firstRow.size(); i++) {
-      Object cell = firstRow.get(i);
-      String name = cell == null ? "" : cell.toString().trim();
-      headers[i] = deduplicator.makeUnique(name);
-    }
-    return headers;
+  private static String[] readFirstRowAsHeaders(
+      List<List<Object>> rawData, NameDeduplicator deduplicator) {
+    return rawData.stream()
+        .map(column -> {
+          Object cell = column.stream().findFirst().orElse(null);
+          String name = cell == null ? "" : cell.toString();
+          return deduplicator.makeUnique(name);
+        })
+        .toArray(String[]::new);
   }
 
   private static String[] inferHeaders(
-      List<List<Object>> firstTwoRows, NameDeduplicator deduplicator) {
+      List<List<Object>> rawData, NameDeduplicator deduplicator) {
+        // No data or 1 row of data => No Headers
+        if (rawData == null || rawData.isEmpty() || rawData.get(0).size() == 1) {
+          return null;
+        }
+
     // if (row == null || nextRow == null) {
     //   return null;
     // }
@@ -76,7 +72,7 @@ public class GoogleSheetsHeaders {
     // }
 
     // return readRowAsHeaders(row, startCol, endCol, deduplicator);
-    return null;
+    return readFirstRowAsHeaders(rawData, deduplicator);
   }
 
   /** Specifies how to set the headers for the returned table. */
