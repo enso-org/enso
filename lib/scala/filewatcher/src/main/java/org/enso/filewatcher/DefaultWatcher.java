@@ -84,10 +84,14 @@ final class DefaultWatcher implements Watcher {
         try {
           // Wait for the next key
           key = watchService.take();
-        } catch (InterruptedException | ClosedWatchServiceException e) {
-          LOGGER.debug("Watcher service interrupted or closed: {}", e.getMessage());
+        } catch (InterruptedException e) {
+          LOGGER.debug("Watcher service interrupted: {}", e.getMessage());
           var err = new Watcher.WatcherError(e);
           exceptionCallback.accept(err);
+          continue;
+        } catch (ClosedWatchServiceException e) {
+          // ClosedWatchServiceException is a "standard" exception thrown when
+          // the watch service is closed. We don't even have to log it.
           return;
         }
         var matchingEntry =
