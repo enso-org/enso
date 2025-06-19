@@ -2,9 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Column, Value_Type
+from Standard.Table import Column
 from Standard.Table.Internal.Column_Type_Helpers import column_from_implementation
-import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 
 import project.Connection.Connection.Connection
 import project.Internal.DB_Column_Implementation.DB_Column_Implementation

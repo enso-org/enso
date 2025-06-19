@@ -1,10 +1,6 @@
 from Standard.Base import all
-from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
-from Standard.Base.Metadata import make_single_choice
 
 import project.Google_Sheets_Workbook.Google_Sheets_Workbook
-
-from Standard.Table import Table
 
 polyglot java import java.io.IOException
 polyglot java import org.enso.google.GoogleSheetsForEnso
