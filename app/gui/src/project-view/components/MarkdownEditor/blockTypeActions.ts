@@ -1,5 +1,5 @@
 import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
-import { type ActionName } from '@/providers/action'
+import { type DisplayableActionName } from '@/providers/action'
 import * as objects from 'enso-common/src/utilities/data/object'
 
 export const blockTypeAction = {
@@ -11,7 +11,7 @@ export const blockTypeAction = {
   OrderedList: 'documentationEditor.numberedList',
   Blockquote: 'documentationEditor.quote',
   FencedCode: 'documentationEditor.code',
-} satisfies Record<BlockType, ActionName>
+} satisfies Record<BlockType, DisplayableActionName>
 
 export type BlockTypeAction = (typeof blockTypeAction)[keyof typeof blockTypeAction]
 

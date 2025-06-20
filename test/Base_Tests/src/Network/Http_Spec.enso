@@ -3,7 +3,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Network.HTTP.Cache_Policy.Cache_Policy
 import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Response.Response

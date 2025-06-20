@@ -277,8 +277,14 @@ public final class ContextUtils implements TestRule, AutoCloseable {
    */
   private <T> Value executeInContext(Callable<T> callable) {
     var ctx = currentCtx();
-    // Force initialization of the context
-    ctx.eval("enso", "value = 0");
+    try {
+      // Force initialization of the context
+      ctx.eval("enso", "value = 0");
+    } catch (Exception ex) {
+      if (!"Access to language 'enso' is not permitted. ".equals(ex.getMessage())) {
+        throw ex;
+      }
+    }
     var err = new Exception[1];
     ctx.getPolyglotBindings()
         .putMember(
@@ -382,7 +388,11 @@ public final class ContextUtils implements TestRule, AutoCloseable {
 
     private Builder(String... permittedLanguages) {
       this.polyglotCtxBldr = defaultContextBuilder(permittedLanguages);
-      this.polyglotCtxBldr.out(stdout).err(stderr).logHandler(stdout);
+      this.polyglotCtxBldr
+          .out(stdout)
+          .err(stderr)
+          .logHandler(stdout)
+          .environment("NO_COLOR", "true");
     }
 
     private static Context.Builder defaultContextBuilder(String... permittedLanguages) {
@@ -390,6 +400,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
           .allowExperimentalOptions(true)
           .allowIO(IOAccess.ALL)
           .allowAllAccess(true)
+          .environment("NO_COLOR", "true")
           .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
           .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
           .option(RuntimeOptions.STRICT_ERRORS, "true")

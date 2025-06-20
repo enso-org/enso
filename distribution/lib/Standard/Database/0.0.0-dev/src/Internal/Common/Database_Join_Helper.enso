@@ -3,7 +3,6 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Errors.Common import Floating_Point_Equality
 
 import Standard.Table.Internal.Join_Helpers
-import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table import Join_Kind
 
 import project.Connection.Connection.Connection
@@ -12,9 +11,7 @@ import project.Internal.Helpers
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
-import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.SQL_Type.SQL_Type
 
 ## PRIVATE
 make_join_helpers left_table right_table left_column_mapping right_column_mapping =

@@ -1,7 +1,7 @@
 package org.enso.table.data.column.builder;
 
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.MixedStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 
 /** A builder for Mixed columns. It will create a MixedStorage. */
@@ -24,7 +24,7 @@ public final class MixedBuilder extends ObjectBuilder implements BuilderWithRety
   }
 
   @Override
-  public Storage<Object> doSeal() {
+  public ColumnStorage<Object> doSeal() {
     return new MixedStorage(data);
   }
 

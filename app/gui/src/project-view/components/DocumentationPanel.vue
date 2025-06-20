@@ -19,20 +19,19 @@ import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { entryMethodPointer, suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
+import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
 import { type Opt } from '@/util/data/opt'
-import { Ok, unwrapOr } from '@/util/data/result'
+import { Ok } from '@/util/data/result'
 import type { Icon as IconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
-import FunctionSignatureEditor from './FunctionSignatureEditor.vue'
 
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
 
-const { graph, suggestionDb: db, names: projectNames } = injectCurrentProject().storesRefs
+const { suggestionDb: db, names: projectNames } = injectCurrentProject().storesRefs
 
 const documentation = computed<Docs>(() => {
   if (props.aiMode)
@@ -95,13 +94,6 @@ const icon = computed<IconName>(() => suggestion.value?.iconName ?? 'marketplace
 const documentationUrl = computed(
   () => suggestion.value && suggestionDocumentationUrl(suggestion.value),
 )
-
-const methodPointer = computed(() => entryMethodPointer(suggestion.value))
-const signatureAst = computed(() => {
-  if (graph.value == null || methodPointer.value == null) return
-  return unwrapOr(graph.value.getMethodAst(methodPointer.value), undefined)
-})
-const markdownDocs = computed(() => signatureAst.value?.mutableDocumentationMarkdown())
 
 const historyStack = new HistoryStack()
 
@@ -169,13 +161,6 @@ function openDocs(url: string) {
         @activate="openDocs(documentationUrl)"
       />
     </div>
-    <FunctionSignatureEditor
-      v-if="signatureAst"
-      class="self-stretch"
-      :functionAst="signatureAst"
-      :methodPointer="methodPointer"
-      :markdownDocs="markdownDocs"
-    ></FunctionSignatureEditor>
     <div v-if="rawDocumentation" class="markdownDocs">
       <MarkdownEditor :content="rawDocumentation" :toolbar="false" />
     </div>

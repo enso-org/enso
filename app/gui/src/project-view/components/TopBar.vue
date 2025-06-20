@@ -5,11 +5,11 @@ import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
 import ZoomControl from '@/components/ZoomControl.vue'
-import { type ActionName } from '@/providers/action'
+import { type DisplayableActionName } from '@/providers/action'
 import { injectGraphSelection } from '@/providers/graphSelection'
 
 const projectNameEdited = defineModel<boolean>('projectNameEdited', { default: false })
-const props = defineProps<{ zoomLevel: number; menuActions: ActionName[] }>()
+const props = defineProps<{ zoomLevel: number; menuActions: DisplayableActionName[] }>()
 const selection = injectGraphSelection()
 </script>
 

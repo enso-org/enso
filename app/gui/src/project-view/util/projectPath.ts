@@ -1,4 +1,4 @@
-import { Err, Ok, Result } from '@/util/data/result'
+import { Err, Ok, Result, unwrap } from '@/util/data/result'
 import {
   qnJoin,
   qnSplit,
@@ -6,12 +6,12 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { assertDefined } from 'ydoc-shared/util/assert'
+import { assert, assertDefined } from 'ydoc-shared/util/assert'
 
 export type ProjectName = QualifiedName
 
 /** Parses the qualified name as a literal project path. */
-export function parseAbsoluteProjectPath(path: QualifiedName): Result<ProjectPath> {
+export function parseAbsoluteProjectPath(path: QualifiedName): Result<AbsoluteProjectPath> {
   const parts = /^([^.]+\.[^.]+)(?:\.(.+))?$/.exec(path)
   if (parts == null) return Err(`${path} is not absolute project path`)
   assertDefined(parts[1])
@@ -24,7 +24,7 @@ export function parseAbsoluteProjectPath(path: QualifiedName): Result<ProjectPat
 }
 
 /** Parses the string as a literal project path. */
-export function parseAbsoluteProjectPathRaw(path: string): Result<ProjectPath> {
+export function parseAbsoluteProjectPathRaw(path: string): Result<AbsoluteProjectPath> {
   const qn = tryQualifiedName(path)
   if (!qn.ok) return qn
   return parseAbsoluteProjectPath(qn.value)
@@ -121,4 +121,10 @@ export const standardBaseMainPath: AbsoluteProjectPath = ProjectPath.create(
 /** A project path with a literal project name. */
 export interface AbsoluteProjectPath extends ProjectPath {
   readonly project: QualifiedName
+}
+
+/** A helper function to create a standard library path. */
+export function stdPath(path: string): AbsoluteProjectPath {
+  assert(path.startsWith('Standard.'))
+  return unwrap(parseAbsoluteProjectPathRaw(path))
 }

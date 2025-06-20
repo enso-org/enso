@@ -5,7 +5,9 @@ import CreateAccountIcon from '#/assets/create_account.svg'
 import LockIcon from '#/assets/lock.svg'
 import { Button } from '#/components/Button'
 import { Form } from '#/components/Form'
-import { Input, OTPInput, Password } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
+import { OTPInput } from '#/components/Inputs/OTPInput'
+import { Password } from '#/components/Inputs/Password'
 import Link from '#/components/Link'
 import { Stepper } from '#/components/Stepper'
 import { Text } from '#/components/Text'
@@ -15,16 +17,17 @@ import { passwordSchema } from '#/pages/authentication/schemas'
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUtils'
 import type { CognitoUser } from '$/authentication/cognito'
 import { useRouter, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { isOnElectron } from 'enso-common/src/detect'
 import { useState } from 'react'
 
 /** A form for users to log in. */
 export default function Login() {
-  const { router, searchParams } = useRouter()
+  const { router } = useRouter()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSession()
   const { getText } = useText()
 
-  const initialEmail = searchParams.get('email') ?? ''
+  const [initialEmail] = useQueryParam('email')
 
   const form = Form.useForm({
     schema: (z) =>
@@ -35,7 +38,7 @@ export default function Login() {
           .email(getText('invalidEmailValidationError')),
         password: passwordSchema(getText),
       }),
-    defaultValues: { email: initialEmail },
+    defaultValues: { email: initialEmail ?? '' },
     onSubmit: async ({ email, password }) => {
       const res = await signInWithPassword(email, password)
 

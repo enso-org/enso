@@ -27,7 +27,7 @@ export function usePartialUserSession() {
 /** A React context hook returning the user session for a user that may or may not be logged in. */
 export function useUserSession() {
   const auth = useAuth()
-  return useVueValue(() => auth.session)
+  return useVueValue(react.useCallback(() => auth.session, [auth]))
 }
 
 /** A React context hook returning the user session for a user that is fully logged in. */

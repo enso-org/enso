@@ -202,6 +202,30 @@ public class UsedSymbolsCollectorTest {
   }
 
   @Test
+  public void typeAscription_PartiallyAppliedMethod() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type S
+            type T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import S, T
+
+            add x y = x + y
+
+            main =
+                add_one x = (add 1 x) : S
+                add_one 23
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Module.S");
+  }
+
+  @Test
   public void typeCast_NestedMethodBody() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
@@ -347,6 +371,53 @@ public class UsedSymbolsCollectorTest {
   }
 
   @Test
+  public void constructorInPattern() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type A
+            type B
+                Value data
+            type C
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import A, B, C
+            foo x = case x of
+                B.Value data -> data
+                _ -> 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Module.B.Value");
+  }
+
+  @Test
+  public void noUsedSymbol_ForUnrelatedImport() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type My_Type_1
+            type My_Type_2
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            import project.Module.My_Type_1
+            import project.Module.My_Type_2
+
+            main = My_Type_1
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var usedSymbols = collect(mainMod);
+    var imp = mainMod.getIr().imports().apply(1);
+    var symsForImp = usedSymbols.getUsedSymbolsForImport(imp);
+    assertThat("No used symbols expected, but got: " + symsForImp, symsForImp.isEmpty(), is(true));
+  }
+
+  @Test
   public void reexport() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Other_Module"),
@@ -367,6 +438,55 @@ public class UsedSymbolsCollectorTest {
             """);
     compilerCtx.getCompiler().run(mainMod);
     expectUsedSymbol(mainMod, "local.Proj.Other_Module.My_Type");
+  }
+
+  @Test
+  public void reexport_Rename() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Other_Module"),
+        """
+            type Other_Type
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            export project.Other_Module.Other_Type as My_Type
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import My_Type
+            main = My_Type
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Other_Module.Other_Type");
+  }
+
+  @Test
+  public void reexport_Case_Branch_TypeConstructor() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Other_Module"),
+        """
+            type X
+                Cons
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            export project.Other_Module.X as T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import T
+            foo x =
+                case x of
+                    T.Cons -> 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Other_Module.X.Cons");
   }
 
   @Test
@@ -392,6 +512,55 @@ public class UsedSymbolsCollectorTest {
     // TODO: extension_method literal does not have any resolution attached.
     // This is responsibility of another pass.
     expectNoUsedSymbols(mainMod);
+  }
+
+  /** {@code local.Proj.A} is both synthetic module and a real module. */
+  @Test
+  public void usedSymbol_FromSyntheticSubmodule() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.A.B"), """
+            type B_Type
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.A"),
+        """
+            export project.A.B
+            type A_Type
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.A import B
+            main = B.B_Type
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.A.B.B_Type");
+  }
+
+  /** {@code local.Proj.A} is just synthetic module. */
+  @Test
+  public void usedExtensionMethod_FromModule_InsideSyntheticModule() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Lib.A.A"),
+        """
+            static_method x = x
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Lib.Main"),
+        """
+            export project.A.A
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from local.Lib import A
+            main =
+                A.static_method 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Lib.A.A.static_method");
   }
 
   private static UsedSymbols collect(org.enso.compiler.context.CompilerContext.Module mod) {

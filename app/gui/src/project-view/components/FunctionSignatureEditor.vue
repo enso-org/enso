@@ -4,42 +4,29 @@ import {
   useProjectNames,
   useSuggestionDbStore,
 } from '$/components/WithCurrentProject.vue'
+import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
+import { FunctionInfoKey } from '@/components/GraphEditor/widgets/WidgetFunctionDef.vue'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
+import { Ast } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
+import { useYText } from '@/util/crdt'
 import { Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { useFocusWithin } from '@vueuse/core'
-import { computed, ref, useTemplateRef, watchEffect } from 'vue'
-import { FunctionDef } from 'ydoc-shared/ast'
-import type * as Y from 'yjs'
-import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
-import { FunctionInfoKey } from './GraphEditor/widgets/WidgetFunctionDef.vue'
+import { computed, useTemplateRef } from 'vue'
 
 const suggestionDb = useSuggestionDbStore()
 const projectNames = useProjectNames()
 
-const { functionAst, markdownDocs, methodPointer } = defineProps<{
-  functionAst: FunctionDef
-  markdownDocs: Y.Text | string | undefined
+const { functionAst, methodPointer } = defineProps<{
+  functionAst: Ast.FunctionDef
   methodPointer: MethodPointer | undefined
 }>()
 
-const docsString = ref<string>()
-
-watchEffect((onCleanup) => {
-  const localMarkdownDocs = markdownDocs
-  if (localMarkdownDocs == null) return
-  if (typeof localMarkdownDocs === 'string') {
-    docsString.value = localMarkdownDocs
-  } else {
-    const updateDocs = () => (docsString.value = localMarkdownDocs.toJSON())
-    updateDocs()
-    localMarkdownDocs.observe(updateDocs)
-    onCleanup(() => localMarkdownDocs.unobserve(updateDocs))
-  }
-})
+const docsString = useYText(() => functionAst.mutableDocumentationMarkdown())
 
 const docsData = computed(() => {
   const definedIn = methodPointer?.module
@@ -54,6 +41,7 @@ const treeRootInput = computed((): WidgetInput => {
 
 const rootElement = useTemplateRef('rootElement')
 const { focused } = useFocusWithin(rootElement)
+providePopoverRoot(rootElement)
 
 const graph = useGraphStore()
 

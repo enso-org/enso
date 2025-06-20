@@ -7,7 +7,6 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Column.Column
 import project.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Conversions.Convertible_To_Rows.Convertible_To_Rows
 import project.Errors.No_Such_Column

@@ -1,11 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
-import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 
 import Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
 import Standard.Table.Row.Row
-from Standard.Table import Column, Sort_Column, Table, Value_Type
+from Standard.Table import Column, Sort_Column, Table
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -34,9 +33,11 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
         t : Table ->
             all_rows_count = t.row_count
             make_json_for_table t max_rows all_rows_count False False
-        c : Column -> make_json_for_table c.to_table max_rows c.length False True
+        c : Column ->
+            case DB_Column.is_database_column c of
+                False -> make_json_for_table c.to_table max_rows c.length False True
+                True -> _make_json_for_db_table c.to_table max_rows is_column=True
         t : DB_Table -> _make_json_for_db_table t max_rows is_column=False
-        c : DB_Column -> _make_json_for_db_table c.to_table max_rows is_column=True
         f : Function ->
             pairs = [['_display_text_', '[Function '+f.to_text+']']]
             value = JS_Object.from_pairs pairs
@@ -198,31 +199,41 @@ private _make_json_for_db_table t max_rows is_column =
 make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
 make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
     act_max = if max_rows < all_rows_count then max_rows else all_rows_count
-    get_vector c          = Warning.set (Vector.new act_max i-> _make_json_for_value (c.get i)) []
-    columns               = dataframe.columns
-    column_vis_helpers    = columns.map (Visualization_Helpers.from _)
-    header                = ["header", columns.map .name]
-    value_type            = ["value_type", columns.map .value_type]
-    all_rows              = ["all_rows_count", all_rows_count]
-    has_index_col         = ["has_index_col", True]
-    links                 = ["get_child_node_action", if is_column then "at" else "get_row"]
-    use_bottom_status_bar = ["use_bottom_status_bar", if is_db_table then False else True]
-    enable_create_node    = ["enable_create_node", if is_column then False else True]
-    child_label           = ["child_label", "row"]
-    is_using_server_model = if is_db_table then False else all_rows_count > 1000
-    data                 = if is_using_server_model.not then columns.map get_vector else Nothing
+    get_vector c               = Warning.set (Vector.new act_max i-> _make_json_for_value (c.get i)) []
+    columns                    = dataframe.columns
+
+    column_vis_helpers         = columns.map (c -> c:Visualization_Helpers)
+    make_data_quality_entry name:Text method displayType:Text =
+        if column_vis_helpers.all v-> (method v . is_nothing) then [] else
+            values = column_vis_helpers.map method
+            [JS_Object.from_pairs [["name", name], ["values", values], ["type", displayType]]]
+
+    header                     = ["header", columns.map .name]
+    value_type                 = ["value_type", columns.map .value_type]
+    all_rows                   = ["all_rows_count", all_rows_count]
+    has_index_col              = ["has_index_col", True]
+    links                      = ["get_child_node_action", if is_column then "at" else "get_row"]
+    use_bottom_status_bar      = ["use_bottom_status_bar", if is_db_table then False else True]
+    enable_create_node         = ["enable_create_node", if is_column then False else True]
+    child_label                = ["child_label", "row"]
+    is_using_server_model      = if is_db_table then False else all_rows_count > 1000
+    data                       = if is_using_server_model.not then columns.map get_vector else Nothing
     requires_number_formatting = ["requires_number_format", column_vis_helpers.map .requires_numeric_formatter_check]
-    is_using_multi_filter = ["is_using_multi_filter", column_vis_helpers.map .check_distinct_values]
-    table_version_hash_val = if is_using_server_model then dataframe.table_version_hash else Nothing
-    table_version_hash = ["table_version_hash", table_version_hash_val]
-    data_quality_metrics = if is_db_table then [] else
-        number_nothing = JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", columns.map .count_nothing]]
-        sampled_label = if all_rows_count > Visualization_Helpers.default_sample_size then " (sampled)" else ""
-        number_untrimmed = JS_Object.from_pairs [["name", "Count untrimmed whitespace" + sampled_label], ["percentage_value", column_vis_helpers.map .count_untrimmed]]
-        number_non_triv = JS_Object.from_pairs [["name", "Count non trivial whitespace" + sampled_label], ["percentage_value", column_vis_helpers.map .count_non_trivial_whitespace]]
-        JS_Object.from_pairs
-        [number_nothing, number_untrimmed, number_non_triv]
-    pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, use_bottom_status_bar, enable_create_node, ["data_quality_metrics", data_quality_metrics] ,["type", "EnsoTableOrColumn"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash, is_using_multi_filter]
+    is_using_multi_filter      = ["is_using_multi_filter", column_vis_helpers.map .check_distinct_values]
+    table_version_hash_val     = if is_using_server_model then dataframe.table_version_hash else Nothing
+    table_version_hash         = ["table_version_hash", table_version_hash_val]
+    data_quality_metrics       = if is_db_table then [] else
+        incomplete             = make_data_quality_entry "" .is_incomplete "Text"
+        range                  = make_data_quality_entry "Range" .range "Text"
+        distinct_count         = make_data_quality_entry "Number of distinct" .count_distinct_values "Count"
+        number_nothing         = make_data_quality_entry "% nothing" .count_nothing "Percentage"
+        type_record            = make_data_quality_entry "" .type_record "Text"
+        sampled_label          = if column_vis_helpers.any .sampled then " (sampled)" else ""
+        number_empty           = make_data_quality_entry ("% empty" + sampled_label) .count_empty "Percentage"
+        number_untrimmed       = make_data_quality_entry ("% untrimmed" + sampled_label) .count_untrimmed "Percentage"
+        number_non_trivial     = make_data_quality_entry ("% with odd whitespace" + sampled_label) .count_non_trivial_whitespace "Percentage"
+        incomplete + range + distinct_count + number_nothing + type_record + number_empty + number_untrimmed + number_non_trivial
+    pairs                      = [header, value_type, ["data", data], all_rows, has_index_col, links, use_bottom_status_bar, enable_create_node, ["data_quality_metrics", data_quality_metrics] ,["type", "EnsoTableOrColumn"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash, is_using_multi_filter]
     JS_Object.from_pairs pairs
 
 ## PRIVATE
@@ -380,4 +391,12 @@ _make_json_for_value val level=0 = case val of
         if level != 0 then "DB_Column{"+col.name+"}" else
             "DB_Column{" + col.name + ": " + col.length.to_text + " rows}"
     f : Function -> "[Function "+f.to_text+"]"
+    date : Date -> _to_js_object_with_display_text date
+    date_time : Date_Time -> _to_js_object_with_display_text date_time
+    time : Time_Of_Day -> _to_js_object_with_display_text time
     _ -> val.to_display_text
+
+private _to_js_object_with_display_text date =
+    js_version = date.to_js_object
+    pairs = [['_display_text_', date.to_display_text]] + js_version.field_names.map f-> [f, js_version.get f]
+    JS_Object.from_pairs pairs

@@ -1,9 +1,12 @@
 package org.enso.compiler.pass.lint.unusedimports;
 
+import static org.enso.scala.wrapper.ScalaConversions.asJava;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
@@ -17,7 +20,10 @@ import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
+import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
+import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.analyse.AmbiguousImportsAnalysis;
@@ -85,19 +91,15 @@ public final class UnusedImports implements IRPass {
 
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
+    if (moduleContext.isSynthetic()) {
+      return ir;
+    }
     var bm = moduleContext.bindingsAnalysis();
     var usedSymbols = UsedSymbolsCollector.collect(ir, bm);
     for (var imp : CollectionConverters.asJava(ir.imports())) {
       if (!shouldImportBeSkipped(imp)) {
         if (imp instanceof Import.Module impMod && impMod.onlyNames().isDefined()) {
-          var importedSymbols = importedSymbols(imp, bm);
-          var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(imp);
-          var diff = new HashSet<>(importedSymbols);
-          diff.removeAll(usedSymbolsForImp);
-          if (!diff.isEmpty()) {
-            var warn = createWarning(imp, diff);
-            imp.getDiagnostics().add(warn);
-          }
+          handleOnlyNamesImport(impMod, bm, usedSymbols);
         } else {
           var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(imp);
           if (usedSymbolsForImp.isEmpty()) {
@@ -110,8 +112,83 @@ public final class UnusedImports implements IRPass {
     return ir;
   }
 
+  /**
+   * Handles import of type {@code from ... import Symbol_1, Symbol_2}. This is the only
+   * "interesting" import for this whole pass, as we have to determine for every symbol if it is
+   * actually used or not.
+   */
+  private void handleOnlyNamesImport(
+      Import.Module imp, BindingsMap bindingsMap, UsedSymbols usedSymbols) {
+    assert imp.onlyNames().isDefined();
+    var importedSymbols = importedSymbols(imp, bindingsMap);
+    var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(imp);
+    var unusedSymbols =
+        importedSymbols.stream().filter(impSym -> !isImportedSymbolUsed(impSym, usedSymbolsForImp));
+    var unusedSymbolsNames =
+        unusedSymbols.map(ResolvedName::qualifiedName).collect(Collectors.toUnmodifiableSet());
+    if (!unusedSymbolsNames.isEmpty()) {
+      var warn = createWarning(imp, unusedSymbolsNames);
+      imp.getDiagnostics().add(warn);
+    }
+  }
+
+  /**
+   * Returns true if the given {@code importedSymbol} is among used symbols.
+   *
+   * <h4>Example</h4>
+   *
+   * If the imported symbol is a type, and it its fully qualified name is not in {@code
+   * usedSymbolsForImp}, all it's constructors are checked for the presence in {@code
+   * usedSymbolsForImp}. So for example if imported symbol is a type {@code local.Proj.Module.T},
+   * and its constructor {@code local.Proj.Module.T.Cons} is in used symbols, the type is considered
+   * used.
+   *
+   * @param importedSymbol Symbol import from the import IR.
+   *     <p>For example, in {@code from project.Module import Type}, the imported symbol will be
+   *     {@link ResolvedType}.
+   * @param usedSymbolsForImp Set of used symbols for a particular import IR. As gathered by {@link
+   *     UsedSymbolsCollector}.
+   */
+  private boolean isImportedSymbolUsed(
+      ResolvedName importedSymbol, Set<QualifiedName> usedSymbolsForImp) {
+    var importedSymbolName = importedSymbol.qualifiedName();
+    if (usedSymbolsForImp.contains(importedSymbolName)) {
+      return true;
+    }
+    return switch (importedSymbol) {
+      case ResolvedConstructor cons -> {
+        var typeName = cons.tpe().qualifiedName();
+        var isTypeUsed = usedSymbolsForImp.contains(typeName);
+        yield isTypeUsed;
+      }
+        // If any of the Type's constructor is used, the whole type is used.
+      case ResolvedType type -> {
+        var constructors = asJava(type.tp().members());
+        var typeName = type.qualifiedName();
+        var consNames = constructors.stream().map(cons -> typeName.createChild(cons.name()));
+        var isInUsedSymbols = consNames.anyMatch(usedSymbolsForImp::contains);
+        yield isInUsedSymbols;
+      }
+      case ResolvedModule module -> {
+        for (var usedSymbol : usedSymbolsForImp) {
+          // All but the last item
+          var prefix = usedSymbol.path().mkString(".");
+          if (module.qualifiedName().toString().equals(prefix)) {
+            var res = module.findExportedSymbolsFor(usedSymbol.item());
+            var symbolInModule = !res.isEmpty();
+            if (symbolInModule) {
+              yield true;
+            }
+          }
+        }
+        yield false;
+      }
+      default -> false;
+    };
+  }
+
   /** Returns set of all imported symbol by the given import statement. */
-  private Set<QualifiedName> importedSymbols(Import impIr, BindingsMap bindingsMap) {
+  private Set<ResolvedName> importedSymbols(Import impIr, BindingsMap bindingsMap) {
     var resolvedImp = findResolvedImport(impIr, bindingsMap);
     if (resolvedImp == null) {
       var errMsg = new StringBuilder();
@@ -132,7 +209,7 @@ public final class UnusedImports implements IRPass {
     return new HashSet<>(symbols);
   }
 
-  private static List<QualifiedName> importedSymbols(BindingsMap.ResolvedImport resolvedImport) {
+  private static List<ResolvedName> importedSymbols(BindingsMap.ResolvedImport resolvedImport) {
     var impDef = resolvedImport.importDef();
     if (impDef.onlyNames().isDefined()) {
       var targets = resolvedImport.targets();
@@ -146,20 +223,20 @@ public final class UnusedImports implements IRPass {
       }
       var target = targets.head();
       var names = impDef.onlyNames().get().map(Literal::name);
-      var resolvedNames = new ArrayList<QualifiedName>();
+      var resolvedNames = new ArrayList<ResolvedName>();
       names.foreach(
           name -> {
             var expSymbols = target.findExportedSymbolsFor(name);
             expSymbols.foreach(
                 expSymbol -> {
-                  resolvedNames.add(expSymbol.qualifiedName());
+                  resolvedNames.add(expSymbol);
                   return null;
                 });
             return null;
           });
       return resolvedNames;
     } else {
-      var names = resolvedImport.targets().map(ResolvedName::qualifiedName);
+      var names = resolvedImport.targets().map(target -> (ResolvedName) target);
       return CollectionConverters.asJava(names);
     }
   }

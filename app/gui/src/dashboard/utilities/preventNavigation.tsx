@@ -11,7 +11,7 @@ import { useEffect } from 'react'
 let shouldClose = false
 
 /** Options for {@link usePreventNavigation}. */
-export interface PreventNavigationOptions {
+interface PreventNavigationOptions {
   readonly isEnabled?: boolean
   readonly message: string
 }

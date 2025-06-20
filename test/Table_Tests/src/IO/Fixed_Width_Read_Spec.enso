@@ -18,7 +18,8 @@ import Standard.Test.Test_Environment
 
 import enso_dev.Base_Tests.Data.Text.Encoding_Spec
 
-from project.Common_Table_Operations.Util import run_default_backend
+
+polyglot java import org.enso.table.read.FixedWidthReader
 
 polyglot java import org.enso.table.read.FixedWidthReader
 
@@ -308,6 +309,69 @@ add_direct_specs suite_builder =
             t.at "z" . to Vector . should_equal ["J", "C", "E"]
 
         group_builder.specify "Should treat empty fields as Nothing" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 5 3]
+                + [Fixed_Width_Column_Description.Start_And_Width 13 5]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = empty_fields.read (Fixed_Width_Format.Fixed_Width layout)
+            t.at "Column 1" . to Vector . should_equal [Nothing, 678]
+            t.at "Column 2" . to Vector . should_equal [98765, Nothing]
+
+        group_builder.specify "Should treat empty fields as the empty string" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width 5 3]
+                + [Fixed_Width_Column_Description.Start_And_Width 13 5]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = empty_fields.read (Fixed_Width_Format.Fixed_Width layout on_empty_field=..As_Empty_String)
+            t.at "Column 1" . to Vector . should_equal ["", '678']
+            t.at "Column 2" . to Vector . should_equal ['98765', ""]
+
+        group_builder.specify "Can infer headers (left justified)" <|
+            t = infer_headers_left.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            t.column_names . should_equal ['one', 'two', 'three', 'four', 'five', 'six']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+            t.at 'two' . to_vector . should_equal ['abcde', 'zbcde']
+            t.at 'three' . to_vector . should_equal [234567, 834567]
+            t.at 'four' . to_vector . should_equal ['bcdef', 'zcdef']
+            t.at 'five' . to_vector . should_equal [3456789, 8456789]
+            t.at 'six' . to_vector . should_equal ['cdefg', 'zdefg']
+
+        group_builder.specify "Can infer headers (right justified)" <|
+            t = infer_headers_right.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Right)
+            t.column_names . should_equal ['one', 'two', 'three', 'four', 'five', 'six']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+            t.at 'two' . to_vector . should_equal ['abcde', 'zbcde']
+            t.at 'three' . to_vector . should_equal [234567, 834567]
+            t.at 'four' . to_vector . should_equal ['bcdef', 'zcdef']
+            t.at 'five' . to_vector . should_equal [3456789, 8456789]
+            t.at 'six' . to_vector . should_equal ['cdefg', 'zdefg']
+
+        group_builder.specify "Can infer headers when there is one column (left justified)" <|
+            t = infer_headers_one_left.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            t.column_names . should_equal ['one']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+
+        group_builder.specify "Can infer headers when there is one column (right justified)" <|
+            t = infer_headers_one_right.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Right)
+            t.column_names . should_equal ['one']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+
+        group_builder.specify "Can infer headers after skipping rows" <|
+            t = infer_headers_skip.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left skip_rows=3)
+            t.column_names . should_equal ['one', 'two', 'three', 'four', 'five', 'six']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+            t.at 'two' . to_vector . should_equal ['abcde', 'zbcde']
+            t.at 'three' . to_vector . should_equal [234567, 834567]
+            t.at 'four' . to_vector . should_equal ['bcdef', 'zcdef']
+            t.at 'five' . to_vector . should_equal [3456789, 8456789]
+            t.at 'six' . to_vector . should_equal ['cdefg', 'zdefg']
+
+        group_builder.specify "Throws an exception when inferring headers and the header row has no columns" <|
+            err = infer_headers_no_headers.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            err . should_fail_with No_Column_Names_Found
+            err.catch.to_display_text . should_equal "No column names were found in the header line."
+
+        group_builder.specify "should work with all kinds of line endings" pending="https://github.com/enso-org/enso/issues/13137" <|
             descs = []
                 + [Fixed_Width_Column_Description.Start_And_Width 5 3]
                 + [Fixed_Width_Column_Description.Start_And_Width 13 5]

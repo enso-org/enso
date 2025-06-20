@@ -2,7 +2,7 @@ package org.enso.table.aggregations;
 
 import java.util.Arrays;
 import java.util.List;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
@@ -10,8 +10,8 @@ import org.graalvm.polyglot.Context;
 
 /** Aggregate Column finding the first value in a group. */
 public class First extends KnownTypeAggregator {
-  private final Storage<?> storage;
-  private final Storage<?>[] orderByColumns;
+  private final ColumnStorage<?> storage;
+  private final ColumnStorage<?>[] orderByColumns;
   private final int[] orderByDirections;
   private final boolean ignoreNothing;
 
@@ -29,8 +29,8 @@ public class First extends KnownTypeAggregator {
     this.storage = column.getStorage();
     this.orderByColumns =
         orderByColumns == null
-            ? new Storage[0]
-            : Arrays.stream(orderByColumns).map(Column::getStorage).toArray(Storage[]::new);
+            ? new ColumnStorage[0]
+            : Arrays.stream(orderByColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     this.orderByDirections =
         orderByDirections == null
             ? new int[0]

@@ -18,7 +18,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
-from Standard.Base.Metadata import Display, make_single_choice, Widget
+from Standard.Base.Metadata import Display, Widget
 from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
 import project.Aggregate_Column.Aggregate_Column
@@ -44,16 +44,15 @@ import project.Internal.Add_Row_Number
 import project.Internal.Add_Running
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+import project.Internal.Column_Type_Helpers
 import project.Internal.Constant_Column.Constant_Column
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 import project.Internal.Display_Helpers
 import project.Internal.Expand_Objects_Helpers
-import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
 import project.Internal.Lookup_Helpers
-import project.Internal.Lookup_Helpers.Lookup_Column
 import project.Internal.Offset_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
@@ -66,6 +65,7 @@ import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Type_Refinements.Table_Refinements
 import project.Internal.Union
 import project.Internal.Value_Type_Helpers
+import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
@@ -86,6 +86,7 @@ from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
+
 
 polyglot java import java.util.UUID
 polyglot java import org.enso.base.ObjectComparator
@@ -158,20 +159,19 @@ type Table
                 col : Column -> col
                 _ -> invalid_input_shape
             (column:In_Memory_Column).java_column
-        Panic.recover Illegal_Argument <|
-            if cols.is_empty then
-                Panic.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
+        if cols.is_empty then
+            Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
 
-            if cols.distinct .getName . length != cols.length then
-                Panic.throw (Illegal_Argument.Error "Column names must be distinct.")
+        if cols.distinct .getName . length != cols.length then
+            Error.throw (Illegal_Argument.Error "Column names must be distinct.")
 
-            mismatched_size_column = cols.find if_missing=Nothing c->
-                c.getSize != cols.first.getSize
-            if mismatched_size_column.is_nothing.not then
-                msg = "All columns must have the same row count, but the column [" + mismatched_size_column.getName + "] has " + mismatched_size_column.getSize.to_text + " rows, while the column [" + cols.first.getName + "] has " + cols.first.getSize.to_text + " rows."
-                Panic.throw (Illegal_Argument.Error msg)
+        mismatched_size_column = cols.find if_missing=Nothing c->
+            c.getSize != cols.first.getSize
+        if mismatched_size_column.is_nothing.not then
+            msg = "All columns must have the same row count, but the column [" + mismatched_size_column.getName + "] has " + mismatched_size_column.getSize.to_text + " rows, while the column [" + cols.first.getName + "] has " + cols.first.getSize.to_text + " rows."
+            Error.throw (Illegal_Argument.Error msg)
 
-            from_java_table (Java_Table.new cols)
+        from_java_table (Java_Table.new cols)
 
     ## GROUP Standard.Base.Constants
        ICON data_input
@@ -1558,10 +1558,9 @@ type Table
                 already_parsed = Auto != type && column_value_type.is_same_type type
                 if already_parsed then column else
                     Value_Type.expect_text column <|
-                        storage = (column:In_Memory_Column).java_column.getStorage
                         new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                             parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
-                            parser.parseColumn storage parse_problem_aggregator
+                            parser.parseColumn (column:In_Memory_Column).java_column parse_problem_aggregator
                         In_Memory_Column.from_storage column.name new_storage
             Table.new new_columns
 
@@ -2533,7 +2532,7 @@ type Table
             _ : Column -> value
             _ -> self.make_constant_column value
         is_column value = value.is_a Column
-        new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" In_Memory_Column_Implementation.var_args_functions
+        new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" Column_Type_Helpers.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.column_naming_helper.sanitize_name expression.expression)
         on_problems.attach_problems_before problems <|
@@ -2580,8 +2579,14 @@ type Table
        Create a constant column from a value.
     make_constant_column : Any -> Column
     make_constant_column self value =
-        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
+        if Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
             Column.from_repeated_item value.pretty value self.row_count
+
+    ## PRIVATE
+       Creates a constant column that has the same number of rows as this table.
+       Each row of this column contains the provided vector as its value.
+    make_constant_column_from_vector self vector:Vector =
+        Column.from_repeated_item "Vector" vector self.row_count
 
     ## PRIVATE
        Create a unique temporary column name.
@@ -3213,7 +3218,12 @@ type Table
              example_info = Examples.inventory_table.column_info
     column_info self -> Table =
         cols = self.columns
-        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
+        col_data = self.columns.map c-> (c:Visualization_Helpers).await_metrics
+        raw_table = Table.new [["Column", cols.map .name], ["Items Count", col_data.map c-> (self.row_count - (c.get Visualization_Helpers.count_nothing_column 0))], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
+        expanded = raw_table.expand_column "Metrics" prefix=..None
+        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get Visualization_Helpers.sampled_column then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
+        tidied = tagged.remove_columns [regex "_.*"] error_on_missing_columns=False on_problems=..Ignore
+        tidied.reorder_columns ["Column", "Items Count", "Value Type", "# Nothing", "# Distinct", "Minimum", "Maximum", "# Empty", "# Untrimmed"] error_on_missing_columns=False on_problems=..Ignore
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations

@@ -3,8 +3,11 @@ package org.enso.table.data.table;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
+import org.enso.table.data.column.DataQualityMetrics;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StorageListView;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -14,7 +17,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
-public class Column {
+public final class Column {
   private final String name;
   private final Storage<?> storage;
 
@@ -24,10 +27,13 @@ public class Column {
    * @param name the column name
    * @param storage the underlying storage
    */
-  public Column(String name, Storage<?> storage) {
+  public Column(String name, ColumnStorage<?> storage) {
     ensureNameIsValid(name);
     this.name = name;
-    this.storage = storage;
+    this.storage = (Storage<?>) storage;
+
+    // Trigger the computation of data quality metrics
+    DataQualityMetrics.get(storage);
   }
 
   public static boolean isColumnNameValid(String name) {
@@ -59,8 +65,20 @@ public class Column {
   /**
    * @return the underlying storage
    */
-  public Storage<?> getStorage() {
+  public ColumnStorage<?> getStorage() {
     return storage;
+  }
+
+  /* Gets the value at a given index. */
+  public Object getItem(long index) {
+    return storage.getItemBoxed(index);
+  }
+
+  /**
+   * @return the type of the underlying storage
+   */
+  public StorageType<?> getType() {
+    return storage.getType();
   }
 
   /**
@@ -78,7 +96,7 @@ public class Column {
    * @param newLength the number of true values in mask
    * @return a new column, masked with the given mask
    */
-  public Column applyFilter(BitSet filterMask, int newLength) {
+  Column applyFilter(BitSet filterMask, int newLength) {
     return new Column(name, storage.applyFilter(filterMask, newLength));
   }
 
@@ -150,9 +168,9 @@ public class Column {
    * @param item the item repeated in the column
    * @return a column with given name and items
    */
-  public static Column fromRepeatedItem(
-      String name, Value item, int repeat, ProblemAggregator problemAggregator) {
-    return new Column(name, Storage.fromRepeatedItem(item, repeat, problemAggregator));
+  public static Column fromRepeatedItem(String name, Value item, int repeat) {
+    Object converted = Polyglot_Utils.convertPolyglotValue(item);
+    return new Column(name, Builder.fromRepeatedItem(converted, repeat));
   }
 
   /**
@@ -160,8 +178,15 @@ public class Column {
    * @return a new column, resulting from reordering this column according to {@code mask}.
    */
   public Column applyMask(OrderMask mask) {
-    Storage<?> newStorage = storage.applyMask(mask);
+    var newStorage = storage.applyMask(mask);
     return new Column(name, newStorage);
+  }
+
+  /**
+   * @return a list view of the column
+   */
+  public List<?> asList() {
+    return new StorageListView(this.getStorage());
   }
 
   /**
@@ -176,12 +201,5 @@ public class Column {
    */
   public Column slice(List<SliceRange> ranges) {
     return new Column(name, storage.slice(ranges));
-  }
-
-  /**
-   * @return a column counting value repetitions in this column.
-   */
-  public Column duplicateCount() {
-    return new Column(name + "_duplicate_count", storage.duplicateCount());
   }
 }

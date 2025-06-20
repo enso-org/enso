@@ -66,6 +66,7 @@ export default function DragModal(props: DragModalProps) {
     document.addEventListener('drag', onDrag, { capture: true })
     // Update position (FF)
     document.addEventListener('dragover', onDrag, { capture: true })
+
     document.addEventListener('dragend', onDragEnd, { capture: true })
 
     return () => {

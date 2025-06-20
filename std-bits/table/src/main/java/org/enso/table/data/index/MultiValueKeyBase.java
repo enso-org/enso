@@ -3,13 +3,13 @@ package org.enso.table.data.index;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 
 /** The base class for keys used for sorting/grouping rows by a set of columns. */
 public abstract class MultiValueKeyBase {
-  protected final Storage<?>[] storages;
+  protected final ColumnStorage<?>[] storages;
   protected final int rowIndex;
   protected boolean hasFloatValues = false;
   protected boolean floatsComputed = false;
@@ -18,7 +18,7 @@ public abstract class MultiValueKeyBase {
    * Constructs a key based on an array of column storages and the index of the row the key is
    * associated with.
    */
-  public MultiValueKeyBase(Storage<?>[] storage, int rowIndex) {
+  public MultiValueKeyBase(ColumnStorage<?>[] storage, int rowIndex) {
     this.storages = storage;
     this.rowIndex = rowIndex;
   }
@@ -49,7 +49,7 @@ public abstract class MultiValueKeyBase {
 
   /** Checks if all cells in the current row are missing. */
   public boolean areAllNull() {
-    for (Storage<?> storage : storages) {
+    for (ColumnStorage<?> storage : storages) {
       if (!storage.isNothing(rowIndex)) {
         return false;
       }
@@ -59,7 +59,7 @@ public abstract class MultiValueKeyBase {
 
   /** Checks if any cells in the current row are missing. */
   public boolean hasAnyNulls() {
-    for (Storage<?> storage : storages) {
+    for (ColumnStorage<?> storage : storages) {
       if (storage.isNothing(rowIndex)) {
         return true;
       }
