@@ -30,7 +30,7 @@ function locateCreateButton(page: Page) {
 
 /** Find an assets table. */
 function locateAssetsTable(page: Page) {
-  return page.getByTestId('drive-view').getByRole('table')
+  return page.getByTestId('drive-view').getByTestId('assets-table')
 }
 
 /** Find all assets table rows. */

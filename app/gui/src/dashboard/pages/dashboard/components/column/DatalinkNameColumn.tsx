@@ -53,6 +53,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     >
       <Icon icon="connector" className="m-name-column-icon" />
       <EditableSpan
+        data-testid="asset-row-name"
         editable={rowState.isEditingName}
         onSubmit={doRename}
         onCancel={() => {

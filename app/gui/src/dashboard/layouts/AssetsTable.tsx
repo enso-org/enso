@@ -1281,7 +1281,7 @@ function AssetsTable(props: AssetsTableProps) {
   const table = (
     <div className="flex flex-none flex-col">
       <ResizableTableContainer onResize={onResize} onResizeEnd={onResize}>
-        <Table className="isolate border-collapse rounded-rows">
+        <Table data-testid="assets-table" className="isolate border-collapse rounded-rows">
           <TableHeader
             columns={columns.map((column) => ({ id: column }))}
             className="sticky top-0 isolate z-1 bg-dashboard"
