@@ -48,11 +48,11 @@ polyglot java import org.enso.table.data.column.operation.BinaryOperation
 polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
-polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.IfOperation
 polyglot java import org.enso.table.data.column.operation.IsInOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
+polyglot java import org.enso.table.data.column.operation.unary.CountNothing
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
@@ -212,13 +212,8 @@ type In_Memory_Column_Implementation
             new_name = naming_helper.concat <|
                 ["if", naming_helper.to_expression_text this_column, "then", naming_helper.to_expression_text when_true, "else", naming_helper.to_expression_text when_false]
 
-            true_val = case when_true of
-                _ : Column -> (when_true:In_Memory_Column).java_column
-                _ -> when_true
-            false_val = case when_false of
-                _ : Column -> (when_false:In_Memory_Column).java_column
-                _ -> when_false
-
+            true_val = _java_other when_true
+            false_val = _java_other when_false
             java_column = Illegal_State.handle_java_exception <|
                 Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     IfOperation.apply (this_column:In_Memory_Column).java_column new_name true_val false_val storage_type java_problem_aggregator

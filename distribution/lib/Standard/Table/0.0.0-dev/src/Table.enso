@@ -65,6 +65,7 @@ import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Type_Refinements.Table_Refinements
 import project.Internal.Union
 import project.Internal.Value_Type_Helpers
+import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
@@ -85,6 +86,7 @@ from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
+
 
 polyglot java import java.util.UUID
 polyglot java import org.enso.base.ObjectComparator
@@ -3216,7 +3218,12 @@ type Table
              example_info = Examples.inventory_table.column_info
     column_info self -> Table =
         cols = self.columns
-        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
+        col_data = self.columns.map c-> (c:Visualization_Helpers).await_metrics
+        raw_table = Table.new [["Column", cols.map .name], ["Items Count", col_data.map c-> (self.row_count - (c.get Visualization_Helpers.count_nothing_column 0))], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
+        expanded = raw_table.expand_column "Metrics" prefix=..None
+        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get Visualization_Helpers.sampled_column then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
+        tidied = tagged.remove_columns [regex "_.*"] error_on_missing_columns=False on_problems=..Ignore
+        tidied.reorder_columns ["Column", "Items Count", "Value Type", "# Nothing", "# Distinct", "Minimum", "Maximum", "# Empty", "# Untrimmed"] error_on_missing_columns=False on_problems=..Ignore
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations

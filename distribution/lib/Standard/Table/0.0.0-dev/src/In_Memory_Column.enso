@@ -10,7 +10,6 @@ import project.Internal.Storage
 import project.Internal.Type_Refinements.In_Memory_Column_Refinements
 import project.Internal.Value_Type_Helpers
 import project.Internal.Visualization_Helpers.Visualization_Helpers
-import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Value_Type

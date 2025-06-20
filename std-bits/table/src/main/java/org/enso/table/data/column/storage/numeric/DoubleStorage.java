@@ -4,8 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.CachedPropertyCheck;
-import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -20,11 +18,10 @@ import org.graalvm.polyglot.Context;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
-    implements ColumnDoubleStorage, ColumnStorageWithNothingMap, NumericFormattingStorage {
+    implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
   final double[] data;
   final BitSet isNothing;
   private final int size;
-  private final CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -36,9 +33,6 @@ public final class DoubleStorage extends Storage<Double>
     this.data = data;
     this.isNothing = isNothing;
     this.size = size;
-
-    isNumericFormatRequired =
-        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   @Override
@@ -216,15 +210,5 @@ public final class DoubleStorage extends Storage<Double>
       index++;
       return true;
     }
-  }
-
-  /**
-   * Checks if any numbers are large enough for the column to require formatin in the table viz.
-   *
-   * @return true/false if formatting is required
-   */
-  @Override
-  public Boolean cachedNumericFormatCheck() throws InterruptedException {
-    return isNumericFormatRequired.get();
   }
 }

@@ -412,6 +412,12 @@ add_specs suite_builder =
             i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Mixed]
+            i.at "# Nothing" . to_vector . should_equal [1, 2, 0]
+            i.at "# Distinct" . to_vector . should_equal [2, 2, 4]
+            i.at "Minimum" . to_vector . should_equal ["a", 1, Nothing]
+            i.at "Maximum" . to_vector . should_equal ["b", 2, Nothing]
+            i.at "# Empty" . to_vector . should_equal [0, Nothing, Nothing]
+            i.at "Types and Counts" . to_vector . should_equal [Nothing, Nothing, 'Char: 2\nInteger: 1\nOther: 1']
 
     suite_builder.group "Sorting Tables" group_builder->
         group_builder.specify 'should respect defined comparison operations for custom types' <|

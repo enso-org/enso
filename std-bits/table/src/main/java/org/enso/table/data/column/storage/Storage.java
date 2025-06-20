@@ -4,12 +4,22 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicLong;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> implements ColumnStorage<T> {
+  private static final AtomicLong atomicCounter = new AtomicLong(0);
+
+  private final long uniqueKey = atomicCounter.incrementAndGet();
+
+  @Override
+  public long uniqueKey() {
+    return uniqueKey;
+  }
+
   @Override
   public abstract long getSize();
 

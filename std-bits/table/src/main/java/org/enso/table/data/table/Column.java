@@ -3,6 +3,7 @@ package org.enso.table.data.table;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
+import org.enso.table.data.column.DataQualityMetrics;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -30,6 +31,9 @@ public final class Column {
     ensureNameIsValid(name);
     this.name = name;
     this.storage = (Storage<?>) storage;
+
+    // Trigger the computation of data quality metrics
+    DataQualityMetrics.get(storage);
   }
 
   public static boolean isColumnNameValid(String name) {
@@ -61,7 +65,7 @@ public final class Column {
   /**
    * @return the underlying storage
    */
-  public Storage<?> getStorage() {
+  public ColumnStorage<?> getStorage() {
     return storage;
   }
 

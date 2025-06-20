@@ -90,15 +90,12 @@ public class CastOperation {
     private long minLength = Long.MAX_VALUE;
     private long maxLength = Long.MIN_VALUE;
 
-    public void accumulate(String item) {
-      if (item == null) {
-        return;
-      }
-
+    public boolean accumulate(String item) {
       count++;
       long length = graphemeLengthCache.computeIfAbsent(item, Text_Utils::grapheme_length);
       minLength = Math.min(minLength, length);
       maxLength = Math.max(maxLength, length);
+      return false;
     }
 
     public boolean allNull() {
@@ -163,14 +160,11 @@ public class CastOperation {
     private long minValue = Long.MAX_VALUE;
     private long maxValue = Long.MIN_VALUE;
 
-    public void accumulate(long item, boolean isNothing) {
-      if (isNothing) {
-        return;
-      }
-
+    public boolean accumulate(long item) {
       count++;
       minValue = Math.min(minValue, item);
       maxValue = Math.max(maxValue, item);
+      return false;
     }
 
     public long getCount() {
@@ -214,7 +208,7 @@ public class CastOperation {
     StorageIterators.forEachOverLongStorage(
         integerType.asTypedStorage(columnStorage),
         false,
-        (index, item, isNothing) -> accumulator.accumulate(item, isNothing));
+        (index, item, isNothing) -> accumulator.accumulate(item));
 
     return accumulator.resolveType();
   }
@@ -227,25 +221,29 @@ public class CastOperation {
     }
 
     // Build the min and max of values in the column.
-    try {
-      var accumulator = new LongAccumulator();
-      StorageIterators.forEachOverStorage(
-          bigIntegerType.asTypedStorage(columnStorage),
-          false,
-          (index, item) -> {
-            if (item == null) {
-              return;
-            }
-            accumulator.accumulate(item.longValueExact(), false);
-          });
+    var accumulator = new LongAccumulator();
+    var endedEarly =
+        StorageIterators.forEachOverStorage(
+            bigIntegerType.asTypedStorage(columnStorage),
+            false,
+            (index, item) -> {
+              try {
+                return accumulator.accumulate(item.longValueExact());
+              } catch (ArithmeticException e) {
+                // If we cannot convert the value to long, we end early.
+                return true; // This will stop the iteration.
+              }
+            });
 
-      return options.shrinkIntegers()
-          ? accumulator.resolveType()
-          : (accumulator.getCount() == 0 ? bigIntegerType : IntegerType.INT_64);
-    } catch (ArithmeticException e) {
-      // If we cannot convert the value to long, we return the original type.
+    if (endedEarly) {
+      // If we ended early, it means we encountered a value that could not be converted to long.
+      // We return the original type.
       return bigIntegerType;
     }
+
+    return options.shrinkIntegers()
+        ? accumulator.resolveType()
+        : (accumulator.getCount() == 0 ? bigIntegerType : IntegerType.INT_64);
   }
 
   private static StorageType<?> inferFloatType(
@@ -260,46 +258,48 @@ public class CastOperation {
     }
 
     // Build the min and max of values in the column.
-    try {
-      var accumulator = new LongAccumulator();
-      StorageIterators.forEachOverDoubleStorage(
-          floatType.asTypedStorage(columnStorage),
-          false,
-          (index, item, isNothing) -> {
-            if (isNothing) {
-              return;
-            }
-            if (item % 1 != 0 || !IntegerType.INT_64.fits(item)) {
-              throw new ArithmeticException(
-                  "Value is not a whole number or doesn't fit in a long: " + item);
-            }
-            accumulator.accumulate((long) item, isNothing);
-          });
+    var accumulator = new LongAccumulator();
+    var endedEarly =
+        StorageIterators.forEachOverDoubleStorage(
+            floatType.asTypedStorage(columnStorage),
+            false,
+            (index, item, isNothing) -> {
+              if (item % 1 != 0 || !IntegerType.INT_64.fits(item)) {
+                // If the value is not a whole number or does not fit in a long, we end early.
+                return true; // This will stop the iteration.
+              }
+              return accumulator.accumulate((long) item);
+            });
 
-      return accumulator.getCount() == 0
-          ? floatType
-          : (options.shrinkIntegers() ? accumulator.resolveType() : IntegerType.INT_64);
-    } catch (ArithmeticException e) {
-      // If we cannot convert the value to long, we return the original type.
+    if (endedEarly) {
+      // If we ended early, it means we encountered a value that could not be converted to long.
+      // We return the original type.
       return floatType;
     }
+
+    return accumulator.getCount() == 0
+        ? floatType
+        : (options.shrinkIntegers() ? accumulator.resolveType() : IntegerType.INT_64);
   }
 
   private static class BigDecimalAccumulator extends LongAccumulator {
     private boolean overflowed = false;
 
-    public void accumulate(BigDecimal item) {
-      if (item == null) {
-        return;
-      }
-
-      var bigIntegerValue = item.toBigIntegerExact();
-      if (!overflowed) {
-        if (IntegerType.INT_64.fits(bigIntegerValue)) {
-          super.accumulate(bigIntegerValue.longValueExact(), false);
-        } else {
-          overflowed = true;
+    public boolean accumulate(BigDecimal item) {
+      try {
+        var bigIntegerValue = item.toBigIntegerExact();
+        if (!overflowed) {
+          if (IntegerType.INT_64.fits(bigIntegerValue)) {
+            super.accumulate(bigIntegerValue.longValueExact());
+          } else {
+            overflowed = true;
+          }
         }
+        return overflowed;
+      } catch (ArithmeticException e) {
+        // If we cannot convert the value to long, we mark it as overflowed.
+        overflowed = true;
+        return true; // This will stop the iteration.
       }
     }
 
@@ -320,40 +320,26 @@ public class CastOperation {
     }
 
     // Build the min and max of values in the column.
-    try {
-      var accumulator = new BigDecimalAccumulator();
-      StorageIterators.forEachOverStorage(
-          bigDecimalType.asTypedStorage(columnStorage),
-          false,
-          (index, item) -> accumulator.accumulate(item));
+    var accumulator = new BigDecimalAccumulator();
+    StorageIterators.forEachOverStorage(
+        bigDecimalType.asTypedStorage(columnStorage),
+        false,
+        (index, item) -> accumulator.accumulate(item));
 
-      if (accumulator.getCount() == 0) {
-        // If there are no items, we return the original type.
-        return bigDecimalType;
-      }
-
-      if (accumulator.getOverflowed()) {
-        // If we overflowed, we cannot convert to long, so we return the original type.
-        return BigIntegerType.INSTANCE;
-      }
-
-      // Will fit in a long, so we can return an IntegerType.
-      return options.shrinkIntegers() ? accumulator.resolveType() : IntegerType.INT_64;
-    } catch (ArithmeticException e) {
-      // If we cannot convert the value to long, we return the original type.
+    if (accumulator.getOverflowed() || accumulator.getCount() == 0) {
+      // If there are no items or it overflowed, we return the original type.
       return bigDecimalType;
     }
+
+    // Will fit in a long, so we can return an IntegerType.
+    return options.shrinkIntegers() ? accumulator.resolveType() : IntegerType.INT_64;
   }
 
   private static class ObjectTypeAccumulator {
     private long count = 0;
     private StorageType<?> currentType = null;
 
-    public void accumulate(Object item) {
-      if (item == null) {
-        return;
-      }
-
+    public boolean accumulate(Object item) {
       count++;
       var itemType = StorageType.forBoxedItem(item, PreciseTypeOptions.DEFAULT);
       if (currentType == null) {
@@ -362,10 +348,8 @@ public class CastOperation {
         currentType = reconcileTypes(currentType, itemType);
       }
 
-      if (currentType instanceof AnyObjectType) {
-        // If we have an AnyObjectType, we can stop accumulating.
-        throw new IllegalArgumentException("Reached AnyObjectType during accumulation.");
-      }
+      // If we have an AnyObjectType, we can stop accumulating.
+      return currentType instanceof AnyObjectType;
     }
 
     public StorageType<?> getCurrentType() {
@@ -417,30 +401,22 @@ public class CastOperation {
 
     // Need to scan the column to determine the most appropriate type.
     var accumulator = new ObjectTypeAccumulator();
-    try {
-      StorageIterators.forEachOverStorage(
-          AnyObjectType.INSTANCE.asTypedStorage(columnStorage),
-          false,
-          (index, item) -> accumulator.accumulate(item));
-      return accumulator.getCurrentType();
-    } catch (IllegalArgumentException e) {
-      // Could not combine so return AnyObjectType
-      return AnyObjectType.INSTANCE;
-    }
+    StorageIterators.forEachOverStorage(
+        AnyObjectType.INSTANCE.asTypedStorage(columnStorage),
+        false,
+        (index, item) -> accumulator.accumulate(item));
+    return accumulator.getCurrentType();
   }
 
   private static class PrecisionAccumulator {
     private long maxPrecision = 0;
 
-    public void accumulate(BigDecimal item) {
-      if (item == null) {
-        return;
-      }
-
+    public boolean accumulate(BigDecimal item) {
       int precision = item.precision();
       if (precision > maxPrecision) {
         maxPrecision = precision;
       }
+      return false;
     }
 
     public long getMaxPrecision() {
@@ -466,7 +442,7 @@ public class CastOperation {
       case BigIntegerType bigIntegerType -> StorageIterators.forEachOverStorage(
           bigIntegerType.asTypedStorage(storage),
           false,
-          (index, item) -> accumulator.accumulate(item == null ? null : new BigDecimal(item)));
+          (index, item) -> accumulator.accumulate(new BigDecimal(item)));
       default -> throw new IllegalArgumentException(
           "Cannot compute max precision for storage type: " + storage.getType());
     }

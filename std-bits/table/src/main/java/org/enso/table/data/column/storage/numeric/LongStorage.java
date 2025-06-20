@@ -3,8 +3,6 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import org.enso.table.data.column.operation.CachedPropertyCheck;
-import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
@@ -13,15 +11,13 @@ import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
 
 /** A column storing 64-bit integers. */
-public final class LongStorage extends AbstractLongStorage
-    implements ColumnStorageWithNothingMap, NumericFormattingStorage {
+public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
 
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
   final long[] data;
   final BitSet isNothing;
-  private final CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -34,9 +30,6 @@ public final class LongStorage extends AbstractLongStorage
     super(size, type);
     this.data = data;
     this.isNothing = isNothing;
-
-    isNumericFormatRequired =
-        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   public LongStorage(long[] data, IntegerType type) {
@@ -174,15 +167,5 @@ public final class LongStorage extends AbstractLongStorage
       index++;
       return true;
     }
-  }
-
-  /**
-   * Checks if any numbers are large enough for the column to require formatin in the table viz.
-   *
-   * @return true/false if formatting is required
-   */
-  @Override
-  public Boolean cachedNumericFormatCheck() throws InterruptedException {
-    return isNumericFormatRequired.get();
   }
 }

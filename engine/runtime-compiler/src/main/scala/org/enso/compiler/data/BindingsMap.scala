@@ -323,10 +323,12 @@ case class BindingsMap(
     * This is a special case because we first need to decide whether the project is imported at all.
     * The name may be located in different project, hence the name.
     * @param name Fully qualified name, with at least 3 parts: namespace, project name, module name.
+    * @param bindingsMapStack Stack of already visited bindings maps to avoid infinite recursion.
     * @return
     */
   private def resolveQualifiedNameFromDifferentProject(
-    name: List[String]
+    name: List[String],
+    bindingsMapStack: Set[QualifiedName] = Set()
   ): Either[ResolutionError, List[ResolvedName]] = {
     assert(
       name.size > 2,
@@ -366,11 +368,18 @@ case class BindingsMap(
         case ModuleReference.Concrete(concreteMod) => concreteMod
       }
       val importedBindingMaps = matchingConcreteModules
+        // Consider only modules that are not in `bindingsMapStack`
+        .filterNot(mod => bindingsMapStack.contains(mod.getName))
         .map(_.getBindingsMap)
         // Avoid infinite loops with the identical binding maps
         .filterNot(_ eq this)
       importedBindingMaps.foreach { bm =>
-        val resolution = bm.resolveQualifiedName(name)
+        val bmName = bm.currentModule.getName
+        assert(!bindingsMapStack.contains(bmName))
+        val resolution = bm.resolveQualifiedNameFromDifferentProject(
+          name,
+          bindingsMapStack + bmName
+        )
         resolution match {
           case Left(err)  => return Left(err)
           case Right(res) => return Right(res)
@@ -381,16 +390,32 @@ case class BindingsMap(
     val restOfFQN                                 = name.drop(3)
     val allResolutions: ArrayBuffer[ResolvedName] = ArrayBuffer.empty
     matchingModules.foreach { mod =>
-      val resolution = resolveQualifiedNameIn(
-        ResolvedModule(mod),
-        restOfFQN.init,
-        restOfFQN.last
-      )
-      resolution match {
-        case Left(err) =>
-          return Left(err)
-        case Right(res) =>
-          allResolutions.addAll(res)
+      val resolvedMod = ResolvedModule(mod)
+      if (restOfFQN.nonEmpty) {
+        val directResolutions =
+          resolvedMod.findExportedSymbolsFor(restOfFQN.last)
+        if (directResolutions.nonEmpty) {
+          allResolutions.addAll(directResolutions)
+        } else {
+          // Try one more time with `resolveQualifiedNameIn`
+          val resolution = resolveQualifiedNameIn(
+            resolvedMod,
+            restOfFQN.init,
+            restOfFQN.last
+          )
+          resolution match {
+            case Left(err) =>
+              return Left(err)
+            case Right(res) =>
+              allResolutions.addAll(res)
+          }
+        }
+      } else {
+        if (mod.getName.item == modName) {
+          allResolutions.addOne(
+            resolvedMod
+          )
+        }
       }
     }
     if (allResolutions.isEmpty) {
@@ -427,7 +452,8 @@ case class BindingsMap(
     if (curModName.item == "Main") {
       curModName.path == name.dropRight(1)
     } else {
-      curModName.fullPath() == name.dropRight(1)
+      curModName.fullPath() == name.dropRight(1) ||
+      curModName.fullPath() == name
     }
   }
 

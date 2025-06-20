@@ -25,7 +25,7 @@ public interface UnaryOperation {
       UnaryOperation operation,
       String newColumnName,
       MapOperationProblemAggregator problemAggregator) {
-    ColumnStorage<?> storage = column.getStorage();
+    var storage = column.getStorage();
 
     // If the storage has an inferred storage (e.g. a Mixed column) and the first level can't do get
     // an inferred storage.

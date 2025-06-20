@@ -4,7 +4,6 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-import Standard.Table.Internal.Vector_Builder.Vector_Builder
 import Standard.Table.In_Memory_Column.In_Memory_Column
 from Standard.Table import Aggregate_Column, Column, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
