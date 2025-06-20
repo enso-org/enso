@@ -2,14 +2,13 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.iterators.DoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.mask.OrderMask;

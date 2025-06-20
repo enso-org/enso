@@ -73,4 +73,3 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    */
   public abstract ColumnStorage<T> slice(List<SliceRange> ranges);
 }
-

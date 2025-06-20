@@ -97,7 +97,7 @@ public final class Column {
    * @return a new column, masked with the given mask
    */
   Column applyFilter(BitSet filterMask, int newLength) {
-    return new Column(name, ((Storage<?>)storage).applyFilter(filterMask, newLength));
+    return new Column(name, ((Storage<?>) storage).applyFilter(filterMask, newLength));
   }
 
   /**
@@ -178,7 +178,7 @@ public final class Column {
    * @return a new column, resulting from reordering this column according to {@code mask}.
    */
   public Column applyMask(OrderMask mask) {
-    var newStorage = ((Storage<?>)storage).applyMask(mask);
+    var newStorage = ((Storage<?>) storage).applyMask(mask);
     return new Column(name, newStorage);
   }
 
@@ -193,6 +193,6 @@ public final class Column {
    * @return a copy of the Column consisting of slices of the original data
    */
   public Column slice(List<SliceRange> ranges) {
-    return new Column(name, ((Storage<?>)storage).slice(ranges));
+    return new Column(name, ((Storage<?>) storage).slice(ranges));
   }
 }

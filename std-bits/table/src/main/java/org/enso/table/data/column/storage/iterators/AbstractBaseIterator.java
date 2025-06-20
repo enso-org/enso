@@ -1,10 +1,10 @@
 package org.enso.table.data.column.storage.iterators;
 
+import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.ColumnStorage;
 
-import java.util.NoSuchElementException;
-
-public sealed class AbstractBaseIterator<T> implements ColumnStorageIterator<T> permits BoolStorageIterator, DoubleStorageIterator, LongStorageIterator{
+public sealed class AbstractBaseIterator<T> implements ColumnStorageIterator<T>
+    permits BooleanStorageIterator, DoubleStorageIterator, LongStorageIterator {
   protected final ColumnStorage<T> parent;
   private long index;
   private final long length;

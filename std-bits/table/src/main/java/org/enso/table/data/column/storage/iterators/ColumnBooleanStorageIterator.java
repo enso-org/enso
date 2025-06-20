@@ -4,4 +4,3 @@ public interface ColumnBooleanStorageIterator extends ColumnStorageIterator<Bool
   /** Gets the current item as a boolean. Note if the item isNothing value is undefined. */
   boolean getItemAsBoolean();
 }
-

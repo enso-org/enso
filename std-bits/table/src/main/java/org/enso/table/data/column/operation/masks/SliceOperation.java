@@ -1,15 +1,15 @@
 package org.enso.table.data.column.operation.masks;
 
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.iterators.*;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
-public class SliceOperation {
+public final class SliceOperation {
   /**
    * Creates a new Column that contains a slice of the input.
    *
@@ -31,10 +31,16 @@ public class SliceOperation {
     return new Column(column.getName(), newStorage);
   }
 
-  private static ColumnStorage<?> getSlicedStorage(long start, long length, ColumnStorage<?> storage, long newSize) {
+  private static ColumnStorage<?> getSlicedStorage(
+      long start, long length, ColumnStorage<?> storage, long newSize) {
     if (storage instanceof ColumnLongStorage longStorage) {
       // Handle slicing for long storage
       return getSlicedLongStorage(start, length, longStorage, newSize);
+    }
+
+    if (storage instanceof ColumnDoubleStorage doubleStorage) {
+      // Handle slicing for double storage
+      return getSlicedDoubleStorage(start, length, doubleStorage, newSize);
     }
 
     if (storage instanceof SliceStorage<?> sliceStorage) {
@@ -58,6 +64,17 @@ public class SliceOperation {
       return new SliceLongStorage(sliceLongStorage.parent, newStart, newEnd);
     }
     return new SliceLongStorage(storage, start, start + newSize);
+  }
+
+  private static ColumnDoubleStorage getSlicedDoubleStorage(
+      long start, long length, ColumnDoubleStorage storage, long newSize) {
+    if (storage instanceof SliceDoubleStorage sliceDoubleStorage) {
+      // Avoid nesting sliced storages
+      long newStart = sliceDoubleStorage.start + start;
+      long newEnd = sliceDoubleStorage.start + length;
+      return new SliceDoubleStorage(sliceDoubleStorage.parent, newStart, newEnd);
+    }
+    return new SliceDoubleStorage(storage, start, start + newSize);
   }
 
   private static class SliceStorage<T> implements ColumnStorage<T> {
@@ -132,11 +149,72 @@ public class SliceOperation {
     }
 
     @Override
+    public IntegerType getType() {
+      return parent.getType();
+    }
+
+    @Override
     public long getItemAsLong(long index) throws ValueIsNothingException {
       if (index < 0 || index >= end - start) {
         throw new IndexOutOfBoundsException(index);
       }
       return parent.getItemAsLong(index - start);
+    }
+
+    @Override
+    public ColumnLongStorageIterator iteratorWithIndex() {
+      return new LongStorageIterator(parent, start, getSize());
+    }
+  }
+
+  private static class SliceDoubleStorage extends SliceStorage<Double>
+      implements ColumnDoubleStorage {
+    private final ColumnDoubleStorage parent;
+
+    public SliceDoubleStorage(ColumnDoubleStorage parent, long start, long end) {
+      super(parent, start, end);
+      this.parent = parent;
+    }
+
+    @Override
+    public FloatType getType() {
+      return parent.getType();
+    }
+
+    @Override
+    public double getItemAsDouble(long index) throws ValueIsNothingException {
+      if (index < 0 || index >= end - start) {
+        throw new IndexOutOfBoundsException(index);
+      }
+      return parent.getItemAsDouble(index - start);
+    }
+
+    @Override
+    public ColumnDoubleStorageIterator iteratorWithIndex() {
+      return new DoubleStorageIterator(parent, start, getSize());
+    }
+  }
+
+  private static class SliceBooleanStorage extends SliceStorage<Boolean>
+      implements ColumnBooleanStorage {
+    private final ColumnBooleanStorage parent;
+
+    public SliceBooleanStorage(ColumnBooleanStorage parent, long start, long end) {
+      super(parent, start, end);
+      this.parent = parent;
+    }
+
+    @Override
+    public boolean getItemAsBoolean(long index) throws ValueIsNothingException {
+      if (index < 0 || index >= end - start) {
+        throw new IndexOutOfBoundsException(index);
+      }
+      return parent.getItemAsBoolean(index - start);
+    }
+
+    @Override
+    public ColumnBooleanStorageIterator iteratorWithIndex() {
+      return new BooleanStorageIterator(parent, start, getSize());
     }
   }
 }

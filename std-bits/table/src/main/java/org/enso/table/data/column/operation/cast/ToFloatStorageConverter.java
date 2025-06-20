@@ -49,8 +49,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         return convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage), problemAggregator);
       } else if (storageType instanceof BigDecimalType bigDecimalType) {
         return convertBigDecimalStorage(bigDecimalType.asTypedStorage(storage), problemAggregator);
-      } else if (storageType instanceof AnyObjectType
-          || storageType instanceof NullType) {
+      } else if (storageType instanceof AnyObjectType || storageType instanceof NullType) {
         return castFromObject(storage, problemAggregator);
       } else {
         throw new IllegalStateException(

@@ -9,7 +9,6 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -138,22 +137,16 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
                 + storage
                 + ". This is a bug in the Table library.");
       }
-    } else if (storage.getType() instanceof BigIntegerType) {
-      if (storage instanceof BigIntegerStorage bigIntegerStorage) {
-        long n = bigIntegerStorage.getSize();
-        for (long i = 0; i < n; i++) {
-          BigInteger item = bigIntegerStorage.getItemBoxed(i);
-          if (item == null) {
-            appendNulls(1);
-          } else {
-            appendDouble(convertBigIntegerToDouble(item));
-          }
+    } else if (storage.getType() instanceof BigIntegerType bigIntegerType) {
+      var bigIntegerStorage = bigIntegerType.asTypedStorage(storage);
+      long n = bigIntegerStorage.getSize();
+      for (long i = 0; i < n; i++) {
+        BigInteger item = bigIntegerStorage.getItemBoxed(i);
+        if (item == null) {
+          appendNulls(1);
+        } else {
+          appendDouble(convertBigIntegerToDouble(item));
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type BIG INTEGER: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof BooleanType) {
       if (storage instanceof ColumnBooleanStorage boolStorage) {

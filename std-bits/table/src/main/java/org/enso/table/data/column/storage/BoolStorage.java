@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.iterators.BoolStorageIterator;
+import org.enso.table.data.column.storage.iterators.BooleanStorageIterator;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -154,6 +154,6 @@ public final class BoolStorage extends Storage<Boolean>
 
   @Override
   public ColumnBooleanStorageIterator iteratorWithIndex() {
-    return new BoolStorageIterator(this, 0, getSize());
+    return new BooleanStorageIterator(this, 0, getSize());
   }
 }
