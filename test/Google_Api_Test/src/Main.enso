@@ -45,8 +45,8 @@ add_specs suite_builder =
             r6 = wb.read 6
             r6.should_fail_with Invalid_Location
             r6.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
-        group_builder.specify "Missing sheet name should error" pending='X' <|
-            x = 1
+        ## group_builder.specify "Missing sheet name should error" pending='X' <|
+           x = 1
 
     suite_builder.group "Google Sheets - Headers" group_builder->
         group_builder.specify "should be able to read with no headers" <|
