@@ -175,7 +175,7 @@ public final class Column {
     if (ranges.size() == 1) {
       // If there is only one range, we can use the existing slice method
       SliceRange range = ranges.get(0);
-      return slice(range.start(), range.end() - range.start());
+      return slice(range.start(), range.end() - range.start() + 1);
     }
 
     // If there are multiple ranges, we need to create a mask

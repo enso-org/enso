@@ -64,7 +64,7 @@ public class Distinct {
       List<TextFoldingStrategy> strategies =
           ConstantList.make(textFoldingStrategy, keyColumns.length);
 
-      var duplicateRows = new LongArrayList((int) Math.min(tableSize, 100000));
+      HashSet<Long> duplicateRows = new HashSet<>();
       Map<MultiValueKeyBase, Long> visitedRows = new HashMap<>();
 
       for (long i = 0; i < tableSize; i++) {
@@ -85,7 +85,7 @@ public class Distinct {
       }
 
       // Sort the duplicate rows to ensure they are in ascending order.
-      long[] result = duplicateRows.toArray();
+      long[] result = duplicateRows.stream().mapToLong(Long::longValue).toArray();
       Arrays.sort(result);
       return result;
     }

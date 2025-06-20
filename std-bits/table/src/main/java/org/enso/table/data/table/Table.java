@@ -20,7 +20,6 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.MultiValueIndex;
-import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -38,7 +37,6 @@ import org.graalvm.polyglot.Context;
 
 /** A representation of a table structure. */
 public class Table {
-
   private final Column[] columns;
   private String versionId;
 
@@ -269,7 +267,7 @@ public class Table {
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
     // If there are no key columns, we return the table as is.
-    if (keyColumns.length != 0) {
+    if (keyColumns.length == 0) {
       return this;
     }
 
@@ -296,9 +294,10 @@ public class Table {
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
     // If there are no key columns, we return the table.
-    if (keyColumns.length != 0) {
+    if (keyColumns.length == 0) {
       return this;
     }
+
     var rowsToKeep =
         Distinct.buildDuplicatesRowsMask(
             rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
