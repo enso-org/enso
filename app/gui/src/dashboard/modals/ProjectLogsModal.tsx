@@ -2,14 +2,13 @@
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Loader } from '#/components/Loader'
-import SearchBar from '#/layouts/SearchBar'
 import type Backend from '#/services/Backend'
 import type { ProjectSessionId } from '#/services/Backend'
 import { useText } from '$/providers/react'
 import type { Monaco } from '@monaco-editor/react'
 import { Editor } from '@monaco-editor/react'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef } from 'react'
 
 const MONACO_OPTIONS: NonNullable<Parameters<typeof Editor>[0]['options']> = {
   wordWrap: 'on',
@@ -60,7 +59,7 @@ export default function ProjectLogsModal(props: ProjectLogsModalProps) {
 function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
   const { backend, projectSessionId, projectTitle } = props
   const { getText } = useText()
-  const [query, setQuery] = useState('')
+  const editorRef = useRef<Monaco>()
 
   const logsPages = useInfiniteQuery({
     queryKey: ['projectLogs', { projectSessionId, projectTitle }],
@@ -69,21 +68,20 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
     initialPageParam: ((): string | null => null)(),
     getNextPageParam: (page) => (page.hits.length === 0 ? null : page.scrollId),
   })
-  const matchesQuery = query === '' ? () => true : (line: string) => line.includes(query)
-  const logs =
-    logsPages.data?.pages.flatMap((page) => page.hits.filter(matchesQuery)).join('\n') ?? ''
+  const logs = logsPages.data?.pages.flatMap((page) => page.hits).join('\n') ?? ''
   const isLoading = logsPages.isLoading
 
   return (
     <div className="flex h-full flex-col gap-2">
       <Button.Group className="grow-0 items-center">
-        <SearchBar
-          data-testid="logs-search-bar"
-          label={getText('searchLogs')}
-          placeholder={getText('searchLogs')}
-          query={query}
-          setQuery={setQuery}
-          className="mr-auto"
+        <Button
+          variant="icon"
+          icon="find"
+          aria-label={getText('search')}
+          onPress={async () => {
+            const editor = editorRef.current?.editor.getEditors()[0]
+            await editor?.getAction('actions.find')?.run()
+          }}
         />
         <Button
           variant="icon"
@@ -104,6 +102,7 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
         <Loader />
       : <Editor
           beforeMount={(monaco) => {
+            editorRef.current = monaco
             monaco.editor.defineTheme('transparentBackground', {
               base: 'vs',
               inherit: true,
