@@ -19,9 +19,7 @@ const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const text = useText()
-const EnsoDevtools = reactComponent(
-  process.env.NODE_ENV === 'development' ? EnsoDevToolsReact : () => null,
-)
+const EnsoDevtools = reactComponent(EnsoDevToolsReact)
 
 const routeGuardResult = computed(() => auth.routeGuard(route))
 watch(
