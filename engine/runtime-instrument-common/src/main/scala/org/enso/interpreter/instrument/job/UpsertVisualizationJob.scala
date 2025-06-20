@@ -64,85 +64,50 @@ class UpsertVisualizationJob(
     }
 
   /** @inheritdoc */
-  override def runImpl(implicit ctx: RuntimeContext): UpsertResult = {
-    val stack =
-      ctx.contextManager.getStack(config.executionContextId)
-    val runtimeCache = stack.headOption
-      .flatMap(frame => Option(frame.cache))
+  override def runImpl(implicit ctx: RuntimeContext): UpsertResult =
+    ctx.locking.withContextLock(
+      ctx.locking.getOrCreateContextLock(config.executionContextId),
+      classOf[UpsertVisualizationJob],
+      () => {
+        val stack =
+          ctx.contextManager.getStack(config.executionContextId)
+        val runtimeCache = stack.headOption
+          .flatMap(frame => Option(frame.cache))
 
-    runtimeCache match {
-      case Some(runtimeCache) =>
-        val maybeEvaluatedVisExpression = ctx.locking.withReadCompilationLock(
-          classOf[UpsertVisualizationJob],
-          () =>
-            UpsertVisualizationJob.evaluateVisualizationExpression(
-              config.visualizationModule,
-              config.expression,
-              hasWriteCompilationLock = false
-            )
-        )
-
-        val evaluatedVisExpression = maybeEvaluatedVisExpression match {
-          case Left(RequiresCompilation) =>
-            ctx.locking.withWriteCompilationLock(
-              classOf[UpsertVisualizationJob],
-              () =>
-                UpsertVisualizationJob.evaluateVisualizationExpression(
-                  config.visualizationModule,
-                  config.expression,
-                  hasWriteCompilationLock = true
-                )
-            )
-          case evalResult =>
-            evalResult
-        }
-
-        evaluatedVisExpression match {
-          case Left(ModuleNotFound(moduleName)) =>
-            UpsertVisualizationJob.logger.trace(
-              "Evaluation of visualization {} in observer for expression {} failed. Module not found",
-              visualizationId,
-              expressionId
-            )
-            ctx.endpoint.sendToClient(
-              Api.Response(Api.ModuleNotFound(moduleName))
-            )
-            UpsertVisualizationJob.Failure
-          case Left(EvaluationFailed(message, result)) =>
-            UpsertVisualizationJob.logger.trace(
-              "Evaluation of visualization {} in observer for expression {} failed.",
-              visualizationId,
-              expressionId
-            )
-            replyWithExpressionFailedError(
-              config.executionContextId,
-              visualizationId,
-              expressionId,
-              message,
-              result
-            )
-            UpsertVisualizationJob.Failure
-          case Left(RequiresCompilation) =>
-            UpsertVisualizationJob.logger.trace(
-              "Internal error: Evaluation of visualization {} failed with write lock.",
-              visualizationId
-            )
-            UpsertVisualizationJob.Failure
-          case Right(result) =>
+        runtimeCache match {
+          case Some(runtimeCache) =>
             val needsExecute = runtimeCache.registerObserver(
               visualizationId,
               expressionId,
-              (computedValue: scala.AnyRef) =>
-                ctx.locking.withReadCompilationLock(
-                  classOf[UpsertVisualizationJob],
-                  () =>
-                    executeVisualization(
-                      computedValue,
-                      result,
-                      runtimeCache,
-                      stack
-                    )
-                ),
+              (computedValue: scala.AnyRef) => {
+                val needsRetryWithWriteLock =
+                  ctx.locking.withReadCompilationLock(
+                    classOf[UpsertVisualizationJob],
+                    () =>
+                      evaluateAndExecuteVisualization(
+                        computedValue,
+                        runtimeCache,
+                        stack,
+                        hasWriteLock = false
+                      )
+                  )
+                if (needsRetryWithWriteLock) {
+                  UpsertVisualizationJob.logger.trace(
+                    "Retrying visualization {} evaluation with write lock to compile necessary modules",
+                    visualizationId
+                  )
+                  ctx.locking.withWriteCompilationLock(
+                    classOf[UpsertVisualizationJob],
+                    () =>
+                      evaluateAndExecuteVisualization(
+                        computedValue,
+                        runtimeCache,
+                        stack,
+                        hasWriteLock = true
+                      )
+                  )
+                }
+              },
               (t: Throwable) => {
                 replyWithExpressionFailedError(
                   config.executionContextId,
@@ -155,21 +120,77 @@ class UpsertVisualizationJob(
               ctx.jobControlPlane.visualizationsExecutor()
             )
             if (needsExecute) {
-              ctx.state.executionHooks.add(
-                UpsertVisualizationJob.InvalidateCaches(expressionId)
-              )
+              ctx.state.executionHooks.add(UpsertVisualizationJob.InvalidateCaches(expressionId))
               UpsertVisualizationJob.RequiresExecution(
                 Executable(config.executionContextId, stack)
               )
             } else
               UpsertVisualizationJob.NoExecution
+          case None =>
+            UpsertVisualizationJob.logger.trace(
+              "no cache availablle for {}, aborting",
+              expressionId
+            )
+            UpsertVisualizationJob.EmptyStack
         }
-      case None =>
+      }
+    )
+
+  /** Attempts to evaluate the visualization expression associated with this job.
+    *
+    * @param value computed value to be visualized
+    * @param runtimeCache an instance of runtime cache associated with this frame
+    * @param stack current stackframe
+    * @param hasWriteLock true if necessary module loading/compilation can be performed, if needed. False otherwise
+    * @param ctx an instance of current `RuntimeContext`
+    * @return true if failed due to required compilation and lack of required lock, false if successful
+    */
+  private def evaluateAndExecuteVisualization(
+    value: AnyRef,
+    runtimeCache: RuntimeCache,
+    stack: mutable.Stack[InstrumentFrame],
+    hasWriteLock: Boolean
+  )(implicit ctx: RuntimeContext): Boolean = {
+    UpsertVisualizationJob.logger.trace(
+      "Evaluating expression {} in observer",
+      expressionId
+    )
+    val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
+      config.visualizationModule,
+      config.expression,
+      hasWriteLock
+    )
+
+    maybeCallable match {
+      case Left(ModuleNotFound(moduleName)) =>
         UpsertVisualizationJob.logger.trace(
-          "no cache availablle for {}, aborting",
+          "Evaluation of visualization {} in observer for expression {} failed. Module not found",
+          visualizationId,
           expressionId
         )
-        UpsertVisualizationJob.EmptyStack
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.ModuleNotFound(moduleName))
+        )
+        false
+      case Left(EvaluationFailed(message, result)) =>
+        UpsertVisualizationJob.logger.trace(
+          "Evaluation of visualization {} in observer for expression {} failed.",
+          visualizationId,
+          expressionId
+        )
+        replyWithExpressionFailedError(
+          config.executionContextId,
+          visualizationId,
+          expressionId,
+          message,
+          result
+        )
+        false
+      case Left(RequiresCompilation) =>
+        !hasWriteLock
+      case Right(result) =>
+        executeVisualization(value, result, runtimeCache, stack)
+        false
     }
   }
 
@@ -781,5 +802,4 @@ object UpsertVisualizationJob {
   case object EmptyStack                         extends UpsertResult
   case class RequiresExecution(exec: Executable) extends UpsertResult
   case object NoExecution                        extends UpsertResult
-  case object Failure                            extends UpsertResult
 }
