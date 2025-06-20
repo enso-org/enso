@@ -11,14 +11,4 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   public DateTimeStorage(ZonedDateTime[] data) {
     super(DateTimeType.INSTANCE, data);
   }
-
-  @Override
-  protected SpecializedStorage<ZonedDateTime> newInstance(ZonedDateTime[] data) {
-    return new DateTimeStorage(data);
-  }
-
-  @Override
-  protected ZonedDateTime[] newUnderlyingArray(int size) {
-    return new ZonedDateTime[size];
-  }
 }

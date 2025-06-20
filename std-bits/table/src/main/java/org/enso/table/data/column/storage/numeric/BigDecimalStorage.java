@@ -11,14 +11,4 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
   public BigDecimalStorage(BigDecimal[] data) {
     super(BigDecimalType.INSTANCE, data);
   }
-
-  @Override
-  protected SpecializedStorage<BigDecimal> newInstance(BigDecimal[] data) {
-    return new BigDecimalStorage(data);
-  }
-
-  @Override
-  protected BigDecimal[] newUnderlyingArray(int size) {
-    return new BigDecimal[size];
-  }
 }

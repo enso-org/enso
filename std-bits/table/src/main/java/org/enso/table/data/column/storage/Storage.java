@@ -4,7 +4,6 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicLong;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> implements ColumnStorage<T> {

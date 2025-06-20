@@ -3,14 +3,8 @@ package org.enso.table.data.column.storage;
 import java.util.Arrays;
 import java.util.Iterator;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
-import org.graalvm.polyglot.Context;
 
 public abstract class SpecializedStorage<T> extends Storage<T> {
-  protected abstract SpecializedStorage<T> newInstance(T[] data);
-
-  protected abstract T[] newUnderlyingArray(int size);
-
   /**
    * @param data the underlying data
    */
