@@ -1321,7 +1321,7 @@ function AssetsTable(props: AssetsTableProps) {
                       tooltipPlacement="top"
                       className="m-1 w-[0.375rem] min-w-[0.375rem]"
                     >
-                      <ColumnResizer className="ColumnResizer relative z-1 h-full w-full cursor-ew-resize rounded-full bg-primary/20 opacity-0 transition-all hover:opacity-100 [&[data-resizing]]:opacity-100" />
+                      <ColumnResizer className="ColumnResizer relative z-1 h-full w-full cursor-ew-resize rounded-full bg-primary/20 opacity-0 transition-all group-hover:opacity-100 [&[data-resizing]]:opacity-100" />
                     </VisualTooltip>
                   </div>
                 </TableColumn>

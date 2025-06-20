@@ -320,6 +320,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
       return (
         <>
           <Row
+            key={JSON.stringify(rowState)}
             data-testid="asset-row"
             data-selected={isSelected}
             data-id={item.id}
