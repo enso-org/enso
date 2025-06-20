@@ -36,6 +36,6 @@ class SliceStorageLong extends SliceStorage<Long> implements ColumnLongStorage {
 
   @Override
   public ColumnLongStorageIterator iteratorWithIndex() {
-    return new LongStorageIterator(parent);
+    return new LongStorageIterator(this);
   }
 }
