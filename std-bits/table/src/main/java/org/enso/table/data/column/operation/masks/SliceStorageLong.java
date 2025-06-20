@@ -9,8 +9,8 @@ import org.enso.table.data.column.storage.type.IntegerType;
 class SliceStorageLong extends SliceStorage<Long> implements ColumnLongStorage {
   private final ColumnLongStorage parent;
 
-  public SliceStorageLong(ColumnLongStorage parent, long start, long end) {
-    super(parent, start, end);
+  public SliceStorageLong(ColumnLongStorage parent, IndexMapper indexMapper) {
+    super(parent, indexMapper);
     this.parent = parent;
   }
 
@@ -26,14 +26,11 @@ class SliceStorageLong extends SliceStorage<Long> implements ColumnLongStorage {
 
   @Override
   public long getItemAsLong(long index) throws ValueIsNothingException {
-    if (index < 0 || index >= end - start) {
-      throw new IndexOutOfBoundsException(index);
-    }
-    return parent.getItemAsLong(index - start);
+    return parent.getItemAsLong(mapIndex(index));
   }
 
   @Override
   public ColumnLongStorageIterator iteratorWithIndex() {
-    return new LongStorageIterator(parent, start, getSize());
+    return new LongStorageIterator(parent);
   }
 }

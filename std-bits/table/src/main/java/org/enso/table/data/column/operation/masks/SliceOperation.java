@@ -30,83 +30,32 @@ public final class SliceOperation {
     }
 
     var storage = column.getStorage();
-    var newStorage = getSlicedStorage(start, length, storage, newSize);
+    var newStorage = getSlicedStorage(storage, new IndexMapper.SingleSlice(start, newSize));
     return new Column(column.getName(), newStorage);
   }
 
   private static ColumnStorage<?> getSlicedStorage(
-      long start, long length, ColumnStorage<?> storage, long newSize) {
-    if (storage instanceof ColumnLongStorage longStorage) {
-      // Handle slicing for long storage
-      return getSlicedLongStorage(start, length, longStorage, newSize);
-    }
-
-    if (storage instanceof ColumnDoubleStorage doubleStorage) {
-      // Handle slicing for double storage
-      return getSlicedDoubleStorage(start, length, doubleStorage, newSize);
-    }
-
-    if (storage instanceof ColumnBooleanStorage booleanStorage) {
-      // Handle slicing for boolean storage
-      return getSlicedBooleanStorage(start, length, booleanStorage, newSize);
-    }
-
-    if (storage instanceof ColumnStorageWithInferredStorage) {
-      if (storage instanceof SliceStorage<?> sliceStorage) {
-        // Avoid nesting sliced storages
-        var oldParent = sliceStorage.parent();
-        long newStart = sliceStorage.start + start;
-        long newEnd = sliceStorage.start + length;
-        return new SliceStorageInferred<>(oldParent, newStart, newEnd);
-      }
-
-      // Create a new SliceStorage wrapping the original storage
-      return new SliceStorageInferred<>(storage, start, start + newSize);
-
-    }
-
-    if (storage instanceof SliceStorage<?> sliceStorage) {
-      // Avoid nesting sliced storages
-      var oldParent = sliceStorage.parent();
-      long newStart = sliceStorage.start + start;
-      long newEnd = sliceStorage.start + length;
-      return new SliceStorage<>(oldParent, newStart, newEnd);
-    }
-
-    // Create a new SliceStorage wrapping the original storage
-    return new SliceStorage<>(storage, start, start + newSize);
-  }
-
-  private static ColumnLongStorage getSlicedLongStorage(
-      long start, long length, ColumnLongStorage storage, long newSize) {
-    if (storage instanceof SliceStorageLong sliceLongStorage) {
-      // Avoid nesting sliced storages
-      long newStart = sliceLongStorage.start + start;
-      long newEnd = sliceLongStorage.start + length;
-      return new SliceStorageLong(sliceLongStorage.parent(), newStart, newEnd);
-    }
-    return new SliceStorageLong(storage, start, start + newSize);
-  }
-
-  private static ColumnDoubleStorage getSlicedDoubleStorage(
-      long start, long length, ColumnDoubleStorage storage, long newSize) {
-    if (storage instanceof SliceStorageDouble sliceDoubleStorage) {
-      // Avoid nesting sliced storages
-      long newStart = sliceDoubleStorage.start + start;
-      long newEnd = sliceDoubleStorage.start + length;
-      return new SliceStorageDouble(sliceDoubleStorage.parent(), newStart, newEnd);
-    }
-    return new SliceStorageDouble(storage, start, start + newSize);
-  }
-
-  private static ColumnBooleanStorage getSlicedBooleanStorage(
-      long start, long length, ColumnBooleanStorage storage, long newSize) {
-    if (storage instanceof SliceStorageBoolean sliceBooleanStorage) {
-      // Avoid nesting sliced storages
-      long newStart = sliceBooleanStorage.start + start;
-      long newEnd = sliceBooleanStorage.start + length;
-      return new SliceStorageBoolean(sliceBooleanStorage.parent(), newStart, newEnd);
-    }
-    return new SliceStorageBoolean(storage, start, start + newSize);
+      ColumnStorage<?> storage, IndexMapper indexMapper) {
+    return switch (storage) {
+      case SliceStorageLong sliceStorageLong ->
+          new SliceStorageLong(sliceStorageLong.parent(), sliceStorageLong.indexMapper().merge(indexMapper));
+      case ColumnLongStorage longStorage ->
+          new SliceStorageLong(longStorage, indexMapper);
+      case SliceStorageDouble sliceStorageDouble ->
+          new SliceStorageDouble(sliceStorageDouble.parent(), sliceStorageDouble.indexMapper().merge(indexMapper));
+      case ColumnDoubleStorage doubleStorage ->
+          new SliceStorageDouble(doubleStorage, indexMapper);
+      case SliceStorageBoolean sliceStorageBoolean ->
+          new SliceStorageBoolean(sliceStorageBoolean.parent(), sliceStorageBoolean.indexMapper().merge(indexMapper));
+      case ColumnBooleanStorage booleanStorage ->
+          new SliceStorageBoolean(booleanStorage, indexMapper);
+      case SliceStorageInferred<?> sliceStorageInferred ->
+          new SliceStorageInferred<>(sliceStorageInferred.parent(), sliceStorageInferred.indexMapper().merge(indexMapper));
+      case ColumnStorageWithInferredStorage inferredStorage ->
+          new SliceStorageInferred<>(storage, indexMapper);
+      case SliceStorage<?> sliceStorage ->
+          new SliceStorage<>(sliceStorage.parent(), sliceStorage.indexMapper().merge(indexMapper));
+      default -> new SliceStorage<>(storage, indexMapper);
+    };
   }
 }

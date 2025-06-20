@@ -10,8 +10,8 @@ class SliceStorageDouble extends SliceStorage<Double>
     implements ColumnDoubleStorage {
   private final ColumnDoubleStorage parent;
 
-  public SliceStorageDouble(ColumnDoubleStorage parent, long start, long end) {
-    super(parent, start, end);
+  public SliceStorageDouble(ColumnDoubleStorage parent, IndexMapper indexMapper) {
+    super(parent, indexMapper);
     this.parent = parent;
   }
 
@@ -27,14 +27,11 @@ class SliceStorageDouble extends SliceStorage<Double>
 
   @Override
   public double getItemAsDouble(long index) throws ValueIsNothingException {
-    if (index < 0 || index >= end - start) {
-      throw new IndexOutOfBoundsException(index);
-    }
-    return parent.getItemAsDouble(index - start);
+    return parent.getItemAsDouble(mapIndex(index));
   }
 
   @Override
   public ColumnDoubleStorageIterator iteratorWithIndex() {
-    return new DoubleStorageIterator(parent, start, getSize());
+    return new DoubleStorageIterator(this);
   }
 }

@@ -145,6 +145,6 @@ public final class BoolStorage extends Storage<Boolean>
 
   @Override
   public ColumnBooleanStorageIterator iteratorWithIndex() {
-    return new BooleanStorageIterator(this, 0, getSize());
+    return new BooleanStorageIterator(this);
   }
 }

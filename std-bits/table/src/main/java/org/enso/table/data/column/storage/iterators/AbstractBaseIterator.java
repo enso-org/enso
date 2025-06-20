@@ -9,10 +9,10 @@ public sealed class AbstractBaseIterator<T> implements ColumnStorageIterator<T>
   private long index;
   private final long length;
 
-  protected AbstractBaseIterator(ColumnStorage<T> parent, long start, long length) {
+  protected AbstractBaseIterator(ColumnStorage<T> parent) {
     this.parent = parent;
-    this.index = start - 1; // Start at one before the first item
-    this.length = length;
+    this.index = -1; // Start at one before the first item
+    this.length = parent.getSize();
   }
 
   @Override

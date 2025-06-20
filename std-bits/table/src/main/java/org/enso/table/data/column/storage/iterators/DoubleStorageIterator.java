@@ -6,8 +6,8 @@ public final class DoubleStorageIterator extends AbstractBaseIterator<Double>
     implements ColumnDoubleStorageIterator {
   private final ColumnDoubleStorage parent;
 
-  public DoubleStorageIterator(ColumnDoubleStorage parent, long startIndex, long length) {
-    super(parent, startIndex, length);
+  public DoubleStorageIterator(ColumnDoubleStorage parent) {
+    super(parent);
     this.parent = parent;
   }
 

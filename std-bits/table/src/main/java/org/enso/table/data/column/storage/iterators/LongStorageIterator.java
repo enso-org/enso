@@ -7,8 +7,8 @@ public final class LongStorageIterator extends AbstractBaseIterator<Long>
     implements ColumnLongStorageIterator {
   private final ColumnLongStorage parent;
 
-  public LongStorageIterator(ColumnLongStorage parent, long startIndex, long length) {
-    super(parent, startIndex, length);
+  public LongStorageIterator(ColumnLongStorage parent) {
+    super(parent);
     this.parent = parent;
   }
 

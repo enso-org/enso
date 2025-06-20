@@ -6,8 +6,8 @@ public final class BooleanStorageIterator extends AbstractBaseIterator<Boolean>
     implements ColumnBooleanStorageIterator {
   private final ColumnBooleanStorage parent;
 
-  public BooleanStorageIterator(ColumnBooleanStorage parent, long startIndex, long length) {
-    super(parent, startIndex, length);
+  public BooleanStorageIterator(ColumnBooleanStorage parent) {
+    super(parent);
     this.parent = parent;
   }
 

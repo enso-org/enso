@@ -134,6 +134,6 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public ColumnDoubleStorageIterator iteratorWithIndex() {
-    return new DoubleStorageIterator(this, 0, size);
+    return new DoubleStorageIterator(this);
   }
 }

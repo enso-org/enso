@@ -8,17 +8,26 @@ import java.util.NoSuchElementException;
 
 class SliceStorage<T> implements ColumnStorage<T> {
   private final ColumnStorage<T> parent;
-  protected final long start;
-  protected final long end;
+  private final IndexMapper indexMapper;
 
-  public SliceStorage(ColumnStorage<T> parent, long start, long end) {
+  public SliceStorage(ColumnStorage<T> parent, IndexMapper indexMapper) {
     this.parent = parent;
-    this.start = start;
-    this.end = end;
+    this.indexMapper = indexMapper;
   }
 
   ColumnStorage<T> parent() {
     return parent;
+  }
+
+  IndexMapper indexMapper() {
+    return indexMapper;
+  }
+
+  protected long mapIndex(long index) {
+    if (index < 0 || index >= indexMapper.size()) {
+      throw new IndexOutOfBoundsException(index);
+    }
+    return indexMapper.map(index);
   }
 
   @Override
@@ -28,7 +37,7 @@ class SliceStorage<T> implements ColumnStorage<T> {
 
   @Override
   public long getSize() {
-    return 0;
+    return indexMapper.size();
   }
 
   @Override
@@ -38,18 +47,12 @@ class SliceStorage<T> implements ColumnStorage<T> {
 
   @Override
   public boolean isNothing(long index) {
-    if (index < 0 || index >= end - start) {
-      throw new IndexOutOfBoundsException(index);
-    }
-    return parent.isNothing(index - start);
+    return parent.isNothing(mapIndex(index));
   }
 
   @Override
   public T getItemBoxed(long index) {
-    if (index < 0 || index >= end - start) {
-      throw new IndexOutOfBoundsException(index);
-    }
-    return parent.getItemBoxed(index - start);
+    return parent.getItemBoxed(mapIndex(index));
   }
 
   @Override
@@ -59,7 +62,7 @@ class SliceStorage<T> implements ColumnStorage<T> {
 
       @Override
       public boolean hasNext() {
-        return index + 1 < end;
+        return index + 1 < indexMapper.size();
       }
 
       @Override

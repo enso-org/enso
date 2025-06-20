@@ -9,8 +9,8 @@ class SliceStorageBoolean extends SliceStorage<Boolean>
     implements ColumnBooleanStorage {
   private final ColumnBooleanStorage parent;
 
-  public SliceStorageBoolean(ColumnBooleanStorage parent, long start, long end) {
-    super(parent, start, end);
+  public SliceStorageBoolean(ColumnBooleanStorage parent, IndexMapper indexMapper) {
+    super(parent, indexMapper);
     this.parent = parent;
   }
 
@@ -21,14 +21,11 @@ class SliceStorageBoolean extends SliceStorage<Boolean>
 
   @Override
   public boolean getItemAsBoolean(long index) throws ValueIsNothingException {
-    if (index < 0 || index >= end - start) {
-      throw new IndexOutOfBoundsException(index);
-    }
-    return parent.getItemAsBoolean(index - start);
+    return parent.getItemAsBoolean(mapIndex(index));
   }
 
   @Override
   public ColumnBooleanStorageIterator iteratorWithIndex() {
-    return new BooleanStorageIterator(parent, start, getSize());
+    return new BooleanStorageIterator(this);
   }
 }

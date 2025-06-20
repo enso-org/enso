@@ -133,7 +133,7 @@ public sealed interface NumericColumnAdapter<T>
 
       @Override
       public ColumnDoubleStorageIterator iteratorWithIndex() {
-        return new DoubleStorageIterator(this, 0, getSize());
+        return new DoubleStorageIterator(this);
       }
     }
   }

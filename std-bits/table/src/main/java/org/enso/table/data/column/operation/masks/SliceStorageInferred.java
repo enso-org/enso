@@ -12,8 +12,8 @@ class SliceStorageInferred<T> extends SliceStorage<T> implements ColumnStorageWi
   private ColumnStorage<?> cachedInferredStorage = null;
   private boolean hasSpecializedStorageBeenInferred = false;
 
-  public SliceStorageInferred(ColumnStorage<T> parent, long start, long end) {
-    super(parent, start, end);
+  public SliceStorageInferred(ColumnStorage<T> parent, IndexMapper indexMapper) {
+    super(parent, indexMapper);
   }
 
   @Override
