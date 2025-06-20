@@ -79,7 +79,7 @@ final class JavaFinder {
     if (distributionManager.isRunningPortable()) {
       logger.trace("Running in portable distribution");
     }
-    var graalVersionManager = new GraalVersionManager(distributionManager, env);
+    var graalVersionManager = new GraalVersionManager(distributionManager);
     var versionUsedForBuild =
         new GraalVMVersion(BuildVersion.graalVersion(), BuildVersion.javaVersion());
     var runtimeWithExactVersionMatch = graalVersionManager.findGraalRuntime(versionUsedForBuild);

@@ -7,7 +7,7 @@ import project.Internal.Table_Helpers
 import project.Set_Mode.Set_Mode
 import project.Table.Table
 import project.Value_Type.By_Type
-from project.Errors import Missing_Input_Columns, No_Such_Column, Non_Unique_Key, Unmatched_Rows_In_Lookup
+from project.Errors import Missing_Input_Columns, Non_Unique_Key, Unmatched_Rows_In_Lookup
 
 ## PRIVATE
 replace : Table -> (Table | Dictionary) -> (Text | Integer | By_Type | Vector (Text | Integer | By_Type)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup

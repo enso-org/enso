@@ -7,7 +7,7 @@ import { StoreApi } from 'zustand'
  *
  * The ref will be updated only when the value changed according to eq function
  */
-export function useZustantStoreRef<State, Slice>(
+export function useZustandStoreRef<State, Slice>(
   store: StoreApi<State>,
   getter: (state: State) => Slice,
   eq: (a: Slice, b: Slice) => boolean = defaultEquality,

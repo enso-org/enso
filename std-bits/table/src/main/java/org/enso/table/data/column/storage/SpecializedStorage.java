@@ -5,7 +5,6 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import org.enso.table.data.column.operation.CountNothing;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -54,7 +53,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> applyFilter(BitSet filterMask, int newLength) {
+  public ColumnStorage<T> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(newLength);
     int resIx = 0;
@@ -69,7 +68,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> applyMask(OrderMask mask) {
+  public ColumnStorage<T> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(mask.length());
     for (int i = 0; i < mask.length(); i++) {
@@ -85,7 +84,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> slice(int offset, int limit) {
+  public ColumnStorage<T> slice(int offset, int limit) {
     int newSize = Math.min(data.length - offset, limit);
     T[] newData = newUnderlyingArray(newSize);
     System.arraycopy(data, offset, newData, 0, newSize);
@@ -93,7 +92,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> slice(List<SliceRange> ranges) {
+  public ColumnStorage<T> slice(List<SliceRange> ranges) {
     Context context = Context.getCurrent();
     int newSize = SliceRange.totalLength(ranges);
     T[] newData = newUnderlyingArray(newSize);
@@ -102,33 +101,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
       int length = range.end() - range.start();
       System.arraycopy(data, range.start(), newData, offset, length);
       offset += length;
-      context.safepoint();
-    }
-
-    return newInstance(newData);
-  }
-
-  @Override
-  public Storage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    if (missingIndicator != null && CountNothing.anyNothing(missingIndicator)) {
-      throw new IllegalArgumentException(
-          "Missing indicator must not contain missing values itself.");
-    }
-
-    T[] newData = newUnderlyingArray(data.length);
-    T previous = null;
-    boolean hasPrevious = false;
-
-    Context context = Context.getCurrent();
-    for (int i = 0; i < data.length; i++) {
-      boolean isCurrentValueMissing =
-          missingIndicator == null ? isNothing(i) : missingIndicator.getItemAsBoolean(i);
-      if (!isCurrentValueMissing) {
-        previous = data[i];
-        hasPrevious = true;
-      }
-
-      newData[i] = hasPrevious ? previous : data[i];
       context.safepoint();
     }
 

@@ -5,6 +5,7 @@ import {
   ProjectExecutionsCalendar,
   ProjectSessions,
 } from '$/components/AppContainer/reactTabs'
+import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
 import ComponentDocumentation from '@/components/ComponentDocumentation.vue'
@@ -14,12 +15,11 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
-import { Result } from '@/util/data/result'
+import type { Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import { ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import { filter } from 'enso-common/src/utilities/data/iter'
-import { computed, ref, toValue } from 'vue'
-import SelectableTab from './SelectableTab.vue'
+import { computed, toValue, useTemplateRef } from 'vue'
 
 const data = useRightPanelData()
 
@@ -58,7 +58,7 @@ function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
   return data.displayedTab === id || enabledVal.ok
 }
 
-const contentElement = ref<HTMLElement>()
+const contentElement = useTemplateRef('contentElement')
 const style = computed(() =>
   data.width != null ?
     {
@@ -74,7 +74,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   <div class="RightPanel bg-dashboard" data-testid="right-panel">
     <SizeTransition width :duration="250">
       <div v-if="component != null" ref="contentElement" class="content" :style="style">
-        <WithFullscreenMode :fullscreen="data.fullscreen">
+        <WithFullscreenMode v-model="data.fullscreen">
           <WithCurrentProject :id="data.focusedProject">
             <div class="contentInner">
               <component :is="component" />

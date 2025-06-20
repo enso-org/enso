@@ -518,6 +518,124 @@ class RuntimeRefactoringTest
     context.consumeOut shouldEqual List("42")
   }
 
+  it should "rename to original name qualified module method in main body" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata    = new Metadata
+    val idFunction1 = metadata.addItem(31, 9)
+    val code =
+      """from Standard.Base import all
+        |
+        |function1 x = x + 1
+        |
+        |main =
+        |    operator1 = 41
+        |    operator2 = Main.function1 operator1
+        |    IO.println operator2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // rename operator1
+    val newName = "function2"
+    val expectedEdits = Vector(
+      TextEdit(
+        model.Range(model.Position(2, 0), model.Position(2, 9)),
+        newName
+      ),
+      TextEdit(
+        model.Range(model.Position(6, 21), model.Position(6, 30)),
+        newName
+      )
+    )
+    val newContents = contents.replaceAll("function1", newName)
+    val expectedFileEdit = Api.FileEdit(
+      context.pkg.mainFile,
+      expectedEdits,
+      versionCalculator.evalVersion(contents).toHexString,
+      versionCalculator.evalVersion(newContents).toHexString
+    )
+    context.send(
+      Api.Request(requestId, Api.RenameSymbol(moduleName, idFunction1, newName))
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SymbolRenamed(newName)),
+      Api.Response(None, expectedFileEdit),
+      TestMessages.pending(contextId, idFunction1),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // rename operator1 back
+    val originalName = "function1"
+    val expectedEdits1 = Vector(
+      TextEdit(
+        model.Range(model.Position(2, 0), model.Position(2, 9)),
+        originalName
+      ),
+      TextEdit(
+        model.Range(model.Position(6, 21), model.Position(6, 30)),
+        originalName
+      )
+    )
+    val expectedFileEdit1 = Api.FileEdit(
+      context.pkg.mainFile,
+      expectedEdits1,
+      versionCalculator.evalVersion(newContents).toHexString,
+      versionCalculator.evalVersion(contents).toHexString
+    )
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RenameSymbol(moduleName, idFunction1, originalName)
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SymbolRenamed(originalName)),
+      Api.Response(None, expectedFileEdit1),
+      TestMessages.pending(contextId, idFunction1),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+  }
+
   it should "rename qualified module method in lambda expression" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

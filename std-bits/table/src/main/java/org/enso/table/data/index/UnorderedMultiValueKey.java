@@ -8,7 +8,8 @@ import java.util.stream.IntStream;
 import org.enso.base.polyglot.EnsoObjectWrapper;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.table.Column;
 
 /**
  * A multi-value key for unordered operations like group-by or distinct.
@@ -30,7 +31,15 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
   }
 
   public UnorderedMultiValueKey(
-      Storage<?>[] storages, int rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
+      List<Column> columns, int rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
+    this(
+        columns.stream().map(Column::getStorage).toArray(ColumnStorage[]::new),
+        rowIndex,
+        textFoldingStrategy);
+  }
+
+  public UnorderedMultiValueKey(
+      ColumnStorage<?>[] storages, int rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
     super(storages, rowIndex);
     this.textFoldingStrategy = textFoldingStrategy;
 
@@ -65,8 +74,8 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
    * @return a new key with only the selected storages.
    */
   public UnorderedMultiValueKey subKey(int[] storageIndices) {
-    Storage<?>[] newStorages =
-        Arrays.stream(storageIndices).mapToObj(i -> storages[i]).toArray(Storage<?>[]::new);
+    ColumnStorage<?>[] newStorages =
+        Arrays.stream(storageIndices).mapToObj(i -> storages[i]).toArray(ColumnStorage<?>[]::new);
     return new UnorderedMultiValueKey(newStorages, rowIndex, textFoldingStrategy);
   }
 

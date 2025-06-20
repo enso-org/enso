@@ -71,7 +71,7 @@
 - make_extract_as_int enso_name:Standard.Base.Any.Any sql_name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_extract_fractional_as_int enso_name:Standard.Base.Any.Any sql_name:Standard.Base.Any.Any= modulus:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_first_aggregator reverse:Standard.Base.Any.Any ignore_null:Standard.Base.Any.Any args:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- make_order_descriptor internal_column:Standard.Base.Any.Any sort_direction:Standard.Base.Any.Any text_ordering:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_order_descriptor internal_column:Standard.Database.Internal.IR.Internal_Column.Internal_Column sort_direction:Standard.Base.Any.Any text_ordering:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_runtime_error_op arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - mod_op -> Standard.Base.Any.Any
 - postgres -> Standard.Base.Any.Any

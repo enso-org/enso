@@ -15,6 +15,11 @@ public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
   }
 
   @Override
+  public long uniqueKey() {
+    return parent.uniqueKey();
+  }
+
+  @Override
   public long getSize() {
     return parent.getSize();
   }

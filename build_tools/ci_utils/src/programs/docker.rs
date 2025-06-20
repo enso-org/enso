@@ -142,6 +142,7 @@ impl Docker {
 
     pub async fn remove_container(&self, name: &ContainerId, force: bool) -> Result {
         let force_arg = if force { ["-f"].as_slice() } else { [].as_slice() };
+        self.cmd()?.arg("stop").arg(name.as_ref()).run_ok().await?;
         self.cmd()?.arg("rm").args(force_arg).arg(name.as_ref()).run_ok().await
     }
 

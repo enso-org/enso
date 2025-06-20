@@ -59,7 +59,7 @@ Build an instance of the Enso runtime engine (see
 it the following system properties:
 
 ```bash
-enso$ env JAVA_OPTS='-Dgraal.Dump=Truffle:2 -Dgraal.PrintGraph=File' ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
+enso$ env JAVA_TOOL_OPTIONS='-Dgraal.Dump=Truffle:2 -Dgraal.PrintGraph=File' ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
 ```
 
 See
@@ -80,7 +80,7 @@ which computes hundred thousand of prime numbers repeatedly and measures time of
 each round. Download the file and launch Enso with:
 
 ```bash
-enso$ env JAVA_OPTS='-Dgraal.Dump=Truffle:2 -Dgraal.PrintGraph=File' ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
+enso$ env JAVA_TOOL_OPTIONS='-Dgraal.Dump=Truffle:2 -Dgraal.PrintGraph=File' ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
 ```
 
 Bunch of files in `graal_dumps/*` subdirectory is going to be generated:

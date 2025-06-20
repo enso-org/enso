@@ -1,5 +1,6 @@
 package org.enso.microsoft.azure;
 
+import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,16 +12,26 @@ import org.slf4j.Logger;
 public final class AzureBlobStorage {
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(AzureBlobStorage.class);
 
+  private static BlobServiceClient makeClient(
+      AzureCredential credential, String storageAccountName) {
+    var clientBuilder =
+        new BlobServiceClientBuilder()
+            .endpoint("https://" + storageAccountName + ".blob.core.windows.net/");
+
+    if (credential instanceof AzureCredential.BlobStorageSASToken) {
+      clientBuilder.sasToken(CredentialHelper.toSASToken(credential));
+    } else {
+      clientBuilder.credential(CredentialHelper.toTokenCredential(credential));
+    }
+
+    return clientBuilder.buildClient();
+  }
+
   public static List<String> containers(
       AzureCredential credential, String storageAccountName, String prefix) {
     LOGGER.warn("Reading from Blob Storage: {}", storageAccountName);
 
-    var client =
-        new BlobServiceClientBuilder()
-            .endpoint("https://" + storageAccountName + ".blob.core.windows.net/")
-            .credential(CredentialHelper.toTokenCredential(credential))
-            .buildClient();
-
+    var client = makeClient(credential, storageAccountName);
     var containerList = client.listBlobContainers();
 
     var result = new ArrayList<String>();
@@ -37,12 +48,7 @@ public final class AzureBlobStorage {
       AzureCredential credential, String storageAccountName, String containerName, String prefix) {
     LOGGER.warn("List Blob Storage: {} : {}", storageAccountName);
 
-    var client =
-        new BlobServiceClientBuilder()
-            .endpoint("https://" + storageAccountName + ".blob.core.windows.net/")
-            .credential(CredentialHelper.toTokenCredential(credential))
-            .buildClient();
-
+    var client = makeClient(credential, storageAccountName);
     var blobContainer = client.getBlobContainerClient(containerName);
     if (!blobContainer.exists()) {
       throw new IllegalArgumentException("Container does not exist: " + containerName);
@@ -65,12 +71,7 @@ public final class AzureBlobStorage {
       throws IOException {
     LOGGER.trace("Reading from Blob Storage.");
 
-    var client =
-        new BlobServiceClientBuilder()
-            .endpoint("https://" + storageAccountName + ".blob.core.windows.net/")
-            .credential(CredentialHelper.toTokenCredential(credential))
-            .buildClient();
-
+    var client = makeClient(credential, storageAccountName);
     var blobContainer = client.getBlobContainerClient(containerName);
     if (!blobContainer.exists()) {
       throw new IllegalArgumentException("Container does not exist: " + containerName);

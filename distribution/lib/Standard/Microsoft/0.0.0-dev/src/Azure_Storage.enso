@@ -1,6 +1,8 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
 
 import project.Azure_Credential.Azure_Credential
 import project.Azure_Environment.Azure_Environment
@@ -8,6 +10,7 @@ from project.Azure_Credential import make_subscription_selector
 from project.Internal.Azure_Helpers import handle_azure_exceptions
 
 polyglot java import org.enso.microsoft.azure.AzureBlobStorage
+polyglot java import org.enso.microsoft.azure.AzureCredential
 polyglot java import org.enso.microsoft.azure.AzureResourceManager
 
 type Azure_Storage
@@ -22,23 +25,40 @@ type Azure_Storage
 
     ## Lists the Blob Containers in the given storage account.
     @subscription make_subscription_selector
-    blob_containers account:Text=(Missing_Argument.throw "account") prefix:Text="" cred:Azure_Credential=..Default -> Vector Text = handle_azure_exceptions <|
+    @cred Azure_Blob_Storage.default_widget
+    blob_containers account:Text=(Missing_Argument.throw "account") prefix:Text="" (cred:(Azure_Credential | Azure_Blob_Storage)=..Default) -> Vector Text = handle_azure_exceptions <|
         java_cred = cred.to_java
         as_array = AzureBlobStorage.containers java_cred account prefix
         Vector.from_polyglot_array as_array
 
     ## Lists the Blob Files in the given storage account and container.
     @subscription make_subscription_selector
-    list_blob account:Text=(Missing_Argument.throw "account") container:Text=(Missing_Argument.throw "container") prefix:Text="" cred:Azure_Credential=..Default -> Vector Text = handle_azure_exceptions <|
+    @cred Azure_Blob_Storage.default_widget
+    list_blob account:Text=(Missing_Argument.throw "account") container:Text=(Missing_Argument.throw "container") prefix:Text="" (cred:(Azure_Credential | Azure_Blob_Storage)=..Default) -> Vector Text = handle_azure_exceptions <|
         java_cred = cred.to_java
         as_array = AzureBlobStorage.listBlob java_cred account container prefix
         Vector.from_polyglot_array as_array
 
     ## Reads a Blob File
-    get_blob account:Text=(Missing_Argument.throw "account") container:Text=(Missing_Argument.throw "container") blob:Text=(Missing_Argument.throw "blob") cred:Azure_Credential=..Default -> File = handle_azure_exceptions <|
+    @cred Azure_Blob_Storage.default_widget
+    get_blob account:Text=(Missing_Argument.throw "account") container:Text=(Missing_Argument.throw "container") blob:Text=(Missing_Argument.throw "blob") (cred:(Azure_Credential | Azure_Blob_Storage)=..Default) -> File = handle_azure_exceptions <|
         java_cred = cred.to_java
         path = AzureBlobStorage.getBlob java_cred account container blob
         File.new path
+
+type Azure_Blob_Storage
+    SAS_Token (token : (Text|Enso_Secret) = (Missing_Argument.throw "token"))
+
+    ## PRIVATE
+       Converts the Azure_Credential into the Java SDK object
+    private to_java self =
+        AzureCredential.BlobStorageSASToken self.token
+
+    ## PRIVATE
+    default_widget (display : Display = ..When_Modified) -> Widget =
+        options = ["Default", "Environment", "CLI", "Client_Secret", "SAS_Token"].map k-> Option k (".."+k)
+        Widget.Single_Choice values=options display=display
+
 
 ## Enso representation of the Azure Storage Account
 type Azure_Storage_Account

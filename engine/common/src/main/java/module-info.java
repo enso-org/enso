@@ -1,3 +1,5 @@
+import org.enso.common.PolyglotSymbolResolver;
+
 module org.enso.engine.common {
   requires org.graalvm.nativeimage;
   requires org.graalvm.polyglot;
@@ -6,4 +8,6 @@ module org.enso.engine.common {
   requires org.slf4j;
 
   exports org.enso.common;
+
+  uses PolyglotSymbolResolver;
 }

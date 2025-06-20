@@ -25,14 +25,18 @@ const MIN_CONTENT_WIDTH = 56
 const editedValue = ref('')
 // Last value which is a parseable number. It's a string, because the Enso number literals differ from js
 // representations.
-const lastValidValue = ref<string>()
-watch(editedValue, (newValue) => {
-  if (newValue == '' || isNumericLiteral(newValue)) {
-    lastValidValue.value = newValue
-  } else if (isNumericLiteral('0' + newValue)) {
-    lastValidValue.value = '0' + newValue
-  }
-})
+const lastValidValue = ref<string>('')
+watch(
+  editedValue,
+  (newValue) => {
+    if (newValue == '' || isNumericLiteral(newValue)) {
+      lastValidValue.value = newValue
+    } else if (isNumericLiteral('0' + newValue)) {
+      lastValidValue.value = '0' + newValue
+    }
+  },
+  { flush: 'sync', immediate: true },
+)
 const valueString = computed(() => (props.modelValue != null ? props.modelValue.toString() : ''))
 watch(valueString, (newValue) => (editedValue.value = newValue), { immediate: true })
 const inputFieldActive = ref(false)
@@ -112,7 +116,7 @@ function emitUpdate() {
 
 function blurred() {
   inputFieldActive.value = false
-  editedValue.value = lastValidValue.value?.toString() ?? ''
+  editedValue.value = lastValidValue.value
   emit('blur')
   emitUpdate()
 }

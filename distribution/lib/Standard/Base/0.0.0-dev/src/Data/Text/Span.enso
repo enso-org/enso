@@ -7,7 +7,7 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import False, True
 from project.Data.Range.Extensions import all
 
 polyglot java import com.ibm.icu.text.BreakIterator

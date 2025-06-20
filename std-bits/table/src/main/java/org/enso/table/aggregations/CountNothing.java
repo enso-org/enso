@@ -1,7 +1,7 @@
 package org.enso.table.aggregations;
 
 import java.util.List;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
@@ -12,7 +12,7 @@ import org.graalvm.polyglot.Context;
  * counts null entries. If `isNothing` is false, counts non-null entries.
  */
 public class CountNothing extends KnownTypeAggregator {
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
   private final boolean isNothing;
 
   /**

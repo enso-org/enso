@@ -8,8 +8,8 @@
 import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
 import type { Logger } from '#/providers/LoggerProvider'
 import Backend, * as backend from '#/services/Backend'
-import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
+import type { ProjectManager } from '#/services/ProjectManager/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
@@ -84,7 +84,7 @@ export default class LocalBackend extends Backend {
     )
   }
 
-  /** Tell the {@link ProjectManager} to reconnect. */
+  /** Tell the {@link projectManager.ProjectManager} to reconnect. */
   async reconnectProjectManager() {
     await this.projectManager.reconnect()
   }
@@ -151,7 +151,7 @@ export default class LocalBackend extends Backend {
           } satisfies Partial<backend.DirectoryAsset>
 
           switch (entry.type) {
-            case projectManager.FileSystemEntryType.DirectoryEntry: {
+            case 'DirectoryEntry': {
               const id = newDirectoryId(entry.path)
 
               return {
@@ -163,7 +163,7 @@ export default class LocalBackend extends Backend {
                 title: getFileName(entry.path),
               } satisfies backend.DirectoryAsset
             }
-            case projectManager.FileSystemEntryType.ProjectEntry: {
+            case 'ProjectEntry': {
               return {
                 ...shared,
                 type: backend.AssetType.project,
@@ -178,7 +178,7 @@ export default class LocalBackend extends Backend {
                 },
               } satisfies backend.ProjectAsset
             }
-            case projectManager.FileSystemEntryType.FileEntry: {
+            case 'FileEntry': {
               return {
                 ...shared,
                 type: backend.AssetType.file,
@@ -302,7 +302,7 @@ export default class LocalBackend extends Backend {
     if (state == null) {
       const entries = await this.projectManager.listDirectory(directoryPath)
       const project = entries
-        .filter((entry) => entry.type === projectManager.FileSystemEntryType.ProjectEntry)
+        .filter((entry) => entry.type === 'ProjectEntry')
         .find((metadata) => metadata.path === path)?.metadata
       if (project == null) {
         throw new Error(`Could not get details of project.`)
@@ -384,10 +384,7 @@ export default class LocalBackend extends Backend {
     const parentPath = getDirectoryAndName(path).directoryPath
     const result = await this.projectManager.listDirectory(parentPath)
     const project = result.flatMap((listedProject) =>
-      (
-        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
-        listedProject.path === path
-      ) ?
+      listedProject.type === 'ProjectEntry' && listedProject.path === path ?
         [listedProject.metadata]
       : [],
     )[0]

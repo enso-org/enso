@@ -4,7 +4,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-public class BinaryOperationNull implements BinaryOperation<Void> {
+public class BinaryOperationNull implements BinaryOperationTyped<Void> {
   public static final BinaryOperationNull INSTANCE = new BinaryOperationNull();
 
   private BinaryOperationNull() {}

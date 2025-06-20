@@ -2,14 +2,12 @@
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
-import {
-  ComboBox,
-  DatePicker,
-  FormDropdown,
-  Input,
-  MultiSelector,
-  Selector,
-} from '#/components/Inputs'
+import { ComboBox } from '#/components/Inputs/ComboBox'
+import { DatePicker } from '#/components/Inputs/DatePicker'
+import { FormDropdown } from '#/components/Inputs/Dropdown'
+import { Input } from '#/components/Inputs/Input'
+import { MultiSelector } from '#/components/Inputs/MultiSelector'
+import { Selector } from '#/components/Inputs/Selector'
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'

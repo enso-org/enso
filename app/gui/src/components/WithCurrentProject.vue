@@ -1,5 +1,5 @@
 <script lang="ts">
-import { injectOpenedProjects, OpenedProject } from '$/providers/openedProjects'
+import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProjects'
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
 import { colorFromString } from '@/util/colors'

@@ -1,13 +1,13 @@
 package org.enso.table.operations;
 
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
 public class AddGroupNumber {
-  public static Storage<?> numberGroupsUnique(
+  public static ColumnStorage<?> numberGroupsUnique(
       long numRows,
       long start,
       long step,
@@ -63,7 +63,7 @@ public class AddGroupNumber {
     }
   }
 
-  public static Storage<?> numberGroupsEqualCount(
+  public static ColumnStorage<?> numberGroupsEqualCount(
       long numRows,
       int groupCount,
       long start,

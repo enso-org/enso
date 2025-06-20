@@ -30,6 +30,11 @@ public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   }
 
   @Override
+  public long uniqueKey() {
+    return parent.uniqueKey();
+  }
+
+  @Override
   public double getItemAsDouble(long index) throws ValueIsNothingException {
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);

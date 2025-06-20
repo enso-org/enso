@@ -2,7 +2,7 @@
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
 import { type SecretId } from '#/services/Backend'
 import { useText } from '$/providers/react'
 

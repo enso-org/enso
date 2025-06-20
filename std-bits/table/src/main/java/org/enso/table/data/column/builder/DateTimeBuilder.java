@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
@@ -33,20 +33,24 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   @Override
   public void append(Object o) {
     ensureSpaceToAppend();
-    try {
-      if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
-        data[currentSize++] = convertDate(localDate);
-        wasLocalDate.set(currentSize - 1);
-      } else {
-        data[currentSize++] = (ZonedDateTime) o;
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
+          data[currentSize++] = convertDate(localDate);
+          wasLocalDate.set(currentSize - 1);
+        } else {
+          data[currentSize++] = (ZonedDateTime) o;
+        }
+      } catch (ClassCastException e) {
+        throw new ValueTypeMismatchException(getType(), o);
       }
-    } catch (ClassCastException e) {
-      throw new ValueTypeMismatchException(getType(), o);
     }
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof DateType) {
       Context context = Context.getCurrent();
       for (long i = 0; i < storage.getSize(); ++i) {
@@ -71,7 +75,7 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   }
 
   @Override
-  protected Storage<ZonedDateTime> doSeal() {
+  protected ColumnStorage<ZonedDateTime> doSeal() {
     return new DateTimeStorage(data);
   }
 
