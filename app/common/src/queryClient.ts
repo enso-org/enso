@@ -123,11 +123,14 @@ export function createQueryClient<TStorageValue = string>(
   const pools: Partial<
     Record<
       MutationPoolId,
-      { usedLanes: number; promise: Promise<void>; resolve: () => void; reject: () => void }
+      {
+        usedLanes: number
+        queue: { promise: Promise<void>; resolve: () => void; reject: () => void }[]
+      }
     >
   > = {}
 
-  function promiseWithResolvers<T>() {
+  function promiseWithResolvers<T = void>() {
     let resolve!: (value: T | PromiseLike<T>) => void
     let reject!: (reason?: unknown) => void
     const promise = new Promise<T>((innerResolve, innerReject) => {
@@ -144,23 +147,29 @@ export function createQueryClient<TStorageValue = string>(
         if (!poolMeta) {
           return
         }
-        while ((pools[poolMeta.id]?.usedLanes ?? 0) >= poolMeta.parallelism) {
-          await pools[poolMeta.id]?.promise
+        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: [] })
+        if (poolInfo.usedLanes >= poolMeta.parallelism) {
+          const promiseAndResolvers = promiseWithResolvers()
+          poolInfo.queue.push(promiseAndResolvers)
+          await promiseAndResolvers.promise
         }
-        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, ...promiseWithResolvers() })
         poolInfo.usedLanes += 1
       },
-      onSettled: (_data, error, _variables, _context, mutation) => {
+      onSettled: async (_data, _error, _variables, _context, mutation) => {
         const poolMeta = mutation.meta?.pool
         if (poolMeta) {
-          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, ...promiseWithResolvers() })
+          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: [] })
           poolInfo.usedLanes -= 1
-          if (error != null) {
-            poolInfo.reject()
-          } else {
-            poolInfo.resolve()
+          while (poolInfo.usedLanes < poolMeta.parallelism) {
+            const [promiseAndResolvers] = poolInfo.queue.splice(0, 1)
+            if (!promiseAndResolvers) {
+              break
+            }
+            // For now assume all mutations are successful.
+            promiseAndResolvers.resolve()
+            // Give the resolve time to execute so that it can update `usedLanes`.
+            await Promise.resolve()
           }
-          Object.assign(poolInfo, promiseWithResolvers())
         }
       },
       onSuccess: (_data, _variables, _context, mutation) => {
