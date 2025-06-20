@@ -20,6 +20,7 @@ import { extractTypeAndId } from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import '@tanstack/query-core'
 import {
   queryOptions,
@@ -63,8 +64,6 @@ declare module '@tanstack/query-core' {
   }
 }
 
-/** The maximum number of file chunks to upload at the same time. */
-const UPLOAD_FILE_CHUNK_PARALLELISM = 5
 /** The delay, in milliseconds, before query data for a file being uploaded is cleared. */
 const CLEAR_PROGRESS_DELAY_MS = 5_000
 const UPLOADING_FILES_QUERY_KEY = ['uploadingFiles'] satisfies QueryKey
@@ -587,6 +586,7 @@ export function useUploadFileMutation(
   const queryClient = useQueryClient()
   const toastAndLog = useToastAndLog()
   const { getText } = useText()
+  const fileChunkUploadPoolSize = useFeatureFlag('fileChunkUploadPoolSize')
   const {
     retries = 3,
     chunkRetries = retries,
@@ -605,7 +605,7 @@ export function useUploadFileMutation(
   const uploadFileChunkMutation = useMutation(
     backendMutationOptions(backend, 'uploadFileChunk', {
       retry: chunkRetries,
-      meta: { pool: { id: 'uploadFileChunk', parallelism: UPLOAD_FILE_CHUNK_PARALLELISM } },
+      meta: { pool: { id: 'uploadFileChunk', parallelism: fileChunkUploadPoolSize } },
     }),
   )
   const uploadFileEndMutation = useMutation(
