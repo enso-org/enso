@@ -9,7 +9,6 @@ import java.util.BitSet;
 import java.util.Objects;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -53,7 +52,7 @@ public interface Builder {
     }
 
     return switch (item) {
-      case null -> new NullStorage(size);
+      case null -> new NullBuilder().appendNulls(checkSize(size)).seal();
       case Long longValue -> new LongConstantStorage(longValue, checkSize(size));
       case Boolean booleanValue -> new BoolStorage(
           new BitSet(), new BitSet(), checkSize(size), booleanValue);

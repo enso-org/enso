@@ -45,11 +45,14 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return castBoolStorage(boolStorage, problemAggregator);
     } else if (storageType instanceof TimeOfDayType timeOfDayType) {
-      return castTemporalStorage(timeOfDayType.asTypedStorage(storage), this::convertTime, problemAggregator);
+      return castTemporalStorage(
+          timeOfDayType.asTypedStorage(storage), this::convertTime, problemAggregator);
     } else if (storageType instanceof DateType dateType) {
-      return castTemporalStorage(dateType.asTypedStorage(storage), this::convertDate, problemAggregator);
+      return castTemporalStorage(
+          dateType.asTypedStorage(storage), this::convertDate, problemAggregator);
     } else if (storageType instanceof DateTimeType dateTimeType) {
-      return castTemporalStorage(dateTimeType.asTypedStorage(storage), this::convertDateTime, problemAggregator);
+      return castTemporalStorage(
+          dateTimeType.asTypedStorage(storage), this::convertDateTime, problemAggregator);
     } else {
       return castFromObject(storage, problemAggregator);
     }
