@@ -1,7 +1,6 @@
 package org.enso.google;
 
 import java.util.List;
-
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
@@ -11,9 +10,7 @@ public class GoogleSheetsHeaders {
   private final String[] names;
 
   public GoogleSheetsHeaders(
-      HeaderBehavior headers,
-      List<List<Object>> rawData,
-      ProblemAggregator problemAggregator) {
+      HeaderBehavior headers, List<List<Object>> rawData, ProblemAggregator problemAggregator) {
     deduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     names =
@@ -43,31 +40,32 @@ public class GoogleSheetsHeaders {
   private static String[] readFirstRowAsHeaders(
       List<List<Object>> rawData, NameDeduplicator deduplicator) {
     return rawData.stream()
-        .map(column -> {
-          Object cell = column.stream().findFirst().orElse(null);
-          String name = cell == null ? "" : cell.toString();
-          return deduplicator.makeUnique(name);
-        })
+        .map(
+            column -> {
+              Object cell = column.stream().findFirst().orElse(null);
+              String name = cell == null ? "" : cell.toString();
+              return deduplicator.makeUnique(name);
+            })
         .toArray(String[]::new);
   }
 
-  private static String[] inferHeaders(
-      List<List<Object>> rawData, NameDeduplicator deduplicator) {
-        // No data or 1 row of data => No Headers
-        if (rawData == null || rawData.isEmpty() || rawData.get(0).size() == 1) {
-          return null;
-        }
+  private static String[] inferHeaders(List<List<Object>> rawData, NameDeduplicator deduplicator) {
+    // No data or 1 row of data => No Headers
+    if (rawData == null || rawData.isEmpty() || rawData.get(0).size() == 1) {
+      return null;
+    }
 
-        boolean row1AllStrings = rawData.stream().allMatch(col -> col.get(0) instanceof String);
-        boolean row2AllStrings = rawData.stream().allMatch(col -> col.get(1) instanceof String);
+    boolean row1AllStrings = rawData.stream().allMatch(col -> col.get(0) instanceof String);
+    boolean row2AllStrings = rawData.stream().allMatch(col -> col.get(1) instanceof String);
 
-        if (!row1AllStrings) {
-            return null; // Row 1 has non string => no headers
-        } else if (row2AllStrings) {
-            return null; // Row 1 and Rows 2 all strings => no headers
-        } else {
-          return readFirstRowAsHeaders(rawData, deduplicator); // Row 1 all strings and Rows 2 not all strings => headers
-        }
+    if (!row1AllStrings) {
+      return null; // Row 1 has non string => no headers
+    } else if (row2AllStrings) {
+      return null; // Row 1 and Rows 2 all strings => no headers
+    } else {
+      return readFirstRowAsHeaders(
+          rawData, deduplicator); // Row 1 all strings and Rows 2 not all strings => headers
+    }
   }
 
   /** Specifies how to set the headers for the returned table. */
