@@ -114,7 +114,20 @@ export function EnsoDevStatus() {
       }
     }
   })()
-  const isOverridden = planName != null || showDeveloperIds
+  const isOverridden =
+    planName != null ||
+    animationsDisabled ||
+    versionCheckerEnabled ||
+    !enableAssetsTableBackgroundRefresh ||
+    assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
+    !enableCloudExecution ||
+    !enableScheduledExecution ||
+    !enableHybridExecution ||
+    showDeveloperIds ||
+    overrideProfilePicture ||
+    multiplyUserList ||
+    enableMultitabs ||
+    enableAdvancedProjectExecutionOptions
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
