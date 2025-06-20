@@ -5,6 +5,7 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API.
  */
+import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
 import type { Logger } from '#/providers/LoggerProvider'
 import Backend, * as backend from '#/services/Backend'
 import type ProjectManager from '#/services/ProjectManager'
@@ -25,8 +26,6 @@ import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
-
-const { localRootDirectoryStore } = await import('#/layouts/Drive/persistentState')
 
 const LOCAL_API_URL = '/api'
 
