@@ -1,7 +1,5 @@
 package org.enso.table_test_helpers;
 
-import java.util.BitSet;
-import java.util.List;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -10,7 +8,6 @@ import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
 
 /**
  * A helper class used in the Upload_Spec test to purposefully interrupt a table upload in the
@@ -59,22 +56,12 @@ public class ExplodingStorage extends Storage<Long> implements ColumnLongStorage
   }
 
   @Override
-  public ColumnStorage<Long> applyFilter(BitSet filterMask, int newLength) {
-    return null;
-  }
-
-  @Override
   public ColumnStorage<Long> applyMask(OrderMask mask) {
     return null;
   }
 
   @Override
-  public ColumnStorage<Long> slice(List<SliceRange> ranges) {
-    return null;
-  }
-
-  @Override
   public ColumnLongStorageIterator iteratorWithIndex() {
-    return new LongStorageIterator(this, 0, getSize());
+    return new LongStorageIterator(this);
   }
 }

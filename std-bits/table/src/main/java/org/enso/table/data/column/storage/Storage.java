@@ -1,13 +1,10 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicLong;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> implements ColumnStorage<T> {
@@ -53,23 +50,9 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   /**
-   * Return a new storage, containing only the items marked true in the mask.
-   *
-   * @param filterMask the mask to use
-   * @param newLength the number of true values in mask
-   * @return a new storage, filtered with the given mask
-   */
-  public abstract ColumnStorage<T> applyFilter(BitSet filterMask, int newLength);
-
-  /**
    * Returns a new storage, ordered according to the rules specified in a mask.
    *
    * @param mask@return a storage resulting from applying the reordering rules
    */
   public abstract ColumnStorage<T> applyMask(OrderMask mask);
-
-  /**
-   * @return a copy of the storage consisting of slices of the original data
-   */
-  public abstract ColumnStorage<T> slice(List<SliceRange> ranges);
 }

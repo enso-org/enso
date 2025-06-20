@@ -1,12 +1,9 @@
 package org.enso.table.data.column.storage;
 
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Iterator;
-import java.util.List;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
 
 public abstract class SpecializedStorage<T> extends Storage<T> {
@@ -52,21 +49,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public ColumnStorage<T> applyFilter(BitSet filterMask, int newLength) {
-    Context context = Context.getCurrent();
-    T[] newData = newUnderlyingArray(newLength);
-    int resIx = 0;
-    for (int i = 0; i < data.length; i++) {
-      if (filterMask.get(i)) {
-        newData[resIx++] = data[i];
-      }
-
-      context.safepoint();
-    }
-    return newInstance(newData);
-  }
-
-  @Override
   public ColumnStorage<T> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(mask.length());
@@ -80,22 +62,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   public T[] getData() {
     return data;
-  }
-
-  @Override
-  public ColumnStorage<T> slice(List<SliceRange> ranges) {
-    Context context = Context.getCurrent();
-    int newSize = SliceRange.totalLength(ranges);
-    T[] newData = newUnderlyingArray(newSize);
-    int offset = 0;
-    for (SliceRange range : ranges) {
-      int length = range.end() - range.start();
-      System.arraycopy(data, range.start(), newData, offset, length);
-      offset += length;
-      context.safepoint();
-    }
-
-    return newInstance(newData);
   }
 
   @Override

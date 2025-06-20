@@ -24,10 +24,10 @@ class SliceStorageInferred<T> extends SliceStorage<T> implements ColumnStorageWi
           (inferredType instanceof AnyObjectType)
               ? null
               : StorageIterators.buildObjectOverStorage(
-              this,
-              true,
-              Builder.getForType(inferredType, getSize(), BlackholeProblemAggregator.INSTANCE),
-              (builder, index, value) -> builder.append(value));
+                  this,
+                  true,
+                  Builder.getForType(inferredType, getSize(), BlackholeProblemAggregator.INSTANCE),
+                  (builder, index, value) -> builder.append(value));
       hasSpecializedStorageBeenInferred = true;
     }
 

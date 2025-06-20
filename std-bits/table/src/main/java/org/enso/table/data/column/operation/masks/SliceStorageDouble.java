@@ -5,9 +5,9 @@ import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.iterators.DoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.mask.OrderMask;
 
-class SliceStorageDouble extends SliceStorage<Double>
-    implements ColumnDoubleStorage {
+class SliceStorageDouble extends SliceStorage<Double> implements ColumnDoubleStorage {
   private final ColumnDoubleStorage parent;
 
   public SliceStorageDouble(ColumnDoubleStorage parent, IndexMapper indexMapper) {
@@ -27,7 +27,11 @@ class SliceStorageDouble extends SliceStorage<Double>
 
   @Override
   public double getItemAsDouble(long index) throws ValueIsNothingException {
-    return parent.getItemAsDouble(mapIndex(index));
+    var mappedIndex = mapIndex(index);
+    if (mappedIndex == OrderMask.NOT_FOUND_INDEX) {
+      throw new ValueIsNothingException(index);
+    }
+    return parent.getItemAsDouble(mappedIndex);
   }
 
   @Override

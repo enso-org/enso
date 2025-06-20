@@ -1,14 +1,10 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-import java.util.List;
 import java.util.NoSuchElementException;
-import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.mask.SliceRange;
-import org.graalvm.polyglot.Context;
 
 /** A column storing 64-bit integers. */
 public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
@@ -52,27 +48,6 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   @Override
   public BitSet getIsNothingMap() {
     return isNothing;
-  }
-
-  @Override
-  public ColumnStorage<Long> slice(List<SliceRange> ranges) {
-    BitSet currentMask = getIsNothingMap();
-    int newSize = SliceRange.totalLength(ranges);
-    long[] newData = new long[newSize];
-    BitSet newIsNothing = new BitSet(newSize);
-    int offset = 0;
-    Context context = Context.getCurrent();
-    for (SliceRange range : ranges) {
-      int length = range.end() - range.start();
-      System.arraycopy(data, range.start(), newData, offset, length);
-      for (int i = 0; i < length; ++i) {
-        newIsNothing.set(offset + i, currentMask.get(range.start() + i));
-        context.safepoint();
-      }
-      offset += length;
-    }
-
-    return new LongStorage(newData, newSize, newIsNothing, getType());
   }
 
   /** Widening to a bigger type can be done without copying the data. */

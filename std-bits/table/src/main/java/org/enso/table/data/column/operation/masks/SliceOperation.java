@@ -8,9 +8,9 @@ import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.table.Column;
 
 /**
- * Provides operations for slicing columns, allowing the creation of new columns that are
- * sub-ranges of existing ones.
- * A slice is a contiguous part of a column, defined by a starting index and a length.
+ * Provides operations for slicing columns, allowing the creation of new columns that are sub-ranges
+ * of existing ones. A slice is a contiguous part of a column, defined by a starting index and a
+ * length.
  */
 public final class SliceOperation {
   /**
@@ -34,27 +34,38 @@ public final class SliceOperation {
     return new Column(column.getName(), newStorage);
   }
 
+  /**
+   * Creates a new Column that contains a slice of the input.
+   *
+   * @param column the original column
+   * @param mask the set of indices to include in the slice
+   * @return a new column containing the specified slice
+   */
+  public static Column slice(Column column, long[] mask) {
+    var storage = column.getStorage();
+    var newStorage = getSlicedStorage(storage, new IndexMapper.ArrayMapping(mask));
+    return new Column(column.getName(), newStorage);
+  }
+
   private static ColumnStorage<?> getSlicedStorage(
       ColumnStorage<?> storage, IndexMapper indexMapper) {
     return switch (storage) {
-      case SliceStorageLong sliceStorageLong ->
-          new SliceStorageLong(sliceStorageLong.parent(), sliceStorageLong.indexMapper().merge(indexMapper));
-      case ColumnLongStorage longStorage ->
-          new SliceStorageLong(longStorage, indexMapper);
-      case SliceStorageDouble sliceStorageDouble ->
-          new SliceStorageDouble(sliceStorageDouble.parent(), sliceStorageDouble.indexMapper().merge(indexMapper));
-      case ColumnDoubleStorage doubleStorage ->
-          new SliceStorageDouble(doubleStorage, indexMapper);
-      case SliceStorageBoolean sliceStorageBoolean ->
-          new SliceStorageBoolean(sliceStorageBoolean.parent(), sliceStorageBoolean.indexMapper().merge(indexMapper));
-      case ColumnBooleanStorage booleanStorage ->
-          new SliceStorageBoolean(booleanStorage, indexMapper);
-      case SliceStorageInferred<?> sliceStorageInferred ->
-          new SliceStorageInferred<>(sliceStorageInferred.parent(), sliceStorageInferred.indexMapper().merge(indexMapper));
-      case ColumnStorageWithInferredStorage inferredStorage ->
-          new SliceStorageInferred<>(storage, indexMapper);
-      case SliceStorage<?> sliceStorage ->
-          new SliceStorage<>(sliceStorage.parent(), sliceStorage.indexMapper().merge(indexMapper));
+      case SliceStorageLong sliceStorageLong -> new SliceStorageLong(
+          sliceStorageLong.parent(), sliceStorageLong.indexMapper().merge(indexMapper));
+      case ColumnLongStorage longStorage -> new SliceStorageLong(longStorage, indexMapper);
+      case SliceStorageDouble sliceStorageDouble -> new SliceStorageDouble(
+          sliceStorageDouble.parent(), sliceStorageDouble.indexMapper().merge(indexMapper));
+      case ColumnDoubleStorage doubleStorage -> new SliceStorageDouble(doubleStorage, indexMapper);
+      case SliceStorageBoolean sliceStorageBoolean -> new SliceStorageBoolean(
+          sliceStorageBoolean.parent(), sliceStorageBoolean.indexMapper().merge(indexMapper));
+      case ColumnBooleanStorage booleanStorage -> new SliceStorageBoolean(
+          booleanStorage, indexMapper);
+      case SliceStorageInferred<?> sliceStorageInferred -> new SliceStorageInferred<>(
+          sliceStorageInferred.parent(), sliceStorageInferred.indexMapper().merge(indexMapper));
+      case ColumnStorageWithInferredStorage inferredStorage -> new SliceStorageInferred<>(
+          storage, indexMapper);
+      case SliceStorage<?> sliceStorage -> new SliceStorage<>(
+          sliceStorage.parent(), sliceStorage.indexMapper().merge(indexMapper));
       default -> new SliceStorage<>(storage, indexMapper);
     };
   }

@@ -1,10 +1,10 @@
 package org.enso.table.data.table;
 
-import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.DataQualityMetrics;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.masks.SliceOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StorageListView;
@@ -90,17 +90,6 @@ public final class Column {
   }
 
   /**
-   * Return a new column, containing only the items marked true in the mask.
-   *
-   * @param filterMask the mask to use
-   * @param newLength the number of true values in mask
-   * @return a new column, masked with the given mask
-   */
-  Column applyFilter(BitSet filterMask, int newLength) {
-    return new Column(name, ((Storage<?>) storage).applyFilter(filterMask, newLength));
-  }
-
-  /**
    * Renames the column.
    *
    * @param name the new name
@@ -173,6 +162,31 @@ public final class Column {
     return new Column(name, Builder.fromRepeatedItem(converted, repeat));
   }
 
+  public Column slice(long offset, long limit) {
+    return SliceOperation.slice(this, offset, limit);
+  }
+
+  public Column slice(List<SliceRange> ranges) {
+    if (ranges.isEmpty()) {
+      // Creates an empty table
+      return slice(0, 0);
+    }
+
+    if (ranges.size() == 1) {
+      // If there is only one range, we can use the existing slice method
+      SliceRange range = ranges.get(0);
+      return slice(range.start(), range.end() - range.start());
+    }
+
+    // If there are multiple ranges, we need to create a mask
+    long[] mask = SliceRange.createMask(ranges);
+    return slice(mask);
+  }
+
+  Column slice(long[] mask) {
+    return SliceOperation.slice(this, mask);
+  }
+
   /**
    * @param mask the reordering to apply
    * @return a new column, resulting from reordering this column according to {@code mask}.
@@ -187,12 +201,5 @@ public final class Column {
    */
   public List<?> asList() {
     return new StorageListView(this.getStorage());
-  }
-
-  /**
-   * @return a copy of the Column consisting of slices of the original data
-   */
-  public Column slice(List<SliceRange> ranges) {
-    return new Column(name, ((Storage<?>) storage).slice(ranges));
   }
 }

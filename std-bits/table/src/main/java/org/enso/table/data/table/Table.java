@@ -2,7 +2,6 @@ package org.enso.table.data.table;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -11,11 +10,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.base.Text_Utils;
+import org.enso.base.arrays.LongArrayList;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.masks.SliceOperation;
-import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.CrossTabIndex;
@@ -138,18 +138,27 @@ public class Table {
    * @return the result of masking this table with the provided column
    */
   public Table filter(Column filterColumn) {
-    if (!(filterColumn.getStorage() instanceof BoolStorage storage)) {
+    if (!(filterColumn.getStorage() instanceof ColumnBooleanStorage storage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
 
-    var mask = BoolStorage.toMask(storage);
-    var localStorageMask = new BitSet();
-    localStorageMask.set(0, rowCount());
-    mask.and(localStorageMask);
-    int cardinality = mask.cardinality();
+    // Build a mask from the filter column.
+    var maskBuilder = new LongArrayList((int) Math.min(storage.getSize(), 100000));
+    StorageIterators.forEachOverBooleanStorage(
+        storage,
+        false,
+        (index, value, isNothing) -> {
+          if (value) {
+            maskBuilder.add(index);
+          }
+          return false;
+        });
+    var mask = maskBuilder.toArray();
+
+    // Create a new table with the mask applied to all columns.
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].applyFilter(mask, cardinality);
+      newColumns[i] = columns[i].slice(mask);
     }
     return new Table(newColumns);
   }
@@ -259,15 +268,18 @@ public class Table {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
+    // If there are no key columns, we return the table as is.
+    if (keyColumns.length != 0) {
+      return this;
+    }
+
     var rowsToKeep =
         Distinct.buildDistinctRowsMask(
             rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
-    int cardinality = rowsToKeep.cardinality();
     Column[] newColumns = new Column[this.columns.length];
     for (int i = 0; i < this.columns.length; i++) {
-      newColumns[i] = this.columns[i].applyFilter(rowsToKeep, cardinality);
+      newColumns[i] = this.columns[i].slice(rowsToKeep);
     }
-
     return new Table(newColumns);
   }
 
@@ -283,13 +295,16 @@ public class Table {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
+    // If there are no key columns, we return the table.
+    if (keyColumns.length != 0) {
+      return this;
+    }
     var rowsToKeep =
         Distinct.buildDuplicatesRowsMask(
             rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
-    int cardinality = rowsToKeep.cardinality();
     Column[] newColumns = new Column[this.columns.length];
     for (int i = 0; i < this.columns.length; i++) {
-      newColumns[i] = this.columns[i].applyFilter(rowsToKeep, cardinality);
+      newColumns[i] = this.columns[i].slice(rowsToKeep);
     }
 
     return new Table(newColumns);
@@ -445,7 +460,7 @@ public class Table {
     }
 
     if (newSize < inputSize) {
-      return SliceOperation.slice(input, 0, newSize);
+      return input.slice(0, newSize);
     }
 
     var storage = input.getStorage();
@@ -542,7 +557,7 @@ public class Table {
   public Table slice(long offset, long limit) {
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = SliceOperation.slice(columns[i], offset, limit);
+      newColumns[i] = columns[i].slice(offset, limit);
     }
     return new Table(newColumns);
   }
@@ -551,9 +566,22 @@ public class Table {
    * @return a copy of the Table consisting of slices of the original data
    */
   public Table slice(List<SliceRange> ranges) {
+    if (ranges.isEmpty()) {
+      // Creates an empty table
+      return slice(0, 0);
+    }
+
+    if (ranges.size() == 1) {
+      // If there is only one range, we can use the existing slice method
+      SliceRange range = ranges.get(0);
+      return slice(range.start(), range.end() - range.start());
+    }
+
+    // Now we have to form multiple parts so create a mask
+    long[] mask = SliceRange.createMask(ranges);
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].slice(ranges);
+      newColumns[i] = columns[i].slice(mask);
     }
     return new Table(newColumns);
   }

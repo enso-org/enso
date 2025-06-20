@@ -4,9 +4,9 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.iterators.BooleanStorageIterator;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
+import org.enso.table.data.mask.OrderMask;
 
-class SliceStorageBoolean extends SliceStorage<Boolean>
-    implements ColumnBooleanStorage {
+class SliceStorageBoolean extends SliceStorage<Boolean> implements ColumnBooleanStorage {
   private final ColumnBooleanStorage parent;
 
   public SliceStorageBoolean(ColumnBooleanStorage parent, IndexMapper indexMapper) {
@@ -21,7 +21,11 @@ class SliceStorageBoolean extends SliceStorage<Boolean>
 
   @Override
   public boolean getItemAsBoolean(long index) throws ValueIsNothingException {
-    return parent.getItemAsBoolean(mapIndex(index));
+    var mappedIndex = mapIndex(index);
+    if (mappedIndex == OrderMask.NOT_FOUND_INDEX) {
+      throw new ValueIsNothingException(index);
+    }
+    return parent.getItemAsBoolean(mappedIndex);
   }
 
   @Override

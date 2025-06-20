@@ -1,14 +1,12 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.iterators.BooleanStorageIterator;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
 
 /** A boolean column storage. */
@@ -72,23 +70,6 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public ColumnStorage<Boolean> applyFilter(BitSet filterMask, int newLength) {
-    Context context = Context.getCurrent();
-    var builder = Builder.getForBoolean(newLength);
-    for (int i = 0; i < size; i++) {
-      if (filterMask.get(i)) {
-        if (isNothing.get(i)) {
-          builder.appendNulls(1);
-        } else {
-          builder.appendBoolean(getItemAsBoolean(i));
-        }
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  @Override
   public ColumnStorage<Boolean> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
     var builder = Builder.getForBoolean(mask.length());
@@ -100,45 +81,6 @@ public final class BoolStorage extends Storage<Boolean>
         builder.appendBoolean(getItemAsBoolean(position));
       }
       context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  /** Creates a mask that selects elements corresponding to true entries in the passed storage. */
-  public static BitSet toMask(BoolStorage storage) {
-    BitSet mask = storage.normalize();
-    mask.andNot(storage.getIsNothingMap());
-    return mask;
-  }
-
-  /**
-   * Returns a BitSet representation of the storage. It is the same as the values BitSet, but with
-   * an assumption that the negated flag is false.
-   */
-  private BitSet normalize() {
-    BitSet set = new BitSet();
-    set.or(this.values);
-    if (this.negated) {
-      set.flip(0, this.size);
-    }
-    return set;
-  }
-
-  @Override
-  public ColumnStorage<Boolean> slice(List<SliceRange> ranges) {
-    Context context = Context.getCurrent();
-    int newSize = SliceRange.totalLength(ranges);
-    var builder = Builder.getForBoolean(newSize);
-    for (SliceRange range : ranges) {
-      int length = range.end() - range.start();
-      for (int i = 0; i < length; ++i) {
-        if (isNothing.get(range.start() + i)) {
-          builder.appendNulls(1);
-        } else {
-          builder.appendBoolean(getItemAsBoolean(range.start() + i));
-        }
-        context.safepoint();
-      }
     }
     return builder.seal();
   }

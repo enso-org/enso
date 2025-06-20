@@ -1,10 +1,10 @@
 package org.enso.table.data.column.operation.masks;
 
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.StorageType;
-
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.mask.OrderMask;
 
 class SliceStorage<T> implements ColumnStorage<T> {
   private final ColumnStorage<T> parent;
@@ -47,12 +47,14 @@ class SliceStorage<T> implements ColumnStorage<T> {
 
   @Override
   public boolean isNothing(long index) {
-    return parent.isNothing(mapIndex(index));
+    var mappedIndex = mapIndex(index);
+    return mappedIndex == OrderMask.NOT_FOUND_INDEX || parent.isNothing(mappedIndex);
   }
 
   @Override
   public T getItemBoxed(long index) {
-    return parent.getItemBoxed(mapIndex(index));
+    var mappedIndex = mapIndex(index);
+    return mappedIndex == OrderMask.NOT_FOUND_INDEX ? null : parent.getItemBoxed(mappedIndex);
   }
 
   @Override
@@ -75,4 +77,3 @@ class SliceStorage<T> implements ColumnStorage<T> {
     };
   }
 }
-

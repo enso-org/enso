@@ -1,8 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-import java.util.List;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
@@ -12,8 +10,6 @@ import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.iterators.DoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
-import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** A column containing floating point numbers. */
@@ -72,24 +68,6 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public ColumnStorage<Double> applyFilter(BitSet filterMask, int newLength) {
-    var builder =
-        Builder.getForDouble(FloatType.FLOAT_64, newLength, BlackholeProblemAggregator.INSTANCE);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < size; i++) {
-      if (filterMask.get(i)) {
-        if (isNothing.get(i)) {
-          builder.appendNulls(1);
-        } else {
-          builder.appendDouble(data[i]);
-        }
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  @Override
   public ColumnStorage<Double> applyMask(OrderMask mask) {
     double[] newData = new double[mask.length()];
     BitSet newIsNothing = new BitSet();
@@ -105,26 +83,6 @@ public final class DoubleStorage extends Storage<Double>
       context.safepoint();
     }
     return new DoubleStorage(newData, newData.length, newIsNothing);
-  }
-
-  @Override
-  public ColumnStorage<Double> slice(List<SliceRange> ranges) {
-    int newSize = SliceRange.totalLength(ranges);
-    double[] newData = new double[newSize];
-    BitSet newIsNothing = new BitSet(newSize);
-    int offset = 0;
-    Context context = Context.getCurrent();
-    for (SliceRange range : ranges) {
-      int length = range.end() - range.start();
-      System.arraycopy(data, range.start(), newData, offset, length);
-      for (int i = 0; i < length; ++i) {
-        newIsNothing.set(offset + i, isNothing.get(range.start() + i));
-        context.safepoint();
-      }
-      offset += length;
-    }
-
-    return new DoubleStorage(newData, newSize, newIsNothing);
   }
 
   /** Allow access to the underlying data array for copying. */
