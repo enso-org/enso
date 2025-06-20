@@ -41,10 +41,4 @@ public class MixedStorageFacade extends Storage<Object>
   public Object getItemBoxed(long idx) {
     return underlyingStorage.getItemBoxed(idx);
   }
-
-  @Override
-  public ColumnStorage<Object> applyMask(OrderMask mask) {
-    var newStorage = underlyingStorage.applyMask(mask);
-    return new MixedStorageFacade(newStorage);
-  }
 }

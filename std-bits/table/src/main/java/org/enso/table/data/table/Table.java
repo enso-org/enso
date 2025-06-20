@@ -252,8 +252,8 @@ public class Table {
       context.safepoint();
     }
     Arrays.sort(keys);
-    OrderMask mask = OrderMask.fromObjects(keys, MultiValueKeyBase::getRowIndex);
-    return this.applyMask(mask);
+    var mask = Arrays.stream(keys).mapToLong(k -> (long)k.getRowIndex()).toArray();
+    return this.slice(mask);
   }
 
   /**
@@ -579,6 +579,10 @@ public class Table {
 
     // Now we have to form multiple parts so create a mask
     long[] mask = SliceRange.createMask(ranges);
+    return slice(mask);
+  }
+
+  public Table slice(long[] mask) {
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(mask);

@@ -1,37 +1,32 @@
 package org.enso.table.data.table.join;
 
-import org.enso.base.arrays.IntArrayBuilder;
+import org.enso.base.arrays.LongArrayList;
 import org.enso.table.data.mask.OrderMask;
 
 public class JoinResult {
-  private final int length;
-  private final int[] leftIndices;
-  private final int[] rightIndices;
+  private final long[] leftIndices;
+  private final long[] rightIndices;
 
-  public JoinResult(int[] leftIndices, int[] rightIndices, int length) {
-    this.length = length;
+  public JoinResult(long[] leftIndices, long[] rightIndices) {
     this.leftIndices = leftIndices;
     this.rightIndices = rightIndices;
   }
 
-  /** Represents a pair of indices of matched rows. -1 means an unmatched row. */
-  public record RowPair(int leftIndex, int rightIndex) {}
-
   public OrderMask getLeftOrderMask() {
-    return OrderMask.fromArray(leftIndices, length);
+    return OrderMask.fromArray(leftIndices);
   }
 
   public OrderMask getRightOrderMask() {
-    return OrderMask.fromArray(rightIndices, length);
+    return OrderMask.fromArray(rightIndices);
   }
 
   public static class Builder {
-    IntArrayBuilder leftIndices;
-    IntArrayBuilder rightIndices;
+    LongArrayList leftIndices;
+    LongArrayList rightIndices;
 
     public Builder(int initialCapacity) {
-      leftIndices = new IntArrayBuilder(initialCapacity);
-      rightIndices = new IntArrayBuilder(initialCapacity);
+      leftIndices = new LongArrayList(initialCapacity);
+      rightIndices = new LongArrayList(initialCapacity);
     }
 
     public Builder() {
@@ -66,9 +61,8 @@ public class JoinResult {
       leftIndices = null;
       rightIndices = null;
       return new JoinResult(
-          left.unsafeGetResultAndInvalidate(),
-          right.unsafeGetResultAndInvalidate(),
-          left.getLength());
+          left.toArray(),
+          right.toArray());
     }
   }
 }

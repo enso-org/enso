@@ -99,7 +99,7 @@ public class LookupJoin {
 
     boolean needsOrderMask =
         outputColumns.stream().anyMatch(LookupOutputColumn.AddFromLookup.class::isInstance);
-    int[] orderMask = needsOrderMask ? new int[baseTableRowCount] : null;
+    long[] orderMask = needsOrderMask ? new long[baseTableRowCount] : null;
 
     for (int i = 0; i < baseTableRowCount; i++) {
       // Find corresponding row in the lookup table
@@ -178,12 +178,12 @@ public class LookupJoin {
   }
 
   interface LookupOutputColumn {
-    Column build(int[] orderMask);
+    Column build(long[] orderMask);
 
     record KeepOriginal(Column column) implements LookupOutputColumn {
 
       @Override
-      public Column build(int[] orderMask) {
+      public Column build(long[] orderMask) {
         return column;
       }
     }
@@ -192,16 +192,15 @@ public class LookupJoin {
         String name, ColumnStorage<?> original, ColumnStorage<?> lookupReplacement, Builder builder)
         implements LookupOutputColumn {
       @Override
-      public Column build(int[] orderMask) {
+      public Column build(long[] orderMask) {
         return new Column(name, builder.seal());
       }
     }
 
     record AddFromLookup(Column lookupColumn) implements LookupOutputColumn {
       @Override
-      public Column build(int[] orderMask) {
-        assert orderMask != null;
-        return lookupColumn.applyMask(OrderMask.fromArray(orderMask));
+      public Column build(long[] orderMask) {
+        return lookupColumn.slice(orderMask);
       }
     }
   }

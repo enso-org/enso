@@ -183,7 +183,7 @@ public final class Column {
     return slice(mask);
   }
 
-  Column slice(long[] mask) {
+  public Column slice(long[] mask) {
     return SliceOperation.slice(this, mask);
   }
 
@@ -192,8 +192,7 @@ public final class Column {
    * @return a new column, resulting from reordering this column according to {@code mask}.
    */
   public Column applyMask(OrderMask mask) {
-    var newStorage = ((Storage<?>) storage).applyMask(mask);
-    return new Column(name, newStorage);
+    return slice(mask.toLongArray());
   }
 
   /**

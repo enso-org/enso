@@ -69,8 +69,8 @@ public class OrderBuilder {
     Comparator<Integer> comparator =
         rules.stream().map(OrderRule::toComparator).reduce(Comparator::thenComparing).get();
 
-    int[] positions =
-        IntStream.range(0, size).boxed().sorted(comparator).mapToInt(i -> i).toArray();
+    long[] positions =
+        IntStream.range(0, size).boxed().sorted(comparator).mapToLong(i -> i).toArray();
     return OrderMask.fromArray(positions);
   }
 }

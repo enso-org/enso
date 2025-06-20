@@ -44,9 +44,4 @@ public class NullStorage extends Storage<Void> {
   public Iterator<Void> iterator() {
     return LongStream.range(0, size).mapToObj(i -> (Void) null).iterator();
   }
-
-  @Override
-  public ColumnStorage<Void> applyMask(OrderMask mask) {
-    return new NullStorage(mask.length());
-  }
 }

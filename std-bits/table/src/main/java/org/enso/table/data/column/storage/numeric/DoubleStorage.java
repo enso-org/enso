@@ -67,24 +67,6 @@ public final class DoubleStorage extends Storage<Double>
     return isNothing.get((int) idx);
   }
 
-  @Override
-  public ColumnStorage<Double> applyMask(OrderMask mask) {
-    double[] newData = new double[mask.length()];
-    BitSet newIsNothing = new BitSet();
-    Context context = Context.getCurrent();
-    for (int i = 0; i < mask.length(); i++) {
-      int position = mask.get(i);
-      if (position == OrderMask.NOT_FOUND_INDEX || isNothing.get(position)) {
-        newIsNothing.set(i);
-      } else {
-        newData[i] = data[position];
-      }
-
-      context.safepoint();
-    }
-    return new DoubleStorage(newData, newData.length, newIsNothing);
-  }
-
   /** Allow access to the underlying data array for copying. */
   public double[] getArray() {
     return data;

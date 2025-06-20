@@ -1,19 +1,23 @@
 package org.enso.table_test_helpers;
 
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.mask.OrderMask;
+
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A helper class used in the Upload_Spec test to purposefully interrupt a table upload in the
  * middle of it by throwing an exception. It is used to test the transactionality of the upload.
  */
-public class ExplodingStorage extends Storage<Long> implements ColumnLongStorage {
+public class ExplodingStorage implements ColumnLongStorage {
+  private static final AtomicLong atomicCounter = new AtomicLong(100000000);
+
+  private final long uniqueKey = atomicCounter.incrementAndGet();
   private final long[] array;
   private final long explodingIndex;
 
@@ -26,6 +30,11 @@ public class ExplodingStorage extends Storage<Long> implements ColumnLongStorage
     if (idx == explodingIndex) {
       throw new ExplodingStoragePayload();
     }
+  }
+
+  @Override
+  public long uniqueKey() {
+    return uniqueKey;
   }
 
   @Override
@@ -56,8 +65,23 @@ public class ExplodingStorage extends Storage<Long> implements ColumnLongStorage
   }
 
   @Override
-  public ColumnStorage<Long> applyMask(OrderMask mask) {
-    return null;
+  public Iterator<Long> iterator() {
+    return new Iterator<>() {
+      private long index = -1;
+
+      @Override
+      public boolean hasNext() {
+        return index + 1 < getSize();
+      }
+
+      @Override
+      public Long next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        return getItemBoxed(++index);
+      }
+    };
   }
 
   @Override

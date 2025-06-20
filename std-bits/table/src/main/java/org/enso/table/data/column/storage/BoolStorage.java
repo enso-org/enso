@@ -68,23 +68,6 @@ public final class BoolStorage extends Storage<Boolean>
   public BitSet getIsNothingMap() {
     return isNothing;
   }
-
-  @Override
-  public ColumnStorage<Boolean> applyMask(OrderMask mask) {
-    Context context = Context.getCurrent();
-    var builder = Builder.getForBoolean(mask.length());
-    for (int i = 0; i < mask.length(); i++) {
-      int position = mask.get(i);
-      if (position == OrderMask.NOT_FOUND_INDEX || isNothing.get(position)) {
-        builder.appendNulls(1);
-      } else {
-        builder.appendBoolean(getItemAsBoolean(position));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
   @Override
   public ColumnBooleanStorageIterator iteratorWithIndex() {
     return new BooleanStorageIterator(this);

@@ -3,7 +3,8 @@ package org.enso.table.operations;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
@@ -40,13 +41,13 @@ public class Offset {
     return sourceColumn.applyMask(OrderMask.fromArray(rowOrderMask));
   }
 
-  private static int[] calculate_ungrouped_unordered_mask(int numRows, int n, FillWith fillWith) {
-    return IntStream.range(0, numRows)
-        .map(i -> calculate_row_offset(i, n, fillWith, numRows))
+  private static long[] calculate_ungrouped_unordered_mask(int numRows, int n, FillWith fillWith) {
+    return LongStream.range(0, numRows)
+        .map(i -> calculate_row_offset((int)i, n, fillWith, numRows))
         .toArray();
   }
 
-  private static int calculate_row_offset(int rowIndex, int n, FillWith fillWith, int numRows) {
+  private static long calculate_row_offset(int rowIndex, int n, FillWith fillWith, int numRows) {
     int result = rowIndex + n;
     if (result < 0) {
       return switch (fillWith) {
@@ -64,7 +65,7 @@ public class Offset {
     return result;
   }
 
-  private static int[] calculate_grouped_ordered_mask(
+  private static long[] calculate_grouped_ordered_mask(
       int numRows,
       int n,
       FillWith fillWith,
@@ -85,12 +86,12 @@ public class Offset {
 
   private static class OffsetRowVisitorFactory implements RowVisitorFactory {
 
-    int[] rowOrderMask;
+    long[] rowOrderMask;
     int n;
     FillWith fillWith;
 
     OffsetRowVisitorFactory(int numRows, int n, FillWith fillWith) {
-      rowOrderMask = new int[numRows];
+      rowOrderMask = new long[numRows];
       this.n = n;
       this.fillWith = fillWith;
     }
@@ -108,9 +109,9 @@ public class Offset {
     int current_n;
     int closestPos;
     FillWith fillWith;
-    int[] rowOrderMask;
+    long[] rowOrderMask;
 
-    public OffsetRowVisitor(int n, FillWith fillWith, int[] rowOrderMask) {
+    public OffsetRowVisitor(int n, FillWith fillWith, long[] rowOrderMask) {
       this.rolling_queue = new LinkedList<>();
       this.fill_queue = new LinkedList<>();
       this.current_n = 0;

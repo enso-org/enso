@@ -48,11 +48,4 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       }
     };
   }
-
-  /**
-   * Returns a new storage, ordered according to the rules specified in a mask.
-   *
-   * @param mask@return a storage resulting from applying the reordering rules
-   */
-  public abstract ColumnStorage<T> applyMask(OrderMask mask);
 }

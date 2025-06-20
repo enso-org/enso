@@ -1,11 +1,9 @@
 package org.enso.table.data.mask;
 
-import java.util.function.ToIntFunction;
-
 /** Describes a storage reordering operator. */
 public interface OrderMask {
   /** A constant representing the index of a missing value in a column. */
-  public static final int NOT_FOUND_INDEX = -1;
+  int NOT_FOUND_INDEX = -1;
 
   int length();
 
@@ -19,55 +17,21 @@ public interface OrderMask {
    * <p>Indices may appear zero or multiple times in the mask - meaning rows that will be gone or
    * duplicated.
    */
-  int get(int idx);
-
-  static OrderMask empty() {
-    return new OrderMaskFromArray(new int[0], 0);
-  }
+  long get(int idx);
 
   static OrderMask reverse(int size) {
     return new OrderMaskReversed(size);
   }
 
-  static OrderMask fromArray(int[] positions) {
-    return fromArray(positions, positions.length);
-  }
-
-  static OrderMask fromArray(int[] positions, int length) {
-    return new OrderMaskFromArray(positions, length);
-  }
-
-  static <T> OrderMask fromObjects(T[] input, ToIntFunction<T> function) {
-    return new OrderMaskGeneric<>(input, function);
+  static OrderMask fromArray(long[] positions) {
+    return new OrderMaskFromArray(positions);
   }
 
   class OrderMaskFromArray implements OrderMask {
-    private final int[] positions;
-    private final int length;
+    private final long[] positions;
 
-    public OrderMaskFromArray(int[] positions, int length) {
+    public OrderMaskFromArray(long[] positions) {
       this.positions = positions;
-      this.length = length;
-    }
-
-    @Override
-    public int length() {
-      return length;
-    }
-
-    @Override
-    public int get(int idx) {
-      return positions[idx];
-    }
-  }
-
-  class OrderMaskGeneric<T> implements OrderMask {
-    private final T[] positions;
-    private final ToIntFunction<T> function;
-
-    public OrderMaskGeneric(T[] positions, ToIntFunction<T> function) {
-      this.positions = positions;
-      this.function = function;
     }
 
     @Override
@@ -76,8 +40,13 @@ public interface OrderMask {
     }
 
     @Override
-    public int get(int idx) {
-      return function.applyAsInt(positions[idx]);
+    public long get(int idx) {
+      return positions[idx];
+    }
+
+    @Override
+    public long[] toLongArray() {
+      return positions;
     }
   }
 
@@ -94,8 +63,19 @@ public interface OrderMask {
     }
 
     @Override
-    public int get(int idx) {
+    public long get(int idx) {
       return length - idx - 1;
     }
+
+    @Override
+    public long[] toLongArray() {
+      long[] result = new long[length];
+      for (int i = 0; i < length; i++) {
+        result[i] = length - i - 1;
+      }
+      return result;
+    }
   }
+
+  long[] toLongArray();
 }

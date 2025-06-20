@@ -48,18 +48,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     return this.getItemBoxed(idx) == null;
   }
 
-  @Override
-  public ColumnStorage<T> applyMask(OrderMask mask) {
-    Context context = Context.getCurrent();
-    T[] newData = newUnderlyingArray(mask.length());
-    for (int i = 0; i < mask.length(); i++) {
-      int position = mask.get(i);
-      newData[i] = position == OrderMask.NOT_FOUND_INDEX ? null : data[position];
-      context.safepoint();
-    }
-    return newInstance(newData);
-  }
-
   public T[] getData() {
     return data;
   }
