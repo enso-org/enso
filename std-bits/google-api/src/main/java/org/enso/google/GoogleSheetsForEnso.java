@@ -5,7 +5,6 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptySheetException;
@@ -61,7 +60,7 @@ public class GoogleSheetsForEnso {
     Column[] columns = new Column[rawData.size()];
     for (int i = 0; i < rawData.size(); i++) {
         var column = rawData.get(i);
-        var builder = Builder.getForText(TextType.VARIABLE_LENGTH, column.size());
+        var builder = Builder.getInferredBuilder(column.size(), problemAggregator);
         column.stream()
             .skip(columnNames.getRowsUsed())
             .forEach(builder::append);

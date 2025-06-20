@@ -58,21 +58,16 @@ public class GoogleSheetsHeaders {
           return null;
         }
 
-        // Two rows of all string data => No headers
-        boolean allStrings = true;
-        for (int i = 0; i < rawData.size(); i++) {
-            Object cell1 = rawData.get(i).get(0);
-            Object cell2 = rawData.get(i).get(1);
-            if (!(cell1 instanceof String) || !(cell2 instanceof String)) {
-              allStrings = false;
-              break;
-            }
-        }
-        if (allStrings) {
-            return null;
-        }
+        boolean row1AllStrings = rawData.stream().allMatch(col -> col.get(0) instanceof String);
+        boolean row2AllStrings = rawData.stream().allMatch(col -> col.get(1) instanceof String);
 
-    return readFirstRowAsHeaders(rawData, deduplicator);
+        if (!row1AllStrings) {
+            return null; // Row 1 has non string => no headers
+        } else if (row2AllStrings) {
+            return null; // Row 1 and Rows 2 all strings => no headers
+        } else {
+          return readFirstRowAsHeaders(rawData, deduplicator); // Row 1 all strings and Rows 2 not all strings => headers
+        }
   }
 
   /** Specifies how to set the headers for the returned table. */
