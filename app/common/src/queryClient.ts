@@ -9,26 +9,28 @@ import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-pers
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
 
+/** An enumeration of all mutation pool ids. */
+export interface MutationPools {
+  // Required otherwise in this module there are no keys, and `pools[poolMeta.id]` below becomes
+  // `never`.
+  readonly [DUMMY_MUTATION_POOL_SYMBOL]: true
+}
+declare const DUMMY_MUTATION_POOL_SYMBOL: unique symbol
+
+/**
+ * Declaration merge into `MutationPools` to add a new mutation pool id:
+ *
+ * ```ts
+ * declare module 'enso-common/src/queryClient' {
+ *   interface MutationPools {
+ *     myNewPoolId: true
+ *   }
+ * }
+ * ```
+ */
+export type MutationPoolId = keyof MutationPools
+
 declare module '@tanstack/query-core' {
-  const DUMMY_MUTATION_POOL_SYMBOL: unique symbol
-  /**
-   * An enumeration of all mutation pool ids. Declaration merge into this interface to add a new
-   * mutation pool id:
-   *
-   * ```ts
-   * declare module '@tanstack/query-core' {
-   *   interface MutationPools {
-   *     myNewPoolId: true
-   *   }
-   * }
-   * ```
-   */
-  export interface MutationPools {
-    readonly [DUMMY_MUTATION_POOL_SYMBOL]: true
-  }
-
-  export type MutationPoolId = keyof MutationPools
-
   /** Query client with additional methods. */
   interface QueryClient {
     /**
@@ -120,7 +122,7 @@ export function createQueryClient<TStorageValue = string>(
 
   const pools: Partial<
     Record<
-      queryCore.MutationPoolId,
+      MutationPoolId,
       { usedLanes: number; promise: Promise<void>; resolve: () => void; reject: () => void }
     >
   > = {}

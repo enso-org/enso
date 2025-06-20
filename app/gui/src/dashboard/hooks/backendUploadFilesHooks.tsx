@@ -21,7 +21,6 @@ import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
-import '@tanstack/query-core'
 import {
   queryOptions,
   useMutation,
@@ -57,7 +56,7 @@ import { useState } from 'react'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 
-declare module '@tanstack/query-core' {
+declare module 'enso-common/src/queryClient' {
   /** */
   interface MutationPools {
     readonly uploadFileChunk: true
