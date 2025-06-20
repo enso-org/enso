@@ -42,6 +42,7 @@ type Google_Sheets_Workbook
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
+       SUGGESTED 3
        Gets the number of sheets.
     sheet_count : Integer
     sheet_count self = _handle_exceptions <|
@@ -104,5 +105,5 @@ private _make_java_headers headers:Headers = case headers of
 
 ## Creates a query widget for the `read` method.
 private _query_widget wb:Google_Sheets_Workbook display:Display=..Always -> Widget =
-    options = (wb.sheet_names . to_vector . map t-> Option t t.pretty)
+    options = [Option "<By Index>" "1"] + (wb.sheet_names . to_vector . map t-> Option t t.pretty)
     Single_Choice display=display values=options
