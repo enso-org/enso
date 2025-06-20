@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import org.enso.table.data.column.storage.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.type.IntegerType;

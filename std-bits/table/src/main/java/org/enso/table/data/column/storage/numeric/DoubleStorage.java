@@ -5,11 +5,12 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
+import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.iterators.DoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -107,7 +108,6 @@ public final class DoubleStorage extends Storage<Double>
     return new DoubleStorage(newData, newData.length, newIsNothing);
   }
 
-  @Override
   public ColumnStorage<Double> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
     double[] newData;
@@ -153,62 +153,6 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public ColumnDoubleStorageIterator iteratorWithIndex() {
-    return new DoubleStorageIterator(data, isNothing, (int) getSize());
-  }
-
-  private static class DoubleStorageIterator implements ColumnDoubleStorageIterator {
-    private final double[] data;
-    private final BitSet isNothing;
-    private final int size;
-    private int index = -1;
-
-    public DoubleStorageIterator(double[] data, BitSet isNothing, int size) {
-      this.data = data;
-      this.isNothing = isNothing;
-      this.size = size;
-    }
-
-    @Override
-    public Double getItemBoxed() {
-      return isNothing.get(index) ? null : data[index];
-    }
-
-    @Override
-    public double getItemAsDouble() {
-      return data[index];
-    }
-
-    @Override
-    public boolean isNothing() {
-      return isNothing.get(index);
-    }
-
-    @Override
-    public boolean hasNext() {
-      return index + 1 < size;
-    }
-
-    @Override
-    public Double next() {
-      if (!hasNext()) {
-        throw new NoSuchElementException();
-      }
-      index++;
-      return getItemBoxed();
-    }
-
-    @Override
-    public long getIndex() {
-      return index;
-    }
-
-    @Override
-    public boolean moveNext() {
-      if (!hasNext()) {
-        return false;
-      }
-      index++;
-      return true;
-    }
+    return new DoubleStorageIterator(this, 0, size);
   }
 }

@@ -84,14 +84,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public ColumnStorage<T> slice(int offset, int limit) {
-    int newSize = Math.min(data.length - offset, limit);
-    T[] newData = newUnderlyingArray(newSize);
-    System.arraycopy(data, offset, newData, 0, newSize);
-    return newInstance(newData);
-  }
-
-  @Override
   public ColumnStorage<T> slice(List<SliceRange> ranges) {
     Context context = Context.getCurrent();
     int newSize = SliceRange.totalLength(ranges);
@@ -110,56 +102,5 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   @Override
   public Iterator<T> iterator() {
     return Arrays.stream(data).iterator();
-  }
-
-  @Override
-  public ColumnStorageIterator<T> iteratorWithIndex() {
-    return new SpecializedStorageIterator<>(data);
-  }
-
-  private static class SpecializedStorageIterator<T> implements ColumnStorageIterator<T> {
-    private final T[] data;
-    private int index = -1;
-
-    public SpecializedStorageIterator(T[] data) {
-      this.data = data;
-    }
-
-    @Override
-    public T getItemBoxed() {
-      return data[index];
-    }
-
-    @Override
-    public boolean isNothing() {
-      return data[index] == null;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return index + 1 < data.length;
-    }
-
-    @Override
-    public T next() {
-      if (!hasNext()) {
-        throw new NoSuchElementException();
-      }
-      return data[++index];
-    }
-
-    @Override
-    public long getIndex() {
-      return index;
-    }
-
-    @Override
-    public boolean moveNext() {
-      if (!hasNext()) {
-        return false;
-      }
-      index++;
-      return true;
-    }
   }
 }

@@ -61,9 +61,4 @@ public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
       }
     };
   }
-
-  @Override
-  public ColumnStorageIterator<T> iteratorWithIndex() {
-    return new Storage.StorageIterator<>(this);
-  }
 }

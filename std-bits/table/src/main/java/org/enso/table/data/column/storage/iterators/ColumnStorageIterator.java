@@ -1,4 +1,4 @@
-package org.enso.table.data.column.storage;
+package org.enso.table.data.column.storage.iterators;
 
 import java.util.Iterator;
 

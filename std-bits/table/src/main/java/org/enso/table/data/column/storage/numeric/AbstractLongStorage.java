@@ -4,10 +4,11 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -86,7 +87,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
     return builder.seal();
   }
 
-  @Override
   public ColumnStorage<Long> slice(int offset, int limit) {
     int size = (int) getSize();
     int newSize = Math.min(size - offset, limit);
@@ -125,20 +125,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
 
   @Override
   public ColumnLongStorageIterator iteratorWithIndex() {
-    return new BaseLongStorageIterator(this);
-  }
-
-  /** Basic iterator for long storages. */
-  public static class BaseLongStorageIterator extends StorageIterator<Long>
-      implements ColumnLongStorageIterator {
-    public BaseLongStorageIterator(ColumnLongStorage parent) {
-      super(parent);
-    }
-
-    @Override
-    public long getItemAsLong() {
-      Long l = getItemBoxed();
-      return l == null ? 0 : l;
-    }
+    return new LongStorageIterator(this, 0, getSize());
   }
 }

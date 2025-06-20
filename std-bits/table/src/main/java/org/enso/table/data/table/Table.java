@@ -14,6 +14,7 @@ import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.masks.SliceOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -444,7 +445,7 @@ public class Table {
     }
 
     if (newSize < inputSize) {
-      return input.slice(0, newSize);
+      return SliceOperation.slice(input, 0, newSize);
     }
 
     var storage = input.getStorage();
@@ -538,10 +539,10 @@ public class Table {
   /**
    * @return a copy of the Table containing a slice of the original data
    */
-  public Table slice(int offset, int limit) {
+  public Table slice(long offset, long limit) {
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].slice(offset, limit);
+      newColumns[i] = SliceOperation.slice(columns[i], offset, limit);
     }
     return new Table(newColumns);
   }

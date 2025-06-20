@@ -3,7 +3,7 @@ package org.enso.table_test_helpers;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
@@ -65,11 +65,6 @@ public class ExplodingStorage extends Storage<Long> implements ColumnLongStorage
 
   @Override
   public ColumnStorage<Long> applyMask(OrderMask mask) {
-    return null;
-  }
-
-  @Override
-  public ColumnStorage<Long> slice(int offset, int limit) {
     return null;
   }
 

@@ -19,7 +19,7 @@ import org.graalvm.polyglot.Value;
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public final class Column {
   private final String name;
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
 
   /**
    * Creates a new column.
@@ -30,7 +30,7 @@ public final class Column {
   public Column(String name, ColumnStorage<?> storage) {
     ensureNameIsValid(name);
     this.name = name;
-    this.storage = (Storage<?>) storage;
+    this.storage = storage;
 
     // Trigger the computation of data quality metrics
     DataQualityMetrics.get(storage);
@@ -97,7 +97,7 @@ public final class Column {
    * @return a new column, masked with the given mask
    */
   Column applyFilter(BitSet filterMask, int newLength) {
-    return new Column(name, storage.applyFilter(filterMask, newLength));
+    return new Column(name, ((Storage<?>)storage).applyFilter(filterMask, newLength));
   }
 
   /**
@@ -178,7 +178,7 @@ public final class Column {
    * @return a new column, resulting from reordering this column according to {@code mask}.
    */
   public Column applyMask(OrderMask mask) {
-    var newStorage = storage.applyMask(mask);
+    var newStorage = ((Storage<?>)storage).applyMask(mask);
     return new Column(name, newStorage);
   }
 
@@ -190,16 +190,9 @@ public final class Column {
   }
 
   /**
-   * @return a copy of the Column containing a slice of the original data
-   */
-  public Column slice(int offset, int limit) {
-    return new Column(name, storage.slice(offset, limit));
-  }
-
-  /**
    * @return a copy of the Column consisting of slices of the original data
    */
   public Column slice(List<SliceRange> ranges) {
-    return new Column(name, storage.slice(ranges));
+    return new Column(name, ((Storage<?>)storage).slice(ranges));
   }
 }

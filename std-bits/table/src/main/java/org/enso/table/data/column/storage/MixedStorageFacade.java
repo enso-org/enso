@@ -58,12 +58,6 @@ public class MixedStorageFacade extends Storage<Object>
   }
 
   @Override
-  public ColumnStorage<Object> slice(int offset, int limit) {
-    var newStorage = underlyingStorage.slice(offset, limit);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
   public ColumnStorage<Object> slice(List<SliceRange> ranges) {
     var newStorage = underlyingStorage.slice(ranges);
     return new MixedStorageFacade(newStorage);

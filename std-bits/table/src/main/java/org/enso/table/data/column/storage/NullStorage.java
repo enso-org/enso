@@ -59,12 +59,6 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public ColumnStorage<Void> slice(int offset, int limit) {
-    long newSize = Math.min(this.size - offset, limit);
-    return new NullStorage(newSize);
-  }
-
-  @Override
   public ColumnStorage<Void> slice(List<SliceRange> ranges) {
     return new NullStorage(SliceRange.totalLength(ranges));
   }

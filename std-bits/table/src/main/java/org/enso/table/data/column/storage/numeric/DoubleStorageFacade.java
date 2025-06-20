@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.function.ToDoubleFunction;
 import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
 
 /** A facade for a column storage that converts the stored type to a double. */

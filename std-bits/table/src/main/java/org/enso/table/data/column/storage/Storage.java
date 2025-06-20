@@ -52,57 +52,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     };
   }
 
-  @Override
-  public ColumnStorageIterator<T> iteratorWithIndex() {
-    return new StorageIterator<>(this);
-  }
-
-  public static class StorageIterator<T> implements ColumnStorageIterator<T> {
-    protected final ColumnStorage<T> parent;
-    protected long index = -1;
-
-    public StorageIterator(ColumnStorage<T> parent) {
-      this.parent = parent;
-    }
-
-    @Override
-    public T getItemBoxed() {
-      return parent.getItemBoxed(index);
-    }
-
-    @Override
-    public boolean isNothing() {
-      return parent.isNothing(index);
-    }
-
-    @Override
-    public boolean hasNext() {
-      return index + 1 < parent.getSize();
-    }
-
-    @Override
-    public T next() {
-      if (!hasNext()) {
-        throw new NoSuchElementException();
-      }
-      return parent.getItemBoxed(++index);
-    }
-
-    @Override
-    public long getIndex() {
-      return index;
-    }
-
-    @Override
-    public boolean moveNext() {
-      if (!hasNext()) {
-        return false;
-      }
-      index++;
-      return true;
-    }
-  }
-
   /**
    * Return a new storage, containing only the items marked true in the mask.
    *
@@ -120,12 +69,8 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public abstract ColumnStorage<T> applyMask(OrderMask mask);
 
   /**
-   * @return a copy of the storage containing a slice of the original data
-   */
-  public abstract ColumnStorage<T> slice(int offset, int limit);
-
-  /**
    * @return a copy of the storage consisting of slices of the original data
    */
   public abstract ColumnStorage<T> slice(List<SliceRange> ranges);
 }
+
