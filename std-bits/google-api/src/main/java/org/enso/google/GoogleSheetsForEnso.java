@@ -39,7 +39,7 @@ public class GoogleSheetsForEnso {
   public Table getSheetRange(
       String sheetId,
       String range,
-      GoogleSheetsHeaders.HeaderBehavior headers,
+      GoogleSheetsHeaders.HeaderBehavior headerBehavior,
       ProblemAggregator problemAggregator)
       throws IOException {
     var rawData =
@@ -56,7 +56,8 @@ public class GoogleSheetsForEnso {
       throw new EmptySheetException();
     }
 
-    GoogleSheetsHeaders columnNames = new GoogleSheetsHeaders(headers, rawData, problemAggregator);
+    GoogleSheetsHeaders columnNames =
+        new GoogleSheetsHeaders(headerBehavior, rawData, problemAggregator);
 
     Column[] columns = new Column[rawData.size()];
     for (int i = 0; i < rawData.size(); i++) {
