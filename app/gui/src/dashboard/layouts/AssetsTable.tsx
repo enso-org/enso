@@ -1309,7 +1309,7 @@ function AssetsTable(props: AssetsTableProps) {
                   )}
                   isRowHeader={column === Column.name}
                 >
-                  <div className="flex gap-2">
+                  <div className="group flex gap-2">
                     <Heading
                       sortInfo={state.sortInfo}
                       hideColumn={state.hideColumn}
@@ -1321,7 +1321,7 @@ function AssetsTable(props: AssetsTableProps) {
                       tooltipPlacement="top"
                       className="m-1 w-[0.375rem] min-w-[0.375rem]"
                     >
-                      <ColumnResizer className="ColumnResizer relative z-1 h-full w-full cursor-ew-resize rounded-full bg-primary/20 transition-colors" />
+                      <ColumnResizer className="ColumnResizer relative z-1 h-full w-full cursor-ew-resize rounded-full bg-primary/20 opacity-0 transition-all hover:opacity-100 [&[data-resizing]]:opacity-100" />
                     </VisualTooltip>
                   </div>
                 </TableColumn>
