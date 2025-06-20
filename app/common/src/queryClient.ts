@@ -10,6 +10,25 @@ import { experimental_createPersister as createPersister } from '@tanstack/query
 import * as vueQuery from '@tanstack/vue-query'
 
 declare module '@tanstack/query-core' {
+  const DUMMY_MUTATION_POOL_SYMBOL: unique symbol
+  /**
+   * An enumeration of all mutation pool ids. Declaration merge into this interface to add a new
+   * mutation pool id:
+   *
+   * ```ts
+   * declare module '@tanstack/query-core' {
+   *   interface MutationPools {
+   *     myNewPoolId: true
+   *   }
+   * }
+   * ```
+   */
+  export interface MutationPools {
+    readonly [DUMMY_MUTATION_POOL_SYMBOL]: true
+  }
+
+  export type MutationPoolId = keyof MutationPools
+
   /** Query client with additional methods. */
   interface QueryClient {
     /**
@@ -40,6 +59,10 @@ declare module '@tanstack/query-core' {
        */
       readonly awaitInvalidates?: queryCore.QueryKey[] | boolean
       readonly refetchType?: queryCore.InvalidateQueryFilters['refetchType']
+      readonly pool?: {
+        id: MutationPoolId
+        parallelism: number
+      }
     }
 
     readonly queryMeta: {
@@ -86,7 +109,7 @@ export function createQueryClient<TStorageValue = string>(
       // fallback to the local cache only if the user is offline
       maxAge: DEFAULT_QUERY_PERSIST_TIME_MS,
       buster: DEFAULT_BUSTER,
-      filters: { predicate: (query) => query.meta?.persist !== false },
+      filters: { predicate: (query) => query.meta?.persist ?? true },
       prefix: 'enso:query-persist:',
       ...(persisterStorage.serialize != null ? { serialize: persisterStorage.serialize } : {}),
       ...(persisterStorage.deserialize != null ?
@@ -95,8 +118,49 @@ export function createQueryClient<TStorageValue = string>(
     })
   }
 
+  const pools: Partial<
+    Record<
+      queryCore.MutationPoolId,
+      { usedLanes: number; promise: Promise<void>; resolve: () => void; reject: () => void }
+    >
+  > = {}
+
+  function promiseWithResolvers<T>() {
+    let resolve!: (value: T | PromiseLike<T>) => void
+    let reject!: (reason?: unknown) => void
+    const promise = new Promise<T>((innerResolve, innerReject) => {
+      resolve = innerResolve
+      reject = innerReject
+    })
+    return { promise, resolve, reject }
+  }
+
   const queryClient: QueryClient = new vueQuery.QueryClient({
     mutationCache: new queryCore.MutationCache({
+      onMutate: async (_variables, mutation) => {
+        const poolMeta = mutation.meta?.pool
+        if (!poolMeta) {
+          return
+        }
+        while ((pools[poolMeta.id]?.usedLanes ?? 0) >= poolMeta.parallelism) {
+          await pools[poolMeta.id]?.promise
+        }
+        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, ...promiseWithResolvers() })
+        poolInfo.usedLanes += 1
+      },
+      onSettled: (_data, error, _variables, _context, mutation) => {
+        const poolMeta = mutation.meta?.pool
+        if (poolMeta) {
+          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, ...promiseWithResolvers() })
+          poolInfo.usedLanes -= 1
+          if (error != null) {
+            poolInfo.reject()
+          } else {
+            poolInfo.resolve()
+          }
+          Object.assign(poolInfo, promiseWithResolvers())
+        }
+      },
       onSuccess: (_data, _variables, _context, mutation) => {
         const shouldAwaitInvalidates = mutation.meta?.awaitInvalidates ?? false
         const refetchType = mutation.meta?.refetchType ?? 'active'

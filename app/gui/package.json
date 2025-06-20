@@ -154,6 +154,7 @@
     "@storybook/test": "8.5.0",
     "@storybook/vue3": "8.5.0",
     "@storybook/vue3-vite": "8.5.0",
+    "@tanstack/query-core": "^5.59.20",
     "@tanstack/react-query-devtools": "5.59.20",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.0.1",
