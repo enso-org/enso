@@ -172,5 +172,5 @@ public class ExternalLibraryCredentialHelper {
           new RestrictedAccess.AccessLocation(
               "org.enso.google.GoogleOAuthHelper$CloudRenewableGoogleCredentials", "refresh"),
           new RestrictedAccess.AccessLocation(
-              "org.enso.strava.strava.StravaService", "refresh"));
+              "org.enso.strava.StravaService", "refresh"));
 }
