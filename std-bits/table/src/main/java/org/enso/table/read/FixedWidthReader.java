@@ -3,6 +3,7 @@ package org.enso.table.read;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PushbackInputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,8 +32,14 @@ public class FixedWidthReader {
   private final long skipRows;
   private final long rowLimit;
   private final InvalidFixedWidthRowsBehavior invalidRowsBehavior;
+
   // Null means Infer; otherwise, contains the exact line ending string.
   @Nullable private String lineEnding;
+
+  // Only used if lineEnding is the empty string; the layout must be specified
+  // and cannot be inferred.
+  private int lineLength = -1;
+
   private final boolean emptyToNull;
   private final DatatypeParser valueParser;
   private final FixedWidthDecodingProblemAggregator decodingProblemAggregator;
@@ -83,15 +90,20 @@ public class FixedWidthReader {
     if (layoutEntries != null && layoutEntries.isEmpty()) {
       throw new IllegalArgumentException("Must specify at least one column");
     }
+
+    if (layoutEntries == null && lineEnding != null && lineEnding.isEmpty()) {
+      throw new IllegalArgumentException("If the line ending is the empty string, the layout must be specified and cannot be inferred.");
+    }
   }
 
   public Table read(InputStream inputStream) throws IOException {
+    var pushbackInputStream = new PushbackInputStream(inputStream)
     for (int i = 0; i < skipRows; ++i) {
-      readLine(inputStream);
+      readLine(pushbackInputStream);
     }
 
     if (layoutEntries == null) {
-      inferHeaders(inputStream);
+      inferHeaders(pushbackInputStream);
     }
 
     layoutWidth = layoutEntries.get(layoutEntries.size() - 1).end();
@@ -100,7 +112,7 @@ public class FixedWidthReader {
     byte[] readBuffer = new byte[layoutWidth];
 
     while (true) {
-      int lineLength = readLine(inputStream);
+      int lineLength = readLine(pushbackInputStream);
 
       if (lineLength == -1 || (rowLimit != -1 && tableRowNumber >= rowLimit)) {
         break;
@@ -171,181 +183,85 @@ public class FixedWidthReader {
     return reportingStreamDecoder.readAllIntoMemory();
   }
 
-  private class LineEndingDetector {
-    // -1 means no lookahead, otherwise it's a char
-    private Optional<Integer> lookahead = Optional.empty();
-
-    // If we know the line ending, index of the next char in the line ending
-    // that we hope to see.
-    private int nextLineEndingChar = 0;
-
-    public boolean hasLookahead() {
-      return lookahead.isPresent();
-    }
-
-    public int nextLookahead() {
-      assert lookahead.isPresent();
-      var c = lookahead.get();
-      lookahead = Optional.empty();
-      return c;
-    }
-
-    // c can be -1
-    public Result take(int c) {
-      assert !lookahead.isPresent();
-
-      if (lineEnding == null) {
-        // Inferring.
-        if (c == '\r') {
-          lookahead = Optional.of('\r'); ????
-        } else {
-        }
-      } else {
-        assert nextLineEndingChar < lineEnding.length();
-        if (c == lineEnding.charAt(nextLineEndingChar)) {
-          // We have matched the next character of the line ending.
-          nextLineEndingChar ++;
-          if (nextLineEndingChar >= lineEnding.length()) {
-            // We have matched the entire line ending.
-            nextLineEndingChar = 0;
-            return new Done();
-          } else {
-            // Not a full match yet.
-            return new Continue();
-          }
-        } else {
-          // Does not match the next line ending char.
-          nextLineEndingChar = 0;
-          return new Char(c);
-        }
-      }
-    }
-
-    public sealed interface Result {
-      record Char(int c) implements Result {}
-      record Continue() implements Result {}
-      record Done() implements Result {}
-    }
-  }
-
   /*
    * Reads up to `layoutWidth` bytes into the buffer. Returns the actual
    * length of the entire line, even if that is not equal to
    * `layoutWidth`.
    * Returns -1 if the first read attempt is EOF.
    */
-  private int readLine(InputStream inputStream) throws IOException {
+  private int readLine(PushbackInputStream inputStream) throws IOException {
     Context context = Context.getCurrent();
 
-    int lineLength = 0;
-    boolean done = false;
-    var led = new LineEndingDetector();
+    int currentLineLength = 0;
 
-    while (!done) { 
-      int c = led.hasLookahead() ? led.getLookahead() : inputStream.read();
-      var result = led.take(c);
-      switch (result) {
-        case Result.Char -> {
-          int c result.c;
-          if (c == -1) {
-            if (lineLength == 0) {
-              // First attempt was EOF, so return -1 to signify that the stream is done.
-              return -1;
-            } else {
-              break;
-            }
-          } else {
-            if (lineLength >= MAXIMUM_LINE_LENGTH) {
-              throw new FixedWidthLineTooLongException(sourceLineNumber, MAXIMUM_LINE_LENGTH);
-            }
-
-            assert lineLength <= readBuffer.length;
-
-            if (lineLength == readBuffer.length) {
-              readBuffer = Arrays.copyOf(readBuffer, readBuffer.length * 2);
-            }
-
-            readBuffer[lineLength] = (byte) c;
-            lineLength++;
-          }
-        }
-        case Result.Continue -> {}
-        case Result.Done -> {
-          done = true;
-        }
-      }
-
-      context.safepoint();
-    }
-
-    /*
     while (true) {
       int c = inputStream.read();
       if (c == -1) {
-        if (lineLength == 0) {
+        if (currentLineLength == 0) {
           // First attempt was EOF, so return -1 to signify that the stream is done.
           return -1;
         } else {
           break;
         }
-      } else if (c == '\n') {
-        // Line is done. Don't include the newline.
+      } else if (lineEnding != null && lineEnding.isEmpty() && currentLineLength = lineLength - 1) {
+        readBuffer[currentLineLnegth++] = (byte) c;
+        break;
+      } else if isLineEnding((byte) c, inputStream) {
+        // Line is done. Don't include the line ending.
         break;
       } else {
-        if (lineLength >= MAXIMUM_LINE_LENGTH) {
+        if (currentLineLength >= MAXIMUM_LINE_LENGTH) {
           throw new FixedWidthLineTooLongException(sourceLineNumber, MAXIMUM_LINE_LENGTH);
         }
 
-        assert lineLength <= readBuffer.length;
+        assert currentLineLength <= readBuffer.length;
 
-        if (lineLength == readBuffer.length) {
+        if (currentLineLength == readBuffer.length) {
           readBuffer = Arrays.copyOf(readBuffer, readBuffer.length * 2);
         }
 
-        readBuffer[lineLength] = (byte) c;
-        lineLength++;
+        readBuffer[currentLineLength] = (byte) c;
+        currentLineLength++;
       }
 
       context.safepoint();
     }
-    */
 
-    return lineLength;
+    return currentLineLength;
   }
 
-  /*
-   * Reads up to `layoutWidth` bytes into the buffer. Returns the actual
-   * length of the entire line, even if that is not equal to
-   * `layoutWidth`.
-   * Returns -1 if the first read attempt is EOF.
-   */
-  private int readLine(InputStream inputStream, byte[] buffer) throws IOException {
-    Context context = Context.getCurrent();
-
-    int lineLength = 0;
-    while (true) {
-      int c = inputStream.read();
-      if (c == -1) {
-        if (lineLength == 0) {
-          // First attempt was EOF, so return -1 to signify that the stream is done.
-          return -1;
-        } else {
-          break;
+  // If a line ending is found, it is consumed. If not, anything read beyond the
+  // first character 'c' is unconsumed.
+  private boolean isLineEnding(byte c, PushbackInputStream inputStream) {
+    if (lineEnding == null) {
+      // Infer -- can be \n, \r or \r\n
+      if (c == '\r') {
+        var c2 = inputStream.read();
+        if (c2 != '\n') {
+          inputStream.unread(c2);
         }
+        return true;
       } else if (c == '\n') {
-        // Line is done. Don't include the newline.
-        break;
+        return true;
       } else {
-        if (lineLength < layoutWidth) {
-          // There is room for the next byte.
-          buffer[lineLength] = (byte) c;
-        }
-        lineLength++;
+        return false;
       }
-
-      context.safepoint();
+    } else {
+      assert lineEnding.length() > 0, "Internal error: should not try to detect the zero-length line ending";
+      // We have a fixed string.
+      for (int i = 0; i < lineEnding.length(); ++i) {
+        if (c != lineEnding.charAt(i)) {
+          // Mismatch, un-read all of the peeked chars.
+          for (int j = i; j > 0; --j) {
+            inputStream.unread(lineEnding.charAt(j));
+          }
+          return false;
+        } else {
+          c = inputStream.read();
+        }
+      }
+      return true;
     }
-    return lineLength;
   }
 
   private Table makeFinalTable() {
@@ -400,8 +316,13 @@ public class FixedWidthReader {
     KEEP,
   }
 
-  private void inferHeaders(InputStream inputStream) throws IOException {
-    int lineLength = readLine(inputStream);
+  private void inferHeaders(PushbackInputStream inputStream) throws IOException {
+    assert lineEnding == null || !lineEnding().isEmpty();
+
+    lineLength = readLine(inputStream);
+
+    assert lineLength <= MAXIMUM_LINE_LENGTH;
+
     layoutEntries = inferHeadersFromLine(lineLength);
   }
 
