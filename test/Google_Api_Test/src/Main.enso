@@ -104,6 +104,3 @@ add_specs suite_builder =
             ws = wb.read 'Row1HasNumeric' ..Detect_Headers
             ws.column_names . should_equal (['A', 'B', 'C'])
             ws . should_equal (Table.new [['A', ['U', 'X']],['B', ['V', 'Y']],['C', [3, 'Z']]])
-
-
-
