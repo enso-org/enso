@@ -124,15 +124,6 @@ public final class BoolStorage extends Storage<Boolean>
     return set;
   }
 
-  public ColumnStorage<Boolean> slice(int offset, int limit) {
-    int newSize = Math.min(size - offset, limit);
-    return new BoolStorage(
-        values.get(offset, offset + limit),
-        isNothing.get(offset, offset + limit),
-        newSize,
-        negated);
-  }
-
   @Override
   public ColumnStorage<Boolean> slice(List<SliceRange> ranges) {
     Context context = Context.getCurrent();

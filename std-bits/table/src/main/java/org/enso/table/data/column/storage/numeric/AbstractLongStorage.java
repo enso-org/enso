@@ -87,22 +87,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
     return builder.seal();
   }
 
-  public ColumnStorage<Long> slice(int offset, int limit) {
-    int size = (int) getSize();
-    int newSize = Math.min(size - offset, limit);
-    var builder = Builder.getForLong(getType(), newSize, BlackholeProblemAggregator.INSTANCE);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < newSize; i++) {
-      if (isNothing(offset + i)) {
-        builder.appendNulls(1);
-      } else {
-        builder.appendLong(getItemAsLong(offset + i));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
   @Override
   public ColumnStorage<Long> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);

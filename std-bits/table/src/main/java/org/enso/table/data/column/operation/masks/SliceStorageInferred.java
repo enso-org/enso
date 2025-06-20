@@ -1,0 +1,36 @@
+package org.enso.table.data.column.operation.masks;
+
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.operation.cast.CastOperation;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.problems.BlackholeProblemAggregator;
+
+class SliceStorageInferred<T> extends SliceStorage<T> implements ColumnStorageWithInferredStorage {
+  private ColumnStorage<?> cachedInferredStorage = null;
+  private boolean hasSpecializedStorageBeenInferred = false;
+
+  public SliceStorageInferred(ColumnStorage<T> parent, long start, long end) {
+    super(parent, start, end);
+  }
+
+  @Override
+  public ColumnStorage<?> getInferredStorage() {
+    if (!hasSpecializedStorageBeenInferred) {
+      var inferredType = CastOperation.reconcileObjectStorage(this);
+      cachedInferredStorage =
+          (inferredType instanceof AnyObjectType)
+              ? null
+              : StorageIterators.buildObjectOverStorage(
+              this,
+              true,
+              Builder.getForType(inferredType, getSize(), BlackholeProblemAggregator.INSTANCE),
+              (builder, index, value) -> builder.append(value));
+      hasSpecializedStorageBeenInferred = true;
+    }
+
+    return cachedInferredStorage;
+  }
+}

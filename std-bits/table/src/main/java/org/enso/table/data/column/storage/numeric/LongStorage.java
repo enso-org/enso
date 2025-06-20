@@ -55,27 +55,6 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   }
 
   @Override
-  public ColumnStorage<Long> slice(int offset, int limit) {
-    int size = (int) getSize();
-    int newSize = Math.min(size - offset, limit);
-    long[] newData;
-
-    // Special case if slice is after the actual data
-    if (offset >= data.length) {
-      newData = new long[0];
-    } else {
-      // Can only copy as much as there is data
-      int newDataSize = Math.min(data.length - offset, newSize);
-      newData = new long[newDataSize];
-      System.arraycopy(data, offset, newData, 0, newDataSize);
-    }
-
-    BitSet currentMask = getIsNothingMap();
-    BitSet newMask = currentMask.get(offset, offset + limit);
-    return new LongStorage(newData, newSize, newMask, getType());
-  }
-
-  @Override
   public ColumnStorage<Long> slice(List<SliceRange> ranges) {
     BitSet currentMask = getIsNothingMap();
     int newSize = SliceRange.totalLength(ranges);

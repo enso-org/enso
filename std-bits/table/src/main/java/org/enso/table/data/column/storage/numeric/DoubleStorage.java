@@ -107,24 +107,6 @@ public final class DoubleStorage extends Storage<Double>
     return new DoubleStorage(newData, newData.length, newIsNothing);
   }
 
-  public ColumnStorage<Double> slice(int offset, int limit) {
-    int newSize = Math.min(size - offset, limit);
-    double[] newData;
-
-    // Special case if slice is after the actual data
-    if (offset >= data.length) {
-      newData = new double[0];
-    } else {
-      // Can only copy as much as there is data
-      int newDataSize = Math.min(data.length - offset, newSize);
-      newData = new double[newDataSize];
-      System.arraycopy(data, offset, newData, 0, newDataSize);
-    }
-
-    BitSet newMask = isNothing.get(offset, offset + limit);
-    return new DoubleStorage(newData, newSize, newMask);
-  }
-
   @Override
   public ColumnStorage<Double> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
