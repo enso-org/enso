@@ -1,13 +1,12 @@
 package org.enso.table.data.column.operation.masks;
 
-import org.enso.table.util.LeastRecentlyUsedCache;
-
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import org.enso.table.util.LeastRecentlyUsedCache;
 
-public sealed abstract class IndexMapper permits IndexMapper.SingleSlice, IndexMapper.ArrayMapping {
+public abstract sealed class IndexMapper permits IndexMapper.SingleSlice, IndexMapper.ArrayMapping {
   private static Map<Long, WeakReference<IndexMapper>> _mergeCache;
 
   private static final AtomicLong atomicCounter = new AtomicLong(0);
@@ -114,7 +113,9 @@ public sealed abstract class IndexMapper permits IndexMapper.SingleSlice, IndexM
             yield new SingleSlice(singleSlice.start, 0);
           }
           long newLength = Math.min(mapping.length + singleSlice.start, singleSlice.length);
-          long[] newMapping = Arrays.copyOfRange(mapping, (int) singleSlice.start, (int) (singleSlice.start + newLength));
+          long[] newMapping =
+              Arrays.copyOfRange(
+                  mapping, (int) singleSlice.start, (int) (singleSlice.start + newLength));
           yield new ArrayMapping(newMapping);
         }
         case ArrayMapping arrayMapping -> {
