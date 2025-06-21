@@ -7,8 +7,6 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.table.Column;
 
-import java.util.Arrays;
-
 /**
  * Provides operations for slicing columns, allowing the creation of new columns that are sub-ranges
  * of existing ones. A slice is a contiguous part of a column, defined by a starting index and a
