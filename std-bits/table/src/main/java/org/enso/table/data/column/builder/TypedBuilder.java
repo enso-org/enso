@@ -59,6 +59,7 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
         SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
         System.arraycopy(
             specializedStorage.getData(), 0, data, currentSize, (int) storage.getSize());
+        currentSize += storage.getSize();
       } else {
         // This is a fallback for non-specialized storages, which are not optimized for bulk
         // appends.
