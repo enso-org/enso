@@ -8,10 +8,9 @@ import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.table.Column;
 
 /**
- * Provides operations for masking and slicing columns, allowing the creation of new columns
- * that are sub-ranges or reordering of existing ones.
- * An IndexMapper is used to define how the indices of the original column map to the new
- * column.
+ * Provides operations for masking and slicing columns, allowing the creation of new columns that
+ * are sub-ranges or reordering of existing ones. An IndexMapper is used to define how the indices
+ * of the original column map to the new column.
  */
 public final class MaskOperation {
   /**
