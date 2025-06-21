@@ -6,11 +6,11 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 
-class SliceStorage<T> implements ColumnStorage<T> {
+class MaskedStorage<T> implements ColumnStorage<T> {
   private final ColumnStorage<T> parent;
   private final IndexMapper indexMapper;
 
-  public SliceStorage(ColumnStorage<T> parent, IndexMapper indexMapper) {
+  public MaskedStorage(ColumnStorage<T> parent, IndexMapper indexMapper) {
     this.parent = parent;
     this.indexMapper = indexMapper;
   }

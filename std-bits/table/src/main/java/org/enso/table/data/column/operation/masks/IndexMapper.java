@@ -37,6 +37,8 @@ public abstract sealed class IndexMapper permits IndexMapper.SingleSlice, IndexM
 
   protected abstract IndexMapper doMerge(IndexMapper other);
 
+  // ToDo: Constant, Reveresed
+
   public static final class SingleSlice extends IndexMapper {
     private final long start;
     private final long length;

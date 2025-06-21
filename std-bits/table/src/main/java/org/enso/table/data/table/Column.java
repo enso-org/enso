@@ -4,7 +4,7 @@ import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.DataQualityMetrics;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.masks.SliceOperation;
+import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.StorageListView;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -162,7 +162,7 @@ public final class Column {
   }
 
   public Column slice(long offset, long limit) {
-    return SliceOperation.slice(this, offset, limit);
+    return MaskOperation.slice(this, offset, limit);
   }
 
   public Column slice(List<SliceRange> ranges) {
@@ -183,7 +183,7 @@ public final class Column {
   }
 
   public Column slice(long[] mask) {
-    return SliceOperation.slice(this, mask);
+    return MaskOperation.slice(this, mask);
   }
 
   /**

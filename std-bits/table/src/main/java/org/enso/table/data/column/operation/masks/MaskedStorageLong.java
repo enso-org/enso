@@ -7,10 +7,10 @@ import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.mask.OrderMask;
 
-class SliceStorageLong extends SliceStorage<Long> implements ColumnLongStorage {
+class MaskedStorageLong extends MaskedStorage<Long> implements ColumnLongStorage {
   private final ColumnLongStorage parent;
 
-  public SliceStorageLong(ColumnLongStorage parent, IndexMapper indexMapper) {
+  public MaskedStorageLong(ColumnLongStorage parent, IndexMapper indexMapper) {
     super(parent, indexMapper);
     this.parent = parent;
   }

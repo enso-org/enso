@@ -6,10 +6,10 @@ import org.enso.table.data.column.storage.iterators.BooleanStorageIterator;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
 import org.enso.table.data.mask.OrderMask;
 
-class SliceStorageBoolean extends SliceStorage<Boolean> implements ColumnBooleanStorage {
+class MaskedStorageBoolean extends MaskedStorage<Boolean> implements ColumnBooleanStorage {
   private final ColumnBooleanStorage parent;
 
-  public SliceStorageBoolean(ColumnBooleanStorage parent, IndexMapper indexMapper) {
+  public MaskedStorageBoolean(ColumnBooleanStorage parent, IndexMapper indexMapper) {
     super(parent, indexMapper);
     this.parent = parent;
   }

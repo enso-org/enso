@@ -265,9 +265,10 @@ public class Table {
     boolean unchanged = true;
     long[] mask = new long[n];
     for (int i = 0; i < n; i++) {
-      mask[i] = keys[i].getRowIndex();
-      if (mask[i] != i) {
-        unchanged = true;
+      long newIndex = keys[i].getRowIndex();
+      mask[i] = newIndex;
+      if (newIndex != i) {
+        unchanged = false;
       }
     }
     return unchanged ? this : this.slice(mask);

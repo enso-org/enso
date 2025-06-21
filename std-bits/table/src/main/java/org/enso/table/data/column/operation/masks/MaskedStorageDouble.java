@@ -7,10 +7,10 @@ import org.enso.table.data.column.storage.iterators.DoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.mask.OrderMask;
 
-class SliceStorageDouble extends SliceStorage<Double> implements ColumnDoubleStorage {
+class MaskedStorageDouble extends MaskedStorage<Double> implements ColumnDoubleStorage {
   private final ColumnDoubleStorage parent;
 
-  public SliceStorageDouble(ColumnDoubleStorage parent, IndexMapper indexMapper) {
+  public MaskedStorageDouble(ColumnDoubleStorage parent, IndexMapper indexMapper) {
     super(parent, indexMapper);
     this.parent = parent;
   }

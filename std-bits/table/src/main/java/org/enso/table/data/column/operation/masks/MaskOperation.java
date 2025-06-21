@@ -8,11 +8,12 @@ import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.table.Column;
 
 /**
- * Provides operations for slicing columns, allowing the creation of new columns that are sub-ranges
- * of existing ones. A slice is a contiguous part of a column, defined by a starting index and a
- * length.
+ * Provides operations for masking and slicing columns, allowing the creation of new columns
+ * that are sub-ranges or reordering of existing ones.
+ * An IndexMapper is used to define how the indices of the original column map to the new
+ * column.
  */
-public final class SliceOperation {
+public final class MaskOperation {
   /**
    * Creates a new Column that contains a slice of the input.
    *
@@ -50,23 +51,23 @@ public final class SliceOperation {
   private static ColumnStorage<?> getSlicedStorage(
       ColumnStorage<?> storage, IndexMapper indexMapper) {
     return switch (storage) {
-      case SliceStorageLong sliceStorageLong -> new SliceStorageLong(
+      case MaskedStorageLong sliceStorageLong -> new MaskedStorageLong(
           sliceStorageLong.parent(), sliceStorageLong.indexMapper().merge(indexMapper));
-      case ColumnLongStorage longStorage -> new SliceStorageLong(longStorage, indexMapper);
-      case SliceStorageDouble sliceStorageDouble -> new SliceStorageDouble(
+      case ColumnLongStorage longStorage -> new MaskedStorageLong(longStorage, indexMapper);
+      case MaskedStorageDouble sliceStorageDouble -> new MaskedStorageDouble(
           sliceStorageDouble.parent(), sliceStorageDouble.indexMapper().merge(indexMapper));
-      case ColumnDoubleStorage doubleStorage -> new SliceStorageDouble(doubleStorage, indexMapper);
-      case SliceStorageBoolean sliceStorageBoolean -> new SliceStorageBoolean(
+      case ColumnDoubleStorage doubleStorage -> new MaskedStorageDouble(doubleStorage, indexMapper);
+      case MaskedStorageBoolean sliceStorageBoolean -> new MaskedStorageBoolean(
           sliceStorageBoolean.parent(), sliceStorageBoolean.indexMapper().merge(indexMapper));
-      case ColumnBooleanStorage booleanStorage -> new SliceStorageBoolean(
+      case ColumnBooleanStorage booleanStorage -> new MaskedStorageBoolean(
           booleanStorage, indexMapper);
-      case SliceStorageInferred<?> sliceStorageInferred -> new SliceStorageInferred<>(
+      case MaskedStorageInferred<?> sliceStorageInferred -> new MaskedStorageInferred<>(
           sliceStorageInferred.parent(), sliceStorageInferred.indexMapper().merge(indexMapper));
-      case ColumnStorageWithInferredStorage inferredStorage -> new SliceStorageInferred<>(
+      case ColumnStorageWithInferredStorage inferredStorage -> new MaskedStorageInferred<>(
           storage, indexMapper);
-      case SliceStorage<?> sliceStorage -> new SliceStorage<>(
+      case MaskedStorage<?> sliceStorage -> new MaskedStorage<>(
           sliceStorage.parent(), sliceStorage.indexMapper().merge(indexMapper));
-      default -> new SliceStorage<>(storage, indexMapper);
+      default -> new MaskedStorage<>(storage, indexMapper);
     };
   }
 }
