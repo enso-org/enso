@@ -1,14 +1,13 @@
 package org.enso.table_test_helpers;
 
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicLong;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
-
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A helper class used in the Upload_Spec test to purposefully interrupt a table upload in the

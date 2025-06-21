@@ -136,6 +136,11 @@ public class Table {
    * @return the result of masking this table with the provided column
    */
   public Table filter(Column filterColumn) {
+    if (filterColumn.getSize() > this.rowCount()) {
+      // If given too many rows, we slice it to the size of the table.
+      return filter(filterColumn.slice(0, this.rowCount()));
+    }
+
     if (!(filterColumn.getStorage() instanceof ColumnBooleanStorage storage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
@@ -151,8 +156,9 @@ public class Table {
           }
           return false;
         });
-    if (maskBuilder.getSize() == storage.getSize()) {
-      // The filter didn't remove any rows, so we return the table as is.
+
+    // The filter didn't remove any rows, so we return the table as is.
+    if (maskBuilder.getSize() == this.rowCount()) {
       return this;
     }
 

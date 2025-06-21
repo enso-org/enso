@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.LongStream;
-
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
@@ -43,7 +42,7 @@ public class Offset {
 
   private static long[] calculate_ungrouped_unordered_mask(int numRows, int n, FillWith fillWith) {
     return LongStream.range(0, numRows)
-        .map(i -> calculate_row_offset((int)i, n, fillWith, numRows))
+        .map(i -> calculate_row_offset((int) i, n, fillWith, numRows))
         .toArray();
   }
 

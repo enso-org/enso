@@ -60,9 +60,7 @@ public class JoinResult {
       var right = rightIndices;
       leftIndices = null;
       rightIndices = null;
-      return new JoinResult(
-          left.toArray(),
-          right.toArray());
+      return new JoinResult(left.toArray(), right.toArray());
     }
   }
 }
