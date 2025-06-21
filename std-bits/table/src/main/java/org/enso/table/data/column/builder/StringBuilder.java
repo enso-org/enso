@@ -57,19 +57,17 @@ public final class StringBuilder extends TypedBuilder<String> {
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof TextType gotType) {
-      if (type.fitsExactly(gotType)) {
-        if (storage instanceof SpecializedStorage<?>) {
-          // This cast is safe, because storage.getType() == this.getType() == TextType iff
-          // storage.T == String
-          @SuppressWarnings("unchecked")
-          SpecializedStorage<String> specializedStorage = (SpecializedStorage<String>) storage;
-          int toCopy = (int) storage.getSize();
-          System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
-          currentSize += toCopy;
-          return;
-        }
-      }
+    if (storage.getType() instanceof TextType gotType
+        && type.fitsExactly(gotType)
+        && storage instanceof SpecializedStorage<?>) {
+      // This cast is safe, because storage.getType() == this.getType() == TextType iff
+      // storage.T == String
+      @SuppressWarnings("unchecked")
+      SpecializedStorage<String> specializedStorage = (SpecializedStorage<String>) storage;
+      int toCopy = (int) storage.getSize();
+      System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
+      currentSize += toCopy;
+      return;
     }
 
     super.appendBulkStorage(storage);

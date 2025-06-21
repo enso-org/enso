@@ -65,7 +65,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   /** Allow access to the underlying data array for copying. */
-  public double[] getArray() {
+  public double[] getData() {
     return data;
   }
 

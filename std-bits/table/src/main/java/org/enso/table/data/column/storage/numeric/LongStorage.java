@@ -56,7 +56,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   }
 
   /** Allow access to the underlying data array for copying. */
-  public long[] getArray() {
+  public long[] getData() {
     return data;
   }
 }

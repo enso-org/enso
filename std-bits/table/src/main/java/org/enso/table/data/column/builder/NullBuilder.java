@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import org.enso.table.data.column.operation.unary.CountNothing;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.NullType;
@@ -28,15 +29,9 @@ public final class NullBuilder implements Builder {
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
     // For any storage that is not all-null, check if non-null values are present
-    if (!(storage.getType() instanceof NullType)) {
-      for (long i = 0; i < storage.getSize(); i++) {
-        if (!storage.isNothing(i)) {
-          throw new IllegalArgumentException(
-              "NullBuilder can only append nulls, but got " + storage.getItemBoxed(i));
-        }
-      }
+    if (!CountNothing.allNothing(storage)) {
+      throw new IllegalArgumentException("NullBuilder can only append nulls.");
     }
-
     length += Math.toIntExact(storage.getSize());
   }
 
