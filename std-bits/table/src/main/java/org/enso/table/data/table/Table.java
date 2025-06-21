@@ -151,9 +151,13 @@ public class Table {
           }
           return false;
         });
-    var mask = maskBuilder.toArray();
+    if (maskBuilder.getSize() == storage.getSize()) {
+      // The filter didn't remove any rows, so we return the table as is.
+      return this;
+    }
 
     // Create a new table with the mask applied to all columns.
+    var mask = maskBuilder.toArray();
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(mask);
@@ -250,8 +254,17 @@ public class Table {
       context.safepoint();
     }
     Arrays.sort(keys);
-    var mask = Arrays.stream(keys).mapToLong(k -> (long)k.getRowIndex()).toArray();
-    return this.slice(mask);
+
+    // Create a new mask
+    boolean unchanged = true;
+    long[] mask = new long[n];
+    for (int i = 0; i < n; i++) {
+      mask[i] = keys[i].getRowIndex();
+      if (mask[i] != i) {
+        unchanged = true;
+      }
+    }
+    return unchanged ? this : this.slice(mask);
   }
 
   /**

@@ -1,15 +1,44 @@
 package org.enso.table.data.column.operation.masks;
 
+import org.enso.table.util.LeastRecentlyUsedCache;
+
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
-public sealed interface IndexMapper permits IndexMapper.SingleSlice, IndexMapper.ArrayMapping {
-  long map(long index);
+public sealed abstract class IndexMapper permits IndexMapper.SingleSlice, IndexMapper.ArrayMapping {
+  private static Map<Long, WeakReference<IndexMapper>> _mergeCache;
 
-  long size();
+  private static final AtomicLong atomicCounter = new AtomicLong(0);
+  private final long uniqueKey = atomicCounter.incrementAndGet();
 
-  IndexMapper merge(IndexMapper other);
+  abstract long map(long index);
 
-  final class SingleSlice implements IndexMapper {
+  abstract long size();
+
+  IndexMapper merge(IndexMapper other) {
+    if (_mergeCache == null) {
+      _mergeCache = new LeastRecentlyUsedCache<>(1000);
+    }
+
+    var key = this.uniqueKey * 1000000000 + other.uniqueKey;
+    var cached = _mergeCache.get(key);
+    if (cached != null) {
+      var cachedMapper = cached.get();
+      if (cachedMapper != null) {
+        return cachedMapper;
+      }
+    }
+
+    var merged = doMerge(other);
+    _mergeCache.put(key, new WeakReference<>(merged));
+    return merged;
+  }
+
+  protected abstract IndexMapper doMerge(IndexMapper other);
+
+  public static final class SingleSlice extends IndexMapper {
     private final long start;
     private final long length;
 
@@ -32,21 +61,21 @@ public sealed interface IndexMapper permits IndexMapper.SingleSlice, IndexMapper
     }
 
     @Override
-    public IndexMapper merge(IndexMapper other) {
+    protected IndexMapper doMerge(IndexMapper other) {
       return switch (other) {
         case SingleSlice otherSlice -> {
-          long newStart = Math.min(start, otherSlice.start);
-          long newEnd = Math.max(start + length, otherSlice.start + otherSlice.length);
-          yield new SingleSlice(newStart, newEnd - newStart);
+          long newStart = Math.min(start + length, start + otherSlice.start);
+          long newLength = Math.max(0, Math.min(length - otherSlice.start, otherSlice.length));
+          yield new SingleSlice(newStart, newLength);
         }
         case ArrayMapping arrayMapping -> {
           long[] rawMask = arrayMapping.mapping;
           long[] newMask = new long[rawMask.length];
           for (int i = 0; i < rawMask.length; i++) {
-            if (rawMask[i] < start || rawMask[i] >= start + length) {
+            if (rawMask[i] < -1 || rawMask[i] >= length) {
               throw new IndexOutOfBoundsException("Index out of bounds: " + rawMask[i]);
             }
-            newMask[i] = rawMask[i] - start;
+            newMask[i] = rawMask[i] == -1 ? -1 : rawMask[i] + start;
           }
           yield new ArrayMapping(newMask);
         }
@@ -54,7 +83,7 @@ public sealed interface IndexMapper permits IndexMapper.SingleSlice, IndexMapper
     }
   }
 
-  final class ArrayMapping implements IndexMapper {
+  public static final class ArrayMapping extends IndexMapper {
     long[] mapping;
 
     public ArrayMapping(long[] mapping) {
@@ -78,24 +107,24 @@ public sealed interface IndexMapper permits IndexMapper.SingleSlice, IndexMapper
     }
 
     @Override
-    public IndexMapper merge(IndexMapper other) {
+    protected IndexMapper doMerge(IndexMapper other) {
       return switch (other) {
         case SingleSlice singleSlice -> {
           if (singleSlice.start > mapping.length) {
             yield new SingleSlice(singleSlice.start, 0);
           }
           long newLength = Math.min(mapping.length + singleSlice.start, singleSlice.length);
-          long[] newMapping = Arrays.copyOfRange(mapping, (int) singleSlice.start, (int) newLength);
+          long[] newMapping = Arrays.copyOfRange(mapping, (int) singleSlice.start, (int) (singleSlice.start + newLength));
           yield new ArrayMapping(newMapping);
         }
         case ArrayMapping arrayMapping -> {
           long[] rawMask = arrayMapping.mapping;
           long[] newMask = new long[rawMask.length];
           for (int i = 0; i < rawMask.length; i++) {
-            if (rawMask[i] < 0 || rawMask[i] >= mapping.length) {
+            if (rawMask[i] < -1 || rawMask[i] >= mapping.length) {
               throw new IndexOutOfBoundsException("Index out of bounds: " + rawMask[i]);
             }
-            newMask[i] = mapping[(int) rawMask[i]];
+            newMask[i] = rawMask[i] == -1 ? -1 : mapping[(int) rawMask[i]];
           }
           yield new ArrayMapping(newMask);
         }
