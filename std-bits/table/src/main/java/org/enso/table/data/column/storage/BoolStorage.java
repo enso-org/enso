@@ -1,13 +1,10 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.iterators.BooleanStorageIterator;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
-import org.graalvm.polyglot.Context;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
@@ -68,6 +65,7 @@ public final class BoolStorage extends Storage<Boolean>
   public BitSet getIsNothingMap() {
     return isNothing;
   }
+
   @Override
   public ColumnBooleanStorageIterator iteratorWithIndex() {
     return new BooleanStorageIterator(this);
