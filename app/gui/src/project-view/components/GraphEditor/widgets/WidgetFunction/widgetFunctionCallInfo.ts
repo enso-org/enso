@@ -115,7 +115,7 @@ export function useWidgetFunctionCallInfo(
     if (expressionId != null) {
       return {
         expressionId,
-        visualizationModule: WIDGETS_ENSO_MODULE,
+        visualizationModule: "local.NewProject1.Main",
         expression: {
           module: WIDGETS_ENSO_PATH,
           definedOnType: WIDGETS_ENSO_PATH,
