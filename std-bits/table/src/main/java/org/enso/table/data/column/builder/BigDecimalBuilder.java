@@ -10,12 +10,6 @@ import org.graalvm.polyglot.Context;
 
 /** A builder for BigDecimal columns. */
 public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
-  /** Creates a new empty BigDecimal storage with the specified size. */
-  public static ColumnStorage<BigDecimal> makeEmpty(long size) {
-    int intSize = Builder.checkSize(size);
-    return new BigDecimalStorage(new BigDecimal[intSize]);
-  }
-
   BigDecimalBuilder(int size) {
     super(BigDecimalType.INSTANCE, new BigDecimal[size]);
   }

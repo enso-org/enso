@@ -3,10 +3,7 @@ package org.enso.table.data.column.operation.binary;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
-import org.enso.table.data.column.builder.BigDecimalBuilder;
-import org.enso.table.data.column.builder.BigIntegerBuilder;
-import org.enso.table.data.column.builder.DoubleBuilder;
-import org.enso.table.data.column.builder.LongBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationNull;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
@@ -451,7 +448,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<Double> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return DoubleBuilder.makeEmpty(left.getSize());
+      return Builder.makeEmpty(FloatType.FLOAT_64, left.getSize());
     }
 
     @Override
@@ -496,7 +493,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<BigDecimal> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return BigDecimalBuilder.makeEmpty(left.getSize());
+      return Builder.makeEmpty(BigDecimalType.INSTANCE, left.getSize());
     }
 
     @Override
@@ -517,7 +514,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<BigInteger> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return BigIntegerBuilder.makeEmpty(left.getSize());
+      return Builder.makeEmpty(BigIntegerType.INSTANCE, left.getSize());
     }
 
     @Override
@@ -538,7 +535,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<Long> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return LongBuilder.makeEmpty(left.getSize(), IntegerType.INT_64);
+      return Builder.makeEmpty(IntegerType.INT_64, left.getSize());
     }
 
     @Override

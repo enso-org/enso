@@ -6,7 +6,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.enso.table.util.LeastRecentlyUsedCache;
 
-public abstract sealed class IndexMapper permits IndexMapper.SingleSlice, IndexMapper.ArrayMapping {
+public abstract sealed class IndexMapper
+    permits IndexMapper.Constant, IndexMapper.SingleSlice, IndexMapper.ArrayMapping {
   private static Map<Long, WeakReference<IndexMapper>> _mergeCache;
 
   private static final AtomicLong atomicCounter = new AtomicLong(0);
@@ -37,7 +38,71 @@ public abstract sealed class IndexMapper permits IndexMapper.SingleSlice, IndexM
 
   protected abstract IndexMapper doMerge(IndexMapper other);
 
-  // ToDo: Constant, Reveresed, ListMapping
+  /**
+   * Checks if the given index is within the valid bounds of this mapper. Valid indices are from 0
+   * to size() - 1, or -1 for special cases.
+   *
+   * @param index the index to check
+   * @throws IndexOutOfBoundsException if the index is out of bounds
+   */
+  protected void checkIndexBounds(long index) {
+    if (index < -1 || index >= size()) {
+      throw new IndexOutOfBoundsException("Index out of bounds: " + index);
+    }
+  }
+
+  // ToDo: Reveresed, ListMapping
+
+  public static final class Constant extends IndexMapper {
+    private final long value;
+    private final long length;
+
+    public Constant(long value, long length) {
+      this.value = value;
+      this.length = length;
+    }
+
+    @Override
+    public long map(long index) {
+      return value;
+    }
+
+    @Override
+    public long size() {
+      return length;
+    }
+
+    @Override
+    protected IndexMapper doMerge(IndexMapper other) {
+      return switch (other) {
+        case Constant constant -> {
+          checkIndexBounds(constant.value);
+          yield new Constant(constant.value == -1 ? -1 : value + constant.value, constant.length);
+        }
+        case SingleSlice singleSlice -> {
+          if (singleSlice.start > length) {
+            yield new SingleSlice(singleSlice.start, 0);
+          }
+          long newLength = Math.min(length - singleSlice.start, singleSlice.length);
+          yield new SingleSlice(singleSlice.start + value, newLength);
+        }
+        case ArrayMapping arrayMapping -> {
+          boolean hasNegativeOne = false;
+          long[] newMask = new long[arrayMapping.mapping.length];
+          for (int i = 0; i < arrayMapping.mapping.length; i++) {
+            checkIndexBounds(arrayMapping.mapping[i]);
+            if (newMask[i] == -1) {
+              newMask[i] = -1;
+              hasNegativeOne = true;
+            } else {
+              newMask[i] = value + arrayMapping.mapping[i];
+            }
+          }
+          yield hasNegativeOne ? new ArrayMapping(newMask) : new Constant(value, newMask.length);
+        }
+      };
+    }
+  }
 
   public static final class SingleSlice extends IndexMapper {
     private final long start;
@@ -64,19 +129,20 @@ public abstract sealed class IndexMapper permits IndexMapper.SingleSlice, IndexM
     @Override
     protected IndexMapper doMerge(IndexMapper other) {
       return switch (other) {
+        case Constant constant -> {
+          checkIndexBounds(constant.value);
+          yield new Constant(constant.value == -1 ? -1 : start + constant.value, constant.length);
+        }
         case SingleSlice otherSlice -> {
           long newStart = Math.min(start + length, start + otherSlice.start);
           long newLength = Math.max(0, Math.min(length - otherSlice.start, otherSlice.length));
           yield new SingleSlice(newStart, newLength);
         }
         case ArrayMapping arrayMapping -> {
-          long[] rawMask = arrayMapping.mapping;
-          long[] newMask = new long[rawMask.length];
-          for (int i = 0; i < rawMask.length; i++) {
-            if (rawMask[i] < -1 || rawMask[i] >= length) {
-              throw new IndexOutOfBoundsException("Index out of bounds: " + rawMask[i]);
-            }
-            newMask[i] = rawMask[i] == -1 ? -1 : rawMask[i] + start;
+          long[] newMask = new long[arrayMapping.mapping.length];
+          for (int i = 0; i < arrayMapping.mapping.length; i++) {
+            checkIndexBounds(arrayMapping.mapping[i]);
+            newMask[i] = arrayMapping.mapping[i] == -1 ? -1 : arrayMapping.mapping[i] + start;
           }
           yield new ArrayMapping(newMask);
         }
@@ -110,6 +176,10 @@ public abstract sealed class IndexMapper permits IndexMapper.SingleSlice, IndexM
     @Override
     protected IndexMapper doMerge(IndexMapper other) {
       return switch (other) {
+        case Constant constant -> {
+          checkIndexBounds(constant.value);
+          yield new Constant(constant.value == -1 ? -1 : mapping[(int)constant.value], constant.length);
+        }
         case SingleSlice singleSlice -> {
           if (singleSlice.start > mapping.length) {
             yield new SingleSlice(singleSlice.start, 0);
@@ -121,13 +191,11 @@ public abstract sealed class IndexMapper permits IndexMapper.SingleSlice, IndexM
           yield new ArrayMapping(newMapping);
         }
         case ArrayMapping arrayMapping -> {
-          long[] rawMask = arrayMapping.mapping;
-          long[] newMask = new long[rawMask.length];
-          for (int i = 0; i < rawMask.length; i++) {
-            if (rawMask[i] < -1 || rawMask[i] >= mapping.length) {
-              throw new IndexOutOfBoundsException("Index out of bounds: " + rawMask[i]);
-            }
-            newMask[i] = rawMask[i] == -1 ? -1 : mapping[(int) rawMask[i]];
+          long[] newMask = new long[arrayMapping.mapping.length];
+          for (int i = 0; i < arrayMapping.mapping.length; i++) {
+            checkIndexBounds(arrayMapping.mapping[i]);
+            newMask[i] =
+                arrayMapping.mapping[i] == -1 ? -1 : mapping[(int) arrayMapping.mapping[i]];
           }
           yield new ArrayMapping(newMask);
         }

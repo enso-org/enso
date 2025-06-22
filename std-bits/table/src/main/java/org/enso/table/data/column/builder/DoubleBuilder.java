@@ -2,7 +2,6 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -18,13 +17,6 @@ import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
 public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
-  public static ColumnStorage<Double> makeEmpty(long size) {
-    int intSize = Builder.checkSize(size);
-    BitSet isNothing = new BitSet(intSize);
-    isNothing.set(0, intSize);
-    return new DoubleStorage(new double[0], intSize, isNothing);
-  }
-
   protected final PrecisionLossAggregator precisionLossAggregator;
   protected double[] data;
 

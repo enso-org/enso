@@ -2,11 +2,13 @@ package org.enso.table.data.column.operation.binary;
 
 import java.util.BitSet;
 import org.enso.table.data.column.builder.BoolBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.util.BitSets;
 
@@ -63,7 +65,7 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || rightBoolean
-          ? BoolBuilder.makeEmpty(left.getSize())
+          ? Builder.makeEmpty(BooleanType.INSTANCE, left.getSize())
           : BoolBuilder.makeConstant(left.getSize(), false);
     }
 
@@ -186,7 +188,7 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || !rightBoolean
-          ? BoolBuilder.makeEmpty(left.getSize())
+          ? Builder.makeEmpty(BooleanType.INSTANCE, left.getSize())
           : BoolBuilder.makeConstant(left.getSize(), true);
     }
 

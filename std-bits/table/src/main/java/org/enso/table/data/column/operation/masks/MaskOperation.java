@@ -35,11 +35,11 @@ public final class MaskOperation {
   }
 
   /**
-   * Creates a new Column that contains a slice of the input.
+   * Creates a new Column that contains a masked version of the input.
    *
    * @param column the original column
-   * @param mask the set of indices to include in the slice
-   * @return a new column containing the specified slice
+   * @param mask the set of indices to include in the mask
+   * @return a new column containing the specified mask
    */
   public static Column slice(Column column, long[] mask) {
     var storage = column.getStorage();
@@ -47,7 +47,14 @@ public final class MaskOperation {
     return new Column(column.getName(), newStorage);
   }
 
-  private static ColumnStorage<?> getSlicedStorage(
+  /**
+   * Creates a new ColumnStorage that contains a mask of the input.
+   *
+   * @param storage the original storage
+   * @param indexMapper the index mapper defining how to map indices from the original storage
+   * @return a new ColumnStorage containing the masked or sliced version of the input storage
+   */
+  public static ColumnStorage<?> getSlicedStorage(
       ColumnStorage<?> storage, IndexMapper indexMapper) {
     return switch (storage) {
       case MaskedStorageLong sliceStorageLong -> new MaskedStorageLong(
