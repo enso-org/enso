@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.comparators;
 
 import java.util.function.BiPredicate;
 import org.enso.base.CompareException;
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.operation.StorageIterators;

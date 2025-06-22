@@ -178,7 +178,8 @@ public abstract sealed class IndexMapper
       return switch (other) {
         case Constant constant -> {
           checkIndexBounds(constant.value);
-          yield new Constant(constant.value == -1 ? -1 : mapping[(int)constant.value], constant.length);
+          yield new Constant(
+              constant.value == -1 ? -1 : mapping[(int) constant.value], constant.length);
         }
         case SingleSlice singleSlice -> {
           if (singleSlice.start > mapping.length) {

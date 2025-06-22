@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.binary;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
@@ -66,7 +65,7 @@ public final class LogicalOperations {
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || rightBoolean
           ? Builder.makeEmpty(BooleanType.INSTANCE, left.getSize())
-          : BoolBuilder.makeConstant(left.getSize(), false);
+          : BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(false, left.getSize()));
     }
 
     @Override
@@ -76,7 +75,9 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       if (!rightIsNothing) {
-        return rightBoolean ? left : BoolBuilder.makeConstant(left.getSize(), false);
+        return rightBoolean
+            ? left
+            : BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(false, left.getSize()));
       }
 
       int size = (int) left.getSize();
@@ -189,7 +190,7 @@ public final class LogicalOperations {
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || !rightBoolean
           ? Builder.makeEmpty(BooleanType.INSTANCE, left.getSize())
-          : BoolBuilder.makeConstant(left.getSize(), true);
+          : BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(true, left.getSize()));
     }
 
     @Override
@@ -199,7 +200,9 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       if (!rightIsNothing) {
-        return rightBoolean ? BoolBuilder.makeConstant(left.getSize(), true) : left;
+        return rightBoolean
+            ? BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(true, left.getSize()))
+            : left;
       }
 
       int size = (int) left.getSize();

@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.comparators;
 
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.ColumnStorage;
