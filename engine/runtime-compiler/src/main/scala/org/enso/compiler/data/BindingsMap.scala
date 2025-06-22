@@ -17,6 +17,8 @@ import org.enso.pkg.{Config, QualifiedName}
 import scala.collection.mutable.ArrayBuffer
 
 /** A utility structure for resolving symbols in a given module.
+  * This code is designated to be rewritten into Java. When making changes
+  * consider moving more and more functionality to BindingsMapBase.
   */
 final class BindingsMap private (initial: BindingsMapBase.State)
     extends BindingsMapBase(initial) {
