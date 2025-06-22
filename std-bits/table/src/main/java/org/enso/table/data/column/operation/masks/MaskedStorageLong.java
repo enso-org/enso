@@ -5,9 +5,8 @@ import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.mask.OrderMask;
 
-class MaskedStorageLong extends MaskedStorage<Long> implements ColumnLongStorage {
+final class MaskedStorageLong extends MaskedStorage<Long> implements ColumnLongStorage {
   private final ColumnLongStorage parent;
 
   public MaskedStorageLong(ColumnLongStorage parent, IndexMapper indexMapper) {
@@ -16,7 +15,7 @@ class MaskedStorageLong extends MaskedStorage<Long> implements ColumnLongStorage
   }
 
   @Override
-  ColumnLongStorage parent() {
+  public ColumnLongStorage parent() {
     return parent;
   }
 
@@ -28,7 +27,7 @@ class MaskedStorageLong extends MaskedStorage<Long> implements ColumnLongStorage
   @Override
   public long getItemAsLong(long index) throws ValueIsNothingException {
     var mappedIndex = mapIndex(index);
-    if (mappedIndex == OrderMask.NOT_FOUND_INDEX) {
+    if (mappedIndex == IndexMapper.NOT_FOUND_INDEX) {
       throw new ValueIsNothingException(index);
     }
     return parent.getItemAsLong(mappedIndex);

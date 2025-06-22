@@ -4,22 +4,21 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
 
-class MaskedStorage<T> implements ColumnStorage<T> {
+public class MaskedStorage<T> implements ColumnStorage<T> {
   private final ColumnStorage<T> parent;
   private final IndexMapper indexMapper;
 
-  public MaskedStorage(ColumnStorage<T> parent, IndexMapper indexMapper) {
+  MaskedStorage(ColumnStorage<T> parent, IndexMapper indexMapper) {
     this.parent = parent;
     this.indexMapper = indexMapper;
   }
 
-  ColumnStorage<T> parent() {
+  public ColumnStorage<T> parent() {
     return parent;
   }
 
-  IndexMapper indexMapper() {
+  public IndexMapper indexMapper() {
     return indexMapper;
   }
 
@@ -48,13 +47,13 @@ class MaskedStorage<T> implements ColumnStorage<T> {
   @Override
   public boolean isNothing(long index) {
     var mappedIndex = mapIndex(index);
-    return mappedIndex == OrderMask.NOT_FOUND_INDEX || parent.isNothing(mappedIndex);
+    return mappedIndex == IndexMapper.NOT_FOUND_INDEX || parent.isNothing(mappedIndex);
   }
 
   @Override
   public T getItemBoxed(long index) {
     var mappedIndex = mapIndex(index);
-    return mappedIndex == OrderMask.NOT_FOUND_INDEX ? null : parent.getItemBoxed(mappedIndex);
+    return mappedIndex == IndexMapper.NOT_FOUND_INDEX ? null : parent.getItemBoxed(mappedIndex);
   }
 
   @Override

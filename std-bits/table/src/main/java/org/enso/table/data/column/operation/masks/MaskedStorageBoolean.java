@@ -4,25 +4,24 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.iterators.BooleanStorageIterator;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
-import org.enso.table.data.mask.OrderMask;
 
-class MaskedStorageBoolean extends MaskedStorage<Boolean> implements ColumnBooleanStorage {
+final class MaskedStorageBoolean extends MaskedStorage<Boolean> implements ColumnBooleanStorage {
   private final ColumnBooleanStorage parent;
 
-  public MaskedStorageBoolean(ColumnBooleanStorage parent, IndexMapper indexMapper) {
+  MaskedStorageBoolean(ColumnBooleanStorage parent, IndexMapper indexMapper) {
     super(parent, indexMapper);
     this.parent = parent;
   }
 
   @Override
-  ColumnBooleanStorage parent() {
+  public ColumnBooleanStorage parent() {
     return parent;
   }
 
   @Override
   public boolean getItemAsBoolean(long index) throws ValueIsNothingException {
     var mappedIndex = mapIndex(index);
-    if (mappedIndex == OrderMask.NOT_FOUND_INDEX) {
+    if (mappedIndex == IndexMapper.NOT_FOUND_INDEX) {
       throw new ValueIsNothingException(index);
     }
     return parent.getItemAsBoolean(mappedIndex);

@@ -5,18 +5,17 @@ import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.iterators.DoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.mask.OrderMask;
 
-class MaskedStorageDouble extends MaskedStorage<Double> implements ColumnDoubleStorage {
+final class MaskedStorageDouble extends MaskedStorage<Double> implements ColumnDoubleStorage {
   private final ColumnDoubleStorage parent;
 
-  public MaskedStorageDouble(ColumnDoubleStorage parent, IndexMapper indexMapper) {
+  MaskedStorageDouble(ColumnDoubleStorage parent, IndexMapper indexMapper) {
     super(parent, indexMapper);
     this.parent = parent;
   }
 
   @Override
-  ColumnDoubleStorage parent() {
+  public ColumnDoubleStorage parent() {
     return parent;
   }
 
@@ -28,7 +27,7 @@ class MaskedStorageDouble extends MaskedStorage<Double> implements ColumnDoubleS
   @Override
   public double getItemAsDouble(long index) throws ValueIsNothingException {
     var mappedIndex = mapIndex(index);
-    if (mappedIndex == OrderMask.NOT_FOUND_INDEX) {
+    if (mappedIndex == IndexMapper.NOT_FOUND_INDEX) {
       throw new ValueIsNothingException(index);
     }
     return parent.getItemAsDouble(mappedIndex);

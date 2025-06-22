@@ -8,12 +8,12 @@ import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.problems.BlackholeProblemAggregator;
 
-class MaskedStorageInferred<T> extends MaskedStorage<T>
+final class MaskedStorageInferred<T> extends MaskedStorage<T>
     implements ColumnStorageWithInferredStorage {
   private ColumnStorage<?> cachedInferredStorage = null;
   private boolean hasSpecializedStorageBeenInferred = false;
 
-  public MaskedStorageInferred(ColumnStorage<T> parent, IndexMapper indexMapper) {
+  MaskedStorageInferred(ColumnStorage<T> parent, IndexMapper indexMapper) {
     super(parent, indexMapper);
   }
 
