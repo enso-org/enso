@@ -67,6 +67,7 @@ public class NotOperation implements UnaryOperation {
   }
 
   public static ColumnBooleanStorage applySpecializedNullStorage(ColumnStorage<?> storage) {
-    return Builder.makeEmpty(BooleanType.INSTANCE, storage.getSize());
+    return BooleanType.INSTANCE.asTypedStorage(
+        Builder.makeEmpty(BooleanType.INSTANCE, storage.getSize()));
   }
 }
