@@ -108,7 +108,7 @@ final class BindingsMap private (initial: BindingsMapBase.State)
     val withImports: Option[BindingsMapBase.State] = newMap.flatMap { s =>
       val newImports = s.resolvedImports.map { imp =>
         imp.targets.foreach { t =>
-          t.toLibraryName.foreach(r.ensurePackageIsLoaded(_));
+          t.toLibraryName.foreach(r.ensurePackageIsLoaded);
         }
         imp.toConcrete(moduleMap)
       }
