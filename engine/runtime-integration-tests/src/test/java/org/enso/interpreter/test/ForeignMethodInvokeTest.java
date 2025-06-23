@@ -15,6 +15,7 @@ import java.io.StringWriter;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import org.enso.common.MethodNames;
+import org.enso.runtime.utils.ThreadUtils;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -25,7 +26,8 @@ import org.junit.Test;
 
 public class ForeignMethodInvokeTest {
   @ClassRule
-  public static final ContextUtils ctxRule = ContextUtils.newBuilder("enso", "js").build();
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder("enso", "js").alwaysExecuteInContext(false).build();
 
   @Test
   public void testForeignFunctionParseFailure() throws Exception {
@@ -96,8 +98,30 @@ public class ForeignMethodInvokeTest {
     assertEquals(12, res2.getArrayElement(2).asInt());
   }
 
-  @Test
+  private static final long TIMEOUT = 30000;
+
+  @Test(timeout = TIMEOUT)
   public void testParallelInteropWithJavaScript() throws Exception {
+    var orig = Thread.currentThread();
+    var pool = Executors.newSingleThreadExecutor();
+    var watchDog =
+        pool.submit(
+            () -> {
+              Thread.sleep(TIMEOUT / 3 * 2);
+              var dump = ThreadUtils.dumpAllStacktraces("[testParallelInteropWithJavaScript] ");
+              System.err.println(dump);
+              orig.interrupt();
+              return dump;
+            });
+    try {
+      handleParallelInteropWithJavaScript();
+    } finally {
+      watchDog.cancel(false);
+      pool.shutdown();
+    }
+  }
+
+  private void handleParallelInteropWithJavaScript() throws Exception {
     var source =
         """
         from Standard.Base import all

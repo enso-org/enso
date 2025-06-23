@@ -3075,6 +3075,7 @@ lazy val `runtime-integration-tests` =
             "ALL-UNNAMED",
             testInstrumentsModName,
             (`runtime-instrument-common` / javaModuleName).value,
+            (`runtime-utils` / javaModuleName).value,
             (`text-buffer` / javaModuleName).value,
             (`semver` / javaModuleName).value,
             "truffle.tck.tests",
