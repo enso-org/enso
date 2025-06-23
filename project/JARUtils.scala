@@ -45,9 +45,11 @@ object JARUtils {
     )
     var shouldExtract = false
     Tracked.diffInputs(dependencyStore, FileInfo.hash)(cachedFiles) { report =>
-      shouldExtract =
-        report.modified.nonEmpty || report.removed.nonEmpty || report.added.nonEmpty || outputJarPath
-          .exists(!_.toFile.exists())
+      val inputChanged =
+        report.modified.nonEmpty || report.removed.nonEmpty || report.added.nonEmpty
+      val outExists = outputJarPath
+        .exists(_.toFile.exists())
+      shouldExtract = inputChanged || !outExists
     }
 
     if (!shouldExtract) {
