@@ -103,7 +103,10 @@ object JARUtils {
                         })
                       }
                     case None =>
-                      if (entry.getName.endsWith(".class")) {
+                      val entryName = entry.getName
+                      val shouldCopy = entryName.endsWith(".class") ||
+                        entryName.startsWith("META-INF")
+                      if (shouldCopy) {
                         outputJar.putNextEntry(new JarEntry(entry.getName))
                         Using(inputJar.getInputStream(entry)) { is =>
                           is.transferTo(outputJar)
