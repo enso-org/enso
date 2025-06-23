@@ -180,7 +180,7 @@ async function getRootDirPath() {
   const supportsLocalBackend =
     window.overrideFeatureFlags?.enableLocalBackend ?? $config.CLOUD_BUILD !== 'true'
   if (!supportsLocalBackend) return undefined
-  const rootDirRequest = await fetch(`/api/root-directory`)
+  const rootDirRequest = await fetch(`/api/root-directory-path`)
   return await rootDirRequest.text()
 }
 

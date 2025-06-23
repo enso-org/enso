@@ -85,7 +85,7 @@ export interface ListTagsResponseBody {
 export default class RemoteBackend extends Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
-  override readonly baseUrl = $config.API_URL ?? ''
+  override readonly baseUrl = new URL($config.API_URL ?? '', location.href)
   private user: object.Mutable<backend.User> | null = null
 
   /** The path to the root directory of this {@link Backend}. */
@@ -1380,7 +1380,9 @@ export default class RemoteBackend extends Backend {
       projectId: id,
     })
 
-    const response = await this.get<ResponseBody>(`./api/cloud/download-project?${queryString}`)
+    const response = await this.get<ResponseBody>(
+      new URL(`./api/cloud/download-project?${queryString}`, location.href).toString(),
+    )
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
@@ -1399,7 +1401,9 @@ export default class RemoteBackend extends Backend {
       directory: extractIdFromDirectoryId(directoryId),
     })
 
-    const response = await this.get(`./api/cloud/get-project-archive?${queryString}`)
+    const response = await this.get(
+      new URL(`./api/cloud/get-project-archive?${queryString}`, location.href).toString(),
+    )
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }

@@ -29,6 +29,7 @@ import {
 } from '#/hooks/backendBatchedHooks'
 import { useNewProject } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useExportArchive } from '#/pages/useExportArchive'
 import { usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import * as object from '#/utilities/object'
@@ -102,6 +103,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
+  const exportArchive = useExportArchive()
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
@@ -318,6 +320,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => uploadFileToLocal([asset])}
           />
         )}
+        <ContextMenuEntry
+          hidden={hidden}
+          action="exportArchive"
+          label={getText('exportArchiveShortcut')}
+          doAction={exportArchive}
+        />
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}

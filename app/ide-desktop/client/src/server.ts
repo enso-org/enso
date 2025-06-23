@@ -13,6 +13,7 @@ import type * as vite from 'vite'
 
 import * as projectManagement from '@/projectManagement'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
+import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
@@ -302,6 +303,27 @@ export class Server {
     const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
     if (requestUrl == null) {
       logger.error('Request URL is null.')
+    } else if (requestUrl.startsWith('/api/project-manager/')) {
+      const actualUrl = new URL(
+        requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
+      )
+      request.pipe(
+        http.request(
+          actualUrl,
+          { headers: request.headers, method: request.method },
+          (actualResponse) => {
+            response.writeHead(
+              // This is SAFE. The documentation says:
+              // Only valid for response obtained from ClientRequest.
+              actualResponse.statusCode!,
+              actualResponse.statusMessage,
+              actualResponse.headers,
+            )
+            actualResponse.pipe(response, { end: true })
+          },
+        ),
+        { end: true },
+      )
     } else if (requestUrl.startsWith('/api/cloud/')) {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       const params = route.searchParams
@@ -366,7 +388,7 @@ export class Server {
     } else if (request.method === 'GET' && requestPath?.startsWith('/api/')) {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       switch (route.pathname) {
-        case '/root-directory': {
+        case '/root-directory-path': {
           const path = this.projectsRootDirectory
           response
             .writeHead(HTTP_STATUS_OK, [
@@ -377,7 +399,7 @@ export class Server {
             .end(path)
           break
         }
-        case '/download-directory': {
+        case '/download-directory-path': {
           const path = app.getPath('downloads')
           response
             .writeHead(HTTP_STATUS_OK, [

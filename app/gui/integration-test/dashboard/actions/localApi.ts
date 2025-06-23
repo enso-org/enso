@@ -29,6 +29,7 @@ function array<T>(): Readonly<T>[] {
 }
 
 const ROOT_PATH = Path('/home/user/enso/enso-projects')
+const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
 
 const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
@@ -344,7 +345,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       })
     })
 
-    await page.route('/api/root-directory', async (route, request) => {
+    await page.route('/api/root-directory-path', async (route, request) => {
       called('getRootDirectory', {})
       if (request.method() !== 'GET') {
         return route.fulfill({ status: 400 })
@@ -352,6 +353,17 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
       return route.fulfill({
         contentType: 'text/plain',
         body: ROOT_PATH,
+      })
+    })
+
+    await page.route('/api/download-directory-path', async (route, request) => {
+      called('getDownloadDirectory', {})
+      if (request.method() !== 'GET') {
+        return route.fulfill({ status: 400 })
+      }
+      return route.fulfill({
+        contentType: 'text/plain',
+        body: DOWNLOAD_PATH,
       })
     })
 

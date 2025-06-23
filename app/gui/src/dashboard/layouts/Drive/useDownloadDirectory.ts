@@ -12,7 +12,7 @@ export function useDefaultDownloadDirectory() {
     queryKey: ['downloadDirectory'],
     queryFn: async () => {
       if (localBackend) {
-        const response = await fetch('/api/download-directory')
+        const response = await fetch('/api/download-directory-path')
         return Path(await response.text())
       } else {
         return null

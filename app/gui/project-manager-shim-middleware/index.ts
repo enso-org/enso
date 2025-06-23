@@ -507,7 +507,7 @@ export default function projectManagerShimMiddleware(
         break
       }
     }
-  } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
+  } else if (request.method === 'GET' && requestPath === '/api/root-directory-path') {
     response
       .writeHead(HTTP_STATUS_OK, {
         'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),

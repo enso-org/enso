@@ -60,7 +60,7 @@ export function newFileId(path: projectManager.Path) {
 export default class LocalBackend extends Backend {
   static readonly type = backend.BackendType.local
   override readonly type = LocalBackend.type
-  override readonly baseUrl = LOCAL_API_URL
+  override readonly baseUrl = new URL(LOCAL_API_URL, location.href)
   /** All files that have been uploaded to the Project Manager. */
   uploadedFiles: Map<string, backend.UploadedAsset> = new Map()
   private readonly projectManager: ProjectManager
