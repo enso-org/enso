@@ -123,7 +123,7 @@
     benchmarks/:
       bench-report.xml:
   project/:
-    Versions.scala:
+    Dependencies.scala:
   build.sbt:
   run:
   CHANGELOG.md:

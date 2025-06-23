@@ -269,7 +269,7 @@ impl IdeDesktop {
             // to be set up.
             let graalvm = crate::engine::deduce_graal(
                 self.octocrab.clone(),
-                &self.repo_root.project.versions_scala,
+                &self.repo_root.project.dependencies_scala,
             )
             .await?;
             graalvm.install_if_missing(&self.cache).await?;
