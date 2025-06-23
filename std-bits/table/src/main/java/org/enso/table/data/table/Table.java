@@ -26,7 +26,6 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.CrossJoin;
 import org.enso.table.data.table.join.JoinKind;
-import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -366,21 +365,21 @@ public class Table {
       ProblemAggregator problemAggregator) {
     NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
-    JoinStrategy strategy = JoinStrategy.createStrategy(conditions, joinKind);
-    JoinResult joinResult = strategy.join(problemAggregator);
+    var strategy = JoinStrategy.createStrategy(conditions, joinKind);
+    var joinResult = strategy.join(problemAggregator);
 
     List<Column> newColumns = new ArrayList<>();
 
     if (includeLeftColumns) {
-      OrderMask leftMask = joinResult.getLeftOrderMask();
+      var leftMask = joinResult.getLeftIndexMapper();
       for (Column column : this.columns) {
-        var newColumn = column.applyMask(leftMask);
+        var newColumn = column.mask(leftMask);
         newColumns.add(newColumn);
       }
     }
 
     if (includeRightColumns) {
-      OrderMask rightMask = joinResult.getRightOrderMask();
+      var rightMask = joinResult.getRightIndexMapper();
       List<String> leftColumnNames = newColumns.stream().map(Column::getName).toList();
 
       HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
@@ -394,7 +393,7 @@ public class Table {
       for (int i = 0; i < rightColumnsToKeep.size(); ++i) {
         Column column = rightColumnsToKeep.get(i);
         String newName = newRightColumnNames.get(i);
-        var newColumn = column.applyMask(rightMask).rename(newName);
+        var newColumn = column.mask(rightMask).rename(newName);
         newColumns.add(newColumn);
       }
     }
@@ -414,20 +413,20 @@ public class Table {
     List<String> newRightColumnNames =
         nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, rightPrefix);
 
-    JoinResult joinResult = CrossJoin.perform(this.rowCount(), right.rowCount());
-    OrderMask leftMask = joinResult.getLeftOrderMask();
-    OrderMask rightMask = joinResult.getRightOrderMask();
+    var joinResult = CrossJoin.perform(this.rowCount(), right.rowCount());
+    var leftMask = joinResult.getLeftIndexMapper();
+    var rightMask = joinResult.getRightIndexMapper();
 
     Column[] newColumns = new Column[this.columns.length + right.columns.length];
 
     int leftColumnCount = this.columns.length;
     int rightColumnCount = right.columns.length;
     for (int i = 0; i < leftColumnCount; i++) {
-      newColumns[i] = this.columns[i].applyMask(leftMask);
+      newColumns[i] = this.columns[i].mask(leftMask);
     }
     for (int i = 0; i < rightColumnCount; i++) {
       newColumns[leftColumnCount + i] =
-          right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
+          right.columns[i].mask(rightMask).rename(newRightColumnNames.get(i));
     }
 
     return new Table(newColumns);

@@ -121,7 +121,8 @@ public class Offset {
     }
 
     @Override
-    public void visit(int i) {
+    public void visit(long l_i) {
+      int i = Math.toIntExact(l_i);
       rolling_queue.add(i);
 
       if (n < 0 && current_n <= Math.abs(n)) {

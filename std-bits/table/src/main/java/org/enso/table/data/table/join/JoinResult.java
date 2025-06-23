@@ -1,50 +1,53 @@
 package org.enso.table.data.table.join;
 
+import static org.enso.table.data.column.builder.Builder.checkSize;
+
 import org.enso.base.arrays.LongArrayList;
-import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 
 public class JoinResult {
-  private final long[] leftIndices;
-  private final long[] rightIndices;
+  private final IndexMapper leftIndexMapper;
+  private final IndexMapper rightIndexMapper;
 
   public JoinResult(long[] leftIndices, long[] rightIndices) {
-    this.leftIndices = leftIndices;
-    this.rightIndices = rightIndices;
+    this.leftIndexMapper = new IndexMapper.ArrayMapping(leftIndices);
+    this.rightIndexMapper = new IndexMapper.ArrayMapping(rightIndices);
   }
 
-  public OrderMask getLeftOrderMask() {
-    return OrderMask.fromArray(leftIndices);
+  public IndexMapper getLeftIndexMapper() {
+    return leftIndexMapper;
   }
 
-  public OrderMask getRightOrderMask() {
-    return OrderMask.fromArray(rightIndices);
+  public IndexMapper getRightIndexMapper() {
+    return rightIndexMapper;
   }
 
   public static class Builder {
     LongArrayList leftIndices;
     LongArrayList rightIndices;
 
-    public Builder(int initialCapacity) {
-      leftIndices = new LongArrayList(initialCapacity);
-      rightIndices = new LongArrayList(initialCapacity);
+    public Builder(long initialCapacity) {
+      int capacity = checkSize(initialCapacity);
+      leftIndices = new LongArrayList(capacity);
+      rightIndices = new LongArrayList(capacity);
     }
 
     public Builder() {
       this(128);
     }
 
-    public void addMatchedRowsPair(int leftIndex, int rightIndex) {
+    public void addMatchedRowsPair(long leftIndex, long rightIndex) {
       leftIndices.add(leftIndex);
       rightIndices.add(rightIndex);
     }
 
-    public void addUnmatchedLeftRow(int leftIndex) {
+    public void addUnmatchedLeftRow(long leftIndex) {
       leftIndices.add(leftIndex);
-      rightIndices.add(-1);
+      rightIndices.add(IndexMapper.NOT_FOUND_INDEX);
     }
 
-    public void addUnmatchedRightRow(int rightIndex) {
-      leftIndices.add(-1);
+    public void addUnmatchedRightRow(long rightIndex) {
+      leftIndices.add(IndexMapper.NOT_FOUND_INDEX);
       rightIndices.add(rightIndex);
     }
 
