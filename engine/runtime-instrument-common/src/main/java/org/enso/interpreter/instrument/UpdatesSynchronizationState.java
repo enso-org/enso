@@ -139,8 +139,8 @@ public class UpdatesSynchronizationState {
    */
   public void runAndSetVisualizationSync(UUID key, Runnable runnable) {
     synchronized (visualizationsState) {
+      runnable.run();
       if (!visualizationsState.contains(key)) {
-        runnable.run();
         visualizationsState.add(key);
       }
     }
