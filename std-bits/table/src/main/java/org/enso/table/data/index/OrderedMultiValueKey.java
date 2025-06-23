@@ -22,7 +22,7 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
 
   private final int[] directions;
 
-  public OrderedMultiValueKey(List<Column> columns, int rowIndex, int[] directions) {
+  public OrderedMultiValueKey(List<Column> columns, long rowIndex, int[] directions) {
     this(
         columns.stream().map(Column::getStorage).toArray(ColumnStorage[]::new),
         rowIndex,
@@ -30,13 +30,13 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
         ObjectComparator.DEFAULT);
   }
 
-  public OrderedMultiValueKey(ColumnStorage<?>[] storages, int rowIndex, int[] directions) {
+  public OrderedMultiValueKey(ColumnStorage<?>[] storages, long rowIndex, int[] directions) {
     this(storages, rowIndex, directions, ObjectComparator.DEFAULT);
   }
 
   public OrderedMultiValueKey(
       ColumnStorage<?>[] storages,
-      int rowIndex,
+      long rowIndex,
       int[] directions,
       Comparator<Object> objectComparator) {
     super(storages, rowIndex);

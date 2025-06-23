@@ -556,7 +556,7 @@ public abstract class DataQualityMetrics {
 
     for (long i = 0; i < DEFAULT_SAMPLE_SIZE; i++) {
       // Generate a random index to sample from the storage.
-      long idx = rng.nextInt(Math.toIntExact(size));
+      long idx = rng.nextLong(size);
       consumer.accept(storage.getItemBoxed(idx));
     }
   }
