@@ -164,6 +164,7 @@ public final class Column {
 
   /**
    * Create a new column with a slice of the original data.
+   *
    * @return a sliced column.
    */
   public Column slice(long offset, long limit) {
@@ -172,6 +173,7 @@ public final class Column {
 
   /**
    * Creates a new column with a set of slices of the original data.
+   *
    * @return a sliced column.
    */
   public Column slice(List<SliceRange> ranges) {
@@ -197,8 +199,7 @@ public final class Column {
 
   /**
    * Creates a column with the same name and storage, but with the order of items changed according
-   * to the given index mapper.
-   * This is an internal method used by the table for efficiency.
+   * to the given index mapper. This is an internal method used by the table for efficiency.
    *
    * @param indexMapper the index mapper to use for reordering
    * @return a new column with reordered items
