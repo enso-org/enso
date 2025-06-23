@@ -1155,11 +1155,10 @@ export default class RemoteBackend extends Backend {
     title: string,
     getPresignedUrl = false,
   ): Promise<backend.FileDetails> {
-    const searchParams = new URLSearchParams({
-      presigned: `${getPresignedUrl}`,
-    }).toString()
-    const path = `${remoteBackendPaths.getFileDetailsPath(fileId)}?${searchParams}`
-    const response = await this.get<backend.FileDetails>(path)
+    const response = await this.get<backend.FileDetails>(
+      remoteBackendPaths.getFileDetailsPath(fileId),
+      { presigned: `${getPresignedUrl}` },
+    )
     if (!response.ok) {
       return await this.throw(response, 'getFileDetailsBackendError', title)
     } else {
@@ -1608,23 +1607,32 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  // async resolveEnsoPath(path: backend.EnsoPath) {
+  //   const response = await this.get<backend.PathResolveResponse>('path/resolve', {})
+
+  //   if (!response.ok) {
+  //     return await this.throw(response, 'getCustomerPortalUrlBackendError')
+  //   } else {
+  //     return (await response.json()).url
+  //   }
+  // }
+
   /**
-   * Resolve the path of a project asset relative to the project `src` directory.
+   * Resolve the data of a project asset relative to the project `src` directory.
    */
-  override async resolveProjectAssetPath(
+  async resolveProjectAssetData(
     projectId: backend.ProjectId,
     relativePath: string,
-  ): Promise<string> {
-    const response = await this.get<Blob>(
+    abort?: AbortSignal,
+  ): Promise<Blob> {
+    const response = await this.get(
       remoteBackendPaths.getProjectAssetPath(projectId, relativePath),
+      undefined,
+      abort,
     )
 
-    if (!response.ok) {
-      return await this.throw(response, 'resolveProjectAssetPathBackendError')
-    } else {
-      const blob = await response.blob()
-      return URL.createObjectURL(blob)
-    }
+    if (!response.ok) return this.throw(response, 'resolveProjectAssetPathBackendError')
+    return response.blob()
   }
 
   /** Set state of the project running in Hybrid mode as open in progress. */
@@ -1696,8 +1704,15 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send an HTTP GET request to the given path. */
-  private get<T = void>(path: string) {
-    return this.checkForAuthenticationError(() => this.client.get<T>(`${$config.API_URL}/${path}`))
+  private get<T = void>(
+    path: string,
+    queryParams?: Record<string, string> | URLSearchParams,
+    abort?: AbortSignal,
+  ) {
+    const queryString = queryParams != null ? `?` + new URLSearchParams(queryParams).toString() : ''
+    return this.checkForAuthenticationError(() =>
+      this.client.get<T>(`${$config.API_URL}/${path}${queryString}`, abort),
+    )
   }
 
   /** Send a JSON HTTP POST request to the given path. */

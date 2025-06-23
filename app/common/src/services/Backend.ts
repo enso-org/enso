@@ -1895,9 +1895,6 @@ export default abstract class Backend {
    * @param returnUrl - The URL to redirect to after the customer visits the portal.
    */
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
-
-  /** Resolve the path of an asset relative to a project. */
-  abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
 }
 
 /**

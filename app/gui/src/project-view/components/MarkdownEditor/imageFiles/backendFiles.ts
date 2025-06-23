@@ -1,5 +1,5 @@
 import {
-  resolveDocImageUrl,
+  resolveDocImageResource,
   type DocumentationImages,
 } from '@/components/MarkdownEditor/imageFiles/common'
 import type { Opt } from '@/util/data/opt'
@@ -26,12 +26,12 @@ export function useDocumentationImagesFromBackend(
       if (projectId == null) return Promise.resolve(Err('No project selected'))
       // In Enso Documentation, the relative paths are from module's directory
       // Here we always display docs from `src/Main.enso` module
-      const resolvedUrl = resolveDocImageUrl(['src'], path)
+      const resolvedUrl = resolveDocImageResource(['src'], path)
       if (!resolvedUrl.ok) return Promise.resolve(resolvedUrl)
       if (resolvedUrl.value.type === 'url') {
         return Promise.resolve(Ok({ url: resolvedUrl.value.url.toString() }))
       } else {
-        return backend.resolveProjectAssetPath(projectId, resolvedUrl.value.path).then(
+        return backend.resolveProjectAssetData(projectId, resolvedUrl.value.path).then(
           (url) => Ok({ url }),
           (error) => {
             console.error(error)

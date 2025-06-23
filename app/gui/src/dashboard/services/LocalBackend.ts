@@ -905,15 +905,6 @@ export default class LocalBackend extends Backend {
     return this.projectManager.getFileContent(extractTypeAndId(projectId).id)
   }
 
-  /**
-   * Resolve the path of a project asset relative to the project `src` directory.
-   */
-  override resolveProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
-    const projectPath = this.getProjectPath(projectId)
-
-    return Promise.resolve(`enso://${projectPath}/src/${relativePath.replace('./', '')}`)
-  }
-
   /** Invalid operation. */
   override createDatalink() {
     return this.invalidOperation()

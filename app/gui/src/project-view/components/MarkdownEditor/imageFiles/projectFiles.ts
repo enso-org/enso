@@ -1,5 +1,5 @@
 import {
-  resolveDocImageUrl,
+  resolveDocImageResource,
   type DocumentationImages,
 } from '@/components/MarkdownEditor/imageFiles/common'
 import { fetcherUrlTransformer } from '@/components/MarkdownEditor/imageFiles/imageUrlTransformer'
@@ -63,10 +63,10 @@ export function useDocumentationImagesFromProjectFiles(
     if (!modulePathValue) {
       return Err('Current module path is unknown.')
     }
-    const resolvedUrl = resolveDocImageUrl(modulePathValue.segments, url)
-    if (!resolvedUrl.ok) return resolvedUrl
-    if (resolvedUrl.value.type === 'projectPath') {
-      const segments = resolvedUrl.value.path.split('/')
+    const resolved = resolveDocImageResource(modulePathValue.segments, url)
+    if (!resolved.ok) return resolved
+    if (resolved.value.type === 'projectPath') {
+      const segments = resolved.value.path.split('/')
       return Ok({ rootId: modulePathValue.rootId, segments })
     } else {
       // Custom fetching not needed.

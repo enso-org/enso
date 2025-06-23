@@ -71,6 +71,8 @@ export const CANCEL_SUBSCRIPTION_PATH = 'payments/subscription'
 export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
 export const POST_LOG_EVENT_PATH = 'logs'
+/** Resolve an enso URL path. */
+export const RESOLVE_ENSO_PATH = 'path/resolve'
 
 /** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
 export function getCustomerPortalSessionPath(returnUrl?: string) {

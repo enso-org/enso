@@ -17,12 +17,11 @@ const urlTransformer = images?.value
 
 // NOTE: Garbage-collecting image data when the `src` changes is not implemented. Current users of `DocumentationImage`
 // don't change the `src` after creating an image.
-const data: Ref<TransformUrlResult | undefined> =
-  urlTransformer ?
-    computedAsync(() => urlTransformer?.transformImageUrl(props.src), undefined, {
-      onError: console.error,
-    })
-  : computed(() => Ok({ url: props.src }))
+const data: Ref<TransformUrlResult | undefined> = computedAsync(
+  () => urlTransformer?.transformImageUrl(props.src) ?? Ok({ url: props.src }),
+  undefined,
+  { onError: console.error },
+)
 
 const title = computed(() =>
   data.value == null ? 'Loading'

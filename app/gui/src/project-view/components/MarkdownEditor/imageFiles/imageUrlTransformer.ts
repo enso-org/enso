@@ -24,8 +24,8 @@ export interface ResourceInfo<T> {
   uniqueId: ResourceId
   uploading?: Ref<boolean>
 }
-export type ResourceLocator<T> = (url: Url) => Promise<Result<ResourceInfo<T>> | undefined>
-export type ResourceFetcher<T> = (locator: T) => Promise<Result<Blob>>
+type ResourceLocator<T> = (url: Url) => Promise<Result<ResourceInfo<T>> | undefined>
+type ResourceFetcher<T> = (locator: T) => Promise<Result<Blob>>
 
 /**
  * Create {@link UrlTransformer} which fetches and caches the image. Returns a URL created

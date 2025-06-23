@@ -1,4 +1,5 @@
 <script lang="ts">
+import { ProjectId } from '#/services/Backend'
 import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProjects'
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
@@ -16,7 +17,7 @@ import { computed, ToRefs, toValue, watch } from 'vue'
  */
 const [provideCurrentProject, useCurrentProject] = createContextStore(
   'currentProject',
-  (projectId: ToValue<Opt<string>>) => {
+  (projectId: ToValue<Opt<ProjectId>>) => {
     const openedProjects = injectOpenedProjects()
 
     const ref = computed(() => {
@@ -76,7 +77,7 @@ export const useWidgetRegistry = useStoreTemplate('widgetRegistry')
 </script>
 
 <script setup lang="ts">
-const { id } = defineProps<{ id: Opt<string> }>()
+const { id } = defineProps<{ id: Opt<ProjectId> }>()
 
 const provided = provideCurrentProject(() => id).ref
 
