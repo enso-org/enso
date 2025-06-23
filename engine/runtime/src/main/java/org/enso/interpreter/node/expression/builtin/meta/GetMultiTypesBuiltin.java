@@ -14,15 +14,18 @@ import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "get_multi_values",
-    description = "Returns all multi values that the current value is.",
+    name = "get_multi_types",
+    description =
+        "Returns all types that the current value pretends to be. The first returned array contains"
+            + " all the visible types and the second one contains the hidden types that can be"
+            + " extracted via casting.",
     autoRegister = false)
-final class GetMultiValuesBuiltin extends Node {
+final class GetMultiTypesBuiltin extends Node {
   private @Child WarningsLibrary warnings = WarningsLibrary.getFactory().createDispatched(11);
 
   private @Child TypeOfNode typeOf = TypeOfNode.create();
 
-  GetMultiValuesBuiltin() {}
+  GetMultiTypesBuiltin() {}
 
   public EnsoObject execute(@AcceptsWarning Object value) {
     if (warnings.hasWarnings(value)) {
