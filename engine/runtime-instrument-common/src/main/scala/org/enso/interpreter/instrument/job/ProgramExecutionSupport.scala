@@ -13,7 +13,6 @@ import org.enso.interpreter.instrument.{
   WarningPreview
 }
 import org.enso.interpreter.instrument.execution.{
-  Completion,
   ErrorResolver,
   LocationResolver,
   RuntimeContext
@@ -46,7 +45,6 @@ import org.enso.interpreter.runtime.warning.{
 }
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
 
 import java.io.File
 import java.util.UUID
@@ -330,7 +328,7 @@ object ProgramExecutionSupport {
           reason,
           error
         )
-        Some(ExecutionResult.Failure(message, None))
+        Some(Api.ExecutionResult.Failure(message, None))
     }
     executionUpdate.orElse(onFailure())
   }
@@ -401,7 +399,7 @@ object ProgramExecutionSupport {
   }
 
   private def sendInterruptedExpressionUpdate(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
@@ -449,7 +447,7 @@ object ProgramExecutionSupport {
   }
 
   private def sendExpressionUpdate(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
@@ -629,7 +627,7 @@ object ProgramExecutionSupport {
     * @param ctx the runtime context
     */
   private def sendVisualizationUpdates(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
@@ -661,7 +659,7 @@ object ProgramExecutionSupport {
   }
 
   private def executeVisualization(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     runtimeCache: RuntimeCache,
     visualization: Visualization,
     expressionId: UUID,
@@ -713,7 +711,7 @@ object ProgramExecutionSupport {
     */
   def sendVisualizationUpdate(
     visualizationResult: Either[Throwable, AnyRef],
-    contextId: ContextId,
+    contextId: Api.ContextId,
     syncState: UpdatesSynchronizationState,
     visualizationId: UUID,
     expressionId: UUID,
@@ -792,7 +790,7 @@ object ProgramExecutionSupport {
     * @param ctx the runtime context
     */
   def executeAndSendVisualizationUpdate(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
     visualization: Visualization,
