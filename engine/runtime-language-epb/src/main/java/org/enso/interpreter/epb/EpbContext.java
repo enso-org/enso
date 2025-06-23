@@ -154,7 +154,7 @@ final class EpbContext {
 
   private boolean dumpStack(String msg, int ms) {
     var prefix = "[PolyglotAccess:" + Thread.currentThread().getName() + "]";
-    var dump = ThreadUtils.dumpAllStacktraces(prefix);
+    var dump = ThreadUtils.dumpAllStacktraces("[epb] ", prefix);
     log(Level.WARNING, msg);
     log(Level.FINE, dump);
     log(Level.INFO, "Waiting " + ms + " ms");

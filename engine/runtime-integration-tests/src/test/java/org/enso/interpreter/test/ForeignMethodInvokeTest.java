@@ -108,7 +108,9 @@ public class ForeignMethodInvokeTest {
         pool.submit(
             () -> {
               Thread.sleep(TIMEOUT / 3 * 2);
-              var dump = ThreadUtils.dumpAllStacktraces("[testParallelInteropWithJavaScript] ");
+              var dump =
+                  ThreadUtils.dumpAllStacktraces(
+                      "[paralleljs] ", "Time out in a testParallelInteropWithJavaScript");
               System.err.println(dump);
               orig.interrupt();
               return dump;

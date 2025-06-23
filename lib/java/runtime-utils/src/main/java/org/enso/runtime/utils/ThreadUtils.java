@@ -6,8 +6,13 @@ public class ThreadUtils {
 
   private ThreadUtils() {}
 
-  public static String dumpAllStacktraces(String prefix) {
+  public static String dumpAllStacktraces(String header) {
+    return dumpAllStacktraces("", header);
+  }
+
+  public static String dumpAllStacktraces(String prefix, String header) {
     var sb = new StringBuilder();
+    sb.append(header);
     sb.append(System.lineSeparator());
     Thread.getAllStackTraces()
         .entrySet()
