@@ -108,6 +108,7 @@ final class EpbContext {
       try {
         return polyfillInitialized.get();
       } catch (InterruptedException | ExecutionException ex) {
+        // log and try again
         this.log.log(Level.INFO, null, ex);
       }
     }
