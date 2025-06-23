@@ -19,8 +19,6 @@ import scala.collection.mutable
   * @see
   */
 object JPMSUtils {
-  val slf4jVersion          = "2.0.16"
-  val logbackClassicVersion = "1.3.7"
 
   /** Filters modules by their IDs from the given classpath.
     *
