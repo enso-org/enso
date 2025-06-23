@@ -54,6 +54,7 @@ import project.Value_Type.Auto
 import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Errors import all
+from project.Extensions.Table_Conversions import all
 
 ## Represents a column-oriented table data structure.
 type Table

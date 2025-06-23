@@ -128,7 +128,7 @@ write_text (table : Table & In_Memory_Table) format:Delimited_Format -> Text =
      or `Nothing`. It is used for more detailed error reporting.
    - separator_override: An optional override for the line separator to use
      instead of the one from `format`.
-write_to_stream (table : Table & In_Memory_Table) format:Delimited_Format stream:Output_Stream on_problems:Problem_Behavior (related_file : File | Nothing = Nothing) (separator_override : Text | Nothing = Nothing) needs_leading_newline:Boolean=False =
+write_to_stream (table : Table & In_Memory_Table) format:Delimited_Format stream:Output_Stream on_problems:Problem_Behavior related_file=Nothing (separator_override : Text | Nothing = Nothing) needs_leading_newline:Boolean=False =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
         File_Error.wrap_io_exception related_file caught_panic.payload
 
