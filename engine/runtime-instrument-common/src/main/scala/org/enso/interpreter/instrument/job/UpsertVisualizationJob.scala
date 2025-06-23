@@ -63,7 +63,7 @@ class UpsertVisualizationJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
-    ctx.locking.withContextLock(
+    ctx.locking.withReadContextLock(
       ctx.locking.getOrCreateContextLock(config.executionContextId),
       this.getClass,
       () => {
