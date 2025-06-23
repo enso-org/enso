@@ -7,9 +7,11 @@ import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
 import { Ast } from '@/util/ast'
 import { parseModule } from '@/util/ast/abstract'
+import { useYTextSync } from '@/util/codemirror'
 import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
 import { ResultComponent } from '@/util/react'
+import { EditorView } from '@codemirror/view'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 
@@ -69,11 +71,11 @@ const displaySignatureEditor = computed(
 )
 
 const editorMarkdown = computed(() =>
-  mapOk(currentMethodAst.value, ({ ast, readOnly }) => {
-    const docs = ast.mutableDocumentationMarkdown()
-    return readOnly ? docs.toString() : docs
-  }),
+  mapOk(currentMethodAst.value, ({ ast }) => ast.mutableDocumentationMarkdown()),
 )
+const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
+
+const syncExt = (view: EditorView) => useYTextSync(editorContent, view)
 
 provideDocumentationImages({
   openedProject,
@@ -84,7 +86,12 @@ provideDocumentationImages({
 
 <template>
   <div class="DocumentationEditor">
-    <MarkdownEditor v-if="editorMarkdown.ok" contentTestId="documentation-editor-content">
+    <MarkdownEditor
+      v-if="currentMethodAst.ok"
+      :extensions="syncExt"
+      :readonly="currentMethodAst.value.readOnly"
+      contentTestId="documentation-editor-content"
+    >
       <template #belowToolbar>
         <FunctionSignatureEditor
           v-if="displaySignatureEditor && currentMethodAst.ok && openedProject"
@@ -99,7 +106,7 @@ provideDocumentationImages({
     <ResultComponent
       v-else
       status="info"
-      :title="editorMarkdown.error.message('')"
+      :title="currentMethodAst.error.message('')"
       :centered="true"
     />
   </div>

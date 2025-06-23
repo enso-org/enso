@@ -44,8 +44,7 @@ const content = computed(() => {
 })
 
 const syncExt = (text: WatchSource<string | undefined>) => (view: EditorView) => {
-  const { syncExt, connectSync } = useStringSync()
-  const { setText } = connectSync(view)
+  const { syncExt, setText } = useStringSync(view)
   watch(text, (newText) => setText(newText ?? ''))
   return syncExt
 }

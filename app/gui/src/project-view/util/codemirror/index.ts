@@ -200,9 +200,33 @@ function useBindings() {
  * Creates a CodeMirror extension for reading, writing, and watching the editor's contents as a
  * string value.
  */
-export function useStringSync() {
+export function useStringSync(view: EditorView) {
   const textEditCallbacks: ((text: string) => void)[] = []
   const userActionCallbacks: ((text: string, selection: SelectionRange) => void)[] = []
+
+  function getText(): string {
+    return view.state.doc.toString()
+  }
+
+  function setText(text: string, selection?: Range): void {
+    const safeSelection = selection?.clip(Range.fromStartAndLength(0, text.length))
+    if (selection && !selection.rangeEquals(safeSelection))
+      console.warn('Clipping invalid selection', { text, selection })
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: text },
+      selection:
+        safeSelection ? { anchor: safeSelection.from, head: safeSelection.to } : { anchor: 0 },
+    })
+  }
+
+  function onTextEdited(callback: (text: string) => void): void {
+    textEditCallbacks.push(callback)
+  }
+
+  function onUserAction(callback: (text: string, selection: SelectionRange) => void): void {
+    userActionCallbacks.push(callback)
+  }
+
   return {
     syncExt: EditorView.updateListener.of((update) => {
       const textEdit = update.transactions.some(
@@ -219,41 +243,14 @@ export function useStringSync() {
         if (textEdit) for (const cb of textEditCallbacks) cb(text)
       }
     }),
-    connectSync: (view: EditorView) => {
-      function getText(): string {
-        return view.state.doc.toString()
-      }
-
-      function setText(text: string, selection?: Range): void {
-        const safeSelection = selection?.clip(Range.fromStartAndLength(0, text.length))
-        if (selection && !selection.rangeEquals(safeSelection))
-          console.warn('Clipping invalid selection', { text, selection })
-        view.dispatch({
-          changes: { from: 0, to: view.state.doc.length, insert: text },
-          selection:
-            safeSelection ? { anchor: safeSelection.from, head: safeSelection.to } : { anchor: 0 },
-        })
-      }
-
-      function onTextEdited(callback: (text: string) => void): void {
-        textEditCallbacks.push(callback)
-      }
-
-      function onUserAction(callback: (text: string, selection: SelectionRange) => void): void {
-        userActionCallbacks.push(callback)
-      }
-
-      return {
-        getText,
-        setText,
-        onTextEdited,
-        onUserAction,
-      }
-    },
+    getText,
+    setText,
+    onTextEdited,
+    onUserAction,
   }
 }
 
-export function useYTextSync(content: ToValue<Y.Text | undefined>) {
+export function useYTextSync(content: ToValue<Y.Text | undefined>, view: EditorView) {
   const syncCompartment = new Compartment()
   const awareness = new Awareness(new Y.Doc())
 
@@ -282,20 +279,18 @@ export function useYTextSync(content: ToValue<Y.Text | undefined>) {
     }
   }
 
-  return {
-    syncExt: syncCompartment.of([]),
-    connectSync: (view: EditorView) =>
-      useDispatch(
-        view,
-        () => applySync(view.state, sync()),
-        // The y-sync plugin breaks if it is reconfigured directly (it never unobserves the original
-        // yText), but can handle being removed and reinstalled.
-        () =>
-          view.dispatch({
-            effects: syncCompartment.reconfigure([]),
-          }),
-      ),
-  }
+  useDispatch(
+    view,
+    () => applySync(view.state, sync()),
+    // The y-sync plugin breaks if it is reconfigured directly (it never unobserves the original
+    // yText), but can handle being removed and reinstalled.
+    () =>
+      view.dispatch({
+        effects: syncCompartment.reconfigure([]),
+      }),
+  )
+
+  return syncCompartment.of([])
 }
 
 function lastEffect<T>(

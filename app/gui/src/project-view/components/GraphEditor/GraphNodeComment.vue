@@ -16,12 +16,7 @@ const textEditorContent = computed(() => textEditor.value?.contentElement)
 
 const documentation = computed(() => nodeMutableDocumentation(props.node))
 
-const syncExt = (view: EditorView) => {
-  const { syncExt, connectSync } = useYTextSync(documentation)
-  connectSync(view)
-  return syncExt
-}
-
+const syncExt = (view: EditorView) => useYTextSync(documentation, view)
 syncRef(editing, useFocusDelayed(textEditorContent).focused)
 </script>
 <template>

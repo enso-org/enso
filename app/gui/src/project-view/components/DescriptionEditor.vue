@@ -9,7 +9,7 @@ import { useStringSync } from '@/util/codemirror'
 import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
 import { useMutation } from '@tanstack/vue-query'
-import { computed, effectScope, onScopeDispose, onUnmounted, ref, Ref, watch } from 'vue'
+import { computed, effectScope, onScopeDispose, ref, watch } from 'vue'
 
 const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
@@ -37,8 +37,7 @@ const scope = effectScope()
 const onFocusOut = ref<() => void>()
 
 const syncText = (view: EditorView) => {
-  const { syncExt, connectSync } = useStringSync()
-  const { setText, getText } = connectSync(view)
+  const { syncExt, setText, getText } = useStringSync(view)
 
   scope.run(() => {
     watch(
@@ -73,24 +72,24 @@ provideDocumentationImages({
 </script>
 
 <template>
-  <MarkdownEditor
-    v-if="rightPanel.focusedAsset"
-    :modelValue.lazy="rightPanel.focusedAsset.description ?? ''"
-    :extensions="syncText"
-    toolbar
-    contentTestId="documentation-editor-content"
-    @update:modelValue=""
-  />
-  <ResultComponent
-    v-else
-    status="info"
-    title="Select single asset to edit its description"
-    :centered="true"
-  />
+  <div class="DescriptionEditor">
+    <MarkdownEditor
+      v-if="rightPanel.focusedAsset"
+      :extensions="syncText"
+      toolbar
+      contentTestId="documentation-editor-content"
+    />
+    <ResultComponent
+      v-else
+      status="info"
+      title="Select single asset to edit its description"
+      :centered="true"
+    />
+  </div>
 </template>
 
 <style scoped>
-.DocumentationEditor {
+.DescriptionEditor {
   display: flex;
   flex-direction: column;
   background-color: #fff;
