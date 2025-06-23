@@ -1,8 +1,7 @@
 /** @file Playwright browser testing configuration. */
-import { ChromaticConfig } from '@chromatic-com/playwright'
 import { defineConfig } from '@playwright/test'
 
-export default defineConfig<ChromaticConfig>({
+export default defineConfig({
   testDir: './tests',
   forbidOnly: !!process.env.CI,
   workers: 1,
@@ -14,6 +13,5 @@ export default defineConfig<ChromaticConfig>({
   },
   use: {
     actionTimeout: 5000,
-    disableAutoSnapshot: true,
   },
 })
