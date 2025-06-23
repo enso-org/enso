@@ -8,7 +8,7 @@ import {
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
-import ComponentDocumentation from '@/components/ComponentDocumentation.vue'
+import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
 import DescriptionEditor from '@/components/DescriptionEditor.vue'
 import DocumentationEditor from '@/components/MethodDocumentationEditor.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
@@ -40,7 +40,7 @@ const component = computed(() => {
     case 'documentation':
       return DocumentationEditor
     case 'help':
-      return ComponentDocumentation
+      return ComponentHelpPanel
     default:
       return undefined
   }

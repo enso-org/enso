@@ -40,7 +40,12 @@ const syncText = (view: EditorView, focused: Ref<boolean>) => {
     () => rightPanel.focusedAsset,
     (newAsset, oldAsset) => {
       updateDescription(oldAsset, getText())
-      setText(newAsset?.description ?? '')
+      const pendingDescription =
+        newAsset != null && editDescriptionMutation.variables.value?.[0] === newAsset.id ?
+          editDescriptionMutation.variables.value[1].description
+        : undefined
+
+      setText(pendingDescription ?? newAsset?.description ?? '')
       focused.value = false
     },
     { immediate: true },
