@@ -13,7 +13,11 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.StringStorage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 
 public class ToTextStorageConverter implements StorageConverter<String> {
   private final TextType targetType;

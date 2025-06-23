@@ -8,7 +8,14 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   @Override
