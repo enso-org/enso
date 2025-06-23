@@ -4,25 +4,24 @@ import sbt.util.CacheStoreFactory
 object EngineNativeLibraryExtractor {
   private val JLINE_NATIVE = "jline-native"
 
-  /**
-   * Extracts native libraries from engine jars (all transitive dependencies of
-   * engine).
-   *
-   * For every JAR file for which native libraries should be extracted:
-   * <ul>
-   *   <li>Extracts the native libraries into the `componentDir` directory.</li>
-   *   <li>Copies the rest of the JAR archive into a new JAR file with the
-   *   `-thin.jar` suffix, which contains only the non-native parts of the JAR.</li>
-   *   <li>Deletes the original (fat) JAR file from the `componentDir` directory.</li>
-   * </ul>
-   * @param componentDir Component directory where all the dependencies of engine are stored.
-   * @param updateReport Update report for the "engine-runner" project.
-   *            Get it with `(engine-runner/update).value`.
-   * @param scalaBinaryVersion
-   * @param cacheFactory
-   * @param previousRun
-   * @return
-   */
+  /** Extracts native libraries from engine jars (all transitive dependencies of
+    * engine).
+    *
+    * For every JAR file for which native libraries should be extracted:
+    * <ul>
+    *   <li>Extracts the native libraries into the `componentDir` directory.</li>
+    *   <li>Copies the rest of the JAR archive into a new JAR file with the
+    *   `-thin.jar` suffix, which contains only the non-native parts of the JAR.</li>
+    *   <li>Deletes the original (fat) JAR file from the `componentDir` directory.</li>
+    * </ul>
+    * @param componentDir Component directory where all the dependencies of engine are stored.
+    * @param updateReport Update report for the "engine-runner" project.
+    *            Get it with `(engine-runner/update).value`.
+    * @param scalaBinaryVersion
+    * @param cacheFactory
+    * @param previousRun
+    * @return
+    */
   def extractNativeLibraries(
     componentDir: File,
     logger: Logger,
@@ -79,9 +78,9 @@ object EngineNativeLibraryExtractor {
         )
         analysis = analysis.appended(
           AnalysisOfExtractedNativeLibs(
-            from = jlineNativeJar,
+            from        = jlineNativeJar,
             dynamicLibs = extractedLibs,
-            thinTarget = Some(outJar)
+            thinTarget  = Some(outJar)
           )
         )
         // Delete the old fat jar.
@@ -117,21 +116,22 @@ object EngineNativeLibraryExtractor {
     cacheFactory: CacheStoreFactory,
     previousRun: AnalysisOfExtractedNativeLibs
   ): List[File] = {
-    val (expectedLibEntry, renameTo) = if(Platform.isLinux && Platform.isAmd64) {
-      ("Linux/x86_64/libjlinenative.so", "libjlinenative.so")
-    } else if (Platform.isLinux && Platform.isArm64) {
-      ("Linux/arm64/libjlinenative.so", "libjlinenative.so")
-    } else if (Platform.isWindows && Platform.isAmd64) {
-      ("Windows/x86_64/jlinenative.dll", "jlinenative.dll")
-    } else if (Platform.isMacOS && Platform.isAmd64) {
-      ("Mac/x86_64/libjlinenative.jnilib", "libjlinenative.dylib")
-    } else if (Platform.isMacOS && Platform.isArm64) {
-      ("Mac/arm64/libjlinenative.jnilib", "libjlinenative.dylib")
-    } else {
-      throw new RuntimeException(
-        s"Unsupported platform for JLine native library: ${StdBits.plainOsName()}"
-      )
-    }
+    val (expectedLibEntry, renameTo) =
+      if (Platform.isLinux && Platform.isAmd64) {
+        ("Linux/x86_64/libjlinenative.so", "libjlinenative.so")
+      } else if (Platform.isLinux && Platform.isArm64) {
+        ("Linux/arm64/libjlinenative.so", "libjlinenative.so")
+      } else if (Platform.isWindows && Platform.isAmd64) {
+        ("Windows/x86_64/jlinenative.dll", "jlinenative.dll")
+      } else if (Platform.isMacOS && Platform.isAmd64) {
+        ("Mac/x86_64/libjlinenative.jnilib", "libjlinenative.dylib")
+      } else if (Platform.isMacOS && Platform.isArm64) {
+        ("Mac/arm64/libjlinenative.jnilib", "libjlinenative.dylib")
+      } else {
+        throw new RuntimeException(
+          s"Unsupported platform for JLine native library: ${StdBits.plainOsName()}"
+        )
+      }
 
     val prefix = "org.jline.nativ"
 
@@ -144,21 +144,22 @@ object EngineNativeLibraryExtractor {
       }
     }
 
-    JARUtils.extractFilesFromJar(
-      inputJarPath = jLineJar.toPath,
-      outputJarPath = Some(outThinJar.toPath),
-      extractPrefix = None,
-      extractedFilesDir = componentDir.toPath,
-      renameFunc = renameFunc,
-      logger = logger,
-      cacheStoreFactory = cacheFactory,
-      previousRun = previousRun.forJar(jLineJar)
-    ).get
+    JARUtils
+      .extractFilesFromJar(
+        inputJarPath      = jLineJar.toPath,
+        outputJarPath     = Some(outThinJar.toPath),
+        extractPrefix     = None,
+        extractedFilesDir = componentDir.toPath,
+        renameFunc        = renameFunc,
+        logger            = logger,
+        cacheStoreFactory = cacheFactory,
+        previousRun       = previousRun.forJar(jLineJar)
+      )
+      .get
   }
 
-  /**
-   * @param jarDependency JAR file that resides somewhere in `$HOME/.cache/coursier`
-   */
+  /** @param jarDependency JAR file that resides somewhere in `$HOME/.cache/coursier`
+    */
   private def deleteFromComponentDir(
     componentDir: File,
     jarDependency: File

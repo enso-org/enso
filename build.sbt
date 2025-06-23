@@ -5903,22 +5903,23 @@ lazy val extractNativeLibsFromEngine =
     "Task that extracts native libraries from engine dependencies"
   )
 
-ThisBuild / extractNativeLibsFromEngine := Def.task {
-  import sbt.util.CacheImplicits._
-  val componentDir = engineDistributionRoot.value / "component"
-  val cacheFactory = streams.value.cacheStoreFactory
-  val updateReport = (`engine-runner` / update).value
-  val logger = streams.value.log
-  val prev = extractNativeLibsFromEngine.previous
-  EngineNativeLibraryExtractor.extractNativeLibraries(
-    componentDir,
-    logger,
-    updateReport,
-    scalaBinaryVersion.value,
-    cacheFactory,
-    prev
-  )
-}
+ThisBuild / extractNativeLibsFromEngine := Def
+  .task {
+    import sbt.util.CacheImplicits._
+    val componentDir = engineDistributionRoot.value / "component"
+    val cacheFactory = streams.value.cacheStoreFactory
+    val updateReport = (`engine-runner` / update).value
+    val logger       = streams.value.log
+    val prev         = extractNativeLibsFromEngine.previous
+    EngineNativeLibraryExtractor.extractNativeLibraries(
+      componentDir,
+      logger,
+      updateReport,
+      scalaBinaryVersion.value,
+      cacheFactory,
+      prev
+    )
+  }
   .dependsOn(createEnginePackageNoIndex)
   .value
 
