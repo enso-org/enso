@@ -88,6 +88,7 @@ provideDocumentationImages({
       v-if="editorMarkdown.ok"
       :content="editorMarkdown.value"
       contentTestId="documentation-editor-content"
+      scrollerTestId="documentation-editor-scroller"
     >
       <template #belowToolbar>
         <FunctionSignatureEditor
