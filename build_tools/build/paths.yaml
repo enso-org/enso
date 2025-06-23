@@ -122,6 +122,8 @@
   std-bits/:
     benchmarks/:
       bench-report.xml:
+  project/:
+    Versions.scala:
   build.sbt:
   run:
   CHANGELOG.md:
