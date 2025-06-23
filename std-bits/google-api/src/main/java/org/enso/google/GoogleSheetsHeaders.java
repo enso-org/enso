@@ -10,13 +10,11 @@ public class GoogleSheetsHeaders {
   private final String[] names;
 
   public GoogleSheetsHeaders(
-      HeaderBehavior headerBehavior,
-      List<List<Object>> rawData,
-      ProblemAggregator problemAggregator) {
+      HeaderBehavior headers, List<List<Object>> rawData, ProblemAggregator problemAggregator) {
     deduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     names =
-        switch (headerBehavior) {
+        switch (headers) {
           case DEFAULT_COLUMN_NAMES -> null;
           case USE_FIRST_ROW_AS_HEADERS -> readFirstRowAsHeaders(rawData, deduplicator);
           case INFER -> inferHeaders(rawData, deduplicator);
@@ -65,7 +63,8 @@ public class GoogleSheetsHeaders {
     } else if (row2AllStrings) { // Row 1 and Rows 2 all strings => no headers
       return null;
     } else { // Row 1 all strings and Rows 2 not all strings => headers
-      return readFirstRowAsHeaders(rawData, deduplicator);
+      return readFirstRowAsHeaders(
+          rawData, deduplicator);
     }
   }
 

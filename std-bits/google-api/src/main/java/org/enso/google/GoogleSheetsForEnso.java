@@ -40,6 +40,7 @@ public class GoogleSheetsForEnso {
       String sheetId,
       String range,
       GoogleSheetsHeaders.HeaderBehavior headerBehavior,
+      Integer row_limit,
       ProblemAggregator problemAggregator)
       throws IOException {
     var rawData =
@@ -56,15 +57,19 @@ public class GoogleSheetsForEnso {
       throw new EmptySheetException();
     }
 
-    GoogleSheetsHeaders columnNames =
+    GoogleSheetsHeaders headerBuilder =
         new GoogleSheetsHeaders(headerBehavior, rawData, problemAggregator);
 
     Column[] columns = new Column[rawData.size()];
+    var resolved_row_limit = row_limit == null ? Long.MAX_VALUE : (row_limit < 0 ? 0 : row_limit);
     for (int i = 0; i < rawData.size(); i++) {
       var column = rawData.get(i);
       var builder = Builder.getInferredBuilder(column.size(), problemAggregator);
-      column.stream().skip(columnNames.getRowsUsed()).forEach(builder::append);
-      columns[i] = new Column(columnNames.get(i), builder.seal());
+      column.stream()
+          .skip(headerBuilder.getRowsUsed())
+          .limit(resolved_row_limit)
+          .forEach(builder::append);
+      columns[i] = new Column(headerBuilder.get(i), builder.seal());
     }
     return new Table(columns);
   }
