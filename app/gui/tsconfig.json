@@ -8,8 +8,7 @@
     { "path": "./tsconfig.scripts.json" }
   ],
   "compilerOptions": {
-    "module": "Preserve",
-    "customConditions": ["source"],
+    "module": "preserve",
     "composite": true,
     "strict": true,
     "strictNullChecks": true,
