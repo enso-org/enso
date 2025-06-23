@@ -41,7 +41,7 @@ public final class MaskOperation {
    * @param mask the set of indices to include in the mask
    * @return a new column containing the specified mask
    */
-  public static Column slice(Column column, long[] mask) {
+  public static Column mask(Column column, long[] mask) {
     var storage = column.getStorage();
     var newStorage = getSlicedStorage(storage, new IndexMapper.ArrayMapping(mask));
     return new Column(column.getName(), newStorage);

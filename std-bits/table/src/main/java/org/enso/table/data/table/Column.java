@@ -4,6 +4,7 @@ import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.DataQualityMetrics;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.StorageListView;
@@ -161,10 +162,18 @@ public final class Column {
     return new Column(name, Builder.fromRepeatedItem(converted, repeat));
   }
 
+  /**
+   * Create a new column with a slice of the original data.
+   * @return a sliced column.
+   */
   public Column slice(long offset, long limit) {
     return MaskOperation.slice(this, offset, limit);
   }
 
+  /**
+   * Creates a new column with a set of slices of the original data.
+   * @return a sliced column.
+   */
   public Column slice(List<SliceRange> ranges) {
     if (ranges.isEmpty()) {
       // Creates an empty table
@@ -179,11 +188,25 @@ public final class Column {
 
     // If there are multiple ranges, we need to create a mask
     long[] mask = SliceRange.createMask(ranges);
-    return slice(mask);
+    return mask(mask);
   }
 
-  public Column slice(long[] mask) {
-    return MaskOperation.slice(this, mask);
+  public Column mask(long[] mask) {
+    return MaskOperation.mask(this, mask);
+  }
+
+  /**
+   * Creates a column with the same name and storage, but with the order of items changed according
+   * to the given index mapper.
+   * This is an internal method used by the table for efficiency.
+   *
+   * @param indexMapper the index mapper to use for reordering
+   * @return a new column with reordered items
+   */
+  Column mask(IndexMapper indexMapper) {
+    var storage = getStorage();
+    var newStorage = MaskOperation.getSlicedStorage(storage, indexMapper);
+    return new Column(getName(), newStorage);
   }
 
   /**
@@ -191,7 +214,7 @@ public final class Column {
    * @return a new column, resulting from reordering this column according to {@code mask}.
    */
   public Column applyMask(OrderMask mask) {
-    return slice(mask.toLongArray());
+    return mask(mask.toLongArray());
   }
 
   /**

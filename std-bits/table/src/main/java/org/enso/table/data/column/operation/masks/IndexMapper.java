@@ -9,8 +9,8 @@ import org.enso.table.util.LeastRecentlyUsedCache;
 public abstract sealed class IndexMapper
     permits IndexMapper.Constant, IndexMapper.SingleSlice, IndexMapper.ArrayMapping {
   /**
-   * A special index value indicating that an index was not found in the mapping.
-   * This is used to represent cases where the index does not map to any valid value.
+   * A special index value indicating that an index was not found in the mapping. This is used to
+   * represent cases where the index does not map to any valid value.
    */
   public static final long NOT_FOUND_INDEX = -1;
 
@@ -28,7 +28,7 @@ public abstract sealed class IndexMapper
       _mergeCache = new LeastRecentlyUsedCache<>(1000);
     }
 
-    var key = this.uniqueKey * 1000000000 + other.uniqueKey;
+    var key = this.uniqueKey * 1_000_000_000 + other.uniqueKey;
     var cached = _mergeCache.get(key);
     if (cached != null) {
       var cachedMapper = cached.get();
@@ -83,7 +83,9 @@ public abstract sealed class IndexMapper
       return switch (other) {
         case Constant constant -> {
           checkIndexBounds(constant.value);
-          yield new Constant(constant.value == NOT_FOUND_INDEX ? NOT_FOUND_INDEX : value + constant.value, constant.length);
+          yield new Constant(
+              constant.value == NOT_FOUND_INDEX ? NOT_FOUND_INDEX : value + constant.value,
+              constant.length);
         }
         case SingleSlice singleSlice -> {
           if (singleSlice.start > length) {
@@ -137,7 +139,9 @@ public abstract sealed class IndexMapper
       return switch (other) {
         case Constant constant -> {
           checkIndexBounds(constant.value);
-          yield new Constant(constant.value == NOT_FOUND_INDEX ? NOT_FOUND_INDEX : start + constant.value, constant.length);
+          yield new Constant(
+              constant.value == NOT_FOUND_INDEX ? NOT_FOUND_INDEX : start + constant.value,
+              constant.length);
         }
         case SingleSlice otherSlice -> {
           long newStart = Math.min(start + length, start + otherSlice.start);
@@ -148,7 +152,10 @@ public abstract sealed class IndexMapper
           long[] newMask = new long[arrayMapping.mapping.length];
           for (int i = 0; i < arrayMapping.mapping.length; i++) {
             checkIndexBounds(arrayMapping.mapping[i]);
-            newMask[i] = arrayMapping.mapping[i] == NOT_FOUND_INDEX ? NOT_FOUND_INDEX : arrayMapping.mapping[i] + start;
+            newMask[i] =
+                arrayMapping.mapping[i] == NOT_FOUND_INDEX
+                    ? NOT_FOUND_INDEX
+                    : arrayMapping.mapping[i] + start;
           }
           yield new ArrayMapping(newMask);
         }
@@ -185,7 +192,8 @@ public abstract sealed class IndexMapper
         case Constant constant -> {
           checkIndexBounds(constant.value);
           yield new Constant(
-              constant.value == NOT_FOUND_INDEX ? NOT_FOUND_INDEX : mapping[(int) constant.value], constant.length);
+              constant.value == NOT_FOUND_INDEX ? NOT_FOUND_INDEX : mapping[(int) constant.value],
+              constant.length);
         }
         case SingleSlice singleSlice -> {
           if (singleSlice.start > mapping.length) {
@@ -202,7 +210,9 @@ public abstract sealed class IndexMapper
           for (int i = 0; i < arrayMapping.mapping.length; i++) {
             checkIndexBounds(arrayMapping.mapping[i]);
             newMask[i] =
-                arrayMapping.mapping[i] == NOT_FOUND_INDEX ? NOT_FOUND_INDEX : mapping[(int) arrayMapping.mapping[i]];
+                arrayMapping.mapping[i] == NOT_FOUND_INDEX
+                    ? NOT_FOUND_INDEX
+                    : mapping[(int) arrayMapping.mapping[i]];
           }
           yield new ArrayMapping(newMask);
         }

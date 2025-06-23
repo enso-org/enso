@@ -15,6 +15,7 @@ import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -166,7 +167,7 @@ public class Table {
     var mask = maskBuilder.toArray();
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].slice(mask);
+      newColumns[i] = columns[i].mask(mask);
     }
     return new Table(newColumns);
   }
@@ -271,7 +272,7 @@ public class Table {
         unchanged = false;
       }
     }
-    return unchanged ? this : this.slice(mask);
+    return unchanged ? this : this.mask(mask);
   }
 
   /**
@@ -296,7 +297,7 @@ public class Table {
             rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
     Column[] newColumns = new Column[this.columns.length];
     for (int i = 0; i < this.columns.length; i++) {
-      newColumns[i] = this.columns[i].slice(rowsToKeep);
+      newColumns[i] = this.columns[i].mask(rowsToKeep);
     }
     return new Table(newColumns);
   }
@@ -323,7 +324,7 @@ public class Table {
             rowCount(), keyColumns, textFoldingStrategy, problemAggregator);
     Column[] newColumns = new Column[this.columns.length];
     for (int i = 0; i < this.columns.length; i++) {
-      newColumns[i] = this.columns[i].slice(rowsToKeep);
+      newColumns[i] = this.columns[i].mask(rowsToKeep);
     }
 
     return new Table(newColumns);
@@ -574,9 +575,10 @@ public class Table {
    * @return a copy of the Table containing a slice of the original data
    */
   public Table slice(long offset, long limit) {
+    var indexMapper = new IndexMapper.SingleSlice(offset, limit);
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].slice(offset, limit);
+      newColumns[i] = columns[i].mask(indexMapper);
     }
     return new Table(newColumns);
   }
@@ -598,13 +600,14 @@ public class Table {
 
     // Now we have to form multiple parts so create a mask
     long[] mask = SliceRange.createMask(ranges);
-    return slice(mask);
+    return mask(mask);
   }
 
-  public Table slice(long[] mask) {
+  public Table mask(long[] mask) {
+    var indexMapper = new IndexMapper.ArrayMapping(mask);
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].slice(mask);
+      newColumns[i] = columns[i].mask(indexMapper);
     }
     return new Table(newColumns);
   }

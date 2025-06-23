@@ -200,7 +200,7 @@ public class LookupJoin {
     record AddFromLookup(Column lookupColumn) implements LookupOutputColumn {
       @Override
       public Column build(long[] orderMask) {
-        return lookupColumn.slice(orderMask);
+        return lookupColumn.mask(orderMask);
       }
     }
   }
