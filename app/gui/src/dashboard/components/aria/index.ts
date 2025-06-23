@@ -1,21 +1,32 @@
 /** @file Barrel file for `react-aria-components`. */
-export * from '@react-aria/interactions'
 export { ClearPressResponder } from '@react-aria/interactions'
-// @ts-expect-error All conflicting exports are types
-export type * from '@react-types/shared'
-// @ts-expect-error All conflicting exports are types
+export {
+  // eslint-disable-next-line camelcase
+  UNSAFE_PortalProvider,
+  // eslint-disable-next-line camelcase
+  useUNSAFE_PortalContext,
+} from '@react-aria/overlays'
+export type {
+  AriaLabelingProps,
+  DOMAttributes,
+  DOMProps,
+  FocusableElement,
+  KeyboardEvent,
+} from '@react-types/shared'
 export * from 'react-aria'
-// @ts-expect-error All conflicting exports are props types
 export * from 'react-aria-components'
-// Resolve ambigouous star exports (`react-aria` and `react-aria-components`)
-// eslint-disable-next-line camelcase
-export { UNSAFE_PortalProvider, useUNSAFE_PortalContext } from '@react-aria/overlays'
-export { I18nProvider, RouterProvider } from 'react-aria-components'
+export {
+  I18nProvider,
+  RouterProvider,
+  type CalendarProps,
+  type DropIndicatorProps,
+  type RangeCalendarProps,
+  type SeparatorProps,
+  type TreeProps,
+} from 'react-aria-components'
 export {
   useTooltipTriggerState,
   type OverlayTriggerState,
   type TooltipTriggerState,
 } from 'react-stately'
-
 export { mergeProps } from './aria'
-export { TabPanel } from './TabPanel'
