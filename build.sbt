@@ -19,6 +19,7 @@ import scala.sys.process._
 // to IntelliJ.
 import JPMSPlugin.autoImport._
 import PackageListPlugin.autoImport._
+import Dependencies._
 
 import java.io.File
 import java.nio.file.Files
@@ -627,15 +628,6 @@ val bouncyCastle = Seq(
   "org.bouncycastle" % "bcutil-jdk18on" % bouncyCastleVersion,
   "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleVersion,
   "org.bouncycastle" % "bcprov-jdk18on" % bouncyCastleVersion
-)
-
-// === JLine ==================================================================
-val jlineVersion = "3.26.3"
-val jline = Seq(
-  "org.jline" % "jline-terminal"     % jlineVersion,
-  "org.jline" % "jline-terminal-jni" % jlineVersion, // The terminal provider jna has been deprecated, check your configuration.
-  "org.jline" % "jline-reader"       % jlineVersion,
-  "org.jline" % "jline-native"       % jlineVersion
 )
 
 // === Google =================================================================
