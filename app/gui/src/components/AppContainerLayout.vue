@@ -1,5 +1,4 @@
 <script lang="ts">
-import { InvitedToOrganizationModal as InvitedToOrganizationModalReact } from '#/modals/InvitedToOrganizationModal'
 import {
   SetupOrganizationAfterSubscribeProps,
   SetupOrganizationAfterSubscribe as SetupOrganizationAfterSubscribeReact,
@@ -14,7 +13,6 @@ import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { onMounted, onUnmounted } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
-const InvitedToOrganizationModal = reactComponent(InvitedToOrganizationModalReact)
 const SetupOrganizationAfterSubscribe = reactComponent(SetupOrganizationAfterSubscribeReact)
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
@@ -67,5 +65,4 @@ useEvent(window, 'beforeunload', logUserClose)
     v-bind="setupOrganizationModalProps"
   />
   <RouterView />
-  <InvitedToOrganizationModal />
 </template>
