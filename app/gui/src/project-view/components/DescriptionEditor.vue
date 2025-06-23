@@ -9,7 +9,7 @@ import { useStringSync } from '@/util/codemirror'
 import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
 import { useMutation } from '@tanstack/vue-query'
-import { computed, onUnmounted, Ref, watch } from 'vue'
+import { computed, effectScope, onScopeDispose, onUnmounted, ref, Ref, watch } from 'vue'
 
 const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
@@ -33,30 +33,34 @@ function updateDescription(asset: AnyAsset | undefined, description: string) {
   }
 }
 
-const syncText = (view: EditorView, focused: Ref<boolean>) => {
+const scope = effectScope()
+const onFocusOut = ref<() => void>()
+
+const syncText = (view: EditorView) => {
   const { syncExt, connectSync } = useStringSync()
   const { setText, getText } = connectSync(view)
-  watch(
-    () => rightPanel.focusedAsset,
-    (newAsset, oldAsset) => {
-      updateDescription(oldAsset, getText())
-      const pendingDescription =
-        newAsset != null && editDescriptionMutation.variables.value?.[0] === newAsset.id ?
-          editDescriptionMutation.variables.value[1].description
-        : undefined
 
-      setText(pendingDescription ?? newAsset?.description ?? '')
-      focused.value = false
-    },
-    { immediate: true },
-  )
-  watch(focused, (newVal) => {
-    if (!newVal) {
+  scope.run(() => {
+    watch(
+      () => rightPanel.focusedAsset,
+      (newAsset, oldAsset) => {
+        updateDescription(oldAsset, getText())
+        const pendingDescription =
+          newAsset != null && editDescriptionMutation.variables.value?.[0] === newAsset.id ?
+            editDescriptionMutation.variables.value[1].description
+          : undefined
+
+        setText(pendingDescription ?? newAsset?.description ?? '')
+      },
+      { immediate: true },
+    )
+
+    onFocusOut.value = () => {
       updateDescription(rightPanel.focusedAsset, getText())
     }
-  })
 
-  onUnmounted(() => updateDescription(rightPanel.focusedAsset, getText()))
+    onScopeDispose(() => updateDescription(rightPanel.focusedAsset, getText()))
+  })
 
   return syncExt
 }
@@ -71,9 +75,11 @@ provideDocumentationImages({
 <template>
   <MarkdownEditor
     v-if="rightPanel.focusedAsset"
+    :modelValue.lazy="rightPanel.focusedAsset.description ?? ''"
     :extensions="syncText"
     toolbar
     contentTestId="documentation-editor-content"
+    @update:modelValue=""
   />
   <ResultComponent
     v-else

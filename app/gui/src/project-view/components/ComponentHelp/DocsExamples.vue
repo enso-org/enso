@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Example } from '@/components/ComponentHelpPanel/ir'
+import type { Example } from '@/components/ComponentHelp/ir'
 
 const props = defineProps<{ examples: Example[] }>()
 </script>

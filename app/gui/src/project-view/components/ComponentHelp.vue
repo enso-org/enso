@@ -2,19 +2,19 @@
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import Breadcrumbs, {
   type Item as Breadcrumb,
-} from '@/components/ComponentHelpPanel/DocsBreadcrumbs.vue'
-import DocsExamples from '@/components/ComponentHelpPanel/DocsExamples.vue'
-import DocsHeader from '@/components/ComponentHelpPanel/DocsHeader.vue'
-import DocsList from '@/components/ComponentHelpPanel/DocsList.vue'
-import DocsSynopsis from '@/components/ComponentHelpPanel/DocsSynopsis.vue'
-import DocsTags from '@/components/ComponentHelpPanel/DocsTags.vue'
-import { HistoryStack } from '@/components/ComponentHelpPanel/history'
-import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/ComponentHelpPanel/ir'
+} from '@/components/ComponentHelp/DocsBreadcrumbs.vue'
+import DocsExamples from '@/components/ComponentHelp/DocsExamples.vue'
+import DocsHeader from '@/components/ComponentHelp/DocsHeader.vue'
+import DocsList from '@/components/ComponentHelp/DocsList.vue'
+import DocsSynopsis from '@/components/ComponentHelp/DocsSynopsis.vue'
+import DocsTags from '@/components/ComponentHelp/DocsTags.vue'
+import { HistoryStack } from '@/components/ComponentHelp/history'
+import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/ComponentHelp/ir'
 import {
   lookupDocumentation,
   lookupRawDocumentation,
   placeholder,
-} from '@/components/ComponentHelpPanel/ir'
+} from '@/components/ComponentHelp/ir'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
