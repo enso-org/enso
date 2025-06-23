@@ -4,8 +4,10 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.LongStream;
-import org.enso.table.data.mask.OrderMask;
+
+import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 
 public class Offset {
@@ -18,7 +20,7 @@ public class Offset {
       int[] directions,
       ProblemAggregator problemAggregator) {
     if (n == 0 || sourceColumns.length == 0) return sourceColumns;
-    var rowOrderMask =
+    var rowMask =
         groupingColumns.length == 0 && orderingColumns.length == 0
             ? calculate_ungrouped_unordered_mask(sourceColumns[0].getSize(), n, fillWith)
             : calculate_grouped_ordered_mask(
@@ -29,15 +31,13 @@ public class Offset {
                 orderingColumns,
                 directions,
                 problemAggregator);
-    return Arrays.stream(sourceColumns)
-        .map(c -> c.applyMask(OrderMask.fromArray(rowOrderMask)))
-        .toArray(Column[]::new);
+    return new Table(sourceColumns).mask(rowMask).getColumns();
   }
 
   public static Column offset_single_column(Column sourceColumn, int n, FillWith fillWith) {
     if (n == 0) return sourceColumn;
-    var rowOrderMask = calculate_ungrouped_unordered_mask(sourceColumn.getSize(), n, fillWith);
-    return sourceColumn.applyMask(OrderMask.fromArray(rowOrderMask));
+    var rowMask = calculate_ungrouped_unordered_mask(sourceColumn.getSize(), n, fillWith);
+    return sourceColumn.mask(rowMask);
   }
 
   private static long[] calculate_ungrouped_unordered_mask(int numRows, int n, FillWith fillWith) {
@@ -50,13 +50,13 @@ public class Offset {
     int result = rowIndex + n;
     if (result < 0) {
       return switch (fillWith) {
-        case NOTHING -> OrderMask.NOT_FOUND_INDEX;
+        case NOTHING -> IndexMapper.NOT_FOUND_INDEX;
         case CLOSEST_VALUE -> 0;
         case WRAP_AROUND -> (result % numRows) == 0 ? 0 : (result % numRows) + numRows;
       };
     } else if (result >= numRows) {
       return switch (fillWith) {
-        case NOTHING -> OrderMask.NOT_FOUND_INDEX;
+        case NOTHING -> IndexMapper.NOT_FOUND_INDEX;
         case CLOSEST_VALUE -> numRows - 1;
         case WRAP_AROUND -> result % numRows;
       };
@@ -159,9 +159,9 @@ public class Offset {
       }
     }
 
-    int getFillValue() {
+    long getFillValue() {
       return switch (fillWith) {
-        case NOTHING -> OrderMask.NOT_FOUND_INDEX;
+        case NOTHING -> IndexMapper.NOT_FOUND_INDEX;
         case CLOSEST_VALUE -> closestPos;
         case WRAP_AROUND -> n < 0 ? rolling_queue.poll() : fill_queue.poll();
       };
