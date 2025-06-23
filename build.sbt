@@ -16,7 +16,6 @@ import src.main.scala.licenses.{
 import scala.sys.process._
 
 import Dependencies._
-import Versions._
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
