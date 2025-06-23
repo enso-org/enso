@@ -37,11 +37,27 @@ To try out the type checker you may run
 ./built-distribution/enso-engine-0.0.0-dev-windows-amd64/enso-0.0.0-dev/bin/enso --compile /path/to/Project --enable-static-analysis
 ```
 
-### Design
+### Overall Design
+
+#### "Best-effort" gradual typing
+
+Enso has integrated some form of dynamic type checking by implementing the argument type checks and type assertions which are checked at runtime. However, non-negligible amount of code still depends on more 'dynamic' dispatch. Moreover, Enso allows interoperability with external inherently dynamically-typed languages like Java Script or Python, so there are cases where the types of values cannot really be known 'statically'.
+
+To alleviate in this, the type inference and checking are implemented in a gradual, best-effort, basis.
+
+The type inference algorithm tries to infer the types wherever it is possible, but it is designed to give up in a graceful way. Static type errors are only reported if the type checker can 'prove' that a given operation **will** surely fail at runtime (if the piece of code is reached). If the operation may fail or succeed, no errors are reported.
+
+This makes `Any` a special type. In terms of the subtyping relationship it is a [top type](https://en.wikipedia.org/wiki/Top_type), however in terms of the type checker it is a bit closer to the [bottom type](https://en.wikipedia.org/wiki/Bottom_type) - because a value of type `Any` can be of any particular type, that means no error will be reported because there is no way to guarantee a failure at runtime. Arguments of type `Any` can be passed to methods expecting all kinds of types (then, they can fail at runtime, but there is no way to prove a guaranteed failure statically), and all methods can be called on `Any` (not only those defined on `Any`, as the actual value passed in can have the given method defined). It behaves similarly to [`any` type in TypeScript](https://www.typescriptlang.org/docs/handbook/2/everyday-types.html#any) or [`dynamic` type in Kotlin](https://kotlinlang.org/docs/dynamic-type.html). Because of that, the `Any` type can be used to represent unexpected return values from polyglot calls.
 
 #### Local Inference and Type Propagation
 
-#### Checking type compatibility
+The type inference relies on existing type signatures and type assertions. Since function argument types are checked at runtime, the type checker treats them as assertions that an incoming value is of a given type. Similarly, code following a type assertion inside of an expression (`y = x : T`, or `(x:T).method`) relies on the fact that the control flow only proceeds if that assertion was satisfied.
+
+The processing is performed by traversing the IR of each method body bottom-up. First we try to infer the types of the 'leafs' - literals or variables, and then based on their types, the type of more comples 'nodes' (e.g. function application).
+
+### Overall structure of implementation
+
+...
 
 ### Future work
 
