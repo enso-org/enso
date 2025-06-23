@@ -654,8 +654,8 @@ type In_Memory_Column_Implementation
                 Sort_Direction.Ascending -> True
                 Sort_Direction.Descending -> False
             rule = OrderBuilder.OrderRule.new this_column.java_column order_bool missing_last
-            mask = OrderBuilder.buildOrderMask [rule]
-            new_col = this_column.java_column.applyMask mask
+            mask = OrderBuilder.buildMask rule
+            new_col = this_column.java_column.mask mask
             In_Memory_Column.from_java_column new_col
         _ ->
             wrapped a b = case a of

@@ -96,9 +96,9 @@ public class LookupJoin {
     // which is more efficient.
     assert allowUnmatchedRows || columnsToMerge.isEmpty();
 
-    boolean needsOrderMask =
+    boolean needsMask =
         outputColumns.stream().anyMatch(LookupOutputColumn.AddFromLookup.class::isInstance);
-    long[] orderMask = needsOrderMask ? new long[Builder.checkSize(baseTableRowCount)] : null;
+    long[] orderMask = needsMask ? new long[Builder.checkSize(baseTableRowCount)] : null;
 
     for (long i = 0; i < baseTableRowCount; i++) {
       // Find corresponding row in the lookup table
@@ -118,7 +118,7 @@ public class LookupJoin {
       }
 
       // Prepare order mask for new columns / fully-replaced columns
-      if (needsOrderMask) {
+      if (needsMask) {
         orderMask[(int) i] = lookupRow;
       }
     }

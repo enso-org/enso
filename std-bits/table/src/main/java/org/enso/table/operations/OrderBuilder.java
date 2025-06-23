@@ -1,11 +1,11 @@
 package org.enso.table.operations;
 
 import java.util.Comparator;
-import java.util.List;
-import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+
 import org.enso.base.ObjectComparator;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 
 /** Builds an order mask resulting in sorting storages according to specified rules. */
@@ -35,7 +35,7 @@ public class OrderBuilder {
      *
      * @return a comparator with properties described above
      */
-    public Comparator<Integer> toComparator() {
+    public Comparator<Long> toComparator() {
       final ColumnStorage<?> storage = column.getStorage();
       Comparator<Object> itemCmp = ObjectComparator.DEFAULT;
 
@@ -64,13 +64,12 @@ public class OrderBuilder {
    *     used instead.
    * @return an order mask that will result in sorting any storage according to the specified rules.
    */
-  public static OrderMask buildOrderMask(List<OrderRule> rules) {
-    int size = rules.get(0).column.getSize();
-    Comparator<Integer> comparator =
-        rules.stream().map(OrderRule::toComparator).reduce(Comparator::thenComparing).get();
+  public static IndexMapper buildMask(OrderRule rule) {
+    long size = rule.column.getSize();
+    Comparator<Long> comparator = rule.toComparator();
 
     long[] positions =
-        IntStream.range(0, size).boxed().sorted(comparator).mapToLong(i -> i).toArray();
-    return OrderMask.fromArray(positions);
+        LongStream.range(0, size).boxed().sorted(comparator).mapToLong(i -> i).toArray();
+    return new IndexMapper.ArrayMapping(positions);
   }
 }
