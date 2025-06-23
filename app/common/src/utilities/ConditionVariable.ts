@@ -1,21 +1,22 @@
 /** @file A promise queue. */
 
 /**
- * A promise queue.
+ * A condition variable.
  *
- * Based on C++'s `condition_variable`:
- * https://en.cppreference.com/w/cpp/thread/condition_variable.html
+ * See https://en.cppreference.com/w/cpp/thread/condition_variable.html
+ *
+ * See https://en.wikipedia.org/wiki/Monitor_(synchronization)#Condition_variables_2
  */
-export class PromiseQueue {
+export class ConditionVariable {
   private resolveQueue: (() => void)[] = []
 
   /** Add a new promise to the queue. */
-  newPromise(): Promise<void> {
+  wait(): Promise<void> {
     return new Promise((resolve) => this.resolveQueue.push(resolve))
   }
 
   /** Resolve all promises in the queue. */
-  resolveAll(): Promise<boolean> {
+  notifyAll(): Promise<boolean> {
     const success = this.resolveQueue.length !== 0
     for (const resolve of this.resolveQueue.splice(0, this.resolveQueue.length)) {
       resolve()
@@ -25,7 +26,7 @@ export class PromiseQueue {
   }
 
   /** Resolve a single promise in the queue. */
-  resolveOne(): Promise<boolean> {
+  notifyOne(): Promise<boolean> {
     const resolve = this.resolveQueue.shift()
     resolve?.()
     // Give the code after the resolved promise time to execute.

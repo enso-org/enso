@@ -8,7 +8,7 @@ import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
-import { PromiseQueue } from './utilities/PromiseQueue'
+import { ConditionVariable } from './utilities/ConditionVariable'
 
 /** An enumeration of all mutation pool ids. */
 export interface MutationPools {
@@ -121,7 +121,7 @@ export function createQueryClient<TStorageValue = string>(
     })
   }
 
-  const pools: Partial<Record<MutationPoolId, { usedLanes: number; queue: PromiseQueue }>> = {}
+  const pools: Partial<Record<MutationPoolId, { usedLanes: number; queue: ConditionVariable }>> = {}
 
   const queryClient: QueryClient = new vueQuery.QueryClient({
     mutationCache: new queryCore.MutationCache({
@@ -130,18 +130,18 @@ export function createQueryClient<TStorageValue = string>(
         if (!poolMeta) {
           return
         }
-        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: new PromiseQueue() })
+        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: new ConditionVariable() })
         if (poolInfo.usedLanes >= poolMeta.parallelism) {
-          await poolInfo.queue.newPromise()
+          await poolInfo.queue.wait()
         }
         poolInfo.usedLanes += 1
       },
       onSettled: async (_data, _error, _variables, _context, mutation) => {
         const poolMeta = mutation.meta?.pool
         if (poolMeta) {
-          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 1, queue: new PromiseQueue() })
+          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 1, queue: new ConditionVariable() })
           poolInfo.usedLanes -= 1
-          while (poolInfo.usedLanes < poolMeta.parallelism && (await poolInfo.queue.resolveOne()));
+          while (poolInfo.usedLanes < poolMeta.parallelism && (await poolInfo.queue.notifyOne()));
         }
       },
       onSuccess: (_data, _variables, _context, mutation) => {
