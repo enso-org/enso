@@ -5,6 +5,7 @@
 - type Google_Sheets_Workbook
     - Value workbook_id:Standard.Base.Data.Text.Text java_service:Standard.Base.Any.Any
     - new workbook_id:Standard.Base.Data.Text.Text credentials:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret -> Standard.Base.Any.Any
-    - read self query:Standard.Base.Data.Text.Text -> Standard.Table.Table.Table
+    - read self query:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer) headers:Standard.Table.Headers.Headers= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
+    - sheet_count self -> Standard.Base.Any.Any
     - sheet_names self -> Standard.Base.Any.Any
 - Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.Google_Api.Google_Sheets_Workbook.Google_Sheets_Workbook -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

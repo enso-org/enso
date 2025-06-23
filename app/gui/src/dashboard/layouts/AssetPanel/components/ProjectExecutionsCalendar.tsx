@@ -14,6 +14,7 @@ import {
 } from '#/components/aria'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Form } from '#/components/Form'
 import { Text } from '#/components/Text'
 import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
@@ -80,7 +81,11 @@ export function ProjectExecutionsCalendar() {
       <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notProjectAsset')} />
     )
   }
-  return <ProjectExecutionsCalendarInternal backend={remoteBackend} item={focusedAsset} />
+  return (
+    <ErrorBoundary>
+      <ProjectExecutionsCalendarInternal backend={remoteBackend} item={focusedAsset} />
+    </ErrorBoundary>
+  )
 }
 
 /** Props for a {@link ProjectExecutionsCalendarInternal}. */

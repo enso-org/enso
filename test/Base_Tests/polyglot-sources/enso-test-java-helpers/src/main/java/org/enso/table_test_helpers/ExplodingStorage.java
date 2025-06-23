@@ -2,10 +2,13 @@ package org.enso.table_test_helpers;
 
 import java.util.BitSet;
 import java.util.List;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 
@@ -13,7 +16,7 @@ import org.enso.table.data.mask.SliceRange;
  * A helper class used in the Upload_Spec test to purposefully interrupt a table upload in the
  * middle of it by throwing an exception. It is used to test the transactionality of the upload.
  */
-public class ExplodingStorage extends Storage<Long> {
+public class ExplodingStorage extends Storage<Long> implements ColumnLongStorage {
   private final long[] array;
   private final long explodingIndex;
 
@@ -34,7 +37,13 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public StorageType<Long> getType() {
+  public long getItemAsLong(long index) throws ValueIsNothingException {
+    checkIndex(index);
+    return array[Math.toIntExact(index)];
+  }
+
+  @Override
+  public IntegerType getType() {
     return IntegerType.INT_64;
   }
 
@@ -46,8 +55,7 @@ public class ExplodingStorage extends Storage<Long> {
 
   @Override
   public Long getItemBoxed(long idx) {
-    checkIndex(idx);
-    return array[Math.toIntExact(idx)];
+    return getItemAsLong(idx);
   }
 
   @Override
@@ -68,5 +76,10 @@ public class ExplodingStorage extends Storage<Long> {
   @Override
   public ColumnStorage<Long> slice(List<SliceRange> ranges) {
     return null;
+  }
+
+  @Override
+  public ColumnLongStorageIterator iteratorWithIndex() {
+    return new AbstractLongStorage.BaseLongStorageIterator(this);
   }
 }

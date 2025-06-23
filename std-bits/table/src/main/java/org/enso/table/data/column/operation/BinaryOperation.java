@@ -36,8 +36,7 @@ public interface BinaryOperation {
       MapOperationProblemAggregator problemAggregator) {
     // Special handling for nulls
     if (skipNulls) {
-      if (right instanceof Column rightColumn
-          && rightColumn.getStorage().getType() instanceof NullType) {
+      if (right instanceof Column rightColumn && rightColumn.getType() instanceof NullType) {
         right = null;
       }
       if (right == null
