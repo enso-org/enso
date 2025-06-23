@@ -66,15 +66,37 @@ The type inference relies on existing type signatures and type assertions. Since
 
 The processing is performed by traversing the IR of each method body bottom-up. First types of the leafs - literals or variables - are inferred, and then based on their types, the type of more complex 'nodes' (e.g. function application) is derived based on very basic inference rules that stem from the [simply typed lambda calculus](https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus) with some additional extensions for calling methods on objects and other features of the language like pattern matching. Inside of blocks of code, the inference is run line-by-line; whenever the assignment operator `=` creates a new binding, the inferred type of that binding is saved in a mapping that can then be used by subsequent lines of the block that can reference that binding.
 
-### Overall structure of implementation
+Calling of methods on objects is implemented via special logic for application on `UnresolvedSymbol`. That is because within the IR, the expression `a.f b c` is actually translated to `UnresolvedSymbol<f> a b c`.
 
+The most important rules for inference are then:
 ...
+
+These rules are implemented in `TypePropagation::tryInferringType` and its related helper methods.
+
+### Overall structure of the implementation
+
+The implementation consists of three phases:
+1. `TypeInferenceSignatures` analyzes the IR of method definitions and associates a type signature with each method based on its type ascriptions. If a method has no type ascriptions, the argument types and the return type will default to unknown type (`Any`) but the method  will still get a signature at least indicating the _arity_ of the method.
+2. `StaticModuleScopeAnalysis` builds a static counterpart of `ModuleScope` that holds method definitions available in scopes of each module. The static module scope is then used to resolve methods on types during the static analysis, in the same way as `ModuleScope` is used at runtime for method dispatch.
+   i. The `BuildScopeFromModuleAlgorithm` and `MethodResolutionAlgorithm` encapsulate the core logic, so that the same logic is guaranteed to be used both at runtime and compile-time.
+3. `TypeInferencePropagation` which analyzes each method, tries to infer types of each sub-expression and report any issues found. While a type is inferred for every sub-expression inside of a method body, the types are stored in metadata only for the named bindings to conserve memory. The rationale is mostly that the types of named bindings are worth storing as in the future they could be used for features such as auto-complete.
+
+More information can be found in the documentation of the relevant classes.
 
 ### Future work
 
-#### Finishing the current algorithm
+#### Improving the current prototype
 
-...
+Currently the algorithm has several places that simply were not yet finished:
+- improving the type matching algorithm (responsible for type mismatch warnings) to work with sum types and intersection types (currently it bails out),
+- improving the handling of method arguments that have default values and calling method arguments by name:
+  - This requires extending the `TypeRepresentation.ArrowType` to hold the name of each argument and a flag indicating if it has a default value; then the logic of `CurryNode` and its relatives needs to be ported to the compiler to support the argument reordering, deciding when to use default arguments during the method call and when not to do it (e.g. not all arguments are provided, or the `...` operator is used to explicitly stop the default application).
+- checking for `Private_Access` violations statically.
+  - Currently the `StaticModuleScopeAnalysis` pass does not record if a given method or constructor (or the whole module) is marked as `private`. This property should be recorded, and if a private method is called from an outside module, a warning about the private access could be reported also statically.
+
+#### Integration with the VS Code extension
+
+Integrating the type checker with the VS Code extension for Enso can lead to vastly improved developer experience. The inferred types of bindings can be used to offer some form of method autocomplete and warnings could be displayed inline inside of the code editor.
 
 #### More powerful inference
 
