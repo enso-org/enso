@@ -903,7 +903,7 @@ object Runtime {
     final case class PushContextRequest(
       contextId: ContextId,
       stackItem: StackItem,
-      execute: Boolean
+      execute: Boolean = true
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the [[PushContextRequest]]
