@@ -153,7 +153,8 @@ object EngineNativeLibraryExtractor {
         renameFunc        = renameFunc,
         logger            = logger,
         cacheStoreFactory = cacheFactory,
-        previousRun       = previousRun.forJar(jLineJar)
+        previousRun       = previousRun.forJar(jLineJar),
+        copyMetaInf       = true
       )
       .get
   }
