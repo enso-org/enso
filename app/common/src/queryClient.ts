@@ -8,6 +8,7 @@ import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
+import { PromiseQueue } from './utilities/PromiseQueue'
 
 /** An enumeration of all mutation pool ids. */
 export interface MutationPools {
@@ -120,25 +121,7 @@ export function createQueryClient<TStorageValue = string>(
     })
   }
 
-  const pools: Partial<
-    Record<
-      MutationPoolId,
-      {
-        usedLanes: number
-        queue: { promise: Promise<void>; resolve: () => void; reject: () => void }[]
-      }
-    >
-  > = {}
-
-  function promiseWithResolvers<T = void>() {
-    let resolve!: (value: T | PromiseLike<T>) => void
-    let reject!: (reason?: unknown) => void
-    const promise = new Promise<T>((innerResolve, innerReject) => {
-      resolve = innerResolve
-      reject = innerReject
-    })
-    return { promise, resolve, reject }
-  }
+  const pools: Partial<Record<MutationPoolId, { usedLanes: number; queue: PromiseQueue }>> = {}
 
   const queryClient: QueryClient = new vueQuery.QueryClient({
     mutationCache: new queryCore.MutationCache({
@@ -147,29 +130,18 @@ export function createQueryClient<TStorageValue = string>(
         if (!poolMeta) {
           return
         }
-        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: [] })
+        const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: new PromiseQueue() })
         if (poolInfo.usedLanes >= poolMeta.parallelism) {
-          const promiseAndResolvers = promiseWithResolvers()
-          poolInfo.queue.push(promiseAndResolvers)
-          await promiseAndResolvers.promise
+          await poolInfo.queue.newPromise()
         }
         poolInfo.usedLanes += 1
       },
       onSettled: async (_data, _error, _variables, _context, mutation) => {
         const poolMeta = mutation.meta?.pool
         if (poolMeta) {
-          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: [] })
+          const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 1, queue: new PromiseQueue() })
           poolInfo.usedLanes -= 1
-          while (poolInfo.usedLanes < poolMeta.parallelism) {
-            const [promiseAndResolvers] = poolInfo.queue.splice(0, 1)
-            if (!promiseAndResolvers) {
-              break
-            }
-            // For now assume all mutations are successful.
-            promiseAndResolvers.resolve()
-            // Give the resolve time to execute so that it can update `usedLanes`.
-            await Promise.resolve()
-          }
+          while (poolInfo.usedLanes < poolMeta.parallelism && (await poolInfo.queue.resolveOne()));
         }
       },
       onSuccess: (_data, _variables, _context, mutation) => {
