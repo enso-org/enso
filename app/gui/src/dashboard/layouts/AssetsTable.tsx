@@ -31,6 +31,7 @@ import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
+import { useMount } from '#/hooks/mountHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -41,6 +42,7 @@ import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
 import {
   assetsTableColumnWidthsStore,
+  useAssetsTableColumnWidths,
   useSetAssetsTableColumnWidths,
 } from '#/layouts/Drive/assetsTableColumnWidths'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -1249,8 +1251,25 @@ function AssetsTable(props: AssetsTableProps) {
     : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
     : null
 
+  const widths = useAssetsTableColumnWidths()
+  const widthsRef = useRef(widths)
+
+  useMount(() => {
+    widthsRef.current = structuredClone(widths)
+  })
+
   const setWidths = useSetAssetsTableColumnWidths()
   const onResize: Parameters<typeof ResizableTableContainer>[0]['onResize'] = (newWidths) => {
+    for (const [column, width] of unsafeEntries(widths)) {
+      const columnRef = columnRefs.current[column]
+      if (!columnRef) {
+        continue
+      }
+      const newWidth = newWidths.get(column) ?? width
+      columnRef.style.width = typeof newWidth === 'string' ? newWidth : `${newWidth}px`
+    }
+  }
+  const onResizeEnd: Parameters<typeof ResizableTableContainer>[0]['onResize'] = (newWidths) => {
     setWidths(
       mapEntries(
         assetsTableColumnWidthsStore.getState().widths,
@@ -1260,27 +1279,9 @@ function AssetsTable(props: AssetsTableProps) {
   }
   const columnRefs = useRef<Partial<Record<Column, HTMLTableCellElement | undefined>>>({})
 
-  useEffect(
-    () =>
-      assetsTableColumnWidthsStore.subscribe(({ widths }, { widths: prevWidths }) => {
-        if (widths === prevWidths) {
-          return
-        }
-        for (const [column, width] of unsafeEntries(widths)) {
-          const columnRef = columnRefs.current[column]
-          if (!columnRef) {
-            continue
-          }
-          columnRef.style.width = typeof width === 'string' ? width : `${width}px`
-        }
-      }),
-    [],
-  )
-  const nonReactiveWidths = assetsTableColumnWidthsStore.getState().widths
-
   const table = (
     <div className="flex flex-none flex-col">
-      <ResizableTableContainer onResize={onResize} onResizeEnd={onResize}>
+      <ResizableTableContainer onResize={onResize} onResizeEnd={onResizeEnd}>
         <Table data-testid="assets-table" className="isolate border-collapse rounded-rows">
           <TableHeader
             columns={columns.map((column) => ({ id: column }))}
@@ -1302,7 +1303,7 @@ function AssetsTable(props: AssetsTableProps) {
                     }
                   }}
                   key={column}
-                  width={nonReactiveWidths[column]}
+                  width={widths[column]}
                   className={twJoin(
                     'before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard',
                     COLUMN_CSS_CLASS[column],
@@ -1311,10 +1312,10 @@ function AssetsTable(props: AssetsTableProps) {
                 >
                   <div className="group flex gap-2">
                     <Heading
-                      sortInfo={state.sortInfo}
-                      hideColumn={state.hideColumn}
-                      setSortInfo={state.setSortInfo}
-                      category={state.category}
+                      sortInfo={sortInfo}
+                      hideColumn={hideColumn}
+                      setSortInfo={setSortInfo}
+                      category={category}
                     />
                     <VisualTooltip
                       tooltip={getText('resizeThisColumn')}
