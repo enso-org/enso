@@ -33,14 +33,18 @@ public final class ForeignMethodCallNode extends ExpressionNode {
   }
 
   /**
-   * Creates a new instance of this node
+   * Creates a new instance of this node that will parse and execute provided source. The parsing
+   * will happen when {@link #executeGeneric(com.oracle.truffle.api.frame.VirtualFrame)} is executed
+   * for the first time. The length of {@code names} and {@code arguments} arrays must be the same.
    *
+   * @param src source code to parse
+   * @param names names of arguments the source can refer to
    * @param arguments expressions resulting in the computation of function arguments
-   * @param foreignCt the foreign call target to call
-   * @return the result of calling the foreign call target with the executed arguments
+   * @return new node to perform the evaluation and execution
    */
   public static ForeignMethodCallNode buildDeferred(
       Source src, String[] names, ExpressionNode[] arguments) {
+    assert names.length == arguments.length;
     return new ForeignMethodCallNode(src, names, arguments);
   }
 
