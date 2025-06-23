@@ -39,6 +39,17 @@ To try out the type checker you may run
 
 ### Overall Design
 
+#### What is being checked
+
+Any issues found by the type checker are reported as compilation warnings. They are not treated as errors for two reasons: firstly, because the type checker is still a prototype and so it should not block programs in case there is a mistake in its logic, and secondly, because the program can still run - if the given problematic block of code that is guaranteed to error is not reached during execution it may not cause problems.
+
+Currently the type checker reports the following kinds of warnings:
+- type mismatch, reported whenever during a method call the inferred type of an argument passed to the method does not satisfy the type expected by the function's signature, e.g. calling function defined as `function (x : Integer) = ...` with an argument of type text: `function "Txt"`,
+- no such method, whenever a method is being called on an object with an inferred type and the type checker deduces that the inferred type does not have a method with the given name, e.g. when calling `x.method_1` and the type of `x` is not `Any` and does not define method called `method_1`,
+- discarded value, reported whenever a value, whose inferred type is a _Function_, is discarded; this usually means that not enough arguments were applied to a function.
+
+The type mismatch error is **not** reported for a type-asserting expression, because it can still be satisfied by a hidden intersection type. See [the documentation about intersection types for more information](./intersection-types.md#narrowing-type-check).
+
 #### "Best-effort" gradual typing
 
 Enso has integrated some form of dynamic type checking by implementing the argument type checks and type assertions which are checked at runtime. However, non-negligible amount of code still depends on more 'dynamic' dispatch. Moreover, Enso allows interoperability with external inherently dynamically-typed languages like Java Script or Python, so there are cases where the types of values cannot really be known 'statically'.
@@ -53,7 +64,7 @@ This makes `Any` a special type. In terms of the subtyping relationship it is a 
 
 The type inference relies on existing type signatures and type assertions. Since function argument types are checked at runtime, the type checker treats them as assertions that an incoming value is of a given type. Similarly, code following a type assertion inside of an expression (`y = x : T`, or `(x:T).method`) relies on the fact that the control flow only proceeds if that assertion was satisfied.
 
-The processing is performed by traversing the IR of each method body bottom-up. First we try to infer the types of the 'leafs' - literals or variables, and then based on their types, the type of more comples 'nodes' (e.g. function application).
+The processing is performed by traversing the IR of each method body bottom-up. First types of the leafs - literals or variables - are inferred, and then based on their types, the type of more complex 'nodes' (e.g. function application) is derived based on very basic inference rules that stem from the [simply typed lambda calculus](https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus) with some additional extensions for calling methods on objects and other features of the language like pattern matching. Inside of blocks of code, the inference is run line-by-line; whenever the assignment operator `=` creates a new binding, the inferred type of that binding is saved in a mapping that can then be used by subsequent lines of the block that can reference that binding.
 
 ### Overall structure of implementation
 
@@ -61,7 +72,19 @@ The processing is performed by traversing the IR of each method body bottom-up. 
 
 ### Future work
 
-TODO
+#### Finishing the current algorithm
+
+...
+
+#### More powerful inference
+
+The current approach for inference is very simple, but can already provide basic checking helpful during development. If types of method arguments are known and method definitions on types have checked signatures, then most expressions can be inferred and the type checker can provide warnings in case the inferred types do not match the expectations, allowing the developer to find bugs before before running the program.
+
+However, the inference algorithm has been created with simplicity and checking for program correctness in mind, so the inference does not work with ambiguity. If function arguments do not have checked types, they are treated as `Any` and very little information can be derived from them. Currently, the algorithm does not try to do bidirectional inference that would try to guess what the types of the function 'should be' based on how they are used. 
+
+In the future, one could try to implement more powerful inference that treats un-annotated function arguments as type-variables and tries to propagate them through the data flow, recording any constraints induced by method calls. Then trying to infer what the type of the argument 'should' be to satisfy the gathered constraints. In such case, a distinction may need to be made between function arguments that are 'checked' and ones that have an inferred type but it is not checked at runtime. It is also unclear how the unorthodox approaches like Enso's approach to intersection types would play with solving these kinds of constraints.
+
+Such improvements in type inference may require rather fundamental changes from the current relatively simple 'propagation' algorithm.
 
 
 ## Design Goals
