@@ -15,7 +15,7 @@ public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   }
 
   @Override
-  public void append(Object o) {
+  public BigDecimalBuilder append(Object o) {
     ensureSpaceToAppend();
     if (o == null) {
       appendNulls(1);
@@ -26,6 +26,7 @@ public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
         throw new ValueTypeMismatchException(getType(), o);
       }
     }
+    return this;
   }
 
   @Override

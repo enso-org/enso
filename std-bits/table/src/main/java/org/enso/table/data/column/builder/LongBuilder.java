@@ -132,9 +132,10 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    *
    * @param value the integer to append
    */
-  public void appendLong(long value) {
+  public LongBuilder appendLong(long value) {
     ensureSpaceToAppend();
     this.data[currentSize++] = value;
+    return this;
   }
 
   @Override
@@ -144,10 +145,9 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   @Override
-  public void append(Object o) {
+  public LongBuilder append(Object o) {
     if (o == null) {
-      appendNulls(1);
-      return;
+      return appendNulls(1);
     }
 
     Long x = NumericConverter.tryConvertingToLong(o);
@@ -156,6 +156,8 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
+
+    return this;
   }
 
   @Override

@@ -19,7 +19,7 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
   }
 
   @Override
-  public void append(Object o) {
+  public DateBuilder append(Object o) {
     ensureSpaceToAppend();
     if (o == null) {
       appendNulls(1);
@@ -30,6 +30,7 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
         throw new ValueTypeMismatchException(getType(), o);
       }
     }
+    return this;
   }
 
   @Override

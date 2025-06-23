@@ -49,7 +49,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
-  public StorageType<?> getType() {
+  public StorageType<Double> getType() {
     return FloatType.FLOAT_64;
   }
 
@@ -60,10 +60,9 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
-  public void append(Object o) {
+  public DoubleBuilder append(Object o) {
     if (o == null) {
-      appendNulls(1);
-      return;
+      return appendNulls(1);
     }
 
     double value;
@@ -82,6 +81,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
 
     ensureSpaceToAppend();
     data[currentSize++] = value;
+    return this;
   }
 
   @Override
@@ -147,9 +147,10 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
    *
    * @param value the double to append
    */
-  public void appendDouble(double value) {
+  public DoubleBuilder appendDouble(double value) {
     ensureSpaceToAppend();
     data[currentSize++] = value;
+    return this;
   }
 
   /**
@@ -157,8 +158,9 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
    *
    * <p>It ensures that any loss of precision is reported.
    */
-  public void appendLong(long value) {
+  public DoubleBuilder appendLong(long value) {
     appendDouble(convertLongToDouble(value));
+    return this;
   }
 
   @Override

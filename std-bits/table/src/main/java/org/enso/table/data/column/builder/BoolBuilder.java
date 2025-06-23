@@ -23,7 +23,7 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public void append(Object o) {
+  public BoolBuilder append(Object o) {
     if (o == null) {
       appendNulls(1);
     } else {
@@ -36,6 +36,8 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
       }
       size++;
     }
+
+    return this;
   }
 
   @Override
@@ -48,11 +50,12 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
    *
    * @param value the boolean to append
    */
-  public void appendBoolean(boolean value) {
+  public BoolBuilder appendBoolean(boolean value) {
     if (value) {
       vals.set(size);
     }
     size++;
+    return this;
   }
 
   @Override
@@ -117,7 +120,7 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public StorageType<?> getType() {
+  public StorageType<Boolean> getType() {
     return BooleanType.INSTANCE;
   }
 }

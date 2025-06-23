@@ -12,12 +12,13 @@ public final class NullBuilder implements Builder {
   NullBuilder() {}
 
   @Override
-  public void append(Object o) {
+  public NullBuilder append(Object o) {
     if (o != null) {
       throw new IllegalArgumentException("NullBuilder can only append nulls, but got " + o);
     }
 
     length++;
+    return this;
   }
 
   @Override

@@ -217,7 +217,7 @@ public interface Builder {
    *
    * @param o the item to append
    */
-  void append(Object o);
+  Builder append(Object o);
 
   /**
    * Appends a specified number of missing values into the builder.

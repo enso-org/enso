@@ -30,7 +30,7 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   }
 
   @Override
-  public void append(Object o) {
+  public DateTimeBuilder append(Object o) {
     ensureSpaceToAppend();
     if (o == null) {
       appendNulls(1);
@@ -46,6 +46,7 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
         throw new ValueTypeMismatchException(getType(), o);
       }
     }
+    return this;
   }
 
   @Override

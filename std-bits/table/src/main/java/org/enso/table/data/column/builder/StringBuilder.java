@@ -16,7 +16,7 @@ public final class StringBuilder extends TypedBuilder<String> {
   }
 
   @Override
-  public void append(Object o) {
+  public StringBuilder append(Object o) {
     ensureSpaceToAppend();
     if (o == null) {
       appendNulls(1);
@@ -32,6 +32,7 @@ public final class StringBuilder extends TypedBuilder<String> {
         throw new ValueTypeMismatchException(type, o);
       }
     }
+    return this;
   }
 
   @Override

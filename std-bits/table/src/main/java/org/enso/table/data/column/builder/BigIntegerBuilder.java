@@ -68,7 +68,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public void append(Object o) {
+  public BigIntegerBuilder append(Object o) {
     ensureSpaceToAppend();
 
     if (o == null) {
@@ -80,6 +80,8 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
       }
     }
+
+    return this;
   }
 
   static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
