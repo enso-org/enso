@@ -52,6 +52,7 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Table_Ref.Table_Ref
+import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
 import project.Match_Columns.Match_Columns
@@ -560,7 +561,12 @@ type In_Memory_Table_Implementation
 
     column_info (this_table : Table & In_Memory_Table) -> Table =
         cols = this_table.columns
-        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
+        col_data = this_table.columns.map c-> (c:Visualization_Helpers).await_metrics
+        raw_table = Table.new [["Column", cols.map .name], ["Items Count", col_data.map c-> (this_table.row_count - (c.get Visualization_Helpers.count_nothing_column 0))], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
+        expanded = raw_table.expand_column "Metrics" prefix=..None
+        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get Visualization_Helpers.sampled_column then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
+        tidied = tagged.remove_columns [regex "_.*"] error_on_missing_columns=False on_problems=..Ignore
+        tidied.reorder_columns ["Column", "Items Count", "Value Type", "# Nothing", "# Distinct", "Minimum", "Maximum", "# Empty", "# Untrimmed"] error_on_missing_columns=False on_problems=..Ignore
 
     transpose (this_table : Table & In_Memory_Table) (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) attribute_column_name:Text="Name" value_column_name:Text="Value" error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names =
         columns_helper = this_table.columns_helper
