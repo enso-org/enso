@@ -120,6 +120,7 @@ public class ExcelReader {
    * @param file the {@link File} to load
    * @param index the 1-based index to the sheet.
    * @param skip_rows skip rows from the top the sheet.
+   * @param headers specifies whether the first row should be used as headers.
    * @param row_limit maximum number of rows to read.
    * @param format specifies the file format
    * @return a {@link Table} containing the specified data.
@@ -138,23 +139,44 @@ public class ExcelReader {
     return withWorkbook(
         file,
         format,
-        workbook -> {
-          int sheetCount = workbook.getNumberOfSheets();
-          if (index < 1 || index > sheetCount) {
-            throw new InvalidLocationException(
-                Integer.toString(index),
-                "Sheet " + index + " is out of range (1 to " + sheetCount + " inclusive).");
-          }
+        workbook ->
+            readSheetByIndex(workbook, index, headers, skip_rows, row_limit, problemAggregator));
+  }
 
-          return readTable(
-              workbook,
-              index - 1,
-              null,
-              headers,
-              skip_rows,
-              row_limit == null ? Integer.MAX_VALUE : row_limit,
-              problemAggregator);
-        });
+  /**
+   * Reads a sheet by index for the specified XLSX/XLS file into a table.
+   *
+   * @param workbook a {@link ExcelWorkbook} to read from.
+   * @param index the 1-based index to the sheet.
+   * @param skip_rows skip rows from the top the sheet.
+   * @param headers specifies whether the first row should be used as headers.
+   * @param row_limit maximum number of rows to read.
+   * @return a {@link Table} containing the specified data.
+   * @throws InvalidLocationException when the sheet index is not valid.
+   */
+  public static Table readSheetByIndex(
+      ExcelWorkbook workbook,
+      int index,
+      ExcelHeaders.HeaderBehavior headers,
+      int skip_rows,
+      Integer row_limit,
+      ProblemAggregator problemAggregator)
+      throws InvalidLocationException, InterruptedException {
+    int sheetCount = workbook.getNumberOfSheets();
+    if (index < 1 || index > sheetCount) {
+      throw new InvalidLocationException(
+          Integer.toString(index),
+          "Sheet " + index + " is out of range (1 to " + sheetCount + " inclusive).");
+    }
+
+    return readTable(
+        workbook,
+        index - 1,
+        null,
+        headers,
+        skip_rows,
+        row_limit == null ? Integer.MAX_VALUE : row_limit,
+        problemAggregator);
   }
 
   /**

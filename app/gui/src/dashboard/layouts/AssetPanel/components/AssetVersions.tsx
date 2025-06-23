@@ -4,6 +4,7 @@ import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -52,7 +53,11 @@ export function AssetVersions() {
     return <Result status="info" centered title={getText('assetVersions.invalidAssetType')} />
   }
 
-  return <AssetVersionsInternal backend={remoteBackend} item={focusedAsset} />
+  return (
+    <ErrorBoundary>
+      <AssetVersionsInternal backend={remoteBackend} item={focusedAsset} />
+    </ErrorBoundary>
+  )
 }
 
 /** Props for an {@link AssetVersionsInternal}. */

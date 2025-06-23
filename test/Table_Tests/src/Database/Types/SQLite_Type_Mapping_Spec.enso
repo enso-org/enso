@@ -4,11 +4,12 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Aggregate_Column, Value_Type, Table, Bits
 from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
+import Standard.Database.Connection.Database
 import Standard.Database.Dialect
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
 import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
-from Standard.Database import Database, SQLite, SQL_Query
+from Standard.Database import SQLite, SQL_Query
 
 from Standard.Test import all
 
@@ -129,3 +130,9 @@ add_specs suite_builder =
             operation_type_mapping = SQLite_Type_Mapping.operations_dict
 
             operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

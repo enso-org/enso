@@ -653,7 +653,8 @@ public class Main {
    *     global cache
    * @param shouldUseIrCaches whether or not IR caches should be used.
    * @param disablePrivateCheck whether or not the private check should be disabled
-   * @param enableStaticAnalysis whether or not static type checking should be enabled
+   * @param enableStaticAnalysis whether or not static type checking, and other static analysis,
+   *     should be enabled
    * @param treatWarningsAsErrors whether or not warnings should be treated as errors
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled

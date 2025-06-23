@@ -153,7 +153,7 @@ type DB_Table
        Arguments:
        - selector: The name or index of the column to get.
     @selector Widget_Helpers.make_column_name_selector
-    at self (selector : Integer | Text = 0) -> Column & DB_Column ! No_Such_Column | Index_Out_Of_Bounds =
+    at self (selector : Integer | Text = 0) -> Column ! No_Such_Column | Index_Out_Of_Bounds =
         case selector of
             _ : Integer -> self.make_column (self.internal_columns.at selector)
             _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
@@ -165,7 +165,7 @@ type DB_Table
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
-    get self (selector : Integer | Text = 0) ~if_missing:Any=Nothing -> (Column & DB_Column) | Any =
+    get self (selector : Integer | Text = 0) ~if_missing:Any=Nothing -> Column | Any =
         internal_column = case selector of
             _ : Integer -> self.internal_columns.get selector if_missing=Nothing
             _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
@@ -224,7 +224,7 @@ type DB_Table
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
-    first_column self -> Column & DB_Column ! Index_Out_Of_Bounds =
+    first_column self -> Column ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw self.connection.dialect "first_column" <|
             self.at 0
 
@@ -232,7 +232,7 @@ type DB_Table
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the last column
-    last_column self -> Column & DB_Column ! Index_Out_Of_Bounds =
+    last_column self -> Column ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw self.connection.dialect "last_column" <|
             self.at -1
 
@@ -651,7 +651,7 @@ type DB_Table
 
        If instead of a name, a column is provided, it is returned as-is as long
        as it comes from the same context.
-    resolve : Text | DB_Column -> Column & DB_Column
+    resolve : Text | DB_Column -> Column
     resolve self column =
         Feature.Select_Columns.if_supported_else_throw self.connection.dialect "resolve" <|
             case column of
@@ -724,15 +724,15 @@ type DB_Table
              people.filter "age" (age -> (age%10 == 0))
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
-    filter self (column : (Column & DB_Column) | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
+    filter self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
         Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
             case column of
                 _ : Column ->
-                    mask (filter_column : Column & DB_Column) = case Helpers.check_integrity self filter_column of
+                    mask filter_column = case Helpers.check_integrity self (filter_column:DB_Column) of
                         False ->
                             Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
                         True ->
-                            new_filters = self.context.where_filters + [filter_column.expression]
+                            new_filters = self.context.where_filters + [(filter_column:DB_Column).expression]
                             new_ctx = self.context.set_where_filters new_filters
                             self.updated_context new_ctx
 
@@ -1140,7 +1140,7 @@ type DB_Table
                  table.set double_inventory as="total_stock"
                  table.set (expr "2 * [total_stock]") as="total_stock_expr"
     @value Simple_Expression.default_widget
-    set self (value : (Column & DB_Column) | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+    set self (value : Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names
@@ -1204,7 +1204,7 @@ type DB_Table
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
-    evaluate_expression : Text | Expression -> Problem_Behavior -> Column & DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression : Text | Expression -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
         if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
             get_column name = self.at name
@@ -1261,7 +1261,7 @@ type DB_Table
     ## PRIVATE
 
        Create a constant column from a value.
-    make_constant_column : Any -> Column & DB_Column ! Illegal_Argument
+    make_constant_column : Any -> Column ! Illegal_Argument
     make_constant_column self value =
         if Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
             type_mapping = self.connection.dialect.get_type_mapping
@@ -1286,8 +1286,7 @@ type DB_Table
 
     ## PRIVATE
        Run a table transformer with a temporary column added.
-    with_temporary_column :  DB_Column -> (Text -> DB_Table -> DB_Table) -> DB_Table
-    with_temporary_column self new_column:DB_Column f:(Text -> DB_Table -> DB_Table) =
+    with_temporary_column self new_column:Column f:(Text -> DB_Table -> DB_Table) -> DB_Table =
         new_column_name = self.make_temp_column_name
         with_new_column = self.set new_column new_column_name set_mode=Set_Mode.Add
         modified_table = f new_column_name with_new_column
@@ -1419,7 +1418,7 @@ type DB_Table
                     column = selected_column.column
                     associated_selector = selected_column.associated_selector
                     effective_text_ordering = if column.value_type.is_text then text_ordering else Nothing
-                    self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
+                    self.connection.dialect.prepare_order_descriptor column:Internal_Column associated_selector.direction effective_text_ordering
                 new_ctx = self.context.add_orders new_order_descriptors
                 self.updated_context new_ctx
 
@@ -2795,7 +2794,7 @@ type DB_Table
 
        Arguments:
        - internal: The internal column to use for creating a column.
-    make_column self internal:Internal_Column -> Column & DB_Column =
+    make_column self internal:Internal_Column -> Column =
         DB_Column.new internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE
@@ -3071,7 +3070,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | DB_Column | Column_Ref | Expression | Regex = "") (new_text : Text | DB_Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column & DB_Column =
+    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
@@ -3203,12 +3202,12 @@ type DB_Table
                 order_descriptors = _resolve_order_descriptors self ordering "offset"
                 grouping_expressions = (grouping_columns.map (Internal_Column.from _)).map .expression
                 
-                offset_expr c:DB_Column -> SQL_IR_Expression =
+                offset_expr c -> SQL_IR_Expression =
                     Offset_Helpers.make_offset n (Internal_Column.from c) order_descriptors grouping_expressions fill_with
                 new_column_name c:Column -> Text =
                     if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
                 
-                new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) c.sql_type_reference (offset_expr c))
+                new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) (c:DB_Column).sql_type_reference (offset_expr c))
 
                 updated_table = new_columns.fold self t-> col->
                     t.set (self.make_column col)
@@ -3361,7 +3360,7 @@ private _resolve_order_descriptors table ordering operation_name:Text =
             False -> ordering.map element->
                 column = element.column
                 associated_selector = element.associated_selector
-                dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
+                dialect.prepare_order_descriptor column:Internal_Column associated_selector.direction text_ordering=Nothing
             True -> default_ordering
 
 ## PRIVATE

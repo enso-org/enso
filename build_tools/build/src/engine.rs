@@ -94,6 +94,9 @@ pub enum Tests {
 
     /// Run a subset of Standard Library tests that deals with Cloud-related functionality.
     StdCloudRelated,
+
+    /// Run Microsoft tests.
+    StdMicrosoft,
 }
 
 /// Configuration for how the binary inside the engine distribution should be built.

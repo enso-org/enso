@@ -15,10 +15,11 @@ import { drawSelection, EditorView } from '@codemirror/view'
 import { type ComponentInstance, computed, useCssModule, useTemplateRef } from 'vue'
 import * as Y from 'yjs'
 
-const { content, toolbar, contentTestId } = defineProps<{
+const { content, toolbar, contentTestId, scrollerTestId } = defineProps<{
   content: Y.Text | string
   toolbar: boolean
   contentTestId?: string | undefined
+  scrollerTestId?: string | undefined
 }>()
 defineOptions({
   inheritAttrs: false,
@@ -44,6 +45,7 @@ const { editorView, readonly, setExtraExtensions } = useCodeMirror(editorRoot, {
   vueHost: () => vueHost,
   lineMode: 'multi',
   contentTestId,
+  scrollerTestId,
 })
 
 useLinkTitles(editorView, { readonly })
