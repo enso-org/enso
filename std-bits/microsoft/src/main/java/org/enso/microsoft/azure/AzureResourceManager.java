@@ -6,6 +6,7 @@ import com.azure.resourcemanager.storage.models.StorageAccount;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.enso.table.util.LeastRecentlyUsedCache;
 
 public final class AzureResourceManager {
   private static com.azure.resourcemanager.AzureResourceManager.Authenticated getClient(
@@ -30,8 +31,14 @@ public final class AzureResourceManager {
     return result;
   }
 
-  private static final Map<String, List<AzureSubscription>> subscriptionsCache =
-      new LRUCache<>(100);
+  private static Map<String, List<AzureSubscription>> _subscriptionsCache;
+
+  private static Map<String, List<AzureSubscription>> subscriptionsCache() {
+    if (_subscriptionsCache == null) {
+      _subscriptionsCache = new LeastRecentlyUsedCache<>(100);
+    }
+    return _subscriptionsCache;
+  }
 
   /**
    * Represents an Azure subscription.
@@ -50,17 +57,19 @@ public final class AzureResourceManager {
   public static List<AzureSubscription> subscriptions(
       AzureCredential credential, AzureEnvironment environment) {
     var cacheKey = credential.uniqueId() + environment.toString();
-    return subscriptionsCache.computeIfAbsent(
-        cacheKey,
-        k -> {
-          var subscriptions = getClient(credential, environment).subscriptions();
-          var result = new ArrayList<AzureSubscription>();
-          for (var subscription : subscriptions.list()) {
-            result.add(
-                new AzureSubscription(subscription.subscriptionId(), subscription.displayName()));
-          }
-          return result;
-        });
+    return subscriptionsCache()
+        .computeIfAbsent(
+            cacheKey,
+            k -> {
+              var subscriptions = getClient(credential, environment).subscriptions();
+              var result = new ArrayList<AzureSubscription>();
+              for (var subscription : subscriptions.list()) {
+                result.add(
+                    new AzureSubscription(
+                        subscription.subscriptionId(), subscription.displayName()));
+              }
+              return result;
+            });
   }
 
   /**

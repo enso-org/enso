@@ -137,7 +137,7 @@ const onSignOut = () => {
           </KeepAlive>
         </div>
         <RightPanel />
-        <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop.passive />
+        <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
       </div>
     </RightPanelDataProviderForReact>
   </div>

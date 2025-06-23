@@ -146,7 +146,6 @@ declare global {
     readonly fileBrowserApi?: FileBrowserApi
     readonly versionInfo?: VersionInfo
     readonly mapBoxApiToken?: () => string
-    toggleDevtools: () => void
     /**
      * If set to `true`, animations will be disabled.
      * Used by playwright tests to speed up execution.

@@ -4,16 +4,16 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
+import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 
-public final class JVMPeer implements Supplier<Persistance.Pool> {
+public final class JVMPeer extends Channel.Config {
 
   public JVMPeer() {}
 
   @Override
-  public Persistance.Pool get() {
+  public Persistance.Pool createPool(Channel<?> ignore) {
     return Persistables.POOL;
   }
 

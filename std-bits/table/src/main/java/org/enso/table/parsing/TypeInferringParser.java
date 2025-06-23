@@ -1,7 +1,7 @@
 package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.CountNothing;
+import org.enso.table.data.column.operation.unary.CountNothing;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.parsing.problems.CommonParseProblemAggregator;

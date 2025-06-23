@@ -70,15 +70,16 @@ public final class SuggestionsCache
 
   @Override
   public byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
-    return PersistUtils.POOL.write(
-        entry, CacheUtils.writeReplace(context.getCompiler().context(), true));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    return pool.write(entry);
   }
 
   @Override
   public CachedSuggestions deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws IOException {
-    var ref = PersistUtils.POOL.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    var ref = pool.read(data);
     var cachedSuggestions = ref.get(CachedSuggestions.class);
     return cachedSuggestions;
   }

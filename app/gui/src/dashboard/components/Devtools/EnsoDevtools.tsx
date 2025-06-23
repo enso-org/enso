@@ -1,50 +1,24 @@
-/**
- * @file
- *
- * A component that provides a UI for toggling paywall features.
- */
+/** @file UI for editing application state. */
 import * as React from 'react'
+import { useShowEnsoDevtools } from './EnsoDevtoolsProvider'
 
-import * as authProvider from '$/providers/react/auth'
-import { useEffect } from 'react'
-import { ensoDevtoolsStore, useShowEnsoDevtools } from './EnsoDevtoolsProvider'
+const EnsoDevtoolsImpl =
+  process.env.NODE_ENV === 'development' ?
+    React.lazy(() => import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevtools })))
+  : () => null
+const EnsoDevStatus =
+  process.env.NODE_ENV === 'development' ?
+    React.lazy(() => import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevStatus })))
+  : () => null
 
-const EnsoDevtoolsImpl = React.lazy(() =>
-  import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevtools })),
-)
-const EnsoDevStatus = React.lazy(() =>
-  import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevStatus })),
-)
-
-/** A component that provides a UI for toggling paywall features. */
+/** UI for editing application state */
 export function EnsoDevtools() {
-  const { isEnsoTeamMember } = authProvider.useUser()
-
   const showEnsoDevtools = useShowEnsoDevtools()
-
-  useEffect(() => {
-    if (isEnsoTeamMember) {
-      addToggleDevtoolsToWindow()
-    }
-  }, [isEnsoTeamMember])
-
-  if (!showEnsoDevtools) {
-    return null
-  }
 
   return (
     <>
-      <EnsoDevtoolsImpl />
+      {showEnsoDevtools && <EnsoDevtoolsImpl />}
       <EnsoDevStatus />
     </>
   )
-}
-
-/**
- * Adds the `toggleDevtools` function to the window object.
- */
-function addToggleDevtoolsToWindow() {
-  if (typeof window !== 'undefined') {
-    window.toggleDevtools = ensoDevtoolsStore.getState().toggleDevtools
-  }
 }

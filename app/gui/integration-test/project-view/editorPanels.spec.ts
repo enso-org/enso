@@ -1,6 +1,6 @@
 /** @file Tests for the multiline CodeMirror editor panels: documentation editor and code editor. */
 import type { Page } from '@playwright/test'
-import { test } from 'playwright/test'
+import { type Locator, test } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockCollapsedFunctionInfo, mockMethodCallInfo } from './expressionUpdates'
@@ -11,8 +11,9 @@ async function goToGraphAndGetDocs(page: Page) {
   await actions.goToGraph(page)
   await page.getByRole('tab', { name: 'Documentation' }).click()
   const docsContent = page.getByTestId('documentation-editor-content')
+  const docsScroller = page.getByTestId('documentation-editor-scroller')
   await expect(docsContent.locator('.cm-line')).toExist()
-  return { docsContent }
+  return { docsContent, docsScroller }
 }
 
 test('Main method documentation', async ({ page }) => {
@@ -78,7 +79,8 @@ async function openCodeEditor(page: Page) {
   await expect(codeEditor).toBeVisible()
   const getCodeEditorContent = () =>
     page.evaluate(() => (window as any).__codeEditorApi.textContent())
-  return { codeEditor, getCodeEditorContent }
+  const codeScroller = codeEditor.locator('.cm-scroller')
+  return { codeEditor, getCodeEditorContent, codeScroller }
 }
 
 test('Code editor with wide content does not take space from doc editor (#12476)', async ({
@@ -194,6 +196,31 @@ test('Documentation editor: Editing with keyboard', async ({ page }) => {
   await page.keyboard.type('Second line')
   const codeAfterAddingLine = await getCodeEditorContent()
   expect(codeAfterAddingLine).toContain(`## # ${NEW_DOCS}\n   Second line`)
+})
+
+function getScrollbarState(locator: Locator) {
+  return locator.evaluate((el) => ({
+    scrollableWidth: el.scrollWidth > el.clientWidth,
+    scrollableHeight: el.scrollHeight > el.clientHeight,
+  }))
+}
+
+test('Scrollbars in editor panels', async ({ page }) => {
+  const { docsContent, docsScroller } = await goToGraphAndGetDocs(page)
+  await docsContent
+    .locator('.cm-line')
+    .getByText(/The main method/)
+    .click()
+  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  const NEW_DOCS = ('very long documentation '.repeat(12) + '\n').repeat(30)
+  await docsContent.fill(NEW_DOCS)
+  await expect(docsContent).toHaveText(NEW_DOCS)
+  const docsScrollbars = await getScrollbarState(docsScroller)
+  expect(docsScrollbars).toEqual({ scrollableWidth: false, scrollableHeight: true })
+
+  const { codeScroller } = await openCodeEditor(page)
+  const codeScrollbars = await getScrollbarState(codeScroller)
+  expect(codeScrollbars).toEqual({ scrollableWidth: true, scrollableHeight: true })
 })
 
 test.skip('Code editor: Copy and paste (clipboard cannot be used in CI but test can be run locally)', async ({

@@ -129,10 +129,10 @@ add_specs suite_builder =
 
         group_builder.specify "should allow sorting by a single column name" <|
             r1 = data.t1.sort ([..Name "A"]) . at "B"
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC', []]
+            (r1:DB_Column).to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC', []]
 
             r2 = data.t1.sort ([..Name "B" ..Descending]) . at "A"
-            r2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" ORDER BY "T1"."B" DESC', []]
+            (r2:DB_Column).to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" ORDER BY "T1"."B" DESC', []]
 
         group_builder.specify 'should allow sorting by multiple column names' <|
             r1 = data.t1.sort ([..Name 'A', ..Name 'B'])

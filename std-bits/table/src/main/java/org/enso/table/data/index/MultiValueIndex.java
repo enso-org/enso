@@ -14,7 +14,7 @@ import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.CountNothing;
+import org.enso.table.data.column.operation.unary.CountNothing;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;

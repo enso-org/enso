@@ -35,8 +35,8 @@ import org.enso.common.LanguageInfo;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
+import org.enso.jvm.channel.JVM;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
-import org.enso.os.environment.jni.JVM;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -653,7 +653,8 @@ public class Main {
    *     global cache
    * @param shouldUseIrCaches whether or not IR caches should be used.
    * @param disablePrivateCheck whether or not the private check should be disabled
-   * @param enableStaticAnalysis whether or not static type checking should be enabled
+   * @param enableStaticAnalysis whether or not static type checking, and other static analysis,
+   *     should be enabled
    * @param treatWarningsAsErrors whether or not warnings should be treated as errors
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled
@@ -1574,6 +1575,15 @@ public class Main {
       }
     }
 
+    if (System.getProperty("java.home") == null) {
+      assert HostEnsoUtils.isAot() : "Otherwise java.home would be defined";
+      var exe = JavaFinder.findJavaExecutable();
+      if (exe != null) {
+        var path = exe.getParentFile().getParentFile().getAbsolutePath();
+        System.setProperty("java.home", path);
+        LOGGER.debug("Setting java.home property for AOT mode to {}", path);
+      }
+    }
     handleLaunch(originalCwdOrNull, line, logLevel, logMasking[0]);
   }
 

@@ -20,7 +20,11 @@
         "minute": 13,
         "second": 14,
         "nanosecond": 123004005,
-        "zone": { "type": "Time_Zone", "constructor": "parse", "id": "MET" }
+        "zone": {
+          "type": "Time_Zone",
+          "constructor": "parse",
+          "id": "MET"
+        }
       },
       {
         "_display_text_": "2025-01-01 12:13:14.123[MET]",
@@ -33,7 +37,11 @@
         "minute": 13,
         "second": 14,
         "nanosecond": 123004005,
-        "zone": { "type": "Time_Zone", "constructor": "parse", "id": "MET" }
+        "zone": {
+          "type": "Time_Zone",
+          "constructor": "parse",
+          "id": "MET"
+        }
       },
       {
         "_display_text_": "2025-01-03 12:13:14.123[MET]",
@@ -46,7 +54,11 @@
         "minute": 13,
         "second": 14,
         "nanosecond": 123004005,
-        "zone": { "type": "Time_Zone", "constructor": "parse", "id": "MET" }
+        "zone": {
+          "type": "Time_Zone",
+          "constructor": "parse",
+          "id": "MET"
+        }
       }
     ]
   ],
@@ -56,14 +68,26 @@
   "use_bottom_status_bar": true,
   "enable_create_node": true,
   "data_quality_metrics": [
-    { "name": "Count nothings", "percentage_value": [0] },
-    { "name": "Count untrimmed whitespace", "percentage_value": [null] },
-    { "name": "Count non trivial whitespace", "percentage_value": [null] }
+    {
+      "name": "Range",
+      "values": ["2025-01-01 12:13:14.123[MET] - 2025-01-03 12:13:14.123[MET]"],
+      "type": "Text"
+    },
+    {
+      "name": "Number of distinct",
+      "values": [3],
+      "type": "Count"
+    },
+    {
+      "name": "% nothing",
+      "values": [0],
+      "type": "Percentage"
+    }
   ],
   "type": "EnsoTableOrColumn",
   "child_label": "row",
   "is_using_server_sort_and_filter": false,
   "requires_number_format": [false],
   "table_version_hash": null,
-  "is_using_multi_filter": [false]
+  "is_using_multi_filter": [true]
 }

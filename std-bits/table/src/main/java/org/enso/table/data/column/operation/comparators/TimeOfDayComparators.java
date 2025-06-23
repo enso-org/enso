@@ -1,20 +1,20 @@
 package org.enso.table.data.column.operation.comparators;
 
 import java.time.LocalTime;
-import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 
 final class TimeOfDayComparators {
-  public static final BinaryOperation<Boolean> EQ =
+  public static final BinaryOperationTyped<Boolean> EQ =
       new GenericComparators<>(TimeOfDayType.INSTANCE, LocalTime::equals, false);
-  public static final BinaryOperation<Boolean> NEQ =
+  public static final BinaryOperationTyped<Boolean> NEQ =
       new GenericComparators<>(TimeOfDayType.INSTANCE, (a, b) -> !a.equals(b), true);
-  public static final BinaryOperation<Boolean> LT =
+  public static final BinaryOperationTyped<Boolean> LT =
       new GenericComparators<>(TimeOfDayType.INSTANCE, LocalTime::isBefore);
-  public static final BinaryOperation<Boolean> LTE =
+  public static final BinaryOperationTyped<Boolean> LTE =
       new GenericComparators<>(TimeOfDayType.INSTANCE, (a, b) -> !a.isAfter(b));
-  public static final BinaryOperation<Boolean> GT =
+  public static final BinaryOperationTyped<Boolean> GT =
       new GenericComparators<>(TimeOfDayType.INSTANCE, LocalTime::isAfter);
-  public static final BinaryOperation<Boolean> GTE =
+  public static final BinaryOperationTyped<Boolean> GTE =
       new GenericComparators<>(TimeOfDayType.INSTANCE, (a, b) -> !a.isBefore(b));
 }

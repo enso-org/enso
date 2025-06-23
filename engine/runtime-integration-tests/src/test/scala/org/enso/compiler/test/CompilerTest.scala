@@ -308,7 +308,7 @@ trait CompilerRunner {
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,
-            BindingsMap(
+            new BindingsMap(
               List(),
               ModuleReference.Concrete(mod.asCompilerModule())
             )
