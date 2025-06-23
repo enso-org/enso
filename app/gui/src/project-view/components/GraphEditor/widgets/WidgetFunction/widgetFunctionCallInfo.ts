@@ -43,6 +43,7 @@ export function useWidgetFunctionCallInfo(
   },
   project: {
     useVisualizationData(config: Ref<Opt<NodeVisualizationConfiguration>>): Ref<Result<any> | null>
+    moduleProjectPath: ProjectPath
   },
   projectNames: ProjectNameStore,
 ) {
@@ -111,10 +112,7 @@ export function useWidgetFunctionCallInfo(
       Ast.TextLiteral.new(JSON.stringify(args)).code(),
     ]
 
-    const modulePath: ProjectPath = ProjectPath.create(
-      'local.NewProject1' as QualifiedName,
-      'Main' as QualifiedName,
-    )
+    const modulePath = project.moduleProjectPath
     const moduleFqn = projectNames.serializeProjectPathForBackend(modulePath)
 
     const expressionId = widgetQuerySubjectExpressionId.value
