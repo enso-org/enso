@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
 import java.util.NoSuchElementException;
-
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
@@ -19,10 +18,10 @@ public final class DoubleStorage extends Storage<Double>
   private final int size;
 
   /**
-   * @param data      the underlying data
-   * @param size      the number of items stored
+   * @param data the underlying data
+   * @param size the number of items stored
    * @param isNothing a bit set denoting at index {@code i} whether the value at index {@code i} is
-   *                  Nothing.
+   *     Nothing.
    */
   public DoubleStorage(double[] data, int size, BitSet isNothing) {
     this.data = data;
@@ -66,9 +65,7 @@ public final class DoubleStorage extends Storage<Double>
     return isNothing.get((int) idx);
   }
 
-  /**
-   * Allow access to the underlying data array for copying.
-   */
+  /** Allow access to the underlying data array for copying. */
   public double[] getData() {
     return data;
   }
