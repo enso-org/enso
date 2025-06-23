@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
-import { Err, mapOk, unwrapOr } from '@/util/data/result'
+import { Ast } from '@/util/ast'
+import { parseModule } from '@/util/ast/abstract'
+import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
 import { ResultComponent } from '@/util/react'
+import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 
 const rightPanel = useRightPanelData()
-const openedProject = injectCurrentProject().ref
+const openedProject = useCurrentProject().ref
 const projectId = computed(() => rightPanel.focusedProject)
 const { backendForType } = useBackends()
 const backendForAsset = computed(() => {
@@ -19,7 +22,41 @@ const backendForAsset = computed(() => {
   return backendForType(rightPanel.context.category.backend)
 })
 
-const currentMethodAst = computed(() => openedProject.value?.graph.currentMethod.ast)
+const fileContentsFromCloud = useQuery({
+  queryKey: computed(
+    () =>
+      [
+        backendForAsset.value?.type,
+        {
+          method: 'getFileContent',
+          projectId: projectId.value,
+        },
+      ] as const,
+  ),
+  enabled: computed(
+    () => openedProject.value == null && backendForAsset.value != null && projectId.value != null,
+  ),
+  queryFn: ({ queryKey }) => {
+    const [, { projectId }] = queryKey
+    return projectId && backendForAsset.value?.getFileContent(projectId)
+  },
+})
+
+const currentMethodAst = computed(() => {
+  if (openedProject.value) {
+    return mapOk(openedProject.value.graph.currentMethod.ast, (ast) => ({ ast, readOnly: false }))
+  } else if (fileContentsFromCloud.data != null) {
+    if (fileContentsFromCloud.error.value) return Err(fileContentsFromCloud.error.value)
+    if (fileContentsFromCloud.isLoading.value) return Err('Loading documentation...')
+    const code = fileContentsFromCloud.data.value
+    if (code) {
+      const module = parseModule(code)
+      const statement = Ast.findModuleMethod(module, 'main')?.statement
+      if (statement) return Ok({ ast: statement, readOnly: true })
+    }
+  }
+  return Err('No documentation available')
+})
 
 const currentMethodPointer = computed(
   () => openedProject.value && unwrapOr(openedProject.value.graph.currentMethod.pointer, undefined),
@@ -31,13 +68,12 @@ const displaySignatureEditor = computed(
     !methodPointerEquals(currentMethodPointer.value, openedProject.value.store.entryPoint),
 )
 
-const editorMarkdown = computed(() => {
-  if (currentMethodAst.value != null) {
-    return mapOk(currentMethodAst.value, (ast) => ast.mutableDocumentationMarkdown())
-  } else {
-    return Err('No documentation available')
-  }
-})
+const editorMarkdown = computed(() =>
+  mapOk(currentMethodAst.value, ({ ast, readOnly }) => {
+    const docs = ast.mutableDocumentationMarkdown()
+    return readOnly ? docs.toString() : docs
+  }),
+)
 
 provideDocumentationImages({
   openedProject,
@@ -48,16 +84,12 @@ provideDocumentationImages({
 
 <template>
   <div class="DocumentationEditor">
-    <MarkdownEditor
-      v-if="editorMarkdown.ok"
-      :content="editorMarkdown.value"
-      contentTestId="documentation-editor-content"
-    >
+    <MarkdownEditor v-if="editorMarkdown.ok" contentTestId="documentation-editor-content">
       <template #belowToolbar>
         <FunctionSignatureEditor
-          v-if="displaySignatureEditor && currentMethodAst?.ok && openedProject"
+          v-if="displaySignatureEditor && currentMethodAst.ok && openedProject"
           :projectId="openedProject.store.id"
-          :functionAst="currentMethodAst.value"
+          :functionAst="currentMethodAst.value.ast"
           :methodPointer="currentMethodPointer"
         />
       </template>

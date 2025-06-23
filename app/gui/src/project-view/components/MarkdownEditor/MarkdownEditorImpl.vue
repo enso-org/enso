@@ -11,13 +11,24 @@ import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { type ComponentInstance, computed, useCssModule, useTemplateRef } from 'vue'
-import * as Y from 'yjs'
+import { type ComponentInstance, computed, Ref, useCssModule, useTemplateRef } from 'vue'
 
-const { content, toolbar, contentTestId } = defineProps<{
-  content: Y.Text | string
-  toolbar: boolean
+const {
+  toolbar = true,
+  readonly = false,
+  extensions = () => [],
+  contentTestId,
+} = defineProps<{
+  toolbar?: boolean | undefined
+  readonly?: boolean | undefined
+  /**
+   * Additional extensions factories
+   *
+   * These functions are called in setup contexts of this component.
+   */
+  extensions?: ((view: EditorView, focused: Ref<boolean>) => Extension) | undefined
   contentTestId?: string | undefined
 }>()
 defineOptions({
@@ -28,8 +39,7 @@ const images = useDocumentationImages(true)
 
 const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, setExtraExtensions } = useCodeMirror(editorRoot, {
-  content: () => content,
+const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   extensions: [
     drawSelection(),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
@@ -41,6 +51,7 @@ const { editorView, readonly, setExtraExtensions } = useCodeMirror(editorRoot, {
         ((item: ClipboardItem) => images.value.tryUploadPastedImage(editorView, item)),
     }),
   ],
+  readonly: () => readonly,
   vueHost: () => vueHost,
   lineMode: 'multi',
   contentTestId,
@@ -49,7 +60,7 @@ const { editorView, readonly, setExtraExtensions } = useCodeMirror(editorRoot, {
 useLinkTitles(editorView, { readonly })
 
 const { focused, focusHandlers } = useEditorFocus(editorView)
-const editing = computed(() => !readonly.value && focused.value)
+const editing = computed(() => !readonly && focused.value)
 
 const formatting = useMarkdownFormatting(editorView)
 const { formatBindings } = useFormatActions({
@@ -57,7 +68,11 @@ const { formatBindings } = useFormatActions({
   editing,
   uploadImage: () => images?.value && (() => images.value.tryUploadImageFile(editorView)),
 })
-setExtraExtensions([formatBindings])
+setExtraExtensions([formatBindings, extensions(editorView, focused)])
+
+defineExpose({
+  editorView,
+})
 </script>
 
 <template>

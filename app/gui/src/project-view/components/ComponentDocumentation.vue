@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useConainerData } from '$/providers/container'
 import { useRightPanelData } from '$/providers/rightPanel'
-import DocumentationPanel from '@/components/DocumentationPanel.vue'
+import DocumentationPanel from '@/components/ComponentHelpPanel.vue'
 import { Err, Ok } from '@/util/data/result'
 import { ResultComponent } from '@/util/react'
 import { computed } from 'vue'

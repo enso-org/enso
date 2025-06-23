@@ -1,250 +1,86 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
-import Breadcrumbs, {
-  type Item as Breadcrumb,
-} from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
-import DocsExamples from '@/components/DocumentationPanel/DocsExamples.vue'
-import DocsHeader from '@/components/DocumentationPanel/DocsHeader.vue'
-import DocsList from '@/components/DocumentationPanel/DocsList.vue'
-import DocsSynopsis from '@/components/DocumentationPanel/DocsSynopsis.vue'
-import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
-import { HistoryStack } from '@/components/DocumentationPanel/history'
-import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
-import {
-  lookupDocumentation,
-  lookupRawDocumentation,
-  placeholder,
-} from '@/components/DocumentationPanel/ir'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useBackends } from '$/providers/backends'
+import { useRightPanelData } from '$/providers/rightPanel'
+import FunctionSignatureEditor from '@/components/FunctionSignatureEditor.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
-import SvgButton from '@/components/SvgButton.vue'
-import { groupColorStyle } from '@/composables/nodeColors'
-import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
-import { tryGetIndex } from '@/util/data/array'
-import { type Opt } from '@/util/data/opt'
-import { Ok } from '@/util/data/result'
-import type { Icon as IconName } from '@/util/iconMetadata/iconName'
-import { ProjectPath } from '@/util/projectPath'
-import { qnSegments, qnSlice } from '@/util/qualifiedName'
-import { computed, watch } from 'vue'
+import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
+import { Err, mapOk, unwrapOr } from '@/util/data/result'
+import { methodPointerEquals } from '@/util/methodPointer'
+import { ResultComponent } from '@/util/react'
+import { computed } from 'vue'
 
-const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
-const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
-
-const { suggestionDb: db, names: projectNames } = injectCurrentProject().storesRefs
-
-const documentation = computed<Docs>(() => {
-  if (props.aiMode)
-    return placeholder('AI assistant mode: write query in natural language and press Enter.')
-  const entry = props.selectedEntry
-  return entry && db.value ?
-      lookupDocumentation(db.value.entries, entry)
-    : placeholder('No suggestion selected.')
+const rightPanel = useRightPanelData()
+const openedProject = useCurrentProject().ref
+const projectId = computed(() => rightPanel.focusedProject)
+const { backendForType } = useBackends()
+const backendForAsset = computed(() => {
+  if (rightPanel.context?.category == null) return null
+  return backendForType(rightPanel.context.category.backend)
 })
 
-const rawDocumentation = computed(() => {
-  const entry = props.selectedEntry
-  return entry && db.value ? lookupRawDocumentation(db.value.entries, entry) : undefined
-})
+const currentMethodAst = computed(() => openedProject.value?.graph.currentMethod.ast)
 
-const sections = computed<Sections>(() => {
-  const docs: Docs = documentation.value
-  const fallback = { tags: [], synopsis: [], examples: [] }
-  return docs.kind === 'Placeholder' ? fallback : docs.sections
-})
-
-const methods = computed<FunctionDocs[]>(() => {
-  const docs = documentation.value
-  return docs.kind === 'Module' || docs.kind === 'Type' ? docs.methods : []
-})
-
-const constructors = computed<FunctionDocs[]>(() => {
-  const docs = documentation.value
-  return docs.kind === 'Type' ? docs.constructors : []
-})
-
-const types = computed<TypeDocs[]>(() => {
-  const docs = documentation.value
-  return docs.kind === 'Module' ? docs.types : []
-})
-
-const isPlaceholder = computed(() => documentation.value.kind === 'Placeholder')
-
-const name = computed<Opt<ProjectPath>>(() => {
-  const docs = documentation.value
-  return docs.kind === 'Placeholder' ? null : docs.name
-})
-
-// === Breadcrumbs ===
-
-const suggestion = computed(() =>
-  props.selectedEntry != null && db.value ? db.value.entries.get(props.selectedEntry) : undefined,
+const currentMethodPointer = computed(
+  () => openedProject.value && unwrapOr(openedProject.value.graph.currentMethod.pointer, undefined),
+)
+const displaySignatureEditor = computed(
+  () =>
+    currentMethodPointer.value &&
+    openedProject.value?.store.entryPoint &&
+    !methodPointerEquals(currentMethodPointer.value, openedProject.value.store.entryPoint),
 )
 
-const color = computed(() =>
-  groupColorStyle(db.value && tryGetIndex(db.value.groups, suggestion.value?.groupIndex)),
-)
-
-const style = computed(() => ({
-  '--enso-docs-group-color': color.value,
-}))
-
-const icon = computed<IconName>(() => suggestion.value?.iconName ?? 'marketplace')
-
-const documentationUrl = computed(
-  () => suggestion.value && suggestionDocumentationUrl(suggestion.value),
-)
-
-const historyStack = new HistoryStack()
-
-// Reset breadcrumbs history when the user selects the entry from the component list.
-watch(
-  () => props.selectedEntry,
-  (entry) => {
-    if (entry && historyStack.current.value !== entry) {
-      historyStack.reset(entry)
-    }
-  },
-)
-
-// Update displayed documentation page when the user uses breadcrumbs.
-watch(historyStack.current, (current) => {
-  if (current) {
-    emit('update:selectedEntry', current)
-  }
-})
-
-const breadcrumbs = computed<Breadcrumb[]>(() => {
-  if (name.value && projectNames.value) {
-    const segments = [...qnSegments(projectNames.value.printProjectPath(name.value))]
-    return segments.slice(1).map((s) => ({ label: s.toLowerCase() }))
+const editorMarkdown = computed(() => {
+  if (currentMethodAst.value != null) {
+    return mapOk(currentMethodAst.value, (ast) => ast.mutableDocumentationMarkdown())
   } else {
-    return []
+    return Err('No documentation available')
   }
 })
 
-function handleBreadcrumbClick(index: number) {
-  if (name.value) {
-    const pathSlice = name.value.path ? qnSlice(name.value.path, 0, index) : Ok(undefined)
-    if (pathSlice.ok) {
-      const projectPathSlice = name.value.withPath(pathSlice.value)
-      const id = db.value?.entries.findByProjectPath(projectPathSlice)
-      if (id != null) {
-        historyStack.record(id)
-      }
-    }
-  }
-}
-
-function openDocs(url: string) {
-  window.open(url, '_blank')
-}
+provideDocumentationImages({
+  openedProject,
+  backend: backendForAsset,
+  projectId,
+})
 </script>
 
 <template>
-  <div class="DocumentationPanel scrollable" :style="style" @wheel.stop.passive>
-    <div v-if="!isPlaceholder" class="topBar">
-      <Breadcrumbs
-        :breadcrumbs="breadcrumbs"
-        :color="color"
-        :icon="icon"
-        :canGoForward="historyStack.canGoForward()"
-        :canGoBackward="historyStack.canGoBackward()"
-        @click="(index) => handleBreadcrumbClick(index)"
-        @forward="historyStack.forward()"
-        @backward="historyStack.backward()"
-      />
-      <SvgButton
-        v-if="documentationUrl"
-        name="open"
-        title="Open in New Window"
-        @activate="openDocs(documentationUrl)"
-      />
-    </div>
-    <div v-if="rawDocumentation" class="markdownDocs">
-      <MarkdownEditor :content="rawDocumentation" :toolbar="false" />
-    </div>
-    <template v-else>
-      <DocsTags
-        v-if="sections.tags.length > 0"
-        class="tags"
-        :tags="sections.tags"
-        :groupColor="color"
-      />
-      <div class="sections">
-        <h2 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h2>
-        <span v-if="sections.synopsis.length == 0">No documentation available.</span>
-        <DocsSynopsis :sections="sections.synopsis" />
-        <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
-        <DocsList
-          :items="{ kind: 'Types', items: types }"
-          @linkClicked="historyStack.record($event)"
+  <div class="DocumentationEditor">
+    <MarkdownEditor
+      v-if="editorMarkdown.ok"
+      :content="editorMarkdown.value"
+      contentTestId="documentation-editor-content"
+    >
+      <template #belowToolbar>
+        <FunctionSignatureEditor
+          v-if="displaySignatureEditor && currentMethodAst?.ok && openedProject"
+          :projectId="openedProject.store.id"
+          :functionAst="currentMethodAst.value"
+          :methodPointer="currentMethodPointer"
         />
-        <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
-        <DocsList
-          :items="{ kind: 'Constructors', items: constructors }"
-          @linkClicked="historyStack.record($event)"
-        />
-        <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
-        <DocsList
-          :items="{ kind: 'Methods', items: methods }"
-          @linkClicked="historyStack.record($event)"
-        />
-        <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
-        <DocsExamples :examples="sections.examples" />
-      </div>
-    </template>
+      </template>
+    </MarkdownEditor>
+    <!-- Specifying `<ResultComponent ... centered /> does not work with React components
+      `="true"` must be there-->
+    <ResultComponent
+      v-else
+      status="info"
+      :title="editorMarkdown.error.message('')"
+      :centered="true"
+    />
   </div>
 </template>
 
 <style scoped>
-.DocumentationPanel {
-  --enso-docs-type-name-color: #9640da;
-  --enso-docs-methods-header-color: #1f71d3;
-  --enso-docs-method-name-color: #1f71d3;
-  --enso-docs-types-header-color: #1f71d3;
-  --enso-docs-examples-header-color: #6da85e;
-  --enso-docs-important-background-color: #edefe7;
-  --enso-docs-info-background-color: #e6f1f8;
-  --enso-docs-example-background-color: #e6f1f8;
-  --enso-docs-background-color: var(--background-color);
-  --enso-docs-text-color: rbga(0, 0, 0, 0.6);
-  --enso-docs-tag-background-color: #dcd8d8;
-  --enso-docs-code-background-color: #dddcde;
-  font-family: var(--font-sans);
-  font-size: 11.5px;
-  line-height: 160%;
-  color: var(--enso-docs-text-color);
-  background-color: var(--enso-docs-background-color);
-  padding: 4px 4px var(--doc-panel-bottom-clip, 0) 4px;
-  white-space: normal;
-  clip-path: inset(0 0 var(--doc-panel-bottom-clip, 0) 0);
-  height: 100%;
-  overflow-y: auto;
+.DocumentationEditor {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  align-items: flex-start;
-}
-
-.markdownDocs {
-  margin: 4px 0 0 8px;
-}
-
-.tags {
-  margin: 4px 0 0 8px;
-}
-
-.sections {
+  background-color: #fff;
+  height: 100%;
   width: 100%;
-  padding: 0 8px;
-}
-
-.topBar {
-  display: flex;
-  width: 100%;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 </style>

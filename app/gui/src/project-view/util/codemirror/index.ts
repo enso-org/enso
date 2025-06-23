@@ -32,7 +32,6 @@ import { createDebouncer } from 'lib0/eventloop.js'
 import {
   type ComponentInstance,
   computed,
-  isRef,
   onUnmounted,
   ref,
   toValue,
@@ -67,34 +66,29 @@ interface CodeMirrorOptions {
   vueHost?: WatchSource<VueHost | undefined>
   /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
   contentTestId?: string | undefined
-  readonly?: boolean
+  readonly?: ToValue<boolean>
   lineMode: ToValue<LineMode>
 }
 
-/** Creates a CodeMirror editor instance, and sets its initial state. */
+// Creates a CodeMirror editor instance. - improve docs
 export function useCodeMirror(
   editorRoot: ToValue<ComponentInstance<typeof CodeMirrorRoot> | null>,
   {
-    content,
     placeholder: placeholderText,
     extensions,
     vueHost,
     contentTestId,
-    readonly: isReadonly,
+    readonly,
     lineMode,
   }: CodeMirrorOptions,
 ) {
   const dispatch = { dispatch: (...specs: TransactionSpec[]) => view.dispatch(...specs) }
-  const readonly = computed(
-    () => isReadonly ?? (!!content && !isRef(content) && typeof toValue(content) === 'string'),
-  )
   const readonlyExt = useCompartment(dispatch, () =>
     toValue(readonly) ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [],
   )
   const placeholderExt =
     placeholderText ? useCompartment(dispatch, () => placeholder(toValue(placeholderText))) : []
   const { bindingsExt } = useBindings()
-  const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
   const bindingsCompartment = useCompartment(dispatch, () => keyBindings(toValue(lineMode)))
   const singleLineState = computed(() => {
@@ -113,7 +107,6 @@ export function useCodeMirror(
         placeholderExt,
         bindingsCompartment,
         themeCompartment,
-        sync?.syncExt ?? [],
         extrasCompartment.of([]),
         extensions ?? [],
       ],
@@ -131,7 +124,6 @@ export function useCodeMirror(
   onUnmounted(view.destroy.bind(view))
 
   if (vueHost) useStateEffect(view, setVueHost, vueHost)
-  sync?.connectSync(view)
 
   const extraExtsDebouncer = createDebouncer(0)
 
@@ -162,11 +154,6 @@ export function useCodeMirror(
         }),
       )
     },
-    /**
-     * When `useCodeMirror` is configured to set up synchronization by passing the `content`
-     * argument, this value tracks whether the content synchronized with the document is writable.
-     */
-    readonly,
     /** The DOM element containing the editor's content. */
     contentElement: view.contentDOM,
   }
@@ -266,18 +253,18 @@ export function useStringSync() {
   }
 }
 
-function useYTextOrReadonlySync(content: ToValue<string | Y.Text>) {
+export function useYTextSync(content: ToValue<Y.Text | undefined>) {
   const syncCompartment = new Compartment()
   const awareness = new Awareness(new Y.Doc())
 
   function sync() {
     const contentValue = toValue(content)
-    if (typeof contentValue === 'string') {
-      return { text: contentValue, extensions: [] }
-    } else {
+    if (contentValue != null) {
       assert(contentValue.doc !== null)
       const yTextWithDoc: Y.Text & { doc: Y.Doc } = contentValue as any
       return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness) }
+    } else {
+      return { text: '', extensions: [] }
     }
   }
 

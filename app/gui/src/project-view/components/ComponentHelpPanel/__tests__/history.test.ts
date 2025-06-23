@@ -1,4 +1,4 @@
-import { HistoryStack } from '@/components/DocumentationPanel/history'
+import { HistoryStack } from '@/components/ComponentHelpPanel/history'
 import { expect, test } from 'vitest'
 
 const ID_1 = 10

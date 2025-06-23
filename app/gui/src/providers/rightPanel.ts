@@ -71,6 +71,14 @@ function useRightPanelTabs(
   )
   return new Map([
     [
+      'description',
+      {
+        icon: 'properties',
+        enabled: enabledInCloudOnly,
+        title: 'Description',
+      },
+    ],
+    [
       'settings',
       {
         icon: 'properties',

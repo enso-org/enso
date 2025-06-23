@@ -4,24 +4,30 @@ import { linkifyUrls } from '@/components/PlainTextEditor/linkifyUrls'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { useLinkTitles } from '@/util/codemirror/links'
+import { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { useTemplateRef, type ComponentInstance } from 'vue'
-import * as Y from 'yjs'
 
-const { content, contentTestId } = defineProps<{
-  content: Y.Text | string
+const {
+  extensions = () => [],
+  readonly = false,
+  contentTestId,
+} = defineProps<{
+  extensions?: ((view: EditorView) => Extension) | undefined
+  readonly?: boolean | undefined
   contentTestId?: string | undefined
 }>()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const vueHost = new VueHostInstance()
-const { editorView, readonly, contentElement } = useCodeMirror(editorRoot, {
-  content: () => content,
+const { editorView, contentElement, setExtraExtensions } = useCodeMirror(editorRoot, {
   extensions: [linkifyUrls, EditorView.lineWrapping],
   vueHost: () => vueHost,
   contentTestId,
   lineMode: 'single',
 })
+
+setExtraExtensions(extensions(editorView))
 
 useLinkTitles(editorView, { readonly })
 
