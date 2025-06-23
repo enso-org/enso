@@ -111,11 +111,17 @@ export function useWidgetFunctionCallInfo(
       Ast.TextLiteral.new(JSON.stringify(args)).code(),
     ]
 
+    const modulePath: ProjectPath = ProjectPath.create(
+      'local.NewProject1' as QualifiedName,
+      'Main' as QualifiedName,
+    )
+    const moduleFqn = projectNames.serializeProjectPathForBackend(modulePath)
+
     const expressionId = widgetQuerySubjectExpressionId.value
     if (expressionId != null) {
       return {
         expressionId,
-        visualizationModule: "local.NewProject1.Main",
+        visualizationModule: moduleFqn,
         expression: {
           module: WIDGETS_ENSO_PATH,
           definedOnType: WIDGETS_ENSO_PATH,
