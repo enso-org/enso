@@ -2,10 +2,6 @@ from Standard.Base import all
 
 import project.Google_Sheets_Workbook.Google_Sheets_Workbook
 
-polyglot java import java.io.IOException
-polyglot java import org.enso.google.GoogleSheetsForEnso
-polyglot java import org.enso.google.WrappedGoogleCredentials
-
 type Google_Sheets
     ## ALIAS load, open
        GROUP Standard.Base.Web

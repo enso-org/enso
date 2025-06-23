@@ -235,8 +235,8 @@ public final class ImportExportCache
       var imp = in.readInline(scala.collection.immutable.List.class);
       var sym = in.readInline(scala.collection.immutable.Map.class);
       var map = new BindingsMap(de, cm);
-      map.resolvedImports_$eq(imp);
-      map.exportedSymbols_$eq(sym);
+      map.resolvedImports(imp);
+      map.exportedSymbols(sym);
       return map;
     }
   }
