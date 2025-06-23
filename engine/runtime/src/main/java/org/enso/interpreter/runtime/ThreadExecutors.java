@@ -40,7 +40,10 @@ final class ThreadExecutors {
   }
 
   ScheduledExecutorService newScheduledThreadPool(int cnt, String name, boolean systemThread) {
-    var s = Executors.newScheduledThreadPool(cnt, new Factory(name, systemThread));
+    var s = new ScheduledThreadPoolExecutor(cnt, new Factory(name, systemThread));
+    // Not recommended per ScheduledThreadPoolExecutor's documentation
+    // but required to avoid thread starvation for guest threads that wait on safepoint synchronization.
+    s.allowCoreThreadTimeOut(true);
     pools.put(s, name);
     return s;
   }
