@@ -82,7 +82,7 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
         }
       };
 
-  public static BinaryOperation<?> create(
+  public static BinaryOperationTyped<?> create(
       StorageType<?> leftType, Object right, NumericOperation operation) {
     var rightType = storageTypeForObject(right);
     if (leftType instanceof FloatType || rightType instanceof FloatType) {

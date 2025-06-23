@@ -2,8 +2,9 @@
 import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
 import { Button, CopyButton } from '#/components/Button'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Form } from '#/components/Form'
-import { ResizableContentEditableInput } from '#/components/Inputs'
+import { ResizableContentEditableInput } from '#/components/Inputs/ResizableInput'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { Text } from '#/components/Text'
@@ -64,13 +65,15 @@ export function AssetProperties() {
   }
 
   return (
-    <AssetPropertiesInternal
-      key={focusedAsset.id}
-      backend={remoteBackend}
-      item={focusedAsset}
-      isReadonly={isReadonly}
-      category={category}
-    />
+    <ErrorBoundary>
+      <AssetPropertiesInternal
+        key={focusedAsset.id}
+        backend={remoteBackend}
+        item={focusedAsset}
+        isReadonly={isReadonly}
+        category={category}
+      />
+    </ErrorBoundary>
   )
 }
 

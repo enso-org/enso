@@ -1,8 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Not_Invokable
 
-import Standard.Base.Runtime.Ref.Ref
-
 from Standard.Test import all
 
 
@@ -42,7 +40,7 @@ add_specs suite_builder = suite_builder.group "Missing_Argument" group_builder->
         r1.catch.argument_name . should_equal "xyz"
         r1.catch.function_name . should_equal "Missing_Required_Arguments_Spec.my_function"
         r1.catch.call_location.file.name . should_equal "Missing_Required_Arguments_Spec.enso"
-        r1.catch.call_location.start_line . should_equal 40
+        r1.catch.call_location.start_line . should_equal 38
         r1.catch.to_display_text . should_equal "Provide a value for the argument `xyz`."
 
         r2 = my_function_2

@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
 
-from Standard.Table import Table, Sort_Column, Value_Type, expr
+from Standard.Table import Sort_Column, Value_Type, expr
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all

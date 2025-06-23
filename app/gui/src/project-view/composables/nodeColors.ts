@@ -2,6 +2,7 @@ import { type GraphStore, type NodeId } from '@/stores/graph'
 import type { NodeType } from '@/stores/graph/graphDatabase'
 import { type GroupInfo } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
+import { ProjectPath } from '@/util/projectPath'
 import { computed } from 'vue'
 
 /** TODO: Add docs */
@@ -35,18 +36,18 @@ export function useNodeColors(graphStore: GraphStore, getCssValue: (variable: st
   return { getNodeColor, getNodeColors }
 }
 
-/** TODO: Add docs */
+/** Compute node color based on the node type, group, and type name. */
 export function computeNodeColor(
   getType: () => NodeType,
   getGroup: () => GroupInfo | undefined,
-  getTypeName: () => string | undefined,
+  getTypeName: () => ProjectPath | undefined,
 ) {
   if (getType() === 'output') return 'var(--output-node-color)'
   if (getType() === 'input') return 'var(--output-node-color)'
   const group = getGroup()
   if (group) return groupColorStyle(group)
   const typeName = getTypeName()
-  if (typeName) return colorFromString(typeName)
+  if (typeName) return colorFromString(typeName.key())
   return 'var(--node-color-no-type)'
 }
 

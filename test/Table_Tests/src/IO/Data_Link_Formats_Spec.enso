@@ -6,7 +6,7 @@ from Standard.Table import all
 
 from Standard.Test import all
 
-from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import pending_has_url
 from enso_dev.Base_Tests.Network.Http.Http_Data_Link_Spec import replace_url_in_data_link
 
 import project.Util

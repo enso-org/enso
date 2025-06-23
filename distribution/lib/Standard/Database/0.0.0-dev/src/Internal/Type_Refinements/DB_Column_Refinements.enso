@@ -6,6 +6,7 @@ import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 from Standard.Table import Column, Value_Type
 
 import project.DB_Column.DB_Column
+from project.Internal.Type_Refinements.Typed_DB_Column_Conversions import all
 
 refine_column (column : DB_Column) =
     inferred_value_type = (column:Column).inferred_precise_value_type

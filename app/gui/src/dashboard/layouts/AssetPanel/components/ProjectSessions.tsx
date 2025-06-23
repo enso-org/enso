@@ -1,4 +1,5 @@
 /** @file A list of previous versions of an asset. */
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import type Backend from '#/services/Backend'
@@ -30,7 +31,11 @@ export function ProjectSessions() {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notProjectAsset')} />
   }
 
-  return <AssetProjectSessionsInternal backend={remoteBackend} item={focusedAsset} />
+  return (
+    <ErrorBoundary>
+      <AssetProjectSessionsInternal backend={remoteBackend} item={focusedAsset} />
+    </ErrorBoundary>
+  )
 }
 
 /** Props for a {@link AssetProjectSessionsInternal}. */

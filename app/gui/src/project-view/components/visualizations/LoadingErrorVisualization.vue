@@ -1,6 +1,6 @@
 <script lang="ts">
 export const name = 'Loading Error'
-export const inputType = 'Any'
+export const inputType = 'Standard.Base.Any.Any'
 </script>
 
 <script setup lang="ts">

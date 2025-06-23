@@ -1,7 +1,7 @@
 /** @file The input for viewing and changing the organization's profile picture. */
 import * as aria from '#/components/aria'
 import { Form } from '#/components/Form'
-import { HiddenFile } from '#/components/Inputs'
+import { HiddenFile } from '#/components/Inputs/HiddenFile'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusRing from '#/components/styled/FocusRing'

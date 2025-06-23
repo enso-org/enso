@@ -268,7 +268,7 @@ registerHandlers({
 .FileBrowserWidget {
   --border-width: 2px;
   --border-radius-inner: calc(var(--radius-default) - var(--border-width));
-  background-color: var(--background-color);
+  background-color: var(--color-panel-accent);
   padding: var(--border-width);
   border-radius: 0 0 var(--radius-default) var(--radius-default);
   min-width: 400px;

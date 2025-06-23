@@ -33,15 +33,19 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   @Override
   public void append(Object o) {
     ensureSpaceToAppend();
-    try {
-      if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
-        data[currentSize++] = convertDate(localDate);
-        wasLocalDate.set(currentSize - 1);
-      } else {
-        data[currentSize++] = (ZonedDateTime) o;
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
+          data[currentSize++] = convertDate(localDate);
+          wasLocalDate.set(currentSize - 1);
+        } else {
+          data[currentSize++] = (ZonedDateTime) o;
+        }
+      } catch (ClassCastException e) {
+        throw new ValueTypeMismatchException(getType(), o);
       }
-    } catch (ClassCastException e) {
-      throw new ValueTypeMismatchException(getType(), o);
     }
   }
 

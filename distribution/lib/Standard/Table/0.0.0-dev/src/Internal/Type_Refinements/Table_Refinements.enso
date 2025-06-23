@@ -7,7 +7,7 @@ import project.Internal.Value_Type_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Table.Table
 import project.Value_Type.Value_Type
-from project.Internal.Type_Refinements.Column_Refinements import is_single_value
+from project.Internal.Type_Refinements.In_Memory_Column_Refinements import is_single_value
 from project.Internal.Type_Refinements.Single_Column_Table_Conversions import all
 from project.Internal.Type_Refinements.Single_Column_Typed_Table_Conversions import all
 

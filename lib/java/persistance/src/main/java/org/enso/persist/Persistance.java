@@ -177,6 +177,8 @@ public abstract class Persistance<T> implements Cloneable {
    */
   public abstract static class Pool {
     private final String name;
+    private final Function<Object, Object> readResolve;
+    private final Function<Object, Object> writeReplace;
     private final Persistance[] all;
 
     /**
@@ -190,7 +192,17 @@ public abstract class Persistance<T> implements Cloneable {
      */
     @SafeVarargs
     protected Pool(String displayName, Persistance... instances) {
+      this(displayName, null, null, instances);
+    }
+
+    private Pool(
+        String displayName,
+        Function<Object, Object> readResolve,
+        Function<Object, Object> writeReplace,
+        Persistance... instances) {
       this.name = displayName;
+      this.readResolve = readResolve;
+      this.writeReplace = writeReplace;
       this.all = instances;
     }
 
@@ -216,31 +228,57 @@ public abstract class Persistance<T> implements Cloneable {
     }
 
     /**
+     * Associates this pool with a read resolve function.
+     *
+     * @param readResolve function to call when an object is read to but before it is returned from
+     *     {@link Input#readObject()} or {@link Input#readInline} methods to provide the object's
+     *     replacement
+     * @return new pool which is internally unchanged except being associated with the provided read
+     *     resolve function
+     */
+    public Pool withReadResolve(Function<Object, Object> readResolve) {
+      return newWithResolveAndReplace(this, readResolve, this.writeReplace);
+    }
+
+    /**
+     * Associates this pool with a write replace function.
+     *
+     * @param writeReplace function to call when an object is about to be written via {@link
+     *     Output#writeObject} or {@link Output#writeInline} functions to provide the object's
+     *     replacement
+     * @return new pool which is internally unchanged except being associated with the provided
+     *     write replace function
+     */
+    public Pool withWriteReplace(Function<Object, Object> writeReplace) {
+      return newWithResolveAndReplace(this, this.readResolve, writeReplace);
+    }
+
+    private static Pool newWithResolveAndReplace(
+        Pool pool, Function<Object, Object> readResolve, Function<Object, Object> writeReplace) {
+      return new Pool(pool.name, readResolve, writeReplace, pool.all) {};
+    }
+
+    /**
      * Read object written down by {@link #write} from an array. <br>
      * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"} <br>
      * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
      *
      * @param arr the stored bytes
-     * @param readResolve either {@code null} or function to call for each object being stored to
-     *     provide a replacement
      * @return the read object
      * @throws java.io.IOException when an I/O problem happens
      */
-    public Reference<?> read(byte[] arr, Function<Object, Object> readResolve) throws IOException {
-      return read(ByteBuffer.wrap(arr), readResolve);
+    public Reference<?> read(byte[] arr) throws IOException {
+      return read(ByteBuffer.wrap(arr));
     }
 
     /**
      * Read object written down by {@link #write} from a byte buffer.
      *
      * @param buf the stored bytes
-     * @param readResolve either {@code null} or function to call for each object being stored to
-     *     provide a replacement
      * @return the read object
      * @throws java.io.IOException when an I/O problem happens
      */
-    public Reference<?> read(ByteBuffer buf, Function<Object, Object> readResolve)
-        throws IOException {
+    public Reference<?> read(ByteBuffer buf) throws IOException {
       var map = new PerMap(all);
       return PerInputImpl.readObject(map, buf, readResolve);
     }
@@ -250,12 +288,10 @@ public abstract class Persistance<T> implements Cloneable {
      * back to object.
      *
      * @param obj the object to persist
-     * @param writeReplace {@code null} or a function that allows to convert each object before
-     *     storing it down
      * @return the array of bytes
      * @throws IOException when an I/O problem happens
      */
-    public byte[] write(Object obj, Function<Object, Object> writeReplace) throws IOException {
+    public byte[] write(Object obj) throws IOException {
       var map = new PerMap(all);
       return PerGenerator.writeObject(map, obj, writeReplace);
     }

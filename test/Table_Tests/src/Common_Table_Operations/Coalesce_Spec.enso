@@ -82,4 +82,4 @@ add_coalesce_specs suite_builder setup =
                     result2.should_fail_with Integrity_Error
                 False ->
                     result.to_vector . should_equal [1, 2, 4, Nothing, 3]
-                    result2.to_vector . should_equal [3, 2, 4, Nothing]
+                    result2.to_vector . should_equal [3, 2, 4, Nothing, 3]

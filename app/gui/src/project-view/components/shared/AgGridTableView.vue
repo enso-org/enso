@@ -1,4 +1,6 @@
 <script lang="ts">
+import { registerHandlers } from '@/providers/action'
+
 /**
  * A more specialized version of AGGrid's `MenuItemDef` to simplify testing (the tests need to provide
  * only values actually used by the composable)
@@ -23,7 +25,7 @@ const copyWithHeaders = ref(false)
 export const commonContextMenuActions = {
   cut: {
     name: 'Cut',
-    shortcut: gridBindings.bindings['cutCells'].humanReadable,
+    shortcut: gridBindings.bindings['grid.cutCells'].humanReadable,
     action: ({ api }) => {
       copyWithHeaders.value = false
       api.cutToClipboard()
@@ -32,7 +34,7 @@ export const commonContextMenuActions = {
   },
   copy: {
     name: 'Copy',
-    shortcut: gridBindings.bindings['copyCells'].humanReadable,
+    shortcut: gridBindings.bindings['grid.copyCells'].humanReadable,
     action: ({ api }) => {
       copyWithHeaders.value = false
       api.copyToClipboard()
@@ -49,7 +51,7 @@ export const commonContextMenuActions = {
   },
   paste: {
     name: 'Paste',
-    shortcut: gridBindings.bindings['pasteCells'].humanReadable,
+    shortcut: gridBindings.bindings['grid.pasteCells'].humanReadable,
     action: ({ api }) => api.pasteFromClipboard(),
     icon: AGGRID_DEFAULT_PASTE_ICON,
   },
@@ -96,6 +98,7 @@ import type {
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import * as objects from 'enso-common/src/utilities/data/object'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
   Component,
@@ -265,22 +268,32 @@ defineExpose({ gridApi, forceGridRefresh })
 
 // === Keybinds ===
 
-const handler = gridBindings.handler({
-  cutCells() {
-    if (gridApi.value?.getFocusedCell() == null) return false
+function gridAction(action: () => void) {
+  return {
+    action: () => {
+      if (gridApi.value?.getFocusedCell() == null) return
+      action()
+    },
+  }
+}
+
+const actionHandlers = registerHandlers({
+  'grid.cutCells': gridAction(() => {
+    copyWithHeaders.value = false
     gridApi.value?.cutToClipboard()
-  },
-  copyCells() {
-    if (gridApi.value?.getFocusedCell() == null) return false
+  }),
+  'grid.copyCells': gridAction(() => {
+    copyWithHeaders.value = false
     gridApi.value?.copyToClipboard()
-  },
-  pasteCells() {
-    if (gridApi.value?.getFocusedCell() == null) return false
-    gridApi.value?.pasteFromClipboard()
-  },
+  }),
+  'grid.pasteCells': gridAction(() => gridApi.value?.pasteFromClipboard()),
 })
 
-function supressCopy(event: KeyboardEvent) {
+const handler = gridBindings.handler(
+  objects.mapEntries(gridBindings.bindings, (actionName) => actionHandlers[actionName].action),
+)
+
+function suppressCopy(event: KeyboardEvent) {
   // Suppress the default keybindings of AgGrid, because we want to use our own handlers (and bindings),
   // and AgGrid API does not allow copy suppression.
   if (
@@ -353,7 +366,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 </script>
 
 <template>
-  <div ref="wrapper" @keydown="handler" @keydown.capture="supressCopy">
+  <div ref="wrapper" @keydown="handler" @keydown.capture="suppressCopy">
     <AgGridVue
       v-bind="$attrs"
       ref="grid"

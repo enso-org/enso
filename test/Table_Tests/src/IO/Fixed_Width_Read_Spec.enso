@@ -17,7 +17,6 @@ import Standard.Test.Test_Environment
 
 import enso_dev.Base_Tests.Data.Text.Encoding_Spec
 
-from project.Common_Table_Operations.Util import run_default_backend
 
 polyglot java import org.enso.table.read.FixedWidthReader
 

@@ -44,6 +44,11 @@
   "allDeclaredFields":true
 },
 {
+  "name":"com.sun.jna.Native",
+  "allPublicFields":true,
+  "allPublicMethods":true
+},
+{
   "name":"com.sun.jna.ptr.IntByReference",
   "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}],
   "methods":[{"name":"<init>","parameterTypes":[] }]

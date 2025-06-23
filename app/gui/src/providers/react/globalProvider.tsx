@@ -20,6 +20,7 @@ import { TextStore, useText } from '$/providers/text'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import * as react from 'react'
 import { applyPureReactInVue } from 'veaury'
+import { proxyRefs } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 interface ContextsForReactProviderProps {
@@ -80,7 +81,7 @@ export const ContextsForReactProvider = applyPureReactInVue(
     useInjectPropsFromWrapper: () => {
       const route = useRoute()
       const router = useRouter()
-      return {
+      const result = proxyRefs({
         router: {
           router,
           route,
@@ -93,7 +94,10 @@ export const ContextsForReactProvider = applyPureReactInVue(
         session: useSession(),
         auth: useAuth(),
         queryParams: useQueryParams(),
-      }
+      })
+      // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
+      // avoids the code path that assigns that property to overwrite a computed value with constant.
+      return () => result
     },
   },
 )

@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import all
 from Standard.Table.Errors import all
@@ -13,7 +12,7 @@ from Standard.Database.Errors import all
 
 from Standard.Test import all
 
-from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
+from project.Common_Table_Operations.Util import expect_column_names
 
 type Lazy_Ref
     Value ~get

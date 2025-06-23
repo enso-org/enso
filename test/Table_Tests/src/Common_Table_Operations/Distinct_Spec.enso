@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
 
-from Standard.Table import Sort_Column
 from Standard.Table.Errors import all
 
 from Standard.Test import all
