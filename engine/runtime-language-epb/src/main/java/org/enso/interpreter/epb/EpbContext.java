@@ -126,14 +126,18 @@ final class EpbContext {
             var obj = ctx.evalPublic(node, src);
             return Value.asValue(obj);
           } catch (IOException ex) {
-            throw new IllegalStateException(ex);
+            throw raise(RuntimeException.class, ex);
           }
         };
     return () -> {
-      WebEnvironment.initialize(eval, exec);
-      var parserPolyfill = new ParserPolyfill();
-      parserPolyfill.initialize(eval);
-      whenDone.complete(null);
+      try {
+        WebEnvironment.initialize(eval, exec);
+        var parserPolyfill = new ParserPolyfill();
+        parserPolyfill.initialize(eval);
+        whenDone.complete(null);
+      } catch (Exception ex) {
+        whenDone.completeExceptionally(ex);
+      }
     };
   }
 
@@ -155,5 +159,10 @@ final class EpbContext {
     log(Level.FINE, dump);
     log(Level.INFO, "Waiting " + ms + " ms");
     return true;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Exception> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E) t;
   }
 }
