@@ -112,7 +112,7 @@ export function useWidgetFunctionCallInfo(
       Ast.TextLiteral.new(JSON.stringify(args)).code(),
     ]
 
-    const modulePath = project.moduleProjectPath
+    let modulePath = project.moduleProjectPath.value
     const moduleFqn = projectNames.serializeProjectPathForBackend(modulePath)
 
     const expressionId = widgetQuerySubjectExpressionId.value
