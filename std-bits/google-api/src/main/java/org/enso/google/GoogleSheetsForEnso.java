@@ -57,8 +57,18 @@ public class GoogleSheetsForEnso {
       throw new EmptySheetException();
     }
 
+    List<Object> firstRow = null;
+    if (rawData.stream().anyMatch(col -> col.size() > 0)) {
+      firstRow = rawData.stream().map(col -> col.size() > 0 ? col.get(0) : null).toList();
+    }
+
+    List<Object> secondRow = null;
+    if (rawData.stream().anyMatch(col -> col.size() > 1)) {
+      secondRow = rawData.stream().map(col -> col.size() > 1 ? col.get(1) : null).toList();
+    }
+
     GoogleSheetsHeaders headerBuilder =
-        new GoogleSheetsHeaders(headerBehavior, rawData, problemAggregator);
+        new GoogleSheetsHeaders(headerBehavior, firstRow, secondRow, problemAggregator);
 
     Column[] columns = new Column[rawData.size()];
     var resolved_row_limit = row_limit == null ? Long.MAX_VALUE : (row_limit < 0 ? 0 : row_limit);
