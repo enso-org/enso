@@ -693,7 +693,7 @@ object ProgramExecutionSupport {
 
       val future = if (runtimeCache != null) {
         val processUUID = new Consumer[UUID] {
-          override def accept(id: ContextId): Unit = {
+          override def accept(id: Api.ContextId): Unit = {
             logger.trace(
               "Associating visualization [{}] with additional ID [{}]",
               visualization.id,
