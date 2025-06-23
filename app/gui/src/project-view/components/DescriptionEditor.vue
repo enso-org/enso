@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { AnyAsset } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
@@ -8,7 +9,7 @@ import { useStringSync } from '@/util/codemirror'
 import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
 import { useMutation } from '@tanstack/vue-query'
-import { computed, Ref, watch } from 'vue'
+import { computed, onUnmounted, Ref, watch } from 'vue'
 
 const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
@@ -22,27 +23,35 @@ const editDescriptionMutation = useMutation(
   backendMutationOptions('updateAsset', backendForAsset, { mutationKey: ['editDescription'] }),
 )
 
+function updateDescription(asset: AnyAsset | undefined, description: string) {
+  if (asset != null && asset.description !== description) {
+    editDescriptionMutation.mutate([
+      asset.id,
+      { parentDirectoryId: null, description: description, title: null },
+      asset.title,
+    ])
+  }
+}
+
 const syncText = (view: EditorView, focused: Ref<boolean>) => {
   const { syncExt, connectSync } = useStringSync()
   const { setText, getText } = connectSync(view)
   watch(
-    () => rightPanel.focusedAsset?.description,
-    (content) => {
-      setText(content ?? '')
+    () => rightPanel.focusedAsset,
+    (newAsset, oldAsset) => {
+      updateDescription(oldAsset, getText())
+      setText(newAsset?.description ?? '')
+      focused.value = false
     },
     { immediate: true },
   )
-  console.log('Attach extension')
   watch(focused, (newVal) => {
-    console.log('Focus Change', newVal)
-    if (!newVal && rightPanel.focusedAsset) {
-      editDescriptionMutation.mutate([
-        rightPanel.focusedAsset.id,
-        { parentDirectoryId: null, description: getText(), title: null },
-        rightPanel.focusedAsset.title,
-      ])
+    if (!newVal) {
+      updateDescription(rightPanel.focusedAsset, getText())
     }
   })
+
+  onUnmounted(() => updateDescription(rightPanel.focusedAsset, getText()))
 
   return syncExt
 }
@@ -58,6 +67,7 @@ provideDocumentationImages({
   <MarkdownEditor
     v-if="rightPanel.focusedAsset"
     :extensions="syncText"
+    toolbar
     contentTestId="documentation-editor-content"
   />
   <ResultComponent
