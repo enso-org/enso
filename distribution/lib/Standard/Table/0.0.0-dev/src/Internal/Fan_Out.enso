@@ -131,7 +131,7 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
 
     ## Build the new table, replacing the input column with the new output columns.
     index = masked_java_columns.index_of jc-> jc.getName==input_column_id
-    new_columns = (masked_enso_columns.take index) + output_columns + (masked_java_columns.drop (index + 1))
+    new_columns = (masked_enso_columns.take index) + output_columns + (masked_enso_columns.drop (index + 1))
     new_table = Table.new new_columns
     problem_builder.attach_problems_after on_problems new_table
 
