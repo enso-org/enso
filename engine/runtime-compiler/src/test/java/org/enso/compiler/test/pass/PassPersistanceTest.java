@@ -79,11 +79,11 @@ public class PassPersistanceTest {
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize, Function<Object, Object> fn)
       throws IOException {
-    var arr = POOL.write(l, fn);
+    var arr = POOL.withWriteReplace(fn).write(l);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
     }
-    var ref = POOL.read(arr, null);
+    var ref = POOL.read(arr);
     return ref.get(clazz);
   }
 }

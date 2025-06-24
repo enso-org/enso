@@ -5,7 +5,8 @@ import { noop } from '../utilities/functions'
 
 const GOOGLE_ANALYTICS_TAG = typeof $config !== 'undefined' && $config.GOOGLE_ANALYTICS_TAG
 
-if (GOOGLE_ANALYTICS_TAG != null) {
+// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+if (GOOGLE_ANALYTICS_TAG) {
   void load
     .loadScript(`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_TAG}`)
     .catch(noop)

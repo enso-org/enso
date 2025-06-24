@@ -3,8 +3,8 @@ package org.enso.table.data.column.operation.comparators;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.builder.BoolBuilder;
-import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
@@ -180,7 +180,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
         }
       };
 
-  static BinaryOperation<Boolean> create(
+  static BinaryOperationTyped<Boolean> create(
       StorageType<?> leftType, Object right, NumericComparator comparator) {
     var rightType = storageTypeForObject(right);
     if (leftType instanceof FloatType || rightType instanceof FloatType) {
@@ -196,7 +196,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
     }
   }
 
-  static BinaryOperation<Boolean> create(
+  static BinaryOperationTyped<Boolean> create(
       StorageType<?> leftType, Object right, NumericComparator comparator, boolean valueOnOther) {
     var rightType = storageTypeForObject(right);
     if (leftType instanceof FloatType || rightType instanceof FloatType) {

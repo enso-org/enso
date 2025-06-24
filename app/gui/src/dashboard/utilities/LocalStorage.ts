@@ -6,7 +6,7 @@ import * as common from 'enso-common'
 import * as object from '#/utilities/object'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
-import { markRaw } from 'vue'
+import { reactive, toRaw } from 'vue'
 
 const KEY_DEFINITION_STACK_TRACES = new Map<string, string>()
 
@@ -62,7 +62,7 @@ export default class LocalStorage {
 
   /** Create a {@link LocalStorage}. */
   private constructor() {
-    this.values = {}
+    this.values = reactive({})
   }
 
   /**
@@ -261,10 +261,12 @@ export default class LocalStorage {
 
   /** Save the current value of the stored data.. */
   protected save() {
+    // Make values raw, so any watchEffect setting values will not be triggered unnecessarily.
+    const rawValues = toRaw(this.values)
     const storedValues = localStorage.getItem(this.localStorageKey)
     const savedValues: unknown = JSON.parse(storedValues ?? '{}')
     const valuesToSave =
-      typeof savedValues === 'object' ? { ...savedValues, ...this.values } : this.values
+      typeof savedValues === 'object' ? { ...savedValues, ...rawValues } : rawValues
     localStorage.setItem(this.localStorageKey, JSON.stringify(valuesToSave))
   }
 
@@ -314,5 +316,3 @@ export default class LocalStorage {
     return null
   }
 }
-
-markRaw(LocalStorage.prototype)

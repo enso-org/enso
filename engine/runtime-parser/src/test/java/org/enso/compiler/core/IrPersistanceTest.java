@@ -349,58 +349,65 @@ public class IrPersistanceTest {
   @Test
   public void readResolve() throws Exception {
     var in = new Service(5);
-    var arr = POOL.write(in, (Function<Object, Object>) null);
+    var arr = POOL.write(in);
 
-    var plain = POOL.read(arr, (Function<Object, Object>) null);
+    var plain = POOL.read(arr);
     assertEquals("Remains five", 5, plain.get(Service.class).value());
 
     var multiOnRead =
-        POOL.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+        POOL.withReadResolve((obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj)
+            .read(arr);
     assertEquals("Multiplied on read", 15, multiOnRead.get(Service.class).value());
   }
 
   @Test
   public void writeReplace() throws Exception {
     var in = new Service(5);
-    var arr = POOL.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr =
+        POOL.withWriteReplace((obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj)
+            .write(in);
 
-    var plain = POOL.read(arr, (Function<Object, Object>) null);
+    var plain = POOL.read(arr);
     assertEquals("Multiplied on write", 15, plain.get(Service.class).value());
   }
 
   @Test
   public void readResolveInline() throws Exception {
     var in = new ServiceSupply(new Service(5));
-    var arr = POOL.write(in, (Function<Object, Object>) null);
+    var arr = POOL.write(in);
 
-    var plain = POOL.read(arr, (Function<Object, Object>) null);
+    var plain = POOL.read(arr);
     assertEquals("Remains five", 5, plain.get(ServiceSupply.class).supply().value());
 
     var multiOnRead =
-        POOL.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+        POOL.withReadResolve((obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj)
+            .read(arr);
     assertEquals("Multiplied on read", 15, multiOnRead.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void writeReplaceInline() throws Exception {
     var in = new ServiceSupply(new Service(5));
-    var arr = POOL.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr =
+        POOL.withWriteReplace((obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj)
+            .write(in);
 
-    var plain = POOL.read(arr, (Function<Object, Object>) null);
+    var plain = POOL.read(arr);
     assertEquals("Multiplied on write", 15, plain.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void readResolveReference() throws Exception {
     var in = new IntegerSupply(new Service(5));
-    var arr = POOL.write(in, (Function<Object, Object>) null);
+    var arr = POOL.write(in);
 
-    var plain = POOL.read(arr, (Function<Object, Object>) null);
+    var plain = POOL.read(arr);
     assertEquals("Remains five", 5, (int) plain.get(IntegerSupply.class).supply().get());
     assertEquals("Remains five 2", 5, (int) plain.get(IntegerSupply.class).supply().get());
 
     var multiOnRead =
-        POOL.read(arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+        POOL.withReadResolve((obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj)
+            .read(arr);
     assertEquals(
         "Multiplied on read", 15, (int) multiOnRead.get(IntegerSupply.class).supply().get());
   }
@@ -408,9 +415,11 @@ public class IrPersistanceTest {
   @Test
   public void writeReplaceReference() throws Exception {
     var in = new IntegerSupply(new Service(5));
-    var arr = POOL.write(in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr =
+        POOL.withWriteReplace((obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj)
+            .write(in);
 
-    var plain = POOL.read(arr, (Function<Object, Object>) null);
+    var plain = POOL.read(arr);
     assertEquals("Multiplied on write", 15, (int) plain.get(IntegerSupply.class).supply().get());
   }
 
@@ -430,11 +439,11 @@ public class IrPersistanceTest {
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize, Function<Object, Object> fn)
       throws IOException {
-    var arr = POOL.write(l, fn);
+    var arr = POOL.withWriteReplace(fn).write(l);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
     }
-    var ref = POOL.read(arr, null);
+    var ref = POOL.read(arr);
     return ref.get(clazz);
   }
 

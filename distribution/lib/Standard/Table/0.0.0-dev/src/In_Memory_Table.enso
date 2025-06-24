@@ -1,0 +1,91 @@
+from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Deprecated.Deprecated
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Widget_Helpers import make_delimiter_selector
+
+import project.Column.Column
+import project.Data_Formatter.Data_Formatter
+import project.Delimited.Delimited_Format.Delimited_Format
+import project.Delimited.Quote_Style.Quote_Style
+import project.Headers.Headers
+import project.In_Memory_Column.In_Memory_Column
+import project.Internal.Delimited_Writer
+import project.Table.Table
+import project.Internal.Type_Refinements.Table_Refinements
+import project.Internal.In_Memory_Table_Implementation.In_Memory_Table_Implementation
+from project.Internal.Table_Type_Helpers import table_from_implementation
+
+polyglot java import org.enso.table.data.table.Table as Java_Table
+
+# A table whose data is stored in memory.
+type In_Memory_Table
+
+    ## PRIVATE
+       Internal constructor that should not be used directly.
+       Please use `from_java_table` if needed.
+
+       Arguments:
+       - internal_java_table: The internal java representation of the table.
+    private Value internal_java_table
+
+    ## PRIVATE
+       A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
+    private java_table self = self.internal_java_table
+
+    ## PRIVATE
+    new (columns : Vector (Vector | Column)) -> Table & In_Memory_Table =
+        invalid_input_shape =
+            Error.throw (Illegal_Argument.Error "Each column must be represented by a vector whose first element is the column name, second element is a vector of elements that will constitute that column (or an existing column) and an optional third element that is the Value_Type for the column. Got: "+columns.to_text)
+        cols = columns.map on_problems=No_Wrap.Value c->
+            column = case c of
+                v : Vector -> case v.length of
+                    2 -> Column.from_vector (v.at 0) (v.at 1)
+                    3 -> Column.from_vector (v.at 0) (v.at 1) (v.at 2)
+                    _ -> invalid_input_shape
+                col : Column -> col
+                _ -> invalid_input_shape
+            (column:In_Memory_Column).java_column
+        if cols.is_empty then
+            Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
+
+        if cols.distinct .getName . length != cols.length then
+            Error.throw (Illegal_Argument.Error "Column names must be distinct.")
+
+        mismatched_size_column = cols.find if_missing=Nothing c->
+            c.getSize != cols.first.getSize
+        if mismatched_size_column.is_nothing.not then
+            msg = "All columns must have the same row count, but the column [" + mismatched_size_column.getName + "] has " + mismatched_size_column.getSize.to_text + " rows, while the column [" + cols.first.getName + "] has " + cols.first.getSize.to_text + " rows."
+            Error.throw (Illegal_Argument.Error msg)
+
+        from_java_table (Java_Table.new cols)
+
+    ## Converts all table contents to a text value in delimited format.
+
+       Arguments:
+       - format: Allows to customize the delimiter and other settings of the
+         format. Defaults to tab-separated values.
+    @delimiter make_delimiter_selector
+    to_delimited self (delimiter:(Delimited_Format|Text)='\t') quote_style:Quote_Style=..With_Quotes headers:Headers=..Detect_Headers (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (line_endings:Line_Ending_Style|Infer=Infer) -> Text =
+        format = case delimiter of
+            _ : Delimited_Format -> delimiter
+            _ : Text -> Delimited_Format.Delimited delimiter quote_style=quote_style headers=headers value_formatter=value_formatter line_endings=line_endings
+        result = Delimited_Writer.write_text self format
+        if delimiter.is_a Text then result else
+            Warning.attach (Deprecated.Warning "Standard.Table.Table" "to_delimited" "Deprecated: specify the arguments separately rather than using a `Delimited_Format`.") result
+
+
+## PRIVATE
+   Helper method for internal use to make a Table from a Java Table.
+from_java_table java_table -> Table & In_Memory_Table =
+    Table_Refinements.refine_table <|
+        In_Memory_Table.Value java_table
+
+## PRIVATE
+   Helper method for internal use to make a Java Table from a Table.
+to_java_table table:In_Memory_Table =
+    table.java_table
+
+## PRIVATE
+Table.from (that : In_Memory_Table) =
+    table_from_implementation that In_Memory_Table_Implementation

@@ -7,7 +7,6 @@ import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.Test;
 
@@ -16,13 +15,13 @@ public class PersistanceTest {
   public void testUUIDPersistance() throws Exception {
     // @start region="write"
     var obj = UUID.randomUUID();
-    var buffer = Persistables.POOL.write(obj, null);
+    var buffer = Persistables.POOL.write(obj);
     assertNotNull("Byte array is returned", buffer);
     assertNotEquals("It has non-zero length", 0, buffer.length);
     // @end region="write"
 
     // @start region="read"
-    var ref = Persistables.POOL.read(buffer, null);
+    var ref = Persistables.POOL.read(buffer);
     var loaded = ref.get(UUID.class);
     assertEquals("The same object was recreated", obj, loaded);
     // @end region="read"
@@ -30,87 +29,96 @@ public class PersistanceTest {
 
   @Test
   public void readResolve() throws Exception {
-    var in = new Service(5);
-    var arr = Persistables.POOL.write(in, (Function<Object, Object>) null);
+    var poolWith =
+        Persistables.POOL.withReadResolve(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
-    var plain = Persistables.POOL.read(arr, (Function<Object, Object>) null);
+    var in = new Service(5);
+    var arr = poolWith.write(in);
+
+    var plain = Persistables.POOL.read(arr);
     assertEquals("Remains five", 5, plain.get(Service.class).value());
 
-    var multiOnRead =
-        Persistables.POOL.read(
-            arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead = poolWith.read(arr);
     assertEquals("Multiplied on read", 15, multiOnRead.get(Service.class).value());
   }
 
   @Test
   public void writeReplace() throws Exception {
+    var poolWith =
+        Persistables.POOL.withWriteReplace(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     var in = new Service(5);
-    var arr =
-        Persistables.POOL.write(
-            in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr = poolWith.write(in);
 
-    var plain = Persistables.POOL.read(arr, (Function<Object, Object>) null);
+    var plain = poolWith.read(arr);
     assertEquals("Multiplied on write", 15, plain.get(Service.class).value());
   }
 
   @Test
   public void readResolveInline() throws Exception {
-    var in = new ServiceSupply(new Service(5));
-    var arr = Persistables.POOL.write(in, (Function<Object, Object>) null);
+    var poolWith =
+        Persistables.POOL.withReadResolve(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
-    var plain = Persistables.POOL.read(arr, (Function<Object, Object>) null);
+    var in = new ServiceSupply(new Service(5));
+    var arr = poolWith.write(in);
+
+    var plain = Persistables.POOL.read(arr);
     assertEquals("Remains five", 5, plain.get(ServiceSupply.class).supply().value());
 
-    var multiOnRead =
-        Persistables.POOL.read(
-            arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead = poolWith.read(arr);
     assertEquals("Multiplied on read", 15, multiOnRead.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void writeReplaceInline() throws Exception {
+    var poolWith =
+        Persistables.POOL.withWriteReplace(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     var in = new ServiceSupply(new Service(5));
-    var arr =
-        Persistables.POOL.write(
-            in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr = poolWith.write(in);
 
-    var plain = Persistables.POOL.read(arr, (Function<Object, Object>) null);
+    var plain = Persistables.POOL.read(arr);
     assertEquals("Multiplied on write", 15, plain.get(ServiceSupply.class).supply().value());
   }
 
   @Test
   public void readResolveReference() throws Exception {
-    var in = new IntegerSupply(new Service(5));
-    var arr = Persistables.POOL.write(in, (Function<Object, Object>) null);
+    var poolWith =
+        Persistables.POOL.withReadResolve(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
 
-    var plain = Persistables.POOL.read(arr, (Function<Object, Object>) null);
+    var in = new IntegerSupply(new Service(5));
+    var arr = poolWith.write(in);
+
+    var plain = Persistables.POOL.read(arr);
     assertEquals("Remains five", 5, (int) plain.get(IntegerSupply.class).supply().get());
     assertEquals("Remains five 2", 5, (int) plain.get(IntegerSupply.class).supply().get());
 
-    var multiOnRead =
-        Persistables.POOL.read(
-            arr, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var multiOnRead = poolWith.read(arr);
     assertEquals(
         "Multiplied on read", 15, (int) multiOnRead.get(IntegerSupply.class).supply().get());
   }
 
   @Test
   public void writeReplaceReference() throws Exception {
+    var poolWith =
+        Persistables.POOL.withWriteReplace(
+            (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
     var in = new IntegerSupply(new Service(5));
-    var arr =
-        Persistables.POOL.write(
-            in, (obj) -> obj instanceof Service s ? new Service(s.value() * 3) : obj);
+    var arr = poolWith.write(in);
 
-    var plain = Persistables.POOL.read(arr, (Function<Object, Object>) null);
+    var plain = poolWith.read(arr);
     assertEquals("Multiplied on write", 15, (int) plain.get(IntegerSupply.class).supply().get());
   }
 
   static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
-    var arr = Persistables.POOL.write(l, (Function<Object, Object>) null);
+    var arr = Persistables.POOL.write(l);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
     }
-    var ref = Persistables.POOL.read(arr, (Function<Object, Object>) null);
+    var ref = Persistables.POOL.read(arr);
     return ref.get(clazz);
   }
 

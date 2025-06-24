@@ -104,7 +104,7 @@ type Date_Time
     ## ALIAS current time
        GROUP DateTime
        ICON time
-       SUGGESTED 10
+       SUGGESTED 11
 
        Obtains the current date-time from the system clock in the system timezone.
 

@@ -15,6 +15,7 @@ import project.Data_Formatter.Data_Formatter
 import project.Delimited.Invalid_Rows.Invalid_Rows
 import project.Delimited.Quote_Style.Quote_Style
 import project.Headers.Headers
+import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 import project.Internal.Telemetry
@@ -126,7 +127,7 @@ type Delimited_Format
        Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
-        Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
+        Delimited_Writer.write_file (table : Table & In_Memory_Table) self file on_existing_file match_columns on_problems
 
     ## PRIVATE
        Clone the instance with some properties overridden.

@@ -18,7 +18,7 @@ public class CountEmpty extends KnownTypeAggregator {
   private final boolean isEmpty;
 
   /**
-   * Constructs a CountNothing Aggregator
+   * Constructs a CountEmpty Aggregator
    *
    * @param name output column name
    * @param column input column

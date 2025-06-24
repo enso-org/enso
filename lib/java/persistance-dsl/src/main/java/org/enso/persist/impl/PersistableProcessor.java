@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -25,6 +26,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleAnnotationValueVisitor9;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.StandardLocation;
 import org.openide.util.lookup.ServiceProvider;
@@ -121,6 +123,7 @@ public class PersistableProcessor extends AbstractProcessor {
   }
 
   private String findFqn(Element e) {
+    Objects.requireNonNull(e);
     var inPackage = findNameInPackage(e);
     var pkg = processingEnv.getElementUtils().getPackageOf(e);
     return pkg.getQualifiedName() + "." + inPackage;
@@ -220,6 +223,7 @@ public class PersistableProcessor extends AbstractProcessor {
     var pkgName = eu.getPackageOf(orig).getQualifiedName().toString();
     var className = "Persist" + findNameInPackage(typeElem).replace(".", "_");
     var fo = processingEnv.getFiler().createSourceFile(pkgName + "." + className, orig);
+    var ok = true;
     try (var w = fo.openWriter()) {
       var id = readAnnoValue(anno, "id");
       registerPersistablesClass(pkgName, className, Integer.parseInt(id));
@@ -250,8 +254,11 @@ public class PersistableProcessor extends AbstractProcessor {
           if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
             w.append("    var ").append(v.getSimpleName()).append(" = in.readUTF();\n");
           } else if (!v.asType().getKind().isPrimitive()) {
-            var type = tu.erasure(v.asType());
-            var elem = (TypeElement) tu.asElement(type);
+            var elem = findTypeOrNull(tu, v, orig);
+            if (elem == null) {
+              ok = false;
+              continue;
+            }
             var name = findFqn(elem);
             if (canInline && shouldInline(elem)) {
               w.append("    var ")
@@ -312,8 +319,11 @@ public class PersistableProcessor extends AbstractProcessor {
           if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
             w.append("    out.writeUTF(obj.").append(v.getSimpleName()).append("());\n");
           } else if (!v.asType().getKind().isPrimitive()) {
-            var type = tu.erasure(v.asType());
-            var elem = (TypeElement) tu.asElement(type);
+            var elem = findTypeOrNull(tu, v, orig);
+            if (elem == null) {
+              ok = false;
+              continue;
+            }
             var name = findFqn(elem);
             if (canInline && shouldInline(elem)) {
               w.append("    out.writeInline(")
@@ -344,7 +354,18 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("  }\n");
       w.append("}\n");
     }
-    return true;
+    return ok;
+  }
+
+  private TypeElement findTypeOrNull(Types tu, VariableElement v, Element orig) {
+    var type = tu.erasure(v.asType());
+    var elem = (TypeElement) tu.asElement(type);
+    if (elem == null) {
+      processingEnv
+          .getMessager()
+          .printMessage(Kind.ERROR, "No persistable class for " + type, orig);
+    }
+    return elem;
   }
 
   private void registerPersistablesClass(Element elem, AnnotationMirror anno) {
@@ -371,7 +392,14 @@ public class PersistableProcessor extends AbstractProcessor {
       pkg = new TreeMap<>();
       registeredClasses.put(pkgName, pkg);
     }
-    pkg.put(id, className);
+    var prev = pkg.put(id, className);
+    if (prev != null) {
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Kind.ERROR,
+              "Duplicated registration with id=" + id + " by " + className + " and " + prev);
+    }
   }
 
   private boolean isVisibleFrom(Element e, Element from) {

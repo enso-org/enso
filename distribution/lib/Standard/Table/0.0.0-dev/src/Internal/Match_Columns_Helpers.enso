@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Runtime.State
 from Standard.Base.Runtime import assert
 
 import project.Columns_To_Keep.Columns_To_Keep

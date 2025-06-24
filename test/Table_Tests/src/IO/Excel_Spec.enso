@@ -26,21 +26,46 @@ polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.table_test_helpers.RandomHelpers
 polyglot java import org.enso.table.excel.ExcelConnectionPool
 
-spec_fmt suite_builder header file read_method sheet_count=5 =
+spec_fmt suite_builder header file =
     suite_builder.group header group_builder->
         group_builder.specify "should read a workbook in" <|
-            wb = read_method file
-            wb.sheet_count . should_equal sheet_count
+            wb = file.read
+            wb.sheet_count . should_equal 5
 
         group_builder.specify "should read the specified sheet by index and use correct headers" <|
-            t = read_method file (..Sheet 1)
+            t = file.read (..Sheet 1)
             t.columns.map .name . should_equal ['Name', 'Quantity', 'Price']
             t.at 'Name' . to_vector . should_equal ['blouse', 't-shirt', 'trousers', 'shoes', 'skirt', 'dress']
             t.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
             t.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
+            wb = file.read
+            t2 = wb.read 1
+            t2.should_equal t
+
+        group_builder.specify "can read the last sheet by index" <|
+            t = file.read (..Sheet 5)
+            t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price 1']
+            wb = file.read
+            t2 = wb.read 5
+            t2.should_equal t
+
+        group_builder.specify "out of range sheet index should error" <|
+            t0 = file.read (..Sheet 0)
+            t0.should_fail_with Invalid_Location
+            t0.catch.to_display_text . should_contain 'Sheet 0 is out of range (1 to 5 inclusive).'
+            t6 = file.read (..Sheet 6)
+            t6.should_fail_with Invalid_Location
+            t6.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
+            wb = file.read
+            t0a = wb.read 0
+            t0a.should_fail_with Invalid_Location
+            t0a.catch.to_display_text . should_contain 'Sheet 0 is out of range (1 to 5 inclusive).'
+            t6a = wb.read 6
+            t6a.should_fail_with Invalid_Location
+            t6a.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
 
         group_builder.specify "should read the specified sheet by index and properly format a table" <|
-            t = read_method file (..Sheet 2 headers=False)
+            t = file.read (..Sheet 2 headers=False)
             t.columns.map .name . should_equal ['A', 'B', 'C', 'D', 'E']
             t.at 'A' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
             t.at 'B' . to_vector . should_equal [Nothing, Nothing, 10, Nothing, Nothing, Nothing, Nothing]
@@ -49,21 +74,21 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             t.at 'E' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
 
         group_builder.specify "should read the specified sheet by name and properly handle dates" <|
-            t = read_method file (..Sheet 'Dates')
+            t = file.read (..Sheet 'Dates')
             t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
             t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
 
         group_builder.specify "should give an informative error when reading an empty table" <|
-            t = read_method file (..Sheet "Empty")
+            t = file.read (..Sheet "Empty")
             t.should_fail_with Empty_Sheet
 
         group_builder.specify "should gracefully handle duplicate column names and formulas" <|
-            t = read_method file (..Sheet "Duplicate Columns")
+            t = file.read (..Sheet "Duplicate Columns")
             t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price 1']
             t.at 'Price 1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
 
         group_builder.specify "should allow reading with limited rows and skipping rows from workbook" <|
-            wb = read_method file
+            wb = file.read
             t = wb.read 1 headers=..No_Headers
             t.column_names.should_equal ['A', 'B', 'C']
 
@@ -89,24 +114,24 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
         group_builder.specify "should allow reading with cell range specified" <|
-            t_1 = read_method file (..Range "Simple!B:C")
+            t_1 = file.read (..Range "Simple!B:C")
             t_1.columns.map .name . should_equal ['Quantity', 'Price']
             t_1.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
             t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
 
-            t_2 = read_method file (..Range "Simple!3:5" headers=False)
+            t_2 = file.read (..Range "Simple!3:5" headers=False)
             t_2.column_count.should_equal 3
             t_2.at 'A' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
             t_2.at 'B' . to_vector . should_equal [20, Nothing, 30]
             t_2.at 'C' . to_vector . should_equal [32, 43.2, 54]
 
-            t_3 = read_method file (..Range "Simple!B4:C5" headers=False)
+            t_3 = file.read (..Range "Simple!B4:C5" headers=False)
             t_3.column_count.should_equal 2
             t_3.at 'B' . to_vector . should_equal [Nothing, 30]
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
         group_builder.specify "should let you read all sheets into a single table" <|
-            wb = read_method file
+            wb = file.read
             r1 = wb.read_many on_problems=..Report_Error
             r1.should_fail_with Empty_Sheet
 
@@ -123,7 +148,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             w2.column_names . should_equal ["Price"]
 
         group_builder.specify "should let you read all sheets into a table of tables" <|
-            wb = read_method file
+            wb = file.read
             action = wb.read_many return=..With_New_Column on_problems=_
             tester table =
                 table.row_count . should_equal 5
@@ -132,7 +157,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             Problems.test_problem_handling action problems tester ignore_warning_cardinality=True
 
         group_builder.specify "should still support the old options for compatibility" <|
-            wb = read_method file
+            wb = file.read
             table1 = wb.read_many return=..Table_Of_Tables
             table1.row_count . should_equal 5
             table1.column_names . should_equal ["Sheet Name", "Table"]
@@ -147,14 +172,14 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             Problems.expect_warning Deprecated table3
 
         group_builder.specify "should let you read some sheets from xlsx" <|
-            wb = read_method file
+            wb = file.read
             single_table = wb.read_many ["Simple", "Dates"]
             single_table.row_count . should_equal 12
             single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
             Problems.assume_no_problems single_table
 
         group_builder.specify "should let you read some sheets with a bad name from xlsx" <|
-            wb = read_method file
+            wb = file.read
             single_table = wb.read_many ["Simple", "Dates", "Not A Sheet"]
             single_table.row_count . should_equal 12
             single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
@@ -1445,9 +1470,9 @@ add_specs suite_builder =
             workbook.close
             big_file.delete_if_exists . should_succeed
 
-    spec_fmt suite_builder 'XLSX reading' Examples.xlsx .read
+    spec_fmt suite_builder 'XLSX reading' Examples.xlsx
 
-    spec_fmt suite_builder 'XLS reading' Examples.xls .read
+    spec_fmt suite_builder 'XLS reading' Examples.xls
 
     suite_builder.group "Reading single cells correctly" group_builder->
         file = enso_project.data / "RangeTests.xlsx"
