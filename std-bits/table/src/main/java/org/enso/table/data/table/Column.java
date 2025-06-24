@@ -167,7 +167,9 @@ public final class Column {
    * @return a sliced column.
    */
   public Column slice(long offset, long limit) {
-    return MaskOperation.slice(this, offset, limit);
+    return offset >= getSize()
+        ? MaskOperation.slice(this, 0, 0)
+        : MaskOperation.slice(this, offset, limit);
   }
 
   /**

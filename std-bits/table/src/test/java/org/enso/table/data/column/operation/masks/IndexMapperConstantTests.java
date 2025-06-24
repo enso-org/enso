@@ -145,7 +145,7 @@ public class IndexMapperConstantTests {
     var base = makeBase();
 
     var sliced = base.merge(new IndexMapper.ArrayMapping(new long[0]));
-    Assertions.assertInstanceOf(IndexMapper.Constant.class, sliced);
+    Assertions.assertInstanceOf(IndexMapper.ArrayMapping.class, sliced);
     Assertions.assertEquals(0, sliced.size());
   }
 

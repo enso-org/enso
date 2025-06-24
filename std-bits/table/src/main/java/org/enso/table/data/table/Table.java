@@ -561,7 +561,10 @@ public class Table {
    * @return a copy of the Table containing a slice of the original data
    */
   public Table slice(long offset, long limit) {
-    var indexMapper = new IndexMapper.SingleSlice(offset, limit);
+    var indexMapper =
+        offset > rowCount()
+            ? new IndexMapper.SingleSlice(0, 0)
+            : new IndexMapper.SingleSlice(offset, limit);
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].mask(indexMapper);

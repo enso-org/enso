@@ -28,10 +28,14 @@ public abstract sealed class IndexMapper
   abstract long size();
 
   IndexMapper merge(IndexMapper other) {
+    if (other.size() == 0) {
+      // Empty mapper so just return it.
+      return other;
+    }
+
     if (_mergeCache == null) {
       _mergeCache = new LeastRecentlyUsedCache<>(1000);
     }
-
     var key = this.uniqueKey * 1_000_000_000 + other.uniqueKey;
     var cached = _mergeCache.get(key);
     if (cached != null) {
@@ -242,16 +246,18 @@ public abstract sealed class IndexMapper
         case Constant constant -> Constant.throwCantUse();
         case SingleSlice slice -> {
           checkIndexBounds(slice.start);
-          long newLength = Math.min(mapping.length + slice.start, slice.length);
+          long newLength = Math.min(mapping.length - slice.start, slice.length);
           long[] newMapping =
               Arrays.copyOfRange(mapping, (int) slice.start, (int) (slice.start + newLength));
           yield new ArrayMapping(newMapping);
         }
         case Reversed reversed -> {
           checkIndexBounds(reversed.start);
-          long newLength = Math.min(mapping.length + reversed.start, reversed.length);
+          long newLength = Math.min(mapping.length - reversed.start, reversed.length);
           long[] newMapping =
-              LongStream.range(0, newLength).map(i -> map(reversed.map(i))).toArray();
+              LongStream.range(0, newLength)
+                  .map(i -> map(reversed.start + newLength - i - 1))
+                  .toArray();
           yield new ArrayMapping(newMapping);
         }
         case ArrayMapping arrayMapping -> remap(this, arrayMapping.mapping);
