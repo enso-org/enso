@@ -10,11 +10,11 @@ public class GoogleSheetsHeaders {
   private final String[] names;
 
   public GoogleSheetsHeaders(
-      HeaderBehavior headers, List<Object> firstRow, List<Object> secondRow, ProblemAggregator problemAggregator) {
+      HeaderBehavior headerBehavior, List<Object> firstRow, List<Object> secondRow, ProblemAggregator problemAggregator) {
     deduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     names =
-        switch (headers) {
+        switch (headerBehavior) {
           case DEFAULT_COLUMN_NAMES -> null;
           case USE_FIRST_ROW_AS_HEADERS -> readFirstRowAsHeaders(firstRow, deduplicator);
           case INFER -> inferHeaders(firstRow, secondRow, deduplicator);
