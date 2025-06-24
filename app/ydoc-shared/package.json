@@ -17,12 +17,14 @@
     "./ast": {
       "source": "./src/ast/index.ts",
       "types": "./dist/ast/index.d.ts",
-      "import": "./dist/ast/index.js"
+      "import": "./dist/ast/index.js",
+      "enso-source": "./src/ast/index.ts"
     },
     "./*": {
       "source": "./src/*.ts",
       "types": "./dist/*.d.ts",
-      "import": "./dist/*.js"
+      "import": "./dist/*.js",
+      "enso-source": "./src/*.ts"
     }
   },
   "dependencies": {

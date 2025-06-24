@@ -102,7 +102,8 @@ export default defineConfig({
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
-    conditions: [...defaultClientConditions],
+    conditions:
+      isDevMode ? ['enso-source', ...defaultClientConditions] : [...defaultClientConditions],
     alias: {
       '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),

@@ -6,13 +6,15 @@
     ".": {
       "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "enso-source": "./src/index.ts"
     },
     "./src/config.json": "./src/config.json",
     "./src/*": {
       "source": "./src/*.ts",
       "types": "./dist/*.d.ts",
-      "import": "./dist/*.js"
+      "import": "./dist/*.js",
+      "enso-source": "./src/*.ts"
     }
   },
   "main": "src/index.ts",

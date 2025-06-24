@@ -9,6 +9,7 @@
   ],
   "compilerOptions": {
     "module": "preserve",
+    "customConditions": ["enso-source"],
     "composite": true,
     "strict": true,
     "strictNullChecks": true,

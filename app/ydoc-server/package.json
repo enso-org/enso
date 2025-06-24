@@ -18,7 +18,8 @@
     ".": {
       "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "enso-source": "./src/index.ts"
     }
   },
   "dependencies": {
