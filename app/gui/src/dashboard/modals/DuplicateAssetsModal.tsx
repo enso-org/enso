@@ -332,9 +332,7 @@ function getUniqueName(title: string, siblingTitles: readonly string[]) {
     let newMaximum: number
     if (match == null) {
       continue
-    } else if (isCopy == null) {
-      newMaximum = 0
-    } else if (number == null) {
+    } else if (isCopy == null || number == null) {
       newMaximum = 1
     } else {
       newMaximum = parseInt(number, 10)
@@ -344,10 +342,7 @@ function getUniqueName(title: string, siblingTitles: readonly string[]) {
   if (maximum == null) {
     return title
   }
-  if (maximum === 0) {
-    return `${title} (copy)`
-  }
-  return `${title} (copy ${maximum + 1})`
+  return `${title} (${maximum + 1})`
 }
 
 /**

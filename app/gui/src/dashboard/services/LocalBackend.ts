@@ -722,6 +722,7 @@ export default class LocalBackend extends Backend {
           electronOptions: {
             shouldUnpackProject,
             path: targetPath,
+            showFileDialog: true,
           },
         })
         break
@@ -734,6 +735,7 @@ export default class LocalBackend extends Backend {
           name: details.file.fileName ?? '',
           electronOptions: {
             path: targetPath,
+            showFileDialog: true,
           },
         })
         break
