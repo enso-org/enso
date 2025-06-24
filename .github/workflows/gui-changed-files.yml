@@ -54,30 +54,3 @@ jobs:
           for file in ${ALL_CHANGED_FILES}; do
             echo "$file"
           done
-      - name: 💬 Comment on PR
-        uses: actions/github-script@v7
-        if: steps.gui-changed-files.outputs.any_changed == 'true' && github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { setMessage } = await import('${{ github.workspace }}/app/gui/scripts/ci/set-message.js')
-                
-            await setMessage({
-              id: "title-message",
-              header: "## 🔄 GUI Checks in Progress",
-              context,
-              recreate: true,
-              body: `
-                The following checks are being performed:
-                - 🧹 Code formatting with Prettier
-                - 👮 Linting and type checking
-                - 🧪 Unit tests
-                - 🎭 Integration tests with Playwright
-                - 📚 Storybook deployment
-
-                Results will be updated here once completed.
-              `,
-              github,
-              repo: context.repo,
-              prNumber: context.payload.pull_request.number
-            })

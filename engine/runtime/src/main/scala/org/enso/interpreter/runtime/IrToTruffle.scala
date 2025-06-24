@@ -2233,14 +2233,17 @@ class IrToTruffle(
       val name = scopeName.replace('.', '_') + "." + language
       val b    = Source.newBuilder("epb", language + ":" + line + "#" + code, name)
       b.uri(source.getURI())
-      val src       = b.build()
-      val foreignCt = context.parseInternal(src, argumentNames: _*)
+      val src = b.build()
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>
           ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
         )
         .toArray[RuntimeExpression]
-      ForeignMethodCallNode.build(argumentReaders, foreignCt)
+      ForeignMethodCallNode.buildDeferred(
+        src,
+        argumentNames.toArray,
+        argumentReaders
+      )
     }
 
     /** Generates code for an Enso function body.

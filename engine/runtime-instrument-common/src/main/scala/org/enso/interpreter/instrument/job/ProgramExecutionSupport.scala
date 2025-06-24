@@ -3,6 +3,7 @@ package org.enso.interpreter.instrument.job
 import org.slf4j.LoggerFactory
 
 import com.oracle.truffle.api.exception.AbstractTruffleException
+import com.oracle.truffle.api.source.SourceSection
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
   MethodCallsCache,
@@ -729,6 +730,7 @@ object ProgramExecutionSupport {
         if (!TypesGen.isPanicSentinel(expressionValue)) {
           val typeOfNode =
             TypeOfNode.getUncached.findTypeOrError(expressionValue)
+
           logger.warn(
             "Execution of visualization [{}] on value [{}] of [{}] failed. {} | {} | {}",
             visualizationId,
@@ -738,6 +740,23 @@ object ProgramExecutionSupport {
             expressionValue,
             error
           )
+          error match {
+            case p: AbstractTruffleException if p.getLocation() != null => {
+              p.getLocation().getEncapsulatingSourceSection() match {
+                case ss: SourceSection =>
+                  logger.warn(
+                    "Error at {}-{} (e.g. `{}`) of {} with text:\n{}",
+                    ss.getCharIndex(),
+                    ss.getCharEndIndex(),
+                    ss.getCharacters(),
+                    visualizationId,
+                    ss.getSource().getCharacters()
+                  )
+                case _ =>
+              }
+            }
+            case _ =>
+          }
         }
         ctx.endpoint.sendToClient(
           Api.Response(

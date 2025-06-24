@@ -10,7 +10,6 @@ from Standard.Base.Widget_Helpers import make_regex_text_widget
 import project.Errors.Invalid_JSON_Format
 import project.Internal.Expand_Objects_Helpers
 import project.Internal.Parse_To_Table
-import project.Internal.Widget_Helpers
 import project.Match_Columns.Match_Columns
 import project.Table.Table
 

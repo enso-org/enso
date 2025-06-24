@@ -7,48 +7,49 @@ from Standard.Base import all
 
 import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
+import project.In_Memory_Table.In_Memory_Table
 import project.Table.Table
 from project.Internal.Type_Refinements.Single_Value_Column_Conversions import all
 from project.Internal.Type_Refinements.Table_Refinements import is_single_column
 
 ## This conversion is internal and should never be exported.
-In_Memory_Column.from (that : Table) -> In_Memory_Column =
+In_Memory_Column.from (that : In_Memory_Table) -> In_Memory_Column =
     Runtime.assert (is_single_column that)
-    that.at 0
+    (that:Table).at 0
 
 ## This conversion is internal and should never be exported.
-Column.from (that : Table) -> Column =
+Column.from (that : In_Memory_Table) -> Column =
     Runtime.assert (is_single_column that)
-    that.at 0
+    (that:Table).at 0
 
 ## This conversion is internal and should never be exported.
-Integer.from (that : Table) -> Integer =
+Integer.from (that : In_Memory_Table) -> Integer =
     Integer.from (In_Memory_Column.from that)
 
 ## This conversion is internal and should never be exported.
-Float.from (that : Table) -> Float =
+Float.from (that : In_Memory_Table) -> Float =
     Float.from (In_Memory_Column.from that)
 
 ## This conversion is internal and should never be exported.
-Text.from (that : Table) -> Text =
+Text.from (that : In_Memory_Table) -> Text =
     Text.from (In_Memory_Column.from that)
 
 ## This conversion is internal and should never be exported.
-Boolean.from (that : Table) -> Boolean =
+Boolean.from (that : In_Memory_Table) -> Boolean =
     Boolean.from (In_Memory_Column.from that)
 
 ## This conversion is internal and should never be exported.
-Date.from (that : Table) -> Date =
+Date.from (that : In_Memory_Table) -> Date =
     Date.from (In_Memory_Column.from that)
 
 ## This conversion is internal and should never be exported.
-Time_Of_Day.from (that : Table) -> Time_Of_Day =
+Time_Of_Day.from (that : In_Memory_Table) -> Time_Of_Day =
     Time_Of_Day.from (In_Memory_Column.from that)
 
 ## This conversion is internal and should never be exported.
-Date_Time.from (that : Table) -> Date_Time =
+Date_Time.from (that : In_Memory_Table) -> Date_Time =
     Date_Time.from (In_Memory_Column.from that)
 
 ## This conversion is internal and should never be exported.
-Decimal.from (that : Table) -> Decimal =
+Decimal.from (that : In_Memory_Table) -> Decimal =
     Decimal.from (In_Memory_Column.from that)
