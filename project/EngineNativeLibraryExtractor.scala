@@ -68,6 +68,11 @@ object EngineNativeLibraryExtractor {
           "-thin.jar"
         )
         val outJar = componentDir / outJarName
+        if (outJar.exists()) {
+          // Extraction is not cache, but the output jar exist. We must first delete it.
+          // This can happen if sbt was restarted and the outputJar was not deleted.
+          IO.delete(outJar)
+        }
         val extractedLibs = extractJLineNative(
           jlineNativeJar,
           outJar,
