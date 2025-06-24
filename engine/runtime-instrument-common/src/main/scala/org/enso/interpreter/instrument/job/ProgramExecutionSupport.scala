@@ -42,7 +42,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.io.File
 import java.util.UUID
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionStage
 import java.util.function.{Consumer, Supplier}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
@@ -159,7 +159,7 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
-        pending.get()
+        pending.toCompletableFuture.get()
       case ExecutionFrame(
             ExecutionItem.CallData(expressionId, callData),
             cache,
@@ -202,7 +202,7 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
-        pending.get()
+        pending.toCompletableFuture.get()
     }
 
     callStack match {
@@ -340,7 +340,7 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     val pendingDiagnostic =
       ctx.executionService.getDiagnosticOutcome(t)
-    pendingDiagnostic
+    pendingDiagnostic.toCompletableFuture
       .get()
       .map(d => Option(d.asInstanceOf[Api.ExecutionResult]))
       .orElse(getFailureOutcomeFromException(t))
@@ -356,6 +356,7 @@ object ProgramExecutionSupport {
         if (diagnostic.isEmpty) None
         else Some(diagnostic.get().asInstanceOf[Api.ExecutionResult.Diagnostic])
       })
+      .toCompletableFuture
       .get()
   }
 
@@ -475,7 +476,10 @@ object ProgramExecutionSupport {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
           val exceptionMsg =
-            ctx.executionService.getExceptionMessage(sentinel.getPanic).get()
+            ctx.executionService
+              .getExceptionMessage(sentinel.getPanic)
+              .toCompletableFuture
+              .get()
           Some(
             Api.ExpressionUpdate.Payload
               .Panic(
@@ -532,7 +536,10 @@ object ProgramExecutionSupport {
               val warning =
                 if (warningsCount > 0) {
                   Try(
-                    WarningPreview.execute(warnings(0).getValue).get()
+                    WarningPreview
+                      .execute(warnings(0).getValue)
+                      .toCompletableFuture
+                      .get()
                   ).toEither
                     .fold(
                       error => {
@@ -672,8 +679,8 @@ object ProgramExecutionSupport {
       )
       val holder = ctx.contextManager.getVisualizationHolder(contextId)
 
-      val makeCall = new Supplier[CompletableFuture[AnyRef]] {
-        override def get(): CompletableFuture[AnyRef] = {
+      val makeCall = new Supplier[CompletionStage[AnyRef]] {
+        override def get(): CompletionStage[AnyRef] = {
           ctx.executionService.callFunctionWithInstrument(
             holder,
             visualization.cache,
@@ -700,7 +707,7 @@ object ProgramExecutionSupport {
       } else {
         makeCall.get()
       }
-      val visualizationResult = pending.get()
+      val visualizationResult = pending.toCompletableFuture.get()
       logger.trace(
         "Visualization {} on expression {} resulted in {}",
         visualization.id,
@@ -734,7 +741,10 @@ object ProgramExecutionSupport {
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         if (!TypesGen.isPanicSentinel(expressionValue)) {
           val typeOfNode =
-            ctx.executionService.typeOfValue(expressionValue).get()
+            ctx.executionService
+              .typeOfValue(expressionValue)
+              .toCompletableFuture
+              .get()
           logger.warn(
             "Execution of visualization [{}] on value [{} of type {}] failed. {} | {} | {}",
             visualizationId,

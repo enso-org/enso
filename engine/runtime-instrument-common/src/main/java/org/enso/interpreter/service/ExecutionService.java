@@ -21,7 +21,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.LanguageInfo;
@@ -118,7 +118,7 @@ public final class ExecutionService {
     return context;
   }
 
-  public CompletableFuture<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
+  public CompletionStage<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
       Module module, String typeName, String methodName)
       throws TypeNotFoundException, MethodNotFoundException {
     return submitExecution(
@@ -154,21 +154,23 @@ public final class ExecutionService {
   }
 
   /**
-   * Executes a function with given arguments, represented as runtime language-level objects.
+   * Submits a function with given arguments, represented as runtime language-level objects, for
+   * execution.
    *
    * @param module the module where the call is defined
-   * @param call the call metadata.
-   * @param cache the precomputed expression values.
-   * @param methodCallsCache the storage tracking the executed method calls.
-   * @param syncState the synchronization state of runtime updates.
-   * @param nextExecutionItem the next item scheduled for execution.
-   * @param expressionExecutionState the execution state for each expression.
-   * @param funCallCallback the consumer for function call events.
-   * @param onComputedCallback the consumer of the computed value events.
-   * @param onCachedCallback the consumer of the cached value events.
-   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
+   * @param call the call metadata
+   * @param cache the precomputed expression values
+   * @param methodCallsCache the storage tracking the executed method calls
+   * @param syncState the synchronization state of runtime updates
+   * @param nextExecutionItem the next item scheduled for execution
+   * @param expressionExecutionState the execution state for each expression
+   * @param funCallCallback the consumer for function call events
+   * @param onComputedCallback the consumer of the computed value events
+   * @param onCachedCallback the consumer of the cached value events
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result
+   * @return computation of call to a function
    */
-  public CompletableFuture<Object> execute(
+  public CompletionStage<Object> execute(
       VisualizationHolder visualizationHolder,
       Module module,
       FunctionCallInstrumentationNode.FunctionCall call,
@@ -223,23 +225,24 @@ public final class ExecutionService {
   }
 
   /**
-   * Executes a method described by its name, constructor it's defined on and the module it's
-   * defined in.
+   * Submits a method described by its name, constructor it's defined on and the module it's defined
+   * in, for execution.
    *
-   * @param moduleName the module where the method is defined.
-   * @param typeName the name of the type the method is defined on.
-   * @param methodName the method name.
-   * @param cache the precomputed expression values.
-   * @param methodCallsCache the storage tracking the executed method calls.
-   * @param syncState the synchronization state of runtime updates.
-   * @param nextExecutionItem the next item scheduled for execution.
-   * @param expressionExecutionState the execution state for each expression.
-   * @param funCallCallback the consumer for function call events.
-   * @param onComputedCallback the consumer of the computed value events.
-   * @param onCachedCallback the consumer of the cached value events.
-   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
+   * @param moduleName the module where the method is defined
+   * @param typeName the name of the type the method is defined on
+   * @param methodName the method name
+   * @param cache the precomputed expression values
+   * @param methodCallsCache the storage tracking the executed method calls
+   * @param syncState the synchronization state of runtime updates
+   * @param nextExecutionItem the next item scheduled for execution
+   * @param expressionExecutionState the execution state for each expression
+   * @param funCallCallback the consumer for function call events
+   * @param onComputedCallback the consumer of the computed value events
+   * @param onCachedCallback the consumer of the cached value events
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result
+   * @return computation of execution
    */
-  public CompletableFuture<Object> execute(
+  public CompletionStage<Object> execute(
       String moduleName,
       String typeName,
       String methodName,
@@ -261,7 +264,7 @@ public final class ExecutionService {
           UnsupportedTypeException {
     Module module =
         context.findModule(moduleName).orElseThrow(() -> new ModuleNotFoundException(moduleName));
-    CompletableFuture<FunctionCallInstrumentationNode.FunctionCall> callFuture =
+    CompletionStage<FunctionCallInstrumentationNode.FunctionCall> callFuture =
         prepareFunctionCall(module, typeName, methodName);
     return callFuture.thenCompose(
         call ->
@@ -303,21 +306,21 @@ public final class ExecutionService {
   }
 
   /**
-   * Evaluates an expression in the scope of the provided module.
+   * Submits an expression in the scope of the provided module, for evaluation.
    *
    * @param module the module providing a scope for the expression
    * @param expression the expression to evaluate
-   * @return a result of evaluation
+   * @return a computation representing the evaluation of an expression
    */
-  public CompletableFuture<Object> evaluateExpression(Module module, String expression) {
+  public CompletionStage<Object> evaluateExpression(Module module, String expression) {
     return submitExecution(() -> invoke.getCallTarget().call(module, expression));
   }
 
   /**
    * Converts the provided object to a readable representation.
    *
-   * @param receiver the object to convert.
-   * @return the textual representation of the object.
+   * @param receiver the object to convert
+   * @return the textual representation of the object
    */
   public String toDisplayString(Object receiver) {
     try {
@@ -330,13 +333,13 @@ public final class ExecutionService {
   }
 
   /**
-   * Calls a function with the given argument.
+   * Submits a call for a function with the given argument.
    *
    * @param fn the function object
    * @param argument the argument applied to the function
-   * @return the result of calling the function
+   * @return computation of a function call
    */
-  public CompletableFuture<Object> callFunction(Object fn, Object argument) {
+  public CompletionStage<Object> callFunction(Object fn, Object argument) {
     return submitExecution(
         () -> {
           var callArgs =
@@ -355,9 +358,9 @@ public final class ExecutionService {
    * @param module the module providing scope for the function
    * @param function the function object
    * @param arguments the sequence of arguments applied to the function
-   * @return the result of calling the function
+   * @return the computation of a function call
    */
-  public CompletableFuture<Object> callFunctionWithInstrument(
+  public CompletionStage<Object> callFunctionWithInstrument(
       VisualizationHolder visualizationHolder,
       RuntimeCache cache,
       RuntimeCache executionCache,
@@ -415,8 +418,14 @@ public final class ExecutionService {
         });
   }
 
-  // It's Option because Scala/Java interop for nested classes from Java is non-functional
-  public CompletableFuture<Optional<Object>> getDiagnosticOutcome(Throwable t) {
+  /**
+   * Computes diagnostics from an exception. Returns an `Option` because Scala/Java interop for
+   * nested classes from Java is non-usable.
+   *
+   * @param t an exception to analyze
+   * @return computation that infers the message from an exception
+   */
+  public CompletionStage<Optional<Object>> getDiagnosticOutcome(Throwable t) {
     return submitExecution(
         () -> {
           if (t instanceof AbstractTruffleException ex) {
@@ -451,9 +460,9 @@ public final class ExecutionService {
    * Computes a type of a Truffle's node.
    *
    * @param value node to compute
-   * @return future representing the computation
+   * @return computation that infers the type of a value
    */
-  public CompletableFuture<Object> typeOfValue(Object value) {
+  public CompletionStage<Object> typeOfValue(Object value) {
     return submitExecution(() -> TypeOfNode.getUncached().findTypeOrError(value));
   }
 
@@ -588,10 +597,10 @@ public final class ExecutionService {
   /**
    * Returns a human-readable message for a panic exception.
    *
-   * @param panic the panic to display.
-   * @return a human-readable version of its contents.
+   * @param panic the panic to display
+   * @return a computation of a human-readable version of an exception
    */
-  public CompletableFuture<String> getExceptionMessage(AbstractTruffleException panic) {
+  public CompletionStage<String> getExceptionMessage(AbstractTruffleException panic) {
     return submitExecution(() -> computeExceptionMessage(panic));
   }
 
@@ -625,7 +634,7 @@ public final class ExecutionService {
     throw (E) ex;
   }
 
-  private <T> CompletableFuture<T> submitExecution(Supplier<T> c) {
+  private <T> CompletionStage<T> submitExecution(Supplier<T> c) {
     return context.getThreadManager().submit(c);
   }
 

@@ -388,7 +388,7 @@ object UpsertVisualizationJob {
     Try {
       val pending =
         ctx.executionService.evaluateExpression(module, argumentExpression)
-      pending.get()
+      pending.toCompletableFuture.get()
     }.toEither.left.flatMap {
       case _: ThreadInterruptedException
           if retryCount < MaxEvaluationRetryCount =>
@@ -466,7 +466,7 @@ object UpsertVisualizationJob {
             )
             .thenApply(f => f.asInstanceOf[AnyRef])
       }
-      pending.get()
+      pending.toCompletableFuture.get()
     }.toEither.left.flatMap {
       case _: ThreadInterruptedException
           if retryCount < MaxEvaluationRetryCount =>

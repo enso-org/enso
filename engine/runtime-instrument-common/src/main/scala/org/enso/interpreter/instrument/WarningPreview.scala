@@ -4,7 +4,7 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.VisualizationResult
 
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionStage
 
 object WarningPreview {
 
@@ -18,8 +18,8 @@ object WarningPreview {
     */
   def execute(
     value: AnyRef
-  )(implicit ctx: RuntimeContext): CompletableFuture[String] = {
-    val visualizationExpressionFuture: CompletableFuture[AnyRef] =
+  )(implicit ctx: RuntimeContext): CompletionStage[String] = {
+    val visualizationExpressionFuture: CompletionStage[AnyRef] =
       ctx.executionService.evaluateExpression(
         ctx.executionService.getContext.getBuiltins.getModule,
         METHOD
