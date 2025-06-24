@@ -80,6 +80,20 @@
     "META-INF/resources/windows/amd64/lib-graalpython/python-native.dll",
     "META-INF/resources/windows/amd64/lib-graalpython/pythonjni.dll"
   ],
+  "component/jline-native-3.26.3.jar": [
+    "org/jline/nativ/FreeBSD/x86/libjlinenative.so",
+    "org/jline/nativ/FreeBSD/x86_64/libjlinenative.so",
+    "org/jline/nativ/Linux/arm/libjlinenative.so",
+    "org/jline/nativ/Linux/arm64/libjlinenative.so",
+    "org/jline/nativ/Linux/armv6/libjlinenative.so",
+    "org/jline/nativ/Linux/armv7/libjlinenative.so",
+    "org/jline/nativ/Linux/ppc64/libjlinenative.so",
+    "org/jline/nativ/Linux/x86/libjlinenative.so",
+    "org/jline/nativ/Linux/x86_64/libjlinenative.so",
+    "org/jline/nativ/Windows/arm64/jlinenative.dll",
+    "org/jline/nativ/Windows/x86/jlinenative.dll",
+    "org/jline/nativ/Windows/x86_64/jlinenative.dll"
+  ],
   "component/truffle-nfi-libffi-24.2.0.jar": [
     "META-INF/resources/nfi-native/libnfi/linux/amd64/bin/libtrufflenfi.so",
     "META-INF/resources/nfi-native/libnfi/linux/aarch64/bin/libtrufflenfi.so",

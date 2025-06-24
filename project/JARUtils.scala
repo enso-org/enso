@@ -25,11 +25,6 @@ object JARUtils {
     * @param logger SBT's logger
     * @param cacheStoreFactory SBT's cache sotre factory
     * @param previousRun summary of previous extraction data, if available
-    * @param copyMetaInf If true and `outputJarPath` is not None, copies entries from `META-INF` directory
-    *           as well as `.class` entries from `inputJarPath` to `outputJarPath`. More specifically,
-    *           for every JAR entry from `inputJarPath`, it holds that, if `renameFunc` returns None, and
-    *           the entry ends with `.class` or starts with `META-INF/`, then the entry is copied
-    *           to `outputJarPath`.
     * @return list of extracted native libraries
     */
   def extractFilesFromJar(
@@ -40,8 +35,7 @@ object JARUtils {
     renameFunc: String => Option[String],
     logger: sbt.util.Logger,
     cacheStoreFactory: CacheStoreFactory,
-    previousRun: Option[ExtractedNativeLibSummary],
-    copyMetaInf: Boolean = false
+    previousRun: Option[ExtractedNativeLibSummary]
   ): Try[List[File]] = {
     val dependencyStore = cacheStoreFactory.make("extract-jar-files")
     val inputJarFile    = inputJarPath.toFile
@@ -51,11 +45,9 @@ object JARUtils {
     )
     var shouldExtract = false
     Tracked.diffInputs(dependencyStore, FileInfo.hash)(cachedFiles) { report =>
-      val inputChanged =
-        report.modified.nonEmpty || report.removed.nonEmpty || report.added.nonEmpty
-      val outExists = outputJarPath
-        .exists(_.toFile.exists())
-      shouldExtract = inputChanged || !outExists
+      shouldExtract =
+        report.modified.nonEmpty || report.removed.nonEmpty || report.added.nonEmpty || outputJarPath
+          .exists(!_.toFile.exists())
     }
 
     if (!shouldExtract) {
@@ -111,15 +103,7 @@ object JARUtils {
                         })
                       }
                     case None =>
-                      val entryName = entry.getName
-                      val shouldCopy = if (copyMetaInf) {
-                        entryName.startsWith("META-INF") || entryName.endsWith(
-                          ".class"
-                        )
-                      } else {
-                        entryName.endsWith(".class")
-                      }
-                      if (shouldCopy) {
+                      if (entry.getName.endsWith(".class")) {
                         outputJar.putNextEntry(new JarEntry(entry.getName))
                         Using(inputJar.getInputStream(entry)) { is =>
                           is.transferTo(outputJar)

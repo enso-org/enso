@@ -5611,6 +5611,7 @@ lazy val createStdLibsIndexes =
 createStdLibsIndexes := {
   updateLibraryManifests.value
   buildEngineDistributionNoIndex.value
+  val modulesToCopy    = componentModulesPaths.value
   val distributionRoot = engineDistributionRoot.value
   val log              = streams.value.log
   val cacheFactory     = streams.value.cacheStoreFactory
@@ -5658,37 +5659,12 @@ ThisBuild / createEnginePackageNoIndex := {
   createEnginePackageNoIndex.result.value
 }
 
-lazy val extractNativeLibsFromEngine =
-  taskKey[AnalysisOfExtractedNativeLibs](
-    "Task that extracts native libraries from engine dependencies"
-  )
-
-ThisBuild / extractNativeLibsFromEngine := Def
-  .task {
-    import sbt.util.CacheImplicits._
-    val componentDir = engineDistributionRoot.value / "component"
-    val cacheFactory = streams.value.cacheStoreFactory
-    val updateReport = (`engine-runner` / update).value
-    val logger       = streams.value.log
-    val prev         = extractNativeLibsFromEngine.previous
-    EngineNativeLibraryExtractor.extractNativeLibraries(
-      componentDir,
-      logger,
-      updateReport,
-      scalaBinaryVersion.value,
-      cacheFactory,
-      prev
-    )
-  }
-  .dependsOn(createEnginePackageNoIndex)
-  .value
-
 lazy val buildEngineDistributionNoIndex =
   taskKey[Unit](
     "Builds the engine distribution without generating indexes and optionally generating native image"
   )
 buildEngineDistributionNoIndex := Def.taskIf {
-  extractNativeLibsFromEngine.value
+  createEnginePackageNoIndex.value
   if (shouldBuildNativeImage.value) {
     (`engine-runner` / buildNativeImage).value
     (`engine-runner` / checkNativeImageSize).value
