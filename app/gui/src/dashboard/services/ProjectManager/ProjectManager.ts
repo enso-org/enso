@@ -8,9 +8,10 @@ import { omit } from '#/utilities/object'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import invariant from 'tiny-invariant'
-import { getFileName } from '../../utilities/fileInfo'
+import { getFileName, getFolderPath } from '../../utilities/fileInfo'
 import {
   MissingComponentAction,
+  Path,
   ProjectManagerEvents,
   type CloseProjectParams,
   type CreateProject,
@@ -23,7 +24,6 @@ import {
   type JSONRPCResponse,
   type OpenProject,
   type OpenProjectParams,
-  type Path,
   type ProjectState,
   type RenameProjectParams,
   type UUID,
@@ -131,17 +131,12 @@ export class ProjectManager {
     socket.close()
   }
 
-  /** Get the id of a project given its path. */
-  getProjectId(projectPath: Path) {
-    const projectId = this.projectIds.get(projectPath)
-    invariant(projectId, `Unknown project path for project '${projectId}'.`)
-    return projectId
-  }
-
   /** Get the state of a project given its path. */
-  getProject(projectPath: Path) {
-    const id = this.getProjectId(projectPath)
-    return this.projects.get(id)
+  async getProject(projectPath: Path) {
+    await this.listDirectory(Path(getFolderPath(projectPath)))
+    const projectId = this.projectIds.get(projectPath)
+    invariant(projectId, `Unknown project id for project '${projectPath}'.`)
+    return this.projects.get(projectId)
   }
 
   /** Open an existing project. */
@@ -209,12 +204,11 @@ export class ProjectManager {
 
   /** Return the content of the `Main.enso` file of a project. */
   async getFileContent(projectPath: Path) {
-    const path = this.getProjectId(projectPath)
     return await this.runStandaloneCommand<string>(
       null,
       'filesystem-read-path',
       'text',
-      path + '/src/Main.enso',
+      projectPath + '/src/Main.enso',
     )
   }
 

@@ -300,7 +300,6 @@ export class Server {
    */
   async process(request: http.IncomingMessage, response: http.ServerResponse) {
     const requestUrl = request.url
-    const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
     if (requestUrl == null) {
       logger.error('Request URL is null.')
     } else if (requestUrl.startsWith('/api/project-manager/')) {
@@ -324,49 +323,48 @@ export class Server {
         ),
         { end: true },
       )
-    } else if (requestUrl.startsWith('/api/cloud/')) {
+    } else if (request.url?.startsWith('/api/')) {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       const params = route.searchParams
-      switch (route.pathname) {
-        case '/cloud/download-project': {
+      switch (`${request.method} ${route.pathname}`) {
+        case 'GET /cloud/download-project': {
           await this.httpCloudDownloadProject(request, response, params)
           break
         }
-        case '/cloud/get-project-archive': {
+        case 'GET /cloud/get-project-archive': {
           await this.httpCloudGetProjectArchive(request, response, params)
           break
         }
-        default: {
-          logger.error(`Unknown Cloud middleware request:`, requestPath)
+        case 'GET /root-directory-path': {
+          await this.httpGetRootDirectoryPath(request, response, params)
           break
         }
-      }
-    } else if (request.method === 'POST' && request.url?.startsWith('/api/')) {
-      const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
-      const params = route.searchParams
-      switch (route.pathname) {
-        case `/${EXPORT_ARCHIVE_PATH}`: {
+        case 'GET /download-directory-path': {
+          await this.httpGetDownloadDirectoryPath(request, response, params)
+          break
+        }
+        case `POST /${EXPORT_ARCHIVE_PATH}`: {
           await this.httpDownloadArchive(request, response, params)
           break
         }
-        case '/upload-file': {
+        case 'POST /upload-file': {
           await this.httpUploadFile(request, response, params)
           break
         }
-        case '/run-project-manager-command': {
+        case 'POST /run-project-manager-command': {
           await this.httpRunProjectManagerCommand(request, response, params)
           break
         }
         default: {
           let match: RegExpMatchArray | null = null
           match = route.pathname.match(GET_FILE_DETAILS_REGEX)
-          if (match?.groups?.['fileId'] != null) {
+          if (request.method === 'GET' && match?.groups?.['fileId'] != null) {
             const fileId = match.groups['fileId']
             await this.httpGetFileDetails(request, response, params, [fileId as FileId])
             break
           }
           match = route.pathname.match(DOWNLOAD_PROJECT_REGEX)
-          if (match?.groups?.['projectId'] != null) {
+          if (request.method === 'GET' && match?.groups?.['projectId'] != null) {
             const projectId = match.groups['projectId']
             await this.httpDownloadProject(request, response, params, [projectId as ProjectId])
             break
@@ -382,32 +380,6 @@ export class Server {
               ...COOP_COEP_CORP_HEADERS,
             ])
             .end(content)
-          break
-        }
-      }
-    } else if (request.method === 'GET' && requestPath?.startsWith('/api/')) {
-      const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
-      switch (route.pathname) {
-        case '/root-directory-path': {
-          const path = this.projectsRootDirectory
-          response
-            .writeHead(HTTP_STATUS_OK, [
-              ['Content-Length', String(path.length)],
-              ['Content-Type', 'text/plain'],
-              ...COOP_COEP_CORP_HEADERS,
-            ])
-            .end(path)
-          break
-        }
-        case '/download-directory-path': {
-          const path = app.getPath('downloads')
-          response
-            .writeHead(HTTP_STATUS_OK, [
-              ['Content-Length', String(path.length)],
-              ['Content-Type', 'text/plain'],
-              ...COOP_COEP_CORP_HEADERS,
-            ])
-            .end(path)
           break
         }
       }
@@ -460,6 +432,17 @@ export class Server {
       .end(content)
   }
 
+  /** Send a HTTP response with a JSON payload. */
+  httpOkText(response: http.ServerResponse, content: string) {
+    return response
+      .writeHead(HTTP_STATUS_OK, [
+        ['Content-Length', `${content.length}`],
+        ['Content-Type', 'text/plain'],
+        ...COOP_COEP_CORP_HEADERS,
+      ])
+      .end(content)
+  }
+
   /** Send a HTTP error with a text payload. */
   httpError(response: http.ServerResponse, message: string) {
     return response
@@ -471,7 +454,35 @@ export class Server {
       .end(message)
   }
 
-  /** Response handler for "download project from cloud" endpoint. */
+  /** The root directory path. */
+  apiGetRootDirectoryPath() {
+    return this.projectsRootDirectory
+  }
+
+  /** Response handler for "get root directory path" endpoint. */
+  async httpGetRootDirectoryPath(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    _params: URLSearchParams,
+  ) {
+    this.httpOkText(response, this.apiGetRootDirectoryPath())
+  }
+
+  /** The download directory path. */
+  apiGetDownloadDirectoryPath() {
+    return app.getPath('downloads')
+  }
+
+  /** Response handler for "get download directory path" endpoint. */
+  async httpGetDownloadDirectoryPath(
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+    _params: URLSearchParams,
+  ) {
+    this.httpOkText(response, this.apiGetDownloadDirectoryPath())
+  }
+
+  /** Download a project from the cloud. */
   async apiCloudDownloadProject(downloadUrl: string, projectId: ProjectId) {
     const response = await new Promise<http.IncomingMessage>((resolve) =>
       https.get(downloadUrl, resolve),
@@ -1002,32 +1013,28 @@ export class Server {
           filePath ?
             projectManagement.importProjectFromPath(filePath, directory, fileName)
           : await projectManagement.uploadBundle(request, directory, fileName)
-        response
-          .writeHead(HTTP_STATUS_OK, [
-            ['Content-Length', String(project.id.length)],
-            ['Content-Type', 'text/plain'],
-            ...COOP_COEP_CORP_HEADERS,
-          ])
-          .end(project.path)
+        this.httpOkText(response, project.path)
       } else {
         const filePath = path.join(directory, fileName)
         void writeFile(filePath, request)
           .then(() => {
-            response
-              .writeHead(HTTP_STATUS_OK, [
-                ['Content-Length', String(filePath.length)],
-                ['Content-Type', 'text/plain'],
-                ...COOP_COEP_CORP_HEADERS,
-              ])
-              .end(filePath)
+            this.httpOkText(response, filePath)
           })
           .catch((e) => {
             console.error(e)
             response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
           })
       }
-    } catch {
-      response.writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS).end()
+    } catch (error) {
+      response
+        .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+        .end(
+          String(
+            typeof error === 'object' && error != null && 'message' in error ?
+              error.message
+            : error,
+          ),
+        )
     }
   }
 

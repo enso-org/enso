@@ -1919,7 +1919,7 @@ export default abstract class Backend {
   }
 
   /** Resolve the path relative to the base URL of this backend. */
-  private resolvePath(path: string) {
+  protected resolvePath(path: string) {
     return new URL(path, this.baseUrl).toString()
   }
 

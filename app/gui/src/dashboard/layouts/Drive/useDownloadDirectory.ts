@@ -9,7 +9,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 export function useDefaultDownloadDirectory() {
   const { localBackend } = useBackends()
   const { data: defaultDownloadDirectory } = useSuspenseQuery({
-    queryKey: ['downloadDirectory'],
+    queryKey: ['downloadDirectoryPath'],
     queryFn: async () => {
       if (localBackend) {
         const response = await fetch('/api/download-directory-path')
@@ -18,6 +18,7 @@ export function useDefaultDownloadDirectory() {
         return null
       }
     },
+    staleTime: Infinity,
   })
   return defaultDownloadDirectory
 }
