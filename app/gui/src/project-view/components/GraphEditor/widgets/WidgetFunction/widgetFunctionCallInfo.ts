@@ -132,7 +132,7 @@ export function useWidgetFunctionCallInfo(
       // we assume that this is a static function call and create the subject by using resolved type name.
       return {
         expressionId: toValue(input).value.externalId,
-        visualizationModule: WIDGETS_ENSO_MODULE,
+        visualizationModule: moduleFqn,
         expression: `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${projectNames.printProjectPath(info.suggestion.memberOf)}`,
         positionalArgumentsExpressions,
       }
