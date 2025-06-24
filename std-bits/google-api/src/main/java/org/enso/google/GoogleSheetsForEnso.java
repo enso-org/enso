@@ -58,8 +58,9 @@ public class GoogleSheetsForEnso {
       throw new EmptySheetException();
     }
 
-    List<Object> firstRow = getDataRow(rawData, skip_rows);
-    List<Object> secondRow = getDataRow(rawData, skip_rows+1);
+    final int firstRowIndex = Math.max(0, skip_rows);
+    List<Object> firstRow = getDataRow(rawData, firstRowIndex);
+    List<Object> secondRow = getDataRow(rawData, firstRowIndex + 1);
     GoogleSheetsHeaders headerBuilder =
         new GoogleSheetsHeaders(headerBehavior, firstRow, secondRow, problemAggregator);
 
@@ -69,7 +70,7 @@ public class GoogleSheetsForEnso {
       var column = rawData.get(i);
       var builder = Builder.getInferredBuilder(column.size(), problemAggregator);
       column.stream()
-          .skip(skip_rows)
+          .skip(firstRowIndex)
           .skip(headerBuilder.getRowsUsed())
           .limit(resolved_row_limit)
           .forEach(builder::append);
