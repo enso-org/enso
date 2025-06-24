@@ -10,7 +10,7 @@ import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
 import project.Table.Table
 from project.Errors import Empty_Sheet, Invalid_Location
-from project.Table import from_java_table
+from project.In_Memory_Table import from_java_table
 
 polyglot java import java.io.File as Java_File
 polyglot java import org.apache.poi.poifs.filesystem.NotOLE2FileException

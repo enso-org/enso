@@ -70,9 +70,14 @@ declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
     readonly preferredTimeZone: string
+    readonly loginRedirect: string
   }
 }
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
+LocalStorage.registerKey('loginRedirect', {
+  isUserSpecific: true,
+  schema: z.string(),
+})
 
 /**
  * Component called by the parent module, returning the root React component for this

@@ -405,14 +405,14 @@ impl BuiltArtifacts {
 
 pub async fn deduce_graal(
     client: Octocrab,
-    build_sbt: &generated::RepoRootBuildSbt,
+    deps: &generated::RepoRootProjectDependenciesScala,
 ) -> Result<ide_ci::cache::goodie::graalvm::GraalVM> {
-    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
     let graal_edition = env::GRAAL_EDITION.get().map_or(Edition::default(), |e| e);
 
     Ok(ide_ci::cache::goodie::graalvm::GraalVM {
         client,
-        graal_version: get_graal_version(&build_sbt_content)?,
+        graal_version: get_graal_version(&deps_content)?,
         edition: graal_edition,
         os: TARGET_OS,
         arch: TARGET_ARCH,
@@ -420,17 +420,19 @@ pub async fn deduce_graal(
 }
 
 pub async fn deduce_graal_bundle(
-    build_sbt: &generated::RepoRootBuildSbt,
+    deps: &generated::RepoRootProjectDependenciesScala,
 ) -> Result<GraalVmVersion> {
-    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
     Ok(GraalVmVersion {
-        graal:    get_graal_version(&build_sbt_content)?,
-        packages: get_graal_packages_version(&build_sbt_content)?,
+        graal:    get_graal_version(&deps_content)?,
+        packages: get_graal_packages_version(&deps_content)?,
     })
 }
 
 /// Version of `flatc` (the FlatBuffers compiler) that Engine requires.
-pub async fn deduce_flatbuffers(build_sbt: &generated::RepoRootBuildSbt) -> Result<Version> {
-    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
-    get_flatbuffers_version(&build_sbt_content)
+pub async fn deduce_flatbuffers(
+    deps: &generated::RepoRootProjectDependenciesScala,
+) -> Result<Version> {
+    let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
+    get_flatbuffers_version(&deps_content)
 }

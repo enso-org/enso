@@ -1,0 +1,756 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
+import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Common.Additional_Warnings
+import Standard.Base.Errors.Common.Floating_Point_Equality
+import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Common.Out_Of_Memory
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Deprecated.Deprecated
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
+from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
+
+import project.Aggregate_Column.Aggregate_Column
+import project.Blank_Selector.Blank_Selector
+import project.Column.Column
+import project.Column_Ref.Column_Ref
+import project.Columns_To_Add.Columns_To_Add
+import project.Columns_To_Keep.Columns_To_Keep
+import project.Constants.Previous_Value
+import project.Data_Formatter.Data_Formatter
+import project.Expression.Expression
+import project.Expression.Expression_Error
+import project.Fill_With.Fill_With
+import project.Generate_Rows_Range.Generate_Rows_Range
+import project.Grouping_Method.Grouping_Method
+import project.In_Memory_Column.In_Memory_Column
+import project.In_Memory_Table.In_Memory_Table
+import project.Internal.Add_Group_Number
+import project.Internal.Add_Row_Number
+import project.Internal.Add_Running
+import project.Internal.Aggregate_Column_Helper
+import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+import project.Internal.Column_Type_Helpers
+import project.Internal.Constant_Column.Constant_Column
+import project.Internal.Display_Helpers
+import project.Internal.Expand_Objects_Helpers
+import project.Internal.Java_Problems
+import project.Internal.Join_Helpers
+import project.Internal.Lookup_Helpers
+import project.Internal.Offset_Helper
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Replace_Helpers
+import project.Internal.Split_Tokenize
+import project.Internal.Table_Helpers
+import project.Internal.Table_Helpers.Table_Column_Helper
+import project.Internal.Table_Ref.Table_Ref
+import project.Internal.Visualization_Helpers.Visualization_Helpers
+import project.Join_Condition.Join_Condition
+import project.Join_Kind.Join_Kind
+import project.Match_Columns.Match_Columns
+import project.Position.Position
+import project.Prefix_Name.Prefix_Name
+import project.Row.Row
+import project.Row_Limit.Row_Limit
+import project.Rows_To_Read.Rows_To_Read
+import project.Set_Mode.Set_Mode
+import project.Simple_Expression.Simple_Expression
+import project.Sort_Column.Sort_Column
+import project.Table.Table
+import project.Value_Type.Auto
+import project.Value_Type.By_Type
+import project.Value_Type.Value_Type
+from project.Errors import all
+from project.Extensions.Table_Conversions import all
+from project.Internal.Add_Row_Number import rename_columns_if_needed
+from project.Internal.Filter_Condition_Helpers import make_filter_column
+from project.Internal.Lookup_Helpers import make_java_lookup_column_description
+from project.Internal.Rows_View import Rows_View
+from project.In_Memory_Table import from_java_table
+
+polyglot java import org.enso.base.ObjectComparator
+polyglot java import org.enso.table.data.index.MultiValueIndex
+polyglot java import org.enso.table.data.mask.OrderMask
+polyglot java import org.enso.table.data.table.join.conditions.Between as Java_Join_Between
+polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
+polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
+polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
+polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
+polyglot java import org.enso.table.error.NonUniqueLookupKey
+polyglot java import org.enso.table.error.NullValuesInKeyColumns
+polyglot java import org.enso.table.error.TooManyColumnsException
+polyglot java import org.enso.table.error.UnmatchedRow
+polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
+
+type In_Memory_Table_Implementation
+    display (this_table : Table & In_Memory_Table) show_rows:Integer=10 format_terminal:Boolean=False -> Text =
+        Display_Helpers.display_table this_table add_row_index=True max_rows_to_show=show_rows all_rows_count=this_table.row_count format_terminal=format_terminal
+
+    print (this_table : Table & In_Memory_Table) show_rows:Integer=10 -> Nothing =
+        IO.println (this_table.display show_rows format_terminal=True)
+        IO.println ''
+
+    to_js_object_implementation (this_table : Table & In_Memory_Table) =
+        cols = this_table.columns
+        rows = 0.up_to this_table.row_count . map row->
+            vals_kv = cols.map col-> [col.name, col.at row]
+            JS_Object.from_pairs vals_kv
+        rows
+
+    at (this_table : Table & In_Memory_Table) (selector : Integer | Text = 0) -> Column ! No_Such_Column | Index_Out_Of_Bounds = case selector of
+        _ : Integer ->
+            In_Memory_Column.from_java_column (this_table.java_table.getColumns.at selector)
+        _ -> this_table.get selector (Error.throw (No_Such_Column.Error selector))
+
+    get (this_table : Table & In_Memory_Table) (selector : Integer | Text = 0) ~if_missing=Nothing -> Column | Any =
+        java_column = case selector of
+            _ : Integer -> Vector.from_polyglot_array this_table.java_table.getColumns . get selector
+            _ : Text -> this_table.java_table.getColumnByName selector
+        if java_column.is_nothing then if_missing else In_Memory_Column.from_java_column java_column
+
+    get_value (this_table : Table & In_Memory_Table) (selector : Text | Integer = 0) index:Integer=0 ~if_missing:Any=Nothing -> Any =
+        col = this_table.get selector if_missing=Nothing
+        if Nothing == col then if_missing else col.get index if_missing
+
+    get_row (this_table : Table & In_Memory_Table) index:Integer=0 ~if_missing:Any=Nothing -> Row | Any =
+        if index < -this_table.row_count || index >= this_table.row_count then if_missing else
+            Row.Value this_table (if index < 0 then index + this_table.row_count else index)
+
+    first_value (this_table : Table & In_Memory_Table) -> Any ! Index_Out_Of_Bounds = this_table.at 0 . at 0
+
+    last_value (this_table : Table & In_Memory_Table) -> Any ! Index_Out_Of_Bounds = this_table.at -1 . at -1
+
+    first_column (this_table : Table & In_Memory_Table) -> Column ! Index_Out_Of_Bounds = this_table.at 0
+
+    last_column (this_table : Table & In_Memory_Table) -> Column ! Index_Out_Of_Bounds = this_table.at -1
+
+    column_count (this_table : Table & In_Memory_Table) -> Integer = this_table.java_table.getColumns.length
+
+    table_version_hash (this_table : Table & In_Memory_Table) -> Text = this_table.java_table.getVersionId
+
+    select_columns (this_table : Table & In_Memory_Table) (columns : Vector | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) reorder:Boolean=False case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Missing_Input_Columns =
+        new_columns = this_table.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
+        Table.new new_columns
+
+    select_columns_by_type (this_table : Table & In_Memory_Table) (types : Vector Value_Type) strict:Boolean=False -> Table =
+        new_columns = this_table.columns_helper.select_by_type types strict
+        result = Table.new new_columns
+        Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
+
+    remove_columns (this_table : Table & In_Memory_Table) (columns : Vector | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Missing_Input_Columns =
+        new_columns = this_table.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        Table.new new_columns
+
+    remove_columns_by_type (this_table : Table & In_Memory_Table) (types : Vector Value_Type) strict:Boolean=False =
+        new_columns = this_table.columns_helper.remove_by_type types strict
+        result = Table.new new_columns
+        Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
+
+    select_blank_columns (this_table : Table & In_Memory_Table) when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table ! No_Output_Columns =
+        new_columns = this_table.columns_helper.select_blank_columns_helper when treat_nans_as_blank
+        Table.new new_columns
+
+    remove_blank_columns (this_table : Table & In_Memory_Table) when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table ! No_Output_Columns =
+        new_columns = this_table.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
+        Table.new new_columns
+
+    reorder_columns (this_table : Table & In_Memory_Table) (columns : Vector | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) position:Position=..Before_Other_Columns case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table ! Missing_Input_Columns =
+        new_columns = this_table.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
+        Table.new new_columns
+
+    sort_columns (this_table : Table & In_Memory_Table) order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default -> Table =
+        new_columns = Table_Helpers.sort_columns this_table.columns order text_ordering
+        Table.new new_columns
+
+    rename_columns (this_table : Table & In_Memory_Table) (column_map : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector = Missing_Argument.throw "column_map") case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names = case column_map of
+        _ : Table ->
+            resolved = Table_Helpers.read_name_mapping_from_table column_map
+            this_table.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
+        _ ->
+            new_names = Table_Helpers.rename_columns this_table.column_naming_helper this_table.columns column_map case_sensitivity error_on_missing_columns on_problems
+            Warning.with_suspended new_names names->
+                Table.new (this_table.columns.map c-> c.rename (names.at c.name))
+
+    use_first_row_as_names (this_table : Table & In_Memory_Table) on_problems:Problem_Behavior=..Report_Warning -> Table =
+        new_names = this_table.first_row.to_vector.map c->
+            if c.is_nothing then Nothing else c.to_text
+        unique = this_table.column_naming_helper.create_unique_name_strategy
+        new_names_cleaned = unique.make_all_unique new_names
+        problem_builder = Problem_Builder.new
+        problem_builder.report_unique_name_strategy unique
+        problem_builder.attach_problems_before on_problems <|
+            this_table.drop (..First 1) . rename_columns new_names_cleaned on_problems=on_problems
+
+    aggregate (this_table : Table & In_Memory_Table) (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (columns : Vector Aggregate_Column = []) error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings =
+        normalized_group_by = Vector.unify_vector_or_element group_by
+        if normalized_group_by.is_empty && columns.is_empty then Missing_Argument.throw "columns" "Provide a value for either the `group_by` or `columns` arguments." else
+            validated = Aggregate_Column_Helper.prepare_aggregate_columns this_table.column_naming_helper normalized_group_by columns this_table error_on_missing_columns=error_on_missing_columns
+
+            on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
+                java_key_columns = validated.key_columns.map c->(c:In_Memory_Column).java_column
+                Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                    index = this_table.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                    new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
+                    java_table = index.makeTable new_columns
+                    if validated.old_style.not then from_java_table java_table else
+                        Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") (from_java_table java_table)
+
+    sort (this_table : Table & In_Memory_Table) (columns : Vector Sort_Column | Sort_Column = Missing_Argument.throw "columns") text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
+        columns_for_ordering = Table_Helpers.prepare_order_by this_table.columns columns problem_builder
+        problem_builder.attach_problems_before on_problems <|
+            java_columns = columns_for_ordering.map c->(c.column:In_Memory_Column).java_column
+            directions = columns_for_ordering.map c->c.associated_selector.direction.to_sign
+
+            comparator = case text_ordering.sort_digits_as_numbers of
+                True ->
+                    txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitivity . to_sign
+                    ObjectComparator.new txt_cmp
+                False -> case text_ordering.case_sensitivity of
+                    Case_Sensitivity.Default -> ObjectComparator.DEFAULT
+                    Case_Sensitivity.Sensitive -> ObjectComparator.DEFAULT
+                    Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
+
+            java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
+                this_table.java_table.orderBy java_columns directions comparator
+            from_java_table java_table
+
+    order_by (this_table : Table & In_Memory_Table) (columns : Vector (Text | Sort_Column) | Text = [this_table.columns.first.name]) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
+        result = this_table.sort columns text_ordering error_on_missing_columns on_problems
+        Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "order_by" "Deprecated: use `sort` instead.") result
+
+    distinct (this_table : Table & In_Memory_Table) (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = this_table.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
+        key_columns = this_table.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
+            Error.throw No_Input_Columns_Selected
+        java_columns = key_columns.map c->(c:In_Memory_Column).java_column
+        text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
+        java_table = Illegal_Argument.handle_java_exception <|
+            Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                this_table.java_table.distinct java_columns text_folding_strategy java_aggregator
+        from_java_table java_table
+
+    duplicates (this_table : Table & In_Memory_Table) (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = this_table.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
+        key_columns = this_table.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
+            Error.throw No_Input_Columns_Selected
+        java_columns = key_columns.map c->(c:In_Memory_Column).java_column
+        text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
+        java_table = Illegal_Argument.handle_java_exception <|
+            Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                this_table.java_table.duplicates java_columns text_folding_strategy java_aggregator
+        from_java_table java_table
+
+    parse (this_table : Table & In_Memory_Table) (columns : Vector (Text | Integer | Regex) | Text | Integer | Regex = this_table.columns . filter (c-> c.value_type.is_text) . map .name) (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = '') error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table =
+        formatter = case format of
+            _ : Text -> if format.is_empty then Data_Formatter.Value else Data_Formatter.Value.with_format type format
+            _ : Data_Formatter -> format
+
+        parser = formatter.make_value_type_parser type
+
+        select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+        selected_columns = this_table.columns_helper.select_columns_helper columns Case_Sensitivity.Default True select_problem_builder
+        select_problem_builder.attach_problems_before on_problems <|
+            selected_column_names = case selected_columns.is_empty of
+                True ->
+                    no_columns_problem_behavior = case error_on_missing_columns of
+                        True -> Problem_Behavior.Report_Error
+                        False -> on_problems
+                    no_columns_problem_behavior.attach_problem_before No_Input_Columns_Selected Dictionary.empty
+                False ->
+                    Dictionary.from_vector <| selected_columns.map c-> [c.name, True]
+
+            new_columns = this_table.columns.map on_problems=No_Wrap.Value column-> if selected_column_names.contains_key column.name . not then column else
+                column_value_type = column.value_type
+                already_parsed = Auto != type && column_value_type.is_same_type type
+                if already_parsed then column else
+                    Value_Type.expect_text column <|
+                        storage = (column:In_Memory_Column).java_column.getStorage
+                        new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                            parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
+                            parser.parseColumn storage parse_problem_aggregator
+                        In_Memory_Column.from_storage column.name new_storage
+            Table.new new_columns
+
+    format (this_table : Table & In_Memory_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Date_Time_Format_Parse_Error | Illegal_Argument = columns.if_not_error <|
+        select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+        selected_columns = this_table.columns_helper.select_columns_helper columns Case_Sensitivity.Default True select_problem_builder
+        select_problem_builder.attach_problems_before on_problems <|
+            selected_column_names = case selected_columns.is_empty of
+                True ->
+                    no_columns_problem_behavior = case error_on_missing_columns of
+                        True -> Problem_Behavior.Report_Error
+                        False -> on_problems
+                    no_columns_problem_behavior.attach_problem_before No_Input_Columns_Selected Dictionary.empty
+                False ->
+                    Dictionary.from_vector <| selected_columns.map c-> [c.name, True]
+
+            new_columns = this_table.columns.map column-> if selected_column_names.contains_key column.name . not then column else
+                column.format format locale
+            Table.new new_columns
+
+    cast (this_table : Table & In_Memory_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (value_type:Value_Type = Missing_Argument.throw "value_type") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure = columns.if_not_error <|
+        selected = this_table.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
+        selected.fold this_table table-> column_to_cast->
+            new_column = column_to_cast.cast value_type on_problems
+            table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
+
+    auto_cast (this_table : Table & In_Memory_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = this_table.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table =
+        selected = this_table.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
+        selected.fold this_table table-> column_to_cast->
+            new_column = column_to_cast.auto_cast shrink_types
+            table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
+
+    auto_value_types (this_table : Table & In_Memory_Table) columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=this_table.column_names shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+        Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "auto_value_types" "Deprecated: `auto_value_types` has been replaced by `auto_cast`.") <|
+            this_table.auto_cast columns shrink_types error_on_missing_columns on_problems
+
+    split_to_columns (this_table : Table & In_Memory_Table) (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table =
+        column.if_not_error <| delimiter.if_not_error <|
+            Split_Tokenize.split_to_columns this_table column delimiter column_count=column_count on_problems
+
+    split_to_rows (this_table : Table & In_Memory_Table) (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") -> Table =
+        column.if_not_error <| delimiter.if_not_error <|
+            Split_Tokenize.split_to_rows this_table column delimiter
+
+    tokenize_to_columns (this_table : Table & In_Memory_Table) (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table =
+        column.if_not_error <| pattern.if_not_error <|
+            Split_Tokenize.tokenize_to_columns this_table column pattern case_sensitivity column_count on_problems
+
+    tokenize_to_rows (this_table : Table & In_Memory_Table) (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False -> Table =
+        column.if_not_error <| pattern.if_not_error <|
+            Split_Tokenize.tokenize_to_rows this_table column pattern case_sensitivity at_least_one_row
+
+    parse_to_columns (this_table : Table & In_Memory_Table) (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text | Regex = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive parse_values:Boolean=True on_problems:Problem_Behavior=..Report_Error -> Table =
+        column.if_not_error <| pattern.if_not_error <|
+            Split_Tokenize.parse_to_columns this_table column pattern case_sensitivity parse_values on_problems
+
+    expand_column (this_table : Table & In_Memory_Table) (column : Text | Integer = Missing_Argument.throw "column") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
+        ## If the user enters no fields then treat as not entered.
+        used_fields = if fields.is_nothing.not && fields == [] then Nothing else fields
+        Expand_Objects_Helpers.expand_column this_table column used_fields prefix
+
+    expand_to_rows (this_table : Table & In_Memory_Table) (column : Text | Integer = Missing_Argument.throw "column") at_least_one_row:Boolean=False -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
+        column.if_not_error <|
+            Expand_Objects_Helpers.expand_to_rows this_table column at_least_one_row sequences_only=False
+
+    filter (this_table : Table & In_Memory_Table) (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type = case column of
+        _ : Column ->
+            mask filter_column = from_java_table (this_table.java_table.filter (filter_column:In_Memory_Column).java_column)
+            filter_condition = Filter_Condition.resolve_auto_scoped filter
+            case filter_condition of
+                _ : Filter_Condition ->
+                    resolved = (this_table:Table_Ref).resolve_condition filter_condition
+                    mask (make_filter_column column resolved on_problems)
+                _ : Function -> mask (column.map filter_condition)
+        _ : Expression -> this_table.filter (this_table.evaluate_expression column on_problems) filter on_problems
+        _ ->
+            table_at = this_table.at column
+            this_table.filter table_at filter on_problems
+
+    filter_by_expression (this_table : Table & In_Memory_Table) expression:Text on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error =
+        column = this_table.evaluate_expression (Expression.Value expression) on_problems
+        result = this_table.filter column Filter_Condition.Is_True
+        Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
+
+    take (this_table : Table & In_Memory_Table) (range : Index_Sub_Range | Range | Integer = ..First) -> Table =
+        take_helper (this_table : Table & In_Memory_Table).row_count (this_table.rows.at _) this_table.slice (slice_ranges this_table) range
+
+    drop (this_table : Table & In_Memory_Table) (range : Index_Sub_Range | Range | Integer = ..First) -> Table =
+        drop_helper (this_table : Table & In_Memory_Table).row_count (this_table.rows.at _) this_table.slice (slice_ranges this_table) range
+
+    remove_all_rows (this_table : Table & In_Memory_Table) = this_table.take 0
+
+    add_row_number (this_table : Table & In_Memory_Table) name:Text="Row" from:Integer=0 step:Integer=1 (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table =
+        Incomparable_Values.handle_errors <| Add_Row_Number.add_row_number this_table name from step group_by order_by on_problems
+
+    add_group_number (this_table : Table & In_Memory_Table) (grouping_method : Grouping_Method = Missing_Argument.throw "grouping_method") name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table =
+        Incomparable_Values.handle_errors <| Add_Group_Number.add_group_number this_table grouping_method name from step on_problems
+
+    set (this_table : Table & In_Memory_Table) (value : Text | Expression | Column | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+        problem_builder = Problem_Builder.new
+        unique = this_table.column_naming_helper.create_unique_name_strategy
+        unique.mark_used this_table.column_names
+
+        resolved = case value of
+            _ : Column -> value
+            _ : Text -> this_table.make_constant_column value
+            _ : Expression -> this_table.evaluate_expression value on_problems
+            _ : Constant_Column -> this_table.make_constant_column value.value
+            _ : Simple_Expression -> value.evaluate this_table (set_mode==Set_Mode.Update && as=="") on_problems
+            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
+
+        ## If `as` was specified, use that. Otherwise, if `value` is a
+           `Column`, use its name. In these two cases, do not make it unique.
+           Otherwise, make it unique. If set_mode is Update, however, do not
+           make it unique.
+        new_column_name = if as != "" then as else
+            if value.is_a Column || set_mode==Set_Mode.Update || set_mode==Set_Mode.Add_Or_Update then resolved.name else unique.make_unique resolved.name
+        renamed = resolved.rename new_column_name
+        renamed.if_not_error <| this_table.column_naming_helper.check_ambiguity this_table.column_names renamed.name <|
+            check_add_mode = case set_mode of
+                Set_Mode.Add_Or_Update -> True
+                Set_Mode.Add -> if this_table.java_table.getColumnByName renamed.name . is_nothing then True else
+                    Error.throw (Existing_Column.Error renamed.name)
+                Set_Mode.Update -> if this_table.java_table.getColumnByName renamed.name . is_nothing . not then True else
+                    Error.throw (Missing_Column.Error renamed.name)
+
+            new_table = check_add_mode.if_not_error <|
+                if resolved.length != this_table.row_count then Error.throw (Row_Count_Mismatch.Error this_table.row_count resolved.length) else
+                    from_java_table (this_table.java_table.addOrReplaceColumn (renamed:In_Memory_Column).java_column)
+
+            problem_builder.report_unique_name_strategy unique
+            problem_builder.attach_problems_after on_problems new_table
+
+    evaluate_expression (this_table : Table & In_Memory_Table) expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning = if expression.is_a Text then this_table.evaluate_expression (Expression.Value expression) on_problems else
+        get_column name = this_table.at name
+        make_constant_column value = case value of
+            _ : Column -> value
+            _ -> this_table.make_constant_column value
+        is_column value = value.is_a Column
+        new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" Column_Type_Helpers.var_args_functions
+        problems = Warning.get_all new_column . map .value
+        result = new_column.rename (this_table.column_naming_helper.sanitize_name expression.expression)
+        on_problems.attach_problems_before problems <|
+            Warning.set result []
+
+    make_table_from_dictionary (this_table : Table & In_Memory_Table) dict key_column_name value_column_name =
+        keys_and_values = dict.to_vector
+        this_table.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
+
+    make_table_from_vectors _ column_vectors column_names =
+        # Assume the columns are all the same length; if not, it will be an error anyway.
+        if column_vectors.is_empty then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
+            Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
+            Table.new (column_vectors.zip column_names (v-> n-> Column.from_vector n v))
+
+    make_constant_column (this_table : Table & In_Memory_Table) value =
+        if Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
+            Column.from_repeated_item value.pretty value this_table.row_count
+
+    make_constant_column_from_vector (this_table : Table & In_Memory_Table) vector:Vector =
+        Column.from_repeated_item "Vector" vector this_table.row_count
+
+    make_temp_column_name (this_table : Table & In_Memory_Table) = this_table.column_naming_helper.make_temp_column_name this_table.column_names
+
+    columns (this_table : Table & In_Memory_Table) -> Vector = Vector.from_polyglot_array <|
+        Array_Proxy.new this_table.java_table.getColumns.length i->
+            In_Memory_Column.from_java_column (this_table.java_table.getColumns.at i)
+
+    column_names (this_table : Table & In_Memory_Table) -> Vector Text = Vector.from_polyglot_array <|
+        Array_Proxy.new this_table.java_table.getColumns.length i->
+            this_table.java_table.getColumns.at i . getName
+
+    rows (this_table : Table & In_Memory_Table) max_rows:Rows_To_Read=..All_Rows -> Vector Row =
+        proxy = Rows_View.Value (this_table.read max_rows)
+        Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
+
+    first_row (this_table : Table & In_Memory_Table) -> Row ! Index_Out_Of_Bounds =
+        if (this_table : Table & In_Memory_Table).row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+            Row.Value this_table 0
+
+    last_row (this_table : Table & In_Memory_Table) -> Row ! Index_Out_Of_Bounds =
+        if (this_table : Table & In_Memory_Table).row_count == 0 then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+            Row.Value this_table (this_table.row_count-1)
+
+    join (this_table : Table & In_Memory_Table) (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Join_Condition | Text) | Text | Join_Condition = [Join_Condition.Equals this_table.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table = Out_Of_Memory.handle_java_exception "join" <|
+        columns_to_keep = case join_kind of
+            Join_Kind.Left_Exclusive  -> [True, False]
+            Join_Kind.Right_Exclusive -> [False, True]
+            _                         -> [True, True]
+
+        join_resolution = make_join_helpers this_table right . resolve on on_problems
+        right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
+
+        java_conditions = join_resolution.conditions
+        new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+            (this_table:In_Memory_Table).java_table.join (right:In_Memory_Table).java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
+        from_java_table new_java_table
+
+    cross_join (this_table : Table & In_Memory_Table) (right : Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table = Out_Of_Memory.handle_java_exception "cross_join" <|
+        row_limit = case right_row_limit of
+            Row_Limit.No_Limit -> Nothing
+            Row_Limit.Limit limit -> limit
+        limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
+            [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
+        on_problems.attach_problems_before limit_problems <|
+            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                (this_table:In_Memory_Table).java_table.crossJoin (right:In_Memory_Table).java_table right_prefix java_aggregator
+            from_java_table new_java_table
+
+    merge (this_table : Table & In_Memory_Table) (lookup_table : Table = Missing_Argument.throw "lookup_table") (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
+        if lookup_table.is_error then lookup_table
+        if key_columns == [] then
+            Error.throw (Missing_Argument.throw "key_columns")
+
+        lookup_columns = Lookup_Helpers.prepare_columns_for_lookup this_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+
+        java_descriptions = lookup_columns.map make_java_lookup_column_description on_problems=No_Wrap.Value
+
+        keys = lookup_columns.filter .is_key
+        java_keys = keys.map on_problems=No_Wrap.Value key_column->
+            Java_Join_Equals.new (key_column.base_column:In_Memory_Column).java_column (key_column.lookup_column:In_Memory_Column).java_column
+
+        handle_java_errors ~action =
+            translate_null_values_exception caught_panic =
+                exception = caught_panic.payload
+                example_values = Vector.from_polyglot_array exception.exampleValues
+                Error.throw (Null_Values_In_Key_Columns.Error example_values)
+            translate_unmatched_row_exception caught_panic =
+                exception = caught_panic.payload
+                example_key_values = Vector.from_polyglot_array exception.exampleKeyValues
+                Error.throw (Unmatched_Rows_In_Lookup.Error example_key_values)
+            translate_non_unique_lookup_key_exception caught_panic =
+                exception = caught_panic.payload
+                key_column_names = Vector.from_polyglot_array exception.keyColumns
+                example_values = Vector.from_polyglot_array exception.exampleValues
+                example_count = exception.exampleCount
+                Error.throw (Non_Unique_Key.Error key_column_names example_values example_count)
+            Panic.catch NonUniqueLookupKey handler=translate_non_unique_lookup_key_exception <|
+                Panic.catch UnmatchedRow handler=translate_unmatched_row_exception <|
+                    Panic.catch NullValuesInKeyColumns handler=translate_null_values_exception <|
+                        action
+        handle_java_errors <|
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows java_problem_aggregator
+                from_java_table java_table
+
+    replace (this_table : Table & In_Memory_Table) (lookup_table : Table | Dictionary = Missing_Argument.throw "lookup_table") (columns : Text | Integer | Regex | By_Type | Vector (Text | Integer | Regex | By_Type) = Missing_Argument.throw "columns") (from_column : Text | Integer | Nothing = Nothing) (to_column : Text | Integer | Nothing = Nothing) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
+        Replace_Helpers.replace this_table lookup_table columns from_column to_column allow_unmatched_rows on_problems
+
+    zip (this_table : Table & In_Memory_Table) (right : Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
+        keep_unmatched_bool = case keep_unmatched of
+            Report_Unmatched -> True
+            b : Boolean -> b
+        report_mismatch = keep_unmatched == Report_Unmatched
+
+        left_row_count = this_table.row_count
+        right_row_count = right.row_count
+        problems = if (left_row_count == right_row_count) || report_mismatch.not then [] else
+            [Row_Count_Mismatch.Error left_row_count right_row_count]
+        on_problems.attach_problems_before problems <|
+            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                (this_table:In_Memory_Table).java_table.zip (right:In_Memory_Table).java_table keep_unmatched_bool right_prefix java_aggregator
+            from_java_table new_java_table
+
+    union (this_table : Table & In_Memory_Table) (tables : Table | Vector = Missing_Argument.throw "tables") columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table =
+        unified = Vector.unify_vector_or_element tables
+        if unified.length == 0 then this_table else
+            Table.from_union ([this_table] + unified) columns_to_keep match_columns on_problems
+
+    filter_blank_rows (this_table : Table & In_Memory_Table) when:Blank_Selector=..Any_Cell treat_nans_as_blank:Boolean=False -> Table =
+        Table_Helpers.filter_blank_rows this_table when treat_nans_as_blank
+
+    row_count (this_table : Table & In_Memory_Table) -> Integer = this_table.java_table.rowCount
+
+    read (this_table : Table & In_Memory_Table) (max_rows : Rows_To_Read = ..All_Rows) -> Table = case max_rows of
+        Rows_To_Read.All_Rows -> this_table
+        Rows_To_Read.First n -> this_table.take (..First n)
+        Rows_To_Read.First_With_Warning n ->
+            truncated = this_table.take (..First n)
+            if (this_table : Table & In_Memory_Table).row_count <= n then truncated else
+                Problem_Behavior.Report_Warning.attach_problem_after truncated <|
+                    Not_All_Rows_Downloaded.Warning n
+
+    column_info (this_table : Table & In_Memory_Table) -> Table =
+        cols = this_table.columns
+        col_data = this_table.columns.map c-> (c:Visualization_Helpers).await_metrics
+        raw_table = Table.new [["Column", cols.map .name], ["Items Count", col_data.map c-> (this_table.row_count - (c.get Visualization_Helpers.count_nothing_column 0))], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
+        expanded = raw_table.expand_column "Metrics" prefix=..None
+        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get Visualization_Helpers.sampled_column then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
+        tidied = tagged.remove_columns [regex "_.*"] error_on_missing_columns=False on_problems=..Ignore
+        tidied.reorder_columns ["Column", "Items Count", "Value Type", "# Nothing", "# Distinct", "Minimum", "Maximum", "# Empty", "# Untrimmed"] error_on_missing_columns=False on_problems=..Ignore
+
+    transpose (this_table : Table & In_Memory_Table) (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) attribute_column_name:Text="Name" value_column_name:Text="Value" error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names =
+        columns_helper = this_table.columns_helper
+        unique = this_table.column_naming_helper.create_unique_name_strategy
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+
+        id_columns = columns_helper.select_columns_helper key_columns Case_Sensitivity.Default False problem_builder
+
+        selected_names = Dictionary.from_vector (id_columns.map column-> [column.name, True])
+
+        data = columns_helper.internal_columns.filter column->(selected_names.get column.name False . not)
+        java_data = data.map c->(c:In_Memory_Column).java_column
+
+        java_id = id_columns.map c->(c:In_Memory_Column).java_column
+
+        unique.mark_used (id_columns.map .name)
+        java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name) java_problem_aggregator
+        result = from_java_table java_table
+        problem_builder.report_unique_name_strategy unique
+
+        problem_builder.attach_problems_after on_problems result
+
+    cross_tab (this_table : Table & In_Memory_Table) (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (names : Text | Integer  = Missing_Argument.throw "names") (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names = Out_Of_Memory.handle_java_exception "cross_tab" <|
+        columns_helper = this_table.columns_helper
+        problem_builder = Problem_Builder.new error_on_missing_columns=True
+
+        ## Normalize the group_by parameter to select columns
+        normalize_group_by input = case input of
+            Aggregate_Column.Group_By c _ -> c
+            _ : Aggregate_Column -> Error.throw (Illegal_Argument.Error "Only Aggregate_Column.Group_By can be used for cross_tab group_by clause.")
+            _ : Vector -> input.map on_problems=No_Wrap.Value normalize_group_by
+            _ -> input
+
+        ## validate the name and group_by columns
+        name_column_selector = case names of
+            ix : Integer -> [ix]
+            name : Text -> [name]
+            _ -> Error.throw (Illegal_Argument.Error "name_column must be a column index or name.")
+        matched_name = columns_helper.select_columns_helper name_column_selector Case_Sensitivity.Default True problem_builder
+        grouping = columns_helper.select_columns_helper (normalize_group_by group_by) Case_Sensitivity.Default True problem_builder
+
+        ## Validate the values
+        resolved_values = Vector.unify_vector_or_element values . map on_problems=No_Wrap.Value (Aggregate_Column_Helper.resolve_aggregate this_table problem_builder)
+        is_group_by c = case c of
+            Aggregate_Column.Group_By _ _ -> True
+            _ -> False
+        validated_values = if resolved_values.any is_group_by then Error.throw (Illegal_Argument.Error "Cannot use group_by for a cross_tab value.") else
+            resolved_values.filter c->(c!=Nothing)
+
+        problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
+            java_key_columns = grouping.map c->(c:In_Memory_Column).java_column
+
+            name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
+                if validated_values.length == 1 then (_ -> "") else
+                    all_same = Aggregate_Column_Helper.all_same_column validated_values
+                    include_column_name = all_same.not
+                    c -> Aggregate_Column_Helper.default_aggregate_column_name c include_column_name
+
+            data_columns = validated_values.map c->
+                col_name = if c.as != "" then c.as else
+                    Aggregate_Column_Helper.default_aggregate_column_name c
+                Aggregate_Column_Helper.java_aggregator col_name c
+
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                case matched_name.is_empty of
+                    True ->
+                        group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
+                        index = this_table.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                        new_java_table = index.makeTable (group_by + data_columns)
+                        from_java_table new_java_table
+                    False ->
+                        aggregate_names = validated_values.map c->
+                            if c.as != "" then c.as else (name_mapper c)
+
+                        too_many_columns caught_panic =
+                            inner_panic = caught_panic.payload
+                            Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
+                        Panic.catch TooManyColumnsException handler=too_many_columns <|
+                            Invalid_Column_Names.handle_java_exception <|
+                                new_java_table = this_table.java_table.makeCrossTabTable java_key_columns (matched_name.first:In_Memory_Column).java_column data_columns aggregate_names java_problem_aggregator
+                                from_java_table new_java_table
+
+    slice (this_table : Table & In_Memory_Table) start end =
+        length = this_table.row_count
+        offset = (start.min length).max 0
+        limit = ((end - offset).min (length - offset)).max 0
+        from_java_table (this_table.java_table.slice offset limit)
+
+    reverse (this_table : Table & In_Memory_Table) -> Table =
+        mask = OrderMask.reverse this_table.row_count
+        from_java_table <| this_table.java_table.applyMask mask
+
+    write (this_table : Table & In_Memory_Table) (path : Writable_File = Missing_Argument.throw "path") format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> File | Any ! Column_Count_Mismatch | Illegal_Argument | File_Error =
+        case format of
+            _ : Auto_Detect ->
+                base_format = format.get_writing_format path
+                if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type path.file Table) else
+                    this_table.write path format=base_format on_existing_file match_columns on_problems
+            _ ->
+                resolved_format = File_Format.resolve format
+                handle_no_write_method caught_panic =
+                    is_write = caught_panic.payload.method_name == "write_table"
+                    if is_write.not then Panic.throw caught_panic else
+                        Error.throw (File_Error.Unsupported_Output_Type resolved_format Table)
+                Panic.catch No_Such_Method handler=handle_no_write_method <|
+                    to_write = if Context.Output.is_enabled then this_table else this_table.take 1000
+                    resolved_format.write_table path to_write on_existing_file match_columns on_problems
+
+    to_csv (this_table : Table & In_Memory_Table) -> Text = Text.from this_table (..Delimited delimiter=",")
+
+    to_xml (this_table : Table & In_Memory_Table) (element_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = this_table.column_names) (attribute_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) (value_column : Text | Integer | Nothing = Nothing) root_name:Text="Table" row_name:Text="Row" on_problems:Problem_Behavior=..Report_Warning -> XML_Document =
+        columns_helper = this_table.columns_helper
+        problem_builder = Problem_Builder.new error_on_missing_columns=True
+        resolved_element_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
+        java_element_columns = resolved_element_columns.map c->(c:In_Memory_Column).java_column
+
+        resolved_attribute_columns = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
+        java_attribute_column = resolved_attribute_columns.map c->(c:In_Memory_Column).java_column
+
+        resolved_value_column = if value_column.is_nothing then Nothing else (this_table.at value_column)
+        java_value_column = if value_column.is_nothing then Nothing else (resolved_value_column:In_Memory_Column).java_column
+
+        unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Is_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column] ..Remove) . map .name
+        if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
+
+        problem_builder.attach_problems_before on_problems <|
+            XML_Document.new (Java_TableToXml.to_xml this_table.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
+
+    columns_helper (this_table : Table & In_Memory_Table) =
+        Table_Helpers.Table_Column_Helper.Value this_table.columns this_table.columns (x->x) this_table (x->x)
+
+    fill_nothing (this_table : Table & In_Memory_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table =
+        resolved_default = (this_table:Table_Ref).resolve default
+        transformer col = col.fill_nothing resolved_default
+        Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
+
+    fill_empty (this_table : Table & In_Memory_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table =
+        resolved_default = (this_table:Table_Ref).resolve default
+        transformer col = col.fill_empty resolved_default
+        Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
+
+    text_replace (this_table : Table & In_Memory_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Table =
+        table_ref = Table_Ref.from this_table
+        resolved_term = table_ref.resolve term
+        resolved_new_text = table_ref.resolve new_text
+        transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
+        Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
+
+    text_cleanse (this_table : Table & In_Memory_Table) (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") (remove : Vector Named_Pattern = []) -> Table =
+        transformer col = col.text_cleanse remove
+        Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
+
+    running (this_table : Table & In_Memory_Table) statistic:Statistic=..Count (of : Text | Integer = 0) as:Text='' set_mode:Set_Mode=..Add (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table =
+        Incomparable_Values.handle_errors <| Add_Running.add_running this_table statistic of as set_mode group_by order_by on_problems
+
+    offset (this_table : Table & In_Memory_Table) (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning -> Table =
+        Offset_Helper.table_offset_impl this_table columns n fill_with group_by order_by set_mode on_problems
+
+    generate_rows (this_table : Table & In_Memory_Table) over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
+        resolved_as = if as.is_empty then "Generated Row" else as
+        renamed_table = rename_columns_if_needed this_table resolved_as on_problems Table.new
+        range_col = over.get_range_column this_table on_problems
+        renamed_table.set range_col as=resolved_as . expand_to_rows resolved_as
+
+    column_naming_helper _ = Column_Naming_Helper.in_memory
+
+    pretty_implementation (this_table : Table & In_Memory_Table) =
+        data = this_table.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
+        "Table.new [" + data + "]"
+
+## PRIVATE
+   A helper to create a new table consisting of slices of the original table.
+slice_ranges table ranges =
+    normalized = normalize_ranges ranges
+    from_java_table (table.java_table.slice normalized)
+
+## PRIVATE
+make_join_helpers left_table right_table =
+    make_equals _ left right = Java_Join_Equals.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column
+    make_equals_ignore_case _ left right locale =
+        Java_Join_Equals_Ignore_Case.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column locale.java_locale
+    make_between _ left right_lower right_upper =
+        Java_Join_Between.new (left:In_Memory_Column).java_column (right_lower:In_Memory_Column).java_column (right_upper:In_Memory_Column).java_column
+    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between

@@ -9,7 +9,7 @@ from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz
 from Standard.Table.Errors import Invalid_Location, Empty_Sheet
 import project.Internal.Telemetry
 import Standard.Table.Internal.Java_Problems
-from Standard.Table.Table import from_java_table
+from Standard.Table.In_Memory_Table import from_java_table
 
 from Standard.Table import Table, Headers
 

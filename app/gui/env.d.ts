@@ -5,7 +5,6 @@
  */
 /// <reference types="vite/client" />
 import type { Path } from '#/services/Backend'
-import type { UserSessionType } from '$/providers/auth'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
 import type { $Config } from './src/config'
 import type { FileFilter } from './src/project-view/util/fileFilter'
@@ -167,11 +166,5 @@ declare module 'vite/client' {
      */
     const src: string
     export default src
-  }
-}
-
-declare module 'vue-router' {
-  interface RouteMeta {
-    access?: 'guest' | 'anyLoggedIn' | UserSessionType
   }
 }

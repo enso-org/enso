@@ -45,7 +45,7 @@ pub mod web;
 
 /// Get version of Enso from the `build.sbt` file contents.
 pub fn get_enso_version(build_sbt_contents: &str) -> Result<Version> {
-    let version_regex = Regex::new(r#"(?m)^val *ensoVersion *= *"([^"]*)".*$"#)?;
+    let version_regex = Regex::new(r#"(?m)^\s*val *ensoVersion *= *"([^"]*)".*$"#)?;
     let version_string = version_regex
         .captures(build_sbt_contents)
         .context("Failed to find line with version string.")?
@@ -60,7 +60,7 @@ pub fn get_string_assignment_value(
     build_sbt_contents: &str,
     variable_name: &str,
 ) -> Result<String> {
-    let regex_text = format!(r#"(?m)^val *{variable_name} *= *"([^"]*)".*$"#);
+    let regex_text = format!(r#"(?m)^\s*val *{variable_name} *= *"([^"]*)".*$"#);
     let regex = Regex::new(&regex_text)?;
     Ok(regex
         .captures(build_sbt_contents)
@@ -106,13 +106,15 @@ mod tests {
     #[test]
     pub fn get_enso_version_test() -> Result {
         let contents = r#"
-val scalacVersion  = "2.13.6"
-val rustVersion    = "1.58.0-nightly"
-val graalVersion   = "21.1.0"
-val javaVersion    = "11"
-val ensoVersion    = "0.2.32-SNAPSHOT"  // Note [Engine And Launcher Version]
-val currentEdition = "2021.20-SNAPSHOT" // Note [Default Editions]
-val stdLibVersion  = ensoVersion
+object Versions {
+  val scalacVersion  = "2.13.6"
+  val rustVersion    = "1.58.0-nightly"
+  val graalVersion   = "21.1.0"
+  val javaVersion    = "11"
+  val ensoVersion    = "0.2.32-SNAPSHOT"  // Note [Engine And Launcher Version]
+  val currentEdition = "2021.20-SNAPSHOT" // Note [Default Editions]
+  val stdLibVersion  = ensoVersion
+}
 "#;
         let version = get_enso_version(contents)?;
         assert_eq!(version.major, 0);
@@ -127,21 +129,23 @@ val stdLibVersion  = ensoVersion
     #[test]
     pub fn get_graal_version_test() -> Result {
         let contents = r#"
-val scalacVersion         = "2.13.7"
-val graalVersion          = "21.1.0"
-val javaVersion           = "11"
-val defaultDevEnsoVersion = "0.0.0-dev"
-val ensoVersion = sys.env.getOrElse(
-  "ENSO_VERSION",
-  defaultDevEnsoVersion
-) // Note [Engine And Launcher Version]
-val currentEdition = sys.env.getOrElse(
-  "ENSO_EDITION",
-  defaultDevEnsoVersion
-) // Note [Default Editions]
+object Versions {
+  val scalacVersion         = "2.13.7"
+  val graalVersion          = "21.1.0"
+  val javaVersion           = "11"
+  val defaultDevEnsoVersion = "0.0.0-dev"
+  val ensoVersion = sys.env.getOrElse(
+    "ENSO_VERSION",
+    defaultDevEnsoVersion
+  ) // Note [Engine And Launcher Version]
+  val currentEdition = sys.env.getOrElse(
+    "ENSO_EDITION",
+    defaultDevEnsoVersion
+  ) // Note [Default Editions]
 
-// Note [Stdlib Version]
-val stdLibVersion       = defaultDevEnsoVersion
+  // Note [Stdlib Version]
+  val stdLibVersion       = defaultDevEnsoVersion
+}
 "#;
         let version = get_graal_version(contents)?;
         assert_eq!(version.major, 21);
