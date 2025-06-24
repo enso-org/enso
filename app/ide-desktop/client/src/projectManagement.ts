@@ -106,11 +106,7 @@ export function importProjectFromPath(
  * Import the project from a bundle.
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  */
-export function importBundle(
-  bundlePath: string,
-  directory?: string | null,
-  name: string | null = null,
-) {
+function importBundle(bundlePath: string, directory?: string | null, name: string | null = null) {
   directory ??= getProjectsDirectory()
   logger.log(
     `Importing project '${bundlePath}' from bundle${name != null ? ` as '${name}'` : ''}. Target directory: '${directory}'.`,
@@ -223,7 +219,7 @@ export function importDirectory(
   if (isProjectInstalled(rootPath, directory)) {
     // Project is already visible to Project Manager, so we can just return its ID.
     logger.log(`Project already installed at '${rootPath}'.`)
-    const id = getProjectId(rootPath)
+    const { id } = getMetadata(rootPath) ?? {}
     if (id != null) {
       return {
         id,
@@ -278,11 +274,6 @@ function isProjectMetadata(value: unknown): value is ProjectMetadata {
   return typeof value === 'object' && value != null && 'id' in value && typeof value.id === 'string'
 }
 
-/** Get the ID from the project metadata. */
-export function getProjectId(projectRoot: string): UUID | null {
-  return getMetadata(projectRoot)?.id ?? null
-}
-
 /** Get the package name. */
 function getPackageName(projectRoot: string) {
   const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
@@ -292,7 +283,7 @@ function getPackageName(projectRoot: string) {
 }
 
 /** Update the package name. */
-export function updatePackageName(projectRoot: string, name: string) {
+function updatePackageName(projectRoot: string, name: string) {
   const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
   const contents = fs.readFileSync(path, { encoding: 'utf-8' })
   const newContents = contents.replace(/^name: .*/, `name: ${JSON.stringify(name)}`)
@@ -322,7 +313,7 @@ export function getMetadata(projectRoot: string): ProjectMetadata | null {
 }
 
 /** Write the project's metadata. */
-export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
+function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
   const metadataPath = pathModule.join(projectRoot, PROJECT_METADATA_RELATIVE_PATH)
   fs.mkdirSync(pathModule.dirname(metadataPath), { recursive: true })
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, buildUtils.INDENT_SIZE))
@@ -334,7 +325,7 @@ export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): v
  *
  * Returns the metadata returned from the updater function.
  */
-export function updateMetadata(
+function updateMetadata(
   projectRoot: string,
   updater: (initialMetadata: ProjectMetadata) => ProjectMetadata,
 ): ProjectMetadata {
@@ -362,7 +353,7 @@ export function isProjectRoot(candidatePath: string): boolean {
  * Check if this bundle is a compressed directory (rather than directly containing the project
  * files). If it is, we return the path to the directory. Otherwise, we return `null`.
  */
-export function prefixInBundle(bundlePath: string): string | null {
+function prefixInBundle(bundlePath: string): string | null {
   // We need to look up the root directory among the tarball entries.
   let commonPrefix: string | null = null
   tar.list({
@@ -386,7 +377,7 @@ export function prefixInBundle(bundlePath: string): string | null {
  * `Name_1`. If a path containing multiple components is given, only the last component is used
  * for the name.
  */
-export function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
+function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
   // Use only the last path component.
   let baseName = pathModule.parse(name).name
 
@@ -433,10 +424,7 @@ export function getProjectsDirectory(): string {
 }
 
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */
-export function isProjectInstalled(
-  projectRoot: string,
-  directory = getProjectsDirectory(),
-): boolean {
+function isProjectInstalled(projectRoot: string, directory = getProjectsDirectory()): boolean {
   const projectRootParent = pathModule.dirname(projectRoot)
   // Should resolve symlinks and relative paths. Normalize before comparison.
   return pathModule.resolve(projectRootParent) === pathModule.resolve(directory)

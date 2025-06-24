@@ -208,7 +208,7 @@ function updateMetadata(
  * Check if this bundle is a compressed directory (rather than directly containing the project
  * files). If it is, we return the path to the directory. Otherwise, we return `null`.
  */
-export function prefixInBundle(bundlePath: string): string | null {
+function prefixInBundle(bundlePath: string): string | null {
   // We need to look up the root directory among the tarball entries.
   let commonPrefix: string | null = null
   tar.list({
@@ -270,7 +270,7 @@ function generateDirectoryName(name: string, directory = getProjectsDirectory())
  * Take a path to a file, presumably located in a project's subtree.Returns the path
  * to the project's root directory or `null` if the file is not located in a project.
  */
-export function getProjectRoot(subtreePath: string): string | null {
+function getProjectRoot(subtreePath: string): string | null {
   let currentPath = subtreePath
   while (!isProjectRoot(currentPath)) {
     const parent = pathModule.dirname(currentPath)
@@ -293,10 +293,7 @@ export function getProjectsDirectory(): string {
 }
 
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */
-export function isProjectInstalled(
-  projectRoot: string,
-  directory = getProjectsDirectory(),
-): boolean {
+function isProjectInstalled(projectRoot: string, directory = getProjectsDirectory()): boolean {
   const projectRootParent = pathModule.dirname(projectRoot)
   // Should resolve symlinks and relative paths. Normalize before comparison.
   return pathModule.resolve(projectRootParent) === pathModule.resolve(directory)
@@ -362,11 +359,6 @@ function isProjectBundle(path: string): boolean {
   return pathModule.extname(path).endsWith('.enso-project')
 }
 
-/** Get the ID from the project metadata. */
-function getProjectId(projectRoot: string): UUID | null {
-  return getMetadata(projectRoot)?.id ?? null
-}
-
 /**
  * Open a project from the given path. Path can be either a source file under the project root,
  * or the project bundle. If needed, the project will be imported into the Project Manager-enabled
@@ -419,7 +411,7 @@ function importDirectory(
   if (isProjectInstalled(rootPath, directory)) {
     // Project is already visible to Project Manager, so we can just return its ID.
     logger.log(`Project already installed at '${rootPath}'.`)
-    const id = getProjectId(rootPath)
+    const { id } = getMetadata(rootPath) ?? {}
     if (id != null) {
       return {
         id,
