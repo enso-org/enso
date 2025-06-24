@@ -74,7 +74,7 @@ Enso has integrated some form of dynamic type checking by implementing the
 argument type checks and type assertions which are checked at runtime. However,
 non-negligible amount of code still depends on more 'dynamic' dispatch.
 Moreover, Enso allows interoperability with external inherently
-dynamically-typed languages like Java Script or Python, so there are cases where
+dynamically-typed languages like JavaScript or Python, so there are cases where
 the types of values cannot really be known 'statically'.
 
 To alleviate in this, the type inference and checking are implemented in a
@@ -117,14 +117,14 @@ Any changes to the related logic must be done very carefully as it is very easy
 to introduce a change that will introduce a 'collapse' of the type system that
 would make it unable to report any useful warnings.
 
-For example, if uncovering hidden values was possile when calling a method with
+For example, if uncovering hidden values was possible when calling a method with
 checked arguments (without explicit casts), it would no longer be possible to
 report any type mismatch warnings. That is because even if there's a value
 `x : Integer` and function `f x` expects a `Text`, we cannot rule out that `x`
-was not createad as `Integer & Text` before and the `Text` part was hidden. As
+was not created as `Integer & Text` before and the `Text` part was hidden. As
 the hidden part of the type is never known _statically_, the static analysis
 cannot rely on it and must assume that every value can have any kind of types in
-the hidden part. Thus only relying on the ability to 'uncover' the hidden parts
+the hidden part. Thus, only relying on the ability to 'uncover' the hidden parts
 via explicit syntactic constructs allows to keep the ability to reason about
 them in the static analysis (unless the system is constructed on some completely
 different approach, but currently no good alternatives have been discussed).
@@ -134,8 +134,8 @@ different approach, but currently no good alternatives have been discussed).
 The type inference relies on existing type signatures and type assertions. Since
 function argument types are checked at runtime, the type checker treats them as
 assertions that an incoming value is of a given type. Similarly, code following
-a type assertion inside of an expression (`y = x : T`, or `(x:T).method`) relies
-on the fact that the control flow only proceeds if that assertion was satisfied.
+a type assertion inside an expression (`y = x : T`, or `(x:T).method`) relies on
+the fact that the control flow only proceeds if that assertion was satisfied.
 
 The processing is performed by traversing the IR of each method body bottom-up.
 First types of the leafs - literals or variables - are inferred, and then based
@@ -175,7 +175,7 @@ The implementation consists of three phases:
    logic is guaranteed to be used both at runtime and compile-time.
 3. `TypeInferencePropagation` which analyzes each method, tries to infer types
    of each sub-expression and report any issues found. While a type is inferred
-   for every sub-expression inside of a method body, the types are stored in
+   for every sub-expression inside a method body, the types are stored in
    metadata only for the named bindings to conserve memory. The rationale is
    mostly that the types of named bindings are worth storing as in the future
    they could be used for features such as auto-complete.
@@ -186,7 +186,7 @@ More information can be found in the documentation of the relevant classes.
 
 #### Improving the current prototype
 
-Currently the algorithm has several places that simply were not yet finished:
+Currently, the algorithm has several places that simply were not yet finished:
 
 - improving the type matching algorithm (responsible for type mismatch warnings)
   to work with sum types and intersection types (currently it bails out),
@@ -200,7 +200,7 @@ Currently the algorithm has several places that simply were not yet finished:
     provided, or the `...` operator is used to explicitly stop the default
     application).
 - checking for `Private_Access` violations statically.
-  - Currently the `StaticModuleScopeAnalysis` pass does not record if a given
+  - Currently, the `StaticModuleScopeAnalysis` pass does not record if a given
     method or constructor (or the whole module) is marked as `private`. This
     property should be recorded, and if a private method is called from an
     outside module, a warning about the private access could be reported also
@@ -211,7 +211,7 @@ Currently the algorithm has several places that simply were not yet finished:
 Integrating the type checker with the VS Code extension for Enso can lead to
 vastly improved developer experience. The inferred types of bindings can be used
 to offer some form of method autocomplete and warnings could be displayed inline
-inside of the code editor.
+inside the code editor.
 
 #### More powerful inference
 
@@ -219,7 +219,7 @@ The current approach for inference is very simple, but can already provide basic
 checking helpful during development. If types of method arguments are known and
 method definitions on types have checked signatures, then most expressions can
 be inferred and the type checker can provide warnings in case the inferred types
-do not match the expectations, allowing the developer to find bugs before before
+do not match the expectations, allowing the developer to find bugs before
 running the program.
 
 However, the inference algorithm has been created with simplicity and checking
@@ -234,10 +234,10 @@ un-annotated function arguments as type-variables and tries to propagate them
 through the data flow, recording any constraints induced by method calls. Then
 trying to infer what the type of the argument 'should' be to satisfy the
 gathered constraints. In such case, a distinction may need to be made between
-function arguments that are 'checked' and ones that have an inferred type but it
-is not checked at runtime. It is also unclear how the unorthodox approaches like
-Enso's approach to intersection types would play with solving these kinds of
-constraints.
+function arguments that are 'checked' and ones that have an inferred type, but
+it is not checked at runtime. It is also unclear how the unorthodox approaches
+like Enso's approach to intersection types would play with solving these kinds
+of constraints.
 
 Such improvements in type inference may require rather fundamental changes from
 the current relatively simple 'propagation' algorithm.
