@@ -11,7 +11,7 @@ async function _doScreenshot(page: Page): Promise<void> {
   page.screenshot({ path: `test-traces/screenshots/${startTimestamp}/${screenshotIndex++}.png` })
 }
 
-test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
+test('Local Workflow', async ({ page, app, projectsDir }) => {
   const OUTPUT_FILE = 'output.txt'
   const TEXT_TO_WRITE = 'Some text'
 
