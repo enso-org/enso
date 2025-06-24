@@ -58,14 +58,16 @@ public class GoogleSheetsForEnso {
       throw new EmptySheetException();
     }
 
+    final int firstRowOfDataIndex = skip_rows;
     List<Object> firstRow = null;
-    if (rawData.stream().anyMatch(col -> col.size() > 0)) {
-      firstRow = rawData.stream().map(col -> col.size() > 0 ? col.get(0) : null).toList();
+    if (rawData.stream().anyMatch(col -> col.size() > firstRowOfDataIndex)) {
+      firstRow = rawData.stream().map(col -> col.size() > firstRowOfDataIndex ? col.get(firstRowOfDataIndex) : null).toList();
     }
 
+    final int secondRowOfDataIndex = firstRowOfDataIndex+1;
     List<Object> secondRow = null;
-    if (rawData.stream().anyMatch(col -> col.size() > 1)) {
-      secondRow = rawData.stream().map(col -> col.size() > 1 ? col.get(1) : null).toList();
+    if (rawData.stream().anyMatch(col -> col.size() > secondRowOfDataIndex)) {
+      secondRow = rawData.stream().map(col -> col.size() > secondRowOfDataIndex ? col.get(secondRowOfDataIndex) : null).toList();
     }
 
     GoogleSheetsHeaders headerBuilder =
