@@ -1778,11 +1778,10 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     crossPaths := false,
     Compile / javacOptions := ((Compile / javacOptions).value),
     inConfig(Compile)(truffleRunOptionsSettings),
-    libraryDependencies ++= slf4jApi ++ Seq(
+    libraryDependencies ++= Seq(
       "junit"          % "junit"           % junitVersion   % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion % Test
-    ),
-    Compile / moduleDependencies ++= slf4jApi
+    )
   )
   .dependsOn(`persistance-dsl` % Test)
 
