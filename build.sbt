@@ -1914,6 +1914,9 @@ lazy val `engine-common` = project
     Compile / internalModuleDependencies := Seq(
       (`logging-utils` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value
+    ),
+    Test / moduleDependencies ++= Seq(
+      "com.typesafe" % "config" % typesafeConfigVersion
     )
   )
   .dependsOn(`logging-config`)
@@ -3503,6 +3506,9 @@ lazy val `engine-runner` = project
       (`polyglot-api` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value
+    ),
+    Test / moduleDependencies ++= Seq(
+      "com.typesafe" % "config" % typesafeConfigVersion
     ),
     run / connectInput := true
   )
