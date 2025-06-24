@@ -16,6 +16,9 @@ have a powerful type inference engine.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Type Checker Prototype](#type-checker-prototype)
+  - [Overall Design](#overall-design)
+  - [Overall structure of the implementation](#overall-structure-of-the-implementation)
+  - [Future work](#future-work)
 - [Design Goals](#design-goals)
   - [Maximal Inference Power](#maximal-inference-power)
   - [Type Inference Algorithm](#type-inference-algorithm)
@@ -23,14 +26,15 @@ have a powerful type inference engine.
 
 <!-- /MarkdownTOC -->
 
-## Type Checker Prototype
+## Type Checker Implementation
 
-A prototype of a type checker has been developed that does try to reach all the
-design goals written below, but tries to perform best effort type checking to
-provide lints and warnings to developers to aid in development.
+A prototype of a type checker has been developed that does not try to reach all
+the design goals written below, but tries to perform best effort type checking
+to provide lints and warnings to developers to aid in development.
 
-As it is a prototype and may slow down the compilation, it is only enabled if an
-`--enable-static-analysis` flag has been passed to the compiler.
+As static type checking isn't needed for Enso execution, the type checker is
+only enabled if an `--enable-static-analysis` flag has been passed to the
+compiler.
 
 To try out the type checker you may run
 
@@ -51,16 +55,16 @@ execution it may not cause problems.
 
 Currently the type checker reports the following kinds of warnings:
 
-- type mismatch, reported whenever during a method call the inferred type of an
-  argument passed to the method does not satisfy the type expected by the
+- **type mismatch**, reported whenever during a method call the inferred type of
+  an argument passed to the method does not satisfy the type expected by the
   function's signature, e.g. calling function defined as
   `function (x : Integer) = ...` with an argument of type text:
   `function "Txt"`,
-- no such method, whenever a method is being called on an object with an
+- **no such method**, whenever a method is being called on an object with an
   inferred type and the type checker deduces that the inferred type does not
   have a method with the given name, e.g. when calling `x.method_1` and the type
   of `x` is not `Any` and does not define method called `method_1`,
-- discarded value, reported whenever a value, whose inferred type is a
+- **discarded value**, reported whenever a value, whose inferred type is a
   _Function_, is discarded; this usually means that not enough arguments were
   applied to a function.
 
@@ -104,14 +108,14 @@ values from polyglot calls.
 
 #### Relation to Intersection Types
 
-Our approach to intersection types that allows for a value to have multiple
-different types, some of which are hidden, adds some challenges to the type
-checking. The current state (where the hidden part of the type can only be
-uncovered via an explicit cast) seems to strike a relatively good balance
-between the ability to work with intersection types in the interactive GUI (that
-is capable of inserting the necessary casts) and pass them through various
-checked methods (which may hide the extra parts, but still being able to uncover
-them) and the capabilities of static analysis of types.
+[Our approach to intersection types](./intersection-types.md) that allows for a
+value to have multiple different types, some of which are hidden, adds some
+challenges to the type checking. The current state (where the hidden part of the
+type can only be uncovered via an explicit cast) seems to strike a relatively
+good balance between the ability to work with intersection types in the
+interactive GUI (that is capable of inserting the necessary casts) and pass them
+through various checked methods (which may hide the extra parts, but still being
+able to uncover them) and the capabilities of static analysis of types.
 
 Any changes to the related logic must be done very carefully as it is very easy
 to introduce a change that will introduce a 'collapse' of the type system that
@@ -137,10 +141,11 @@ assertions that an incoming value is of a given type. Similarly, code following
 a type assertion inside an expression (`y = x : T`, or `(x:T).method`) relies on
 the fact that the control flow only proceeds if that assertion was satisfied.
 
-The processing is performed by traversing the IR of each method body bottom-up.
-First types of the leafs - literals or variables - are inferred, and then based
-on their types, the type of more complex 'nodes' (e.g. function application) is
-derived based on very basic inference rules that stem from the
+The processing is performed by traversing the IR of each method body from
+terminal IR nodes upwards. First types of the leafs - literals or variables -
+are inferred, and then based on their types, the type of more complex 'nodes'
+(e.g. function application) is derived based on very basic inference rules that
+stem from the
 [simply typed lambda calculus](https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus)
 with some additional extensions for calling methods on objects and other
 features of the language like pattern matching. Inside of blocks of code, the
@@ -176,7 +181,7 @@ The implementation consists of three phases:
 3. `TypeInferencePropagation` which analyzes each method, tries to infer types
    of each sub-expression and report any issues found. While a type is inferred
    for every sub-expression inside a method body, the types are stored in
-   metadata only for the named bindings to conserve memory. The rationale is
+   metadata **only for the named bindings** to conserve memory. The rationale is
    mostly that the types of named bindings are worth storing as in the future
    they could be used for features such as auto-complete.
 
