@@ -1918,52 +1918,55 @@ export default abstract class Backend {
     return response
   }
 
+  /** Resolve the path relative to the base URL of this backend. */
+  private resolvePath(path: string) {
+    return new URL(path, this.baseUrl).toString()
+  }
+
   /** Send an HTTP GET request to the given path. */
   protected get<T = void>(path: string) {
-    return this.checkForAuthenticationError(() =>
-      this.client.get<T>(new URL(path, this.baseUrl).toString()),
-    )
+    return this.checkForAuthenticationError(() => this.client.get<T>(this.resolvePath(path)))
   }
 
   /** Send a JSON HTTP POST request to the given path. */
   protected post<T = void>(path: string, payload: object, options?: BackendPostOptions) {
     return this.checkForAuthenticationError(() =>
-      this.client.post<T>(new URL(path, this.baseUrl).toString(), payload, options),
+      this.client.post<T>(this.resolvePath(path), payload, options),
     )
   }
 
   /** Send a binary HTTP POST request to the given path. */
   protected postBinary<T = void>(path: string, payload: Blob) {
     return this.checkForAuthenticationError(() =>
-      this.client.postBinary<T>(new URL(path, this.baseUrl).toString(), payload),
+      this.client.postBinary<T>(this.resolvePath(path), payload),
     )
   }
 
   /** Send a JSON HTTP PATCH request to the given path. */
   protected patch<T = void>(path: string, payload: object) {
     return this.checkForAuthenticationError(() =>
-      this.client.patch<T>(new URL(path, this.baseUrl).toString(), payload),
+      this.client.patch<T>(this.resolvePath(path), payload),
     )
   }
 
   /** Send a JSON HTTP PUT request to the given path. */
   protected put<T = void>(path: string, payload: object) {
     return this.checkForAuthenticationError(() =>
-      this.client.put<T>(new URL(path, this.baseUrl).toString(), payload),
+      this.client.put<T>(this.resolvePath(path), payload),
     )
   }
 
   /** Send a binary HTTP PUT request to the given path. */
   protected putBinary<T = void>(path: string, payload: Blob) {
     return this.checkForAuthenticationError(() =>
-      this.client.putBinary<T>(new URL(path, this.baseUrl).toString(), payload),
+      this.client.putBinary<T>(this.resolvePath(path), payload),
     )
   }
 
   /** Send an HTTP DELETE request to the given path. */
   protected delete<T = void>(path: string, payload?: Record<string, unknown>) {
     return this.checkForAuthenticationError(() =>
-      this.client.delete<T>(new URL(path, this.baseUrl).toString(), payload),
+      this.client.delete<T>(this.resolvePath(path), payload),
     )
   }
 }
