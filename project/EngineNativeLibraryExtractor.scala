@@ -83,13 +83,13 @@ object EngineNativeLibraryExtractor {
             thinTarget  = Some(outJar)
           )
         )
-        // Delete the old fat jar.
-        // It is possible that it does not exist, in that case, just ignore the error.
-        deleteFromComponentDir(
-          componentDir,
-          jlineNativeJar
-        )
     }
+    // Delete the old fat jar.
+    // It is possible that it does not exist, in that case, just ignore the error.
+    deleteFromComponentDir(
+      componentDir,
+      jlineNativeJar
+    )
     analysis
   }
 
