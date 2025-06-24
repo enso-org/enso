@@ -47,16 +47,16 @@ const displayDevTools = computed(() => auth.session?.type === UserSessionType.fu
 
 <template>
   <div v-if="auth.session == null" data-testid="before-auth-layout" aria-hidden>
-    <!-- This div is used as a flag to indicate that the user is not logged in.
-        also it guarantees that the top-level suspense boundary is already resolved -->
+    <!-- This div is used as a flag to indicate that the user is not logged in
+        and guarantees that the top-level suspense boundary is already resolved -->
   </div>
   <div
     v-if="auth.session?.type === UserSessionType.full"
     data-testid="after-auth-layout"
     aria-hidden
   >
-    <!--This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
-        also it guarantees that the top-level suspense boundary is already resolved -->
+    <!--This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated
+        and guarantees that the top-level suspense boundary is already resolved -->
   </div>
 
   <Dialog

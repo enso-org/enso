@@ -25,10 +25,8 @@ import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Offset_Helper
-import project.Internal.Parse_Values_Helper
 import project.Internal.Storage
 import project.Internal.Value_Type_Helpers
-import project.Internal.Widget_Helpers
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
@@ -38,7 +36,7 @@ from project.Internal.Column_Format import all
 from project.Internal.Column_Type_Helpers import get_underlying_from_column
 from project.Internal.Java_Exports import make_string_builder
 from project.Internal.Storage import enso_to_java, java_to_enso
-from project.Table import from_java_table
+from project.In_Memory_Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.binary.BinaryOperator

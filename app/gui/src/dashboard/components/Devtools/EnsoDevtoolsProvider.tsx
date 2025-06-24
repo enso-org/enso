@@ -20,7 +20,6 @@ interface EnsoDevtoolsStore {
   readonly showEnsoDevtools: boolean
   readonly toggleEnsoDevtools: () => void
   readonly setShowDevtools: (showDevtools: boolean) => void
-  readonly toggleDevtools: () => void
   readonly showVersionChecker: boolean | null
   readonly paywallFeatures: Record<PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
   readonly setPaywallFeature: (feature: PaywallFeatureName, isForceEnabled: boolean | null) => void
@@ -39,21 +38,6 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
       },
       setShowDevtools: (showDevtools) => {
         set({ showDevtools, showEnsoDevtools: showDevtools })
-      },
-      toggleDevtools: () => {
-        set(({ showDevtools, showEnsoDevtools }) => {
-          if (showEnsoDevtools === false) {
-            return {
-              showDevtools: true,
-              showEnsoDevtools: true,
-            }
-          }
-
-          return {
-            showDevtools: !showDevtools,
-            showEnsoDevtools: !showDevtools,
-          }
-        })
       },
       showVersionChecker: false,
       paywallFeatures: unsafeFromEntries(

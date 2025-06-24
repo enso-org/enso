@@ -143,7 +143,8 @@ impl RunContext {
 
         // Setup flatc (FlatBuffers compiler), required for building the engine.
         let flatc_goodie = cache::goodie::flatc::Flatc {
-            version:  engine::deduce_flatbuffers(&self.repo_root.build_sbt).await?,
+            version:  engine::deduce_flatbuffers(&self.repo_root.project.dependencies_scala)
+                .await?,
             platform: TARGET_OS,
         };
         flatc_goodie.install_if_missing(&self.cache).await?;
@@ -170,9 +171,11 @@ impl RunContext {
 
         // Setup GraalVM
         let graalvm =
-            engine::deduce_graal(self.octocrab.clone(), &self.repo_root.build_sbt).await?;
+            engine::deduce_graal(self.octocrab.clone(), &self.repo_root.project.dependencies_scala)
+                .await?;
         graalvm.install_if_missing(&self.cache).await?;
-        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
+        let graal_version =
+            engine::deduce_graal_bundle(&self.repo_root.project.dependencies_scala).await?;
         let graalpy_version = graal_version.packages;
 
         // Install GraalPy standalone distribution
@@ -470,7 +473,8 @@ impl RunContext {
             }
         }
 
-        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
+        let graal_version =
+            engine::deduce_graal_bundle(&self.repo_root.project.dependencies_scala).await?;
         for bundle in ret.bundles() {
             bundle.create(&self.repo_root, &graal_version).await?;
         }
