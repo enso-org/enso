@@ -7,7 +7,16 @@ import java.util.stream.LongStream;
 
 public class IndexMapperConstantTests {
   @Test
-  public void mergeSliceOntoConstant() {
+  public void mergeConstant() {
+    var base = new IndexMapper.Constant(123);
+
+    Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> {
+      base.merge(new IndexMapper.Constant(100));
+    });
+  }
+
+  @Test
+  public void mergeSlice() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.SingleSlice(0, 100));
@@ -16,7 +25,7 @@ public class IndexMapperConstantTests {
   }
 
   @Test
-  public void mergeTooLongSliceOntoConstant() {
+  public void mergeTooLongSlice() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.SingleSlice(0, 300));
@@ -25,7 +34,7 @@ public class IndexMapperConstantTests {
   }
 
   @Test
-  public void mergeOverflowSliceOntoConstant() {
+  public void mergeOverflowSlice() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.SingleSlice(100, 100));
@@ -34,7 +43,7 @@ public class IndexMapperConstantTests {
   }
 
   @Test
-  public void mergeReverseOntoConstant() {
+  public void mergeReverse() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.Reversed(0, 100));
@@ -43,7 +52,7 @@ public class IndexMapperConstantTests {
   }
 
   @Test
-  public void mergeTooLongReverseOntoConstant() {
+  public void mergeTooLongReverse() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.Reversed(0, 300));
@@ -52,7 +61,7 @@ public class IndexMapperConstantTests {
   }
 
   @Test
-  public void mergeOverflowingReverseOntoConstant() {
+  public void mergeOverflowingReverse() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.Reversed(100, 100));
@@ -61,7 +70,7 @@ public class IndexMapperConstantTests {
   }
 
   @Test
-  public void mergeArrayMappingOntoConstant() {
+  public void mergeArrayMapping() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.ArrayMapping(new long[] {0, 1, 2, 3, 4}));
@@ -70,7 +79,7 @@ public class IndexMapperConstantTests {
   }
 
   @Test
-  public void mergeArrayMappingWithNotFoundOntoConstant() {
+  public void mergeArrayMappingWithNotFound() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.ArrayMapping(new long[] {0, 1, 2, IndexMapper.NOT_FOUND_INDEX, 4}));
@@ -80,7 +89,7 @@ public class IndexMapperConstantTests {
   }
 
   @Test
-  public void mergeEmptyArrayMappingOntoConstant() {
+  public void mergeEmptyArrayMapping() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.ArrayMapping(new long[0]));
@@ -89,7 +98,7 @@ public class IndexMapperConstantTests {
   }
 
   @Test
-  public void mergeLargeArrayMappingOntoConstant() {
+  public void mergeLargeArrayMapping() {
     var base = new IndexMapper.Constant(123);
 
     var sliced = base.merge(new IndexMapper.ArrayMapping(LongStream.range(0, 10000).map(idx -> idx % 123).toArray()));

@@ -117,7 +117,7 @@ public abstract sealed class IndexMapper
   }
 
   public static final class Reversed extends IndexMapper {
-    private final long start;
+    final long start;
     private final long length;
 
     /**
@@ -171,7 +171,7 @@ public abstract sealed class IndexMapper
   }
 
   public static final class SingleSlice extends IndexMapper {
-    private final long start;
+    final long start;
     private final long length;
 
     public SingleSlice(long start, long length) {
