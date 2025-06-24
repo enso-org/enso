@@ -58,18 +58,8 @@ public class GoogleSheetsForEnso {
       throw new EmptySheetException();
     }
 
-    final int firstRowOfDataIndex = skip_rows;
-    List<Object> firstRow = null;
-    if (rawData.stream().anyMatch(col -> col.size() > firstRowOfDataIndex)) {
-      firstRow = rawData.stream().map(col -> col.size() > firstRowOfDataIndex ? col.get(firstRowOfDataIndex) : null).toList();
-    }
-
-    final int secondRowOfDataIndex = firstRowOfDataIndex+1;
-    List<Object> secondRow = null;
-    if (rawData.stream().anyMatch(col -> col.size() > secondRowOfDataIndex)) {
-      secondRow = rawData.stream().map(col -> col.size() > secondRowOfDataIndex ? col.get(secondRowOfDataIndex) : null).toList();
-    }
-
+    List<Object> firstRow = getDataRow(rawData, skip_rows);
+    List<Object> secondRow = getDataRow(rawData, skip_rows+1);
     GoogleSheetsHeaders headerBuilder =
         new GoogleSheetsHeaders(headerBehavior, firstRow, secondRow, problemAggregator);
 
@@ -109,4 +99,14 @@ public class GoogleSheetsForEnso {
         .getSheets()
         .size();
   }
+
+  private static List<Object> getDataRow(List<List<Object>> rawData, int rowIndex) {
+    if (rawData.stream().anyMatch(col -> col.size() > rowIndex)) {
+      return rawData.stream()
+          .map(col -> col.size() > rowIndex ? col.get(rowIndex) : null)
+          .toList();
+    }
+    return null;
+  }
 }
+
