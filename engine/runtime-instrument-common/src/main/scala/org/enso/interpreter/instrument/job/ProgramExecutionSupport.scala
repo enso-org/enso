@@ -745,11 +745,11 @@ object ProgramExecutionSupport {
               p.getLocation().getEncapsulatingSourceSection() match {
                 case ss: SourceSection =>
                   logger.warn(
-                    "Visualization {} represents '{}' at {}-{} in\n{}",
-                    visualizationId,
-                    ss.getCharacters(),
+                    "Error at {}-{} (e.g. `{}`) of {} with text:\n{}",
                     ss.getCharIndex(),
                     ss.getCharEndIndex(),
+                    ss.getCharacters(),
+                    visualizationId,
                     ss.getSource().getCharacters()
                   )
                 case _ =>
