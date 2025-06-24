@@ -185,7 +185,7 @@ export async function uploadBundle(
   bundle: stream.Readable,
   directory?: string | null,
   name: string | null = null,
-) {
+): Promise<ProjectInfo> {
   directory ??= getProjectsDirectory()
   logger.log(`Uploading project from bundle${name != null ? ` as '${name}'` : ''}.`)
 

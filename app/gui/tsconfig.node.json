@@ -16,6 +16,7 @@
     "src/dashboard/utilities/async.ts",
     "src/dashboard/utilities/download.ts",
     "src/dashboard/utilities/equalities.ts",
+    "src/dashboard/utilities/path.ts",
     "src/dashboard/utilities/permissions.ts",
     "src/dashboard/utilities/write.ts",
     "src/dashboard/utilities/zustand.ts",

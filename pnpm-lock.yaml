@@ -473,6 +473,9 @@ importers:
       '@types/d3':
         specifier: ^7.4.3
         version: 7.4.3
+      '@types/gunzip-maybe':
+        specifier: ^1.4.2
+        version: 1.4.2
       '@types/hash-sum':
         specifier: ^1.0.2
         version: 1.0.2
@@ -500,6 +503,12 @@ importers:
       '@types/tar':
         specifier: ^6.1.13
         version: 6.1.13
+      '@types/tar-fs':
+        specifier: ^2.0.4
+        version: 2.0.4
+      '@types/tar-stream':
+        specifier: ^3.1.4
+        version: 3.1.4
       '@types/validator':
         specifier: ^13.12.2
         version: 13.12.2
@@ -509,6 +518,12 @@ importers:
       '@types/ws':
         specifier: ^8.5.13
         version: 8.5.13
+      '@types/yauzl':
+        specifier: ^2.10.3
+        version: 2.10.3
+      '@types/zip-stream':
+        specifier: ^7.0.0
+        version: 7.0.0
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.3.4(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
@@ -545,6 +560,9 @@ importers:
       floating-vue:
         specifier: ^2.0.0
         version: 2.0.0(vue@3.5.13(typescript@5.7.2))
+      gunzip-maybe:
+        specifier: ^1.4.2
+        version: 1.4.2
       hash-wasm:
         specifier: ^4.12.0
         version: 4.12.0
@@ -581,6 +599,12 @@ importers:
       tar:
         specifier: ^6.2.1
         version: 6.2.1
+      tar-fs:
+        specifier: ^3.0.9
+        version: 3.0.10
+      tar-stream:
+        specifier: ^3.1.7
+        version: 3.1.7
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
@@ -602,9 +626,15 @@ importers:
       yaml:
         specifier: ^2.7.0
         version: 2.7.0
+      yauzl:
+        specifier: ^3.2.0
+        version: 3.2.0
       ydoc-server:
         specifier: workspace:*
         version: link:../ydoc-server
+      zip-stream:
+        specifier: ^7.0.2
+        version: 7.0.2
 
   app/ide-desktop/client:
     dependencies:
