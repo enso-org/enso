@@ -183,7 +183,9 @@ The most important rules for inference are then:
     compatibility with `A` (this may yield **type mismatch** warnings) and the
     type of the application expression becomes `B`,
   - `f` has type `UnresolvedSymbol<f>` - then the method is looked up (using
-    `MethodTypeResolver`) in the scope associated with the type of `x`,
+    `MethodTypeResolver`) in the scope associated with the type of `x`; the type
+    of such application expression is the full type of the referenced method,
+    - If the method is not found, a **no such method** warning is reported.
   - `f` has type `Any` - then the type of the application expression becomes
     `Any`, as the type of `f` is not known,
   - `f` has some non-functional type - then a **not invokable** warning is
@@ -193,6 +195,8 @@ The most important rules for inference are then:
 - a block of expressions is processed by recursively inferring each expression
   in the block (later expressions see updated bindings from processing earlier
   ones) and finally returning the type of the last one,
+  - If any expression in the block apart from the last one is discarded, and it
+    represents a function type, a **discarded value** warning is reported.
 - a lambda expression `(a:A)-> b-> e` gets its type by first adding the types of
   arguments based on their ascriptions to the `LocalBindingsTyping` (an argument
   with no ascription is treated as unknown - `Any`) and then inferring the type
