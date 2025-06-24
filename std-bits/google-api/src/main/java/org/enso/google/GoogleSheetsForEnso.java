@@ -41,6 +41,7 @@ public class GoogleSheetsForEnso {
       String range,
       GoogleSheetsHeaders.HeaderBehavior headerBehavior,
       Integer row_limit,
+      int skip_rows,
       ProblemAggregator problemAggregator)
       throws IOException {
     var rawData =
@@ -76,6 +77,7 @@ public class GoogleSheetsForEnso {
       var column = rawData.get(i);
       var builder = Builder.getInferredBuilder(column.size(), problemAggregator);
       column.stream()
+          .skip(skip_rows)
           .skip(headerBuilder.getRowsUsed())
           .limit(resolved_row_limit)
           .forEach(builder::append);
