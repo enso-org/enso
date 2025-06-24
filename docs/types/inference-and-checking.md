@@ -64,6 +64,9 @@ Currently the type checker reports the following kinds of warnings:
   inferred type and the type checker deduces that the inferred type does not
   have a method with the given name, e.g. when calling `x.method_1` and the type
   of `x` is not `Any` and does not define method called `method_1`,
+- **not invokable**, whenever a non-function value is being called as a
+  function - this often happens if _too many_ arguments have been passed to a
+  method,
 - **discarded value**, reported whenever a value, whose inferred type is a
   _Function_, is discarded; this usually means that not enough arguments were
   applied to a function.
@@ -157,7 +160,51 @@ Calling of methods on objects is implemented via special logic for application
 on `UnresolvedSymbol`. That is because within the IR, the expression `a.f b c`
 is actually translated to `UnresolvedSymbol<f> a b c`.
 
-The most important rules for inference are then: ...
+Similar desugaring is also applied to standalone methods and atom constructors:
+
+- calling a standalone method defined in some module `method arg1 arg2` is
+  translated into `UnresolvedSymbol<method> <internal-module-ref> arg1 arg2`,
+  where `<internal-module-ref>` is a special variable that resolves to the
+  module in which the `method` is defined,
+- calling an atom constructor `Atom.Constructor arg1 arg2` becomes
+  `UnresolvedSymbol<Constructor> Atom arg1 arg2`.
+
+The most important rules for inference are then:
+
+- a name is resolved using the `NameResolutionAlgorithm` to either a local
+  binding (and then the type is read from the current `LocalBindingsTyping`), a
+  global type/module reference, or an unresolved symbol - in which case it gets
+  assigned a special `UnresolvedSymbol` type that is then used in application,
+- an application of multiple arguments is broken into multiple single-argument
+  applications and processed one-by-one,
+- a single application `f x` is processed by looking up the types of `f` and
+  `x`; four possibilities are considered:
+  - `f` has a function type `A -> B` - then the type of `x` is checked for
+    compatibility with `A` (this may yield **type mismatch** warnings) and the
+    type of the application expression becomes `B`,
+  - `f` has type `UnresolvedSymbol<f>` - then the method is looked up (using
+    `MethodTypeResolver`) in the scope associated with the type of `x`,
+  - `f` has type `Any` - then the type of the application expression becomes
+    `Any`, as the type of `f` is not known,
+  - `f` has some non-functional type - then a **not invokable** warning is
+    reported.
+- a binding `x = e` is processed by inferring the type of `e` and storing it in
+  the current `LocalBindingsTyping` under the name `x`,
+- a block of expressions is processed by recursively inferring each expression
+  in the block (later expressions see updated bindings from processing earlier
+  ones) and finally returning the type of the last one,
+- a lambda expression `(a:A)-> b-> e` gets its type by first adding the types of
+  arguments based on their ascriptions to the `LocalBindingsTyping` (an argument
+  with no ascription is treated as unknown - `Any`) and then inferring the type
+  of `e` in context that includes these additional bindings; then the type of
+  the whole expression is built by combining the types of the arguments with the
+  return type,
+- a singleton or vector literal gets the type based on its value - it can be one
+  of `Text`, `Integer`, `Float` or `Vector`,
+- when processing a `case of` expression, similarly to a lambda, the bindings
+  introduced by the patterns in each case are added to the `LocalBindingsTyping`
+  for each case's expression; the type of the whole expression is built by
+  computing the union of types inferred for each of the branches.
 
 These rules are implemented in `TypePropagation::tryInferringType` and its
 related helper methods.
