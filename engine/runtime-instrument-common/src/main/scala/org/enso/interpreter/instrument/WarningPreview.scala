@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.VisualizationResult
-import org.enso.interpreter.service.ExecutionService
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CompletableFuture
@@ -17,7 +16,9 @@ object WarningPreview {
     * @param ctx the runtime context
     * @return the string representation of the warning
     */
-  def execute(value: AnyRef)(implicit ctx: RuntimeContext): String = {
+  def execute(
+    value: AnyRef
+  )(implicit ctx: RuntimeContext): CompletableFuture[String] = {
     val visualizationExpressionFuture: CompletableFuture[AnyRef] =
       ctx.executionService.evaluateExpression(
         ctx.executionService.getContext.getBuiltins.getModule,
@@ -30,11 +31,12 @@ object WarningPreview {
           value
         )
       )
-    val visualizationResult =
-      ExecutionService.resultOf(visualizationResultFuture)
-    val bytes =
-      VisualizationResult.visualizationResultToBytes(visualizationResult)
-    new String(bytes, StandardCharsets.UTF_8)
+
+    visualizationResultFuture.thenApply(visualizationResult => {
+      val bytes =
+        VisualizationResult.visualizationResultToBytes(visualizationResult)
+      new String(bytes, StandardCharsets.UTF_8)
+    })
   }
 
 }

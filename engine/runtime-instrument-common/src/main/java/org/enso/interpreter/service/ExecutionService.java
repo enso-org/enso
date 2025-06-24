@@ -22,8 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.LanguageInfo;
@@ -53,6 +51,7 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
@@ -417,7 +416,7 @@ public final class ExecutionService {
   }
 
   // It's Option because Scala/Java interop for nested classes from Java is non-functional
-  public Future<Optional<Object>> getDiagnosticOutcome(Throwable t) {
+  public CompletableFuture<Optional<Object>> getDiagnosticOutcome(Throwable t) {
     return submitExecution(
         () -> {
           if (t instanceof AbstractTruffleException ex) {
@@ -446,6 +445,16 @@ public final class ExecutionService {
           }
           return Optional.empty();
         });
+  }
+
+  /**
+   * Computes a type of a Truffle's node.
+   *
+   * @param value node to compute
+   * @return future representing the computation
+   */
+  public CompletableFuture<Object> typeOfValue(Object value) {
+    return submitExecution(() -> TypeOfNode.getUncached().findTypeOrError(value));
   }
 
   private scala.Option<File> findFileByModuleName(String module) {
@@ -582,9 +591,8 @@ public final class ExecutionService {
    * @param panic the panic to display.
    * @return a human-readable version of its contents.
    */
-  public String getExceptionMessage(AbstractTruffleException panic) {
-    var future = submitExecution(() -> computeExceptionMessage(panic));
-    return resultOf(future);
+  public CompletableFuture<String> getExceptionMessage(AbstractTruffleException panic) {
+    return submitExecution(() -> computeExceptionMessage(panic));
   }
 
   private String computeExceptionMessage(AbstractTruffleException panic) {
@@ -619,16 +627,6 @@ public final class ExecutionService {
 
   private <T> CompletableFuture<T> submitExecution(Supplier<T> c) {
     return context.getThreadManager().submit(c);
-  }
-
-  public static <T> T resultOf(Future<T> future) {
-    try {
-      return future.get();
-    } catch (InterruptedException ex) {
-      throw raise(RuntimeException.class, ex);
-    } catch (ExecutionException ex) {
-      throw raise(RuntimeException.class, ex.getCause());
-    }
   }
 
   private static final class ExecuteRootNode extends RootNode {

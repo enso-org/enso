@@ -37,7 +37,6 @@ import org.enso.interpreter.runtime.warning.{
   WarningsLibrary,
   WithWarnings
 }
-import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -160,7 +159,7 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
-        ExecutionService.resultOf(pending)
+        pending.get()
       case ExecutionFrame(
             ExecutionItem.CallData(expressionId, callData),
             cache,
@@ -203,7 +202,7 @@ object ProgramExecutionSupport {
           onCachedValueCallback,
           onExecutedVisualizationCallback
         )
-        ExecutionService.resultOf(pending)
+        pending.get()
     }
 
     callStack match {
@@ -339,9 +338,10 @@ object ProgramExecutionSupport {
   private def getExecutionOutcome(
     t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    val diagnostic =
-      ExecutionService.resultOf(ctx.executionService.getDiagnosticOutcome(t))
-    diagnostic
+    val pendingDiagnostic =
+      ctx.executionService.getDiagnosticOutcome(t)
+    pendingDiagnostic
+      .get()
       .map(d => Option(d.asInstanceOf[Api.ExecutionResult]))
       .orElse(getFailureOutcomeFromException(t))
   }
@@ -349,12 +349,14 @@ object ProgramExecutionSupport {
   def getDiagnosticOutcome(
     t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult.Diagnostic] = {
-    val diagnostic =
-      ExecutionService.resultOf(ctx.executionService.getDiagnosticOutcome(t))
-
-    // Can't use `orElse` since inferencer gets confused
-    if (diagnostic.isEmpty) None
-    else Some(diagnostic.get().asInstanceOf[Api.ExecutionResult.Diagnostic])
+    val pendingDiagnostic = ctx.executionService.getDiagnosticOutcome(t)
+    pendingDiagnostic
+      .thenApply(diagnostic => {
+        // Can't use `orElse` since type inferencer gets confused
+        if (diagnostic.isEmpty) None
+        else Some(diagnostic.get().asInstanceOf[Api.ExecutionResult.Diagnostic])
+      })
+      .get()
   }
 
   private def getFailureOutcomeFromException(throwable: Throwable)(implicit
@@ -472,10 +474,12 @@ object ProgramExecutionSupport {
     ) {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
+          val exceptionMsg =
+            ctx.executionService.getExceptionMessage(sentinel.getPanic).get()
           Some(
             Api.ExpressionUpdate.Payload
               .Panic(
-                ctx.executionService.getExceptionMessage(sentinel.getPanic),
+                exceptionMsg,
                 ErrorResolver
                   .getStackTrace(sentinel)(ctx.executionService)
                   .flatMap(_.expressionId)
@@ -528,7 +532,7 @@ object ProgramExecutionSupport {
               val warning =
                 if (warningsCount > 0) {
                   Try(
-                    WarningPreview.execute(warnings(0).getValue)
+                    WarningPreview.execute(warnings(0).getValue).get()
                   ).toEither
                     .fold(
                       error => {
@@ -681,7 +685,7 @@ object ProgramExecutionSupport {
         }
       }
 
-      val future = if (runtimeCache != null) {
+      val pending = if (runtimeCache != null) {
         val processUUID = new Consumer[UUID] {
           override def accept(id: Api.ContextId): Unit = {
             logger.trace(
@@ -696,14 +700,14 @@ object ProgramExecutionSupport {
       } else {
         makeCall.get()
       }
-      val res = ExecutionService.resultOf(future)
+      val visualizationResult = pending.get()
       logger.trace(
         "Visualization {} on expression {} resulted in {}",
         visualization.id,
         expressionId,
-        res
+        visualizationResult
       )
-      res
+      visualizationResult
     }.toEither
 
   /** Compute the visualization of the expression value and send an update.
@@ -729,14 +733,13 @@ object ProgramExecutionSupport {
         val message =
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         if (!TypesGen.isPanicSentinel(expressionValue)) {
-          // FIXME: Needs to be executed within TruffleContext or it will blow up
-          //val typeOfNode =
-          //  TypeOfNode.getUncached.findTypeOrError(expressionValue)
+          val typeOfNode =
+            ctx.executionService.typeOfValue(expressionValue).get()
           logger.warn(
-            "Execution of visualization [{}] on value [{}] failed. {} | {} | {}",
+            "Execution of visualization [{}] on value [{} of type {}] failed. {} | {} | {}",
             visualizationId,
             expressionId,
-            //typeOfNode,
+            typeOfNode,
             message,
             expressionValue,
             error

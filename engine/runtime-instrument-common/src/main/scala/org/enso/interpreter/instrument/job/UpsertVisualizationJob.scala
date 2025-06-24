@@ -25,7 +25,6 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.service.ExecutionService
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -386,11 +385,11 @@ object UpsertVisualizationJob {
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, AnyRef] = {
-    Try(
-      ExecutionService.resultOf(
+    Try {
+      val pending =
         ctx.executionService.evaluateExpression(module, argumentExpression)
-      )
-    ).toEither.left.flatMap {
+      pending.get()
+    }.toEither.left.flatMap {
       case _: ThreadInterruptedException
           if retryCount < MaxEvaluationRetryCount =>
         evaluateArgumentExpression(
@@ -449,7 +448,7 @@ object UpsertVisualizationJob {
     ctx: RuntimeContext
   ): Either[EvaluationFailure, AnyRef] =
     Try {
-      ExecutionService.resultOf(expression match {
+      val pending = expression match {
         case Api.VisualizationExpression.Text(_, expression, _) =>
           ctx.executionService.evaluateExpression(
             expressionModule,
@@ -466,7 +465,8 @@ object UpsertVisualizationJob {
               name
             )
             .thenApply(f => f.asInstanceOf[AnyRef])
-      })
+      }
+      pending.get()
     }.toEither.left.flatMap {
       case _: ThreadInterruptedException
           if retryCount < MaxEvaluationRetryCount =>
