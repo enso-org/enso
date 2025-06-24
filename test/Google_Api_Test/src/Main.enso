@@ -164,4 +164,8 @@ add_specs suite_builder =
             ## Test1
             wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
             wb.read 'Sheet1' ..Has_Headers skip_rows=1 . should_equal (Table.new [['Y', ['Z']]])
+        group_builder.specify "should be able to skip rows with detect headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GS')
+            wb.read 'Sheet1' ..Detect_Headers skip_rows=1 . should_equal (Table.new [['A', ['Y', 'Z']]])
        
