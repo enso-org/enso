@@ -99,18 +99,18 @@ public abstract sealed class IndexMapper
           yield new Constant(newLength);
         }
         case ArrayMapping arrayMapping -> {
-          boolean hasNegativeOne = false;
+          boolean hasMissing = false;
           long[] newMask = new long[arrayMapping.mapping.length];
           for (int i = 0; i < arrayMapping.mapping.length; i++) {
             checkIndexBounds(arrayMapping.mapping[i]);
-            if (newMask[i] == NOT_FOUND_INDEX) {
+            if (arrayMapping.mapping[i] == NOT_FOUND_INDEX) {
               newMask[i] = NOT_FOUND_INDEX;
-              hasNegativeOne = true;
+              hasMissing = true;
             } else {
-              newMask[i] = arrayMapping.mapping[i];
+              newMask[i] = 0;
             }
           }
-          yield hasNegativeOne ? new ArrayMapping(newMask) : new Constant(newMask.length);
+          yield hasMissing ? new ArrayMapping(newMask) : new Constant(newMask.length);
         }
       };
     }
@@ -120,6 +120,13 @@ public abstract sealed class IndexMapper
     private final long start;
     private final long length;
 
+    /**
+     * Creates a new reversed index mapper.
+     *
+     * @param start the lowest index of the slice
+     * @param length the length of the slice
+     * @throws IllegalArgumentException if start or length are negative
+     */
     public Reversed(long start, long length) {
       if (start < 0 || length < 0) {
         throw new IllegalArgumentException("Start and length must be non-negative");
