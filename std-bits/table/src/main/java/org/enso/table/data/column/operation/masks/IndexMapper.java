@@ -50,13 +50,13 @@ public abstract sealed class IndexMapper
 
   /**
    * Checks if the given index is within the valid bounds of this mapper. Valid indices are from 0
-   * to size() - 1, or -1 for special cases.
+   * to size().
    *
    * @param index the index to check
    * @throws IndexOutOfBoundsException if the index is out of bounds
    */
   protected void checkIndexBounds(long index) {
-    if ((index < 0 || index >= size()) && index != NOT_FOUND_INDEX) {
+    if (index < 0 || index >= size()) {
       throw new IndexOutOfBoundsException("Index out of bounds: " + index);
     }
   }
@@ -71,11 +71,15 @@ public abstract sealed class IndexMapper
     private final long length;
 
     public Constant(long length) {
+      if (length < 0) {
+        throw new IllegalArgumentException("Length must be non-negative");
+      }
       this.length = length;
     }
 
     @Override
     public long map(long index) {
+      checkIndexBounds(index);
       return 0;
     }
 
@@ -102,11 +106,11 @@ public abstract sealed class IndexMapper
           boolean hasMissing = false;
           long[] newMask = new long[arrayMapping.mapping.length];
           for (int i = 0; i < arrayMapping.mapping.length; i++) {
-            checkIndexBounds(arrayMapping.mapping[i]);
             if (arrayMapping.mapping[i] == NOT_FOUND_INDEX) {
               newMask[i] = NOT_FOUND_INDEX;
               hasMissing = true;
             } else {
+              checkIndexBounds(arrayMapping.mapping[i]);
               newMask[i] = 0;
             }
           }
@@ -137,6 +141,7 @@ public abstract sealed class IndexMapper
 
     @Override
     public long map(long index) {
+      checkIndexBounds(index);
       return start + length - 1 - index;
     }
 
@@ -150,17 +155,13 @@ public abstract sealed class IndexMapper
       return switch (other) {
         case Constant constant -> Constant.throwCantUse();
         case SingleSlice slice -> {
-          if (slice.start > length) {
-            yield new Reversed(slice.start, 0);
-          }
+          checkIndexBounds(slice.start);
           long newLength = Math.min(length - slice.start, slice.length);
           long newStart = start + length - newLength;
           yield new Reversed(newStart, newLength);
         }
         case Reversed reversed -> {
-          if (reversed.start > length) {
-            yield new SingleSlice(reversed.start, 0);
-          }
+          checkIndexBounds(reversed.start);
           long newLength = Math.min(length - reversed.start, reversed.length);
           long newStart = start + length - newLength;
           yield new SingleSlice(newStart, newLength);
@@ -184,6 +185,7 @@ public abstract sealed class IndexMapper
 
     @Override
     public long map(long index) {
+      checkIndexBounds(index);
       return start + index;
     }
 
@@ -197,11 +199,13 @@ public abstract sealed class IndexMapper
       return switch (other) {
         case Constant constant -> Constant.throwCantUse();
         case SingleSlice slice -> {
+          checkIndexBounds(slice.start);
           long newStart = Math.min(start + length, map(slice.start));
           long newLength = Math.max(0, Math.min(length - slice.start, slice.length));
           yield new SingleSlice(newStart, newLength);
         }
         case Reversed reversed -> {
+          checkIndexBounds(reversed.start);
           long newStart = Math.min(start + length, map(reversed.start));
           long newLength = Math.max(0, Math.min(length - reversed.start, reversed.length));
           yield new Reversed(newStart, newLength);
@@ -223,9 +227,7 @@ public abstract sealed class IndexMapper
 
     @Override
     public long map(long index) {
-      if (index < 0 || index >= mapping.length) {
-        throw new IndexOutOfBoundsException("Index out of bounds: " + index);
-      }
+      checkIndexBounds(index);
       return mapping[(int) index];
     }
 
@@ -239,18 +241,14 @@ public abstract sealed class IndexMapper
       return switch (other) {
         case Constant constant -> Constant.throwCantUse();
         case SingleSlice slice -> {
-          if (slice.start > mapping.length) {
-            yield new SingleSlice(slice.start, 0);
-          }
+          checkIndexBounds(slice.start);
           long newLength = Math.min(mapping.length + slice.start, slice.length);
           long[] newMapping =
               Arrays.copyOfRange(mapping, (int) slice.start, (int) (slice.start + newLength));
           yield new ArrayMapping(newMapping);
         }
         case Reversed reversed -> {
-          if (reversed.start > mapping.length) {
-            yield new SingleSlice(reversed.start, 0);
-          }
+          checkIndexBounds(reversed.start);
           long newLength = Math.min(mapping.length + reversed.start, reversed.length);
           long[] newMapping =
               LongStream.range(0, newLength).map(i -> map(reversed.map(i))).toArray();
@@ -264,8 +262,12 @@ public abstract sealed class IndexMapper
   private static IndexMapper.ArrayMapping remap(IndexMapper mapper, long[] rawMapping) {
     long[] newMask = new long[rawMapping.length];
     for (int i = 0; i < rawMapping.length; i++) {
-      mapper.checkIndexBounds(rawMapping[i]);
-      newMask[i] = rawMapping[i] == NOT_FOUND_INDEX ? NOT_FOUND_INDEX : mapper.map(rawMapping[i]);
+      if (rawMapping[i] == NOT_FOUND_INDEX) {
+        newMask[i] = NOT_FOUND_INDEX;
+      } else {
+        mapper.checkIndexBounds(rawMapping[i]);
+        newMask[i] = mapper.map(rawMapping[i]);
+      }
     }
     return new ArrayMapping(newMask);
   }
