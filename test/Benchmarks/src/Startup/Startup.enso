@@ -27,6 +27,7 @@ type Data
             False -> self.startup cmd
 
     startup self  args =
+        ensure_runs_in_aot
         exe = self.enso_bin
         result = Process.run exe.path args
         case result.exit_code of
@@ -47,9 +48,6 @@ collect_benches = Bench.build builder->
     data =
         Data.Value enso_bin (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso") (find_sibling "Import_World.enso")
 
-    if runs_in_aot.not then
-        Panic.throw "This benchmark must be run in AOT (The engine distribution must be build with NI)"
-
     [["Native_Image_Startup", False], ["JVM_Startup", True]].each \entry->
         group_name = entry.at 0
         in_jvm = (entry.at 1):Boolean
@@ -63,6 +61,10 @@ find_sibling name =
     f = enso_project.root / "src" / "Startup" / name
     if f.is_regular_file.not then Panic.throw "Cannot find "+f.to_text
     f
+
+ensure_runs_in_aot =
+    if runs_in_aot.not then
+        Panic.throw "This benchmark must be run in AOT (The engine distribution must be build with NI)"
 
 runs_in_aot =
     prop = Java_System.getProperty "org.graalvm.nativeimage.imagecode"
