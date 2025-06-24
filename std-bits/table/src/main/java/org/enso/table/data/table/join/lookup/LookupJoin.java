@@ -91,9 +91,8 @@ public class LookupJoin {
             .toList();
 
     // We have columns to merge only if unmatched rows are expected. If unmatched rows are not
-    // allowed, all lookup
-    // columns will completely replace old values, so we can rely on the OrderMask optimization
-    // which is more efficient.
+    // allowed, all lookup columns will completely replace old values, so we can rely on the
+    // mask optimization which is more efficient.
     assert allowUnmatchedRows || columnsToMerge.isEmpty();
 
     boolean needsMask =
@@ -163,10 +162,9 @@ public class LookupJoin {
               Builder.getForType(mergeColumns.commonType(), baseTableRowCount, problemAggregator);
           yield new LookupOutputColumn.MergeColumns(name, original, lookupReplacement, builder);
         } else {
-          // If we do not allow unmatched rows, we can rely on the OrderMask optimization also for
-          // 'merged' columns -
-          // because there is no real merging - all values are guaranteed to only come from the
-          // lookup table.
+          // If we do not allow unmatched rows, we can rely on the mask optimization also for
+          // 'merged' columns - because there is no real merging - all values are guaranteed
+          // to only come from the lookup table.
           Column renamedLookup = mergeColumns.lookupReplacement().rename(name);
           yield new LookupOutputColumn.AddFromLookup(renamedLookup);
         }

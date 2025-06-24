@@ -22,7 +22,6 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.OrderedMultiValueKey;
-import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.CrossJoin;
 import org.enso.table.data.table.join.JoinKind;
@@ -490,18 +489,6 @@ public class Table {
   }
 
   /**
-   * Applies an order mask to all columns and indexes of this array.
-   *
-   * @param orderMask the mask to apply
-   * @return a new table, with all columns and indexes reordered accordingly
-   */
-  public Table applyMask(OrderMask orderMask) {
-    Column[] newColumns =
-        Arrays.stream(columns).map(column -> column.applyMask(orderMask)).toArray(Column[]::new);
-    return new Table(newColumns);
-  }
-
-  /**
    * Transpose tables.
    *
    * @param id_columns the columns to use as the id values in the output.
@@ -604,6 +591,15 @@ public class Table {
 
   public Table mask(long[] mask) {
     var indexMapper = new IndexMapper.ArrayMapping(mask);
+    Column[] newColumns = new Column[columns.length];
+    for (int i = 0; i < columns.length; i++) {
+      newColumns[i] = columns[i].mask(indexMapper);
+    }
+    return new Table(newColumns);
+  }
+
+  public Table reverse() {
+    var indexMapper = new IndexMapper.Reversed(0, rowCount());
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].mask(indexMapper);

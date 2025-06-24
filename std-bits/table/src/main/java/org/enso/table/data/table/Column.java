@@ -9,7 +9,6 @@ import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.StorageListView;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.problems.ProblemAggregator;
@@ -197,6 +196,10 @@ public final class Column {
     return MaskOperation.mask(this, mask);
   }
 
+  public Column reverse() {
+    return mask(new IndexMapper.Reversed(0, getSize()));
+  }
+
   /**
    * Creates a column with the same name and storage, but with the order of items changed according
    * to the given index mapper. This is an internal method used by the table for efficiency.
@@ -208,14 +211,6 @@ public final class Column {
     var storage = getStorage();
     var newStorage = MaskOperation.getSlicedStorage(storage, indexMapper);
     return new Column(getName(), newStorage);
-  }
-
-  /**
-   * @param mask the reordering to apply
-   * @return a new column, resulting from reordering this column according to {@code mask}.
-   */
-  public Column applyMask(OrderMask mask) {
-    return mask(mask.toLongArray());
   }
 
   /**

@@ -64,7 +64,7 @@ public interface Builder {
         builder.append(item);
         yield size == 1
             ? builder.seal()
-            : MaskOperation.getSlicedStorage(builder.seal(), new IndexMapper.Constant(0, size));
+            : MaskOperation.getSlicedStorage(builder.seal(), new IndexMapper.Constant(size));
       }
     };
   }
@@ -83,7 +83,7 @@ public interface Builder {
     var unTyped =
         size == 1
             ? builder.seal()
-            : MaskOperation.getSlicedStorage(builder.seal(), new IndexMapper.Constant(0, size));
+            : MaskOperation.getSlicedStorage(builder.seal(), new IndexMapper.Constant(size));
     return storageType.asTypedStorage(unTyped);
   }
 

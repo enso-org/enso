@@ -2,7 +2,6 @@ package org.enso.table.operations;
 
 import java.util.Comparator;
 import java.util.stream.LongStream;
-
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.ColumnStorage;

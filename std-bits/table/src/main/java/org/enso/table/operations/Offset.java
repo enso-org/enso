@@ -1,10 +1,8 @@
 package org.enso.table.operations;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.LongStream;
-
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -80,24 +78,24 @@ public class Offset {
         problemAggregator,
         offsetRowVisitorFactory,
         numRows);
-    return offsetRowVisitorFactory.rowOrderMask;
+    return offsetRowVisitorFactory.rowMask;
   }
 
   private static class OffsetRowVisitorFactory implements RowVisitorFactory {
 
-    long[] rowOrderMask;
+    long[] rowMask;
     int n;
     FillWith fillWith;
 
     OffsetRowVisitorFactory(int numRows, int n, FillWith fillWith) {
-      rowOrderMask = new long[numRows];
+      rowMask = new long[numRows];
       this.n = n;
       this.fillWith = fillWith;
     }
 
     @Override
     public OffsetRowVisitor getNewRowVisitor() {
-      return new OffsetRowVisitor(n, fillWith, rowOrderMask);
+      return new OffsetRowVisitor(n, fillWith, rowMask);
     }
   }
 
@@ -108,16 +106,16 @@ public class Offset {
     int current_n;
     int closestPos;
     FillWith fillWith;
-    long[] rowOrderMask;
+    long[] rowMask;
 
-    public OffsetRowVisitor(int n, FillWith fillWith, long[] rowOrderMask) {
+    public OffsetRowVisitor(int n, FillWith fillWith, long[] rowMask) {
       this.rolling_queue = new LinkedList<>();
       this.fill_queue = new LinkedList<>();
       this.current_n = 0;
       this.closestPos = -1;
       this.n = n;
       this.fillWith = fillWith;
-      this.rowOrderMask = rowOrderMask;
+      this.rowMask = rowMask;
     }
 
     @Override
@@ -134,9 +132,9 @@ public class Offset {
       if (current_n < Math.abs(n)) {
         fill_queue.add(i);
       } else if (n < 0) {
-        rowOrderMask[i] = rolling_queue.poll();
+        rowMask[i] = rolling_queue.poll();
       } else if (n > 0) {
-        rowOrderMask[rolling_queue.poll()] = i;
+        rowMask[rolling_queue.poll()] = i;
       }
 
       current_n++;
@@ -151,11 +149,11 @@ public class Offset {
       }
 
       while (n < 0 && !fill_queue.isEmpty()) {
-        rowOrderMask[fill_queue.poll()] = getFillValue();
+        rowMask[fill_queue.poll()] = getFillValue();
       }
 
       while (n > 0 && !rolling_queue.isEmpty()) {
-        rowOrderMask[rolling_queue.poll()] = getFillValue();
+        rowMask[rolling_queue.poll()] = getFillValue();
       }
     }
 
