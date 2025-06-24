@@ -269,6 +269,27 @@ vastly improved developer experience. The inferred types of bindings can be used
 to offer some form of method autocomplete and warnings could be displayed inline
 inside the code editor.
 
+#### Polymorphic types, or a single type: `Vector a`
+
+Enso's type system is designed to allow for polymorphic types. While a full
+implementation may be quite complicated to implement efficiently, doing that for
+a specific case of `Vector` can be a good first step as it allows to use some
+'tricks' to 'cheat' and get the desired result for relatively cheap.
+
+It has been suggested that, upon construction, a `Vector` could compute the most
+general type of its elements and store it inside its metadata. Then in runtime,
+checking if a value `v` satisfies the type `Vector Integer` would merely require
+checking if `v` is a `Vector`, reading its metadata to see the type the elements
+satisfy and checking if that type is a subtype of `Integer`. This is much
+cheaper than having to iterate over all elements of the vector.
+
+There are still some challenges to overcome:
+
+- what to do with vectors that come from other languages (e.g. arrays coming
+  from Java),
+- ensuring that the additional step of computing the most general type upon
+  construction does not significantly impact the performance.
+
 #### More powerful inference
 
 The current approach for inference is very simple, but can already provide basic
@@ -289,11 +310,19 @@ In the future, one could try to implement more powerful inference that treats
 un-annotated function arguments as type-variables and tries to propagate them
 through the data flow, recording any constraints induced by method calls. Then
 trying to infer what the type of the argument 'should' be to satisfy the
-gathered constraints. In such case, a distinction may need to be made between
-function arguments that are 'checked' and ones that have an inferred type, but
-it is not checked at runtime. It is also unclear how the unorthodox approaches
-like Enso's approach to intersection types would play with solving these kinds
-of constraints.
+gathered constraints (the simplest form of these constraints stemming from
+checking argument types is unification of type variables, but calling methods on
+objects may give raise to other kinds of constraints (ones like 'type that has
+method `f` defined on it with arity N')). In such case, a distinction may need
+to be made between function arguments that are 'checked' and ones that have an
+inferred type, but it is not checked at runtime. It is also unclear how the
+unorthodox approaches like Enso's approach to intersection types would play with
+solving these kinds of constraints.
+
+Yet another big area for improvement is allowing for type polymorphism in
+methods - being able to change the signature of `map` from
+`Vector -> (Any -> Any) -> Vector` into `Vector a -> (a -> b) -> Vector b` would
+allow for much more powerful type inference.
 
 Such improvements in type inference may require rather fundamental changes from
 the current relatively simple 'propagation' algorithm.
