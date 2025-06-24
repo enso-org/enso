@@ -264,6 +264,10 @@ impl BuildConfigurationResolved {
             config.check_enso_benchmarks = false;
         }
 
+        if Self::should_run_enso_jmh_benchmarks(&config) {
+            config.build_native_runner = true;
+        }
+
         if config.test_java_generated_from_rust {
             config.generate_java_from_rust = true;
         }
@@ -274,6 +278,13 @@ impl BuildConfigurationResolved {
     fn should_run_enso_benchmarks(config: &BuildConfigurationFlags) -> bool {
         match &config.execute_benchmarks {
             Some(benchmark) => benchmark.bench_type == BenchmarkType::Enso,
+            None => false,
+        }
+    }
+
+    fn should_run_enso_jmh_benchmarks(config: &BuildConfigurationFlags) -> bool {
+        match &config.execute_benchmarks {
+            Some(benchmark) => benchmark.bench_type == BenchmarkType::EnsoJMH,
             None => false,
         }
     }
