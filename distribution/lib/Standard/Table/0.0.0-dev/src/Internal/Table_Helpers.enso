@@ -587,4 +587,4 @@ duplicate_rows table (counts : Vector Integer) -> Table =
     mask_array = counts
         . map_with_index ix-> count-> Vector.fill count ix
         . flatten
-    from_java_table (table.java_table.mask mask_array)
+    from_java_table ((table:In_Memory_Table).java_table.mask mask_array)
