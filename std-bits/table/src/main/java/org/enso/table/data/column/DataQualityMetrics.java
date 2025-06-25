@@ -38,7 +38,8 @@ public abstract class DataQualityMetrics {
 
   private static ExecutorService threadFactory() {
     if (_threadFactory == null) {
-      _threadFactory = Executors.newFixedThreadPool(Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
+      _threadFactory =
+          Executors.newFixedThreadPool(Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
     }
     return _threadFactory;
   }
