@@ -64,8 +64,18 @@ function Drive(props: DriveProps) {
               {getText('upgrade')}
             </Button>
 
-            {!supportLocalBackend && (
+            {supportLocalBackend ?
               <Button
+                size="medium"
+                variant="primary"
+                className="mx-auto"
+                onPress={() => {
+                  setCategory('local')
+                }}
+              >
+                {getText('switchToLocal')}
+              </Button>
+            : <Button
                 data-testid="download-free-edition"
                 size="medium"
                 variant="accent"
@@ -80,7 +90,7 @@ function Drive(props: DriveProps) {
               >
                 {getText('downloadFreeEdition')}
               </Button>
-            )}
+            }
           </Button.Group>
         </result.Result>
       )
