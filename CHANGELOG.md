@@ -22,6 +22,8 @@
   Browser.][13266]
 - [Allow marking grouped component arguments as required or providing a default
   value.][13254]
+- [Fixed a bug, where "Free plan" user was redirected to Cloud directory,
+  resulting in an Error page without option of returning back to Local.][13366]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -39,6 +41,7 @@
 [13161]: https://github.com/enso-org/enso/pull/13161
 [13266]: https://github.com/enso-org/enso/pull/13266
 [13254]: https://github.com/enso-org/enso/pull/13254
+[13366]: https://github.com/enso-org/enso/pull/13366
 
 #### Enso Standard Library
 
