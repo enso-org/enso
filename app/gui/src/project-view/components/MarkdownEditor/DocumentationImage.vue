@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import {
-  injectDocumentationImageUrlTransformer,
-  type TransformUrlResult,
-} from '@/components/MarkdownEditor/imageUrlTransformer'
+import { useDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
+import { type TransformUrlResult } from '@/components/MarkdownEditor/imageFiles/imageUrlTransformer'
 import { computedAsync } from '@vueuse/core'
 import { computed, onUnmounted, type Ref } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
@@ -14,13 +12,14 @@ const props = defineProps<{
   alt: string
 }>()
 
-const urlTransformer = injectDocumentationImageUrlTransformer(true)
+const images = useDocumentationImages(true)
+const urlTransformer = images?.value
 
 // NOTE: Garbage-collecting image data when the `src` changes is not implemented. Current users of `DocumentationImage`
 // don't change the `src` after creating an image.
 const data: Ref<TransformUrlResult | undefined> =
   urlTransformer ?
-    computedAsync(() => urlTransformer.transformUrl(props.src), undefined, {
+    computedAsync(() => urlTransformer?.transformImageUrl(props.src), undefined, {
       onError: console.error,
     })
   : computed(() => Ok({ url: props.src }))
@@ -47,3 +46,9 @@ onUnmounted(() => {
     :class="{ uploading: data?.ok && data.value.uploading?.value }"
   />
 </template>
+
+<style scoped>
+.uploading {
+  opacity: 0.5;
+}
+</style>

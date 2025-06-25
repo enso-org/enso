@@ -37,7 +37,7 @@ const graph = useGraphStore()
 const project = useProjectStore()
 
 const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
-const outputType = computed(() => exprInfo.value?.rawTypename)
+const outputType = computed(() => exprInfo.value?.typeInfo?.primaryType)
 
 const { methodCallInfo, application } = useWidgetFunctionCallInfo(
   () => props.input,

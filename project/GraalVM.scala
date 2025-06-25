@@ -110,8 +110,7 @@ object GraalVM {
   private def isEspressoMode(): Boolean =
     "espresso".equals(System.getenv("ENSO_JAVA"))
 
-  // Keep in sync with graalMavenPackagesVersion in build.sbt
-  private val version: String = "24.2.0"
+  private val version: String = Dependencies.graalMavenPackagesVersion
 
   final def mavenPackagesVersion: String = version
 

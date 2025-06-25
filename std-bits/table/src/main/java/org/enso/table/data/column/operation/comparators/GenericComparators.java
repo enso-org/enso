@@ -3,16 +3,16 @@ package org.enso.table.data.column.operation.comparators;
 import java.util.function.BiPredicate;
 import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.operation.StorageIterators;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-public class GenericComparators<T> implements BinaryOperation<Boolean> {
+public class GenericComparators<T> implements BinaryOperationTyped<Boolean> {
   protected final StorageType<T> valueType;
   protected final BiPredicate<T, T> comparator;
   protected final boolean throwOnOther;
@@ -57,7 +57,7 @@ public class GenericComparators<T> implements BinaryOperation<Boolean> {
   public ColumnStorage<Boolean> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType || rightValue == null) {
-      return BoolStorage.makeEmpty(left.getSize());
+      return Builder.makeEmpty(BooleanType.INSTANCE, left.getSize());
     }
 
     assert canApplyMap(left, rightValue);
@@ -95,7 +95,7 @@ public class GenericComparators<T> implements BinaryOperation<Boolean> {
       MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType || right.getType() instanceof NullType) {
       var size = Math.max(left.getSize(), right.getSize());
-      return BoolStorage.makeEmpty(size);
+      return Builder.makeEmpty(BooleanType.INSTANCE, size);
     }
 
     assert canApplyZip(left, right);

@@ -239,6 +239,11 @@ const config = [
           argsIgnorePattern: '^_',
         },
       ],
+      'no-restricted-properties': [
+        'warn',
+        { object: 'console', property: 'debug', message: DEBUG_STATEMENTS_MESSAGE },
+        { object: 'console', property: 'trace', message: DEBUG_STATEMENTS_MESSAGE },
+      ],
       '@typescript-eslint/no-namespace': 'off',
       // Empty interfaces have valid uses; e.g. although an empty interface extending a class is semantically equivalent
       // to a type alias, it is not resolved by IDEs to the base type (which may be internal).
@@ -349,6 +354,10 @@ const config = [
       ],
       'no-constant-condition': ['error', { checkLoops: false }],
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
+      'no-restricted-imports': [
+        'error',
+        { paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }] },
+      ],
       'no-restricted-properties': [
         'error',
         { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },

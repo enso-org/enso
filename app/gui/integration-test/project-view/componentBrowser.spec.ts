@@ -296,7 +296,7 @@ test('Editing existing nodes', async ({ page }) => {
   // Edit again, using "edit" button
   await locate.graphNodeIcon(node).click()
   await node.getByTestId('more-button').click()
-  await node.getByTestId('edit-button').click()
+  await node.getByTestId('action:component.startEditing').click()
   await expect(locate.componentBrowser(page)).toBeVisible()
   await expect(content).toHaveText(`Data.read ${ADDED_PATH}`)
   for (let i = 0; i < ADDED_PATH.length; ++i) await page.keyboard.press('Backspace')
@@ -335,7 +335,10 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await expect(locate.jsonVisualization(page)).toBeVisible()
   await expect(locate.jsonVisualization(page)).toContainText('"visualizedExpr": "4"')
   await locate.toggleVisualizationSelectorButton(page).click()
-  await page.getByRole('button', { name: 'Table' }).click()
+  await page
+    .getByTestId('visualization-selector-entries')
+    .getByRole('button', { name: 'Table' })
+    .click()
   await expect(locate.tableVisualization(page)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()

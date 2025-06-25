@@ -11,7 +11,6 @@ import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.AWS import S3_File
 
 from Standard.Test import all
 

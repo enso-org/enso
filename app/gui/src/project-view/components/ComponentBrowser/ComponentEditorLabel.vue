@@ -13,7 +13,7 @@ type DisplayedAdditionalTypes =
 
 const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
   if (props.selfArg?.type === 'known') {
-    const additionalTypes = props.selfArg.additionalTypes.flatMap((type) =>
+    const additionalTypes = props.selfArg.typeInfo?.hiddenTypes.flatMap((type) =>
       type.path ? qnLastSegment(type.path) : [],
     )
     if (additionalTypes.length === 0) return null
@@ -28,8 +28,8 @@ const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
 
 const label = computed(() => {
   if (props.selfArg == null) return 'Input'
-  if (props.selfArg.type === 'known' && props.selfArg.typename.path) {
-    return qnLastSegment(props.selfArg.typename.path)
+  if (props.selfArg.type === 'known' && props.selfArg.typeInfo?.primaryType.path) {
+    return qnLastSegment(props.selfArg.typeInfo.primaryType.path)
   }
 
   return undefined

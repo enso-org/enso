@@ -1,8 +1,7 @@
 /** @file Commonly used functions for electron tests */
 /* eslint-disable no-empty-pattern */
 
-import { test as base, expect } from '@chromatic-com/playwright'
-import { _electron, ElectronApplication, type Page } from '@playwright/test'
+import { _electron, test as base, ElectronApplication, expect, type Page } from '@playwright/test'
 import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'

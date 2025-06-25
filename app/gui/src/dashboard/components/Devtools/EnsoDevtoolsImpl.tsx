@@ -1,10 +1,9 @@
 /** @file A list of toggles for paywall features. */
-import { SETUP_PATH } from '#/appUtils'
 import CrossIcon from '#/assets/cross.svg'
 import { Button, CopyButton, type ButtonProps } from '#/components/Button'
 import { Dialog, Popover, POPOVER_STYLES } from '#/components/Dialog'
 import { Form } from '#/components/Form'
-import { Input } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
 import Portal from '#/components/Portal'
 import { Radio } from '#/components/Radio'
 import { Separator } from '#/components/Separator'
@@ -14,28 +13,25 @@ import { Tooltip } from '#/components/Tooltip'
 import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
-import {
-  useAuth,
-  usePlanOverride,
-  UserSessionType,
-  useSetPlanOverride,
-} from '#/providers/AuthProvider'
-import {
-  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
-  FEATURE_FLAGS_SCHEMA,
-  useFeatureFlags,
-  useSetFeatureFlag,
-} from '#/providers/FeatureFlagsProvider'
-import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
-import { useText } from '$/providers/react'
+import { SETUP_PATH } from '$/appUtils'
+import { UserSessionType } from '$/providers/auth'
+import {
+  DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
+  FEATURE_FLAGS_SCHEMA,
+} from '$/providers/featureFlags'
+import { useLocalStorage, usePlanOverride, useText } from '$/providers/react'
+import { useSetPlanOverride, useUserSession } from '$/providers/react/auth'
+import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { motion } from 'framer-motion'
 import * as React from 'react'
 import { toast } from 'react-toastify'
+import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
 import { Icon } from '../Icon'
 import {
@@ -44,6 +40,7 @@ import {
   usePaywallDevtools,
   useSetAnimationsDisabled,
   useSetEnableVersionChecker,
+  useShowEnsoDevtools,
   useToggleEnsoDevtools,
 } from './EnsoDevtoolsProvider'
 
@@ -77,6 +74,7 @@ function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
 export function EnsoDevStatus() {
   const queryClient = useQueryClient()
   const { getText } = useText()
+  const showEnsoDevtools = useShowEnsoDevtools()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
   const animationsDisabled = useAnimationsDisabled()
@@ -116,7 +114,20 @@ export function EnsoDevStatus() {
       }
     }
   })()
-  const isOverridden = planName != null || showDeveloperIds
+  const isOverridden =
+    planName != null ||
+    animationsDisabled ||
+    versionCheckerEnabled ||
+    !enableAssetsTableBackgroundRefresh ||
+    assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
+    !enableCloudExecution ||
+    !enableScheduledExecution ||
+    !enableHybridExecution ||
+    showDeveloperIds ||
+    overrideProfilePicture ||
+    multiplyUserList ||
+    enableMultitabs ||
+    enableAdvancedProjectExecutionOptions
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
@@ -126,9 +137,10 @@ export function EnsoDevStatus() {
 
   return (
     <Portal>
-      <div
+      <motion.div
+        layout
         className={styles.base({
-          className: 'absolute bottom-[4.25rem] left-3',
+          className: twJoin('absolute left-3', showEnsoDevtools ? 'bottom-[4.25rem]' : 'bottom-3'),
         })}
       >
         <div className={styles.dialog()}>
@@ -257,7 +269,7 @@ export function EnsoDevStatus() {
             </DeveloperOverrideEntry>
           )}
         </div>
-      </div>
+      </motion.div>
     </Portal>
   )
 }
@@ -267,7 +279,7 @@ export function EnsoDevtools() {
   const { getText } = useText()
 
   const queryClient = useQueryClient()
-  const { session } = useAuth()
+  const session = useUserSession()
   const { getFeature } = usePaywallFeatures()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
 
@@ -278,7 +290,7 @@ export function EnsoDevtools() {
   const animationsDisabled = useAnimationsDisabled()
   const setAnimationsDisabled = useSetAnimationsDisabled()
 
-  const { localStorage } = useLocalStorage()
+  const localStorage = useLocalStorage()
   const [localStorageState, setLocalStorageState] = React.useState<Partial<LocalStorageData>>({})
 
   // Re-render when localStorage changes.

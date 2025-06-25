@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -11,6 +10,7 @@ import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 /**
  * A binary coalescing operation for numeric types. This class is used to perform operations on two
@@ -82,7 +82,7 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
         }
       };
 
-  public static BinaryOperation<?> create(
+  public static BinaryOperationTyped<?> create(
       StorageType<?> leftType, Object right, NumericOperation operation) {
     var rightType = storageTypeForObject(right);
     if (leftType instanceof FloatType || rightType instanceof FloatType) {
@@ -115,7 +115,7 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
   private static class BinaryCoalescingOperationDouble
       extends BinaryCoalescingOperationNumeric<Double> {
     public BinaryCoalescingOperationDouble(NumericOperation operation) {
-      super(DoubleColumnAdapter.INSTANCE, FloatType.FLOAT_64, operation);
+      super(NumericColumnAdapter.DoubleColumnAdapter.INSTANCE, FloatType.FLOAT_64, operation);
     }
 
     @Override
@@ -169,7 +169,10 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
   private static class BinaryCoalescingOperationBigDecimal
       extends BinaryCoalescingOperationNumeric<BigDecimal> {
     public BinaryCoalescingOperationBigDecimal(NumericOperation operation) {
-      super(BigDecimalColumnAdapter.INSTANCE, BigDecimalType.INSTANCE, operation);
+      super(
+          NumericColumnAdapter.BigDecimalColumnAdapter.INSTANCE,
+          BigDecimalType.INSTANCE,
+          operation);
     }
 
     @Override
@@ -187,7 +190,10 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
   private static class BinaryCoalescingOperationBigInteger
       extends BinaryCoalescingOperationNumeric<BigInteger> {
     public BinaryCoalescingOperationBigInteger(NumericOperation operation) {
-      super(BigIntegerColumnAdapter.INSTANCE, BigIntegerType.INSTANCE, operation);
+      super(
+          NumericColumnAdapter.BigIntegerColumnAdapter.INSTANCE,
+          BigIntegerType.INSTANCE,
+          operation);
     }
 
     @Override
@@ -205,7 +211,7 @@ public abstract class BinaryCoalescingOperationNumeric<T> extends BinaryOperatio
   private static class BinaryCoalescingOperationLong
       extends BinaryCoalescingOperationNumeric<Long> {
     public BinaryCoalescingOperationLong(NumericOperation operation) {
-      super(LongColumnAdapter.INSTANCE, IntegerType.INT_64, operation);
+      super(NumericColumnAdapter.LongColumnAdapter.INSTANCE, IntegerType.INT_64, operation);
     }
 
     @Override

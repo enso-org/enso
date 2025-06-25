@@ -7,7 +7,6 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-import Standard.Table.Internal.Vector_Builder.Vector_Builder
 from Standard.Table import Aggregate_Column, Column, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
@@ -30,22 +29,19 @@ import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
-import Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Builder
-import Standard.Database.SQL.SQL_Fragment
 import Standard.Database.SQL_Statement.SQL_Statement
 import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Dialect import Temp_Table_Style
-from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
@@ -384,7 +380,7 @@ type Snowflake_Dialect
            Window function [FIRST_VALUE(T.A) OVER (PARTITION BY T.B ORDER BY T.C ASC NULLS LAST)] may not appear inside an aggregate function.
     custom_build_aggregate self =
         create_row_number_for orderings key_columns =
-            order_descriptors = orderings.map o-> self.prepare_order_descriptor o.column o.direction text_ordering=Nothing
+            order_descriptors = orderings.map o-> self.prepare_order_descriptor (o.column:Internal_Column) o.direction text_ordering=Nothing
             key_expressions_for_orderings = key_columns.map .expression
             expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
             Pair.new "row-number" expression
@@ -701,7 +697,7 @@ supported_replace_params =
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
@@ -756,7 +752,7 @@ replace args metadata =
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 1, 'i')"
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 1)"
-        DB_Column ->
+        Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->

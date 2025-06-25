@@ -3,12 +3,11 @@ package org.enso.table.data.column.builder;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
@@ -59,7 +58,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  protected Storage<BigInteger> doSeal() {
+  protected ColumnStorage<BigInteger> doSeal() {
     return new BigIntegerStorage(data);
   }
 
@@ -69,7 +68,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public void append(Object o) {
+  public BigIntegerBuilder append(Object o) {
     ensureSpaceToAppend();
 
     if (o == null) {
@@ -81,6 +80,8 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
       }
     }
+
+    return this;
   }
 
   static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
@@ -95,23 +96,16 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
-    if (storage.getType() instanceof IntegerType) {
-      if (storage instanceof ColumnLongStorage longStorage) {
-        long n = longStorage.getSize();
-        for (long i = 0; i < n; i++) {
-          if (storage.isNothing(i)) {
-            appendNulls(1);
-          } else {
-            long item = longStorage.getItemAsLong(i);
-            append(BigInteger.valueOf(item));
-          }
+  public void appendBulkStorage(ColumnStorage<?> storage) {
+    if (storage instanceof ColumnLongStorage longStorage) {
+      long n = longStorage.getSize();
+      for (long i = 0; i < n; i++) {
+        if (storage.isNothing(i)) {
+          appendNulls(1);
+        } else {
+          long item = longStorage.getItemAsLong(i);
+          append(BigInteger.valueOf(item));
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type INTEGER: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
     } else {
       super.appendBulkStorage(storage);

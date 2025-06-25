@@ -7,19 +7,13 @@ import {
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
 import { useRightPanelData } from '$/providers/rightPanel'
-import {
-  codeEditorBindings,
-  documentationEditorBindings,
-  graphBindings,
-  undoBindings,
-} from '@/bindings'
+import { graphBindings, panelsBindings, undoBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import type { Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
-import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
@@ -34,9 +28,9 @@ import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
-import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
+import { keyboardBusy, unrefElement, useEvent } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { ActionName, registerHandlers, toggledAction } from '@/providers/action'
+import { type DisplayableActionName, registerHandlers, toggledAction } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -45,6 +39,7 @@ import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import type { Node, NodeId } from '@/stores/graph'
 import { isInputNode, nodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -61,19 +56,18 @@ import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { isDef, VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import * as objects from 'enso-common/src/utilities/data/object'
 import { set } from 'lib0'
 import {
   computed,
   onMounted,
   onUnmounted,
   ref,
-  shallowRef,
   toRaw,
   toRef,
   useTemplateRef,
   watch,
   watchEffect,
-  type ComponentInstance,
 } from 'vue'
 
 const keyboard = injectKeyboard()
@@ -107,6 +101,8 @@ const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keybo
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
 
+providePopoverRoot(viewportElem)
+
 // === Client saved state ===
 
 providePersisted(
@@ -128,10 +124,9 @@ function selectionBounds() {
   return nodesBounds(nodeSelection.selected) ?? scrollBounds.value
 }
 
-function zoomToSelected(skipAnimation: boolean = false) {
+function zoomToSelected() {
   const bounds = selectionBounds()
-  if (bounds)
-    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
+  if (bounds) graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
 }
 
 function zoomToAll(skipAnimation: boolean = false) {
@@ -217,6 +212,8 @@ const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboa
 
 // === Action Handlers ===
 
+const showCodeEditor = ref(false)
+
 const actionHandlers = registerHandlers({
   'graphEditor.showHelp': {
     action: () => rightPanel.toggleTab('help'),
@@ -234,10 +231,7 @@ const actionHandlers = registerHandlers({
       createWithComponentBrowser({ placement })
     },
   },
-  'graph.toggleCodeEditor': {
-    action: () => (showCodeEditor.value = !showCodeEditor.value),
-    toggled: () => showCodeEditor.value,
-  },
+  'graph.toggleCodeEditor': toggledAction(showCodeEditor),
   'graph.toggleDocumentationEditor': {
     action: () => rightPanel.toggleTab('documentation'),
     toggled: () => rightPanel.tab === 'documentation',
@@ -249,15 +243,15 @@ const actionHandlers = registerHandlers({
     action: () => nodeExecution.recomputeAll('Live'),
   },
   'graph.undo': {
+    enabled: graphStore.undoManager.canUndo,
     action: () => graphStore.undoManager.undo(),
-    disabled: () => !graphStore.undoManager.canUndo,
   },
   'graph.redo': {
+    enabled: graphStore.undoManager.canRedo,
     action: () => graphStore.undoManager.redo(),
-    disabled: () => !graphStore.undoManager.canRedo,
   },
   'graph.fitAll': {
-    action: () => zoomToSelected(),
+    action: zoomToSelected,
   },
   'graph.zoomIn': {
     action: () => graphNavigator.stepZoom(+1),
@@ -266,9 +260,61 @@ const actionHandlers = registerHandlers({
     action: () => graphNavigator.stepZoom(-1),
   },
   'graph.navigateUp': {
+    available: stackNavigator.hasBreadcrumbsBeyondRoot,
+    enabled: stackNavigator.allowNavigationLeft,
     action: () => stackNavigator.exitNode(),
-    disabled: () => !stackNavigator.allowNavigationLeft.value,
-    hidden: () => !stackNavigator.hasBreadcrumbsBeyondRoot.value,
+  },
+  'component.enterNode': {
+    // TODO: Unify with handler in GraphNode.
+    action: () => {
+      const selectedNode = set.first(nodeSelection.selected)
+      if (selectedNode) {
+        stackNavigator.enterNode(selectedNode)
+      }
+    },
+  },
+  'graph.startProfiling': { action: () => void projectStore.lsRpcConnection.profilingStart(true) },
+  'graph.stopProfiling': { action: () => void projectStore.lsRpcConnection.profilingStop() },
+  'graph.openComponentBrowser': {
+    action: () => {
+      if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
+        createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
+      }
+    },
+  },
+  'graph.selectAll': { action: () => nodeSelection.selectAll() },
+  'graph.deselectAll': {
+    action: () => {
+      nodeSelection.deselectAll()
+      clearFocus()
+      graphStore.undoManager.undoStackBoundary()
+    },
+  },
+  'graph.toggleVisualization': {
+    action: () => {
+      // TODO: Merge with component action
+      const selected = nodeSelection.selected
+      const allVisible = iter.every(
+        selected,
+        (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
+      )
+      graphStore.batchEdits(() => {
+        for (const nodeId of selected) {
+          graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
+        }
+      })
+    },
+  },
+  'graph.pasteNode': { action: () => createNodesFromClipboard() },
+  'graph.openDocumentation': {
+    action: () => {
+      const result = tryGetSelectionDocUrl()
+      if (!result.ok) {
+        toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
+        return
+      }
+      window.open(result.value, '_blank')
+    },
   },
   ...selectionActionHandlers(
     () =>
@@ -291,10 +337,9 @@ useEvent(
   window,
   'keydown',
   (event) =>
+    panelsHandler(event) ||
     (!keyboardBusy() && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
-    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
-    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
     (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
 )
 
@@ -320,84 +365,22 @@ const { handleClick } = useDoubleClick(
 
 // === Keyboard/Mouse bindings ===
 
-const undoBindingsHandler = undoBindings.handler({
-  undo: actionHandlers['graph.undo'].action,
-  redo: actionHandlers['graph.redo'].action,
-})
+const undoBindingsHandler = undoBindings.handler(
+  objects.mapEntries(undoBindings.bindings, (actionName) => actionHandlers[actionName].action),
+)
 
-const graphBindingsHandler = graphBindings.handler({
-  startProfiling() {
-    projectStore.lsRpcConnection.profilingStart(true)
-  },
-  stopProfiling() {
-    projectStore.lsRpcConnection.profilingStop()
-  },
-  openComponentBrowser() {
-    if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
-      createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
-    }
-  },
-  deleteSelected: actionHandlers['components.deleteSelected'].action,
-  zoomToSelected() {
-    zoomToSelected()
-  },
-  selectAll() {
-    nodeSelection.selectAll()
-  },
-  deselectAll() {
-    nodeSelection.deselectAll()
-    clearFocus()
-    graphStore.undoManager.undoStackBoundary()
-  },
-  toggleVisualization() {
-    const selected = nodeSelection.selected
-    const allVisible = iter.every(
-      selected,
-      (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
-    )
-    graphStore.batchEdits(() => {
-      for (const nodeId of selected) {
-        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
-      }
-    })
-  },
-  copyNode: actionHandlers['components.copy'].action,
-  pasteNode() {
-    createNodesFromClipboard()
-  },
-  collapse: actionHandlers['components.collapse'].action,
-  enterNode() {
-    const selectedNode = set.first(nodeSelection.selected)
-    if (selectedNode) {
-      stackNavigator.enterNode(selectedNode)
-    }
-  },
-  exitNode() {
-    stackNavigator.exitNode()
-  },
-  changeColorSelectedNodes() {
-    actionHandlers['components.pickColorMulti'].toggled.value = true
-  },
-  openDocumentation() {
-    const result = tryGetSelectionDocUrl()
-    if (!result.ok) {
-      toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
-      return
-    }
-    window.open(result.value, '_blank')
-  },
-})
+const graphBindingsHandler = graphBindings.handler(
+  objects.mapEntries(
+    graphBindings.bindings,
+    (actionName) => () => void actionHandlers[actionName].action(),
+  ),
+)
 
 // === Code Editor ===
 
-const codeEditor = shallowRef<ComponentInstance<typeof CodeEditor>>()
-const codeEditorArea = computed(() => unrefElement(codeEditor))
-const showCodeEditor = ref(false)
-const codeEditorHandler = codeEditorBindings.handler({
-  toggle() {
-    showCodeEditor.value = !showCodeEditor.value
-  },
-})
+const panelsHandler = panelsBindings.handler(
+  objects.mapEntries(panelsBindings.bindings, (actionName) => actionHandlers[actionName].action),
+)
 
 // === Documentation Editor ===
 
@@ -425,13 +408,6 @@ watchEffect(() => {
 function toggleRightDockHelpPanel() {
   rightPanel.tab = 'help'
 }
-
-const docEditor = shallowRef<ComponentInstance<typeof DocumentationEditor>>()
-const documentationEditorArea = computed(() => unrefElement(docEditor))
-
-const documentationEditorHandler = documentationEditorBindings.handler({
-  toggle: () => rightPanel.toggleTab('documentation'),
-})
 
 // === Component Browser ===
 
@@ -646,7 +622,7 @@ provideNodeColors(graphStore, (variable) =>
   viewportElem.value ? getComputedStyle(viewportElem.value).getPropertyValue(variable) : '',
 )
 
-const contextMenuActions: ActionName[] = [
+const contextMenuActions: DisplayableActionName[] = [
   'graph.navigateUp',
   'graph.renameProject',
   'graph.refreshExecution',
@@ -703,12 +679,7 @@ const contextMenuActions: ActionName[] = [
           />
         </template>
         <TopBar
-          v-model:recordMode="projectStore.recordMode"
-          v-model:showCodeEditor="showCodeEditor"
           v-model:projectNameEdited="projectNameEdited"
-          v-model:showDocumentationEditor="
-            actionHandlers['graph.toggleDocumentationEditor'].toggled
-          "
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :menuActions="contextMenuActions"
           @contextmenu.stop.prevent
@@ -717,7 +688,7 @@ const contextMenuActions: ActionName[] = [
         <GraphMouse />
       </ContextMenuTrigger>
       <BottomPanel v-model:show="showCodeEditor">
-        <CodeEditor ref="codeEditor" />
+        <CodeEditor />
       </BottomPanel>
     </div>
   </div>

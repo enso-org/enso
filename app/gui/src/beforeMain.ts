@@ -3,52 +3,32 @@
  * other script (including our dependencies).
  */
 
-import * as detect from 'enso-common/src/detect'
+declare const __REACT_DEVTOOLS_GLOBAL_HOOK__: any
+declare const __VUE_DEVTOOLS_KIT_CONTEXT__: any
+declare const __VUE_DEVTOOLS_OPEN_IN_EDITOR_BASE_URL__: string | undefined
 
-if (detect.IS_DEV_MODE) {
-  suppressReactAriaConsoleWarnings()
-  suppressVueDevToolsConsoleWarnings()
-}
-
-function suppressConsoleMessage(
-  message: string | RegExp | (string | RegExp)[] | ((...args: unknown[]) => boolean),
-  level: 'warn' | 'error' | 'log' | 'debug' | 'info' = 'warn',
-) {
-  const originalConsoleMethod = console[level]
-
-  console[level] = function overrideConsoleMethod(...args: unknown[]) {
-    let shouldSuppress = false
-
-    switch (true) {
-      case typeof message === 'function':
-        shouldSuppress = message(...args)
-        break
-      case typeof message === 'string':
-        shouldSuppress = args[0] === message
-        break
-      case Array.isArray(message):
-        shouldSuppress = message.some((m) =>
-          typeof m === 'string' ? args[0] === m : m.test(args[0] as string),
-        )
-        break
-      default:
-        shouldSuppress = message.test(args[0] as string)
-        break
-    }
-
-    if (shouldSuppress) {
-      return
-    }
-
-    return originalConsoleMethod.apply(console, args)
+DEV: {
+  // Avoid annoying "use react devtools" log.
+  if (
+    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === 'undefined' ||
+    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== 'function'
+  ) {
+    ;(window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__ = { isDisabled: true }
   }
-}
 
-function suppressReactAriaConsoleWarnings() {
-  suppressConsoleMessage(/A PressResponder was rendered without a pressable child/)
-  suppressConsoleMessage(/Download the React DevTools for a better development experience/, 'info')
-}
+  // Restore "open editor" function in devtools, without introducing extra DOM properties that make react scream.
 
-function suppressVueDevToolsConsoleWarnings() {
-  suppressConsoleMessage((...args) => args[1] === 'data-v-inspector', 'error')
+  if (typeof __VUE_DEVTOOLS_KIT_CONTEXT__ !== 'undefined') {
+    __VUE_DEVTOOLS_KIT_CONTEXT__.api.openInEditor = async (options: {
+      file: string
+      baseUrl?: string
+      line?: number
+      column?: number
+    }) => {
+      const { file, baseUrl, line = 0, column = 0 } = options
+      const _baseUrl = baseUrl ?? __VUE_DEVTOOLS_OPEN_IN_EDITOR_BASE_URL__ ?? window.location.origin
+      const fileLocation = `${file}:${line}:${column}`
+      return fetch(`${_baseUrl}/__open-in-editor?file=${encodeURIComponent(fileLocation)}`)
+    }
+  }
 }

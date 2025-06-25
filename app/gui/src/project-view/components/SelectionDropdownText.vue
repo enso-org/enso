@@ -8,7 +8,7 @@ import { ref } from 'vue'
 
 type Key = number | string | symbol
 const selected = defineModel<Key>({ required: true })
-const _props = defineProps<{
+const { options, title, alwaysShowArrow, heading } = defineProps<{
   options: Record<Key, TextSelectionMenuOption>
   title?: string | undefined
   alwaysShowArrow?: boolean

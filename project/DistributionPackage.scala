@@ -255,7 +255,7 @@ object DistributionPackage {
         )
         log.debug(command.mkString(" "))
         val allEnv = env ++ Map(
-          "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
+          "JAVA_TOOL_OPTIONS" -> "-Dorg.jline.terminal.dumb=true"
         )
         val procBldr = new java.lang.ProcessBuilder(asJava(command))
         procBldr.directory(path.getAbsoluteFile.getParentFile)
@@ -367,7 +367,7 @@ object DistributionPackage {
 
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
-    reduceArgs(all, "JAVA_OPTS", pb.environment)
+    reduceArgs(all, "JAVA_TOOL_OPTIONS", pb.environment)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
@@ -464,6 +464,7 @@ object DistributionPackage {
     pb.command(all)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
+    pb.environment().put("ENSO_OPENSEARCH_APPENDER_ENABLED", "false")
     reduceArgs(all, "ENSO_JVM_OPTS", pb.environment)
     pb.inheritIO()
     val p        = pb.start()
@@ -665,7 +666,7 @@ object DistributionPackage {
     ensoVersion: String,
     graalVersion: String,
     graalJavaVersion: String,
-    artifactRoot: File
+    val artifactRoot: File
   ) {
 
     def artifactName(
