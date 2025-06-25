@@ -1,6 +1,7 @@
 package org.enso.table.data.column.builder;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
@@ -39,6 +40,8 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
         if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
           data[currentSize++] = convertDate(localDate);
           wasLocalDate.set(currentSize - 1);
+        } else if (o instanceof LocalDateTime localDateTime) {
+          data[currentSize++] = localDateTime.atZone(ZoneId.systemDefault());
         } else {
           data[currentSize++] = (ZonedDateTime) o;
         }
