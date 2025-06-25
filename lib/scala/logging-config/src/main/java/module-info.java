@@ -1,8 +1,13 @@
+import org.enso.logging.config.systemlogger.ContextLoggingViaSlf4j;
 import org.enso.logging.config.systemlogger.SystemLoggerViaSlf4j;
 
 module org.enso.logging.config {
   requires org.slf4j;
+  requires java.logging;
   requires typesafe.config;
+  requires org.enso.logging.utils;
+  requires static org.enso.engine.common;
+  requires static org.graalvm.polyglot;
 
   exports org.enso.logging.config;
 
@@ -10,4 +15,6 @@ module org.enso.logging.config {
 
   provides java.lang.System.LoggerFinder with
       SystemLoggerViaSlf4j;
+  provides org.enso.common.ContextLoggingConfigurator with
+      ContextLoggingViaSlf4j;
 }

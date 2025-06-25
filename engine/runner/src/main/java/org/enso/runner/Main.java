@@ -37,6 +37,7 @@ import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
 import org.enso.jvm.channel.JVM;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
+import org.enso.logger.Converter;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -682,7 +683,7 @@ public class Main {
                 .projectRoot(projectPath)
                 .in(System.in)
                 .out(System.out)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .logMasking(logMasking)
                 .enableIrCaches(shouldUseIrCaches)
                 .disablePrivateCheck(disablePrivateCheck)
@@ -778,7 +779,7 @@ public class Main {
     var factory =
         ContextFactory.create()
             .projectRoot(projectRoot)
-            .logLevel(logLevel)
+            .logLevel(Converter.toJavaLevel(logLevel))
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
@@ -868,7 +869,7 @@ public class Main {
                 .projectRoot(path)
                 .in(System.in)
                 .out(System.out)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
                 .build());
@@ -1014,7 +1015,7 @@ public class Main {
                 .projectRoot(projectRoot)
                 .messageTransport(replTransport())
                 .enableDebugServer(true)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .executionEnvironment("live")
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)

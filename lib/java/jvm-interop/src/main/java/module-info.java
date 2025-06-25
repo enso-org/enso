@@ -8,6 +8,7 @@ module org.enso.jvm.interop {
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires org.enso.jvm.channel;
+  requires org.enso.engine.common;
 
   opens org.enso.jvm.interop to
       org.enso.jvm.channel;
