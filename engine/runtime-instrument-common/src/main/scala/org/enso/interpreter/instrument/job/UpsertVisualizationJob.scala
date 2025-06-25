@@ -30,6 +30,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
 import scala.annotation.unused
+import scala.concurrent.ExecutionException
 import scala.util.Try
 
 /** A job that upserts a visualization.
@@ -490,7 +491,22 @@ object UpsertVisualizationJob {
             ProgramExecutionSupport.getDiagnosticOutcome(error)
           )
         )
-
+      case execError: ExecutionException if execError.getCause != null =>
+        val error = execError.getCause
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization [{}] failed in module [{}] with [{}]: {}",
+          expression,
+          expressionModule,
+          error.getClass,
+          error.getMessage,
+          error
+        )
+        Left(
+          EvaluationFailed(
+            Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
+            ProgramExecutionSupport.getDiagnosticOutcome(error)
+          )
+        )
       case error =>
         UpsertVisualizationJob.logger.error(
           "Evaluation of visualization [{}] failed in module [{}] with [{}]: {}",

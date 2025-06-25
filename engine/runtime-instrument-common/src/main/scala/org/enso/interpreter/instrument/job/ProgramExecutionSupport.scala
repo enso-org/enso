@@ -44,6 +44,7 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.CompletionStage
 import java.util.function.{Consumer, Supplier}
+import scala.concurrent.ExecutionException
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -340,10 +341,13 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     val pendingDiagnostic =
       ctx.executionService.getDiagnosticOutcome(t)
-    pendingDiagnostic.toCompletableFuture
+    pendingDiagnostic
+      .thenApply(
+        _.map(d => Option(d.asInstanceOf[Api.ExecutionResult]))
+          .orElse(getFailureOutcomeFromException(t))
+      )
+      .toCompletableFuture
       .get()
-      .map(d => Option(d.asInstanceOf[Api.ExecutionResult]))
-      .orElse(getFailureOutcomeFromException(t))
   }
 
   def getDiagnosticOutcome(
@@ -736,7 +740,11 @@ object ProgramExecutionSupport {
     visualizationResultToBytes(visualizationResult) match {
       case Left(_: ThreadInterruptedException) =>
 
-      case Left(error) =>
+      case Left(throwable) =>
+        val error = throwable match {
+          case e: ExecutionException if e.getCause != null => e.getCause
+          case _                                           => throwable
+        }
         val message =
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         if (!TypesGen.isPanicSentinel(expressionValue)) {
