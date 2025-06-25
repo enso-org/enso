@@ -1,11 +1,11 @@
 package org.enso.table.operations;
 
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import org.enso.base.arrays.LongArrayList;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueKeyBase;
@@ -14,61 +14,61 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
-import org.graalvm.polyglot.Context;
+import org.enso.table.util.ProgressHandler;
 
 public class Distinct {
-
   /** Creates a row mask containing only the first row from sets of rows grouped by key columns. */
-  public static BitSet buildDistinctRowsMask(
-      int tableSize,
+  public static long[] buildDistinctRowsMask(
+      long tableSize,
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
-    ColumnAggregatedProblemAggregator groupingProblemAggregator =
-        new ColumnAggregatedProblemAggregator(problemAggregator);
-    Context context = Context.getCurrent();
-    var mask = new BitSet();
-    if (keyColumns.length != 0) {
+    try (var progressHandle = ProgressHandler.init("buildDistinctRowsMask", tableSize)) {
+      var groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+
+      ColumnStorage<?>[] storage =
+          Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
+      List<TextFoldingStrategy> strategies =
+          ConstantList.make(textFoldingStrategy, keyColumns.length);
+
+      var distinctRows = new LongArrayList((int) Math.min(tableSize, 100000));
       HashSet<MultiValueKeyBase> visitedRows = new HashSet<>();
-      int size = keyColumns[0].getSize();
-      var storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
-      List<TextFoldingStrategy> strategies = ConstantList.make(textFoldingStrategy, storage.length);
-      for (int i = 0; i < size; i++) {
-        UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, strategies);
+
+      for (long i = 0; i < tableSize; i++) {
+        var key = new UnorderedMultiValueKey(storage, (int) i, strategies);
         key.checkAndReportFloatingEquality(
             groupingProblemAggregator, columnIx -> keyColumns[columnIx].getName());
 
         if (!visitedRows.contains(key)) {
-          mask.set(i);
+          distinctRows.add(i);
           visitedRows.add(key);
         }
 
-        context.safepoint();
+        progressHandle.advance();
       }
-    } else {
-      // If there are no columns to distinct-by we just return the whole table.
-      mask.set(0, tableSize);
-    }
 
-    return mask;
+      return distinctRows.toArray();
+    }
   }
 
-  public static BitSet buildDuplicatesRowsMask(
-      int tableSize,
+  public static long[] buildDuplicatesRowsMask(
+      long tableSize,
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
-    ColumnAggregatedProblemAggregator groupingProblemAggregator =
-        new ColumnAggregatedProblemAggregator(problemAggregator);
-    Context context = Context.getCurrent();
-    var mask = new BitSet();
-    if (keyColumns.length != 0) {
-      Map<MultiValueKeyBase, Integer> visitedRows = new HashMap<>();
-      int size = keyColumns[0].getSize();
-      var storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
-      List<TextFoldingStrategy> strategies = ConstantList.make(textFoldingStrategy, storage.length);
-      for (int i = 0; i < size; i++) {
-        UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, strategies);
+    try (var progressHandle = ProgressHandler.init("buildDuplicatesRowsMask", tableSize)) {
+      var groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+
+      ColumnStorage<?>[] storage =
+          Arrays.stream(keyColumns).map(Column::getStorage).toArray(ColumnStorage[]::new);
+      List<TextFoldingStrategy> strategies =
+          ConstantList.make(textFoldingStrategy, keyColumns.length);
+
+      HashSet<Long> duplicateRows = new HashSet<>();
+      Map<MultiValueKeyBase, Long> visitedRows = new HashMap<>();
+
+      for (long i = 0; i < tableSize; i++) {
+        var key = new UnorderedMultiValueKey(storage, (int) i, strategies);
         key.checkAndReportFloatingEquality(
             groupingProblemAggregator, columnIx -> keyColumns[columnIx].getName());
 
@@ -76,17 +76,18 @@ public class Distinct {
         if (keyIndex == null) {
           visitedRows.put(key, i);
         } else {
-          mask.set(i);
-          mask.set(keyIndex);
+          // Mark both the current row and the first occurrence of this key as duplicates.
+          duplicateRows.add(keyIndex);
+          duplicateRows.add(i);
         }
 
-        context.safepoint();
+        progressHandle.advance();
       }
-    } else {
-      // If there are no columns to distinct-by we just return the whole table.
-      mask.set(0, tableSize);
-    }
 
-    return mask;
+      // Sort the duplicate rows to ensure they are in ascending order.
+      long[] result = duplicateRows.stream().mapToLong(Long::longValue).toArray();
+      Arrays.sort(result);
+      return result;
+    }
   }
 }

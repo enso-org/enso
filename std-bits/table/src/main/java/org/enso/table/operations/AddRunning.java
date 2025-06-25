@@ -59,8 +59,8 @@ public class AddRunning {
       }
 
       @Override
-      public void visit(int row) {
-        runningStatistic.calculateNextValue(row, iterator);
+      public void visit(long row) {
+        runningStatistic.calculateNextValue(Math.toIntExact(row), iterator);
       }
     }
   }

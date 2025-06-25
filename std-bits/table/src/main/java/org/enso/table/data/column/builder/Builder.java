@@ -7,9 +7,10 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
 import java.util.Objects;
+import org.enso.table.data.column.operation.masks.IndexMapper;
+import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -28,7 +29,6 @@ import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-import org.graalvm.polyglot.Context;
 
 /** Interface defining a builder for creating columns dynamically. */
 public interface Builder {
@@ -52,23 +52,39 @@ public interface Builder {
       throw new IllegalArgumentException("Repeat count must be non-negative.");
     }
 
+    // Create a single storage item based on the type of the item.
     return switch (item) {
-      case null -> new NullStorage(size);
+      case null -> new NullBuilder().appendNulls(checkSize(size)).seal();
       case Long longValue -> new LongConstantStorage(longValue, checkSize(size));
       case Boolean booleanValue -> new BoolStorage(
           new BitSet(), new BitSet(), checkSize(size), booleanValue);
       default -> {
         var storageType = StorageType.forBoxedItem(item, PreciseTypeOptions.DEFAULT);
-        Builder builder =
-            Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
-        Context context = Context.getCurrent();
-        for (long i = 0; i < size; i++) {
-          builder.append(item);
-          context.safepoint();
-        }
-        yield builder.seal();
+        var builder = Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
+        builder.append(item);
+        yield size == 1
+            ? builder.seal()
+            : MaskOperation.getSlicedStorage(builder.seal(), new IndexMapper.Constant(size));
       }
     };
+  }
+
+  static <T> ColumnStorage<T> makeEmpty(StorageType<T> storageType, long size) {
+    if (size < 0) {
+      throw new IllegalArgumentException("Repeat count must be non-negative.");
+    }
+
+    if (storageType instanceof NullType) {
+      return storageType.asTypedStorage(new NullBuilder().appendNulls(checkSize(size)).seal());
+    }
+
+    var builder = Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
+    builder.appendNulls(1);
+    var unTyped =
+        size == 1
+            ? builder.seal()
+            : MaskOperation.getSlicedStorage(builder.seal(), new IndexMapper.Constant(size));
+    return storageType.asTypedStorage(unTyped);
   }
 
   /**
@@ -201,7 +217,7 @@ public interface Builder {
    *
    * @param o the item to append
    */
-  void append(Object o);
+  Builder append(Object o);
 
   /**
    * Appends a specified number of missing values into the builder.

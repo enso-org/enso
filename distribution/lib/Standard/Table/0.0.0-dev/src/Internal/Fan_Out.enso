@@ -12,8 +12,6 @@ import project.Value_Type.Value_Type
 from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch
 from project.Internal.Java_Exports import make_string_builder
 
-polyglot java import org.enso.table.data.mask.OrderMask
-
 ## PRIVATE
    Transform a table by transforming a column into a set of columns. Takes a
    function that maps a single element of the input column to a vector of output
@@ -125,15 +123,16 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
         column_name = unique.make_unique column.name
         column.rename column_name
 
-    # Build the order mask.
-    order_mask = OrderMask.fromArray (order_mask_positions.to_vector)
+    # Build the new table with a mask
+    order_mask = order_mask_positions.to_vector
+    masked_table = table.java_table.mask order_mask
+    masked_java_columns = masked_table.getColumns
+    masked_enso_columns = masked_java_columns.map In_Memory_Column.from_java_column
 
     ## Build the new table, replacing the input column with the new output columns.
-    new_columns_unflattened = table.columns.map column->
-        # Replace the input column with the output columns.
-        if column.name == input_column_id then output_columns else
-            [In_Memory_Column.from_java_column ((column:In_Memory_Column).java_column.applyMask order_mask)]
-    new_table = Table.new new_columns_unflattened.flatten
+    index = masked_java_columns.index_of jc-> jc.getName==input_column_id
+    new_columns = (masked_enso_columns.take index) + output_columns + (masked_enso_columns.drop (index + 1))
+    new_table = Table.new new_columns
     problem_builder.attach_problems_after on_problems new_table
 
 ## PRIVATE

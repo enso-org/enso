@@ -11,14 +11,4 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   public TimeOfDayStorage(LocalTime[] data) {
     super(TimeOfDayType.INSTANCE, data);
   }
-
-  @Override
-  protected SpecializedStorage<LocalTime> newInstance(LocalTime[] data) {
-    return new TimeOfDayStorage(data);
-  }
-
-  @Override
-  protected LocalTime[] newUnderlyingArray(int size) {
-    return new LocalTime[size];
-  }
 }

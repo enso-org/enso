@@ -32,7 +32,7 @@ public final class InferredIntegerBuilder implements Builder {
   }
 
   @Override
-  public void append(Object o) {
+  public InferredIntegerBuilder append(Object o) {
     if (o == null) {
       appendNulls(1);
     } else if (o instanceof BigInteger bi) {
@@ -53,6 +53,7 @@ public final class InferredIntegerBuilder implements Builder {
         }
       }
     }
+    return this;
   }
 
   @Override

@@ -7,17 +7,17 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T> {
-  private final StorageType<?> storageType;
+  private final StorageType<T> storageType;
   protected T[] data;
   protected int currentSize = 0;
 
-  protected TypedBuilder(StorageType<?> storageType, T[] data) {
+  protected TypedBuilder(StorageType<T> storageType, T[] data) {
     this.data = data;
     this.storageType = storageType;
   }
 
   @Override
-  public StorageType<?> getType() {
+  public StorageType<T> getType() {
     return storageType;
   }
 
@@ -46,24 +46,26 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
+    long newSize = currentSize + storage.getSize();
+    if (newSize > data.length) {
+      int newSizeInt = Builder.checkSize(newSize);
+      resize(newSizeInt);
+    }
+
     if (storage.getType().equals(getType())) {
       if (storage instanceof SpecializedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
         SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
-        int toCopy = (int) storage.getSize();
-        if (currentSize + toCopy > data.length) {
-          resize(currentSize + toCopy);
-        }
-        System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
-        currentSize += toCopy;
+        System.arraycopy(
+            specializedStorage.getData(), 0, data, currentSize, (int) storage.getSize());
+        currentSize += storage.getSize();
       } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type "
-                + storage.getType()
-                + ": "
-                + storage
-                + ". This is a bug in the Table library.");
+        // This is a fallback for non-specialized storages, which are not optimized for bulk
+        // appends.
+        for (long i = 0; i < storage.getSize(); i++) {
+          append(storage.getItemBoxed(i));
+        }
       }
     } else if (storage.getType() instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));

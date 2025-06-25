@@ -18,9 +18,10 @@ public class ObjectBuilder extends TypedBuilder<Object> {
   }
 
   @Override
-  public void append(Object o) {
+  public ObjectBuilder append(Object o) {
     ensureSpaceToAppend();
     data[currentSize++] = o;
+    return this;
   }
 
   @Override

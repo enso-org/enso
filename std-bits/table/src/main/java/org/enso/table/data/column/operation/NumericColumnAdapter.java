@@ -2,10 +2,15 @@ package org.enso.table.data.column.operation;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Iterator;
+import java.util.function.ToDoubleFunction;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageFacade;
-import org.enso.table.data.column.storage.numeric.DoubleStorageFacade;
+import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
+import org.enso.table.data.column.storage.iterators.DoubleStorageIterator;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -58,15 +63,78 @@ public sealed interface NumericColumnAdapter<T>
     public ColumnStorage<Double> asTypedStorage(ColumnStorage<?> storage) {
       return switch (storage.getType()) {
         case FloatType floatType -> floatType.asTypedStorage(storage);
-        case BigDecimalType bigDecimalType -> DoubleStorageFacade.forBigDecimal(
-            bigDecimalType.asTypedStorage(storage));
-        case BigIntegerType bigIntegerType -> DoubleStorageFacade.forBigInteger(
-            bigIntegerType.asTypedStorage(storage));
-        case IntegerType integerType -> DoubleStorageFacade.forLong(
-            integerType.asTypedStorage(storage));
+        case BigDecimalType bigDecimalType -> new DoubleStorageFacade<>(
+            bigDecimalType.asTypedStorage(storage), BigDecimal::doubleValue);
+        case BigIntegerType bigIntegerType -> new DoubleStorageFacade<>(
+            bigIntegerType.asTypedStorage(storage), BigInteger::doubleValue);
+        case IntegerType integerType -> new DoubleStorageFacade<>(
+            integerType.asTypedStorage(storage), Long::doubleValue);
         default -> throw new IllegalArgumentException(
             "Unsupported storage type: " + storage.getType());
       };
+    }
+
+    /** A facade for a column storage that converts the stored type to a double. */
+    private record DoubleStorageFacade<T>(ColumnStorage<T> parent, ToDoubleFunction<T> converter)
+        implements ColumnDoubleStorage {
+
+      @Override
+      public long uniqueKey() {
+        return parent.uniqueKey();
+      }
+
+      @Override
+      public double getItemAsDouble(long index) throws ValueIsNothingException {
+        if (isNothing(index)) {
+          throw new ValueIsNothingException(index);
+        }
+        T item = parent.getItemBoxed(index);
+        return converter.applyAsDouble(item);
+      }
+
+      @Override
+      public long getSize() {
+        return parent.getSize();
+      }
+
+      @Override
+      public FloatType getType() {
+        return FloatType.FLOAT_64;
+      }
+
+      @Override
+      public boolean isNothing(long index) {
+        return parent.isNothing(index);
+      }
+
+      @Override
+      public Double getItemBoxed(long index) {
+        T item = parent.getItemBoxed(index);
+        return item == null ? null : converter.applyAsDouble(item);
+      }
+
+      @Override
+      public Iterator<Double> iterator() {
+        return new Iterator<>() {
+          private final Iterator<T> parentIterator = parent.iterator();
+
+          @Override
+          public boolean hasNext() {
+            return parentIterator.hasNext();
+          }
+
+          @Override
+          public Double next() {
+            T item = parentIterator.next();
+            return item == null ? null : converter.applyAsDouble(item);
+          }
+        };
+      }
+
+      @Override
+      public ColumnDoubleStorageIterator iteratorWithIndex() {
+        return new DoubleStorageIterator(this);
+      }
     }
   }
 

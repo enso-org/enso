@@ -50,18 +50,18 @@ public class CompoundHashJoin implements JoinStrategy {
             hashJoinConfig.getTextFoldingStrategies(),
             problemAggregator);
 
-    JoinResult.Builder resultBuilder = new JoinResult.Builder();
+    var resultBuilder = new JoinResult.Builder();
     for (var leftEntry : leftIndex.mapping().entrySet()) {
       UnorderedMultiValueKey leftKey = leftEntry.getKey();
-      List<Integer> leftRows = leftEntry.getValue();
+      List<Long> leftRows = leftEntry.getValue();
       // If any field of the key is null, it cannot match anything.
-      List<Integer> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
+      List<Long> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
 
       if (rightRows != null) {
         sortJoin.joinSubsets(leftRows, rightRows, resultBuilder, problemAggregator);
       } else {
         if (joinKind.wantsLeftUnmatched) {
-          for (int leftRow : leftRows) {
+          for (long leftRow : leftRows) {
             resultBuilder.addUnmatchedLeftRow(leftRow);
             context.safepoint();
           }
@@ -75,10 +75,9 @@ public class CompoundHashJoin implements JoinStrategy {
       for (var rightEntry : rightIndex.mapping().entrySet()) {
         UnorderedMultiValueKey rightKey = rightEntry.getKey();
         // If any field of the key is null, it cannot match anything.
-        boolean wasCompletelyUnmatched =
-            rightKey.hasAnyNulls() ? true : !leftIndex.contains(rightKey);
+        boolean wasCompletelyUnmatched = rightKey.hasAnyNulls() || !leftIndex.contains(rightKey);
         if (wasCompletelyUnmatched) {
-          for (int rightRow : rightEntry.getValue()) {
+          for (long rightRow : rightEntry.getValue()) {
             resultBuilder.addUnmatchedRightRow(rightRow);
           }
         }

@@ -2,17 +2,11 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
-import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -23,13 +17,6 @@ import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
 public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
-  public static ColumnStorage<Double> makeEmpty(long size) {
-    int intSize = Builder.checkSize(size);
-    BitSet isNothing = new BitSet(intSize);
-    isNothing.set(0, intSize);
-    return new DoubleStorage(new double[0], intSize, isNothing);
-  }
-
   protected final PrecisionLossAggregator precisionLossAggregator;
   protected double[] data;
 
@@ -62,7 +49,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
-  public StorageType<?> getType() {
+  public StorageType<Double> getType() {
     return FloatType.FLOAT_64;
   }
 
@@ -73,10 +60,9 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
-  public void append(Object o) {
+  public DoubleBuilder append(Object o) {
     if (o == null) {
-      appendNulls(1);
-      return;
+      return appendNulls(1);
     }
 
     double value;
@@ -95,18 +81,20 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
 
     ensureSpaceToAppend();
     data[currentSize++] = value;
+    return this;
   }
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (Objects.equals(storage.getType(), FloatType.FLOAT_64)) {
+    if (storage.getType() instanceof FloatType floatType) {
       if (storage instanceof DoubleStorage doubleStorage) {
         int n = (int) doubleStorage.getSize();
         ensureFreeSpaceFor(n);
-        System.arraycopy(doubleStorage.getArray(), 0, data, currentSize, n);
+        System.arraycopy(doubleStorage.getData(), 0, data, currentSize, n);
         BitSets.copy(doubleStorage.getIsNothingMap(), isNothing, currentSize, n);
         currentSize += n;
-      } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
+      } else {
+        var doubleStorage = floatType.asTypedStorage(storage);
         long n = doubleStorage.getSize();
         for (long i = 0; i < n; i++) {
           if (storage.isNothing(i)) {
@@ -115,61 +103,37 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
             appendDouble(doubleStorage.getItemAsDouble(i));
           }
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type DOUBLE: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
-    } else if (storage.getType() instanceof IntegerType) {
-      if (storage instanceof ColumnLongStorage longStorage) {
-        long n = longStorage.getSize();
-        for (long i = 0; i < n; i++) {
-          if (storage.isNothing(i)) {
-            appendNulls(1);
-          } else {
-            long item = longStorage.getItemAsLong(i);
-            appendDouble(convertLongToDouble(item));
-          }
+    } else if (storage.getType() instanceof IntegerType integerType) {
+      var longStorage = integerType.asTypedStorage(storage);
+      long n = longStorage.getSize();
+      for (long i = 0; i < n; i++) {
+        if (storage.isNothing(i)) {
+          appendNulls(1);
+        } else {
+          long item = longStorage.getItemAsLong(i);
+          appendDouble(convertLongToDouble(item));
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type INTEGER: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
-    } else if (storage.getType() instanceof BigIntegerType) {
-      if (storage instanceof BigIntegerStorage bigIntegerStorage) {
-        long n = bigIntegerStorage.getSize();
-        for (long i = 0; i < n; i++) {
-          BigInteger item = bigIntegerStorage.getItemBoxed(i);
-          if (item == null) {
-            appendNulls(1);
-          } else {
-            appendDouble(convertBigIntegerToDouble(item));
-          }
+    } else if (storage.getType() instanceof BigIntegerType bigIntegerType) {
+      var bigIntegerStorage = bigIntegerType.asTypedStorage(storage);
+      long n = bigIntegerStorage.getSize();
+      for (long i = 0; i < n; i++) {
+        BigInteger item = bigIntegerStorage.getItemBoxed(i);
+        if (item == null) {
+          appendNulls(1);
+        } else {
+          appendDouble(convertBigIntegerToDouble(item));
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type BIG INTEGER: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
-    } else if (storage.getType() instanceof BooleanType) {
-      if (storage instanceof ColumnBooleanStorage boolStorage) {
-        long n = boolStorage.getSize();
-        for (long i = 0; i < n; i++) {
-          if (boolStorage.isNothing(i)) {
-            appendNulls(1);
-          } else {
-            appendDouble(boolStorage.getItemAsBoolean(i) ? 1.0 : 0.0);
-          }
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
+      long n = boolStorage.getSize();
+      for (long i = 0; i < n; i++) {
+        if (boolStorage.isNothing(i)) {
+          appendNulls(1);
+        } else {
+          appendDouble(boolStorage.getItemAsBoolean(i) ? 1.0 : 0.0);
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type BOOLEAN: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
@@ -183,9 +147,10 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
    *
    * @param value the double to append
    */
-  public void appendDouble(double value) {
+  public DoubleBuilder appendDouble(double value) {
     ensureSpaceToAppend();
     data[currentSize++] = value;
+    return this;
   }
 
   /**
@@ -193,8 +158,9 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
    *
    * <p>It ensures that any loss of precision is reported.
    */
-  public void appendLong(long value) {
+  public DoubleBuilder appendLong(long value) {
     appendDouble(convertLongToDouble(value));
+    return this;
   }
 
   @Override

@@ -22,7 +22,6 @@ from project.Errors import Ambiguous_Column_Rename, Invalid_Aggregate_Column, No
 from project.In_Memory_Table import from_java_table
 
 polyglot java import java.util.HashSet
-polyglot java import org.enso.table.data.mask.OrderMask
 
 type Table_Column_Helper
     ## PRIVATE
@@ -588,5 +587,4 @@ duplicate_rows table (counts : Vector Integer) -> Table =
     mask_array = counts
         . map_with_index ix-> count-> Vector.fill count ix
         . flatten
-    mask = OrderMask.fromArray mask_array
-    from_java_table ((table:In_Memory_Table).java_table.applyMask mask)
+    from_java_table ((table:In_Memory_Table).java_table.mask mask_array)

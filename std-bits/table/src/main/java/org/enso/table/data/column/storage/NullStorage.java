@@ -1,13 +1,9 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
 
 /** A specialized storage that can be used by columns that contain only null values. */
 public class NullStorage extends Storage<Void> {
@@ -46,26 +42,5 @@ public class NullStorage extends Storage<Void> {
   @Override
   public Iterator<Void> iterator() {
     return LongStream.range(0, size).mapToObj(i -> (Void) null).iterator();
-  }
-
-  @Override
-  public ColumnStorage<Void> applyFilter(BitSet filterMask, int newLength) {
-    return new NullStorage(newLength);
-  }
-
-  @Override
-  public ColumnStorage<Void> applyMask(OrderMask mask) {
-    return new NullStorage(mask.length());
-  }
-
-  @Override
-  public ColumnStorage<Void> slice(int offset, int limit) {
-    long newSize = Math.min(this.size - offset, limit);
-    return new NullStorage(newSize);
-  }
-
-  @Override
-  public ColumnStorage<Void> slice(List<SliceRange> ranges) {
-    return new NullStorage(SliceRange.totalLength(ranges));
   }
 }

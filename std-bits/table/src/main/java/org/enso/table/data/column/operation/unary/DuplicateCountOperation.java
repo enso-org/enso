@@ -4,7 +4,6 @@ import java.util.HashMap;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.MixedStorageFacade;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
@@ -30,10 +29,9 @@ public final class DuplicateCountOperation implements UnaryOperation {
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    var asObjectStorage = new MixedStorageFacade(storage);
     final HashMap<Object, Long> counts = new HashMap<>();
     return StorageIterators.buildOverStorage(
-        asObjectStorage,
+        storage,
         IntegerType.INT_64.makeBuilder(storage.getSize(), problemAggregator),
         (builder, index, value) -> {
           long current = counts.getOrDefault(value, 0L);

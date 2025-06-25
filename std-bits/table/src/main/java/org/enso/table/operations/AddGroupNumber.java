@@ -57,8 +57,8 @@ public class AddGroupNumber {
       }
 
       @Override
-      public void visit(int row) {
-        storageForResult[row] = groupNumber;
+      public void visit(long row) {
+        storageForResult[Math.toIntExact(row)] = groupNumber;
       }
     }
   }
@@ -111,8 +111,8 @@ public class AddGroupNumber {
       }
 
       @Override
-      public void visit(int row) {
-        parent.storageForResult[row] =
+      public void visit(long row) {
+        parent.storageForResult[Math.toIntExact(row)] =
             Math.addExact(
                 parent.start, Math.multiplyExact(parent.step, (currentIndex / parent.groupSize)));
         currentIndex = Math.addExact(currentIndex, 1L);

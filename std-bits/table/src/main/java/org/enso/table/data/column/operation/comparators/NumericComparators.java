@@ -2,7 +2,7 @@ package org.enso.table.data.column.operation.comparators;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import org.enso.table.data.column.builder.BoolBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
@@ -228,7 +228,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
   @Override
   protected ColumnStorage<Boolean> applyNullMap(
       ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-    return BoolBuilder.makeEmpty(left.getSize());
+    return Builder.makeEmpty(BooleanType.INSTANCE, left.getSize());
   }
 
   private static class NumericComparatorsDouble extends NumericComparators<Double> {

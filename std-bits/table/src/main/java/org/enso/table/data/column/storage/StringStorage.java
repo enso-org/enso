@@ -17,14 +17,4 @@ public final class StringStorage extends SpecializedStorage<String> {
     // As the type is fixed, we can safely cast it.
     return (TextType) super.getType();
   }
-
-  @Override
-  protected SpecializedStorage<String> newInstance(String[] data) {
-    return new StringStorage(data, getType());
-  }
-
-  @Override
-  protected String[] newUnderlyingArray(int size) {
-    return new String[size];
-  }
 }
