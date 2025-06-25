@@ -1009,10 +1009,11 @@ export class Server {
         })
         response.writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS).end()
       } else if (fileNameIsProject(fileName)) {
+        const projectName = stripProjectExtension(fileName)
         const project =
           filePath ?
-            projectManagement.importProjectFromPath(filePath, directory, fileName)
-          : await projectManagement.uploadBundle(request, directory, fileName)
+            projectManagement.importProjectFromPath(filePath, directory, projectName)
+          : await projectManagement.uploadBundle(request, directory, projectName)
         this.httpOkText(response, project.path)
       } else {
         const filePath = path.join(directory, fileName)
