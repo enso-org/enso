@@ -25,8 +25,6 @@ const editDescriptionMutation = useMutation(
   backendMutationOptions('updateAsset', backendForAsset, { mutationKey: ['editDescription'] }),
 )
 
-console.debug('SETUP DescriptionEditor', rightPanel.focusedAsset)
-
 let descriptionEdited = false
 function updateDescription(asset: AnyAsset | undefined, description: string) {
   if (asset != null && asset.description !== description) {
