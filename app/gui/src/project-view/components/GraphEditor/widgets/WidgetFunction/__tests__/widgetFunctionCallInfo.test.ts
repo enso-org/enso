@@ -5,6 +5,7 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { parseWithSpans } from '@/stores/graph/__tests__/graphDatabase.test'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import { mockProjectNameStore } from '@/stores/projectNames'
 import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
@@ -17,10 +18,10 @@ import {
 } from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { unwrap } from '@/util/data/result'
 import { expect, test } from 'vitest'
 import { ref, type Ref } from 'vue'
 import { type Opt } from 'ydoc-shared/util/data/opt'
+import { SourceRange } from 'ydoc-shared/util/data/text'
 
 const projectNames = mockProjectNameStore('local', 'Project')
 
@@ -64,7 +65,7 @@ test.each`
   'Visualization config for $code',
   ({ code, callSuggestion, subjectSpan, attachedSpan, subjectType, methodName }) => {
     const spans = {
-      entireFunction: { from: 0, to: code.length },
+      entireFunction: SourceRange.fromStartAndLength(0, code.length),
       ...(subjectSpan != null ? { subject: subjectSpan } : {}),
       ...(attachedSpan != null ? { attached: attachedSpan } : {}),
     }
@@ -93,10 +94,10 @@ test.each`
         getExpressionInfo(astId) {
           if (subjectSpan != null && astId === id('subject')) {
             return {
-              typename: unwrap(projectNames.parseProjectPath(subjectType)),
-              rawTypename: subjectType,
+              typeInfo: TypeInfo.fromLsResponse([subjectType], [], projectNames)!,
               methodCall: undefined,
               payload: { type: 'Value' },
+              evaluationId: 0,
               profilingInfo: [],
             }
           }

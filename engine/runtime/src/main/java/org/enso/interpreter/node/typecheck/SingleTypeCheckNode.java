@@ -43,7 +43,7 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
     this.expectedType = expectedType;
   }
 
-  abstract Object executeCheckOrConversion(
+  abstract Object executeConversion(
       VirtualFrame frame, Object value, ExpressionNode valueSource);
 
   @Specialization
@@ -59,17 +59,6 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
       @Cached UnresolvedConstructor.ConstructNode construct) {
     var state = EnsoContext.get(this).currentState();
     return construct.execute(frame, state, expectedType, unresolved);
-  }
-
-  @Specialization(rewriteOn = InvalidAssumptionException.class)
-  Object doCheckNoConversionNeeded(VirtualFrame frame, Object v, ExpressionNode ignore)
-      throws InvalidAssumptionException {
-    var ret = findDirectMatch(frame, v);
-    if (ret != null) {
-      return ret;
-    } else {
-      throw new InvalidAssumptionException();
-    }
   }
 
   @Specialization(
@@ -96,11 +85,13 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
         frame == null ? null : frame.materialize(), v, expr, type);
   }
 
-  @ExplodeLoop
+  @Override
   final Object findDirectMatch(VirtualFrame frame, Object v) {
-    if (isAllFitValue(v)) {
-      return v;
-    }
+      return directMatchImpl(v);
+  }
+
+  @ExplodeLoop
+  private final Object directMatchImpl(Object v) {
     if (v instanceof Function fn && fn.isThunk()) {
       if (lazyCheck == null) {
         CompilerDirectives.transferToInterpreter();
@@ -194,11 +185,7 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
   private Object handleWithConversion(VirtualFrame frame, Object v, ApplicationNode convertNode)
       throws PanicException {
     if (convertNode == null) {
-      var ret = findDirectMatch(frame, v);
-      if (ret != null) {
-        return ret;
-      }
-      return null;
+      return directMatchImpl(v);
     } else {
       var converted = convertNode.executeGeneric(frame);
       return converted;

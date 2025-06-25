@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import FullscreenButton from '@/components/FullscreenButton.vue'
+import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import ActionButton from '@/components/ActionButton.vue'
+import { useVisualizationSelector } from '@/components/GraphEditor/GraphVisualization/visualizationSelector'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
 import SvgButton from '@/components/SvgButton.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
 import {
   isActionButton,
@@ -11,101 +12,86 @@ import {
   isTextSelectionMenu,
   isToggleButton,
 } from '@/components/visualizations/toolbar'
-import VisualizationSelector from '@/components/VisualizationSelector.vue'
-import { useEvent } from '@/composables/events'
-import { provideInteractionHandler } from '@/providers/interactionHandler'
-import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
-import { computed, toValue } from 'vue'
+import type { ProjectPath } from '@/util/projectPath'
+import { qnLastSegment } from '@/util/qualifiedName'
+import { computed, toRef, toValue } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
-const isFullscreen = defineModel<boolean>('isFullscreen', { required: true })
 const currentVis = defineModel<VisualizationIdentifier>('currentVis', { required: true })
+
+const { names: projectNames } = injectCurrentProject().storesRefs
 
 const props = defineProps<{
   showControls: boolean
-  hideVisualizationButton: 'show' | 'hide' | 'invisible'
-  isFullscreenAllowed: boolean
-  allTypes: Iterable<VisualizationIdentifier>
-  visualizationDefinedToolbar: Readonly<ToolbarItem[]> | undefined
-  typename: string | undefined
-}>()
-
-const emit = defineEmits<{
-  hide: []
+  allVisualizations: ReadonlyArray<VisualizationIdentifier>
+  visualizationDefinedToolbar: ReadonlyArray<Readonly<ToolbarItem>> | undefined
+  typename: ProjectPath | undefined
 }>()
 
 const UNKNOWN_TYPE = 'Unknown'
 const nodeShortType = computed(() =>
-  props.typename != null && isQualifiedName(props.typename) ?
-    qnLastSegment(props.typename)
+  props.typename?.path != null ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE,
+)
+const fullType = computed(() =>
+  props.typename != null && projectNames.value != null ?
+    projectNames.value.printProjectPath(props.typename)
   : UNKNOWN_TYPE,
 )
 
-const interaction = provideInteractionHandler()
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
-  capture: true,
+const visualizationSelector = useVisualizationSelector({
+  selectedType: currentVis,
+  types: toRef(props, 'allVisualizations'),
 })
 </script>
 
 <template>
   <div class="VisualizationToolbar">
     <template v-if="showControls">
-      <div
-        v-if="hideVisualizationButton !== 'hide'"
-        class="toolbar"
-        :class="{ invisible: hideVisualizationButton === 'invisible' }"
-      >
-        <SvgButton name="eye" title="Hide visualization" @activate="emit('hide')" />
+      <div class="toolbarSection"><ActionButton action="visualization.hide" /></div>
+      <div class="toolbarSection">
+        <ActionButton action="panel.fullscreen" />
+        <SelectionDropdown v-bind="visualizationSelector" />
       </div>
-      <div class="toolbar">
-        <FullscreenButton v-if="isFullscreenAllowed" v-model="isFullscreen" />
-        <VisualizationSelector v-model="currentVis" :types="allTypes" />
-      </div>
-      <div v-if="visualizationDefinedToolbar" class="visualization-defined-toolbars">
-        <div class="toolbar">
-          <template v-for="(item, index) in visualizationDefinedToolbar" :key="index">
-            <SvgButton
-              v-if="isActionButton(item)"
-              :name="item.icon"
-              :title="item.title"
-              :disabled="item.disabled != null ? toValue(item.disabled) : false"
-              :data-testid="item.dataTestid"
-              @activate="item.onClick"
-            />
-            <ToggleIcon
-              v-else-if="isToggleButton(item)"
-              v-model="item.toggle.value"
-              :icon="item.icon"
-              :title="item.title"
-              :disabled="item.disabled != null ? toValue(item.disabled) : false"
-              :data-testid="item.dataTestid"
-            />
-            <SelectionDropdown
-              v-else-if="isSelectionMenu(item)"
-              v-model="item.selected.value"
-              :options="item.options"
-              :title="item.title"
-              alwaysShowArrow
-            />
-            <SelectionDropdownText
-              v-else-if="isTextSelectionMenu(item)"
-              v-model="item.selectedTextOption.value"
-              :options="item.options"
-              :title="item.title"
-              :heading="item.heading"
-              alwaysShowArrow
-            />
-            <div v-else>?</div>
-          </template>
-        </div>
+      <div v-if="visualizationDefinedToolbar" class="visualization-defined-toolbars toolbarSection">
+        <template v-for="(item, index) in visualizationDefinedToolbar" :key="index">
+          <SvgButton
+            v-if="isActionButton(item)"
+            :name="item.icon"
+            :title="item.title"
+            :disabled="item.disabled != null ? toValue(item.disabled) : false"
+            :data-testid="item.dataTestid"
+            @activate="item.onClick"
+          />
+          <SvgButton
+            v-else-if="isToggleButton(item)"
+            v-model="item.toggle.value"
+            :name="item.icon"
+            :title="item.title"
+            :disabled="item.disabled != null ? toValue(item.disabled) : false"
+            :data-testid="item.dataTestid"
+          />
+          <SelectionDropdown
+            v-else-if="isSelectionMenu(item)"
+            v-model="item.selected.value"
+            :options="item.options"
+            :title="item.title"
+            alwaysShowArrow
+          />
+          <SelectionDropdownText
+            v-else-if="isTextSelectionMenu(item)"
+            v-model="item.selectedTextOption.value"
+            :options="item.options"
+            :title="item.title"
+            :heading="item.heading"
+            alwaysShowArrow
+          />
+          <div v-else>?</div>
+        </template>
       </div>
     </template>
     <div
       class="after-toolbars node-type"
-      :title="props.typename ?? UNKNOWN_TYPE"
+      :title="fullType"
       data-testid="visualisationNodeType"
       v-text="nodeShortType"
     />
@@ -125,9 +111,6 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
 }
 
 .after-toolbars {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
   margin-left: auto;
   margin-right: 8px;
   overflow: hidden;
@@ -137,33 +120,15 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
   font-weight: bold;
 }
 
-.toolbar {
-  position: relative;
+.toolbarSection {
   display: flex;
-  border-radius: var(--radius-full);
   gap: 12px;
   padding: 8px;
-  z-index: 20;
-
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    border-radius: var(--radius-full);
-    background: var(--color-app-bg);
-    backdrop-filter: var(--blur-app-bg);
+  border-radius: var(--radius-full);
+  background: var(--color-app-bg);
+  backdrop-filter: var(--blur-app-bg);
+  &:not(:has(> *)) {
+    display: none;
   }
-}
-
-.toolbar:not(:first-child):not(:has(> *)) {
-  display: none;
-}
-
-.toolbar > :deep(*) {
-  position: relative;
 }
 </style>

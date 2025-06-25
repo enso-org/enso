@@ -2,7 +2,6 @@ private
 
 from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
-import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 
 from Standard.Table import Join_Kind, Table

@@ -1,9 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Runtime.State
 
-import Standard.Base.Metadata.Choice
-import Standard.Base.Metadata.Widget
-import Standard.Base.Metadata.Display
 
 import Standard.Visualization.Widgets
 

@@ -8,7 +8,7 @@ import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
-import { RightPanelDataProviderForReact } from '$/providers/react'
+import { RightPanelDataProviderForReact } from '$/providers/react/rightPanel'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
@@ -70,7 +70,6 @@ watch(openedProjects, (openedProjectsList) => {
 })
 
 const onSignOut = () => {
-  tab.value = 'drive'
   void props.closeAllProjects()
 }
 </script>
@@ -114,7 +113,7 @@ const onSignOut = () => {
         <div class="filler" />
         <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
       </div>
-      <div ref="fullscreenRoot" class="mainView">
+      <div class="mainView">
         <div class="panel">
           <KeepAlive>
             <Drive v-if="tab === 'drive'" :initialProjectName="initialProjectName" />
@@ -138,6 +137,7 @@ const onSignOut = () => {
           </KeepAlive>
         </div>
         <RightPanel />
+        <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
       </div>
     </RightPanelDataProviderForReact>
   </div>
@@ -195,6 +195,18 @@ const onSignOut = () => {
 
   &.hidden {
     display: none;
+  }
+}
+
+.FullscreenRoot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  & > * {
+    pointer-events: initial;
   }
 }
 </style>

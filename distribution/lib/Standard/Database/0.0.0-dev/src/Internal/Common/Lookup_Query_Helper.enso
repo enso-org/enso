@@ -87,7 +87,7 @@ check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_
       and we should report an error.
 make_lookup_counter_column dialect lookup_columns unique_name_strategy =
     grouping_expressions = lookup_columns.flat_map c-> case c of
-        Lookup_Column.Key_Column _ lookup_column -> [lookup_column.expression]
+        Lookup_Column.Key_Column _ lookup_column -> [(lookup_column:Internal_Column).expression]
         _ -> []
     row_number_expression = SQL_IR_Expression.Operation "ROW_NUMBER_IN_GROUP" grouping_expressions
     sql_type = dialect.get_type_mapping.value_type_to_sql Value_Type.Integer Problem_Behavior.Ignore

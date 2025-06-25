@@ -1,15 +1,17 @@
 package org.enso.table.data.table.join;
 
-import org.graalvm.polyglot.Context;
+import org.enso.table.util.ProgressHandler;
 
 public class CrossJoin {
-  public static JoinResult perform(int leftRowCount, int rightRowCount) {
-    Context context = Context.getCurrent();
-    JoinResult.Builder resultBuilder = new JoinResult.Builder(leftRowCount * rightRowCount);
-    for (int l = 0; l < leftRowCount; ++l) {
-      for (int r = 0; r < rightRowCount; ++r) {
-        resultBuilder.addMatchedRowsPair(l, r);
-        context.safepoint();
+  public static JoinResult perform(long leftRowCount, long rightRowCount) {
+    long steps = leftRowCount * rightRowCount;
+    var resultBuilder = new JoinResult.Builder(steps);
+    try (var progressHandle = ProgressHandler.init("CrossJoin", steps)) {
+      for (long l = 0; l < leftRowCount; ++l) {
+        for (long r = 0; r < rightRowCount; ++r) {
+          resultBuilder.addMatchedRowsPair(l, r);
+          progressHandle.advance();
+        }
       }
     }
     return resultBuilder.buildAndInvalidate();

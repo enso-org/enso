@@ -4,30 +4,20 @@ export { type Result } from '../util/data/result'
 import { bail } from '../util/assert'
 import { Err, Ok, type Result } from '../util/data/result'
 
-export type ObjectVisitor = (object: LazyObject) => boolean | void
-export type ObjectAddressVisitor = (view: DataView, address: number) => boolean | void
+export type ObjectVisitor = (object: LazyObject) => boolean
+export type ObjectAddressVisitor = (view: DataView, address: number) => boolean
 
 /** Base class for objects that lazily deserialize fields when accessed. */
 export abstract class LazyObject {
   protected readonly _v: DataView
 
-  protected constructor(view: DataView) {
-    if (view == null) throw new Error('WTF?')
-    this._v = view
+  protected constructor(view: DataView, address = 0) {
+    this._v = address === 0 ? view : makeDataView(view.buffer, view.byteOffset + address)
   }
 
   /** TODO: Add docs */
   visitChildren(_visitor: ObjectVisitor): boolean {
     return false
-  }
-
-  /** TODO: Add docs */
-  children(): LazyObject[] {
-    const children: LazyObject[] = []
-    this.visitChildren((child) => {
-      children.push(child)
-    })
-    return children
   }
 }
 
@@ -88,6 +78,7 @@ export function readOption<T>(
   let result = undefined
   visitOption(view, address, (view, address) => {
     result = readElement(view, address)
+    return false
   })
   return result
 }
@@ -160,7 +151,7 @@ export function visitSequence(
   let offset = 4
   const end = offset + size * readU32(data, 0)
   while (offset != end) {
-    if (visitor(data, offset) === true) return true
+    if (visitor(data, offset)) return true
     offset += size
   }
   return false

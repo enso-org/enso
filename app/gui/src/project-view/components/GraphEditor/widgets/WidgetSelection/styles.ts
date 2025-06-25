@@ -1,14 +1,14 @@
-import { Opt } from '@/util/data/opt'
+import { type Opt } from '@/util/data/opt'
 import {
   autoUpdate,
   offset,
-  OffsetOptions,
   shift,
   size,
-  SizeOptions,
   useFloating,
+  type OffsetOptions,
+  type SizeOptions,
 } from '@floating-ui/vue'
-import { computed, Ref } from 'vue'
+import { computed, type Ref } from 'vue'
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.

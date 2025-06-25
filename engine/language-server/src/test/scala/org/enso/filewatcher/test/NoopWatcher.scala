@@ -11,5 +11,5 @@ class NoopWatcher extends Watcher {
   override def start(ec: Executor): Unit = ()
 
   /** @inheritdoc */
-  override def stop(): Unit = ()
+  override def close(): Unit = ()
 }

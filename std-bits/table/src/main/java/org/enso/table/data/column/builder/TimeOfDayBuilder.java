@@ -1,7 +1,7 @@
 package org.enso.table.data.column.builder;
 
 import java.time.LocalTime;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -13,13 +13,18 @@ public final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
   }
 
   @Override
-  public void append(Object o) {
+  public TimeOfDayBuilder append(Object o) {
     ensureSpaceToAppend();
-    try {
-      data[currentSize++] = (LocalTime) o;
-    } catch (ClassCastException e) {
-      throw new ValueTypeMismatchException(getType(), o);
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        data[currentSize++] = (LocalTime) o;
+      } catch (ClassCastException e) {
+        throw new ValueTypeMismatchException(getType(), o);
+      }
     }
+    return this;
   }
 
   @Override
@@ -28,7 +33,7 @@ public final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
   }
 
   @Override
-  protected Storage<LocalTime> doSeal() {
+  protected ColumnStorage<LocalTime> doSeal() {
     return new TimeOfDayStorage(data);
   }
 }

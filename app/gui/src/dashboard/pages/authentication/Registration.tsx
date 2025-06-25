@@ -1,5 +1,4 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import { LOGIN_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
@@ -7,56 +6,44 @@ import { Alert } from '#/components/Alert'
 import { Button } from '#/components/Button'
 import { Checkbox } from '#/components/Checkbox'
 import { Form } from '#/components/Form'
-import { Input, Password } from '#/components/Inputs'
+import { Input } from '#/components/Inputs/Input'
+import { Password } from '#/components/Inputs/Password'
 import Link from '#/components/Link'
 import { Stepper, useStepperState } from '#/components/Stepper'
 import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import {
-  latestPrivacyPolicyQueryOptions,
-  latestTermsOfServiceQueryOptions,
-} from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useLocalStorage } from '#/providers/LocalStorageProvider'
-import { useSessionAPI } from '#/providers/SessionProvider'
-import LocalStorage from '#/utilities/LocalStorage'
-import { useBackends, useRouter, useText } from '$/providers/react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { LOGIN_PATH } from '$/appUtils'
+import { useBackends, useLocalStorage, useSession, useText } from '$/providers/react'
+import { useQueryParam } from '$/providers/react/queryParams'
 import { useEffect, useState } from 'react'
-import * as z from 'zod'
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly loginRedirect: string
-  }
-}
-
-LocalStorage.registerKey('loginRedirect', {
-  isUserSpecific: true,
-  schema: z.string(),
-})
 
 const CONFIRM_SIGN_IN_INTERVAL = 5_000
 
-/** A form for users to register an account. */
-export default function Registration() {
-  const { signUp, confirmSignUp, signInWithPassword } = useSessionAPI()
+/** Properties of {@link Registration} component. */
+export interface RegistrationProps {
+  /** A callback called when user agreed on current Terms of Service and Privacy Policy */
+  readonly userAgreed: () => void
+}
 
-  const { searchParams } = useRouter()
-  const { localStorage } = useLocalStorage()
+/** A form for users to register an account. */
+export default function Registration(props: RegistrationProps) {
+  const { userAgreed } = props
+  const { signUp, confirmSignUp, signInWithPassword } = useSession()
+
+  const localStorage = useLocalStorage()
   const { getText } = useText()
   const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
-  const initialEmail = searchParams.get('email') ?? ''
-  const organizationId = searchParams.get('organization_id')
-  const redirectTo = searchParams.get('redirect_to')
+  const [initialEmail] = useQueryParam('email')
+  const [organizationId] = useQueryParam('organization_id')
+  const [redirectTo] = useQueryParam('redirect_to')
   const [isManualCodeEntry, setIsManualCodeEntry] = useState(false)
 
   const signupForm = Form.useForm({
-    defaultValues: { email: initialEmail, agreedToTos: [], agreedToPrivacyPolicy: [] },
+    defaultValues: { email: initialEmail ?? '', agreedToTos: [], agreedToPrivacyPolicy: [] },
     resetOnSubmit: false,
     schema: (schema) =>
       schema
@@ -81,37 +68,15 @@ export default function Registration() {
           }
         }),
     onSubmit: async ({ email, password }) => {
-      localStorage.set('termsOfService', { versionHash: tosHash })
-      localStorage.set('privacyPolicy', { versionHash: privacyPolicyHash })
+      userAgreed()
 
-      await signUp(email, password, organizationId)
+      await signUp(email, password, organizationId ?? null)
 
       stepperState.nextStep()
     },
   })
 
   const { stepperState } = useStepperState({ steps: 2, defaultStep: 0 })
-
-  const cachedTosHash = localStorage.get('termsOfService')?.versionHash
-  const { data: tosHash } = useSuspenseQuery({
-    ...latestTermsOfServiceQueryOptions,
-    // If the user has already accepted the EULA, we don't need to
-    // block user interaction with the app while we fetch the latest version.
-    // We can use the local version hash as the initial data.
-    // and refetch in the background to check for updates.
-    ...(cachedTosHash != null && {
-      initialData: { hash: cachedTosHash },
-    }),
-    select: (data) => data.hash,
-  })
-  const cachedPrivacyPolicyHash = localStorage.get('privacyPolicy')?.versionHash
-  const { data: privacyPolicyHash } = useSuspenseQuery({
-    ...latestPrivacyPolicyQueryOptions,
-    ...(cachedPrivacyPolicyHash != null && {
-      initialData: { hash: cachedPrivacyPolicyHash },
-    }),
-    select: (data) => data.hash,
-  })
 
   useEffect(() => {
     if (redirectTo != null) {

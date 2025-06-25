@@ -18,6 +18,7 @@ const DIALOG_CROSS_OFFSET = 16
 
 /** A button to show a list of notifications. */
 export function NotificationTray() {
+  const { getText } = useText()
   const notificationState = useNotificationState()
   const { computedNotifications, removeComputedNotification } = notificationState
   useComputedNotifications(notificationState)
@@ -37,6 +38,7 @@ export function NotificationTray() {
     >
       <Button
         variant="icon"
+        aria-label={getText('notifications')}
         icon={
           <StatusBadge color="danger" hidden={!hasUnreadNotifications}>
             <SvgMask className="size-4" src={InboxIcon} />

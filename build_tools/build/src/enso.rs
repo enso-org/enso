@@ -37,7 +37,7 @@ impl From<bool> for Boolean {
 }
 
 ide_ci::define_env_var! {
-    JAVA_OPTS, String;
+    JAVA_TOOL_OPTIONS, String;
     ENSO_BENCHMARK_TEST_DRY_RUN, Boolean;
 }
 
@@ -131,7 +131,10 @@ impl BuiltEnso {
             .arg(test_path.as_ref())
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
             // failed on Graal/Truffle assertions, so we want to have them triggered.
-            .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
+            .set_env(
+                JAVA_TOOL_OPTIONS,
+                &ide_ci::programs::java::Option::EnableAssertions.as_ref(),
+            )?;
 
         for (k, v) in environment_overrides {
             command.env(k, &v);
@@ -273,7 +276,7 @@ impl BuiltEnso {
                 cloud_tests::env::test_controls::ENSO_CLOUD_CREDENTIALS_FILE.name().to_string(),
                 path.to_string(),
             ));
-            // We do not set ENSO_CLOUD_API_URI - we rely on the default, or any existing overrides.
+            // We do not set ENSO_CLOUD_API_URL - we rely on the default, or any existing overrides.
             environment_overrides.push((
                 cloud_tests::env::test_controls::ENSO_RUN_REAL_CLOUD_TEST.name().to_string(),
                 "1".to_string(),

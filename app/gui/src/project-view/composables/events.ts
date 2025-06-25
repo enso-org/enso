@@ -1,9 +1,12 @@
 /** @file Vue composables for listening to DOM events. */
 
-import type { KeyboardComposable } from '@/composables/keyboard.ts'
+import { useRaf } from '@/composables/animation'
+import type { KeyboardComposable } from '@/composables/keyboard'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
-import { type VueInstance } from '@vueuse/core'
+import type { ToValue } from '@/util/reactivity'
+import type { VueInstance } from '@vueuse/core'
 import {
   computed,
   onScopeDispose,
@@ -17,12 +20,17 @@ import {
   type ShallowRef,
   type WatchSource,
 } from 'vue'
-import { useRaf } from './animation'
 
-/** TODO: Add docs */
-export function isTriggeredByKeyboard(e: MouseEvent | PointerEvent) {
-  if (e instanceof PointerEvent) return e.pointerType !== 'mouse'
-  else return false
+export interface WindowEventTarget extends EventTarget {
+  addEventListener: <K extends keyof WindowEventMap>(
+    event: K,
+    callback: (e: WindowEventMap[K]) => void,
+  ) => void
+  removeEventListener: <K extends keyof WindowEventMap>(
+    event: K,
+    callback: (e: WindowEventMap[K]) => void,
+  ) => void
+  dispatchEvent: (event: Event) => boolean
 }
 
 export function useEvent<K extends keyof DocumentEventMap>(
@@ -32,7 +40,7 @@ export function useEvent<K extends keyof DocumentEventMap>(
   options?: boolean | AddEventListenerOptions,
 ): void
 export function useEvent<K extends keyof WindowEventMap>(
-  target: Window,
+  target: WindowEventTarget,
   event: K,
   handler: (e: WindowEventMap[K]) => void,
   options?: boolean | AddEventListenerOptions,
@@ -73,7 +81,7 @@ export function useEventConditional<K extends keyof DocumentEventMap>(
   options?: boolean | AddEventListenerOptions,
 ): void
 export function useEventConditional<K extends keyof WindowEventMap>(
-  target: Window,
+  target: WindowEventTarget,
   event: K,
   condition: WatchSource<boolean>,
   handler: (e: WindowEventMap[K]) => void,
@@ -138,14 +146,6 @@ export function focusIsIn(el: Element | undefined | null) {
   return el && el.contains(document.activeElement)
 }
 
-/**
- * Whether any element currently has keyboard focus, except for elements within given subtree.
- * When `el` is `null` or `undefined`, the function behaves as `keyboardBusy()`.
- */
-export function keyboardBusyExceptIn(el: Opt<Element>) {
-  return keyboardBusy() && (el == null || !focusIsIn(el))
-}
-
 const hasWindow = typeof window !== 'undefined'
 const platform = hasWindow ? (window.navigator?.platform ?? '') : ''
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
@@ -167,7 +167,7 @@ export function modKey(e: KeyboardEvent | MouseEvent): boolean {
  * [^1]: https://github.com/vuejs/core/blob/ae97e5053895eeaaa443306e72cd8f45da001179/packages/runtime-core/src/componentPublicInstance.ts#L312
  */
 export function unrefElement<E extends Element>(
-  element: Ref<E | undefined | null | VueInstance>,
+  element: ToValue<Opt<E | VueInstance>>,
 ): E | undefined {
   const plain = toValue(element)
   const result = (plain as VueInstance)?.$el ?? plain
@@ -648,5 +648,29 @@ export function useWheelActions(
       pointermove,
       wheel: handleWheel,
     },
+  }
+}
+
+/**
+ * Registers a "pre" event handler to run a function that captures state when a `pointerdown` event
+ * occurs within the given element.
+ */
+export function useStateBeforePointerdown<T>(
+  element: Parameters<typeof unrefElement>[0],
+  getState: () => T,
+) {
+  const stateBeforeClick = ref<T>()
+
+  const { globalEventRegistryPre } = useGlobalEventRegistry()
+  useEvent(globalEventRegistryPre, 'pointerdown', (e) => {
+    if (unrefElement(element)?.contains(e.target as Node)) stateBeforeClick.value = getState()
+  })
+
+  return {
+    /**
+     * The return value of `getState` at the beginning of handling the last `pointerdown` event
+     * within `element`.
+     */
+    stateBeforeClick,
   }
 }

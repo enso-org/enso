@@ -67,7 +67,7 @@ import {
 export const name = 'Table'
 export const icon = 'table'
 export const inputType =
-  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Table.Row.Row | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
+  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Table.Row.Row | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Standard.Base.Any.Any'
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
   'prepare_visualization',
@@ -120,10 +120,31 @@ interface EnsoTableOrColumn {
   table_version_hash?: string
 }
 
-type DataQualityMetric = {
+type DataQualityMetricNumber = {
   name: string
-  percentage_value: number[]
+  values: (number | null)[]
+  type: 'Percentage' | 'Count'
 }
+
+type DataQualityMetricText = {
+  name: string
+  values: (string | null)[]
+  type: 'Text'
+}
+
+type DataQualityMetric = DataQualityMetricNumber | DataQualityMetricText
+
+export type DataQualityMetricValue =
+  | {
+      name: string
+      value: number
+      displayType: 'Percentage' | 'Count'
+    }
+  | {
+      name: string
+      value: string
+      displayType: 'Text'
+    }
 
 export type TextFormatOptions = 'full' | 'partial' | 'off'
 </script>
@@ -635,13 +656,25 @@ function toField(
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
-      props.data.data_quality_metrics.map((metric: DataQualityMetric) => {
-        return { [metric.name]: metric.percentage_value[index!] ?? 0 }
-      })
+      props.data.data_quality_metrics
+        .map((metric: DataQualityMetric) => {
+          const result: DataQualityMetricValue =
+            metric.type === 'Text' ?
+              { name: metric.name, value: metric.values[index!] || '', displayType: 'Text' }
+            : { name: metric.name, displayType: metric.type, value: metric.values[index!] || 0 }
+          return (
+              metric.values[index!] === null ||
+                (result.displayType === 'Percentage' && result.value === 0)
+            ) ?
+              null
+            : result
+        })
+        .filter((obj) => obj !== null)
     : []
 
+  const hasDataQualityMetrics = dataQualityMetrics.length > 0
   const showDataQuality =
-    dataQualityMetrics.filter((obj) => (Object.values(obj)[0] as number) > 0).length > 0
+    dataQualityMetrics.filter((obj) => obj.displayType === 'Percentage').length > 0
 
   const svgTemplateWarning = showDataQuality ? getSvgTemplate('warning') : ''
   const menu = `<span data-ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
@@ -660,7 +693,7 @@ function toField(
       `<span style='${styles}'><span data-ref="eLabel" class="ag-header-cell-label" role="presentation" style='${styles}'><span data-ref="eText" class="ag-header-cell-text"></span></span>${menu} ${filterButton} ${sort} ${getSvgTemplate(icon)} ${svgTemplateWarning}</span>`
     : `<span style='${styles}' data-ref="eLabel"><span data-ref="eText" class="ag-header-cell-label"></span> ${menu} ${filterButton} ${sort} ${svgTemplateWarning}</span>`
 
-  return {
+  const colDef = {
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
     filter: filterType,
@@ -674,11 +707,33 @@ function toField(
     tooltipComponentParams: {
       dataQualityMetrics,
       total: typeof props.data === 'object' ? props.data.all_rows_count : 0,
-      showDataQuality,
+      showDataQuality: hasDataQualityMetrics,
     },
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,
   }
+  if (valueType && ['Date', 'Date_Time', 'Time'].includes(valueType.constructor)) {
+    return {
+      ...colDef,
+      comparator: (valueA, valueB) => {
+        const textA =
+          valueA && typeof valueA === 'object' && '_display_text_' in valueA ?
+            valueA['_display_text_']
+          : valueA
+        const textB =
+          valueB && typeof valueB === 'object' && '_display_text_' in valueB ?
+            valueB['_display_text_']
+          : valueB
+
+        if (textA == null && textB == null) return 0
+        if (textA == null) return 1
+        if (textB == null) return -1
+
+        return textA.toString().localeCompare(textB.toString())
+      },
+    }
+  }
+  return colDef
 }
 
 type ParsedActionTemplate = {
@@ -1112,7 +1167,7 @@ config.setToolbar(
 </script>
 
 <template>
-  <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
+  <div ref="rootNode" class="TableVisualization" @wheel.stop.passive @pointerdown.stop>
     <template v-if="!useBottomStatusBar">
       <div class="table-visualization-status-bar">
         <select

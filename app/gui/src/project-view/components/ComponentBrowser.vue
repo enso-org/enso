@@ -5,12 +5,12 @@ import {
   useSuggestionDbStore,
 } from '$/components/WithCurrentProject.vue'
 import { componentBrowserBindings, listBindings } from '@/bindings'
+import ActionButton from '@/components/ActionButton.vue'
 import { type Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
-import SvgButton from '@/components/SvgButton.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
 import { groupColorStyle } from '@/composables/nodeColors'
@@ -25,7 +25,9 @@ import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import { debouncedGetter } from '@/util/reactivity'
+import * as objects from 'enso-common/src/utilities/data/object'
 import type { ComponentInstance } from 'vue'
 import { computed, onMounted, onUnmounted, ref, toValue, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
@@ -247,7 +249,11 @@ const previewedSuggestionReturnType = computed(() => {
     appliedEntry ? appliedEntry
     : props.usage.type === 'editNode' ? graphStore.db.getNodeMainSuggestion(props.usage.node)
     : undefined
-  return entry?.returnType(projectNames)
+  const returnType = entry?.returnType(projectNames)
+  if (returnType == null) return undefined
+  const parsed = parseAbsoluteProjectPathRaw(returnType)
+  if (parsed.ok) return parsed.value
+  return undefined
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
@@ -314,65 +320,58 @@ function acceptInput() {
 
 // === Action Handlers ===
 
-const outsideComponentBrowsing = computed(() => input.mode.mode != 'componentBrowsing')
+const insideComponentBrowsing = computed(() => input.mode.mode === 'componentBrowsing')
 const actions = registerHandlers({
   'componentBrowser.editSuggestion': {
+    enabled: insideComponentBrowsing,
     action: () => {
       const result = applyComponent()
       if (!result.ok) result.error.log('Cannot apply component')
     },
-    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptSuggestion': {
+    enabled: insideComponentBrowsing,
     action: () => acceptComponent(),
-    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptInputAsCode': {
+    available: () => input.mode.mode === 'codeEditing',
     action: acceptInput,
-    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.switchToCodeEditMode': {
-    disabled: outsideComponentBrowsing,
+    enabled: insideComponentBrowsing,
     action: input.switchToCodeEditMode,
   },
+  'visualization.show': {
+    available: () => input.mode.mode === 'codeEditing' && !isVisualizationVisible.value,
+    action: () => (isVisualizationVisible.value = true),
+  },
+  'componentBrowser.acceptInput': {
+    action: acceptInput,
+  },
+  'componentBrowser.acceptAIPrompt': {
+    available: () => input.mode.mode == 'aiPrompt',
+    action: () => input.applyAIPrompt(),
+  },
+  'componentBrowser.switchPanelFocus': { action: () => componentList.value?.switchPanelFocus() },
+  'list.moveUp': { action: () => componentList.value?.moveUp() },
+  'list.moveDown': { action: () => componentList.value?.moveDown() },
 })
 
 function performActionIfNotDisabled(action: Action & { action: () => void }) {
-  if (toValue(action.hidden) || toValue(action.disabled)) return false
+  if (!toValue(action.available ?? true) || !toValue(action.enabled ?? true)) return false
   else return action.action()
 }
 
-const handler = componentBrowserBindings.handler({
-  applySuggestion() {
-    return performActionIfNotDisabled(actions['componentBrowser.editSuggestion'])
-  },
-  acceptSuggestion() {
-    return performActionIfNotDisabled(actions['componentBrowser.acceptSuggestion'])
-  },
-  acceptCode() {
-    if (input.mode.mode != 'codeEditing') return false
-    acceptInput()
-  },
-  acceptInput,
-  acceptAIPrompt() {
-    if (input.mode.mode == 'aiPrompt') input.applyAIPrompt()
-    else return false
-  },
-  switchToCodeEditMode() {
-    return performActionIfNotDisabled(actions['componentBrowser.switchToCodeEditMode'])
-  },
-  switchPanelFocus() {
-    componentList.value?.switchPanelFocus()
-  },
-})
+const handler = componentBrowserBindings.handler(
+  objects.mapEntries(
+    componentBrowserBindings.bindings,
+    (actionName) => () => performActionIfNotDisabled(actions[actionName]),
+  ),
+)
 
 const listsHandler = listBindings.handler({
-  moveUp() {
-    componentList.value?.moveUp()
-  },
-  moveDown() {
-    componentList.value?.moveDown()
-  },
+  'list.moveUp': actions['list.moveUp'].action,
+  'list.moveDown': actions['list.moveDown'].action,
 })
 </script>
 
@@ -400,7 +399,6 @@ const listsHandler = listBindings.handler({
       :nodeSize="inputSize"
       :nodePosition="nodePosition"
       :scale="1"
-      :isComponentMenuVisible="false"
       :isFullscreen="false"
       :isFullscreenAllowed="false"
       :isResizable="false"
@@ -421,11 +419,8 @@ const listsHandler = listBindings.handler({
       :nodeColor="nodeColor"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
     />
-    <div
-      v-if="input.mode.mode === 'codeEditing' && !isVisualizationVisible"
-      class="show-visualization"
-    >
-      <SvgButton name="eye" title="Show visualization" @activate="isVisualizationVisible = true" />
+    <div class="show-visualization">
+      <ActionButton action="visualization.show" />
     </div>
     <ComponentList
       v-if="input.mode.mode === 'componentBrowsing'"
@@ -456,6 +451,9 @@ const listsHandler = listBindings.handler({
   display: flex;
   padding: 8px;
   opacity: 30%;
+  &:not(:has(> *)) {
+    display: none;
+  }
 }
 
 .ComponentEditor {

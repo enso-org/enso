@@ -4,6 +4,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import type { URLString } from '@/util/data/urlString'
 import type { Icon } from '@/util/iconMetadata/iconName'
 
+const toggledOn = defineModel<boolean | undefined>()
 defineProps<{
   name?: Icon | URLString | undefined
   label?: string | undefined
@@ -16,6 +17,7 @@ const emit = defineEmits<{ activate: [] }>()
 
 <template>
   <MenuButton
+    v-model="toggledOn"
     :disabled="disabled"
     class="SvgButton"
     :title="title"
@@ -36,5 +38,13 @@ const emit = defineEmits<{ activate: [] }>()
   &.disabled {
     opacity: 0.3;
   }
+}
+
+.toggledOff svg {
+  opacity: 0.4;
+}
+
+:is(.toggledOff, .toggledOn):active svg {
+  opacity: 0.7;
 }
 </style>

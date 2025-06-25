@@ -1,7 +1,7 @@
 /** @file Vue composables for running a callback on every frame, and smooth interpolation. */
 
 import type { Vec2 } from '@/util/data/vec2'
-import { watchSourceToRef, type ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import {
   computed,
   nextTick,
@@ -10,6 +10,7 @@ import {
   readonly,
   ref,
   shallowRef,
+  toRef,
   toValue,
   watch,
   type Ref,
@@ -142,7 +143,7 @@ function useApproachBase<T>(
   stable: (target: T, current: T) => boolean,
   update: (target: T, current: T, dt: number) => T,
 ) {
-  const target = watchSourceToRef(to)
+  const target = toRef(to)
   const current: Ref<T> = shallowRef(target.value)
 
   const active = computed(() => !stable(target.value, current.value))

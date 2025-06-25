@@ -865,12 +865,6 @@ export function findLeastUsedColor(labels: Iterable<Label>) {
   return minColor == null ? COLORS[0] : (COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0])
 }
 
-export enum SpecialAssetType {
-  loading = 'specialLoading',
-  empty = 'specialEmpty',
-  error = 'specialError',
-}
-
 /** All possible types of directory entries. */
 export enum AssetType {
   project = 'project',
@@ -878,15 +872,6 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /**
-   * A special {@link AssetType} representing the unknown items of a directory, before the
-   * request to retrieve the items completes.
-   */
-  specialLoading = 'specialLoading',
-  /** A special {@link AssetType} representing a directory listing that is empty. */
-  specialEmpty = 'specialEmpty',
-  /** A special {@link AssetType} representing a directory listing that errored. */
-  specialError = 'specialError',
   /** A special {@link AssetType} representing a button that navigates to the parent directory. */
   specialUp = 'specialUp',
 }
@@ -896,9 +881,6 @@ export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
   [AssetType.project]: 'projectAssetType',
   [AssetType.file]: 'fileAssetType',
   [AssetType.secret]: 'secretAssetType',
-  [AssetType.specialEmpty]: 'specialEmptyAssetType',
-  [AssetType.specialError]: 'specialErrorAssetType',
-  [AssetType.specialLoading]: 'specialLoadingAssetType',
   [AssetType.specialUp]: 'specialUpAssetType',
   [AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in AssetType]: `${Type}AssetType` }
@@ -937,9 +919,6 @@ export type RealAssetTypeId<Id extends RealAssetId> =
   : AssetType.directory
 
 export interface SpecialAssetIdType {
-  readonly [AssetType.specialLoading]: LoadingAssetId
-  readonly [AssetType.specialEmpty]: EmptyAssetId
-  readonly [AssetType.specialError]: ErrorAssetId
   readonly [AssetType.specialUp]: UpAssetId
 }
 
@@ -953,9 +932,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.file]: 2,
   [AssetType.datalink]: 3,
   [AssetType.secret]: 4,
-  [AssetType.specialLoading]: 1000,
-  [AssetType.specialEmpty]: 1000,
-  [AssetType.specialError]: 1000,
   [AssetType.specialUp]: -1,
 }
 
@@ -1014,15 +990,6 @@ export type DatalinkAsset = Asset<AssetType.datalink>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export type SecretAsset = Asset<AssetType.secret>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
-export type SpecialLoadingAsset = Asset<AssetType.specialLoading>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
-export type SpecialEmptyAsset = Asset<AssetType.specialEmpty>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialError}>. */
-export type SpecialErrorAsset = Asset<AssetType.specialError>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
 export type SpecialUpAsset = Asset<AssetType.specialUp>
@@ -1094,143 +1061,6 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
   }
 }
 
-/** Creates a {@link DirectoryAsset} using the given values. */
-export function createPlaceholderDirectoryAsset(
-  title: string,
-  parentId: DirectoryId,
-): DirectoryAsset {
-  return {
-    type: AssetType.directory,
-    id: DirectoryId(`directory-${createPlaceholderId()}` as const),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Creates a {@link SecretAsset} using the given values. */
-export function createPlaceholderSecretAsset(title: string, parentId: DirectoryId): SecretAsset {
-  return {
-    type: AssetType.secret,
-    id: SecretId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Creates a {@link DatalinkAsset} using the given values. */
-export function createPlaceholderDatalinkAsset(
-  title: string,
-  parentId: DirectoryId,
-): DatalinkAsset {
-  return {
-    type: AssetType.datalink,
-    id: DatalinkId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/**
- * Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
- * values.
- */
-export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
-  return {
-    type: AssetType.specialLoading,
-    title: '',
-    id: LoadingAssetId(createPlaceholderId(`${AssetType.specialLoading}-${directoryId}`)),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Whether a given {@link string} is an {@link LoadingAssetId}. */
-export function isLoadingAssetId(id: string): id is LoadingAssetId {
-  return id.startsWith(`${AssetType.specialLoading}-`)
-}
-
-/**
- * Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
- * values.
- */
-export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
-  return {
-    type: AssetType.specialEmpty,
-    title: '',
-    id: EmptyAssetId(`${AssetType.specialEmpty}-${directoryId}`),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Whether a given {@link string} is an {@link EmptyAssetId}. */
-export function isEmptyAssetId(id: string): id is EmptyAssetId {
-  return id.startsWith(`${AssetType.specialEmpty}-`)
-}
-
-/**
- * Creates a {@link SpecialErrorAsset}, with all irrelevant fields initialized to default
- * values.
- */
-export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorAsset {
-  return {
-    type: AssetType.specialError,
-    title: '',
-    id: ErrorAssetId(`${AssetType.specialError}-${directoryId}`),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Whether a given {@link string} is an {@link ErrorAssetId}. */
-export function isErrorAssetId(id: string): id is ErrorAssetId {
-  return id.startsWith(`${AssetType.specialError}-`)
-}
-
-/** Whether a given {@link string} is a special frontend-only asset id. */
-export function isSpecialAssetId(id: string) {
-  return isLoadingAssetId(id) || isEmptyAssetId(id) || isErrorAssetId(id)
-}
-
 /** Any object with a `type` field matching the given `AssetType`. */
 interface HasType<Type extends AssetType> {
   readonly type: Type
@@ -1238,15 +1068,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  | DatalinkAsset
-  | DirectoryAsset
-  | FileAsset
-  | ProjectAsset
-  | SecretAsset
-  | SpecialEmptyAsset
-  | SpecialErrorAsset
-  | SpecialLoadingAsset
-  | SpecialUpAsset,
+  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset | SpecialUpAsset,
   HasType<Type>
 >
 
@@ -1295,18 +1117,6 @@ export function createPlaceholderAssetId<Type extends AssetType>(
     }
     case AssetType.secret: {
       result = SecretId(id)
-      break
-    }
-    case AssetType.specialLoading: {
-      result = LoadingAssetId(id)
-      break
-    }
-    case AssetType.specialEmpty: {
-      result = EmptyAssetId(id)
-      break
-    }
-    case AssetType.specialError: {
-      result = ErrorAssetId(id)
       break
     }
     case AssetType.specialUp: {

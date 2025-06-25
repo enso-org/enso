@@ -1,25 +1,13 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.stream.LongStream;
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.BuilderForBoolean;
-import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
-import org.enso.table.error.UnexpectedTypeException;
-import org.graalvm.polyglot.Value;
 
 /** A specialized storage that can be used by columns that contain only null values. */
 public class NullStorage extends Storage<Void> {
   private final long size;
-  private final MapOperationStorage<Void, NullStorage> ops = buildOps();
 
   public NullStorage(long size) {
     this.size = size;
@@ -54,136 +42,5 @@ public class NullStorage extends Storage<Void> {
   @Override
   public Iterator<Void> iterator() {
     return LongStream.range(0, size).mapToObj(i -> (Void) null).iterator();
-  }
-
-  private static MapOperationStorage<Void, NullStorage> buildOps() {
-    MapOperationStorage<Void, NullStorage> ops = new MapOperationStorage<>();
-    ops.add(new NullOp(Maps.MUL));
-    ops.add(new NullOp(Maps.ADD));
-    ops.add(new NullOp(Maps.SUB));
-    ops.add(new NullOp(Maps.DIV));
-    ops.add(new NullOp(Maps.MOD));
-    ops.add(new NullOp(Maps.POWER));
-    return ops;
-  }
-
-  @Override
-  public boolean isBinaryOpVectorized(String name) {
-    return ops.isSupportedBinary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runBinaryMap(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
-    return ops.runZip(name, this, argument, problemAggregator);
-  }
-
-  @Override
-  public boolean isTernaryOpVectorized(String name) {
-    return ops.isSupportedTernary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedTernaryMap(
-      String name,
-      Object argument0,
-      Object argument1,
-      MapOperationProblemAggregator problemAggregator) {
-    return ops.runTernaryMap(name, this, argument0, argument1, problemAggregator);
-  }
-
-  @Override
-  public Storage<Void> applyFilter(BitSet filterMask, int newLength) {
-    return new NullStorage(newLength);
-  }
-
-  @Override
-  public Storage<Void> applyMask(OrderMask mask) {
-    return new NullStorage(mask.length());
-  }
-
-  @Override
-  public Storage<Void> slice(int offset, int limit) {
-    long newSize = Math.min(this.size - offset, limit);
-    return new NullStorage(newSize);
-  }
-
-  @Override
-  public Storage<?> appendNulls(int count) {
-    return new NullStorage(size + count);
-  }
-
-  @Override
-  public Storage<Void> slice(List<SliceRange> ranges) {
-    return new NullStorage(SliceRange.totalLength(ranges));
-  }
-
-  @Override
-  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    return this;
-  }
-
-  /** A binary operation that always returns null. */
-  private static class NullOp extends BinaryMapOperation<Void, NullStorage> {
-    public NullOp(String name) {
-      super(name);
-    }
-
-    @Override
-    public Storage<?> runBinaryMap(
-        NullStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      // We return the same storage as-is, because all lhs arguments are guaranteed to be null.
-      return storage;
-    }
-
-    @Override
-    public Storage<?> runZip(
-        NullStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      // We return the same storage as-is, because all lhs arguments are guaranteed to be null.
-      return storage;
-    }
-  }
-
-  private abstract static class BoolAndNullOp extends BinaryMapOperation<Void, NullStorage> {
-    public BoolAndNullOp(String name) {
-      super(name);
-    }
-
-    protected abstract Boolean doBool(boolean a);
-
-    @Override
-    public Storage<?> runBinaryMap(
-        NullStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        return new NullStorage(storage.getSize());
-      } else if (arg instanceof Boolean b) {
-        int checkedSize = Builder.checkSize(storage.getSize());
-        return Storage.fromRepeatedItem(Value.asValue(doBool(b)), checkedSize, problemAggregator);
-      } else {
-        throw new UnexpectedTypeException("Boolean", arg.toString());
-      }
-    }
-
-    @Override
-    public Storage<?> runZip(
-        NullStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      BuilderForBoolean builder = Builder.getForBoolean(storage.getSize());
-      for (long i = 0; i < storage.getSize(); i++) {
-        if (arg.isNothing(i)) {
-          builder.appendNulls(1);
-        } else if (arg.getItemBoxed(i) instanceof Boolean bool) {
-          builder.append(doBool(bool));
-        } else {
-          throw new UnexpectedTypeException("Boolean", arg.getItemBoxed(i).toString());
-        }
-      }
-      return builder.seal();
-    }
   }
 }

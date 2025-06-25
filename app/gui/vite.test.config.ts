@@ -1,14 +1,9 @@
 /** @file Vite configuration for dashboard integration tests' server. */
 import { fileURLToPath } from 'node:url'
-
 import { defineConfig, mergeConfig } from 'vite'
 
-// =====================
-// === Configuration ===
-// =====================
-
 // This configuration file is for dashboard tests only.
-process.env.CLOUD_BUILD = 'true'
+process.env.DASHBOARD_TESTS = 'true'
 const CONFIG = (await import('./vite.config')).default
 
 export default mergeConfig(

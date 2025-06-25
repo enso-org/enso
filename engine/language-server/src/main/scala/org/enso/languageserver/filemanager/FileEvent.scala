@@ -3,7 +3,8 @@ package org.enso.languageserver.filemanager
 import io.circe.{Decoder, Encoder}
 
 import java.io.File
-import org.enso.filewatcher.Watcher
+import org.enso.filewatcher.Watcher.WatcherEvent
+import org.enso.filewatcher.Watcher.EventType
 
 /** A representation of filesystem event.
   *
@@ -30,7 +31,7 @@ object FileEvent {
   def fromWatcherEvent(
     root: File,
     base: Path,
-    event: Watcher.WatcherEvent,
+    event: WatcherEvent,
     attributes: Either[FileSystemFailure, FileSystemApi.Attributes]
   ): FileEvent = {
     val eventPath = Path.getRelativePath(root, base, event.path)
@@ -55,16 +56,14 @@ object FileEventKinds extends Enumeration {
     */
   val Added, Removed, Modified = Value
 
-  /** Create [[FileEventKind]] from [[Watcher.EventType]].
-    *
-    * @param eventType file system event type
+  /** @param eventType file system event type
     * @return file event kind
     */
-  def apply(eventType: Watcher.EventType): FileEventKind =
+  def apply(eventType: EventType): FileEventKind =
     eventType match {
-      case Watcher.EventTypeCreate => Added
-      case Watcher.EventTypeModify => Modified
-      case Watcher.EventTypeDelete => Removed
+      case EventType.CREATE => Added
+      case EventType.MODIFY => Modified
+      case EventType.DELETE => Removed
     }
 
   implicit val genderDecoder: Decoder[FileEventKind] =

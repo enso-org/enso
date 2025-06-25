@@ -12,7 +12,7 @@ import { passwordSchema } from '../../pages/authentication/schemas'
 import { Button } from '../Button'
 import { Popover } from '../Dialog'
 import { Form } from '../Form'
-import { Input } from '../Inputs'
+import { Input } from '../Inputs/Input'
 
 const meta = {
   title: 'Components/Menu',
