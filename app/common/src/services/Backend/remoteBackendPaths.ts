@@ -17,7 +17,7 @@ import {
   type UserGroupId,
   type UserId,
   type ZipAssetsJobId,
-} from './types'
+} from './types.js'
 
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
 export const LIST_USERS_PATH = 'users'

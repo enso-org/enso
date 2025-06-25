@@ -14,7 +14,6 @@ import * as yaml from 'yaml'
 
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
-import { basenameAndExtension, getFileName, getFolderPath, isFolderPath } from '#/utilities/path'
 import {
   AssetType,
   DirectoryId,
@@ -39,11 +38,17 @@ import {
 } from 'enso-common/src/services/Backend'
 import { EXPORT_ARCHIVE_PATH } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import {
+  basenameAndExtension,
+  getFileName,
+  getFolderPath,
+  isFolderPath,
+} from 'enso-common/src/utilities/file'
 import { tmpdir } from 'node:os'
 import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
-import { tarFsPack, unzipEntries, zipWriteStream } from 'project-manager-shim-middleware/archive'
+import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 import * as projectManagement from './projectManagement'
 
 // =================

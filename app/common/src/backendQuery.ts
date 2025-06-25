@@ -2,9 +2,9 @@
 
 import type * as queryCore from '@tanstack/query-core'
 
-import type Backend from './services/Backend'
-import * as backendModule from './services/Backend'
-import * as object from './utilities/data/object'
+import type Backend from './services/Backend.js'
+import * as backendModule from './services/Backend.js'
+import * as object from './utilities/data/object.js'
 
 /** The properties of the Backend type that are methods. */
 export type BackendMethods = object.ExtractKeys<Backend, object.MethodOf<Backend>>

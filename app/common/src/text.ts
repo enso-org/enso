@@ -1,6 +1,6 @@
 /** @file Functions related to displaying text. */
 import ENGLISH from './text/english.json' with { type: 'json' }
-import { unsafeKeys } from './utilities/data/object'
+import { unsafeKeys } from './utilities/data/object.js'
 
 /** Possible languages in which to display text. */
 export enum Language {

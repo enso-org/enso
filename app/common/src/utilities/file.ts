@@ -1,5 +1,5 @@
-import { isOnWindows } from '../detect'
-import { newtypeConstructor, type Newtype } from './data/newtype'
+import { isOnWindows } from '../detect.js'
+import { newtypeConstructor, type Newtype } from './data/newtype.js'
 
 /** @file Functions related to files. */
 export type FileExtension = `.${string}`

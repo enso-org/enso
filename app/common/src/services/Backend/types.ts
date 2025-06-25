@@ -1,5 +1,5 @@
-import * as newtype from '../../utilities/data/newtype'
-import { IdType } from '../Backend'
+import * as newtype from '../../utilities/data/newtype.js'
+import { IdType } from '../Backend.js'
 
 /** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>

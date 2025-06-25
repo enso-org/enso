@@ -1,13 +1,13 @@
 /** @file Type definitions common between all backends. */
 
 import { z } from 'zod'
-import { getText, Replacements, resolveDictionary, type TextId } from '../text'
-import * as array from '../utilities/data/array'
-import * as dateTime from '../utilities/data/dateTime'
-import * as newtype from '../utilities/data/newtype'
-import * as permissions from '../utilities/permissions'
-import * as uniqueString from '../utilities/uniqueString'
-import { getFileDetailsPath } from './Backend/remoteBackendPaths'
+import { getText, Replacements, resolveDictionary, type TextId } from '../text.js'
+import * as array from '../utilities/data/array.js'
+import * as dateTime from '../utilities/data/dateTime.js'
+import * as newtype from '../utilities/data/newtype.js'
+import * as permissions from '../utilities/permissions.js'
+import * as uniqueString from '../utilities/uniqueString.js'
+import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
   DatalinkId,
   DirectoryId,
@@ -38,11 +38,11 @@ import {
   type UserGroupId,
   type UserId,
   type UserPermissionIdentifier,
-} from './Backend/types'
-import { HttpClient, ResponseWithTypedJson } from './HttpClient'
+} from './Backend/types.js'
+import { HttpClient, ResponseWithTypedJson } from './HttpClient.js'
 export { prettifyError } from 'zod/v4'
 
-export * from './Backend/types'
+export * from './Backend/types.js'
 
 /** HTTP status indicating that the request was successful, but the user is not authorized to access. */
 const STATUS_NOT_AUTHORIZED = 401
