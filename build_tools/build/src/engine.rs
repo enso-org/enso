@@ -104,6 +104,9 @@ pub enum Tests {
 pub enum EngineLauncher {
     /// The binary inside the engine distribution will be built as an optimized native image
     Native,
+    /// The binary inside the engine distribution will be built as an optimized native image
+    /// without language server.
+    NativeWithoutLS,
     /// The binary inside the engine distribution will be built as native image with assertions
     /// enabled but no debug information
     TestNative,
@@ -127,6 +130,7 @@ impl Display for EngineLauncher {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         let str = match self {
             EngineLauncher::Native => "native".to_string(),
+            EngineLauncher::NativeWithoutLS => "native,-ls".to_string(),
             EngineLauncher::TestNative => "native,test".to_string(),
             EngineLauncher::TestDebugNative => "native,test,debug".to_string(),
             EngineLauncher::Shell => "shell".to_string(),
