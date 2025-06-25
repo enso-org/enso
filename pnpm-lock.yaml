@@ -115,6 +115,9 @@ importers:
       vitest:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@20.17.11)(jiti@1.21.7)(jsdom@26.0.0)(terser@5.37.0)(yaml@2.7.0)
+      vue:
+        specifier: '*'
+        version: 3.5.13(typescript@5.7.2)
       zod:
         specifier: ^3.23.0
         version: 3.24.1

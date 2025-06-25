@@ -8,6 +8,7 @@ import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
+import { toValue } from 'vue'
 
 declare module '@tanstack/query-core' {
   /** Query client with additional methods. */
@@ -51,6 +52,8 @@ declare module '@tanstack/query-core' {
        */
       readonly persist?: boolean
     }
+
+    readonly queryKey: ReadonlyArray<string>
   }
 }
 
@@ -95,43 +98,20 @@ export function createQueryClient<TStorageValue = string>(
     })
   }
 
+  const invalidationKeys = new WeakMap<queryCore.Mutation<unknown, unknown>, InvalidationKeys>()
+
   const queryClient: QueryClient = new vueQuery.QueryClient({
     mutationCache: new queryCore.MutationCache({
-      onSuccess: (_data, _variables, _context, mutation) => {
-        const shouldAwaitInvalidates = mutation.meta?.awaitInvalidates ?? false
-        const refetchType = mutation.meta?.refetchType ?? 'active'
-        const invalidates = mutation.meta?.invalidates ?? []
-
-        const invalidatesToAwait = (() => {
-          if (Array.isArray(shouldAwaitInvalidates)) {
-            return shouldAwaitInvalidates
-          } else {
-            return shouldAwaitInvalidates ? invalidates : []
-          }
-        })()
-
-        const invalidatesToIgnore = invalidates.filter(
-          (queryKey) => !invalidatesToAwait.includes(queryKey),
-        )
-
-        for (const queryKey of invalidatesToIgnore) {
-          void queryClient.invalidateQueries({
-            predicate: (query) => queryCore.matchQuery({ queryKey }, query),
-            refetchType,
-          })
-        }
-
-        if (invalidatesToAwait.length > 0) {
-          return Promise.all(
-            invalidatesToAwait.map((queryKey) =>
-              queryClient.invalidateQueries({
-                predicate: (query) => queryCore.matchQuery({ queryKey }, query),
-                refetchType,
-              }),
-            ),
-          )
-        }
+      onMutate: (_variables, mutation) => {
+        const keys = evaluateInvalidationKeys(mutation)
+        if (keys) invalidationKeys.set(mutation, keys)
       },
+      onSuccess: (_data, _variables, _context, mutation) => {
+        const keys = invalidationKeys.get(mutation)
+        if (keys) return performInvalidations(queryClient, keys)
+      },
+      onSettled: (_data, _error, _variables, _context, mutation) =>
+        invalidationKeys.delete(mutation),
     }),
     defaultOptions: {
       queries: {
@@ -192,4 +172,43 @@ export function createQueryClient<TStorageValue = string>(
   })
 
   return queryClient
+}
+
+interface InvalidationKeys {
+  toAwait: queryCore.QueryKey[]
+  toIgnore: queryCore.QueryKey[]
+  refetchType: Required<queryCore.InvalidateQueryFilters>['refetchType']
+}
+
+function evaluateInvalidationKeys(
+  mutation: queryCore.Mutation<unknown, unknown>,
+): InvalidationKeys | undefined {
+  if (!mutation.meta) return
+
+  const metaAwaitInvalidates = mutation.meta.awaitInvalidates ?? false
+  const metaInvalidates = mutation.meta.invalidates?.map(toValue) ?? []
+  const refetchType = mutation.meta?.refetchType ?? 'active'
+
+  return (
+    Array.isArray(metaAwaitInvalidates) ?
+      { toAwait: metaAwaitInvalidates.map(toValue), toIgnore: metaInvalidates, refetchType }
+    : metaAwaitInvalidates ? { toAwait: metaInvalidates, toIgnore: [], refetchType }
+    : { toAwait: [], toIgnore: metaInvalidates, refetchType }
+  )
+}
+
+async function performInvalidations(
+  queryClient: QueryClient,
+  toInvalidate: InvalidationKeys,
+): Promise<void> {
+  const { toAwait, toIgnore, refetchType } = toInvalidate
+  const invalidateByKeys = (queryKeys: queryCore.QueryKey[]) =>
+    queryKeys.map((queryKey) =>
+      queryClient.invalidateQueries({
+        predicate: (query) => queryCore.matchQuery({ queryKey }, query),
+        refetchType,
+      }),
+    )
+  void invalidateByKeys(toIgnore)
+  await Promise.all(invalidateByKeys(toAwait))
 }

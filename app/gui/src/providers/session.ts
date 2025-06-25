@@ -56,18 +56,19 @@ export function createSessionStore(
 
   const refreshUserSessionMutation = vueQuery.useMutation({
     mutationKey: computed(() => ['refreshUserSession', { expireAt: session.data.value?.expireAt }]),
-    mutationFn: async () => authService.refreshUserSession(),
+    mutationFn: () => authService.refreshUserSession(),
     onSuccess: (data) => {
-      if (data) {
-        httpClient.setSessionToken(data.accessToken)
-      }
-      return queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
+      if (data) httpClient.setSessionToken(data.accessToken)
     },
     onError: (error) => {
       // Something went wrong with the refresh token, so we need to sign the user out.
       errorToast.reportError(Err(error).error, getText('sessionExpiredError'))
       queryClient.setQueryData(sessionQueryOptions.queryKey, null)
-      return logoutMutation.mutate()
+      logoutMutation.mutate()
+    },
+    meta: {
+      invalidates: [sessionQueryOptions.queryKey],
+      awaitInvalidates: true,
     },
   })
 

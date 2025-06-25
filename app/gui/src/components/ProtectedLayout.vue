@@ -43,11 +43,11 @@ function routeAllowed(route: RouteLocation, auth: AuthStore) {
     case 'guest':
       return auth.session == null
     case 'anyLoggedIn':
-      return auth.session != null && !auth.isUserMarkedForDeletion()
+      return auth.session != null && !auth.isUserMarkedForDeletion
     case 'deleted':
       return auth.isUserSoftDeleted()
     default:
-      return route.meta.access === auth.session?.type && !auth.isUserMarkedForDeletion()
+      return route.meta.access === auth.session?.type && !auth.isUserMarkedForDeletion
   }
 }
 
