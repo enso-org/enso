@@ -98,7 +98,7 @@ type Generic_JDBC_Connection
             read_column metadata.getCatalogs "TABLE_CAT"
 
     ## Returns the name of the current database (or catalog).
-    database self -> Text =
+    database self -> Text | Nothing =
         self.jdbc_connection.with_connection connection->connection.getCatalog
 
     ## ALIAS catalog schema database
@@ -224,7 +224,7 @@ type Generic_JDBC_Connection
              connection.tables
     @database (self-> Single_Choice values=(self.databases . map d-> Option d d.pretty))
     @table_types (self -> Vector_Editor item_default="")
-    tables self name_like:Text="" database:Text=self.database schema:Text="" table_types:Vector=[] -> Table =
+    tables self name_like:Text="" database:Text|Nothing=self.database schema:Text="" table_types:Vector=[] -> Table =
         catalog = if database == "" then self.database else database
         used_table_pattern = if name_like == "" then Nothing else name_like
         used_schema = if schema == "" then Nothing else schema
