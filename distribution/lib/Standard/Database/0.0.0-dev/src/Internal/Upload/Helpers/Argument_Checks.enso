@@ -5,6 +5,7 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
+import Standard.Table.In_Memory_Table.In_Memory_Table
 from Standard.Table import Table
 from Standard.Table.Errors import Column_Type_Mismatch, Inexact_Type_Coercion, Missing_Input_Columns, Unmatched_Columns
 
@@ -12,7 +13,7 @@ import project.DB_Table.DB_Table
 import project.Update_Action.Update_Action
 
 ## PRIVATE
-check_delete_rows_arguments target_table key_values_to_delete key_columns ~continuation =
+check_delete_rows_arguments target_table:Table key_values_to_delete key_columns ~continuation =
     check_target_table_for_update target_table <|
         if key_columns.is_empty then Error.throw (Illegal_Argument.Error "One or more key columns must be provided to correlate the rows to be deleted.") else
             key_set = Hashset.from_vector key_columns
@@ -24,7 +25,7 @@ check_delete_rows_arguments target_table key_values_to_delete key_columns ~conti
 
 ## PRIVATE
 check_target_table_for_update target_table ~action = case target_table of
-    _ : Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
+    _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
     _ : DB_Table -> if target_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
         action
 
@@ -50,7 +51,7 @@ resolve_primary_key structure primary_key = case primary_key of
    - all columns in `source_table` have a corresponding column in `target_table`
      (with the same name),
    - all `key_columns` are present in both source and target tables.
-check_update_arguments_structure_match source_table target_table key_columns update_action error_on_missing_columns on_problems:Problem_Behavior ~action =
+check_update_arguments_structure_match source_table:Table target_table:Table key_columns update_action error_on_missing_columns on_problems:Problem_Behavior ~action =
     check_source_column source_column =
         # The column must exist because it was verified earlier.
         target_column = target_table.get source_column.name

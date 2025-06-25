@@ -5,6 +5,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import Table
+import Standard.Table.In_Memory_Table.In_Memory_Table
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
@@ -76,7 +77,7 @@ create_table_upload_operation : DB_Table | Table -> Connection -> Text -> Nothin
 create_table_upload_operation source_table connection (table_name : Text) (primary_key : Nothing | Vector Text) (temporary : Boolean) (remove_after_transaction : Boolean = False) structure_hint=Nothing (on_problems:Problem_Behavior=..Report_Error) (row_limit : Integer | Nothing = Nothing) -> Table_Upload_Operation =
     resolved_table_name = resolve_temp_table_name connection temporary table_name
     case source_table of
-        _ : Table ->
+        _ : In_Memory_Table ->
             _create_in_memory_table_upload_op source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ : DB_Table ->
             _create_database_table_upload_op source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
