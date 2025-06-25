@@ -131,10 +131,17 @@ report any type mismatch warnings. That is because even if there's a value
 was not created as `Integer & Text` before and the `Text` part was hidden. As
 the hidden part of the type is never known _statically_, the static analysis
 cannot rely on it and must assume that every value can have any kind of types in
-the hidden part. Thus, only relying on the ability to 'uncover' the hidden parts
-via explicit syntactic constructs allows to keep the ability to reason about
-them in the static analysis (unless the system is constructed on some completely
-different approach, but currently no good alternatives have been discussed).
+the hidden part.
+
+The current approach that seems to strike a good balance is:
+- allowing `y = x:T` type assertions that check the type at run-time and allow to
+  'uncover' the hidden parts of the type. They are treated as an `instanceof`
+  check, so they are not validated by static analysis but instead serve as
+  _evidence_ that if the code continues execution, then indeed `y` must have now
+  have type `T`.
+- all other places - invoking methods on a type, passing a value as an argument,
+  using a value in binary operators rely only on the **visible** part of the type
+  and thus can be checked in static analysis.
 
 #### Local Inference and Type Propagation
 
