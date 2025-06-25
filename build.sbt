@@ -807,14 +807,16 @@ lazy val `logging-config` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "com.typesafe"         % "config"    % typesafeConfigVersion,
-      "org.slf4j"            % "slf4j-api" % slf4jVersion,
-      "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion % "provided"
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "com.typesafe"         % "config"                  % typesafeConfigVersion,
+      "org.slf4j"            % "slf4j-api"               % slf4jVersion,
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided"
     ),
     Compile / moduleDependencies ++= Seq(
-      "com.typesafe"         % "config"    % typesafeConfigVersion,
-      "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
-      "org.slf4j"            % "slf4j-api" % slf4jVersion
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion,
+      "com.typesafe"         % "config"                  % typesafeConfigVersion,
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+      "org.slf4j"            % "slf4j-api"               % slf4jVersion
     ),
     Compile / internalModuleDependencies ++= Seq(
       (`engine-common` / Compile / exportedModule).value,
