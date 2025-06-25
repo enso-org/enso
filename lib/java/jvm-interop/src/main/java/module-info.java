@@ -2,8 +2,6 @@ import org.enso.common.PolyglotSymbolResolver;
 import org.enso.jvm.interop.OtherJvmSymbolResolver;
 
 module org.enso.jvm.interop {
-  requires org.enso.engine.common;
-
   provides PolyglotSymbolResolver with
       OtherJvmSymbolResolver;
 

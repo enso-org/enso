@@ -3956,13 +3956,13 @@ lazy val `jvm-channel` =
       autoScalaLibrary := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= slf4jApi ++ Seq(
+      libraryDependencies ++= Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
         "junit"           % "junit"           % junitVersion              % Test,
         "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
       ),
-      Compile / moduleDependencies ++= slf4jApi ++ Seq(
+      Compile / moduleDependencies ++= Seq(
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
@@ -3972,7 +3972,6 @@ lazy val `jvm-channel` =
         (`persistance` / Compile / exportedModule).value
       )
     )
-    .dependsOn(`engine-common`)
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
 
@@ -4002,7 +4001,6 @@ lazy val `jvm-interop` =
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`jvm-channel` / Compile / exportedModule).value,
-        (`engine-common` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value
       )
     )
