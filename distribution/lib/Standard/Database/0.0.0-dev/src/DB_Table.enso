@@ -75,6 +75,11 @@ type DB_Table
         DB_Table_Refinements.refine_table <|
             DB_Table.Value internal_name connection internal_columns context
 
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       The name of the table.
+    name self -> Text = self.internal_name
+
     ## ICON metadata
        The name of the SQL Dialect used by the table.
     dialect_name self -> Text = self.connection.dialect.name
