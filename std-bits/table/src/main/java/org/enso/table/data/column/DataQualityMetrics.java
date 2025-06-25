@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
@@ -31,6 +33,10 @@ import org.enso.table.data.table.Column;
 import org.enso.table.util.LeastRecentlyUsedCache;
 
 public abstract class DataQualityMetrics {
+  // A thread pool for executing data quality metrics computations asynchronously.
+  private static final ExecutorService executorService =
+      Executors.newFixedThreadPool(Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
+
   public static final String IS_INCOMPLETE = "_Is Incomplete";
   public static final String NOTHING_COUNT = "# Nothing";
   public static final String DISTINCT_COUNT = "# Distinct";
@@ -184,7 +190,7 @@ public abstract class DataQualityMetrics {
                   Accumulator accumulator = new Accumulator();
                   DataQualityMetrics.loopOverAll(storage, accumulator::process);
                   return accumulator.getResult();
-                });
+                }, executorService);
       }
     }
 
@@ -259,7 +265,7 @@ public abstract class DataQualityMetrics {
                 Accumulator<T> accumulator = new Accumulator<>(comparator);
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              });
+              }, executorService);
     }
 
     @Override
@@ -335,7 +341,7 @@ public abstract class DataQualityMetrics {
                 var accumulator = new Accumulator();
                 DataQualityMetrics.loopOverSample(storage, accumulator::process);
                 return accumulator.getResult(storage.getSize() > DEFAULT_SAMPLE_SIZE);
-              });
+              }, executorService);
     }
 
     @Override
@@ -508,7 +514,7 @@ public abstract class DataQualityMetrics {
                 Accumulator accumulator = new Accumulator();
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              });
+              }, executorService);
     }
 
     @Override
