@@ -1,8 +1,8 @@
 package org.enso.interpreter.instrument.job
 
 import org.slf4j.LoggerFactory
-
 import com.oracle.truffle.api.exception.AbstractTruffleException
+import com.oracle.truffle.api.source.SourceSection
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
   MethodCallsCache,
