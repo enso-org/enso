@@ -42,8 +42,6 @@ export function useDocumentationImagesFromBackend(
     },
     tryUploadImageFile: async () => {},
     tryUploadDroppedImage: async () => {},
-    tryUploadPastedImage: () => {
-      return false
-    },
+    tryUploadPastedImage: () => false,
   }
 }

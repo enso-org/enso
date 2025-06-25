@@ -1,27 +1,17 @@
 <script setup lang="ts">
-import { useDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
-import { type TransformUrlResult } from '@/components/MarkdownEditor/imageFiles/imageUrlTransformer'
-import { computedAsync } from '@vueuse/core'
-import { computed, onUnmounted, type Ref } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
+import { useAsyncResources } from '@/providers/asyncResources'
+import { computed, toRef } from 'vue'
 
 const DEFAULT_ALT_TEXT = 'Image'
+
+const res = useAsyncResources()
 
 const props = defineProps<{
   src: string
   alt: string
 }>()
 
-const images = useDocumentationImages(true)
-const urlTransformer = images?.value
-
-// NOTE: Garbage-collecting image data when the `src` changes is not implemented. Current users of `DocumentationImage`
-// don't change the `src` after creating an image.
-const data: Ref<TransformUrlResult | undefined> = computedAsync(
-  () => urlTransformer?.transformImageUrl(props.src) ?? Ok({ url: props.src }),
-  undefined,
-  { onError: console.error },
-)
+const data = res.useResourceFromUrl(toRef(props, 'src'))
 
 const title = computed(() =>
   data.value == null ? 'Loading'
@@ -29,20 +19,14 @@ const title = computed(() =>
   : props.alt !== DEFAULT_ALT_TEXT ? props.alt
   : '',
 )
-
-const alt = props.alt ? props.alt : DEFAULT_ALT_TEXT
-
-onUnmounted(() => {
-  if (data.value?.ok) data.value.value.dispose?.()
-})
 </script>
 
 <template>
   <img
-    :src="data?.ok ? data.value.url : ''"
+    :src="data?.ok ? (data.value.url ?? '') : ''"
     :alt="alt"
     :title="title"
-    :class="{ uploading: data?.ok && data.value.uploading?.value }"
+    :class="{ uploading: data?.ok && data.value.status === 'loading' }"
   />
 </template>
 

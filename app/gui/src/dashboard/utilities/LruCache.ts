@@ -11,9 +11,28 @@ export class LRUCache<K, V> {
   /**
    * Create a new LRU cache.
    */
-  constructor(private readonly maxSize: number) {
+  constructor(
+    private readonly maxSize: number,
+    private readonly onEvict?: (value: V, key: K) => void,
+  ) {
     this.cache = new Map()
     this.oldCache = new Map()
+  }
+
+  /**
+   * Get a value from the cache.
+   */
+  take(key: K): V | undefined {
+    const newCacheValue = this.cache.get(key)
+    if (newCacheValue != null) {
+      this.cache.delete(key)
+      return newCacheValue
+    }
+    const oldCacheValue = this.cache.get(key)
+    if (oldCacheValue != null) {
+      this.oldCache.delete(key)
+    }
+    return oldCacheValue
   }
 
   /**
@@ -41,10 +60,14 @@ export class LRUCache<K, V> {
    */
   set(key: K, value: V) {
     const isValueInNewCache = this.cache.has(key)
+    if (isValueInNewCache && this.onEvict) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.onEvict(this.cache.get(key)!, key)
+    }
 
     this.cache.set(key, value)
 
-    if (isValueInNewCache) {
+    if (!isValueInNewCache) {
       this.evictIfNecessary()
     }
   }
@@ -53,7 +76,9 @@ export class LRUCache<K, V> {
    * Clear the cache.
    */
   clear() {
+    this.callEvictHandler(this.cache)
     this.cache.clear()
+    this.callEvictHandler(this.oldCache)
     this.oldCache.clear()
   }
 
@@ -62,8 +87,18 @@ export class LRUCache<K, V> {
    */
   private evictIfNecessary() {
     if (this.cache.size > this.maxSize) {
+      this.callEvictHandler(this.oldCache)
       this.oldCache = this.cache
       this.cache = new Map()
+    }
+  }
+
+  /**
+   * Call evict handler for given cache table, if present.
+   */
+  private callEvictHandler(table: Map<K, V>) {
+    if (this.onEvict) {
+      table.forEach(this.onEvict)
     }
   }
 }

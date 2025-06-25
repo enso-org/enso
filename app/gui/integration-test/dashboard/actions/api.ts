@@ -1307,7 +1307,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
     })
 
-    await get(remoteBackendPaths.getProjectContentPath(GLOB_PROJECT_ID), (route, request) => {
+    await get(remoteBackendPaths.getProjectAssetPath(GLOB_PROJECT_ID), (route, request) => {
       const maybeId = request.url().match(/[/]projects[/]([^?/]+)/)?.[1]
       if (!maybeId) return
       const projectId = backend.ProjectId(maybeId)

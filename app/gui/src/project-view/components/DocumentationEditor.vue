@@ -38,7 +38,7 @@ const fileContentsFromCloud = useQuery({
   ),
   queryFn: ({ queryKey }) => {
     const [, { projectId }] = queryKey
-    return projectId && backendForAsset.value?.getFileContent(projectId)
+    return projectId && backendForAsset.value?.getMainFileContent(projectId)
   },
 })
 

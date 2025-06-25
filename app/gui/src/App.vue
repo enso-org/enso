@@ -11,6 +11,7 @@ import { useEvent } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
 import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
+import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGuiConfig } from '@/providers/guiConfig'
@@ -97,7 +98,8 @@ const fullscreenRoot = shallowRef<HTMLElement>()
 // Mock external context in Project View integration tests. Once both test projects will be merged,
 // this should be removed
 if (projectViewOnly) {
-  provideOpenedProjects()
+  const openedProjects = provideOpenedProjects()
+  provideAsyncResources(openedProjects)
   provideContainerData([])
   provideRightPanelData(projectViewOnly.options.projectId, () => false, true, useText())
   provideFullscreenRoot(fullscreenRoot)

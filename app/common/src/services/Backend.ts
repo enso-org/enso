@@ -1813,7 +1813,7 @@ export default abstract class Backend {
     title: string,
   ): Promise<UpdatedProject>
   /** Fetch the content of the `Main.enso` file of a project. */
-  abstract getFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
+  abstract getMainFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId): Promise<string>
   /** Begin uploading a large file. */
   abstract uploadFileStart(
     body: UploadFileRequestParams,

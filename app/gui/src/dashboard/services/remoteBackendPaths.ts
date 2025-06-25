@@ -93,22 +93,11 @@ export function changeUserGroupPath(userId: backend.UserId) {
 export function listAssetVersionsPath(assetId: backend.AssetId) {
   return `assets/${assetId}/versions`
 }
-/** Relative HTTP path to the "get Main.enso file" endpoint of the Cloud backend API. */
-export function getProjectContentPath(
-  projectId: backend.ProjectId,
-  versionId?: backend.S3ObjectVersionId,
-) {
-  const searchParams = new URLSearchParams()
-  if (versionId !== undefined) {
-    searchParams.set('versionId', versionId)
-  }
-  return `projects/${projectId}/files?${searchParams.toString()}`
-}
-
 /** Relative HTTP path to the "get project asset" endpoint of the Cloud backend API. */
 export function getProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
-  return `projects/${projectId}/files/${relativePath.replace('./', '')}`
+  return `projects/${projectId}/files/${relativePath}`.replace('/./', '/').replace(/\/$/, '')
 }
+
 /**
  * Relative HTTP path to the "get asset details" endpoint of the Cloud backend API.
  */

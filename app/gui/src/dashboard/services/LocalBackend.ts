@@ -21,7 +21,7 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 }
 
 export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
-export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
+export const LOCAL_PROJECT_ID_PREFIX = `${backend.AssetType.project}-loc-`
 export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
@@ -31,7 +31,12 @@ export function newDirectoryId(path: projectManager.Path) {
 
 /** Create a {@link backend.ProjectId} from a UUID. */
 export function newProjectId(uuid: projectManager.UUID, path: projectManager.Path) {
-  return backend.ProjectId(`${PROJECT_ID_PREFIX}${uuid}-${path}`)
+  return backend.ProjectId(`${LOCAL_PROJECT_ID_PREFIX}${uuid}-${path}`)
+}
+
+/** Check if given {@link backend.ProjectId} represents a local project. */
+export function isLocalProjectId(projectId: backend.ProjectId): boolean {
+  return projectId.startsWith(LOCAL_PROJECT_ID_PREFIX)
 }
 
 /** Create a {@link backend.FileId} from a path. */
@@ -72,7 +77,7 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
  * @throws {Error} if the id has an unknown type.
  */
 export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
-  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
+  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(?:loc-)?(.+)/) ?? []
   const { directoryPath } = getDirectoryAndName(projectManager.Path(idRaw))
 
   switch (typeRaw) {
@@ -816,6 +821,15 @@ export default class LocalBackend extends Backend {
     }
   }
 
+  /** Resolve the data of a project asset relative to the project root directory. */
+  async resolveProjectAssetData(projectId: backend.ProjectId, relativePath: string): Promise<Blob> {
+    const response = await this.projectManager.getFileContent(
+      extractTypeAndId(projectId).id,
+      relativePath,
+    )
+    return response.blob()
+  }
+
   /** Download an asset. */
   override async download(
     id: backend.AssetId,
@@ -901,8 +915,12 @@ export default class LocalBackend extends Backend {
    *
    * Versioning is not supported on the Local Backend, thus the `versionId` parameter is ignored.
    */
-  override getFileContent(projectId: backend.ProjectId) {
-    return this.projectManager.getFileContent(extractTypeAndId(projectId).id)
+  override async getMainFileContent(projectId: backend.ProjectId) {
+    const response = await this.projectManager.getFileContent(
+      extractTypeAndId(projectId).id,
+      `src/Main.enso`,
+    )
+    return response.text()
   }
 
   /** Invalid operation. */

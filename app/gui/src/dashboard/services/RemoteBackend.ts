@@ -667,13 +667,17 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Fetch the content of the `Main.enso` file of a project. */
-  override async getFileContent(
+  override async getMainFileContent(
     projectId: backend.ProjectId,
     versionId?: backend.S3ObjectVersionId,
   ): Promise<string> {
-    const path = remoteBackendPaths.getProjectContentPath(projectId, versionId)
-    const response = await this.get<string>(path)
+    const path = remoteBackendPaths.getProjectAssetPath(projectId, 'src/Main.enso')
+    const searchParams = new URLSearchParams()
+    if (versionId !== undefined) {
+      searchParams.set('versionId', versionId)
+    }
 
+    const response = await this.get<string>(path, searchParams)
     if (!response.ok) {
       return this.throw(response, 'getFileContentsBackendError')
     } else {
@@ -1618,7 +1622,7 @@ export default class RemoteBackend extends Backend {
   // }
 
   /**
-   * Resolve the data of a project asset relative to the project `src` directory.
+   * Resolve the data of a project asset relative to the project root directory.
    */
   async resolveProjectAssetData(
     projectId: backend.ProjectId,

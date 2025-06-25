@@ -26,6 +26,7 @@ const [provideCurrentProject, useCurrentProject] = createContextStore(
     })
 
     return {
+      id: computed(() => toValue(projectId)),
       /* Current project as a single ref  */
       ref,
       /* Current project's stores decomposed to separate refs. */
