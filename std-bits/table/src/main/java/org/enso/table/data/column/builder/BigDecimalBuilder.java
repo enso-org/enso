@@ -3,7 +3,7 @@ package org.enso.table.data.column.builder;
 import java.math.BigDecimal;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
+import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
@@ -36,7 +36,7 @@ final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
 
   @Override
   protected ColumnStorage<BigDecimal> doSeal() {
-    return new BigDecimalStorage(data);
+    return new SpecializedStorage<>(BigDecimalType.INSTANCE, data);
   }
 
   static Builder retypeFromLongBuilder(LongBuilder longBuilder) {

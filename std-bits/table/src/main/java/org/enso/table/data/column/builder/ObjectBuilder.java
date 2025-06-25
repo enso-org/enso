@@ -1,7 +1,6 @@
 package org.enso.table.data.column.builder;
 
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -49,6 +48,6 @@ class ObjectBuilder extends TypedBuilder<Object> {
 
   @Override
   public ColumnStorage<Object> doSeal() {
-    return new ObjectStorage(data);
+    return new SpecializedStorage<>(AnyObjectType.INSTANCE, data);
   }
 }
