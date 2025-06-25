@@ -43,9 +43,8 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.io.File
 import java.util.UUID
-import java.util.concurrent.CompletionStage
+import java.util.concurrent.{CompletionStage, ExecutionException}
 import java.util.function.{Consumer, Supplier}
-import scala.concurrent.ExecutionException
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -306,11 +305,15 @@ object ProgramExecutionSupport {
     */
   private def onExecutionError(
     item: ExecutionItem,
-    error: Throwable
+    t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     val itemName = item match {
       case ExecutionItem.Method(_, _, function) => function
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
+    }
+    val error = t match {
+      case e: ExecutionException if e.getCause != null => e.getCause
+      case e                                           => e
     }
     val executionUpdate = getExecutionOutcome(error)
     val reason          = VisualizationResult.findExceptionMessage(error)
@@ -319,7 +322,7 @@ object ProgramExecutionSupport {
         logger.trace("Execution of function {} interrupted.", itemName)
         None
       case _ =>
-        val message = s""
+        val message = error.getClass.getSimpleName
         logger.trace(
           "Execution of function {} failed ({}).",
           itemName,
@@ -375,7 +378,6 @@ object ProgramExecutionSupport {
           findFileByModuleName(ex.getModule)
         )
       )
-
     case ex: MethodNotFoundException =>
       Some(
         Api.ExecutionResult.Failure(
