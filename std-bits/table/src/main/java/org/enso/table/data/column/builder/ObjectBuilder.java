@@ -1,7 +1,7 @@
 package org.enso.table.data.column.builder;
 
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.SpecializedStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
 
@@ -31,8 +31,8 @@ class ObjectBuilder extends TypedBuilder<Object> {
       resize(newSizeInt);
     }
 
-    if (storage instanceof SpecializedStorage<?> specializedStorage) {
-      // We can safely cast here, as for SpecializedStorage the size is always an int.
+    if (storage instanceof TypedStorage<?> specializedStorage) {
+      // We can safely cast here, as for TypedStorage the size is always an int.
       int toCopy = (int) storage.getSize();
       System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
       currentSize += toCopy;
@@ -48,6 +48,6 @@ class ObjectBuilder extends TypedBuilder<Object> {
 
   @Override
   public ColumnStorage<Object> doSeal() {
-    return new SpecializedStorage<>(AnyObjectType.INSTANCE, data);
+    return new TypedStorage<>(AnyObjectType.INSTANCE, data);
   }
 }

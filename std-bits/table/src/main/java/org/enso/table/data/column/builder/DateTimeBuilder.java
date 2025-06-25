@@ -5,7 +5,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.SpecializedStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -70,7 +70,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
 
   @Override
   protected ColumnStorage<ZonedDateTime> doSeal() {
-    return new SpecializedStorage<>(DateTimeType.INSTANCE, data);
+    return new TypedStorage<>(DateTimeType.INSTANCE, data);
   }
 
   @Override

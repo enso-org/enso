@@ -1,7 +1,7 @@
 package org.enso.table.data.column.builder;
 
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.SpecializedStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -48,11 +48,11 @@ final class StringBuilder extends TypedBuilder<String> {
   public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof TextType gotType
         && type.fitsExactly(gotType)
-        && storage instanceof SpecializedStorage<?>) {
+        && storage instanceof TypedStorage<?>) {
       // This cast is safe, because storage.getType() == this.getType() == TextType iff
       // storage.T == String
       @SuppressWarnings("unchecked")
-      SpecializedStorage<String> specializedStorage = (SpecializedStorage<String>) storage;
+      TypedStorage<String> specializedStorage = (TypedStorage<String>) storage;
       int toCopy = (int) storage.getSize();
       System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
       currentSize += toCopy;

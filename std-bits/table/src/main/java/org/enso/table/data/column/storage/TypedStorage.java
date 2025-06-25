@@ -4,11 +4,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public class SpecializedStorage<T> extends Storage<T> {
+public class TypedStorage<T> extends Storage<T> {
   /**
    * @param data the underlying data
    */
-  public SpecializedStorage(StorageType<T> type, T[] data) {
+  public TypedStorage(StorageType<T> type, T[] data) {
     this.type = type;
     this.data = data;
   }

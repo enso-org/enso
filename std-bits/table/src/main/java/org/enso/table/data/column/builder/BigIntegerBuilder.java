@@ -4,7 +4,7 @@ import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.SpecializedStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -59,7 +59,7 @@ final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
 
   @Override
   protected ColumnStorage<BigInteger> doSeal() {
-    return new SpecializedStorage<>(BigIntegerType.INSTANCE, data);
+    return new TypedStorage<>(BigIntegerType.INSTANCE, data);
   }
 
   @Override

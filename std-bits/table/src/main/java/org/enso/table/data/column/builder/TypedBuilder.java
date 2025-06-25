@@ -2,7 +2,7 @@ package org.enso.table.data.column.builder;
 
 import java.util.Arrays;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.SpecializedStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
@@ -53,10 +53,10 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
     }
 
     if (storage.getType().equals(getType())) {
-      if (storage instanceof SpecializedStorage<?>) {
+      if (storage instanceof TypedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
-        SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
+        TypedStorage<T> specializedStorage = (TypedStorage<T>) storage;
         System.arraycopy(
             specializedStorage.getData(), 0, data, currentSize, (int) storage.getSize());
         currentSize += storage.getSize();
