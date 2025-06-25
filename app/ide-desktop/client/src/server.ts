@@ -671,7 +671,6 @@ export class Server {
         await getDirectoryPath(parentPathInArchiveRaw)
         parentPathInArchive = pathMapping[parentPathInArchiveRaw] ?? ''
       }
-      let destinationPathInArchive = path.join(parentPathInArchive, getFileName(entryPathInArchive))
       const { basename, extension: extensionRaw } = basenameAndExtension(
         getFileName(entryPathInArchive),
       )
@@ -687,7 +686,8 @@ export class Server {
           }
         }
       })()
-      let destinationPath = Path(path.join(directory, `${basename}${extension}`))
+      let destinationPathInArchive = path.join(parentPathInArchive, `${basename}${extension}`)
+      let destinationPath = Path(path.join(directory, destinationPathInArchive))
       // If directories need to be merged in the future, the following check can be skipped
       // for directories.
       let i = 0
