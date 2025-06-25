@@ -68,7 +68,6 @@ function Drive(props: DriveProps) {
               <Button
                 size="medium"
                 variant="primary"
-                className="mx-auto"
                 onPress={() => {
                   setCategory('local')
                 }}
