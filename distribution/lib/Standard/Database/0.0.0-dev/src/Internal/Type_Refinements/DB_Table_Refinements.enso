@@ -11,7 +11,7 @@ from project.Internal.Type_Refinements.Single_Column_DB_Table_Conversions import
 from project.Internal.Type_Refinements.Single_Column_Typed_DB_Table_Conversions import all
 
 refine_table (table : DB_Table) =
-    if is_single_column table . not then table else
+    if is_single_column table . not then (table : Table & DB_Table) else
         _refine_single_column_table table
 
 is_single_column table:DB_Table -> Boolean =
@@ -21,8 +21,8 @@ private _refine_single_column_table table =
     column = table.at 0
     inferred_value_type = (column:Column).inferred_precise_value_type
     case inferred_value_type of
-        Value_Type.Integer _ -> (table : DB_Table & Column & DB_Column & Numeric_Column)
-        Value_Type.Byte -> (table : DB_Table & Column & DB_Column & Numeric_Column)
-        Value_Type.Float _ -> (table : DB_Table & Column & DB_Column & Numeric_Column)
-        Value_Type.Decimal _ _ -> (table : DB_Table & Column & DB_Column & Numeric_Column)
-        _ -> (table : DB_Table & Column & DB_Column)
+        Value_Type.Integer _ -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Byte -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Float _ -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Decimal _ _ -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
+        _ -> (table : Table & DB_Table & Column & DB_Column)

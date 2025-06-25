@@ -138,7 +138,7 @@ type SQLite_Dialect
 
     ## PRIVATE
        Prepares a distinct operation.
-    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name

@@ -53,12 +53,12 @@ resolve_temp_table_name connection temporary:Boolean table_name:Text -> Text =
    1. creating the table structure, by passing the description to `DDL_Transaction.run_transaction_with_tables`,
    2. uploading the data inside of the `run_transaction_with_tables` transactional block.
 type Table_Upload_Operation
-    Value table_description:Transactional_Table_Description (internal_upload_callback : Nothing -> DB_Table)
+    Value table_description:Transactional_Table_Description (internal_upload_callback : Nothing -> Table & DB_Table)
 
     ## Performs the actual data upload.
        This method should be called inside of `run_transaction_with_tables`
        block which had the `table_description` passed to it.
-    perform_upload self -> DB_Table = self.internal_upload_callback Nothing
+    perform_upload self -> Table & DB_Table = self.internal_upload_callback Nothing
 
 ## A helper to prepare an upload operation for a table.
 

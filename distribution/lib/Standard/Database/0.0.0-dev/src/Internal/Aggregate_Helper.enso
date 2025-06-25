@@ -203,7 +203,7 @@ make_infer_return_type dialect connection context =
    created.
 type Aggregate_With_Helper_Expressions
     ## PRIVATE
-    Value (create_helper_expressions : Aggregate_Column -> Vector Internal_Column -> Vector (Pair Text SQL_IR_Expression)) (make_aggregate : Aggregate_Column -> Text -> Vector Internal_Column -> DB_Table -> (Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column)
+    Value (create_helper_expressions : Aggregate_Column -> Vector Internal_Column -> Vector (Pair Text SQL_IR_Expression)) (make_aggregate : Aggregate_Column -> Text -> Vector Internal_Column -> Table & DB_Table -> (Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column)
 
     ## PRIVATE
        This method should be declared as result of `dialect.custom_build_aggregate` to use this setup.
