@@ -88,7 +88,6 @@ polyglot java import java.util.UUID
 type DB_Table_Implementation
     name (this_table : Table & DB_Table) -> Text = this_table.internal_name
 
-    display : Integer -> Boolean -> Text
     display (this_table : Table & DB_Table) show_rows:Integer=10 format_terminal:Boolean=False =
         data_fragment_with_warning = this_table.read (..First_With_Warning show_rows)
         has_more_rows = data_fragment_with_warning.has_warnings warning_type=Not_All_Rows_Downloaded
@@ -97,13 +96,11 @@ type DB_Table_Implementation
         all_rows_count = if has_more_rows then this_table.row_count else data_fragment_cleared.row_count
         Display_Helpers.display_table table=data_fragment_cleared add_row_index=False max_rows_to_show=show_rows all_rows_count=all_rows_count format_terminal=format_terminal
 
-    print : Integer -> Nothing
     print (this_table : Table & DB_Table) show_rows=10 =
         IO.println (this_table.display show_rows format_terminal=True)
         IO.println ''
 
-    to_js_object : JS_Object
-    to_js_object this_table = case this_table.internal_columns.is_empty of
+    to_js_object (this_table : Table & DB_Table) = case this_table.internal_columns.is_empty of
         True -> JS_Object.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
         False -> this_table.to_sql.to_js_object
 
@@ -118,81 +115,79 @@ type DB_Table_Implementation
             _ : Text -> this_table.internal_columns.find (p -> p.name == selector) if_missing=Nothing
         if internal_column.is_nothing then if_missing else this_table.make_column internal_column
 
-    get_value this_table (selector : Text | Integer = 0) index:Integer=0 ~if_missing:Any=Nothing -> Any =
+    get_value (this_table : Table & DB_Table) (selector : Text | Integer = 0) index:Integer=0 ~if_missing:Any=Nothing -> Any =
         Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "get_value" <|
             col = this_table.get selector if_missing=Nothing
             if Nothing == col then if_missing else col.get index if_missing
 
-    get_row this_table index:Integer=0 ~if_missing:Any=Nothing -> Row | Any =
+    get_row (this_table : Table & DB_Table) index:Integer=0 ~if_missing:Any=Nothing -> Row | Any =
         Feature.Sample.if_supported_else_throw this_table.connection.dialect "get_row" <|
             if index == -1 then this_table.last_row else
                 real_row = (if index < 0 then index + this_table.row_count else index)
                 if real_row < 0 then if_missing else
                     this_table.rows real_row+1 . get real_row if_missing
 
-    first_value this_table -> Any ! Index_Out_Of_Bounds =
+    first_value (this_table : Table & DB_Table) -> Any ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "first_value" <|
             this_table.at 0 . at 0
 
-    last_value this_table -> Any ! Index_Out_Of_Bounds =
+    last_value (this_table : Table & DB_Table) -> Any ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "last_value" <|
             this_table.last_row . at -1
 
-    first_column this_table -> Column ! Index_Out_Of_Bounds =
+    first_column (this_table : Table & DB_Table) -> Column ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "first_column" <|
             this_table.at 0
 
-    last_column this_table -> Column ! Index_Out_Of_Bounds =
+    last_column (this_table : Table & DB_Table) -> Column ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw this_table.connection.dialect "last_column" <|
             this_table.at -1
 
-    column_count this_table -> Integer = this_table.internal_columns.length
+    column_count (this_table : Table & DB_Table) -> Integer = this_table.internal_columns.length
 
-    select_columns this_table (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) reorder:Boolean=False case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Output_Columns | Missing_Input_Columns =
+    select_columns (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) reorder:Boolean=False case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Output_Columns | Missing_Input_Columns =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "select_columns" <|
             new_columns = this_table.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
             this_table.updated_columns (new_columns.map (Internal_Column.from _))
 
-    select_columns_by_type : Vector Value_Type -> Boolean -> Table
-    select_columns_by_type this_table (types:Vector Value_Type) strict:Boolean=False =
+    select_columns_by_type (this_table : Table & DB_Table) (types:Vector Value_Type) strict:Boolean=False =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "select_columns_by_type" <|
             new_columns = this_table.columns_helper.select_by_type types strict
             result = this_table.updated_columns (new_columns.map (Internal_Column.from _))
             Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
 
-    remove_columns this_table (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Output_Columns | Missing_Input_Columns =
+    remove_columns (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Output_Columns | Missing_Input_Columns =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "remove_columns" <|
             new_columns = this_table.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
             this_table.updated_columns (new_columns.map (Internal_Column.from _))
 
-    remove_columns_by_type : Vector Value_Type -> Boolean -> Table
-    remove_columns_by_type this_table (types:Vector Value_Type) strict:Boolean=False =
+    remove_columns_by_type (this_table : Table & DB_Table) (types:Vector Value_Type) strict:Boolean=False =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "remove_columns_by_type" <|
             new_columns = this_table.columns_helper.remove_by_type types strict
             result = this_table.updated_columns (new_columns.map (Internal_Column.from _))
             Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
 
-    select_blank_columns this_table when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> DB_Table =
+    select_blank_columns (this_table : Table & DB_Table) when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> DB_Table =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "select_blank_columns" <|
             new_columns = this_table.columns_helper.select_blank_columns_helper when treat_nans_as_blank
             this_table.updated_columns new_columns
 
-    remove_blank_columns this_table when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> DB_Table =
+    remove_blank_columns (this_table : Table & DB_Table) when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> DB_Table =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "remove_blank_columns" <|
             new_columns = this_table.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
             this_table.updated_columns new_columns
 
-    reorder_columns this_table (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) position:Position=..Before_Other_Columns case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Missing_Input_Columns =
+    reorder_columns (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = [this_table.columns.first.name]) position:Position=..Before_Other_Columns case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Missing_Input_Columns =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "reorder_columns" <|
             new_columns = this_table.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
             this_table.updated_columns (new_columns.map (Internal_Column.from _))
 
-    sort_columns this_table order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default -> DB_Table =
+    sort_columns (this_table : Table & DB_Table) order:Sort_Direction=..Ascending text_ordering:Text_Ordering=..Default -> DB_Table =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "sort_columns" <|
             new_columns = Table_Helpers.sort_columns internal_columns=this_table.internal_columns order text_ordering
             this_table.updated_columns new_columns
 
-    rename_columns this_table (column_map : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector = Missing_Argument.throw "column_map") case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names =
+    rename_columns (this_table : Table & DB_Table) (column_map : Table | Dictionary (Text | Integer | Regex) Text | Vector Text | Vector Vector = Missing_Argument.throw "column_map") case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "rename_columns" <|
             case column_map of
                 _ : Table ->
@@ -203,11 +198,10 @@ type DB_Table_Implementation
                     Warning.with_suspended new_names names->
                         this_table.updated_columns (this_table.internal_columns.map c-> c.rename (names.at c.name))
 
-    use_first_row_as_names this_table on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+    use_first_row_as_names (this_table : Table & DB_Table) on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         _ = on_problems
         Error.throw (Unsupported_Database_Operation.Error "use_first_row_as_names")
 
-    resolve : Text | DB_Column -> Column
     resolve (this_table : Table & DB_Table) column =
         Feature.Select_Columns.if_supported_else_throw this_table.connection.dialect "resolve" <|
             case column of
@@ -240,8 +234,7 @@ type DB_Table_Implementation
                     table_at = this_table.at column
                     this_table.filter table_at filter on_problems
 
-    filter_by_expression : Text -> Problem_Behavior -> DB_Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    filter_by_expression this_table expression:Text on_problems:Problem_Behavior=..Report_Warning =
+    filter_by_expression (this_table : Table & DB_Table) expression:Text on_problems:Problem_Behavior=..Report_Warning =
         Feature.Filter.if_supported_else_throw this_table.connection.dialect "filter_by_expression" <|
             column = this_table.evaluate_expression (Expression.Value expression) on_problems
             result = this_table.filter column Filter_Condition.Is_True
@@ -257,12 +250,11 @@ type DB_Table_Implementation
             Ordering_Helpers.require_ordering this_table "drop" <|
                 Take_Drop_Helpers.take_drop_helper Take_Drop.Drop this_table range
 
-    remove_all_rows : DB_Table
-    remove_all_rows this_table =
+    remove_all_rows (this_table : Table & DB_Table) =
         Feature.Filter.if_supported_else_throw this_table.connection.dialect "remove_all_rows" <|
             this_table.filter (Expression.Value "0==1")
 
-    add_row_number this_table name:Text="Row" from:Integer=0 step:Integer=1 (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+    add_row_number (this_table : Table & DB_Table) name:Text="Row" from:Integer=0 step:Integer=1 (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         Feature.Add_Row_Number.if_supported_else_throw this_table.connection.dialect "add_row_number" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=True
             grouping_columns = _resolve_grouping_columns this_table.columns_helper group_by problem_builder
@@ -286,7 +278,7 @@ type DB_Table_Implementation
                 updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                 updated_table.as_subquery
 
-    add_group_number this_table grouping_method:Grouping_Method=..Unique name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+    add_group_number (this_table : Table & DB_Table) grouping_method:Grouping_Method=..Unique name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         Feature.Add_Group_Number.if_supported_else_throw this_table.connection.dialect "add_group_number" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=True
             case grouping_method of
@@ -379,8 +371,7 @@ type DB_Table_Implementation
             problem_builder.report_unique_name_strategy unique
             problem_builder.attach_problems_after on_problems new_table
 
-    evaluate_expression : Text | Expression -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    evaluate_expression this_table expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
+    evaluate_expression (this_table : Table & DB_Table) expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
         if expression.is_a Text then this_table.evaluate_expression (Expression.Value expression) on_problems else
             get_column name = this_table.at name
             make_constant_column value = case value of
@@ -393,8 +384,7 @@ type DB_Table_Implementation
             on_problems.attach_problems_before problems <|
                 Warning.set result []
 
-    make_table_from_dictionary : Dictionary Any Any -> Text -> Text -> Table
-    make_table_from_dictionary this_table dict key_column_name value_column_name =
+    make_table_from_dictionary (this_table : Table & DB_Table) dict key_column_name value_column_name =
         Feature.Make_Table_From.if_supported_else_throw this_table.connection.dialect "make_table_from_dictionary" <|
             total_size = dict.size * 2
 
@@ -403,14 +393,12 @@ type DB_Table_Implementation
                     keys_and_values = dict.to_vector
                     this_table.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
-    make_table_from_vectors : Vector (Vector Any) -> Vector Text -> DB_Table
-    make_table_from_vectors this_table column_vectors column_names =
+    make_table_from_vectors (this_table : Table & DB_Table) column_vectors column_names =
         Feature.Make_Table_From.if_supported_else_throw this_table.connection.dialect "make_table_from_vectors" <|
             literal_table_name = this_table.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
             make_literal_table this_table.connection column_vectors column_names literal_table_name
 
-    make_constant_column : Any -> Column ! Illegal_Argument
-    make_constant_column this_table value =
+    make_constant_column (this_table : Table & DB_Table) value =
         if Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
             type_mapping = this_table.connection.dialect.get_type_mapping
             argument_value_type = Value_Type_Helpers.find_argument_type value
@@ -427,17 +415,15 @@ type DB_Table_Implementation
                 this_table.connection.dialect.make_cast base_column sql_type infer_type_from_database
             this_table.make_column result_internal_column
 
-    make_temp_column_name : Text
-    make_temp_column_name this_table = this_table.column_naming_helper.make_temp_column_name this_table.column_names
+    make_temp_column_name (this_table : Table & DB_Table) = this_table.column_naming_helper.make_temp_column_name this_table.column_names
 
-    with_temporary_column this_table new_column:Column f:(Text -> DB_Table -> DB_Table) -> DB_Table =
+    with_temporary_column (this_table : Table & DB_Table) new_column:Column f:(Text -> DB_Table -> DB_Table) -> DB_Table =
         new_column_name = this_table.make_temp_column_name
         with_new_column = this_table.set new_column new_column_name set_mode=Set_Mode.Add
         modified_table = f new_column_name with_new_column
         modified_table.remove_columns new_column_name
 
-    filter_on_predicate_column : DB_Column -> DB_Table
-    filter_on_predicate_column this_table predicate_column =
+    filter_on_predicate_column (this_table : Table & DB_Table) predicate_column =
         this_table.with_temporary_column predicate_column name-> table->
             table.filter name Filter_Condition.Is_True
 
@@ -446,17 +432,17 @@ type DB_Table_Implementation
             Array_Proxy.new this_table.internal_columns.length i->
                 this_table.make_column (this_table.internal_columns.at i)
 
-    column_names this_table -> Vector Text = Vector.from_polyglot_array <|
+    column_names (this_table : Table & DB_Table) -> Vector Text = Vector.from_polyglot_array <|
         Array_Proxy.new this_table.internal_columns.length i->
             this_table.internal_columns.at i . name
 
     rows (this_table : Table & DB_Table) (max_rows : Rows_To_Read = ..First_With_Warning 1000) -> Vector Row =
         this_table.read max_rows . rows
 
-    first_row this_table -> Row ! Index_Out_Of_Bounds =
+    first_row (this_table : Table & DB_Table) -> Row ! Index_Out_Of_Bounds =
         this_table.read (..First 1) . rows . first
 
-    last_row this_table -> Row ! Index_Out_Of_Bounds =
+    last_row (this_table : Table & DB_Table) -> Row ! Index_Out_Of_Bounds =
         if this_table.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             sql = this_table.to_sql
             column_types = this_table.internal_columns.map .sql_type_reference
@@ -476,13 +462,11 @@ type DB_Table_Implementation
                 new_ctx = this_table.context.add_orders new_order_descriptors
                 this_table.updated_context new_ctx
 
-    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
-    order_by this_table (columns = ([(Sort_Column.Name (this_table.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+    order_by (this_table : Table & DB_Table) (columns = ([(Sort_Column.Name (this_table.columns.at 0 . name))])) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         result = this_table.sort columns text_ordering error_on_missing_columns on_problems
         Warning.attach (Deprecated.Warning "Standard.Database.Table.Table" "order_by" "Deprecated: use `sort` instead.") result
 
-    default_ordering : Vector Order_Descriptor | Nothing
-    default_ordering this_table =
+    default_ordering (this_table : Table & DB_Table) =
         explicit_ordering = this_table.context.orders
         if explicit_ordering.not_empty then explicit_ordering else
             case this_table.get_primary_key of
@@ -494,8 +478,7 @@ type DB_Table_Implementation
                             Order_Descriptor.Value column_expression Sort_Direction.Ascending
                     _ -> Nothing
 
-    get_primary_key : Vector Text | Nothing
-    get_primary_key this_table = case this_table.context.from_spec of
+    get_primary_key (this_table : Table & DB_Table) = case this_table.context.from_spec of
         SQL_IR_From_Part.Table table_name _ _ ->
             # The primary key may not be valid anymore after grouping!
             is_primary_key_still_valid = this_table.context.groups.is_empty
@@ -522,8 +505,7 @@ type DB_Table_Implementation
         Feature.Join.if_supported_else_throw this_table.connection.dialect "join" <|
             this_table.join_or_cross_join right join_kind on right_prefix on_problems
 
-    join_or_cross_join : DB_Table -> Join_Kind | Join_Kind_Cross -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> DB_Table
-    join_or_cross_join this_table right:DB_Table join_kind on right_prefix on_problems =
+    join_or_cross_join (this_table : Table & DB_Table) right:DB_Table join_kind on right_prefix on_problems =
         can_proceed = Helpers.ensure_same_connection "table" [this_table, right] <|
             join_conditions_ok = join_kind != Join_Kind_Cross || on == []
             if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
@@ -577,7 +559,7 @@ type DB_Table_Implementation
                 new_ctx = SQL_IR_Source.for_subquery new_from . set_where_filters where_expressions
                 DB_Table.new new_table_name this_table.connection result_columns new_ctx
 
-    cross_join this_table (right : DB_Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+    cross_join (this_table : Table & DB_Table) (right : DB_Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         Feature.Cross_Join.if_supported_else_throw this_table.connection.dialect "cross_join" <|
             row_limit = case right_row_limit of
                 Row_Limit.No_Limit -> Nothing
@@ -697,7 +679,7 @@ type DB_Table_Implementation
         _ = [key_columns, attribute_column_name, value_column_name, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "transpose")
 
-    cross_tab this_table (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (names : Text | Integer  = Missing_Argument.throw "names") (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names =
+    cross_tab (this_table : Table & DB_Table) (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (names : Text | Integer  = Missing_Argument.throw "names") (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [group_by, names, values, on_problems]
@@ -716,31 +698,31 @@ type DB_Table_Implementation
         _ = [columns, format, locale, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "format")
 
-    split_to_columns this_table (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+    split_to_columns (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         _ = [column, delimiter, column_count.columns_to_split, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "split_to_columns")
 
-    split_to_rows this_table (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") -> DB_Table =
+    split_to_rows (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") -> DB_Table =
         _ = [column, delimiter]
         Error.throw (Unsupported_Database_Operation.Error "split_to_rows")
 
-    tokenize_to_columns this_table (column : Text | Integer) pattern:Text="." case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+    tokenize_to_columns (this_table : Table & DB_Table) (column : Text | Integer) pattern:Text="." case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         _ = [column, pattern, case_sensitivity, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "tokenize_to_columns")
 
-    tokenize_to_rows this_table (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False -> DB_Table =
+    tokenize_to_rows (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False -> DB_Table =
         _ = [column, pattern, case_sensitivity, at_least_one_row]
         Error.throw (Unsupported_Database_Operation.Error "tokenize_to_rows")
 
-    parse_to_columns this_table (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text | Regex = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive parse_values:Boolean=True on_problems:Problem_Behavior=..Report_Error -> DB_Table =
+    parse_to_columns (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text | Regex = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive parse_values:Boolean=True on_problems:Problem_Behavior=..Report_Error -> DB_Table =
         _ = [column, pattern, case_sensitivity, parse_values, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "parse_to_columns")
 
-    expand_column this_table (column : Text | Integer = Missing_Argument.throw "column") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name -> DB_Table ! Type_Error =
+    expand_column (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name -> DB_Table ! Type_Error =
             _ = [column, fields, prefix]
             Error.throw (Unsupported_Database_Operation.Error "expand_column")
 
-    expand_to_rows this_table (column : Text | Integer = Missing_Argument.throw "column") at_least_one_row:Boolean=False -> DB_Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
+    expand_to_rows (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") at_least_one_row:Boolean=False -> DB_Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
         _ = [column, at_least_one_row]
         Error.throw (Unsupported_Database_Operation.Error "expand_to_rows")
 
@@ -750,14 +732,14 @@ type DB_Table_Implementation
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
 
-    auto_cast this_table (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = this_table.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+    auto_cast (this_table : Table & DB_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = this_table.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         _ = [columns, shrink_types, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "auto_cast")
 
-    filter_blank_rows this_table when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> DB_Table =
+    filter_blank_rows (this_table : Table & DB_Table) when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> DB_Table =
         Table_Helpers.filter_blank_rows this_table when treat_nans_as_blank
 
-    row_count this_table -> Integer = if this_table.internal_columns.is_empty then 0 else
+    row_count (this_table : Table & DB_Table) -> Integer = if this_table.internal_columns.is_empty then 0 else
         expr = SQL_IR_Expression.Operation "COUNT_ROWS" []
         column_name = "row_count"
         ## We need to keep some column in the subquery which will determine if
@@ -797,7 +779,7 @@ type DB_Table_Implementation
                 Telemetry.log "DB_Table.read" "Materialize Table: connection_type={}, output={}, row_count={}, column_count={}" [this_table.connection.to Meta.Type . name, "Table", result.row_count, result.column_count]
                 with_problems
 
-    column_info this_table -> Table =
+    column_info (this_table : Table & DB_Table) -> Table =
         cols = this_table.internal_columns
         count_query =
             ## Performing a subquery is the most robust way to handle both
@@ -818,16 +800,13 @@ type DB_Table_Implementation
         Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]
 
     ## PRIVATE
-    columns_helper : Table_Column_Helper
-    columns_helper this_table =
+    columns_helper (this_table : Table & DB_Table) =
         Table_Helpers.Table_Column_Helper.Value this_table.columns this_table.internal_columns this_table.make_column this_table .read
 
     ## PRIVATE
-    column_naming_helper : Column_Naming_Helper
-    column_naming_helper this_table = this_table.connection.base_connection.column_naming_helper
+    column_naming_helper (this_table : Table & DB_Table) = this_table.connection.base_connection.column_naming_helper
 
-    to_text : Text
-    to_text this_table = "(Database Table "+this_table.name.to_text+")"
+    to_text (this_table : Table & DB_Table) = "(Database Table "+this_table.name.to_text+")"
 
     write (this_table : Table & DB_Table) (path : Writable_File = Missing_Argument.throw "path") format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> File | Any ! Column_Count_Mismatch | Illegal_Argument | File_Error = path.if_not_error <|
         row_limit = 100000
@@ -838,27 +817,27 @@ type DB_Table_Implementation
             Error.throw (Illegal_Argument.Error "DB_Table contains more than 100,000 rows. Use `read` to materialize first.")
 
 
-    save_as_data_link this_table destination on_existing_file:Existing_File_Behavior=..Error =
+    save_as_data_link (this_table : Table & DB_Table) destination on_existing_file:Existing_File_Behavior=..Error =
         DB_Data_Link_Helpers.save_table_as_data_link this_table destination on_existing_file
 
-    fill_nothing this_table (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : DB_Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> DB_Table =
+    fill_nothing (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : DB_Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> DB_Table =
         resolved_default = (this_table:Table_Ref).resolve default
         transformer col = col.fill_nothing resolved_default
         Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
 
-    fill_empty this_table (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : DB_Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> DB_Table =
+    fill_empty (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : DB_Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> DB_Table =
         resolved_default = (this_table:Table_Ref).resolve default
         transformer col = col.fill_empty resolved_default
         Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
 
-    text_replace this_table (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
+    text_replace (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
         table_ref = Table_Ref.from this_table
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
         transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
 
-    text_cleanse this_table (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") (remove : Vector Named_Pattern = []) -> DB_Table =
+    text_cleanse (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") (remove : Vector Named_Pattern = []) -> DB_Table =
         Feature.Text_Cleanse.if_supported_else_throw this_table.connection.dialect "text_cleanse" <|
             transformer col = col.text_cleanse remove
             Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
@@ -888,6 +867,6 @@ type DB_Table_Implementation
                     t.set (this_table.make_column col)
                 updated_table.as_subquery
 
-    generate_rows this_table over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
+    generate_rows (this_table : Table & DB_Table) over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
         _ = [over, as, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "generate_rows")
