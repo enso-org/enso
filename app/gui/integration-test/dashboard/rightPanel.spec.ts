@@ -86,7 +86,7 @@ test('Asset Panel Decription', ({ page }) =>
     .do(async () => {
       const descriptionEditor = locateRightPanelDescription(page)
       await expect(descriptionEditor).toBeVisible()
-      await expect(descriptionEditor).toHaveText(new RegExp(DESCRIPTION))
+      await expect(descriptionEditor).toContainText(DESCRIPTION)
       await descriptionEditor.click()
       await page.keyboard.insertText(NEW_DESCRIPTION)
     })
@@ -94,8 +94,8 @@ test('Asset Panel Decription', ({ page }) =>
     .do(() => expect(locateRightPanelDescription(page)).not.toBeVisible())
     .driveTable.clickRow(0)
     .do(async () => {
-      await expect(locateRightPanelDescription(page)).toHaveText(
-        new RegExp(`${DESCRIPTION}${NEW_DESCRIPTION}`),
+      await expect(locateRightPanelDescription(page)).toContainText(
+        `${DESCRIPTION}${NEW_DESCRIPTION}`,
       )
     }))
 

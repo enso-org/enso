@@ -9,14 +9,13 @@ const { active, editing } = defineProps<{ active: boolean; editing: boolean }>()
 const editorRoot = useTemplateRef('editorRoot')
 
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
-  content: model.value,
   extensions: [selectOnMouseFocus],
   readonly: false,
   lineMode: 'single',
 })
 const { syncExt, getText, setText } = useStringSync(editorView)
 setExtraExtensions(syncExt)
-watch(model, (text) => setText(text))
+watch(model, (text) => setText(text), { immediate: true })
 function onEditorBlur() {
   model.value = getText()
 }

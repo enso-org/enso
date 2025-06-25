@@ -39,7 +39,6 @@ const emit = defineEmits<{
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
-  content: model.value,
   placeholder: () => props.placeholder ?? ' ',
   readonly: false,
   contentTestId: props.contentTestId,
@@ -55,7 +54,7 @@ watchEffect(() =>
   ]),
 )
 
-watch(model, (text) => setText(text))
+watch(model, (text) => setText(text), { immediate: true })
 onTextEdited((text) => {
   editing.value.edit(props.transformUserInput?.(text) ?? text)
   emit('textEdited', text)

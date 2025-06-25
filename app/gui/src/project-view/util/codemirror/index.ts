@@ -55,8 +55,6 @@ export type LineMode = 'single' | 'multi' | 'auto' | 'autoMulti'
 export type Getter<T> = () => T
 
 interface CodeMirrorOptions {
-  /** If a value is provided, the editor state will be synchronized with it. */
-  content?: ToValue<string | Y.Text>
   placeholder?: ToValue<string>
   /** CodeMirror {@link Extension}s to include in the editor's initial state. */
   extensions?: Extension
