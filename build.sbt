@@ -5842,6 +5842,26 @@ launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
 projectManagerDistributionRoot :=
   packageBuilder.localArtifact("project-manager") / "enso"
 
+lazy val extraBazelEnvForStdLibIndexes = taskKey[Map[String, String]](
+  "Extra environment variables for subprocesses when running from Bazel - when compiling std libs"
+)
+extraBazelEnvForStdLibIndexes := Def.taskIf {
+  if ((Bazel / wasStartedFromBazel).value) {
+    val repoRoot = (enso / baseDirectory).value
+    val libPath =
+      (engineDistributionRoot.value / "lib" / "Standard").getCanonicalPath
+    val langHome = (engineDistributionRoot.value / "component").getCanonicalPath
+    Map(
+      "ENSO_HOME"         -> repoRoot.getAbsolutePath,
+      "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath,
+      "TMPDIR"            -> (repoRoot / ".tmp").getAbsolutePath,
+      "JAVA_TOOL_OPTIONS" -> s"-Denso.languageHomeOverride=$langHome"
+    )
+  } else {
+    Map.empty[String, String]
+  }
+}.value
+
 lazy val createStdLibsIndexes =
   taskKey[Unit]("Creates index files for standard libraries")
 createStdLibsIndexes := {
@@ -5857,6 +5877,7 @@ createStdLibsIndexes := {
     ensoVersion   = ensoVersion,
     stdLibRoot    = distributionRoot / "lib",
     javaOpts      = javaOpts,
+    env           = extraBazelEnvForStdLibIndexes.value,
     cacheFactory  = cacheFactory.sub("stdlib"),
     log           = log
   )
@@ -6163,6 +6184,7 @@ pkgStdLibInternal := Def.inputTask {
         stdLibVersion = defaultDevEnsoVersion,
         ensoVersion   = defaultDevEnsoVersion,
         javaOpts      = javaOpts,
+        env           = extraBazelEnvForStdLibIndexes.value,
         cacheFactory  = cacheFactory.sub("stdlib"),
         log           = log
       )
@@ -6191,6 +6213,28 @@ buildProjectManagerDistribution := {
   DistributionPackage.createProjectManagerPackage(root, cacheFactory)
   log.info(s"Project Manager package created at $root")
 }
+lazy val extraBazelEnvForManifestUpdate = taskKey[Map[String, String]](
+  "Extra environment variables for subprocesses when running from Bazel - manifest update"
+)
+
+/** Note that when updating library manifests, `engineDistributionRoot` does not yet exist.
+  * This is unlike to when running `createStdLibIndexes`.
+  */
+extraBazelEnvForManifestUpdate := Def.taskIf {
+  if ((Bazel / wasStartedFromBazel).value) {
+    val repoRoot = (enso / baseDirectory).value
+    val libPath =
+      (engineDistributionRoot.value / "lib" / "Standard").getCanonicalPath
+    val langHome = (engineDistributionRoot.value / "component").getCanonicalPath
+    Map(
+      "ENSO_HOME"         -> repoRoot.getAbsolutePath,
+      "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath,
+      "TMPDIR"            -> (repoRoot / ".tmp").getAbsolutePath
+    )
+  } else {
+    Map.empty[String, String]
+  }
+}.value
 
 lazy val updateLibraryManifests =
   taskKey[Unit](
@@ -6206,6 +6250,7 @@ updateLibraryManifests := {
   val runtimeCp  = (`runtime` / Runtime / fullClasspath).value
   val fullCp     = (runnerCp ++ runtimeCp).distinct
   val modulePath = componentModulesPaths.value
+  val env        = extraBazelEnvForManifestUpdate.value
   val javaOpts = (ThisBuild / javaOptions).value ++ Seq(
     "--module-path",
     modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
@@ -6217,6 +6262,7 @@ updateLibraryManifests := {
     file("distribution"),
     log,
     javaOpts,
-    cacheFactory
+    cacheFactory,
+    env
   )
 }

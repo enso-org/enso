@@ -10,6 +10,7 @@ import scala.sys.process._
 import org.enso.build.WithDebugCommand
 
 import java.nio.file.Paths
+import scala.jdk.javaapi.CollectionConverters.asJava
 import scala.util.Try
 
 object DistributionPackage {
@@ -202,7 +203,8 @@ object DistributionPackage {
     stdLibRoot: File,
     javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
-    log: Logger
+    log: Logger,
+    env: Map[String, String] = Map.empty
   ): Unit = {
     for {
       libMajor <- stdLibRoot.listFiles()
@@ -214,7 +216,8 @@ object DistributionPackage {
         ensoVersion,
         javaOpts,
         cacheFactory,
-        log
+        log,
+        env
       )
     }
   }
@@ -225,7 +228,8 @@ object DistributionPackage {
     ensoVersion: String,
     javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
-    log: Logger
+    log: Logger,
+    env: Map[String, String] = Map.empty
   ): Unit = {
     object FileOnlyFilter extends sbt.io.FileFilter {
       def accept(arg: File): Boolean = arg.isFile
@@ -250,11 +254,17 @@ object DistributionPackage {
           path.getAbsolutePath
         )
         log.debug(command.mkString(" "))
-        val runningProcess = Process(
-          command,
-          Some(path.getAbsoluteFile.getParentFile),
+        val allEnv = env ++ Map(
           "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
-        ).run()
+        )
+        val procBldr = new java.lang.ProcessBuilder(asJava(command))
+        procBldr.directory(path.getAbsoluteFile.getParentFile)
+        allEnv.foreach { case (k, v) =>
+          procBldr.environment().put(k, v)
+        }
+        Process(procBldr)
+
+        val runningProcess = Process(procBldr).run()
         // Poor man's solution to stuck index generation
         val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
         var current                  = 0
