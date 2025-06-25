@@ -521,7 +521,7 @@ function AssetsTable(props: AssetsTableProps) {
           isCloud ?
             (type: AssetType | undefined) =>
               type === AssetType.project || type === AssetType.file || type === AssetType.datalink
-          : (type: AssetType | undefined) => type === AssetType.project
+          : () => true
         const map = new Map(assets.map((item) => [item.id, item]))
         const newCanDownload =
           selectedIds.size !== 0 &&

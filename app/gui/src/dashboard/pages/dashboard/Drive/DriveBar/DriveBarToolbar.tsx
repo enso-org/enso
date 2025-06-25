@@ -39,7 +39,7 @@ import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DrivePr
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import { isDirectoryId, type CredentialConfig } from '#/services/Backend'
+import { isDirectoryId, isProjectId, type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -169,7 +169,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     if (
       selectedAssets.length === 1 &&
       selectedAssets[0] != null &&
-      !isDirectoryId(selectedAssets[0].id)
+      (isCloud ? !isDirectoryId(selectedAssets[0].id) : isProjectId(selectedAssets[0].id))
     ) {
       await downloadAssetsMutation({
         ids: selectedAssets,
