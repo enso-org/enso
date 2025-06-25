@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-
 import org.enso.table.data.column.storage.type.IntegerType;
 
 /**

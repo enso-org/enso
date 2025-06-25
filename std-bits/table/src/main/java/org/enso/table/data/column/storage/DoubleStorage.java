@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.NoSuchElementException;
-
 import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
 

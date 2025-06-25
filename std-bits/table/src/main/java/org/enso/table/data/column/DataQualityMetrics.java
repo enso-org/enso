@@ -190,7 +190,8 @@ public abstract class DataQualityMetrics {
                   Accumulator accumulator = new Accumulator();
                   DataQualityMetrics.loopOverAll(storage, accumulator::process);
                   return accumulator.getResult();
-                }, threadFactory);
+                },
+                threadFactory);
       }
     }
 
@@ -265,7 +266,8 @@ public abstract class DataQualityMetrics {
                 Accumulator<T> accumulator = new Accumulator<>(comparator);
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              }, threadFactory);
+              },
+              threadFactory);
     }
 
     @Override
@@ -341,7 +343,8 @@ public abstract class DataQualityMetrics {
                 var accumulator = new Accumulator();
                 DataQualityMetrics.loopOverSample(storage, accumulator::process);
                 return accumulator.getResult(storage.getSize() > DEFAULT_SAMPLE_SIZE);
-              }, threadFactory);
+              },
+              threadFactory);
     }
 
     @Override
@@ -514,7 +517,8 @@ public abstract class DataQualityMetrics {
                 Accumulator accumulator = new Accumulator();
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              }, threadFactory);
+              },
+              threadFactory);
     }
 
     @Override

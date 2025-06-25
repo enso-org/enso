@@ -13,7 +13,8 @@ import org.enso.table.problems.BlackholeProblemAggregator;
  * more precise type if all values have a common type, and will allow operations on this more
  * specific type.
  */
-public final class MixedStorage extends TypedStorage<Object> implements ColumnStorageWithInferredStorage {
+public final class MixedStorage extends TypedStorage<Object>
+    implements ColumnStorageWithInferredStorage {
   /**
    * Holds a specialized storage for the inferred type, if available.
    *

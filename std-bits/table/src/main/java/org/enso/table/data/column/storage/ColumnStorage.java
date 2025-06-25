@@ -1,9 +1,8 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.storage.type.StorageType;
-
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import org.enso.table.data.column.storage.type.StorageType;
 
 /** Basic interface of a column storage. */
 public interface ColumnStorage<T> extends Iterable<T> {
