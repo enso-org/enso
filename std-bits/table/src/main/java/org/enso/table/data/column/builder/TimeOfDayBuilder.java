@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder;
 
 import java.time.LocalTime;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -34,6 +35,6 @@ final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
 
   @Override
   protected ColumnStorage<LocalTime> doSeal() {
-    return new TimeOfDayStorage(data);
+    return new SpecializedStorage<>(TimeOfDayType.INSTANCE, data);
   }
 }
