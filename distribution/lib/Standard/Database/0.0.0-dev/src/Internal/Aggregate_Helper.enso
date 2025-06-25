@@ -6,7 +6,7 @@ from Standard.Base.Errors.Common import Floating_Point_Equality, Missing_Argumen
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Aggregate_Column_Helper.Internal_Order_By_Column_Reference
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table import Aggregate_Column
+from Standard.Table import Aggregate_Column, Table
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Output_Columns
 

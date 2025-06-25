@@ -3,7 +3,6 @@ private
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
-import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -17,9 +16,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Metadata import Display, Widget
-from Standard.Base.Runtime import assert
-from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
 import Standard.Table.Column_Operation.Column_Operation
 import Standard.Table.Columns_To_Add.Columns_To_Add
@@ -28,7 +24,6 @@ import Standard.Table.Expression.Expression
 import Standard.Table.Expression.Expression_Error
 import Standard.Table.Grouping_Method.Grouping_Method
 import Standard.Table.Internal.Add_Row_Number
-import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Column_Type_Helpers
 import Standard.Table.Internal.Constant_Column.Constant_Column
 import Standard.Table.Internal.Display_Helpers
@@ -50,10 +45,9 @@ import Standard.Table.Value_Type.By_Type
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column, Column_Ref, Data_Formatter, Fill_With, Generate_Rows_Range, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Table import make_fill_nothing_default_widget
 
-import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
+from project.DB_Table import DB_Table, MAX_LITERAL_ELEMENT_COUNT, make_literal_table
 import project.Feature.Feature
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
@@ -75,11 +69,10 @@ import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
-import project.SQL_Query.SQL_Query
-import project.SQL_Statement.SQL_Statement
+
 import project.SQL_Type.SQL_Type
 import project.Take_Drop_Helpers
-from project.Errors import Integrity_Error, SQL_Error, Table_Not_Found, Unsupported_Database_Operation
+from project.Errors import Integrity_Error, SQL_Error, Unsupported_Database_Operation
 from project.Take_Drop_Helpers import Take_Drop
 
 polyglot java import java.sql.JDBCType
@@ -199,7 +192,7 @@ type DB_Table_Implementation
                         this_table.updated_columns (this_table.internal_columns.map c-> c.rename (names.at c.name))
 
     use_first_row_as_names (this_table : Table & DB_Table) on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
-        _ = on_problems
+        _ = [this_table, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "use_first_row_as_names")
 
     resolve (this_table : Table & DB_Table) column =
@@ -324,11 +317,6 @@ type DB_Table_Implementation
                         renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
                         updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                         updated_table.as_subquery
-
-
-    limit (this_table : Table & DB_Table) max_rows:Integer=1000 -> Table & DB_Table =
-        new_ctx = this_table.context.set_limit max_rows
-        this_table.updated_context new_ctx
 
     set (this_table : Table & DB_Table) (value : Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         problem_builder = Problem_Builder.new
@@ -583,7 +571,7 @@ type DB_Table_Implementation
             Replace_Helpers.replace this_table lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     zip (this_table : Table & DB_Table) (right : DB_Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
-        _ = [right, keep_unmatched, right_prefix, on_problems]
+        _ = [this_table, right, keep_unmatched, right_prefix, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "zip")
 
     union (this_table : Table & DB_Table) (tables : DB_Table | Vector DB_Table = Missing_Argument.throw "tables") columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
@@ -676,13 +664,13 @@ type DB_Table_Implementation
     transpose (this_table : Table & DB_Table) (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) attribute_column_name:Text="Name" value_column_name:Text="Value" error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
-        _ = [key_columns, attribute_column_name, value_column_name, error_on_missing_columns, on_problems]
+        _ = [this_table, key_columns, attribute_column_name, value_column_name, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "transpose")
 
     cross_tab (this_table : Table & DB_Table) (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (names : Text | Integer  = Missing_Argument.throw "names") (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
-        _ = [group_by, names, values, on_problems]
+        _ = [this_table, group_by, names, values, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "cross_tab")
 
     parse (this_table : Table & DB_Table) (columns : Vector (Text | Integer | Regex) | Text | Integer | Regex = this_table.columns . filter (c-> c.value_type.is_text) . map .name) (type : Value_Type | Auto) (format : Text | Data_Formatter = '') error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
@@ -695,35 +683,35 @@ type DB_Table_Implementation
                 table.set new_column as=column_to_parse.name set_mode=Set_Mode.Update
 
     format (this_table : Table & DB_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | DB_Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument =
-        _ = [columns, format, locale, error_on_missing_columns, on_problems]
+        _ = [this_table, columns, format, locale, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "format")
 
     split_to_columns (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
-        _ = [column, delimiter, column_count.columns_to_split, on_problems]
+        _ = [this_table, column, delimiter, column_count.columns_to_split, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "split_to_columns")
 
     split_to_rows (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") -> Table & DB_Table =
-        _ = [column, delimiter]
+        _ = [this_table, column, delimiter]
         Error.throw (Unsupported_Database_Operation.Error "split_to_rows")
 
     tokenize_to_columns (this_table : Table & DB_Table) (column : Text | Integer) pattern:Text="." case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
-        _ = [column, pattern, case_sensitivity, column_count, on_problems]
+        _ = [this_table, column, pattern, case_sensitivity, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "tokenize_to_columns")
 
     tokenize_to_rows (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False -> Table & DB_Table =
-        _ = [column, pattern, case_sensitivity, at_least_one_row]
+        _ = [this_table, column, pattern, case_sensitivity, at_least_one_row]
         Error.throw (Unsupported_Database_Operation.Error "tokenize_to_rows")
 
     parse_to_columns (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text | Regex = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive parse_values:Boolean=True on_problems:Problem_Behavior=..Report_Error -> Table & DB_Table =
-        _ = [column, pattern, case_sensitivity, parse_values, on_problems]
+        _ = [this_table, column, pattern, case_sensitivity, parse_values, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "parse_to_columns")
 
     expand_column (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name -> Table & DB_Table ! Type_Error =
-            _ = [column, fields, prefix]
+            _ = [this_table, column, fields, prefix]
             Error.throw (Unsupported_Database_Operation.Error "expand_column")
 
     expand_to_rows (this_table : Table & DB_Table) (column : Text | Integer = Missing_Argument.throw "column") at_least_one_row:Boolean=False -> Table & DB_Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
-        _ = [column, at_least_one_row]
+        _ = [this_table, column, at_least_one_row]
         Error.throw (Unsupported_Database_Operation.Error "expand_to_rows")
 
     cast (this_table : Table & DB_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (value_type:Value_Type = Missing_Argument.throw "value_type") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure = columns.if_not_error <|
@@ -733,7 +721,7 @@ type DB_Table_Implementation
             table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
 
     auto_cast (this_table : Table & DB_Table) (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = this_table.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
-        _ = [columns, shrink_types, error_on_missing_columns, on_problems]
+        _ = [this_table, columns, shrink_types, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "auto_cast")
 
     filter_blank_rows (this_table : Table & DB_Table) when:Blank_Selector=..All_Cells treat_nans_as_blank:Boolean=False -> Table & DB_Table =
@@ -843,7 +831,7 @@ type DB_Table_Implementation
             Table_Helpers.replace_columns_with_transformed_columns this_table columns transformer
 
     running (this_table : Table & DB_Table) statistic:Statistic=..Count (of : Text | Integer = 0) as:Text='' set_mode:Set_Mode=..Add (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table =
-        _ = [statistic, of, as, set_mode, group_by, order_by, on_problems]
+        _ = [this_table, statistic, of, as, set_mode, group_by, order_by, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "running")
 
     offset (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
@@ -868,7 +856,7 @@ type DB_Table_Implementation
                 updated_table.as_subquery
 
     generate_rows (this_table : Table & DB_Table) over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
-        _ = [over, as, on_problems]
+        _ = [this_table, over, as, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "generate_rows")
 
 
@@ -879,45 +867,6 @@ default_join_condition : DB_Table -> Join_Kind | Join_Kind_Cross -> Join_Conditi
 default_join_condition table join_kind = case join_kind of
     Join_Kind_Cross -> []
     _ -> [Join_Condition.Equals table.column_names.first]
-
-## PRIVATE
-    The largest dataset that can be used to make a literal table, expressed in number of elements.
-MAX_LITERAL_ELEMENT_COUNT = 256
-
-## PRIVATE
-make_literal_table connection column_vectors column_names alias =
-    Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
-
-    # Assume the columns are all the same length; if not, it will be an error anyway.
-    total_size = if column_vectors.is_empty || column_vectors.at 0 . is_empty then 0 else
-        column_vectors.length * (column_vectors.at 0 . length)
-
-    if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
-        if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
-            type_mapping = connection.dialect.get_type_mapping
-            from_spec = SQL_IR_From_Part.Literal_Values column_vectors column_names alias
-            context = SQL_IR_Source.for_subquery from_spec
-
-            infer_type_from_database new_expression =
-                SQL_Type_Reference.new connection context new_expression
-
-            internal_columns = 0.up_to column_vectors.length . map i->
-                column_vector = column_vectors.at i
-                column_name = column_names.at i
-
-                value_type = Value_Type_Helpers.find_common_type_for_arguments column_vector.to_vector
-                sql_type = case value_type of
-                   Nothing -> SQL_Type.null
-                   _ -> type_mapping.value_type_to_sql value_type Problem_Behavior.Ignore
-                type_ref = SQL_Type_Reference.from_constant sql_type
-                sql_expression = SQL_IR_Expression.Column alias column_name
-                base_column = Internal_Column.Value column_name type_ref sql_expression
-
-                needs_cast = value_type.is_nothing.not && connection.dialect.needs_literal_table_cast value_type
-                if needs_cast.not then base_column else
-                    connection.dialect.make_cast base_column sql_type infer_type_from_database
-
-            DB_Table.new alias connection internal_columns context
 
 ## PRIVATE
 private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Vector problem_builder:Problem_Builder -> Vector =

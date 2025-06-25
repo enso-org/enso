@@ -13,7 +13,7 @@ from project.Internal.Upload.Helpers.Prepare_Structure import align_vector_struc
    Used to provide the default value for `primary_key` in `create_table`.
 first_column_name_in_structure structure = case structure of
     vector : Vector -> align_vector_structure vector . first . name
-    table : DB_Table  -> table.column_names.first
+    table : DB_Table  -> (table:Table).column_names.first
     table : Table -> table.column_names.first
 
 ## PRIVATE

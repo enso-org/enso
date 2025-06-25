@@ -109,7 +109,7 @@ private _create_database_table_upload_op (source_table : DB_Table) connection ta
     _check_outside_transaction
     connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
         Error.throw Different_Connections.Error
-    verify_structure_hint structure_hint source_table.column_names
+    verify_structure_hint structure_hint (source_table:Table).column_names
     connection_check.if_not_error <| table_name.if_not_error <|
         structure = structure_hint.if_nothing source_table
         aligned_structure = align_structure connection structure
