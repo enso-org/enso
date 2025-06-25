@@ -49,8 +49,8 @@ collect_benches = Bench.build builder->
         Data.Value enso_bin (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso") (find_sibling "Import_World.enso")
 
     [["Native_Image_Startup", False], ["Startup", True]].each \entry->
-        group_name = entry.at 0
-        in_jvm = (entry.at 1):Boolean
+        group_name = entry.first
+        in_jvm = (entry.second):Boolean
         builder.group group_name options group_builder->
             group_builder.specify "empty_startup" (data.bench_empty in_jvm)
             group_builder.specify "hello_world_startup" (data.bench_hello in_jvm)
