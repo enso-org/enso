@@ -29,7 +29,7 @@ align_vector_structure vector =
                 Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.")
 
 ## PRIVATE
-structure_from_existing_table connection table =
+structure_from_existing_table connection table:Table =
     table.columns.map column->
         value_type = connection.dialect.value_type_for_upload_of_existing_column column
         Column_Description.Value column.name value_type

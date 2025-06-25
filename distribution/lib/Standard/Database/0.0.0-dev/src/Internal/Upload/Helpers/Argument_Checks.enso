@@ -28,6 +28,7 @@ check_target_table_for_update target_table ~action = case target_table of
     _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
     _ : DB_Table -> if target_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
         action
+    _ -> Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.Multi_Type.get target_table . to_text)
 
 ## PRIVATE
    Ensures that provided primary key columns are present in the table and that
@@ -58,7 +59,7 @@ check_update_arguments_structure_match source_table:Table target_table:Table key
         source_type = source_column.value_type
         target_type = target_column.value_type
         if source_type == target_type then [] else
-            if target_table.connection.dialect.get_type_mapping.is_implicit_conversion source_type target_type then [] else
+            if (target_table:DB_Table).connection.dialect.get_type_mapping.is_implicit_conversion source_type target_type then [] else
                 if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type unavailable=False] else
                     Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
 
