@@ -20,7 +20,7 @@ from Standard.Database.Connection.Connection import get_tables_advanced
 polyglot java import java.sql.DatabaseMetaData
 
 type Generic_JDBC_Connection
-    private Value jdbc_connection:JDBC_Connection.JDBC_Connection
+    private Value jdbc_connection:JDBC_Connection.JDBC_Connection quote_char:Text=""
 
     ## ADVANCED
        ICON data_input
@@ -42,15 +42,18 @@ type Generic_JDBC_Connection
        Arguments:
        - url: The JDBC URL describing the database to connect to.
        - properties: A vector of properties for the connection.
+       - quote_char: The character used to quote identifiers. If empty, the
+         driver default is used.
 
        > Example
          Connect to an H2 database instance. (This requires that you have the H2
          JDBC driver in your classpath.)
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
-    connect (url : Text = (Missing_Argument.throw "url")) properties:Vector=[] -> Generic_JDBC_Connection =
+    @properties (Vector_Editor item_editor=(Single_Choice [Option "Text" "['', '']", Option "Secret" "['', Enso_Secret.get '']"]) item_default="['', '']")
+    connect (url : Text = (Missing_Argument.throw "url")) properties:Vector=[] quote_char:Text="" -> Generic_JDBC_Connection =
         jdbc_connection = JDBC_Connection.create url properties
-        Generic_JDBC_Connection.Value jdbc_connection
+        Generic_JDBC_Connection.Value jdbc_connection quote_char
 
     ## ADVANCED
        GROUP Standard.Base.Input
@@ -169,7 +172,8 @@ type Generic_JDBC_Connection
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
              table = connection.read (SQL_Query.Table_name "foo")
-    read self (sql_query : SQL_Query = (Missing_Argument.throw "sql_query")) (limit : Rows_To_Read = ..First_With_Warning 50) -> Table =
+    @sql_query (self -> Single_Choice values=[Option "<Raw SQL>" "..Raw_SQL", Option "<Table Name>" "..Table_Name"]+(self.tables.at "Name" . to_vector . map n-> Option n ("..Table_Name "+n.pretty)))
+    read self (sql_query : SQL_Query = (Missing_Argument.throw "sql_query")) (limit : Rows_To_Read = ..First_With_Warning 1000) -> Table =
         resolved_sql = case sql_query of
             SQL_Query.Raw_SQL raw_sql -> raw_sql
             SQL_Query.Table_Name table_name -> "select * from "+(self.quote_identifier table_name)
@@ -219,7 +223,7 @@ type Generic_JDBC_Connection
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
              connection.tables
     @database (self-> Single_Choice values=(self.databases . map d-> Option d d.pretty))
-    @table_types (self -> Vector_Editor item_default=self.table_types.first.pretty values=(self.table_types . map t-> Option t t.pretty))
+    @table_types (self -> Vector_Editor item_default="")
     tables self name_like:Text="" database:Text=self.database schema:Text="" table_types:Vector=[] -> Table =
         catalog = if database == "" then self.database else database
         used_table_pattern = if name_like == "" then Nothing else name_like
@@ -244,8 +248,9 @@ type Generic_JDBC_Connection
          connection.quote_identifier 'abc-def'
          # => '"abc-def"'
     quote_identifier self identifier:Text -> Text =
-        self.jdbc_connection.with_connection connection->
-            connection.createStatement.enquoteIdentifier identifier True
+        if self.quote_char != "" then self.quote_char + (identifier.replace self.quote_char "\"+self.quote_char) + self.quote_char else
+            self.jdbc_connection.with_connection connection->
+                connection.createStatement.enquoteIdentifier identifier True
 
     ## PRIVATE
        GROUP Standard.Base.Input
