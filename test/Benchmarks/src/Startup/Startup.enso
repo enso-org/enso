@@ -9,27 +9,21 @@ type Data
     Value ~enso_bin:File ~empty_world:File ~hello_world:File ~import_world:File
 
     bench_empty self in_jvm:Boolean =
-        cmd = ["--run", self.empty_world.to_text]
-        case in_jvm of
-            True -> self.startup (["--jvm"] + cmd)
-            False -> self.startup cmd
+        self.startup [ "--run", self.empty_world.to_text ] in_jvm
 
     bench_hello self in_jvm:Boolean =
-        cmd = ["--run", self.hello_world.to_text]
-        case in_jvm of
-            True -> self.startup (["--jvm"] + cmd)
-            False -> self.startup cmd
+        self.startup [ "--run", self.hello_world.to_text ] in_jvm
 
     bench_import self in_jvm:Boolean =
-        cmd = ["--run", self.import_world.to_text]
-        case in_jvm of
-            True -> self.startup (["--jvm"] + cmd)
-            False -> self.startup cmd
+        self.startup [ "--run", self.import_world.to_text ] in_jvm
 
-    startup self  args =
+    startup self args in_jvm:Boolean =
         ensure_runs_in_aot
         exe = self.enso_bin
-        result = Process.run exe.path args
+        all_args = case in_jvm of
+            True -> ["--jvm"] + args
+            False -> args
+        result = Process.run exe.path all_args
         case result.exit_code of
             Exit_Code.Failure code ->
                 IO.println "Exit code: "+code.to_text
