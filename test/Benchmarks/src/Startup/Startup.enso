@@ -18,7 +18,6 @@ type Data
         self.startup [ "--run", self.import_world.to_text ] in_jvm
 
     startup self args in_jvm:Boolean =
-        ensure_runs_in_aot
         exe = self.enso_bin
         all_args = case in_jvm of
             True -> ["--jvm"] + args
@@ -55,14 +54,6 @@ find_sibling name =
     f = enso_project.root / "src" / "Startup" / name
     if f.is_regular_file.not then Panic.throw "Cannot find "+f.to_text
     f
-
-ensure_runs_in_aot =
-    if runs_in_aot.not then
-        Panic.throw "This benchmark must be run in AOT (The engine distribution must be build with NI)"
-
-runs_in_aot =
-    prop = Java_System.getProperty "org.graalvm.nativeimage.imagecode"
-    prop == "runtime"
 
 enso_bin =
     find_prefix dir prefix =
