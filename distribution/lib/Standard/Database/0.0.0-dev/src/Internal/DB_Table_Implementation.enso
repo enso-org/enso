@@ -454,16 +454,6 @@ type DB_Table_Implementation
         result = this_table.sort columns text_ordering error_on_missing_columns on_problems
         Warning.attach (Deprecated.Warning "Standard.Database.Table.Table" "order_by" "Deprecated: use `sort` instead.") result
 
-    get_primary_key (this_table : Table & DB_Table) = case this_table.context.from_spec of
-        SQL_IR_From_Part.Table table_name _ _ ->
-            # The primary key may not be valid anymore after grouping!
-            is_primary_key_still_valid = this_table.context.groups.is_empty
-            if is_primary_key_still_valid.not then Nothing else
-                result = this_table.connection.dialect.fetch_primary_key this_table.connection table_name
-                result.catch Any _->Nothing
-        # If the key is a result of a join, union or a subquery then it has no notion of primary key.
-        _ -> Nothing
-
     distinct (this_table : Table & DB_Table) (columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = this_table.column_names) case_sensitivity:Case_Sensitivity=..Default on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality =
         Feature.Distinct.if_supported_else_throw this_table.connection.dialect "distinct" <|
             key_columns = this_table.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=True on_problems=on_problems . catch No_Output_Columns _->
@@ -477,65 +467,11 @@ type DB_Table_Implementation
         _ = [columns, case_sensitivity, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "duplicates")
 
-    join (this_table : Table & DB_Table) (right : DB_Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Join_Condition | Text | Vector (Join_Condition | Text)) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+    join (this_table : Table & DB_Table) (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Join_Condition | Text | Vector (Join_Condition | Text)) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
         Feature.Join.if_supported_else_throw this_table.connection.dialect "join" <|
-            this_table.join_or_cross_join right join_kind on right_prefix on_problems
+            _join_or_cross_join this_table (right : Table & DB_Table) join_kind on right_prefix on_problems
 
-    join_or_cross_join (this_table : Table & DB_Table) right:DB_Table join_kind on right_prefix on_problems =
-        can_proceed = Helpers.ensure_same_connection "table" [this_table, right] <|
-            join_conditions_ok = join_kind != Join_Kind_Cross || on == []
-            if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
-                True
-        can_proceed.if_not_error <|
-            left = this_table
-            table_name_deduplicator = this_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
-            table_name_deduplicator.mark_used [left.name, right.name]
-            new_table_name = table_name_deduplicator.make_unique <|
-                left.name + "_" + right.name
-
-            needed_indicators = case join_kind of
-                Join_Kind.Left_Exclusive  -> Pair.new False True
-                Join_Kind.Right_Exclusive -> Pair.new True False
-                _ -> Pair.new False False
-            subquery_setups = Database_Join_Helper.prepare_subqueries this_table.connection left right needed_indicators.first needed_indicators.second
-            left_setup = subquery_setups.first
-            right_setup = subquery_setups.second
-
-            problem_builder = Problem_Builder.new
-            join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
-            right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
-
-            column_naming_helper = this_table.connection.base_connection.column_naming_helper
-            result_columns = Database_Join_Helper.select_columns_for_join column_naming_helper join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
-
-            ## TODO proper equality of nulls in join conditions, see:
-               https://www.pivotaltracker.com/story/show/184109759
-            on_expressions = join_resolution.conditions
-
-            where_expressions = case join_kind of
-                Join_Kind.Left_Exclusive  ->
-                    is_right_missing = SQL_IR_Expression.Operation "IS_NULL" [right_setup.indicator_column.expression]
-                    [is_right_missing]
-                Join_Kind.Right_Exclusive ->
-                    is_left_missing = SQL_IR_Expression.Operation "IS_NULL" [left_setup.indicator_column.expression]
-                    [is_left_missing]
-                _ -> []
-
-            sql_join_kind = case join_kind of
-                Join_Kind.Inner           -> SQL_Join_Kind.Inner
-                Join_Kind.Left_Outer      -> SQL_Join_Kind.Left
-                Join_Kind.Right_Outer     -> SQL_Join_Kind.Right
-                Join_Kind.Full            -> SQL_Join_Kind.Full
-                Join_Kind.Left_Exclusive  -> SQL_Join_Kind.Left
-                Join_Kind.Right_Exclusive -> SQL_Join_Kind.Right
-                Join_Kind_Cross           -> SQL_Join_Kind.Cross
-
-            problem_builder.attach_problems_before on_problems <|
-                new_from = SQL_IR_From_Part.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
-                new_ctx = SQL_IR_Source.for_subquery new_from . set_where_filters where_expressions
-                DB_Table.new new_table_name this_table.connection result_columns new_ctx
-
-    cross_join (this_table : Table & DB_Table) (right : DB_Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+    cross_join (this_table : Table & DB_Table) (right : Table = Missing_Argument.throw "right") (right_row_limit : Row_Limit = ..Limit 100) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
         Feature.Cross_Join.if_supported_else_throw this_table.connection.dialect "cross_join" <|
             row_limit = case right_row_limit of
                 Row_Limit.No_Limit -> Nothing
@@ -543,30 +479,30 @@ type DB_Table_Implementation
             limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
                 [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
             on_problems.attach_problems_before limit_problems <|
-                this_table.join_or_cross_join right join_kind=Join_Kind_Cross on=[] right_prefix on_problems
+                _join_or_cross_join this_table (right : Table & DB_Table) join_kind=Join_Kind_Cross on=[] right_prefix on_problems
 
-    merge (this_table : Table & DB_Table) (lookup_table : DB_Table = Missing_Argument.throw "lookup_table") (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
+    merge (this_table : Table & DB_Table) (lookup_table : Table = Missing_Argument.throw "lookup_table") (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
         Feature.Merge.if_supported_else_throw this_table.connection.dialect "merge" <|
             if lookup_table.is_error then lookup_table
             if key_columns == [] then
                 Error.throw (Missing_Argument.throw "key_columns")
 
             Helpers.ensure_same_connection "table" [this_table, lookup_table] <|
-                Lookup_Query_Helper.build_lookup_query this_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+                Lookup_Query_Helper.build_lookup_query this_table lookup_table:DB_Table key_columns add_new_columns allow_unmatched_rows on_problems
 
-    replace (this_table : Table & DB_Table) (lookup_table : DB_Table | Dictionary = Missing_Argument.throw "lookup_table") (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (from_column : Text | Integer | Nothing = Nothing) (to_column : Text | Integer | Nothing = Nothing) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
+    replace (this_table : Table & DB_Table) (lookup_table : Table | Dictionary = Missing_Argument.throw "lookup_table") (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (from_column : Text | Integer | Nothing = Nothing) (to_column : Text | Integer | Nothing = Nothing) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
         Feature.Replace.if_supported_else_throw this_table.connection.dialect "replace" <|
-            Replace_Helpers.replace this_table lookup_table columns from_column to_column allow_unmatched_rows on_problems
+            Replace_Helpers.replace this_table lookup_table:DB_Table columns from_column to_column allow_unmatched_rows on_problems
 
-    zip (this_table : Table & DB_Table) (right : DB_Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+    zip (this_table : Table & DB_Table) (right : Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
         _ = [this_table, right, keep_unmatched, right_prefix, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "zip")
 
-    union (this_table : Table & DB_Table) (tables : DB_Table | Vector DB_Table = Missing_Argument.throw "tables") columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
+    union (this_table : Table & DB_Table) (tables : Table | Vector Table = Missing_Argument.throw "tables") columns_to_keep:Columns_To_Keep=..In_Any_Warn_On_Missing match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
         Feature.Union.if_supported_else_throw this_table.connection.dialect "union" <|
             all_tables = case tables of
-                v : Vector -> [this_table] + (v.map t-> Table & DB_Table.from t)
-                single_table -> [this_table, single_table]
+                v : Vector -> [this_table] + (v.map t-> (t : Table & DB_Table))
+                single_table -> [this_table, (single_table : Table & DB_Table)]
             Helpers.ensure_same_connection "table" all_tables <|
                 ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
                   we only want to add a cause coming from unification; matching reports problems that would not fit this error.
@@ -849,14 +785,6 @@ type DB_Table_Implementation
 
 
 ## PRIVATE
-   By default, join on the first column, unless it's a cross join, in which
-   case there are no join conditions.
-default_join_condition : DB_Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
-default_join_condition table join_kind = case join_kind of
-    Join_Kind_Cross -> []
-    _ -> [Join_Condition.Equals table.column_names.first]
-
-## PRIVATE
 private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Vector problem_builder:Problem_Builder -> Vector =
     grouping_columns = columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
     grouping_columns.each column->
@@ -875,3 +803,57 @@ private _resolve_order_descriptors table ordering operation_name:Text =
                 associated_selector = element.associated_selector
                 dialect.prepare_order_descriptor column:Internal_Column associated_selector.direction text_ordering=Nothing
             True -> default_ordering
+
+_join_or_cross_join (this_table : Table & DB_Table) (right : Table & DB_Table) join_kind on right_prefix on_problems =
+    can_proceed = Helpers.ensure_same_connection "table" [this_table, right] <|
+        join_conditions_ok = join_kind != Join_Kind_Cross || on == []
+        if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
+            True
+    can_proceed.if_not_error <|
+        left = this_table
+        table_name_deduplicator = this_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator.mark_used [left.name, right.name]
+        new_table_name = table_name_deduplicator.make_unique <|
+            left.name + "_" + right.name
+
+        needed_indicators = case join_kind of
+            Join_Kind.Left_Exclusive  -> Pair.new False True
+            Join_Kind.Right_Exclusive -> Pair.new True False
+            _ -> Pair.new False False
+        subquery_setups = Database_Join_Helper.prepare_subqueries this_table.connection left right needed_indicators.first needed_indicators.second
+        left_setup = subquery_setups.first
+        right_setup = subquery_setups.second
+
+        problem_builder = Problem_Builder.new
+        join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
+        right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
+
+        column_naming_helper = this_table.connection.base_connection.column_naming_helper
+        result_columns = Database_Join_Helper.select_columns_for_join column_naming_helper join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
+
+        ## TODO proper equality of nulls in join conditions, see:
+            https://www.pivotaltracker.com/story/show/184109759
+        on_expressions = join_resolution.conditions
+
+        where_expressions = case join_kind of
+            Join_Kind.Left_Exclusive  ->
+                is_right_missing = SQL_IR_Expression.Operation "IS_NULL" [right_setup.indicator_column.expression]
+                [is_right_missing]
+            Join_Kind.Right_Exclusive ->
+                is_left_missing = SQL_IR_Expression.Operation "IS_NULL" [left_setup.indicator_column.expression]
+                [is_left_missing]
+            _ -> []
+
+        sql_join_kind = case join_kind of
+            Join_Kind.Inner           -> SQL_Join_Kind.Inner
+            Join_Kind.Left_Outer      -> SQL_Join_Kind.Left
+            Join_Kind.Right_Outer     -> SQL_Join_Kind.Right
+            Join_Kind.Full            -> SQL_Join_Kind.Full
+            Join_Kind.Left_Exclusive  -> SQL_Join_Kind.Left
+            Join_Kind.Right_Exclusive -> SQL_Join_Kind.Right
+            Join_Kind_Cross           -> SQL_Join_Kind.Cross
+
+        problem_builder.attach_problems_before on_problems <|
+            new_from = SQL_IR_From_Part.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
+            new_ctx = SQL_IR_Source.for_subquery new_from . set_where_filters where_expressions
+            DB_Table.new new_table_name this_table.connection result_columns new_ctx

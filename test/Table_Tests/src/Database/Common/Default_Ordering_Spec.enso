@@ -6,6 +6,7 @@ from Standard.Table.Errors import all
 from Standard.Database import all
 from Standard.Database.Errors import all
 import Standard.Database.Feature.Feature
+import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
 import Standard.Test.Suite.Suite_Builder
@@ -61,28 +62,28 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             v1.first.direction . should_equal Sort_Direction.Ascending
 
             t2 = data.db_table_with_key.set (expr "10 - [X]") "X"
-            v2 = t2.default_ordering
+            v2 = (t2:DB_Table).default_ordering
             v2.length . should_equal 1
             v2.first.expression.name . should_equal "X"
 
         if setup.is_feature_supported Feature.Join then
             group_builder.specify "will return Nothing for composite tables (join)"
-                data.db_table_with_key.join data.db_table_with_key . default_ordering . should_equal Nothing
+                (data.db_table_with_key.join data.db_table_with_key : DB_Table) . default_ordering . should_equal Nothing
 
         if setup.is_feature_supported Feature.Aggregate then
             group_builder.specify "will return Nothing for composite tables (aggregate)"
-                data.db_table_with_key.aggregate ["X"] . default_ordering . should_equal Nothing
+                (data.db_table_with_key.aggregate ["X"] : DB_Table) . default_ordering . should_equal Nothing
 
         if setup.is_feature_supported Feature.Sort then
             group_builder.specify "will return the ordering determined by sort" <|
-                v1 = data.db_table_with_key.sort ["Y", ..Name "X" ..Descending] . default_ordering
+                v1 = (data.db_table_with_key.sort ["Y", ..Name "X" ..Descending] : DB_Table) . default_ordering
                 v1.length . should_equal 2
                 v1.first.expression.name . should_equal "Y"
                 v1.first.direction . should_equal Sort_Direction.Ascending
                 v1.second.expression.name . should_equal "X"
                 v1.second.direction . should_equal Sort_Direction.Descending
 
-                v2 = data.db_table_without_key.sort ["Y"] . default_ordering
+                v2 = (data.db_table_without_key.sort ["Y"] : DB_Table) . default_ordering
                 v2.length . should_equal 1
                 v2.first.expression.name . should_equal "Y"
                 v2.first.direction . should_equal Sort_Direction.Ascending

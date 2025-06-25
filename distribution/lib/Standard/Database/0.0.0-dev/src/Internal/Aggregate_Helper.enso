@@ -115,7 +115,7 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
            we need to push it into a subquery to not interfere with aggregations.
         base_table = if table.context.orders.not_empty then table.as_subquery else table
 
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns base_table.column_naming_helper normalized_group_by columns base_table error_on_missing_columns=error_on_missing_columns
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns (base_table:Table).column_naming_helper normalized_group_by columns base_table error_on_missing_columns=error_on_missing_columns
 
         key_columns = validated.key_columns
         key_problems = key_columns.flat_map internal_column->

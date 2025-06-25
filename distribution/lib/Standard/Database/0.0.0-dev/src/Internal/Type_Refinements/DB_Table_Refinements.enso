@@ -18,7 +18,7 @@ is_single_column table:DB_Table -> Boolean =
     (table:Table).column_count == 1
 
 private _refine_single_column_table table =
-    column = table.at 0
+    column = (table:Table).at 0
     inferred_value_type = (column:Column).inferred_precise_value_type
     case inferred_value_type of
         Value_Type.Integer _ -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
