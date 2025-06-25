@@ -9,7 +9,6 @@ import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.error.ValueTypeMismatchException;
-import org.graalvm.polyglot.Context;
 
 /** A builder for ZonedDateTime columns. */
 public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
@@ -31,7 +30,7 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   }
 
   @Override
-  public void append(Object o) {
+  public DateTimeBuilder append(Object o) {
     ensureSpaceToAppend();
     if (o == null) {
       appendNulls(1);
@@ -47,22 +46,17 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
         throw new ValueTypeMismatchException(getType(), o);
       }
     }
+    return this;
   }
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof DateType) {
-      Context context = Context.getCurrent();
-      for (long i = 0; i < storage.getSize(); ++i) {
-        var date = storage.getItemBoxed(i);
-        if (date == null) {
-          appendNulls(1);
-        } else if (date instanceof LocalDate localDate) {
-          append(convertDate(localDate));
-        } else {
-          throw new IllegalStateException("Unexpected type in DateStorage: " + date.getClass());
-        }
-        context.safepoint();
+    if (storage.getType() instanceof DateType dateType) {
+      var typedStorage = dateType.asTypedStorage(storage);
+      long n = typedStorage.getSize();
+      for (long i = 0; i < n; i++) {
+        var date = typedStorage.getItemBoxed(i);
+        this.append(date == null ? null : convertDate(date));
       }
     } else {
       super.appendBulkStorage(storage);

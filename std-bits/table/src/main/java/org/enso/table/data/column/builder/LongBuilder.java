@@ -1,15 +1,12 @@
 package org.enso.table.data.column.builder;
 
-import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -20,13 +17,6 @@ import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
 public class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
-  public static LongStorage makeEmpty(long size, IntegerType type) {
-    int intSize = Builder.checkSize(size);
-    var isNothing = new BitSet(intSize);
-    isNothing.set(0, intSize);
-    return new LongStorage(new long[0], intSize, isNothing, type);
-  }
-
   protected final ProblemAggregator problemAggregator;
   protected long[] data;
 
@@ -99,45 +89,36 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (Objects.equals(storage.getType(), getType())
-        && storage instanceof LongStorage longStorage) {
-      // A fast path for the same type - no conversions/checks needed.
-      int n = (int) longStorage.getSize();
-      ensureFreeSpaceFor(n);
-      System.arraycopy(longStorage.getArray(), 0, data, currentSize, n);
-      BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
-      currentSize += n;
-    } else if (storage.getType() instanceof IntegerType otherType && getType().fits(otherType)) {
-      if (storage instanceof ColumnLongStorage longStorage) {
-        long n = longStorage.getSize();
-        for (long i = 0; i < n; i++) {
-          if (longStorage.isNothing(i)) {
-            appendNulls(1);
-          } else {
-            appendLong(longStorage.getItemAsLong(i));
+    if (storage.getType() instanceof IntegerType otherType) {
+      if (getType().fits(otherType)) {
+        if (storage instanceof LongStorage longStorage) {
+          // A fast path for the same type (or compatible) - no conversions/checks needed.
+          int n = (int) longStorage.getSize();
+          ensureFreeSpaceFor(n);
+          System.arraycopy(longStorage.getData(), 0, data, currentSize, n);
+          BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
+          currentSize += n;
+        } else {
+          // No conversions needed, but we need to iterate over the items.
+          var longStorage = otherType.asTypedStorage(storage);
+          long n = longStorage.getSize();
+          for (long i = 0; i < n; i++) {
+            if (longStorage.isNothing(i)) {
+              appendNulls(1);
+            } else {
+              appendLong(longStorage.getItemAsLong(i));
+            }
           }
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type INTEGER: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
-    } else if (Objects.equals(storage.getType(), BooleanType.INSTANCE)) {
-      if (storage instanceof ColumnBooleanStorage boolStorage) {
-        long n = boolStorage.getSize();
-        for (long i = 0; i < n; i++) {
-          if (boolStorage.isNothing(i)) {
-            appendNulls(1);
-          } else {
-            appendLong(boolStorage.getItemAsBoolean(i) ? 1L : 0L);
-          }
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
+      long n = boolStorage.getSize();
+      for (long i = 0; i < n; i++) {
+        if (boolStorage.isNothing(i)) {
+          appendNulls(1);
+        } else {
+          appendLong(boolStorage.getItemAsBoolean(i) ? 1L : 0L);
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type BOOLEAN: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
@@ -151,9 +132,10 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    *
    * @param value the integer to append
    */
-  public void appendLong(long value) {
+  public LongBuilder appendLong(long value) {
     ensureSpaceToAppend();
     this.data[currentSize++] = value;
+    return this;
   }
 
   @Override
@@ -163,10 +145,9 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   @Override
-  public void append(Object o) {
+  public LongBuilder append(Object o) {
     if (o == null) {
-      appendNulls(1);
-      return;
+      return appendNulls(1);
     }
 
     Long x = NumericConverter.tryConvertingToLong(o);
@@ -175,6 +156,8 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
+
+    return this;
   }
 
   @Override

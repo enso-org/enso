@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
@@ -66,10 +67,10 @@ public class SimpleHashJoin implements JoinStrategy {
     Set<UnorderedMultiValueKey> matchedRightKeys = new HashSet<>();
 
     Context context = Context.getCurrent();
-    for (int leftRow = 0; leftRow < hashJoinConfig.getLeftNumRows(); leftRow++) {
+    for (long leftRow = 0; leftRow < hashJoinConfig.getLeftNumRows(); leftRow++) {
       var leftKey = makeLeftKey(storage, leftRow, groupingProblemAggregator);
       // If any field of the key is null, it cannot match anything.
-      List<Integer> rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
+      var rightRows = leftKey.hasAnyNulls() ? null : rightIndex.get(leftKey);
       if (rightRows != null) {
         if (joinKind.wantsCommon) {
           addAll(leftRow, rightRows, resultBuilder);
@@ -79,7 +80,6 @@ public class SimpleHashJoin implements JoinStrategy {
         }
       } else if (joinKind.wantsLeftUnmatched) {
         resultBuilder.addUnmatchedLeftRow(leftRow);
-        context.safepoint();
       }
       context.safepoint();
     }
@@ -99,7 +99,7 @@ public class SimpleHashJoin implements JoinStrategy {
       UnorderedMultiValueKey rightKey = rightEntry.getKey();
       boolean wasCompletelyUnmatched = !matchedRightKeys.contains(rightKey);
       if (wasCompletelyUnmatched) {
-        for (int rightRow : rightEntry.getValue()) {
+        for (long rightRow : rightEntry.getValue()) {
           resultBuilder.addUnmatchedRightRow(rightRow);
           context.safepoint();
         }
@@ -109,8 +109,8 @@ public class SimpleHashJoin implements JoinStrategy {
   }
 
   public UnorderedMultiValueKey makeLeftKey(
-      ColumnStorage[] storage,
-      int rowNumber,
+      ColumnStorage<?>[] storage,
+      long rowNumber,
       ColumnAggregatedProblemAggregator groupingProblemAggregator) {
     var leftEquals = hashJoinConfig.getLeftEquals();
     var leftKey =
@@ -121,7 +121,7 @@ public class SimpleHashJoin implements JoinStrategy {
   }
 
   private static void addAll(
-      int leftRow, List<Integer> rightGroup, SimpleHashJoinResultBuilder resultBuilder) {
+      long leftRow, List<Long> rightGroup, SimpleHashJoinResultBuilder resultBuilder) {
     Context context = Context.getCurrent();
     for (var rightRow : rightGroup) {
       resultBuilder.addMatchedRowsPair(leftRow, rightRow);
@@ -140,8 +140,7 @@ public class SimpleHashJoin implements JoinStrategy {
     };
   }
 
-  private class SimpleHashJoinResultBuilder {
-
+  private static class SimpleHashJoinResultBuilder {
     public SimpleHashJoinResultBuilder(boolean flipLeftAndRight) {
       this.flipLeftAndRight = flipLeftAndRight;
       this.resultBuilder = new JoinResult.Builder();
@@ -150,23 +149,23 @@ public class SimpleHashJoin implements JoinStrategy {
     JoinResult.Builder resultBuilder;
     private final boolean flipLeftAndRight;
 
-    public void addMatchedRowsPair(int leftIndex, int rightIndex) {
+    public void addMatchedRowsPair(long leftIndex, long rightIndex) {
       addPair(leftIndex, rightIndex);
     }
 
-    public void addUnmatchedLeftRow(int leftIndex) {
-      addPair(leftIndex, -1);
+    public void addUnmatchedLeftRow(long leftIndex) {
+      addPair(leftIndex, IndexMapper.NOT_FOUND_INDEX);
     }
 
-    public void addUnmatchedRightRow(int rightIndex) {
-      addPair(-1, rightIndex);
+    public void addUnmatchedRightRow(long rightIndex) {
+      addPair(IndexMapper.NOT_FOUND_INDEX, rightIndex);
     }
 
     public JoinResult buildAndInvalidate() {
       return resultBuilder.buildAndInvalidate();
     }
 
-    private void addPair(int leftIndex, int rightIndex) {
+    private void addPair(long leftIndex, long rightIndex) {
       if (flipLeftAndRight) {
         resultBuilder.addMatchedRowsPair(rightIndex, leftIndex);
       } else {

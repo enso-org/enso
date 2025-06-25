@@ -8,18 +8,6 @@ import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
 public final class StringBuilder extends TypedBuilder<String> {
-  /**
-   * Creates a new empty string storage with the specified size.
-   *
-   * @param type the type of the strings in the storage
-   * @param size the size of the storage
-   * @return a new empty string storage
-   */
-  public static StringStorage makeEmpty(TextType type, long size) {
-    int intSize = Builder.checkSize(size);
-    return new StringStorage(new String[intSize], type);
-  }
-
   private final TextType type;
 
   public StringBuilder(int size, TextType type) {
@@ -28,7 +16,7 @@ public final class StringBuilder extends TypedBuilder<String> {
   }
 
   @Override
-  public void append(Object o) {
+  public StringBuilder append(Object o) {
     ensureSpaceToAppend();
     if (o == null) {
       appendNulls(1);
@@ -44,6 +32,7 @@ public final class StringBuilder extends TypedBuilder<String> {
         throw new ValueTypeMismatchException(type, o);
       }
     }
+    return this;
   }
 
   @Override
@@ -57,19 +46,17 @@ public final class StringBuilder extends TypedBuilder<String> {
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof TextType gotType) {
-      if (type.fitsExactly(gotType)) {
-        if (storage instanceof SpecializedStorage<?>) {
-          // This cast is safe, because storage.getType() == this.getType() == TextType iff
-          // storage.T == String
-          @SuppressWarnings("unchecked")
-          SpecializedStorage<String> specializedStorage = (SpecializedStorage<String>) storage;
-          int toCopy = (int) storage.getSize();
-          System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
-          currentSize += toCopy;
-          return;
-        }
-      }
+    if (storage.getType() instanceof TextType gotType
+        && type.fitsExactly(gotType)
+        && storage instanceof SpecializedStorage<?>) {
+      // This cast is safe, because storage.getType() == this.getType() == TextType iff
+      // storage.T == String
+      @SuppressWarnings("unchecked")
+      SpecializedStorage<String> specializedStorage = (SpecializedStorage<String>) storage;
+      int toCopy = (int) storage.getSize();
+      System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
+      currentSize += toCopy;
+      return;
     }
 
     super.appendBulkStorage(storage);

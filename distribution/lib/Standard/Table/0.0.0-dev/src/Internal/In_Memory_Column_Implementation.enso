@@ -65,7 +65,6 @@ polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePar
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.storage.PreciseTypeOptions
-polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -654,8 +653,8 @@ type In_Memory_Column_Implementation
                 Sort_Direction.Ascending -> True
                 Sort_Direction.Descending -> False
             rule = OrderBuilder.OrderRule.new this_column.java_column order_bool missing_last
-            mask = OrderBuilder.buildOrderMask [rule]
-            new_col = this_column.java_column.applyMask mask
+            mask = OrderBuilder.buildMask rule
+            new_col = this_column.java_column.mask mask
             In_Memory_Column.from_java_column new_col
         _ ->
             wrapped a b = case a of
@@ -683,8 +682,7 @@ type In_Memory_Column_Implementation
     last (this_column : Column & In_Memory_Column) -> Any ! Index_Out_Of_Bounds = this_column.at (this_column.length - 1)
 
     reverse (this_column : Column & In_Memory_Column) -> Column =
-        mask = OrderMask.reverse this_column.length
-        In_Memory_Column.from_java_column (this_column.java_column.applyMask mask)
+        In_Memory_Column.from_java_column this_column.java_column.reverse
 
     duplicate_count (this_column : Column & In_Memory_Column) -> Column =
         apply_unary_operation this_column DuplicateCountOperation.INSTANCE

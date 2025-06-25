@@ -77,7 +77,7 @@ public final class IsInOperation {
 
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     var result = switch (leftStorage.getType()) {
-      case NullType nt -> BoolBuilder.makeEmpty(leftStorage.getSize());
+      case NullType nt -> Builder.makeEmpty(BooleanType.INSTANCE, leftStorage.getSize());
       case BooleanType bt -> applyBooleanIsIn(bt.asTypedStorage(leftStorage), list, problemAggregator);
       case DateType dt -> applySpecialized(dt.asTypedStorage(leftStorage), list, dt::valueAsType, problemAggregator);
       case DateTimeType dtt -> applySpecialized(dtt.asTypedStorage(leftStorage), list, dtt::valueAsType, problemAggregator);
@@ -170,7 +170,7 @@ public final class IsInOperation {
     // If the set is empty, return a constant storage
     if (result.uniqueValues.isEmpty()) {
       return result.hadNull()
-          ? BoolBuilder.makeEmpty(storage.getSize())
+          ? Builder.makeEmpty(BooleanType.INSTANCE, storage.getSize())
           : Builder.fromRepeatedItem(false, storage.getSize());
     }
 
@@ -227,7 +227,7 @@ public final class IsInOperation {
     // If neither true nor false were found, we can return an empty or constant storage
     if (!flags.hadTrue && !flags.hadFalse) {
       return flags.hadNull
-          ? BoolBuilder.makeEmpty(boolStorage.getSize())
+          ? Builder.makeEmpty(BooleanType.INSTANCE, boolStorage.getSize())
           : Builder.fromRepeatedItem(false, boolStorage.getSize());
     }
 

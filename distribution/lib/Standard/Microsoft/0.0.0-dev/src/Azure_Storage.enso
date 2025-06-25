@@ -52,7 +52,7 @@ type Azure_Blob_Storage
     ## PRIVATE
        Converts the Azure_Credential into the Java SDK object
     private to_java self =
-        AzureCredential.BlobStorageSASToken self.token
+        AzureCredential.BlobStorageSASToken.new self.token
 
     ## PRIVATE
     default_widget (display : Display = ..When_Modified) -> Widget =

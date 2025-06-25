@@ -13,7 +13,7 @@ public final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
   }
 
   @Override
-  public void append(Object o) {
+  public TimeOfDayBuilder append(Object o) {
     ensureSpaceToAppend();
     if (o == null) {
       appendNulls(1);
@@ -24,6 +24,7 @@ public final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
         throw new ValueTypeMismatchException(getType(), o);
       }
     }
+    return this;
   }
 
   @Override

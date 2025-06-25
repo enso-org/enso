@@ -12,27 +12,6 @@ import org.enso.table.util.BitSets;
 
 /** A builder for boolean columns. */
 public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
-  /** Creates a new empty boolean storage with the specified size. */
-  public static ColumnBooleanStorage makeEmpty(long size) {
-    int checkedSize = Builder.checkSize(size);
-
-    BitSet isNothing = new BitSet(checkedSize);
-    isNothing.set(0, checkedSize);
-    return new BoolStorage(new BitSet(), isNothing, checkedSize, false);
-  }
-
-  /**
-   * Creates a new boolean storage with the specified size, where all values are set to the
-   * specified value.
-   *
-   * @param size the size of the storage
-   * @param r the value to fill the storage with
-   */
-  public static ColumnBooleanStorage makeConstant(long size, boolean r) {
-    int checkedSize = Builder.checkSize(size);
-    return new BoolStorage(new BitSet(), new BitSet(), checkedSize, r);
-  }
-
   private final BitSet vals;
   private final BitSet isNothing;
   int size = 0;
@@ -44,7 +23,7 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public void append(Object o) {
+  public BoolBuilder append(Object o) {
     if (o == null) {
       appendNulls(1);
     } else {
@@ -57,6 +36,8 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
       }
       size++;
     }
+
+    return this;
   }
 
   @Override
@@ -69,11 +50,12 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
    *
    * @param value the boolean to append
    */
-  public void appendBoolean(boolean value) {
+  public BoolBuilder appendBoolean(boolean value) {
     if (value) {
       vals.set(size);
     }
     size++;
+    return this;
   }
 
   @Override
@@ -85,26 +67,19 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType().equals(getType())) {
-      if (storage instanceof BoolStorage boolStorage) {
-        // We know this is valid for a BoolStorage.
-        int toCopy = (int) boolStorage.getSize();
-        BitSets.copy(boolStorage.getValues(), vals, size, toCopy);
-        BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, toCopy);
-        size += toCopy;
-      } else if (storage instanceof ColumnBooleanStorage columnBooleanStorage) {
-        for (long i = 0; i < columnBooleanStorage.getSize(); i++) {
-          if (columnBooleanStorage.isNothing(i)) {
-            appendNulls(1);
-          } else {
-            appendBoolean(columnBooleanStorage.getItemAsBoolean(i));
-          }
+    if (storage instanceof BoolStorage boolStorage) {
+      // We know this is valid for a BoolStorage.
+      int toCopy = (int) boolStorage.getSize();
+      BitSets.copy(boolStorage.getValues(), vals, size, toCopy);
+      BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, toCopy);
+      size += toCopy;
+    } else if (storage instanceof ColumnBooleanStorage columnBooleanStorage) {
+      for (long i = 0; i < columnBooleanStorage.getSize(); i++) {
+        if (columnBooleanStorage.isNothing(i)) {
+          appendNulls(1);
+        } else {
+          appendBoolean(columnBooleanStorage.getItemAsBoolean(i));
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type BOOLEAN: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
@@ -145,7 +120,7 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public StorageType<?> getType() {
+  public StorageType<Boolean> getType() {
     return BooleanType.INSTANCE;
   }
 }

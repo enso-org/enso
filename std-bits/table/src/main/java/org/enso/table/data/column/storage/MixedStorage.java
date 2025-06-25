@@ -35,11 +35,6 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     super(data);
   }
 
-  @Override
-  protected SpecializedStorage<Object> newInstance(Object[] data) {
-    return new MixedStorage(data);
-  }
-
   public ColumnStorage<?> getInferredStorage() {
     if (!hasSpecializedStorageBeenInferred) {
       var inferredType = CastOperation.reconcileObjectStorage(this);

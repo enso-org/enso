@@ -1783,11 +1783,10 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     crossPaths := false,
     Compile / javacOptions := ((Compile / javacOptions).value),
     inConfig(Compile)(truffleRunOptionsSettings),
-    libraryDependencies ++= slf4jApi ++ Seq(
+    libraryDependencies ++= Seq(
       "junit"          % "junit"           % junitVersion   % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion % Test
-    ),
-    Compile / moduleDependencies ++= slf4jApi
+    )
   )
   .dependsOn(`persistance-dsl` % Test)
 
@@ -1920,6 +1919,9 @@ lazy val `engine-common` = project
     Compile / internalModuleDependencies := Seq(
       (`logging-utils` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value
+    ),
+    Test / moduleDependencies ++= Seq(
+      "com.typesafe" % "config" % typesafeConfigVersion
     )
   )
   .dependsOn(`logging-config`)
@@ -3510,6 +3512,9 @@ lazy val `engine-runner` = project
       (`polyglot-api` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value
+    ),
+    Test / moduleDependencies ++= Seq(
+      "com.typesafe" % "config" % typesafeConfigVersion
     ),
     run / connectInput := true
   )

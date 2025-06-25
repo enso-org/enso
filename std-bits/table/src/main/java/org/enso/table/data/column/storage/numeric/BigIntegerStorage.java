@@ -11,14 +11,4 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
   public BigIntegerStorage(BigInteger[] data) {
     super(BigIntegerType.INSTANCE, data);
   }
-
-  @Override
-  protected SpecializedStorage<BigInteger> newInstance(BigInteger[] data) {
-    return new BigIntegerStorage(data);
-  }
-
-  @Override
-  protected BigInteger[] newUnderlyingArray(int size) {
-    return new BigInteger[size];
-  }
 }

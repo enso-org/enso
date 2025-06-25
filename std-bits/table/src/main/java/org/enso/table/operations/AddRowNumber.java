@@ -64,8 +64,8 @@ public class AddRowNumber {
       }
 
       @Override
-      public void visit(int row) {
-        numbers[row] = next();
+      public void visit(long row) {
+        numbers[Math.toIntExact(row)] = next();
       }
 
       public Long next() throws ArithmeticException {

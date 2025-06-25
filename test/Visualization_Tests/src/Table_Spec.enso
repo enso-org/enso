@@ -174,7 +174,7 @@ add_specs suite_builder =
             space_table.column_info
             vis = Visualization.prepare_visualization space_table 1000
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A"] data=Nothing all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" is_ssrm=True range=["   leading and trailing space     - trailing space    "] number_of_distinct=[4] number_of_nothing=[0] number_of_empty_sampled=[0] number_of_untrimmed_whitespace_sampled=[7514] number_non_trivial_ws_sampled=[0] requires_number_format=[False] table_version_hash=space_table.table_version_hash is_using_multi_filter=[True]
+            json = make_json header=["A"] data=Nothing all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" is_ssrm=True range=["   leading and trailing space     - trailing space    "] number_of_distinct=[4] number_of_nothing=[0] number_of_empty_sampled=[0] number_of_untrimmed_whitespace_sampled=[7515] number_non_trivial_ws_sampled=[0] requires_number_format=[False] table_version_hash=space_table.table_version_hash is_using_multi_filter=[True]
             vis . should_equal json
 
         group_builder.specify "should indicate number of non trivial whitespace with sample if more than 10000 rows" <|
@@ -187,7 +187,7 @@ add_specs suite_builder =
             space_table.column_info
             vis = Visualization.prepare_visualization space_table 1000
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A"] data=Nothing all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" is_ssrm=True range=['I have a \r space - hello'] number_of_distinct=[3] number_of_nothing=[0] number_of_empty_sampled=[0] number_of_untrimmed_whitespace_sampled=[3343] number_non_trivial_ws_sampled=[6622] requires_number_format=[False] table_version_hash=space_table.table_version_hash is_using_multi_filter=[True]
+            json = make_json header=["A"] data=Nothing all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" is_ssrm=True range=['I have a \r space - hello'] number_of_distinct=[3] number_of_nothing=[0] number_of_empty_sampled=[0] number_of_untrimmed_whitespace_sampled=[3326] number_non_trivial_ws_sampled=[6714] requires_number_format=[False] table_version_hash=space_table.table_version_hash is_using_multi_filter=[True]
             vis . should_equal json
         
         group_builder.specify "should set required numeric formatting to true if one or more entry is greater than/ less than +/999999" <|
