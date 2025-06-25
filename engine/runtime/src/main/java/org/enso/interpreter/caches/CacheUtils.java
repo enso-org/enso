@@ -13,6 +13,7 @@ import java.util.function.Function;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.editions.LibraryName;
+import org.enso.persist.Persistance;
 import org.enso.pkg.SourceFile;
 import org.enso.polyglot.Suggestion;
 import org.enso.text.Hex;
@@ -22,7 +23,13 @@ final class CacheUtils {
 
   private static int BUFFER_SIZE = 1024;
 
-  static Function<Object, Object> writeReplace(CompilerContext context, boolean keepUUIDs) {
+  static Persistance.Pool createPool(CompilerContext context, boolean keepUUIDs) {
+    return PersistUtils.POOL
+        .withReadResolve(readResolve(context))
+        .withWriteReplace(writeReplace(context, keepUUIDs));
+  }
+
+  private static Function<Object, Object> writeReplace(CompilerContext context, boolean keepUUIDs) {
     return (obj) ->
         switch (obj) {
           case ProcessingPass.Metadata metadata -> metadata.prepareForSerialization(context);
@@ -32,7 +39,7 @@ final class CacheUtils {
         };
   }
 
-  static Function<Object, Object> readResolve(CompilerContext context) {
+  private static Function<Object, Object> readResolve(CompilerContext context) {
     return (obj) ->
         switch (obj) {
           case ProcessingPass.Metadata metadata -> {

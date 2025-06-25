@@ -3,19 +3,17 @@ package org.enso.table.data.column.operation.binary;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
-import org.enso.table.data.column.builder.BigDecimalBuilder;
-import org.enso.table.data.column.builder.BigIntegerBuilder;
-import org.enso.table.data.column.builder.DoubleBuilder;
-import org.enso.table.data.column.builder.LongBuilder;
-import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationNull;
 import org.enso.table.data.column.operation.BinaryOperationNumeric;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.text.TextConcatenate;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.DateTimeType;
@@ -256,8 +254,8 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @param right the right value (can be a column or a scalar)
    * @return a BinaryOperation that performs addition or concatenation
    */
-  public static BinaryOperation<?> add(Column left, Object right) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+  public static BinaryOperationTyped<?> add(Column left, Object right) {
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> createNumeric(leftStorage.getType(), right, ADDITION);
       case TextType tt -> TextConcatenate.INSTANCE;
@@ -282,8 +280,8 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @param right the right value (can be a column or a scalar)
    * @return a BinaryOperation that performs subtraction
    */
-  public static BinaryOperation<?> minus(Column left, Object right) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+  public static BinaryOperationTyped<?> minus(Column left, Object right) {
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> createNumeric(leftStorage.getType(), right, SUBTRACTION);
       case DateTimeType dtt -> DateTimeSubtraction.DATE_TIME;
@@ -310,7 +308,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @param right the right value (can be a column or a scalar)
    * @return a BinaryOperation that performs multiplication
    */
-  public static BinaryOperation<?> multiply(Column left, Object right) {
+  public static BinaryOperationTyped<?> multiply(Column left, Object right) {
     return makeNumericBinaryOperation(left, right, MULTIPLY);
   }
 
@@ -321,7 +319,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @param right the right value (can be a column or a scalar)
    * @return a BinaryOperation that performs multiplication
    */
-  public static BinaryOperation<?> modulus(Column left, Object right) {
+  public static BinaryOperationTyped<?> modulus(Column left, Object right) {
     return makeNumericBinaryOperation(left, right, MODULUS);
   }
 
@@ -332,8 +330,8 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @param right the right value (can be a column or a scalar)
    * @return a BinaryOperation that performs division
    */
-  public static BinaryOperation<?> divide(Column left, Object right) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+  public static BinaryOperationTyped<?> divide(Column left, Object right) {
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case BigDecimalType bdt -> new BinaryOperatorBigDecimal(DIVIDE);
       case NumericType nt -> {
@@ -364,8 +362,8 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    * @param right the right value (can be a column or a scalar)
    * @return a BinaryOperation that performs division
    */
-  public static BinaryOperation<?> power(Column left, Object right) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+  public static BinaryOperationTyped<?> power(Column left, Object right) {
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> new BinaryOperatorDouble(POWER);
       case NullType nt -> {
@@ -381,9 +379,9 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     };
   }
 
-  private static BinaryOperation<?> makeNumericBinaryOperation(
+  private static BinaryOperationTyped<?> makeNumericBinaryOperation(
       Column left, Object right, NumericOperation operation) {
-    var leftStorage = BinaryOperation.getInferredStorage(left);
+    var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (leftStorage.getType()) {
       case NumericType nt -> createNumeric(leftStorage.getType(), right, operation);
       case NullType nt -> {
@@ -399,7 +397,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     };
   }
 
-  static BinaryOperation<?> createNumeric(
+  static BinaryOperationTyped<?> createNumeric(
       StorageType<?> leftType, Object right, NumericOperation operation) {
     var rightType = storageTypeForObject(right);
     if (leftType instanceof BigDecimalType || rightType instanceof BigDecimalType) {
@@ -450,7 +448,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<Double> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return DoubleBuilder.makeEmpty(left.getSize());
+      return Builder.makeEmpty(FloatType.FLOAT_64, left.getSize());
     }
 
     @Override
@@ -495,7 +493,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<BigDecimal> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return BigDecimalBuilder.makeEmpty(left.getSize());
+      return Builder.makeEmpty(BigDecimalType.INSTANCE, left.getSize());
     }
 
     @Override
@@ -516,7 +514,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<BigInteger> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return BigIntegerBuilder.makeEmpty(left.getSize());
+      return Builder.makeEmpty(BigIntegerType.INSTANCE, left.getSize());
     }
 
     @Override
@@ -537,7 +535,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
     @Override
     protected ColumnStorage<Long> applyNullMap(
         ColumnStorage<?> left, MapOperationProblemAggregator problemAggregator) {
-      return LongBuilder.makeEmpty(left.getSize(), IntegerType.INT_64);
+      return Builder.makeEmpty(IntegerType.INT_64, left.getSize());
     }
 
     @Override

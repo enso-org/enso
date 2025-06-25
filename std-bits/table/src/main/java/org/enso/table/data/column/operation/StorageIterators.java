@@ -12,6 +12,134 @@ import org.enso.table.util.ProgressHandler;
 /** Set of typed storage iterators for operations. * */
 public class StorageIterators {
   @FunctionalInterface
+  public interface ForEachOperation<S> {
+    /**
+     * Applies an operation to each item in the storage.
+     *
+     * @param index the index of the item in the storage
+     * @param value the value of the item at that index
+     * @return true if the operation should stop early, false otherwise
+     */
+    boolean apply(long index, S value);
+  }
+
+  @FunctionalInterface
+  public interface ForEachLongOperation {
+    /**
+     * Applies an operation to each item in the long storage.
+     *
+     * @param index the index of the item in the storage
+     * @param value the value of the item at that index
+     * @param isNothing true if the item is a Nothing value, false otherwise
+     * @return true if the operation should stop early, false otherwise
+     */
+    boolean apply(long index, long value, boolean isNothing);
+  }
+
+  @FunctionalInterface
+  public interface ForEachDoubleOperation {
+    /**
+     * Applies an operation to each item in the double storage.
+     *
+     * @param index the index of the item in the storage
+     * @param value the value of the item at that index
+     * @param isNothing true if the item is a Nothing value, false otherwise
+     * @return true if the operation should stop early, false otherwise
+     */
+    boolean apply(long index, double value, boolean isNothing);
+  }
+
+  @FunctionalInterface
+  public interface ForEachBooleanOperation {
+    /**
+     * Applies an operation to each item in the boolean storage.
+     *
+     * @param index the index of the item in the storage
+     * @param value the value of the item at that index
+     * @param isNothing true if the item is a Nothing value, false otherwise
+     * @return true if the operation should stop early, false otherwise
+     */
+    boolean apply(long index, boolean value, boolean isNothing);
+  }
+
+  public static <S> boolean forEachOverStorage(
+      ColumnStorage<S> source, boolean includeNothing, ForEachOperation<S> operation) {
+    try (var progressHandle = ProgressHandler.init("buildObjectOverStorage", source.getSize())) {
+      long idx = 0;
+      for (S item : source) {
+        if (includeNothing || item != null) {
+          if (operation.apply(idx, item)) {
+            return true;
+          }
+        }
+        progressHandle.advance();
+        idx++;
+      }
+    }
+    return false;
+  }
+
+  public static boolean forEachOverLongStorage(
+      ColumnLongStorage source, boolean includeNothing, ForEachLongOperation operation) {
+    try (var progressHandle = ProgressHandler.init("forEachOverLongStorage", source.getSize())) {
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (includeNothing && iterator.isNothing()) {
+          if (operation.apply(iterator.getIndex(), 0, true)) {
+            return true;
+          }
+        } else if (!iterator.isNothing()) {
+          if (operation.apply(iterator.getIndex(), iterator.getItemAsLong(), false)) {
+            return true;
+          }
+        }
+        progressHandle.advance();
+      }
+    }
+    return false;
+  }
+
+  public static boolean forEachOverDoubleStorage(
+      ColumnDoubleStorage source, boolean includeNothing, ForEachDoubleOperation operation) {
+    try (var progressHandle = ProgressHandler.init("forEachOverDoubleStorage", source.getSize())) {
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (includeNothing && iterator.isNothing()) {
+          if (operation.apply(iterator.getIndex(), Double.NaN, true)) {
+            return true;
+          }
+        } else if (!iterator.isNothing()) {
+          if (operation.apply(iterator.getIndex(), iterator.getItemAsDouble(), false)) {
+            return true;
+          }
+        }
+        progressHandle.advance();
+      }
+    }
+    return false;
+  }
+
+  public static boolean forEachOverBooleanStorage(
+      ColumnBooleanStorage source, boolean includeNothing, ForEachBooleanOperation operation) {
+    try (var progressHandle = ProgressHandler.init("forEachOverDoubleStorage", source.getSize())) {
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (includeNothing && iterator.isNothing()) {
+          if (operation.apply(iterator.getIndex(), false, true)) {
+            return true;
+          }
+        } else if (!iterator.isNothing()) {
+          if (operation.apply(iterator.getIndex(), iterator.getItemAsBoolean(), false)) {
+            return true;
+          }
+        }
+        progressHandle.advance();
+      }
+    }
+    return false;
+  }
+
+  @FunctionalInterface
   public interface BuildObjectOperation<S> {
     void apply(Builder builder, long index, S value);
   }

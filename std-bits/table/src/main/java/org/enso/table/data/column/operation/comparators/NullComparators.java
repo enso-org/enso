@@ -1,12 +1,13 @@
 package org.enso.table.data.column.operation.comparators;
 
-import org.enso.table.data.column.builder.BoolBuilder;
-import org.enso.table.data.column.operation.BinaryOperation;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
-final class NullComparators implements BinaryOperation<Boolean> {
+final class NullComparators implements BinaryOperationTyped<Boolean> {
   public static final NullComparators INSTANCE = new NullComparators();
 
   private NullComparators() {}
@@ -20,7 +21,7 @@ final class NullComparators implements BinaryOperation<Boolean> {
   public ColumnStorage<Boolean> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     assert canApplyMap(left, rightValue);
-    return BoolBuilder.makeEmpty(left.getSize());
+    return Builder.makeEmpty(BooleanType.INSTANCE, left.getSize());
   }
 
   @Override
@@ -34,6 +35,6 @@ final class NullComparators implements BinaryOperation<Boolean> {
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
     assert canApplyZip(left, right);
-    return BoolBuilder.makeEmpty(left.getSize());
+    return Builder.makeEmpty(BooleanType.INSTANCE, left.getSize());
   }
 }

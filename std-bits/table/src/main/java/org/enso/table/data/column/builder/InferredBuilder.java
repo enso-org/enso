@@ -50,14 +50,13 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public void append(Object o) {
+  public Builder append(Object o) {
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     o = Polyglot_Utils.convertPolyglotValue(o);
 
     if (currentBuilder == null) {
       if (o == null) {
-        appendNulls(1);
-        return;
+        return appendNulls(1);
       } else {
         initBuilderFor(o);
       }
@@ -72,6 +71,7 @@ public final class InferredBuilder implements Builder {
       }
     }
     currentSize++;
+    return this;
   }
 
   @Override

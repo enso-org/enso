@@ -1,11 +1,7 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
 
 /**
  * Wraps a storage of any type and alters its reported storage to be of type AnyObject.
@@ -31,15 +27,8 @@ public class MixedStorageFacade extends Storage<Object>
     return AnyObjectType.INSTANCE;
   }
 
-  @Override
-  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
-    return underlyingStorage.inferPreciseType(options);
-  }
-
   public ColumnStorage<?> getInferredStorage() {
-    return (underlyingStorage instanceof ColumnStorageWithInferredStorage underlyingInferredStorage)
-        ? underlyingInferredStorage.getInferredStorage()
-        : underlyingStorage;
+    return underlyingStorage;
   }
 
   @Override
@@ -50,35 +39,5 @@ public class MixedStorageFacade extends Storage<Object>
   @Override
   public Object getItemBoxed(long idx) {
     return underlyingStorage.getItemBoxed(idx);
-  }
-
-  @Override
-  public ColumnStorage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    var newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
-  public ColumnStorage<Object> applyFilter(BitSet filterMask, int newLength) {
-    var newStorage = underlyingStorage.applyFilter(filterMask, newLength);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
-  public ColumnStorage<Object> applyMask(OrderMask mask) {
-    var newStorage = underlyingStorage.applyMask(mask);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
-  public ColumnStorage<Object> slice(int offset, int limit) {
-    var newStorage = underlyingStorage.slice(offset, limit);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
-  public ColumnStorage<Object> slice(List<SliceRange> ranges) {
-    var newStorage = underlyingStorage.slice(ranges);
-    return new MixedStorageFacade(newStorage);
   }
 }

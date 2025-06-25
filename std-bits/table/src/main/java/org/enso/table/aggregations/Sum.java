@@ -9,8 +9,6 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.PreciseTypeOptions;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -28,11 +26,8 @@ public class Sum extends Aggregator {
 
   public Sum(String name, Column column) {
     super(name);
-    this.inputStorage = column.getStorage();
-    inputType =
-        inputStorage instanceof ColumnStorageWithInferredStorage inferredStorage
-            ? inferredStorage.inferPreciseType(PreciseTypeOptions.DEFAULT)
-            : inputStorage.getType();
+    inputStorage = ColumnStorageWithInferredStorage.resolveStorage(column.getStorage());
+    inputType = inputStorage.getType();
   }
 
   @Override
@@ -101,9 +96,10 @@ public class Sum extends Aggregator {
           }
           context.safepoint();
         }
-      } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
+      } else if (storage.getType() instanceof BigIntegerType bigIntegerType) {
+        var typedStorage = bigIntegerType.asTypedStorage(storage);
         for (int row : indexes) {
-          BigInteger value = bigIntegerStorage.getItemBoxed(row);
+          BigInteger value = typedStorage.getItemBoxed(row);
           if (value != null) {
             addBigInteger(value);
           }

@@ -1,3 +1,5 @@
+import org.enso.logging.config.systemlogger.SystemLoggerViaSlf4j;
+
 module org.enso.logging.config {
   requires org.slf4j;
   requires typesafe.config;
@@ -5,4 +7,7 @@ module org.enso.logging.config {
   exports org.enso.logging.config;
 
   uses org.enso.logging.config.LoggerSetup;
+
+  provides java.lang.System.LoggerFinder with
+      SystemLoggerViaSlf4j;
 }

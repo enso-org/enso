@@ -56,7 +56,7 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
   }
 
   @Override
-  public void append(Object o) {
+  public SnowflakeIntegerColumnMaterializer append(Object o) {
     ensureSpaceToAppend();
 
     if (o instanceof BigInteger bigInteger) {
@@ -74,6 +74,7 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
     } else {
       throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
     }
+    return this;
   }
 
   @Override

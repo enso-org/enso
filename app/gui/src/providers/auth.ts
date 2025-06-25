@@ -2,8 +2,6 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
-import LocalStorage from '#/utilities/LocalStorage'
-import { DASHBOARD_PATH, LOGIN_PATH, SETUP_PATH } from '$/appUtils'
 import type * as cognitoModule from '$/authentication/cognito'
 import {
   featureFlagsForInternalTesting,
@@ -20,7 +18,6 @@ import { createGlobalState } from '@vueuse/core'
 import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
 import { computed, inject, proxyRefs, toRef, toValue, watchEffect } from 'vue'
-import { RouteLocation } from 'vue-router'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useBackends } from './backends'
@@ -109,7 +106,6 @@ function createAuthStore(
   const session = toRef(sessionData, 'session')
   const { organizationId, signOut } = sessionData
   const toastSuccess = useToast.success()
-  const localStorage = LocalStorage.getInstance()
 
   const queryClient = vueQuery.useQueryClient()
 
@@ -121,8 +117,8 @@ function createAuthStore(
 
   const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
-  const userPromise = computed(() =>
-    usersMeQuery.promise.value.then((user) => (user && 'user' in user ? user.user : null)),
+  const user = computed(() =>
+    userData.value && 'user' in userData.value ? userData.value.user : null,
   )
 
   const planOverride = useZustandStoreRef(authOverridesStore, (state) => state.planOverride)
@@ -213,12 +209,11 @@ function createAuthStore(
     }
   }
 
-  const isUserMarkedForDeletion = () => userPromise.value.then((user) => !!user?.removeAt)
+  const isUserMarkedForDeletion = () => !!user.value?.removeAt
 
-  const isUserDeleted = async () => {
-    const user = await userPromise.value
-    if (user?.removeAt) {
-      const removeAtDate = new Date(user.removeAt)
+  const isUserDeleted = () => {
+    if (user.value?.removeAt) {
+      const removeAtDate = new Date(user.value.removeAt)
       const now = new Date()
 
       return removeAtDate <= now
@@ -227,10 +222,9 @@ function createAuthStore(
     }
   }
 
-  const isUserSoftDeleted = async () => {
-    const user = await userPromise.value
-    if (user?.removeAt) {
-      const removeAtDate = new Date(user.removeAt)
+  const isUserSoftDeleted = () => {
+    if (user.value?.removeAt) {
+      const removeAtDate = new Date(user.value.removeAt)
       const now = new Date()
 
       return removeAtDate > now
@@ -276,28 +270,6 @@ function createAuthStore(
       : intermediate
   })
 
-  /**
-   * Check if given route is allowed for the current user.
-   * @returns Information if route is allowed, and expected redirect if any.
-   */
-  function routeGuard(route: RouteLocation) {
-    if (route.meta.access == null) return { allowed: true }
-    if (route.meta.access === 'guest' && effectiveUserData.value == null) return { allowed: true }
-    if (route.meta.access === 'anyLoggedIn' && effectiveUserData.value != null)
-      return { allowed: true }
-    if (route.meta.access === effectiveUserData.value?.type) return { allowed: true }
-
-    if (effectiveUserData.value == null) return { allowed: false, redirect: { path: LOGIN_PATH } }
-    if (effectiveUserData.value.type === UserSessionType.partial)
-      return { allowed: false, redirect: { path: SETUP_PATH } }
-    if (effectiveUserData.value.type === UserSessionType.full)
-      return {
-        allowed: false,
-        redirect: { path: localStorage.consume('loginRedirect') ?? DASHBOARD_PATH },
-      }
-    return { allowed: false }
-  }
-
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
@@ -310,7 +282,6 @@ function createAuthStore(
     restoreUser,
     deleteUser,
     setUser,
-    routeGuard,
   })
 }
 

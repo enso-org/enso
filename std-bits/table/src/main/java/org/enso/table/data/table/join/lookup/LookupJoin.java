@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
-import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.join.conditions.Equals;
@@ -44,10 +44,10 @@ public class LookupJoin {
 
   private final ColumnStorage<?>[] baseKeyStorages;
   private final List<TextFoldingStrategy> textFoldingStrategies;
-  private final int baseTableRowCount;
+  private final long baseTableRowCount;
   private final boolean allowUnmatchedRows;
 
-  private UnorderedMultiValueKey makeTableRowKey(int ix) {
+  private UnorderedMultiValueKey makeTableRowKey(long ix) {
     return new UnorderedMultiValueKey(baseKeyStorages, ix, textFoldingStrategies);
   }
 
@@ -71,8 +71,7 @@ public class LookupJoin {
     lookupIndex =
         MultiValueIndex.makeUnorderedIndex(
             lookupKeyColumns, 0, textFoldingStrategies, problemAggregator);
-    // ToDo: Will need to rework to longs in next step.
-    baseTableRowCount = (int) baseKeyStorages[0].getSize();
+    baseTableRowCount = baseKeyStorages[0].getSize();
   }
 
   private void checkNullsInKey() {
@@ -92,25 +91,24 @@ public class LookupJoin {
             .toList();
 
     // We have columns to merge only if unmatched rows are expected. If unmatched rows are not
-    // allowed, all lookup
-    // columns will completely replace old values, so we can rely on the OrderMask optimization
-    // which is more efficient.
+    // allowed, all lookup columns will completely replace old values, so we can rely on the
+    // mask optimization which is more efficient.
     assert allowUnmatchedRows || columnsToMerge.isEmpty();
 
-    boolean needsOrderMask =
+    boolean needsMask =
         outputColumns.stream().anyMatch(LookupOutputColumn.AddFromLookup.class::isInstance);
-    int[] orderMask = needsOrderMask ? new int[baseTableRowCount] : null;
+    long[] orderMask = needsMask ? new long[Builder.checkSize(baseTableRowCount)] : null;
 
-    for (int i = 0; i < baseTableRowCount; i++) {
+    for (long i = 0; i < baseTableRowCount; i++) {
       // Find corresponding row in the lookup table
-      int lookupRow = findLookupRow(i);
+      long lookupRow = findLookupRow(i);
 
-      assert allowUnmatchedRows || lookupRow != OrderMask.NOT_FOUND_INDEX;
+      assert allowUnmatchedRows || lookupRow != IndexMapper.NOT_FOUND_INDEX;
 
       // Merge columns replacing old values
       for (LookupOutputColumn.MergeColumns mergeColumns : columnsToMerge) {
         Object itemToAdd;
-        if (lookupRow != OrderMask.NOT_FOUND_INDEX) {
+        if (lookupRow != IndexMapper.NOT_FOUND_INDEX) {
           itemToAdd = mergeColumns.lookupReplacement.getItemBoxed(lookupRow);
         } else {
           itemToAdd = mergeColumns.original.getItemBoxed(i);
@@ -119,8 +117,8 @@ public class LookupJoin {
       }
 
       // Prepare order mask for new columns / fully-replaced columns
-      if (needsOrderMask) {
-        orderMask[i] = lookupRow;
+      if (needsMask) {
+        orderMask[(int) i] = lookupRow;
       }
     }
 
@@ -128,12 +126,12 @@ public class LookupJoin {
     return new Table(columns);
   }
 
-  private int findLookupRow(int baseRowIx) {
+  private long findLookupRow(long baseRowIx) {
     UnorderedMultiValueKey key = makeTableRowKey(baseRowIx);
-    List<Integer> lookupRowIndices = lookupIndex.get(key);
+    var lookupRowIndices = lookupIndex.get(key);
     if (lookupRowIndices == null) {
       if (allowUnmatchedRows) {
-        return OrderMask.NOT_FOUND_INDEX;
+        return IndexMapper.NOT_FOUND_INDEX;
       } else {
         List<Object> exampleKeyValues =
             IntStream.range(0, keyColumnNames.size()).mapToObj(key::get).toList();
@@ -164,10 +162,9 @@ public class LookupJoin {
               Builder.getForType(mergeColumns.commonType(), baseTableRowCount, problemAggregator);
           yield new LookupOutputColumn.MergeColumns(name, original, lookupReplacement, builder);
         } else {
-          // If we do not allow unmatched rows, we can rely on the OrderMask optimization also for
-          // 'merged' columns -
-          // because there is no real merging - all values are guaranteed to only come from the
-          // lookup table.
+          // If we do not allow unmatched rows, we can rely on the mask optimization also for
+          // 'merged' columns - because there is no real merging - all values are guaranteed
+          // to only come from the lookup table.
           Column renamedLookup = mergeColumns.lookupReplacement().rename(name);
           yield new LookupOutputColumn.AddFromLookup(renamedLookup);
         }
@@ -178,12 +175,12 @@ public class LookupJoin {
   }
 
   interface LookupOutputColumn {
-    Column build(int[] orderMask);
+    Column build(long[] orderMask);
 
     record KeepOriginal(Column column) implements LookupOutputColumn {
 
       @Override
-      public Column build(int[] orderMask) {
+      public Column build(long[] orderMask) {
         return column;
       }
     }
@@ -192,16 +189,15 @@ public class LookupJoin {
         String name, ColumnStorage<?> original, ColumnStorage<?> lookupReplacement, Builder builder)
         implements LookupOutputColumn {
       @Override
-      public Column build(int[] orderMask) {
+      public Column build(long[] orderMask) {
         return new Column(name, builder.seal());
       }
     }
 
     record AddFromLookup(Column lookupColumn) implements LookupOutputColumn {
       @Override
-      public Column build(int[] orderMask) {
-        assert orderMask != null;
-        return lookupColumn.applyMask(OrderMask.fromArray(orderMask));
+      public Column build(long[] orderMask) {
+        return lookupColumn.mask(orderMask);
       }
     }
   }

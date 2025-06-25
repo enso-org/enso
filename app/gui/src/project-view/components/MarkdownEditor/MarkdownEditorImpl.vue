@@ -25,13 +25,12 @@ import {
   useTemplateRef,
 } from 'vue'
 
-console.debug('SETUP MarkdownEditorImpl')
-
 const {
   toolbar = true,
   readonly = false,
   extensions = () => [],
   contentTestId,
+  scrollerTestId,
 } = defineProps<{
   toolbar?: boolean | undefined
   readonly?: boolean | undefined
@@ -42,6 +41,7 @@ const {
    */
   extensions?: ((view: EditorView, focused: Ref<boolean>) => Extension) | undefined
   contentTestId?: string | undefined
+  scrollerTestId?: string | undefined
 }>()
 defineOptions({
   inheritAttrs: false,
@@ -67,6 +67,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   vueHost: () => vueHost,
   lineMode: 'multi',
   contentTestId,
+  scrollerTestId,
 })
 
 useLinkTitles(editorView, { readonly })

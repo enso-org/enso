@@ -29,7 +29,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
       StorageType<?> fallbackType,
       String name,
       MapOperationProblemAggregator problemBuilder,
-      BinaryOperation<?> operation,
+      BinaryOperationTyped<?> operation,
       ColumnStorage<?> leftStorage) {
     if (right instanceof Column rightColumn) {
       if (operation != null) {
@@ -68,13 +68,13 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
     }
   }
 
-  private static final BinaryOperation<LocalDate> DATE_MIN =
+  private static final BinaryOperationTyped<LocalDate> DATE_MIN =
       new BinaryCoalescingOperation<>(DateType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
-  private static final BinaryOperation<ZonedDateTime> DATE_TIME_MIN =
+  private static final BinaryOperationTyped<ZonedDateTime> DATE_TIME_MIN =
       new BinaryCoalescingOperation<>(DateTimeType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
-  private static final BinaryOperation<LocalTime> TIME_MIN =
+  private static final BinaryOperationTyped<LocalTime> TIME_MIN =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
-  private static final BinaryOperation<String> TEXT_MIN =
+  private static final BinaryOperationTyped<String> TEXT_MIN =
       new BinaryCoalescingOperation<>(
           TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) < 0 ? a : b) {
         @Override
@@ -110,13 +110,13 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
         left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage);
   }
 
-  private static final BinaryOperation<LocalDate> DATE_MAX =
+  private static final BinaryOperationTyped<LocalDate> DATE_MAX =
       new BinaryCoalescingOperation<>(DateType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
-  private static final BinaryOperation<ZonedDateTime> DATE_TIME_MAX =
+  private static final BinaryOperationTyped<ZonedDateTime> DATE_TIME_MAX =
       new BinaryCoalescingOperation<>(DateTimeType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
-  private static final BinaryOperation<LocalTime> TIME_MAX =
+  private static final BinaryOperationTyped<LocalTime> TIME_MAX =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
-  private static final BinaryOperation<String> TEXT_MAX =
+  private static final BinaryOperationTyped<String> TEXT_MAX =
       new BinaryCoalescingOperation<>(
           TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) > 0 ? a : b) {
         @Override

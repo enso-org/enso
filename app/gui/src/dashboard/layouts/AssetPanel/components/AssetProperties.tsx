@@ -1,6 +1,7 @@
 /** @file Display and modify the properties of an asset. */
 import { Heading } from '#/components/aria'
 import { Button, CopyButton } from '#/components/Button'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Form } from '#/components/Form'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
@@ -62,13 +63,15 @@ export function AssetProperties() {
   }
 
   return (
-    <AssetPropertiesInternal
-      key={focusedAsset.id}
-      backend={remoteBackend}
-      item={focusedAsset}
-      isReadonly={isReadonly}
-      category={category}
-    />
+    <ErrorBoundary>
+      <AssetPropertiesInternal
+        key={focusedAsset.id}
+        backend={remoteBackend}
+        item={focusedAsset}
+        isReadonly={isReadonly}
+        category={category}
+      />
+    </ErrorBoundary>
   )
 }
 

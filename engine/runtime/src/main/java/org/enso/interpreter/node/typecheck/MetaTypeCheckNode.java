@@ -1,39 +1,34 @@
 package org.enso.interpreter.node.typecheck;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /**
- * Node for checking {@code polyglot java import} types. This class (and its subclasses)
- * are an implementation detail. The API to perform the is in {@link TypeCheckValueNode}.
+ * Node for checking {@code polyglot java import} types. This class (and its subclasses) are an
+ * implementation detail. The API to perform the is in {@link TypeCheckValueNode}.
  */
-non-sealed abstract class MetaTypeCheckNode extends AbstractTypeCheckNode {
+final class MetaTypeCheckNode extends AbstractTypeCheckNode {
   private final CachingSupplier<? extends Object> expectedSupplier;
   @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
+  @Child private IsValueOfTypeNode isA = IsValueOfTypeNode.build();
 
   MetaTypeCheckNode(String name, CachingSupplier<? extends Object> expectedMetaSupplier) {
     super(name);
     this.expectedSupplier = expectedMetaSupplier;
   }
 
-  abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
-
   @Override
-  Object findDirectMatch(VirtualFrame frame, Object value) {
-    return executeCheckOrConversion(frame, value);
+  Object executeConversion(VirtualFrame frame, Object value, ExpressionNode ignore) {
+    return null;
   }
 
-  @Specialization
-  Object verifyMetaObject(VirtualFrame frame, Object v, @Cached IsValueOfTypeNode isA) {
-    if (isAllFitValue(v)) {
-      return v;
-    }
+  @Override
+  Object findDirectMatch(VirtualFrame frame, Object v) {
     if (isA.execute(expectedSupplier.get(), v, true)) {
       return v;
     } else {

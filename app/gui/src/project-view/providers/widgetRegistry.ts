@@ -8,6 +8,11 @@ import { Result } from '@/util/data/result'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import { Class } from 'ydoc-shared/util/types'
+import {
+  devtoolsAddWidgetScore,
+  devtoolsEndSelection,
+  devtoolsStartSelection,
+} from './widgetRegistry/devtools'
 import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -496,6 +501,8 @@ export class WidgetRegistry {
     props: WidgetProps<T>,
     alreadyUsed?: Set<WidgetComponent<any>>,
   ): WidgetModule<T> | undefined {
+    devtoolsStartSelection()
+
     // The type and score of the best widget found so far.
     let best: WidgetModule<T> | undefined = undefined
     let bestScore = Score.Mismatch
@@ -504,13 +511,22 @@ export class WidgetRegistry {
     // Iterate over all loaded widget kinds in order of decreasing priority.
     for (const widgetModule of this.sortedModules.value) {
       // Skip matching widgets that are declared as already used.
-      if (alreadyUsed && alreadyUsed.has(widgetModule.default)) continue
+      if (alreadyUsed && alreadyUsed.has(widgetModule.default)) {
+        devtoolsAddWidgetScore(widgetModule, 'alreadyUsed')
+        continue
+      }
 
       // Skip widgets that don't match the input type.
-      if (!widgetModule.widgetDefinition.match(props.input)) continue
+      if (!widgetModule.widgetDefinition.match(props.input)) {
+        devtoolsAddWidgetScore(widgetModule, 'inputMismatch')
+        continue
+      }
 
       // Perform a match and update the best widget if the match is better than the previous one.
       const score = widgetModule.widgetDefinition.score(props, this.db)
+
+      devtoolsAddWidgetScore(widgetModule, 'scored', score)
+
       if (score > Score.Mismatch) {
         foundLeafMatch ||= widgetModule.widgetDefinition.allowAsLeaf
       }
@@ -523,13 +539,18 @@ export class WidgetRegistry {
       // We don’t care if this match allows being a leaf or not – we already know
       // there are other matched widgets without this restriction.
       if (bestScore === Score.Perfect && foundLeafMatch) {
+        devtoolsEndSelection(best)
         return best
       }
     }
 
     // We didn’t find any widget that supports being a leaf, we can’t select any.
-    if (!foundLeafMatch) return undefined
+    if (!foundLeafMatch) {
+      devtoolsEndSelection(undefined)
+      return undefined
+    }
 
+    devtoolsEndSelection(best)
     return best
   }
 }

@@ -4,174 +4,88 @@ import { Checkbox } from '#/components/Checkbox'
 import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
 import { Text } from '#/components/Text'
-import { useLocalStorageState } from '#/hooks/localStoreState'
-import LocalStorage from '#/utilities/LocalStorage'
 import { useText } from '$/providers/react'
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import * as React from 'react'
 import { memo } from 'react'
-import * as z from 'zod'
 
-const TEN_MINUTES_MS = 600_000
-const TOS_SCHEMA = z.object({ versionHash: z.string() })
-const PRIVACY_POLICY_SCHEMA = z.object({ versionHash: z.string() })
-const TOS_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
-const PRIVACY_POLICY_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const latestTermsOfServiceQueryOptions = queryOptions({
-  queryKey: ['termsOfService', 'currentVersion'],
-  queryFn: async () => {
-    const response = await fetch(new URL('/eula.json', $config.ENSO_HOST))
-    if (!response.ok) {
-      throw new Error('Failed to fetch Terms of Service')
-    } else {
-      return TOS_ENDPOINT_SCHEMA.parse(await response.json())
-    }
-  },
-  refetchOnWindowFocus: true,
-  refetchIntervalInBackground: true,
-  refetchInterval: TEN_MINUTES_MS,
-})
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const latestPrivacyPolicyQueryOptions = queryOptions({
-  queryKey: ['privacyPolicy', 'currentVersion'],
-  queryFn: async () => {
-    const response = await fetch(new URL('/privacy.json', $config.ENSO_HOST))
-    if (!response.ok) {
-      throw new Error('Failed to fetch Privacy Policy')
-    } else {
-      return PRIVACY_POLICY_ENDPOINT_SCHEMA.parse(await response.json())
-    }
-  },
-  refetchOnWindowFocus: true,
-  refetchIntervalInBackground: true,
-  refetchInterval: TEN_MINUTES_MS,
-})
-
-declare module '#/utilities/LocalStorage' {
-  /** Metadata containing the version hash of the terms of service that the user has accepted. */
-  interface LocalStorageData {
-    readonly termsOfService: z.infer<typeof TOS_SCHEMA>
-    readonly privacyPolicy: z.infer<typeof PRIVACY_POLICY_SCHEMA>
-  }
+/** Properties of {@link AgreementsModal} component. */
+export interface AgreementsModalProps {
+  readonly agreedToTos: boolean
+  readonly agreedToPrivacyPolicy: boolean
+  readonly userAgreed: () => void
 }
 
-LocalStorage.registerKey('termsOfService', { schema: TOS_SCHEMA })
-LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
-
 /** Modal for accepting the terms of service. */
-export const AgreementsModal = memo(function AgreementsModal({
-  children,
-}: React.PropsWithChildren) {
+export const AgreementsModal = memo(function AgreementsModal(props: AgreementsModalProps) {
+  const { agreedToTos, agreedToPrivacyPolicy, userAgreed } = props
   const { getText } = useText()
 
-  const [cachedTosHash, setCachedTosHash] = useLocalStorageState('termsOfService')
-  const [cachedPrivacyPolicyHash, setCachedPrivacyPolicyHash] =
-    useLocalStorageState('privacyPolicy')
-
-  const { data: tosHash } = useSuspenseQuery({
-    ...latestTermsOfServiceQueryOptions,
-    // If the user has already accepted the EULA, we don't need to
-    // block user interaction with the app while we fetch the latest version.
-    // We can use the local version hash as the initial data.
-    // and refetch in the background to check for updates.
-    ...(cachedTosHash?.versionHash != null && {
-      initialData: { hash: cachedTosHash.versionHash },
-    }),
-    select: (data) => data.hash,
-  })
-  const { data: privacyPolicyHash } = useSuspenseQuery({
-    ...latestPrivacyPolicyQueryOptions,
-    ...(cachedPrivacyPolicyHash?.versionHash != null && {
-      initialData: { hash: cachedPrivacyPolicyHash.versionHash },
-    }),
-    select: (data) => data.hash,
-  })
-
-  const isLatest =
-    tosHash === cachedTosHash?.versionHash &&
-    privacyPolicyHash === cachedPrivacyPolicyHash?.versionHash
-
-  const isAccepted = cachedTosHash != null
-  const shouldDisplay = !(isAccepted && isLatest)
-
-  if (shouldDisplay) {
-    // Note that this produces warnings about missing a `<Heading slot="title">`, even though
-    // all `ariaComponents.Dialog`s contain one. This is likely caused by Suspense discarding
-    // renders, and so it does not seem to be fixable.
-    return (
-      <Dialog
-        title={getText('licenseAgreementTitle')}
-        isKeyboardDismissDisabled
-        isDismissable={false}
-        hideCloseButton
-        modalProps={{ defaultOpen: true }}
-        testId="agreements-modal"
-        id="agreements-modal"
+  // Note that this produces warnings about missing a `<Heading slot="title">`, even though
+  // all `ariaComponents.Dialog`s contain one. This is likely caused by Suspense discarding
+  // renders, and so it does not seem to be fixable.
+  return (
+    <Dialog
+      title={getText('licenseAgreementTitle')}
+      isKeyboardDismissDisabled
+      isDismissable={false}
+      hideCloseButton
+      modalProps={{ defaultOpen: true }}
+      testId="agreements-modal"
+      id="agreements-modal"
+    >
+      <Form
+        schema={(schema) =>
+          schema.object({
+            // The user must agree to the ToS to proceed.
+            agreedToTos: schema
+              .array(schema.string())
+              .min(1, { message: getText('licenseAgreementCheckboxError') }),
+            agreedToPrivacyPolicy: schema
+              .array(schema.string())
+              .min(1, { message: getText('privacyPolicyCheckboxError') }),
+          })
+        }
+        defaultValues={{
+          agreedToTos: agreedToTos ? ['agree'] : [],
+          agreedToPrivacyPolicy: agreedToPrivacyPolicy ? ['agree'] : [],
+        }}
+        testId="agreements-form"
+        method="dialog"
+        onSubmit={userAgreed}
       >
-        <Form
-          schema={(schema) =>
-            schema.object({
-              // The user must agree to the ToS to proceed.
-              agreedToTos: schema
-                .array(schema.string())
-                .min(1, { message: getText('licenseAgreementCheckboxError') }),
-              agreedToPrivacyPolicy: schema
-                .array(schema.string())
-                .min(1, { message: getText('privacyPolicyCheckboxError') }),
-            })
-          }
-          defaultValues={{
-            agreedToTos: tosHash === cachedTosHash?.versionHash ? ['agree'] : [],
-            agreedToPrivacyPolicy:
-              privacyPolicyHash === cachedPrivacyPolicyHash?.versionHash ? ['agree'] : [],
-          }}
-          testId="agreements-form"
-          method="dialog"
-          onSubmit={() => {
-            setCachedTosHash({ versionHash: tosHash })
-            setCachedPrivacyPolicyHash({ versionHash: privacyPolicyHash })
-          }}
-        >
-          {({ form }) => (
-            <>
-              <Text>{getText('someAgreementsHaveBeenUpdated')}</Text>
+        {({ form }) => (
+          <>
+            <Text>{getText('someAgreementsHaveBeenUpdated')}</Text>
 
-              <Checkbox.Group
-                form={form}
-                name="agreedToTos"
-                description={
-                  <Button variant="link" target="_blank" href="https://ensoanalytics.com/eula">
-                    {getText('viewLicenseAgreement')}
-                  </Button>
-                }
-              >
-                <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
-              </Checkbox.Group>
+            <Checkbox.Group
+              form={form}
+              name="agreedToTos"
+              description={
+                <Button variant="link" target="_blank" href="https://ensoanalytics.com/eula">
+                  {getText('viewLicenseAgreement')}
+                </Button>
+              }
+            >
+              <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
+            </Checkbox.Group>
 
-              <Checkbox.Group
-                form={form}
-                name="agreedToPrivacyPolicy"
-                description={
-                  <Button variant="link" target="_blank" href="https://ensoanalytics.com/privacy">
-                    {getText('viewPrivacyPolicy')}
-                  </Button>
-                }
-              >
-                <Checkbox value="agree">{getText('privacyPolicyCheckbox')}</Checkbox>
-              </Checkbox.Group>
+            <Checkbox.Group
+              form={form}
+              name="agreedToPrivacyPolicy"
+              description={
+                <Button variant="link" target="_blank" href="https://ensoanalytics.com/privacy">
+                  {getText('viewPrivacyPolicy')}
+                </Button>
+              }
+            >
+              <Checkbox value="agree">{getText('privacyPolicyCheckbox')}</Checkbox>
+            </Checkbox.Group>
 
-              <Form.Submit fullWidth>{getText('accept')}</Form.Submit>
+            <Form.Submit fullWidth>{getText('accept')}</Form.Submit>
 
-              <Form.FormError />
-            </>
-          )}
-        </Form>
-      </Dialog>
-    )
-  }
-
-  return <>{children}</>
+            <Form.FormError />
+          </>
+        )}
+      </Form>
+    </Dialog>
+  )
 })

@@ -91,6 +91,7 @@ provideDocumentationImages({
       :extensions="syncExt"
       :readonly="currentMethodAst.value.readOnly"
       contentTestId="documentation-editor-content"
+      scrollerTestId="documentation-editor-scroller"
     >
       <template #belowToolbar>
         <FunctionSignatureEditor

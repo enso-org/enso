@@ -7,8 +7,15 @@ public class LongArrayList {
   private long[] backingStorage;
   private int lastIndex = -1;
 
+  public LongArrayList(int initialCapacity) {
+    if (initialCapacity < 0) {
+      throw new IllegalArgumentException("Initial capacity must be non-negative");
+    }
+    backingStorage = new long[initialCapacity];
+  }
+
   public LongArrayList() {
-    backingStorage = new long[32];
+    this(32);
   }
 
   /** Gets the number of elements in the list. */
@@ -40,5 +47,10 @@ public class LongArrayList {
 
     backingStorage[index] = x;
     lastIndex = index;
+  }
+
+  /** Adds all elements from the given array to the list. */
+  public long[] toArray() {
+    return Arrays.copyOf(backingStorage, lastIndex + 1);
   }
 }

@@ -1,7 +1,6 @@
 /** @file A test for basic flow of the application: open project and see if nodes appear. */
 
-import { expect, takeSnapshot } from '@chromatic-com/playwright'
-import { Page, TestInfo } from '@playwright/test'
+import { type Page, expect } from '@playwright/test'
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
 import { CONTROL_KEY, loginAsTestUser, test } from './electronTest'
@@ -12,13 +11,7 @@ async function _doScreenshot(page: Page): Promise<void> {
   page.screenshot({ path: `test-traces/screenshots/${startTimestamp}/${screenshotIndex++}.png` })
 }
 
-async function doSnapshot(page: Page, testInfo: TestInfo): Promise<void> {
-  // Enable for local testing only:
-  // await _doScreenshot(page)
-  await takeSnapshot(page, testInfo)
-}
-
-test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
+test('Local Workflow', async ({ page, app, projectsDir }) => {
   const OUTPUT_FILE = 'output.txt'
   const TEXT_TO_WRITE = 'Some text'
 
@@ -35,8 +28,6 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await expect(page.locator('.node-type')).toHaveText('Table', { timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
-
-  await doSnapshot(page, testInfo)
 
   // Create node connected to the first node by picking suggestion.
   await page.locator('.GraphNode').click()
@@ -96,8 +87,6 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
 
-  await doSnapshot(page, testInfo)
-
   // Create write node
   await page.keyboard.press('Enter')
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
@@ -152,13 +141,6 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   expect(projectFiles).toContain('images')
   const images = await fs.readdir(pathModule.join(PROJECT_PATH, 'images'))
   expect(images).toContain('image.png')
-
-  // Ensure that the graph is stable before doing the snapshot. Some nodes might still
-  // be pending at the time the image upload finishes, which can cause the snapshot to
-  // be unstable.
-  await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
-
-  await doSnapshot(page, testInfo)
 })
 
 async function readFile(projectDir: string, fileName: string): Promise<string> {

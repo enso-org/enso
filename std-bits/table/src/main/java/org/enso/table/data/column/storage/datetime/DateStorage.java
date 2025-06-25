@@ -11,14 +11,4 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   public DateStorage(LocalDate[] data) {
     super(DateType.INSTANCE, data);
   }
-
-  @Override
-  protected SpecializedStorage<LocalDate> newInstance(LocalDate[] data) {
-    return new DateStorage(data);
-  }
-
-  @Override
-  protected LocalDate[] newUnderlyingArray(int size) {
-    return new LocalDate[size];
-  }
 }

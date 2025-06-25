@@ -29,6 +29,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
+      .environment("NO_COLOR", "true")
       .option(RuntimeOptions.PROJECT_ROOT, pkgPath.getAbsolutePath)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,

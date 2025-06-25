@@ -122,7 +122,7 @@ type Existing_Enso_Asset
 
 ## PRIVATE
 asset_type_from_id id:Text -> Enso_Asset_Type =
-    Enso_Asset_Type.from (id.take (..Before "-"))
+    Enso_Asset_Type.from_text (id.take (..Before "-"))
 
 ## PRIVATE
    The asset metadata that is currently automatically included as part of the path resolution response.

@@ -10,6 +10,7 @@ const { toolbar = true, ...props } = defineProps<{
   readonly?: boolean
   extensions?: (view: EditorView, focused: Ref<boolean>) => Extension
   contentTestId?: string
+  scrollerTestId?: string | undefined
 }>()
 
 defineOptions({

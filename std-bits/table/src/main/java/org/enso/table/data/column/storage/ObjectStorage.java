@@ -10,14 +10,4 @@ public sealed class ObjectStorage extends SpecializedStorage<Object> permits Mix
   public ObjectStorage(Object[] data) {
     super(AnyObjectType.INSTANCE, data);
   }
-
-  @Override
-  protected SpecializedStorage<Object> newInstance(Object[] data) {
-    return new ObjectStorage(data);
-  }
-
-  @Override
-  protected Object[] newUnderlyingArray(int size) {
-    return new Object[size];
-  }
 }
