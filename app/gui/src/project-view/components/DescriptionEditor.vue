@@ -5,10 +5,12 @@ import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { provideDocumentationImages } from '@/components/MarkdownEditor/imageFiles'
 import { backendMutationOptions } from '@/composables/backend'
+import { useEvent } from '@/composables/events'
 import { useStringSync } from '@/util/codemirror'
 import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
 import { useMutation } from '@tanstack/vue-query'
+import { isOnElectron } from 'enso-common/src/detect'
 import { computed, effectScope, onScopeDispose, ref, watch } from 'vue'
 
 const rightPanel = useRightPanelData()
@@ -23,13 +25,19 @@ const editDescriptionMutation = useMutation(
   backendMutationOptions('updateAsset', backendForAsset, { mutationKey: ['editDescription'] }),
 )
 
+console.debug('SETUP DescriptionEditor', rightPanel.focusedAsset)
+
+let descriptionEdited = false
 function updateDescription(asset: AnyAsset | undefined, description: string) {
   if (asset != null && asset.description !== description) {
-    editDescriptionMutation.mutate([
+    descriptionEdited = false
+    return editDescriptionMutation.mutateAsync([
       asset.id,
       { parentDirectoryId: null, description: description, title: null },
       asset.title,
     ])
+  } else {
+    return Promise.resolve()
   }
 }
 
@@ -37,7 +45,7 @@ const scope = effectScope()
 const onFocusOut = ref<() => void>()
 
 const syncText = (view: EditorView) => {
-  const { syncExt, setText, getText } = useStringSync(view)
+  const { syncExt, setText, getText, onTextEdited } = useStringSync(view)
 
   scope.run(() => {
     watch(
@@ -54,11 +62,24 @@ const syncText = (view: EditorView) => {
       { immediate: true },
     )
 
+    onTextEdited(() => (descriptionEdited = true))
+
     onFocusOut.value = () => {
       updateDescription(rightPanel.focusedAsset, getText())
     }
 
     onScopeDispose(() => updateDescription(rightPanel.focusedAsset, getText()))
+
+    useEvent(window, 'beforeunload', (event) => {
+      if (descriptionEdited) {
+        event.preventDefault()
+        // While browser displays "unsaved changes" warining, electron does nothing for
+        // preventDefault. That gives us a chance to save changes and close manually.
+        if (isOnElectron()) {
+          updateDescription(rightPanel.focusedAsset, getText()).then(() => window.close())
+        }
+      }
+    })
   })
 
   return syncExt
@@ -76,13 +97,12 @@ provideDocumentationImages({
     <MarkdownEditor
       v-if="rightPanel.focusedAsset"
       :extensions="syncText"
-      toolbar
-      contentTestId="documentation-editor-content"
+      contentTestId="asset-panel-description"
     />
     <ResultComponent
       v-else
       status="info"
-      title="Select single asset to edit its description"
+      title="Select a single asset to edit its description"
       :centered="true"
     />
   </div>

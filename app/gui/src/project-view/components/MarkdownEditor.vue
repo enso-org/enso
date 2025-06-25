@@ -3,7 +3,9 @@ import { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { defineAsyncComponent, Ref } from 'vue'
 
-const props = defineProps<{
+// Toolbar is singled out, because missing booleans coerce to false instead of undefined
+// and toolbar has default `true` in inner component
+const { toolbar = true, ...props } = defineProps<{
   toolbar?: boolean
   readonly?: boolean
   extensions?: (view: EditorView, focused: Ref<boolean>) => Extension
@@ -21,7 +23,7 @@ const LazyMarkdownEditor = defineAsyncComponent(
 
 <template>
   <Suspense>
-    <LazyMarkdownEditor v-bind="{ ...$attrs, ...props }" class="flex-1">
+    <LazyMarkdownEditor v-bind="{ ...$attrs, ...props }" :toolbar="toolbar" class="flex-1">
       <template #belowToolbar>
         <slot name="belowToolbar" />
       </template>

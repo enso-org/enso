@@ -70,7 +70,13 @@ interface CodeMirrorOptions {
   lineMode: ToValue<LineMode>
 }
 
-// Creates a CodeMirror editor instance. - improve docs
+/**
+ * Creates a CodeMirror editor instance.
+ *
+ * The editor will be empty. To set and synchronize its contents, use proper extension, like
+ * {@link useStringSync}, {@link yCollab} or {@link useYTextSync}. If they require {@link EditorView},
+ * they may be attached with `setExtraExtensions` method.
+ */
 export function useCodeMirror(
   editorRoot: ToValue<ComponentInstance<typeof CodeMirrorRoot> | null>,
   {
@@ -250,6 +256,7 @@ export function useStringSync(view: EditorView) {
   }
 }
 
+/** An extension synchronizing CM with a Y.Text node in the ref. */
 export function useYTextSync(content: ToValue<Y.Text | undefined>, view: EditorView) {
   const syncCompartment = new Compartment()
   const awareness = new Awareness(new Y.Doc())

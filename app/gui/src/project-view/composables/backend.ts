@@ -56,6 +56,9 @@ type MutationOptions<Method extends BackendMutationMethod> = ToValue<
   > & { invalidate?: boolean }
 >
 
+/**
+ * Create Tanstack Query mutation options for given backend method call.
+ */
 export function backendMutationOptions<Method extends BackendMutationMethod>(
   method: Method,
   backend: ToValue<Backend | null>,

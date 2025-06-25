@@ -73,7 +73,7 @@ function useRightPanelTabs(
     [
       'description',
       {
-        icon: 'properties',
+        icon: 'text',
         enabled: enabledInCloudOnly,
         title: 'Description',
       },

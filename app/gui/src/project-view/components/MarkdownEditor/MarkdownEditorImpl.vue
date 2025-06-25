@@ -13,7 +13,19 @@ import { useLinkTitles } from '@/util/codemirror/links'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { type ComponentInstance, computed, Ref, useCssModule, useTemplateRef } from 'vue'
+import {
+  type ComponentInstance,
+  computed,
+  onActivated,
+  onDeactivated,
+  onMounted,
+  onUnmounted,
+  Ref,
+  useCssModule,
+  useTemplateRef,
+} from 'vue'
+
+console.debug('SETUP MarkdownEditorImpl')
 
 const {
   toolbar = true,
@@ -70,9 +82,16 @@ const { formatBindings } = useFormatActions({
 })
 setExtraExtensions([formatBindings, extensions(editorView, focused)])
 
+console.debug('We have editorView!', editorView)
+
 defineExpose({
   editorView,
 })
+
+onMounted(() => console.debug('Mounted'))
+onUnmounted(() => console.debug('Unmounted'))
+onActivated(() => console.debug('Activated'))
+onDeactivated(() => console.debug('Deactivated'))
 </script>
 
 <template>
