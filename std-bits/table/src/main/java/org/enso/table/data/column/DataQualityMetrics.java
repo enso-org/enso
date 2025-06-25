@@ -34,7 +34,7 @@ import org.enso.table.util.LeastRecentlyUsedCache;
 
 public abstract class DataQualityMetrics {
   // A thread pool for executing data quality metrics computations asynchronously.
-  private static final ExecutorService executorService =
+  private static final ExecutorService threadFactory =
       Executors.newFixedThreadPool(Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
 
   public static final String IS_INCOMPLETE = "_Is Incomplete";
@@ -190,7 +190,7 @@ public abstract class DataQualityMetrics {
                   Accumulator accumulator = new Accumulator();
                   DataQualityMetrics.loopOverAll(storage, accumulator::process);
                   return accumulator.getResult();
-                }, executorService);
+                }, threadFactory);
       }
     }
 
@@ -265,7 +265,7 @@ public abstract class DataQualityMetrics {
                 Accumulator<T> accumulator = new Accumulator<>(comparator);
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              }, executorService);
+              }, threadFactory);
     }
 
     @Override
@@ -341,7 +341,7 @@ public abstract class DataQualityMetrics {
                 var accumulator = new Accumulator();
                 DataQualityMetrics.loopOverSample(storage, accumulator::process);
                 return accumulator.getResult(storage.getSize() > DEFAULT_SAMPLE_SIZE);
-              }, executorService);
+              }, threadFactory);
     }
 
     @Override
@@ -514,7 +514,7 @@ public abstract class DataQualityMetrics {
                 Accumulator accumulator = new Accumulator();
                 DataQualityMetrics.loopOverAll(storage, accumulator::process);
                 return accumulator.getResult();
-              }, executorService);
+              }, threadFactory);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package org.enso.table.data.column.storage.numeric;
+package org.enso.table.data.column.storage;
 
 /**
  * Implements a storage that can store a simple range of integers (e.g. row indices) with a

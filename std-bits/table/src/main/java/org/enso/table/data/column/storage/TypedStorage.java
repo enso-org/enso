@@ -37,11 +37,6 @@ public class TypedStorage<T> extends Storage<T> {
     return data[(int) idx];
   }
 
-  @Override
-  public boolean isNothing(long idx) {
-    return this.getItemBoxed(idx) == null;
-  }
-
   public T[] getData() {
     return data;
   }

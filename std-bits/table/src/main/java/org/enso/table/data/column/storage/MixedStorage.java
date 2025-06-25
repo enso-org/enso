@@ -26,7 +26,7 @@ public final class MixedStorage extends TypedStorage<Object> implements ColumnSt
    */
   private ColumnStorage<?> cachedInferredStorage = null;
 
-  private boolean hasSpecializedStorageBeenInferred = false;
+  private boolean hasComputedInferredStorage = false;
 
   /**
    * @param data the underlying data
@@ -36,7 +36,7 @@ public final class MixedStorage extends TypedStorage<Object> implements ColumnSt
   }
 
   public ColumnStorage<?> getInferredStorage() {
-    if (!hasSpecializedStorageBeenInferred) {
+    if (!hasComputedInferredStorage) {
       var inferredType = CastOperation.reconcileObjectStorage(this);
       cachedInferredStorage =
           (inferredType instanceof AnyObjectType)
@@ -46,7 +46,7 @@ public final class MixedStorage extends TypedStorage<Object> implements ColumnSt
                   true,
                   Builder.getForType(inferredType, getSize(), BlackholeProblemAggregator.INSTANCE),
                   (builder, index, value) -> builder.append(value));
-      hasSpecializedStorageBeenInferred = true;
+      hasComputedInferredStorage = true;
     }
 
     return cachedInferredStorage;
