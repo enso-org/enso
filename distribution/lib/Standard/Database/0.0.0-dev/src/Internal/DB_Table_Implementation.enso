@@ -454,18 +454,6 @@ type DB_Table_Implementation
         result = this_table.sort columns text_ordering error_on_missing_columns on_problems
         Warning.attach (Deprecated.Warning "Standard.Database.Table.Table" "order_by" "Deprecated: use `sort` instead.") result
 
-    default_ordering (this_table : Table & DB_Table) =
-        explicit_ordering = this_table.context.orders
-        if explicit_ordering.not_empty then explicit_ordering else
-            case this_table.get_primary_key of
-                Nothing -> Nothing
-                primary_key_column_names : Vector -> case this_table.context.from_spec of
-                    SQL_IR_From_Part.Table _ alias _ ->
-                        primary_key_column_names.map column_name->
-                            column_expression = SQL_IR_Expression.Column alias column_name
-                            Order_Descriptor.Value column_expression Sort_Direction.Ascending
-                    _ -> Nothing
-
     get_primary_key (this_table : Table & DB_Table) = case this_table.context.from_spec of
         SQL_IR_From_Part.Table table_name _ _ ->
             # The primary key may not be valid anymore after grouping!

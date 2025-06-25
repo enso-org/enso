@@ -39,6 +39,7 @@ import project.Internal.DB_Data_Link_Helpers
 import project.Internal.DB_Table_Implementation.DB_Table_Implementation
 import project.Internal.Helpers
 import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
@@ -188,6 +189,26 @@ type DB_Table
     limit self max_rows:Integer=1000 -> Table & DB_Table =
         new_ctx = self.context.set_limit max_rows
         self.updated_context new_ctx
+
+    ## PRIVATE
+       Returns the default ordering used for operations like `add_row_number` or
+       `take`.
+
+       If the table was recently ordered by operations like `order_by`, that
+       will determine the ordering. Otherwise, the primary key is used if
+       available.
+    default_ordering : Vector Order_Descriptor | Nothing
+    default_ordering self =
+        explicit_ordering = self.context.orders
+        if explicit_ordering.not_empty then explicit_ordering else
+            case self.get_primary_key of
+                Nothing -> Nothing
+                primary_key_column_names : Vector -> case self.context.from_spec of
+                    SQL_IR_From_Part.Table _ alias _ ->
+                        primary_key_column_names.map column_name->
+                            column_expression = SQL_IR_Expression.Column alias column_name
+                            Order_Descriptor.Value column_expression Sort_Direction.Ascending
+                    _ -> Nothing
 
 ## PRIVATE
 
