@@ -558,7 +558,7 @@ private _check_statement_is_allowed connection stmt =
 
 ## PRIVATE
    Get a metadata table for tables.
-get_tables_advanced jdbc_connection name_like:Text|Nothing database:Text schema:Text|Nothing types:Nothing|Vector column_fetcher all_fields:Boolean=False =
+get_tables_advanced jdbc_connection name_like:Text|Nothing database:Text|Nothing schema:Text|Nothing types:Nothing|Vector column_fetcher all_fields:Boolean=False =
     name_dict = Dictionary.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
     jdbc_connection.with_metadata metadata->
         table = Managed_Resource.bracket (metadata.getTables database schema name_like types) .close result_set->
