@@ -11,7 +11,7 @@ import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for ZonedDateTime columns. */
-public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
+final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   private final boolean allowDateToDateTimeConversion;
   private final BitSet wasLocalDate;
 

@@ -9,7 +9,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
 
 /** A builder for BigDecimal columns. */
-public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
+final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   BigDecimalBuilder(int size) {
     super(BigDecimalType.INSTANCE, new BigDecimal[size]);
   }

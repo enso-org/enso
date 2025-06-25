@@ -7,10 +7,10 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
-public final class StringBuilder extends TypedBuilder<String> {
+final class StringBuilder extends TypedBuilder<String> {
   private final TextType type;
 
-  public StringBuilder(int size, TextType type) {
+  StringBuilder(int size, TextType type) {
     super(type, new String[size]);
     this.type = type;
   }

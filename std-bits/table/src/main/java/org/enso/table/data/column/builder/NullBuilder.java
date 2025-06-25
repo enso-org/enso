@@ -6,10 +6,8 @@ import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public final class NullBuilder implements Builder {
+final class NullBuilder implements Builder {
   private int length = 0;
-
-  NullBuilder() {}
 
   @Override
   public NullBuilder append(Object o) {

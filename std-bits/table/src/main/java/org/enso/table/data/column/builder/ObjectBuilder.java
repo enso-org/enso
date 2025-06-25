@@ -7,8 +7,8 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
 
 /** A builder for boxed object columns. */
-public class ObjectBuilder extends TypedBuilder<Object> {
-  public ObjectBuilder(int size) {
+class ObjectBuilder extends TypedBuilder<Object> {
+  ObjectBuilder(int size) {
     super(AnyObjectType.INSTANCE, new Object[size]);
   }
 
