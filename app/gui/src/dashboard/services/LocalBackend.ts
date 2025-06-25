@@ -105,6 +105,9 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
+    if (query.filterBy != null && query.filterBy !== backend.FilterBy.active) {
+      return []
+    }
     const { rootPath = this.rootPath() } = query
     const parentIdRaw =
       query.parentId == null ? null : backend.extractTypeAndPath(query.parentId).path

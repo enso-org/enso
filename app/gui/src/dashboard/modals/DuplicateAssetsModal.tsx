@@ -24,14 +24,14 @@ import invariant from 'tiny-invariant'
 
 /** Get a unique name based on sibling names. */
 function getUniqueName(title: string, siblingTitles: readonly string[]) {
-  const regex = new RegExp(`^${regexEscape(title)}( \\(copy(?: (\\d+))?\\))?$`)
+  const regex = new RegExp(`^${regexEscape(title)}(?: \\((?:copy )?(?:(\\d+))?\\))?$`)
   let maximum: number | null = null
   for (const siblingTitle of siblingTitles) {
-    const [match, isCopy, number] = siblingTitle.match(regex) ?? []
+    const [match, number] = siblingTitle.match(regex) ?? []
     let newMaximum: number
     if (match == null) {
       continue
-    } else if (isCopy == null || number == null) {
+    } else if (number == null) {
       newMaximum = 1
     } else {
       newMaximum = parseInt(number, 10)
