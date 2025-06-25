@@ -306,7 +306,7 @@ public final class ExecutionService {
    * @return a result of evaluation
    */
   public Object evaluateExpression(Module module, String expression) {
-    LOGGER.debug("evaluateExpression in {} code: {}", module.getName(), expression);
+    LOGGER.trace("evaluateExpression in {} code: {}", module.getName(), expression);
     var future =
         submitExecution(
             () -> {
