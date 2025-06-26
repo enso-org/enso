@@ -35,5 +35,8 @@
     "@types/node": "^20.11.21",
     "lib0": "^0.2.99",
     "vitest": "3.0.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
   }
 }
