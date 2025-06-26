@@ -1,12 +1,13 @@
 package org.enso.table.data.column.operation.binary;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.BoolBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.util.BitSets;
 
@@ -63,8 +64,8 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || rightBoolean
-          ? BoolBuilder.makeEmpty(left.getSize())
-          : BoolBuilder.makeConstant(left.getSize(), false);
+          ? Builder.makeEmpty(BooleanType.INSTANCE, left.getSize())
+          : BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(false, left.getSize()));
     }
 
     @Override
@@ -74,7 +75,9 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       if (!rightIsNothing) {
-        return rightBoolean ? left : BoolBuilder.makeConstant(left.getSize(), false);
+        return rightBoolean
+            ? left
+            : BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(false, left.getSize()));
       }
 
       int size = (int) left.getSize();
@@ -186,8 +189,8 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || !rightBoolean
-          ? BoolBuilder.makeEmpty(left.getSize())
-          : BoolBuilder.makeConstant(left.getSize(), true);
+          ? Builder.makeEmpty(BooleanType.INSTANCE, left.getSize())
+          : BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(true, left.getSize()));
     }
 
     @Override
@@ -197,7 +200,9 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       if (!rightIsNothing) {
-        return rightBoolean ? BoolBuilder.makeConstant(left.getSize(), true) : left;
+        return rightBoolean
+            ? BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(true, left.getSize()))
+            : left;
       }
 
       int size = (int) left.getSize();

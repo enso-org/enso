@@ -1,11 +1,9 @@
 package org.enso.table.operations;
 
 import java.util.Comparator;
-import java.util.List;
-import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 
 /** Builds an order mask resulting in sorting storages according to specified rules. */
@@ -35,7 +33,7 @@ public class OrderBuilder {
      *
      * @return a comparator with properties described above
      */
-    public Comparator<Integer> toComparator() {
+    public Comparator<Long> toComparator() {
       final ColumnStorage<?> storage = column.getStorage();
       Comparator<Object> itemCmp = ObjectComparator.DEFAULT;
 
@@ -57,20 +55,12 @@ public class OrderBuilder {
   /**
    * Builds an order mask based on the specified set of rules.
    *
-   * @param rules a list of rules that should be used in generating the ordering. The rules are
-   *     treated hierarchically, i.e. the first rule is applied first, all the groups of equal
-   *     elements are then internally reordered according to the second rule etc. The ordering is
-   *     stable, i.e. if no rule disambiguates the ordering, the original position in the storage is
-   *     used instead.
+   * @param rule a rule that should be used in generating the ordering.
    * @return an order mask that will result in sorting any storage according to the specified rules.
    */
-  public static OrderMask buildOrderMask(List<OrderRule> rules) {
-    int size = rules.get(0).column.getSize();
-    Comparator<Integer> comparator =
-        rules.stream().map(OrderRule::toComparator).reduce(Comparator::thenComparing).get();
-
-    int[] positions =
-        IntStream.range(0, size).boxed().sorted(comparator).mapToInt(i -> i).toArray();
-    return OrderMask.fromArray(positions);
+  public static long[] buildMask(OrderRule rule) {
+    long size = rule.column.getSize();
+    Comparator<Long> comparator = rule.toComparator();
+    return LongStream.range(0, size).boxed().sorted(comparator).mapToLong(i -> i).toArray();
   }
 }

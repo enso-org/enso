@@ -92,7 +92,7 @@ public interface UnaryOperation {
    * A no-op identity operation that returns the original storage unchanged. This can be useful when
    * you need to ensure a UnaryOperation is always present, but no actual transformation is needed.
    */
-  public static UnaryOperation IDENTITY =
+  UnaryOperation IDENTITY =
       new UnaryOperation() {
         @Override
         public String getName() {
