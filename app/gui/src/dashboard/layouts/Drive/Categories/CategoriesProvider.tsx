@@ -7,9 +7,9 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackends } from '$/providers/react'
+import { useBackends, useFullUserSession } from '$/providers/react'
 import type { ReactNode } from 'react'
-import type { Category, CategoryId } from './Category'
+import { isCloudCategory, type Category, type CategoryId } from './Category'
 import {
   CategoriesContext,
   categoryIdStore,
@@ -33,23 +33,24 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
   const { backendForType, localBackend } = useBackends()
+  const { user } = useFullUserSession()
   const { isOffline } = useOffline()
 
   const [categoryId, privateSetCategoryId, privateResetCategoryId] =
     useSearchParamsState<CategoryId>(
       'driveCategory',
       () => {
-        const savedId = categoryIdStore.getState().categoryId
-
-        if (savedId != null && findCategoryById(savedId) != null) {
-          return savedId
+        const readSavedCategory = () => {
+          const id = categoryIdStore.getState().categoryId
+          if (id == null) return null
+          const category = findCategoryById(id)
+          if (category == null) return null
+          const unavailable = (!user.isEnabled || isOffline) && isCloudCategory(category)
+          if (unavailable) return null
+          return id
         }
 
-        if (isOffline && localBackend != null) {
-          return 'local'
-        }
-
-        return localBackend != null ? 'local' : 'cloud'
+        return readSavedCategory() ?? (localBackend != null ? 'local' : 'cloud')
       },
       // This is safe, because we enshure the type inside the function
       // eslint-disable-next-line no-restricted-syntax

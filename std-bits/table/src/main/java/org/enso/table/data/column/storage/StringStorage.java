@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.storage.type.TextType;
 
 /** A column storing strings. */
-public final class StringStorage extends SpecializedStorage<String> {
+public final class StringStorage extends TypedStorage<String> {
   /**
    * @param data the underlying data
    * @param type the type of the column

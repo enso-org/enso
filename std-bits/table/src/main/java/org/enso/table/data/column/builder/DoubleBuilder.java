@@ -5,7 +5,7 @@ import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -16,7 +16,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
-public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
+class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   protected final PrecisionLossAggregator precisionLossAggregator;
   protected double[] data;
 

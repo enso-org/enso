@@ -1,14 +1,13 @@
 package org.enso.table.data.column.builder;
 
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ObjectStorage;
-import org.enso.table.data.column.storage.SpecializedStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
 
 /** A builder for boxed object columns. */
-public class ObjectBuilder extends TypedBuilder<Object> {
-  public ObjectBuilder(int size) {
+class ObjectBuilder extends TypedBuilder<Object> {
+  ObjectBuilder(int size) {
     super(AnyObjectType.INSTANCE, new Object[size]);
   }
 
@@ -32,8 +31,8 @@ public class ObjectBuilder extends TypedBuilder<Object> {
       resize(newSizeInt);
     }
 
-    if (storage instanceof SpecializedStorage<?> specializedStorage) {
-      // We can safely cast here, as for SpecializedStorage the size is always an int.
+    if (storage instanceof TypedStorage<?> specializedStorage) {
+      // We can safely cast here, as for TypedStorage the size is always an int.
       int toCopy = (int) storage.getSize();
       System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
       currentSize += toCopy;
@@ -49,6 +48,6 @@ public class ObjectBuilder extends TypedBuilder<Object> {
 
   @Override
   public ColumnStorage<Object> doSeal() {
-    return new ObjectStorage(data);
+    return new TypedStorage<>(AnyObjectType.INSTANCE, data);
   }
 }

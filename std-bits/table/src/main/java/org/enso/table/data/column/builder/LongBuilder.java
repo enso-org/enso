@@ -4,7 +4,7 @@ import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -16,7 +16,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
-public class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
+class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
   protected final ProblemAggregator problemAggregator;
   protected long[] data;
 
