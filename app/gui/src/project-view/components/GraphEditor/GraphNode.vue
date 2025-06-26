@@ -556,7 +556,7 @@ const nodeName = computed(() => props.node.pattern?.code())
   font-family: var(--font-code);
   user-select: none;
   pointer-events: none;
-  margin-right: 10px;
+  margin-right: 40px;
   color: black;
   position: absolute;
   right: 100%;
