@@ -517,11 +517,11 @@ function AssetsTable(props: AssetsTableProps) {
   useEffect(
     () =>
       driveStore.subscribe(({ selectedIds }) => {
-        const predicate =
-          isCloud ?
-            (type: AssetType | undefined) =>
-              type === AssetType.project || type === AssetType.file || type === AssetType.datalink
-          : () => true
+        const predicate = (type: AssetType | undefined) =>
+          type === AssetType.directory ||
+          type === AssetType.project ||
+          type === AssetType.file ||
+          type === AssetType.datalink
         const map = new Map(assets.map((item) => [item.id, item]))
         const newCanDownload =
           selectedIds.size !== 0 &&

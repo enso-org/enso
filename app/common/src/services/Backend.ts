@@ -958,6 +958,11 @@ function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
 }
 
+/** Whether an asset can be downloaded. */
+export function isDownloadableAsset(type: AssetType | undefined) {
+  return type !== AssetType.secret
+}
+
 /** Creates a {@link FileAsset} using the given values. */
 export function createPlaceholderFileAsset(title: string, parentId: DirectoryId): FileAsset {
   return {
