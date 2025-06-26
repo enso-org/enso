@@ -18,8 +18,8 @@ import {
 } from '#/services/RemoteBackend/types'
 import { delay } from '#/utilities/async'
 import * as download from '#/utilities/download'
-import { getFileName } from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
+import { getFileName, getFolderPath } from 'enso-common/src/utilities/file'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
@@ -1493,7 +1493,9 @@ export default class RemoteBackend extends Backend {
       await download.download({
         url,
         name: filePath != null ? getFileName(filePath) : undefined,
-        electronOptions: { path: filePath },
+        electronOptions: {
+          path: filePath != null ? backend.Path(getFolderPath(filePath)) : null,
+        },
       })
       return { filePath }
     }

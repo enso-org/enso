@@ -12,7 +12,6 @@ import * as projectManager from '#/services/ProjectManager'
 import type { ProjectManager } from '#/services/ProjectManager/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
 import { unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
@@ -23,6 +22,12 @@ import {
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import {
+  fileExtension,
+  getFileName,
+  getFolderPath,
+  normalizePath,
+} from 'enso-common/src/utilities/file'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'

@@ -21,7 +21,6 @@ import * as localBackendModule from '#/services/LocalBackend'
 
 import { usePaywall } from '#/hooks/billing'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
-import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
@@ -30,6 +29,7 @@ import { useBackends, useConfig, useFullUserSession } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { usePrefetchQuery } from '@tanstack/react-query'
+import { baseName } from 'enso-common/src/utilities/file'
 
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax

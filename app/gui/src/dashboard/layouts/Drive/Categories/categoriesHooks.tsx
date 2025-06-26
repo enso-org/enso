@@ -19,8 +19,9 @@ import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import type Backend from '#/services/Backend'
 import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
-import { getFileName } from '#/utilities/fileInfo'
+import { organizationIdToDirectoryId } from '#/services/RemoteBackend/types'
 import { useBackends, useText } from '$/providers/react'
+import { getFileName } from 'enso-common/src/utilities/file'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import { createStore } from 'zustand'
@@ -40,7 +41,6 @@ import type {
   TrashCategory,
 } from './Category'
 import { isCloudCategory, isLocalCategory } from './Category'
-import { organizationIdToDirectoryId } from '#/services/RemoteBackend/types'
 
 /** State for {@link categoryIdStore}. */
 interface CategoryIdStoreState {

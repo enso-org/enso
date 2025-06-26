@@ -73,7 +73,6 @@ import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
 import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
-import { fileExtension } from '#/utilities/fileInfo'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import { PermissionAction } from '#/utilities/permissions'
@@ -90,6 +89,7 @@ import {
 } from '$/providers/react'
 import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { fileExtension } from 'enso-common/src/utilities/file'
 import {
   Children,
   cloneElement,
