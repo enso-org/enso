@@ -18,7 +18,7 @@ abstract class NumericBuilder implements Builder {
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return currentSize;
   }
 

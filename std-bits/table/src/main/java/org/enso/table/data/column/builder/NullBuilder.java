@@ -35,7 +35,7 @@ final class NullBuilder implements Builder {
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return length;
   }
 

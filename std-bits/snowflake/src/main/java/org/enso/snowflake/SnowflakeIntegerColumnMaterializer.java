@@ -94,7 +94,7 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return currentSize;
   }
 

@@ -255,7 +255,7 @@ public interface Builder {
   /**
    * @return the number of appended elements
    */
-  int getCurrentSize();
+  long getCurrentSize();
 
   /**
    * @return a storage containing all the items appended so far

@@ -75,7 +75,7 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return currentSize;
   }
 

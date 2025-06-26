@@ -94,7 +94,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return size;
   }
 
