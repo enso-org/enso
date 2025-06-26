@@ -777,9 +777,11 @@ export default class LocalBackend extends Backend {
     const searchParams = new URLSearchParams(entries).toString()
     const path = `${EXPORT_ARCHIVE_PATH}?${searchParams}`
     if (params.filePath != null) {
+      // Assume it is Electron, copy files through Electron server directly
       const response = await this.post<backend.ExportedArchive>(path, {})
       return await response.json()
     } else {
+      // Download files as HTTP stream
       const secondsString = new Date().getSeconds().toString().padStart(2, '0')
       const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
       await download({ url: this.resolvePath(path), name: `${PRODUCT_NAME} ${dateString}.zip` })

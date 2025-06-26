@@ -343,6 +343,7 @@ export class Server {
           await this.httpGetDownloadDirectoryPath(request, response, params)
           break
         }
+        // `GET` needs to be supported to be able to download the file using a hyperlink.
         case `GET /${EXPORT_ARCHIVE_PATH}`:
         case `POST /${EXPORT_ARCHIVE_PATH}`: {
           await this.httpDownloadArchive(request, response, params)
