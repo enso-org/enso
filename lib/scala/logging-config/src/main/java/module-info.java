@@ -6,7 +6,7 @@ module org.enso.logging.config {
   requires java.logging;
   requires typesafe.config;
   requires org.enso.logging.utils;
-  requires static org.enso.engine.common;
+  requires org.enso.engine.common;
   requires static org.graalvm.polyglot;
   requires static org.openide.util.lookup.RELEASE180;
 
