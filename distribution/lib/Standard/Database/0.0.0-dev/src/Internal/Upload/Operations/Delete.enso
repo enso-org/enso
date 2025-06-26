@@ -16,7 +16,7 @@ from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
 from project.Internal.Upload.Operations.Upload_Table import create_table_upload_operation, Table_Upload_Operation
 
 ## PRIVATE
-common_delete_rows (target_table : DB_Table) (key_values_to_delete : Table | DB_Table) (key_columns : Vector Text) (allow_duplicate_matches : Boolean) -> Integer =
+common_delete_rows (target_table : DB_Table) (key_values_to_delete : Table) (key_columns : Vector Text) (allow_duplicate_matches : Boolean) -> Integer =
     check_delete_rows_arguments target_table key_values_to_delete key_columns <|
         connection = target_table.connection
         dry_run = Context.Output.is_enabled.not
@@ -50,7 +50,7 @@ common_delete_rows (target_table : DB_Table) (key_values_to_delete : Table | DB_
     We select only the key columns and discard anything else.
     We also call distinct to ensure that we will not have primary-key duplicate
     issues when uploading the temporary table.
-common_preprocess_source_table (key_values_to_delete : DB_Table | Table) key_columns =
+common_preprocess_source_table (key_values_to_delete : Table) key_columns =
     key_values_to_delete.select_columns key_columns . distinct
 
 ## PRIVATE
@@ -61,7 +61,7 @@ type Delete_Rows_Source
     Temporary_DB_Table (recipe : Table_Upload_Operation) (tmp_table_name : Text)
 
     ## PRIVATE
-    prepare connection (key_values_to_delete : DB_Table | Table) key_columns =
+    prepare connection (key_values_to_delete : Table) key_columns =
         prepared_table = common_preprocess_source_table key_values_to_delete key_columns
         tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
         copied_table = create_table_upload_operation prepared_table connection tmp_table_name primary_key=key_columns temporary=True remove_after_transaction=True on_problems=Problem_Behavior.Report_Error row_limit=Nothing
@@ -88,7 +88,7 @@ type Delete_Rows_Dry_Run_Source
     Temporary_Table (recipe : Table_Upload_Operation) (dry_run_message_suffix : Text)
 
     ## PRIVATE
-    prepare connection (key_values_to_delete : DB_Table | Table) key_columns =
+    prepare connection (key_values_to_delete : Table) key_columns =
         prepared_table = common_preprocess_source_table key_values_to_delete key_columns
         case prepared_table of
             _ : DB_Table ->
