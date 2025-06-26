@@ -28,11 +28,13 @@ function array<T>(): Readonly<T>[] {
   return []
 }
 
+const ROOT_PARENT_PATH = Path('/home/user/enso')
 const ROOT_PATH = Path('/home/user/enso/enso-projects')
 const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
 
 const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
+  getDownloadDirectory: array<object>(),
   downloadProject: array<{ uuid: UUID; projectsDirectory: Path }>(),
   getFileContent: array<{ path: string }>(),
   createProject: array<CreateProjectParams>(),
@@ -253,7 +255,9 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
     addEntry(options.path, createFile(options))
   }
 
+  addDirectory({ path: ROOT_PARENT_PATH })
   addDirectory({ path: ROOT_PATH })
+  addDirectory({ path: DOWNLOAD_PATH })
 
   await test.step('Mock Local API', async () => {
     await page.routeWebSocket('ws://localhost:30535/', (ws) => {
@@ -370,8 +374,9 @@ async function localMockApiInternal({ page, setupLocalAPI }: MockParams) {
     await page.route('/api/upload-file?*', async (route, request) => {
       const params = new URL(request.url()).searchParams
       const fileName = params.get('file_name')
-      const directoryPathRaw = params.get('directory')
-      const directoryPath = directoryPathRaw != null ? Path(directoryPathRaw) : ROOT_PATH
+      const directoryPathRaw = params.get('directory') as backend.DirectoryId | null
+      const directoryPath =
+        directoryPathRaw != null ? backend.extractTypeAndPath(directoryPathRaw).path : ROOT_PATH
       const filePath = Path(`${directoryPath}/${fileName}`)
       if (filePath == null) {
         return route.fulfill({ status: 400 })
