@@ -32,10 +32,8 @@ public final class JVM {
   public static JVM create(File javaHome, String... options) {
     var createJvmFn =
         Platform.includedIn(Platform.WINDOWS.class)
-            ? // if on windows
-            WindowsJVM.createImpl(javaHome)
-            : // use windows implementation
-            PosixJVM.createImpl(javaHome); // otherwise use POSIX
+            ? WindowsJVM.createImpl(javaHome)
+            : PosixJVM.createImpl(javaHome);
 
     var jvmArgs = new ArrayList<String>();
 
