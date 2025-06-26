@@ -1,8 +1,4 @@
-import {
-  resolveDocImageResource,
-  type DocumentationImages,
-} from '@/components/MarkdownEditor/imageFiles/common'
-import { fetcherUrlTransformer } from '@/components/MarkdownEditor/imageFiles/imageUrlTransformer'
+import { type DocumentationImages } from '@/components/MarkdownEditor/imageFiles/common'
 import { putText, putTextAtCoords } from '@/util/codemirror'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
@@ -14,9 +10,9 @@ import {
   type FileExtension,
   type MimeType,
 } from 'enso-common/src/utilities/file'
-import { computed, reactive, toValue } from 'vue'
+import { reactive } from 'vue'
 import type { Path } from 'ydoc-shared/languageServerTypes'
-import { Err, mapOk, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
+import { type Result } from 'ydoc-shared/util/data/result'
 import type { Uuid } from 'ydoc-shared/yjsModel'
 
 type UploadedImagePosition = { type: 'selection' } | { type: 'coords'; coords: Vec2 }
@@ -47,10 +43,6 @@ function pathUniqueId(path: Path) {
   return path.rootId + ':' + path.segments.join('/')
 }
 
-function pathDebugRepr(path: Path) {
-  return pathUniqueId(path)
-}
-
 /** Supports loading and uploading project images in an opened project via the ProjectFiles API. */
 export function useDocumentationImagesFromProjectFiles(
   modulePath: ToValue<Path | undefined>,
@@ -58,52 +50,7 @@ export function useDocumentationImagesFromProjectFiles(
 ): DocumentationImages {
   const uploadErrorToast = useToast.error()
 
-  function urlToPath(url: string): Result<Path> | undefined {
-    const modulePathValue = toValue(modulePath)
-    if (!modulePathValue) {
-      return Err('Current module path is unknown.')
-    }
-    const resolved = resolveDocImageResource(modulePathValue.segments, url)
-    if (!resolved.ok) return resolved
-    if (resolved.value.type === 'projectPath') {
-      const segments = resolved.value.path.split('/')
-      return Ok({ rootId: modulePathValue.rootId, segments })
-    } else {
-      // Custom fetching not needed.
-      return undefined
-    }
-  }
-
   const currentlyUploading = reactive(new Map<string, Promise<Blob>>())
-
-  /** URL transformer that enables displaying images from the current project. */
-  const transformImageUrl = fetcherUrlTransformer(
-    async (url: string) => {
-      const path = urlToPath(url)
-      if (!path) return
-      return withContext(
-        () => `Locating documentation image (${url})`,
-        () =>
-          mapOk(path, (path) => {
-            const id = pathUniqueId(path)
-            return {
-              location: path,
-              uniqueId: id,
-              uploading: computed(() => currentlyUploading.has(id)),
-            }
-          }),
-      )
-    },
-    async (path) => {
-      return withContext(
-        () => `Loading documentation image (${pathDebugRepr(path)})`,
-        async () => {
-          const uploaded = await currentlyUploading.get(pathUniqueId(path))
-          return uploaded ? Ok(uploaded) : projectFiles.readFileBinary(path)
-        },
-      )
-    },
-  )
 
   async function uploadImage(
     view: EditorView,
@@ -198,5 +145,5 @@ export function useDocumentationImagesFromProjectFiles(
     }
   }
 
-  return { transformImageUrl, tryUploadDroppedImage, tryUploadPastedImage, tryUploadImageFile }
+  return { tryUploadDroppedImage, tryUploadPastedImage, tryUploadImageFile }
 }

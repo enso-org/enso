@@ -156,7 +156,10 @@ export function createProjectStore(
       doc,
       awareness.internal,
     )
-    onCleanup(disposeYDocsProvider)
+    onCleanup(() => {
+      yDocsProvider?.dispose()
+      yDocsProvider = undefined
+    })
   })
 
   const projectModel = new DistributedProject(doc)
@@ -338,11 +341,6 @@ export function createProjectStore(
 
   const { executionMode } = setupSettings(projectModel)
 
-  function disposeYDocsProvider() {
-    yDocsProvider?.dispose()
-    yDocsProvider = undefined
-  }
-
   const recordMode = computed({
     get() {
       return executionMode.value === 'live'
@@ -401,7 +399,6 @@ export function createProjectStore(
     recordMode,
     dataflowErrors,
     executeExpression,
-    disposeYDocsProvider,
     renameProject,
   })
 }

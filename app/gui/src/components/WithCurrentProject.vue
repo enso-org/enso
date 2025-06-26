@@ -1,5 +1,6 @@
 <script lang="ts">
 import { ProjectId } from '#/services/Backend'
+import { isLocalProjectId } from '#/services/LocalBackend'
 import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProjects'
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
@@ -20,13 +21,25 @@ const [provideCurrentProject, useCurrentProject] = createContextStore(
   (projectId: ToValue<Opt<ProjectId>>) => {
     const openedProjects = injectOpenedProjects()
 
-    const ref = computed(() => {
+    const effectiveOpenedProjectId = computed(() => {
       const id = toValue(projectId)
+      if (id == null || openedProjects.get(id)) return id
+      // When we have a hybrid project opened, we have to translate cloud project ID to corresponding hybrid project.
+      if (!isLocalProjectId(id)) {
+        for (const openedId of openedProjects.listIds()) {
+          if (openedId.includes('/cloud-' + id) && isLocalProjectId(openedId)) return openedId
+        }
+      }
+      return undefined
+    })
+
+    const ref = computed(() => {
+      const id = effectiveOpenedProjectId.value
       return id != null ? openedProjects.get(id) : undefined
     })
 
     return {
-      id: computed(() => toValue(projectId)),
+      id: effectiveOpenedProjectId,
       /* Current project as a single ref  */
       ref,
       /* Current project's stores decomposed to separate refs. */

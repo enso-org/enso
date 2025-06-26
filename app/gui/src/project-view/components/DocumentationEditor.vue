@@ -14,8 +14,8 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 
 const rightPanel = useRightPanelData()
-const openedProject = injectCurrentProject().ref
-const projectId = computed(() => rightPanel.focusedProject)
+const currentProject = injectCurrentProject()
+const projectId = computed(() => currentProject.id.value ?? rightPanel.focusedProject)
 const { backendForType } = useBackends()
 const backendForAsset = computed(() => {
   if (rightPanel.context?.category == null) return null
@@ -34,7 +34,8 @@ const fileContentsFromCloud = useQuery({
       ] as const,
   ),
   enabled: computed(
-    () => openedProject.value == null && backendForAsset.value != null && projectId.value != null,
+    () =>
+      currentProject.ref.value == null && backendForAsset.value != null && projectId.value != null,
   ),
   queryFn: ({ queryKey }) => {
     const [, { projectId }] = queryKey
@@ -43,8 +44,11 @@ const fileContentsFromCloud = useQuery({
 })
 
 const currentMethodAst = computed(() => {
-  if (openedProject.value) {
-    return mapOk(openedProject.value.graph.currentMethod.ast, (ast) => ({ ast, readOnly: false }))
+  if (currentProject.ref.value) {
+    return mapOk(currentProject.ref.value.graph.currentMethod.ast, (ast) => ({
+      ast,
+      readOnly: false,
+    }))
   } else if (fileContentsFromCloud.data != null) {
     if (fileContentsFromCloud.error.value) return Err(fileContentsFromCloud.error.value)
     if (fileContentsFromCloud.isLoading.value) return Err('Loading documentation...')
@@ -59,13 +63,15 @@ const currentMethodAst = computed(() => {
 })
 
 const currentMethodPointer = computed(
-  () => openedProject.value && unwrapOr(openedProject.value.graph.currentMethod.pointer, undefined),
+  () =>
+    currentProject.ref.value &&
+    unwrapOr(currentProject.ref.value.graph.currentMethod.pointer, undefined),
 )
 const displaySignatureEditor = computed(
   () =>
     currentMethodPointer.value &&
-    openedProject.value?.store.entryPoint &&
-    !methodPointerEquals(currentMethodPointer.value, openedProject.value.store.entryPoint),
+    currentProject.ref.value?.store.entryPoint &&
+    !methodPointerEquals(currentMethodPointer.value, currentProject.ref.value.store.entryPoint),
 )
 
 const editorMarkdown = computed(() =>
@@ -76,7 +82,7 @@ const editorMarkdown = computed(() =>
 )
 
 provideDocumentationImages({
-  openedProject,
+  openedProject: currentProject.ref,
   backend: backendForAsset,
   projectId,
 })
@@ -91,8 +97,8 @@ provideDocumentationImages({
     >
       <template #belowToolbar>
         <FunctionSignatureEditor
-          v-if="displaySignatureEditor && currentMethodAst.ok && openedProject"
-          :projectId="openedProject.store.id"
+          v-if="displaySignatureEditor && currentMethodAst.ok"
+          :projectId="projectId"
           :functionAst="currentMethodAst.value.ast"
           :methodPointer="currentMethodPointer"
         />

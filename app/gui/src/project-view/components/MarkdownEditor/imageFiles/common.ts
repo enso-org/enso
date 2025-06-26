@@ -1,10 +1,8 @@
 import { EnsoPath } from '#/services/Backend'
-import type { UrlTransformer } from '@/components/MarkdownEditor/imageFiles/imageUrlTransformer'
 import type { EditorView } from '@codemirror/view'
 import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 export interface DocumentationImages {
-  transformImageUrl: UrlTransformer
   tryUploadDroppedImage: (view: EditorView, event: DragEvent) => Promise<void>
   tryUploadPastedImage: (view: EditorView, item: ClipboardItem) => boolean
   tryUploadImageFile: (view: EditorView) => Promise<void>

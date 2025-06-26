@@ -14,7 +14,6 @@ import {
   computed,
   ComputedRef,
   effectScope,
-  MaybeRefOrGetter,
   nextTick,
   onScopeDispose,
   ref,
@@ -27,7 +26,7 @@ const MAX_CACHED_UNUSED_RESOURCES = 64
 
 interface ResourceContext {
   project: () => ProjectId | undefined
-  modulePathSegments: () => string[] | undefined
+  basePathSegments: () => string[] | undefined
 }
 
 export const [provideAsyncResources, useAsyncResources] = createContextStore(
@@ -74,7 +73,8 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
       unparsedAssetUrl: string,
       context: ResourceContext,
     ): Result<ResourceFetcher> {
-      const parsedUrl = parseAssetUrl(unparsedAssetUrl, context.modulePathSegments)
+      const parsedUrl = parseResourceUrl(unparsedAssetUrl, context.basePathSegments)
+      console.log('parsedUrl', unparsedAssetUrl, '->', parsedUrl)
       if (!parsedUrl.ok) return Err(parsedUrl.error)
       switch (parsedUrl.value.kind) {
         case 'ensoPath': {
@@ -96,8 +96,8 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
     function resolveEnsoPathResource(path: EnsoPath): ResourceFetcher {
       return {
         cacheKey: `ensoPath-${path}`,
-        async fetch(abort) {
-          throw 'unimplemented'
+        async fetch() {
+          return Err('EnsoPath unimplemented')
         },
       }
     }
@@ -105,7 +105,7 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
     function resolveWebResource(url: URL): ResourceFetcher {
       return {
         cacheKey: `web-${url}`,
-        async fetch(_abort) {
+        async fetch() {
           return Ok(url)
         },
       }
@@ -149,22 +149,36 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
       }
     }
 
-    function useAmbinedContext(): ResourceContext {
+    function useAmbientContext(): ResourceContext {
       const currentProject = injectCurrentProject(true)
       return {
         project: () => currentProject?.id.value ?? undefined,
-        modulePathSegments: () =>
-          currentProject?.storesRefs.store.value?.observedFileName?.split('/'),
+        basePathSegments: () => {
+          if (!currentProject) return
+
+          const fileName = currentProject.storesRefs.store.value?.observedFileName
+          if (fileName) return ['src', ...fileName.split('/')]
+        },
       }
     }
 
     return {
+      /**
+       * Add a usage point for a resource represented by given reactive URL.
+       * Resources returned by this are automatically considered "used" as long as
+       * this composable's scope is alive. Previously downloaded and currently unused
+       * resources will stay around in cache up to a limit, until they are eventually
+       * dropped and would have to be redownloaded when requested again.
+       *
+       * Resources that are currently considered "used" are not counting towards the
+       * cache size limit.
+       */
       useResourceFromUrl(
-        unparsedAssetUrl: ToValue<string>,
-        context: ResourceContext = useAmbinedContext(),
+        unparsedResourceUrl: ToValue<string>,
+        context: ResourceContext = useAmbientContext(),
       ): ComputedRef<Result<AsyncResource>> {
         const resolved = computed(() =>
-          resolveResourceInContext(toValue(unparsedAssetUrl), context),
+          resolveResourceInContext(toValue(unparsedResourceUrl), context),
         )
 
         let previousKey: ResourceKey | null = null
@@ -182,18 +196,50 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
           return retained
         })
       },
+
+      /**
+       * Try uploading an image and creating a resource object from it.
+       *
+       * @returns resource URL to pass into `useResourceFromUrl`.
+       */
+      async uploadImage(
+        dataSource: UploadData | DragEvent | ClipboardItem | File,
+        context: ResourceContext = useAmbientContext(),
+      ): Promise<Result<string>> {
+        const uploadData = normalizeUploadDataSource(dataSource)
+        throw 'unimplemented'
+      },
     }
   },
 )
+
+interface UploadData {
+  filename: string
+  data: Blob
+}
+
+async function normalizeUploadDataSource(
+  dataSource: UploadData | DragEvent | ClipboardItem | File,
+): Promise<Result<UploadData>> {
+  if (dataSource instanceof DragEvent) {
+    throw 'unimplemented'
+  } else if (dataSource instanceof ClipboardItem) {
+    throw 'unimplemented'
+  } else if (dataSource instanceof File) {
+    throw 'unimplemented'
+  } else {
+    return Ok(dataSource)
+  }
+}
 
 type ParsedAssetUrl =
   | { kind: 'projectRelative'; relativePath: string }
   | { kind: 'ensoPath'; ensoPath: EnsoPath }
   | { kind: 'webUrl'; url: URL } // only allowed web protocols
 
-function parseAssetUrl(
+function parseResourceUrl(
   unparsedAssetUrl: string,
-  getModulePathSegments: () => string[] | undefined,
+  basePathSegments: () => string[] | undefined,
 ): Result<ParsedAssetUrl> {
   const asUrl = URL.parse(unparsedAssetUrl)
   if (asUrl != null) {
@@ -206,7 +252,7 @@ function parseAssetUrl(
     }
     return Err('Unsupported URL protocol')
   }
-  const segments = getModulePathSegments()
+  const segments = basePathSegments()
   if (segments != null) {
     // We already know that `unparsedAssetUrl` is not a valid URL by itself.
     // Attempt interpreting it as a relative path with project base.
@@ -325,6 +371,3 @@ export class AsyncResource {
     this.scope.stop()
   }
 }
-
-// Composable representing a usage of a given AsyncResource.
-export function useAsyncResourceUrl(source: MaybeRefOrGetter<AsyncResource>) {}

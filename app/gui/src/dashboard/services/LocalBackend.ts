@@ -14,6 +14,7 @@ import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
+import { isUuid } from 'ydoc-shared/yjsModel'
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
@@ -21,7 +22,7 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 }
 
 export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
-export const LOCAL_PROJECT_ID_PREFIX = `${backend.AssetType.project}-loc-`
+export const LOCAL_PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
 export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
@@ -36,7 +37,18 @@ export function newProjectId(uuid: projectManager.UUID, path: projectManager.Pat
 
 /** Check if given {@link backend.ProjectId} represents a local project. */
 export function isLocalProjectId(projectId: backend.ProjectId): boolean {
-  return projectId.startsWith(LOCAL_PROJECT_ID_PREFIX)
+  // Local projects use UUIDs after the prefix, cloud projects have a different ID format.
+  const uuidLength = 36
+  return (
+    projectId.startsWith(LOCAL_PROJECT_ID_PREFIX) &&
+    projectId[LOCAL_PROJECT_ID_PREFIX.length + uuidLength] === '-' &&
+    isUuid(
+      projectId.substring(
+        LOCAL_PROJECT_ID_PREFIX.length,
+        LOCAL_PROJECT_ID_PREFIX.length + uuidLength,
+      ),
+    )
+  )
 }
 
 /** Create a {@link backend.FileId} from a path. */

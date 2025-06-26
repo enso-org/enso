@@ -1,5 +1,4 @@
 import type { OpenedProject } from '$/providers/openedProjects'
-import { useDocumentationImagesFromBackend } from '@/components/MarkdownEditor/imageFiles/backendFiles'
 import type { DocumentationImages } from '@/components/MarkdownEditor/imageFiles/common'
 import { useDocumentationImagesFromProjectFiles } from '@/components/MarkdownEditor/imageFiles/projectFiles'
 import { createContextStore } from '@/providers'
@@ -25,11 +24,7 @@ const [provide, useDocumentationImages] = createContextStore(
 export { useDocumentationImages }
 
 /** Provides support for loading and uploading project images. */
-export function provideDocumentationImages({
-  openedProject,
-  backend,
-  projectId,
-}: DocumentationImagesOptions) {
+export function provideDocumentationImages({ openedProject }: DocumentationImagesOptions) {
   const handlers = ref<DocumentationImages>()
 
   watch(
@@ -44,7 +39,11 @@ export function provideDocumentationImages({
             useProjectFiles(store),
           )
         } else {
-          handlers.value = useDocumentationImagesFromBackend({ backend, projectId })
+          handlers.value = {
+            tryUploadImageFile: async () => {},
+            tryUploadDroppedImage: async () => {},
+            tryUploadPastedImage: () => false,
+          }
         }
       })
       onCleanup(() => scope.stop())

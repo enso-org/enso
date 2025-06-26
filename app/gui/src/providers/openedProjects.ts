@@ -51,7 +51,7 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
   'opened-projects',
   () => {
     const projects = shallowReactive(
-      new Map<string, OpenedProject & { storesScope: EffectScope }>(),
+      new Map<ProjectId, OpenedProject & { storesScope: EffectScope }>(),
     )
 
     function registerProject(props: ProjectProps) {
@@ -69,19 +69,24 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
       })
     }
 
-    function closeProject(id: string) {
+    function closeProject(id: ProjectId) {
       projects.get(id)?.storesScope.stop()
       projects.delete(id)
     }
 
-    function get(id: string): OpenedProject | undefined {
+    function get(id: ProjectId): OpenedProject | undefined {
       return projects.get(id)
+    }
+
+    function listIds() {
+      return projects.keys()
     }
 
     return {
       registerProject,
       closeProject,
       get,
+      listIds,
     }
   },
 )
