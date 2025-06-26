@@ -2822,6 +2822,7 @@ lazy val `runtime-benchmarks` =
         "org.graalvm.truffle" % "truffle-api"                  % graalMavenPackagesVersion,
         "org.graalvm.truffle" % "truffle-dsl-processor"        % graalMavenPackagesVersion % "provided",
         "org.slf4j"           % "slf4j-nop"                    % slf4jVersion,
+        "com.typesafe"        % "config"                       % typesafeConfigVersion,
         "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion
       ),
       mainClass :=
