@@ -134,14 +134,15 @@ cannot rely on it and must assume that every value can have any kind of types in
 the hidden part.
 
 The current approach that seems to strike a good balance is:
-- allowing `y = x:T` type assertions that check the type at run-time and allow to
-  'uncover' the hidden parts of the type. They are treated as an `instanceof`
+
+- allowing `y = x:T` type assertions that check the type at run-time and allow
+  to 'uncover' the hidden parts of the type. They are treated as an `instanceof`
   check, so they are not validated by static analysis but instead serve as
   _evidence_ that if the code continues execution, then indeed `y` must have now
   have type `T`.
 - all other places - invoking methods on a type, passing a value as an argument,
-  using a value in binary operators rely only on the **visible** part of the type
-  and thus can be checked in static analysis.
+  using a value in binary operators rely only on the **visible** part of the
+  type and thus can be checked in static analysis.
 
 #### Local Inference and Type Propagation
 
