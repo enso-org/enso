@@ -5,8 +5,8 @@ import java.util.Arrays;
 import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.LongStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -103,7 +103,7 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
     resize(currentSize);
     return switch (mode) {
       case LONG -> new LongStorage(ints, currentSize, intsMissing, IntegerType.INT_64);
-      case BIG_INTEGER -> new BigIntegerStorage(bigInts);
+      case BIG_INTEGER -> new TypedStorage<>(BigIntegerType.INSTANCE, bigInts);
     };
   }
 

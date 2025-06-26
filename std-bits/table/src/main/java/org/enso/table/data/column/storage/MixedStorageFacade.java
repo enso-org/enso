@@ -32,11 +32,6 @@ public class MixedStorageFacade extends Storage<Object>
   }
 
   @Override
-  public boolean isNothing(long idx) {
-    return underlyingStorage.isNothing(idx);
-  }
-
-  @Override
   public Object getItemBoxed(long idx) {
     return underlyingStorage.getItemBoxed(idx);
   }

@@ -12,7 +12,6 @@ import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
-import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -55,7 +54,6 @@ public interface Builder {
     // Create a single storage item based on the type of the item.
     return switch (item) {
       case null -> new NullBuilder().appendNulls(checkSize(size)).seal();
-      case Long longValue -> new LongConstantStorage(longValue, checkSize(size));
       case Boolean booleanValue -> new BoolStorage(
           new BitSet(), new BitSet(), checkSize(size), booleanValue);
       default -> {
