@@ -21,7 +21,7 @@ from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
 from project.Internal.Upload.Operations.Upload_Table import create_table_upload_operation
 
 ## PRIVATE
-common_update_table (source_table : Table) (target_table : DB_Table) update_action key_columns error_on_missing_columns on_problems:Problem_Behavior =
+common_update_table (source_table : Table) (target_table : Table & DB_Table) update_action key_columns error_on_missing_columns on_problems:Problem_Behavior =
     check_target_table_for_update target_table <|
         connection = target_table.connection
         Panic.recover SQL_Error <| handle_upload_errors <|
@@ -30,7 +30,7 @@ common_update_table (source_table : Table) (target_table : DB_Table) update_acti
                 tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-source-table-"
                 dry_run = Context.Output.is_enabled.not
                 row_limit = if dry_run then dry_run_row_limit else Nothing
-                structure_hint = (target_table:Table).select_columns source_table.column_names reorder=True . columns . map c->
+                structure_hint = target_table.select_columns source_table.column_names reorder=True . columns . map c->
                     Column_Description.Value c.name c.value_type
                 # We ignore non-critical problems in `create_table_upload_operation` because we already checked the structure.
                 tmp_table_uploader = create_table_upload_operation source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True remove_after_transaction=True on_problems=Problem_Behavior.Ignore row_limit=row_limit
