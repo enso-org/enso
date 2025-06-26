@@ -58,14 +58,14 @@ resolve_primary_key structure primary_key = case primary_key of
    - all columns in `source_table` have a corresponding column in `target_table`
      (with the same name),
    - all `key_columns` are present in both source and target tables.
-check_update_arguments_structure_match source_table:Table target_table:Table key_columns update_action error_on_missing_columns on_problems:Problem_Behavior ~action =
+check_update_arguments_structure_match source_table:Table (target_table : Table & DB_Table) key_columns update_action error_on_missing_columns on_problems:Problem_Behavior ~action =
     check_source_column source_column =
         # The column must exist because it was verified earlier.
         target_column = target_table.get source_column.name
         source_type = source_column.value_type
         target_type = target_column.value_type
         if source_type == target_type then [] else
-            if (target_table:DB_Table).connection.dialect.get_type_mapping.is_implicit_conversion source_type target_type then [] else
+            if target_table.connection.dialect.get_type_mapping.is_implicit_conversion source_type target_type then [] else
                 if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type unavailable=False] else
                     Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
 
