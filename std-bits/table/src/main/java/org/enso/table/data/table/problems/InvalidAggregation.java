@@ -3,7 +3,7 @@ package org.enso.table.data.table.problems;
 public class InvalidAggregation extends ColumnAggregatedProblem {
   private final String message;
 
-  public InvalidAggregation(String columnName, int row, String message) {
+  public InvalidAggregation(String columnName, long row, String message) {
     super(columnName, row);
     this.message = message;
   }
