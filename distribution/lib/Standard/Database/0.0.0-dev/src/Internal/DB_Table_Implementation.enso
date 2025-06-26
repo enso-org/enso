@@ -73,8 +73,11 @@ import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL_Type.SQL_Type
 import project.Take_Drop_Helpers
 from project.Errors import Integrity_Error, SQL_Error, Unsupported_Database_Operation
-from project.Internal.Type_Refinements.DB_Table_Conversions import all
 from project.Take_Drop_Helpers import Take_Drop
+
+## This conversion allows us to convert the 'unsafe' raw DB_Table instance
+   (lacking `& Table`, that we get from `Table.underlying`) back to a well-behaved `Table & DB_Table`.
+from project.Internal.Type_Refinements.DB_Table_Conversions import all
 
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID

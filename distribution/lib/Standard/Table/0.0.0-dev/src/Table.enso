@@ -254,6 +254,11 @@ type Table
                 Union.make_union all_tables columns_to_keep match_columns on_problems
 
     ## PRIVATE
+       ! Warning
+         The `underlying` value is a 'raw' table implementation like
+         `In_Memory_Table` or `DB_Table`, without the `Table` type refinement.
+         As such, it should never be 'leaked' to users directly. We want users
+         to only see the already refined `Table & DB_Table` type.
     private Value underlying implementation
 
     ## PRIVATE
