@@ -556,7 +556,7 @@ const nodeName = computed(() => props.node.pattern?.code())
   font-family: var(--font-code);
   user-select: none;
   pointer-events: none;
-  margin-right: 40px;
+  margin-right: 10px;
   color: black;
   position: absolute;
   right: 100%;
@@ -567,6 +567,10 @@ const nodeName = computed(() => props.node.pattern?.code())
   white-space: nowrap;
   display: flex;
   align-items: center;
+}
+
+.menuVisible .binding {
+  margin-right: 50px;
 }
 
 .selected .binding {
