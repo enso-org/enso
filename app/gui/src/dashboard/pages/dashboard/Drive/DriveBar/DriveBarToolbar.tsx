@@ -163,7 +163,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     await uploadFiles(Array.from(files))
   })
 
-  const downloadFilesCallback = useEventCallback(async () => {
+  const downloadFilesCallback = useEventCallback(() => {
     unsetModal()
     const { selectedAssets } = driveStore.getState()
     if (
