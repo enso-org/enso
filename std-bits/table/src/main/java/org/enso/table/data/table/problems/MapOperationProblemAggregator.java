@@ -25,7 +25,7 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
     reportColumnAggregatedProblem(new FloatingPointGrouping(location, row));
   }
 
-  public void reportArithmeticError(String message, Integer row) {
+  public void reportArithmeticError(String message, Long row) {
     reportColumnAggregatedProblem(new ArithmeticError(location, message, row));
   }
 
@@ -49,7 +49,7 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
     }
   }
 
-  public void reportDivisionByZero(Integer row) {
+  public void reportDivisionByZero(Long row) {
     reportArithmeticError("Division by zero", row);
   }
 

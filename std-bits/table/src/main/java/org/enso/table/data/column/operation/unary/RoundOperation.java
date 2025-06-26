@@ -61,7 +61,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
       boolean special = Double.isNaN(value) || Double.isInfinite(value);
       if (special) {
         String message = "Value is " + value;
-        problemAggregator.reportArithmeticError(message, (int) index);
+        problemAggregator.reportArithmeticError(message, index);
         return null;
       }
 
@@ -75,7 +75,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
       boolean special = Double.isNaN(value) || Double.isInfinite(value);
       if (special) {
         String message = "Value is " + value;
-        problemAggregator.reportArithmeticError(message, (int) index);
+        problemAggregator.reportArithmeticError(message, index);
         return null;
       }
 
