@@ -343,6 +343,7 @@ export class Server {
           await this.httpGetDownloadDirectoryPath(request, response, params)
           break
         }
+        case `GET /${EXPORT_ARCHIVE_PATH}`:
         case `POST /${EXPORT_ARCHIVE_PATH}`: {
           await this.httpDownloadArchive(request, response, params)
           break
