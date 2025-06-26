@@ -26,17 +26,16 @@ const {
   toolbar?: boolean | undefined
   readonly?: boolean | undefined
   /**
-   * Additional extensions factories
-   *
-   * These functions are called in setup contexts of this component.
+   * Additional extensions. This prop is read only during setup, and extensions are not refreshed
+   * afterwards!
    */
   extensions?: Extension | undefined
   contentTestId?: string | undefined
   scrollerTestId?: string | undefined
   /**
-   * A callback called when CodeMirror is set up, passing {@link EditorView}. This callback is
-   * called in this component's setup, allowing creating watches bound to the editor view (that's
-   * why its not defined as signal)
+   * A callback called when CodeMirror is set up, passing {@link EditorView}. It is called in this
+   * component's setup, allowing creating watches bound to the editor view (that's why its not
+   * defined as signal)
    */
   onEditorReady?: ((view: EditorView) => void) | undefined
 }>()
