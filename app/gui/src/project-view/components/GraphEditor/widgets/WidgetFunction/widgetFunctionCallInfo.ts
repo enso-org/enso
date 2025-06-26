@@ -43,7 +43,7 @@ export function useWidgetFunctionCallInfo(
   },
   project: {
     useVisualizationData(config: Ref<Opt<NodeVisualizationConfiguration>>): Ref<Result<any> | null>
-    moduleProjectPath: ProjectPath
+    moduleProjectPath: Result<ProjectPath> | undefined
   },
   projectNames: ProjectNameStore,
 ) {
@@ -112,7 +112,10 @@ export function useWidgetFunctionCallInfo(
       Ast.TextLiteral.new(JSON.stringify(args)).code(),
     ]
 
-    const modulePath = project.moduleProjectPath.value
+    let modulePath: ProjectPath = WIDGETS_ENSO_PATH
+    if (project.moduleProjectPath?.ok) {
+      modulePath = project.moduleProjectPath.value
+    }
     const moduleFqn = projectNames.serializeProjectPathForBackend(modulePath)
 
     const expressionId = widgetQuerySubjectExpressionId.value
