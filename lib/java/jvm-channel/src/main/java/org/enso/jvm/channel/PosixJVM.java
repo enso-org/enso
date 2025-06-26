@@ -34,11 +34,8 @@ final class PosixJVM {
     var libName =
         Platform.includedIn(Platform.LINUX.class)
             ? "libjvm.so"
-            : // .so on Linux
-            Platform.includedIn(Platform.MACOS.class)
-                ? "libjvm.dylib"
-                : // .dylib on Mac
-                "unknown OS"; // otherwise just a strange name
+            : Platform.includedIn(Platform.MACOS.class) ? "libjvm.dylib" : null;
+    assert libName != null;
     var lib = new File(new File(new File(javaHome, "lib"), "server"), libName);
     if (!lib.exists()) {
       throw new IllegalStateException("Cannot find " + lib);
