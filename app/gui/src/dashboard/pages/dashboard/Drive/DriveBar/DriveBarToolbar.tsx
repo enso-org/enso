@@ -104,7 +104,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
   const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
-  const exportArchive = useExportArchive()
+  const exportArchive = useExportArchive({ backend })
 
   const newProjectMutation = useMutationCallback({
     mutationKey: ['newProject'],

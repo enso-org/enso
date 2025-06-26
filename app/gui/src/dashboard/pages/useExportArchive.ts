@@ -3,18 +3,25 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDownloadDirectory } from '#/layouts/Drive/useDownloadDirectory'
 import { useDriveStore } from '#/providers/DriveProvider'
+import type Backend from '#/services/Backend'
 import { Path } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useText } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { PRODUCT_NAME } from 'enso-common'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { toast } from 'react-toastify'
 
+/** Options for {@link useExportArchive}. */
+export interface ExportArchiveOptions {
+  readonly backend: Backend
+}
+
 /** Return a function to export an archive. */
-export function useExportArchive() {
+export function useExportArchive(options: ExportArchiveOptions) {
+  const { backend } = options
+
   const { getText } = useText()
-  const { localBackend } = useBackends()
-  const exportArchive = useMutationCallback(backendMutationOptions(localBackend, 'exportArchive'))
+  const exportArchive = useMutationCallback(backendMutationOptions(backend, 'exportArchive'))
   const driveStore = useDriveStore()
   const downloadDirectory = useDownloadDirectory()
 

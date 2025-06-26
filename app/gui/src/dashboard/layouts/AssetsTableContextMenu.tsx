@@ -83,7 +83,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
-  const exportArchive = useExportArchive()
+  const exportArchive = useExportArchive({ backend })
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
