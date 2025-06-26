@@ -347,31 +347,31 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
           /** Toggle visibility for the "modified" column. */
           modified() {
             return self.step('Toggle "modified" column', (page) =>
-              page.getByLabel(TEXT.modifiedColumnName).click(),
+              page.getByRole('button', { name: TEXT.modifiedColumnName }).click(),
             )
           },
           /** Toggle visibility for the "shared with" column. */
           sharedWith() {
             return self.step('Toggle "shared with" column', (page) =>
-              page.getByLabel(TEXT.sharedWithColumnName).click(),
+              page.getByRole('button', { name: TEXT.sharedWithColumnName }).click(),
             )
           },
           /** Toggle visibility for the "labels" column. */
           labels() {
             return self.step('Toggle "labels" column', (page) =>
-              page.getByLabel(TEXT.labelsColumnName).click(),
+              page.getByRole('button', { name: TEXT.labelsColumnName }).click(),
             )
           },
           /** Toggle visibility for the "accessed by projects" column. */
           accessedByProjects() {
             return self.step('Toggle "accessed by projects" column', (page) =>
-              page.getByLabel(TEXT.accessedByProjectsColumnName).click(),
+              page.getByRole('button', { name: TEXT.accessedByProjectsColumnName }).click(),
             )
           },
           /** Toggle visibility for the "accessed data" column. */
           accessedData() {
             return self.step('Toggle "accessed data" column', (page) =>
-              page.getByLabel(TEXT.accessedDataColumnName).click(),
+              page.getByRole('button', { name: TEXT.accessedDataColumnName }).click(),
             )
           },
         }

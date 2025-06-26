@@ -438,6 +438,9 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 setIsDraggedOver(false)
                 props.onDrop(event, item)
               }
+              element.onfocus = draggableProps.onFocus
+              element.blur = draggableProps.onBlur
+              element.draggable = draggableProps.draggable
             }}
             className={tailwindMerge.twMerge(
               'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
@@ -445,7 +448,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
               (isDraggedOver || isSelected) && 'selected',
             )}
             columns={columns.map((column) => ({ id: column }))}
-            {...draggableProps}
           >
             {({ id: column }) => {
               const Render = columnModule.COLUMN_RENDERER[column]

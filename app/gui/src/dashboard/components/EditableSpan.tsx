@@ -19,9 +19,7 @@ import type { z } from 'zod'
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-assignment
 const MotionText = motion(Text)
 
-/**
- * Props for {@link EditableSpan}.
- */
+/** Props for {@link EditableSpan}. */
 export interface EditableSpanProps {
   readonly 'data-testid'?: string
   readonly className?: string
@@ -50,9 +48,7 @@ export default function EditableSpan(props: EditableSpanProps) {
   return <EditForm {...props} />
 }
 
-/**
- * Props for {@link EditForm}.
- */
+/** Props for {@link EditForm}. */
 interface EditFormProps extends EditableSpanProps {}
 
 const CONTAINER_VARIANTS: Variants = {
@@ -215,17 +211,13 @@ function EditForm(props: EditFormProps) {
   )
 }
 
-/**
- * Props for {@link ErrorMessage}.
- */
+/** Props for {@link ErrorMessage}. */
 interface ErrorMessageProps {
   readonly message: string
   readonly formRef: React.RefObject<HTMLFormElement>
 }
 
-/**
- * Error message for {@link EditableSpan}.
- */
+/** Error message for {@link EditableSpan}. */
 function ErrorMessage(props: ErrorMessageProps) {
   const { message, formRef } = props
 

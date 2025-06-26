@@ -28,7 +28,7 @@ export function useDraggable(params: UseDraggableOptions = {}) {
 
   return {
     draggable: isDisabled ? false : isDraggable,
-    onFocus: (event) => {
+    onFocus: (event: FocusEvent | React.FocusEvent) => {
       if (eventModule.isElementTextInput(event.target)) {
         setIsDraggable(false)
       }
