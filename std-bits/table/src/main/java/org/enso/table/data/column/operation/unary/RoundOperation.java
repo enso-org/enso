@@ -43,7 +43,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
     return (index, value, problemAggregator) -> {
       if (value < ROUND_MIN_LONG || value > ROUND_MAX_LONG) {
         String message = ROUND_LONG_ERROR + value;
-        problemAggregator.reportIllegalArgumentError(message, (int) index);
+        problemAggregator.reportIllegalArgumentError(message, index);
         return null;
       }
 

@@ -25,11 +25,11 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
     reportColumnAggregatedProblem(new FloatingPointGrouping(location, row));
   }
 
-  public void reportArithmeticError(String message, Long row) {
+  public void reportArithmeticError(String message, long row) {
     reportColumnAggregatedProblem(new ArithmeticError(location, message, row));
   }
 
-  public void reportIllegalArgumentError(String message, Integer row) {
+  public void reportIllegalArgumentError(String message, long row) {
     reportColumnAggregatedProblem(new IllegalArgumentError(location, message, row));
   }
 

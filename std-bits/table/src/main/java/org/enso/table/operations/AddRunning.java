@@ -203,13 +203,13 @@ public class AddRunning {
       Object value = sourceColumn.getStorage().getItemBoxed(i);
       if (value == null) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-            new IgnoredNothing(sourceColumn.getName(), i));
+            new IgnoredNothing(sourceColumn.getName(), (long) i));
       }
       T dValue = typeHandler.tryConvertingToType(value);
       T dNextValue;
       if (dValue != null && dValue.equals(Double.NaN)) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-            new IgnoredNaN(sourceColumn.getName(), i));
+            new IgnoredNaN(sourceColumn.getName(), (long) i));
         dNextValue = it.currentValue();
       } else {
         dNextValue = it.next(dValue);
