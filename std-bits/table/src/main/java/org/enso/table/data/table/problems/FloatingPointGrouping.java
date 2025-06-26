@@ -1,7 +1,7 @@
 package org.enso.table.data.table.problems;
 
 public class FloatingPointGrouping extends ColumnAggregatedProblem {
-  public FloatingPointGrouping(String columnName, int row) {
+  public FloatingPointGrouping(String columnName, long row) {
     super(columnName, row);
   }
 

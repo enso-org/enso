@@ -21,7 +21,7 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
     this.location = location;
   }
 
-  public void reportFloatingPointEquality(int row) {
+  public void reportFloatingPointEquality(long row) {
     reportColumnAggregatedProblem(new FloatingPointGrouping(location, row));
   }
 

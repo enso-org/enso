@@ -92,7 +92,7 @@ public abstract class MultiValueKeyBase {
         if (NumericConverter.isFloatLike(this.get(columnIx))) {
           problemAggregator.reportColumnAggregatedProblem(
               new FloatingPointGrouping(
-                  columnNameMapping.getColumnName(columnIx), Math.toIntExact(rowIndex)));
+                  columnNameMapping.getColumnName(columnIx), rowIndex));
         }
       }
     }

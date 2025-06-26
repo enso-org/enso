@@ -39,7 +39,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
         @Override
         boolean doDouble(
             double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
-          problemAggregator.reportFloatingPointEquality((int) ix);
+          problemAggregator.reportFloatingPointEquality(ix);
           return a == b;
         }
 
@@ -64,7 +64,7 @@ abstract class NumericComparators<T> extends BinaryOperationNumeric<T, Boolean> 
         @Override
         boolean doDouble(
             double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
-          problemAggregator.reportFloatingPointEquality((int) ix);
+          problemAggregator.reportFloatingPointEquality(ix);
           return a != b;
         }
 
