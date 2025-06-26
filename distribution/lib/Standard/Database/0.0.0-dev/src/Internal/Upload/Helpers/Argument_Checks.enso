@@ -32,7 +32,7 @@ check_delete_rows_arguments target_table:Table key_values_to_delete key_columns 
 ## PRIVATE
 check_target_table_for_update target_table ~action = case target_table of
     _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
-    _ : DB_Table -> if target_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
+    db_table : DB_Table -> if db_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
         action
     _ -> Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.Multi_Type.get target_table . to_text)
 

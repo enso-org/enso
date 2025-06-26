@@ -289,9 +289,5 @@ make_literal_table connection column_vectors column_names alias =
 MAX_LITERAL_ELEMENT_COUNT = 256
 
 ## PRIVATE
-Table.from (that:DB_Table) =
-    table_from_implementation that DB_Table_Implementation
-
-## PRIVATE
 # TODO probably not needed? because Table_Ref.from Table should be enough
 # Table_Ref.from (that:DB_Table) = Table_Ref.Value that

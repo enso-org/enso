@@ -73,6 +73,7 @@ import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL_Type.SQL_Type
 import project.Take_Drop_Helpers
 from project.Errors import Integrity_Error, SQL_Error, Unsupported_Database_Operation
+from project.Internal.Type_Refinements.DB_Table_Conversions import all
 from project.Take_Drop_Helpers import Take_Drop
 
 polyglot java import java.sql.JDBCType

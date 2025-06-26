@@ -9,6 +9,7 @@ from Standard.Table import Column, Table
 
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
+from project.Internal.Type_Refinements.DB_Table_Conversions import all
 from project.Internal.Type_Refinements.DB_Table_Refinements import is_single_column
 
 ## This conversion is internal and should never be exported.

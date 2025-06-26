@@ -1,0 +1,13 @@
+private
+
+from Standard.Table.Internal.Table_Type_Helpers import table_from_implementation
+from Standard.Table import Table
+
+import project.DB_Table.DB_Table
+import project.Internal.DB_Table_Implementation.DB_Table_Implementation
+
+## The internal conversion used to provide the Table interface implementation for instances of DB_Table.
+   Note that running it _discards_ the DB_Table part of the type, so it should only be used in casts of the form (x : Table & DB_Table).
+   End users should rely on the _public_ variant of the conversion.
+Table.from (that:DB_Table) =
+    table_from_implementation that DB_Table_Implementation

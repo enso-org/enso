@@ -23,6 +23,7 @@ type DB_Table_Upload_Implementation
         common_update_table source_table this_table update_action key_columns error_on_missing_columns on_problems
 
     delete_rows this_table (key_values_to_delete : Table) (key_columns=[]) (allow_duplicate_matches : Boolean = False) =
+        IO.println "DB_Table_Upload_Implementation.delete_rows "+(Meta.Multi_Type.get this_table).to_text
         common_delete_rows this_table key_values_to_delete key_columns allow_duplicate_matches
 
 Table_Upload_Implementation.from (that:DB_Table) =
