@@ -181,6 +181,56 @@ In short: when a [conversion](../syntax/conversions.md) is needed to satisfy a
 type check a new value is created to satisfy just the types requested in the
 check.
 
+## Preserving identity of refined types
+
+Intersection types are used to refine a value giving it additional
+functionality. For example, a value `table : Table & DB_Table` represents a
+table coming from a database that has both the base `Table` methods that all
+tables share but also database-specific methods from `DB_Table`. Either part of
+this compound type may get _hidden_ when passing around various methods (e.g.
+`table:Table` will hide the `DB_Table` part), but the value itself still retains
+its identity as a `Table & DB_Table` and can be uncovered via a cast or a case
+expression.
+
+It is important to ensure that various operations do not accidentally remove a
+part of the intersection type as then the value completely loses its part of
+functionality. If the `DB_Table` part is not hidden, but completely removed, the
+table can no longer be casted to `DB_Table` and used as such. This is confusing
+for users, as a database table cannot suddenly stop being a database table just
+by passing it around (including method calls) or casting.
+
+Consider a multi value `x : A & B`. We indicate hidden types as `(hidden T)` -
+they are not visible in the actual type, but can be uncovered via casts or
+reflection.
+
+To ensure the above properties, the interpreter ensures that the following
+operations only hide the intersection type, but do not remove it:
+
+- casting `x : A` will hide the `B` part, so the actual type is
+  `x : A & (hidden B)`.
+- inspecting the type via `case of`, e.g.
+  ```
+  case x of
+      a : A -> ...
+      _ -> ...
+  ```
+  in the first branch, the `a` has visible type `A` but the full type is still
+  `a : A & (hidden B)` - the `B` part is hidden, but not removed.
+- dispatching a method on one of the types, e.g. calling `x.method_defined_on_A`
+  will pass the value `x` as `self` to the body of `method_defined_on_A`, the
+  `self` will have a visible type `A`, but the full type is still
+  `self : A & (hidden B)` - so the `self` value can be casted if needed.
+- normally, calling conversions will 'start over' and the value returned from
+  one will not have an intersection type anymore. However, as long as possible,
+  even conversions should try to use existing (even if hidden) parts of the type
+  instead of calling into the conversion code; thus:
+  - calling `A.from x` will return a value of type `A & (hidden B)` - the `B`
+    part is still there (only hidden), because no actual conversion code had to
+    be run - the type was simply extracted from the intersection type.
+  - similarly, calling `B.from x` will return a value of type `B & (hidden A)` -
+    the `A` part is still there (only hidden), because no actual conversion code
+    had to be run.
+
 ## Equality & Hash Code
 
 A value of an intersection type is equal with other value, if all values _it has
@@ -198,3 +248,10 @@ _has been cast to_. As a special case any value wrapped into an _intersection
 type_, but _cast down_ to the original type is `==` and has the same `hash` as
 the original value. E.g. `4.2 : Complex&Float : Float` is `==` and has the same
 `hash` as `4.2` (in spite it _can be cast to_ `Complex`).
+
+### TODO
+
+- self preserves intersection types, just hides them
+- case of also
+- T.from should preserve if no conversion was made (e.g. T was among visible or
+  hidden types)
