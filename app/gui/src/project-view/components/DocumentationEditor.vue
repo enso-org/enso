@@ -11,7 +11,6 @@ import { useYTextSync } from '@/util/codemirror'
 import { Err, mapOk, Ok, unwrapOr } from '@/util/data/result'
 import { methodPointerEquals } from '@/util/methodPointer'
 import { ResultComponent } from '@/util/react'
-import { EditorView } from '@codemirror/view'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 
@@ -75,7 +74,7 @@ const editorMarkdown = computed(() =>
 )
 const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
 
-const syncExt = (view: EditorView) => useYTextSync(editorContent, view)
+const { syncExt, connectSync } = useYTextSync(editorContent)
 
 provideDocumentationImages({
   openedProject,
@@ -92,6 +91,7 @@ provideDocumentationImages({
       :readonly="currentMethodAst.value.readOnly"
       contentTestId="documentation-editor-content"
       scrollerTestId="documentation-editor-scroller"
+      @editorReady="connectSync"
     >
       <template #belowToolbar>
         <FunctionSignatureEditor

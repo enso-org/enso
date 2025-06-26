@@ -4,9 +4,10 @@ import { EditorView } from '@codemirror/view'
 import { type ComponentInstance, computed, defineAsyncComponent, ref } from 'vue'
 
 const props = defineProps<{
-  extensions?: (view: EditorView) => Extension
+  extensions?: Extension
   readonly?: boolean
   contentTestId?: string | undefined
+  onEditorReady: (view: EditorView) => void
 }>()
 
 const impl = ref<ComponentInstance<typeof LazyPlainTextEditor>>()

@@ -39,12 +39,15 @@ function updateDescription(asset: AnyAsset | undefined, description: string) {
   }
 }
 
-const scope = effectScope()
 const onFocusOut = ref<() => void>()
+const { syncExt, connectSync } = useStringSync()
+const scope = effectScope()
 
-const syncText = (view: EditorView) => {
-  const { syncExt, setText, getText, onTextEdited } = useStringSync(view)
+function onEditorReady(view: EditorView) {
+  const { setText, getText, onTextEdited } = connectSync(view)
 
+  // We want to run watch before DOM update, because the DescriptionEditor may be disposed as
+  // part of it. Therefore it must be in the DescriptionEditor effect socope, not MarkdownEditor.
   scope.run(() => {
     watch(
       () => rightPanel.focusedAsset,
@@ -79,8 +82,6 @@ const syncText = (view: EditorView) => {
       }
     })
   })
-
-  return syncExt
 }
 
 provideDocumentationImages({
@@ -94,8 +95,9 @@ provideDocumentationImages({
   <div class="DescriptionEditor">
     <MarkdownEditor
       v-if="rightPanel.focusedAsset"
-      :extensions="syncText"
+      :extensions="syncExt"
       contentTestId="asset-panel-description"
+      @editorReady="onEditorReady"
     />
     <ResultComponent
       v-else

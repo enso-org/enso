@@ -97,9 +97,12 @@ class YSyncPluginValue implements cmView.PluginValue {
   private readonly _observer: (event: Y.YTextEvent, tr: Y.Transaction) => void
 
   constructor(private readonly view: cmView.EditorView) {
+    console.debug('constructing')
     this.conf = view.state.facet(ySyncFacet)
     this._observer = (event: Y.YTextEvent, tr: Y.Transaction) => {
+      console.debug('Applying change', tr.origin, this.conf, this.conf.ytext)
       if (tr.origin !== this.conf) {
+        console.debug('Change is external')
         const delta = event.delta
         const changes: { from: number; to: number; insert: string }[] = []
         let pos = 0
@@ -129,6 +132,7 @@ class YSyncPluginValue implements cmView.PluginValue {
     ) {
       return
     }
+    console.debug('View update', update, this.conf, this.conf.ytext, this._ytext)
     const ytext = this.conf.ytext
     ytext.doc.transact(() => {
       /**

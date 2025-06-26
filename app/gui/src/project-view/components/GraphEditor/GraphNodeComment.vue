@@ -4,7 +4,6 @@ import { useFocusDelayed } from '@/composables/focus'
 import { type Node } from '@/stores/graph'
 import { nodeMutableDocumentation } from '@/util/ast/node'
 import { useYTextSync } from '@/util/codemirror'
-import { EditorView } from '@codemirror/view'
 import { syncRef } from '@vueuse/core'
 import { computed, ref, type ComponentInstance } from 'vue'
 
@@ -16,9 +15,8 @@ const textEditorContent = computed(() => textEditor.value?.contentElement)
 
 const documentation = computed(() => nodeMutableDocumentation(props.node))
 
-console.debug('Documentation', documentation)
+const { syncExt, connectSync } = useYTextSync(documentation)
 
-const syncExt = (view: EditorView) => useYTextSync(documentation, view)
 syncRef(editing, useFocusDelayed(textEditorContent).focused)
 </script>
 <template>
@@ -31,6 +29,7 @@ syncRef(editing, useFocusDelayed(textEditorContent).focused)
       ref="textEditor"
       :extensions="syncExt"
       contentTestId="graph-node-comment-content"
+      @editorReady="connectSync"
     />
   </div>
 </template>

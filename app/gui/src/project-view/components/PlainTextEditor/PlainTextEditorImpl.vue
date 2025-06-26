@@ -9,27 +9,29 @@ import { EditorView } from '@codemirror/view'
 import { useTemplateRef, type ComponentInstance } from 'vue'
 
 const {
-  extensions = () => [],
+  extensions = [],
   readonly = false,
   contentTestId,
+  onEditorReady = () => {},
 } = defineProps<{
-  extensions?: ((view: EditorView) => Extension) | undefined
+  extensions?: Extension | undefined
   readonly?: boolean | undefined
   contentTestId?: string | undefined
+  onEditorReady: (view: EditorView) => void
 }>()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const vueHost = new VueHostInstance()
-const { editorView, contentElement, setExtraExtensions } = useCodeMirror(editorRoot, {
-  extensions: [linkifyUrls, EditorView.lineWrapping],
+const { editorView, contentElement } = useCodeMirror(editorRoot, {
+  extensions: [linkifyUrls, EditorView.lineWrapping, extensions],
   vueHost: () => vueHost,
   contentTestId,
   lineMode: 'single',
 })
 
-setExtraExtensions(extensions(editorView))
-
 useLinkTitles(editorView, { readonly })
+
+onEditorReady(editorView)
 
 defineExpose({
   contentElement,

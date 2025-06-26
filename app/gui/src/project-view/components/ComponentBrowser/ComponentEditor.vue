@@ -22,13 +22,14 @@ const graphStore = useGraphStore()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
-const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
+const { syncExt, connectSync } = useStringSync()
+const { editorView } = useCodeMirror(editorRoot, {
+  extensions: [syncExt],
   contentTestId: 'component-editor-content',
   lineMode: 'single',
 })
 
-const { syncExt, onUserAction, setText } = useStringSync(editorView)
-setExtraExtensions(syncExt)
+const { onUserAction, setText } = connectSync(editorView)
 onUserAction(
   (text, selection) =>
     (content.value = {

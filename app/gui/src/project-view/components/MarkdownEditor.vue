@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { defineAsyncComponent, Ref } from 'vue'
+import { defineAsyncComponent } from 'vue'
 
 // Toolbar is singled out, because missing booleans coerce to false instead of undefined
 // and toolbar has default `true` in inner component
 const { toolbar = true, ...props } = defineProps<{
   toolbar?: boolean
   readonly?: boolean
-  extensions?: (view: EditorView, focused: Ref<boolean>) => Extension
+  extensions?: Extension
   contentTestId?: string
   scrollerTestId?: string | undefined
+  onEditorReady: (view: EditorView) => void
 }>()
 
 defineOptions({

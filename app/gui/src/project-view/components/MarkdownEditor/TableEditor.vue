@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import MarkdownEditorImpl from '@/components/MarkdownEditor/MarkdownEditorImpl.vue'
-import { useStringSync } from '@/util/codemirror'
 import type { Text } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { SyntaxNode, TreeCursor } from '@lezer/common'
@@ -43,10 +42,15 @@ const content = computed(() => {
   return { headers, rows }
 })
 
-const syncExt = (text: WatchSource<string | undefined>) => (view: EditorView) => {
-  const { syncExt, setText } = useStringSync(view)
-  watch(text, (newText) => setText(newText ?? ''))
-  return syncExt
+const sync = (text: WatchSource<string | undefined>) => (view: EditorView) => {
+  watch(
+    text,
+    (newText) =>
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: newText ?? '' },
+      }),
+    { immediate: true },
+  )
 }
 </script>
 
@@ -55,14 +59,22 @@ const syncExt = (text: WatchSource<string | undefined>) => (view: EditorView) =>
     <thead>
       <tr>
         <th v-for="(_cell, c) in content.headers" :key="c" class="cell">
-          <MarkdownEditorImpl :extensions="syncExt(() => content.headers[c])" :toolbar="false" />
+          <MarkdownEditorImpl
+            :toolbar="false"
+            readonly
+            @editorReady="sync(() => content.headers[c])"
+          />
         </th>
       </tr>
     </thead>
     <tbody class="tableBody">
       <tr v-for="(row, r) in content.rows" :key="r" class="row">
         <td v-for="(_cell, c) in row" :key="c" class="cell">
-          <MarkdownEditorImpl :extensions="syncExt(() => content.rows[r]?.[c])" :toolbar="false" />
+          <MarkdownEditorImpl
+            :toolbar="false"
+            readonly
+            @editorReady="sync(() => content.rows[r]?.[c])"
+          />
         </td>
       </tr>
     </tbody>

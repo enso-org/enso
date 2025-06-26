@@ -26,6 +26,7 @@ import { Ok } from '@/util/data/result'
 import type { Icon as IconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
+import { EditorView } from '@codemirror/view'
 import { computed, watch } from 'vue'
 
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
@@ -46,6 +47,15 @@ const rawDocumentation = computed(() => {
   const entry = props.selectedEntry
   return entry && db.value ? lookupRawDocumentation(db.value.entries, entry) : undefined
 })
+
+function syncMarkdownDocumentation(view: EditorView) {
+  watch(
+    rawDocumentation,
+    (text) =>
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text ?? '' } }),
+    { immediate: true },
+  )
+}
 
 const sections = computed<Sections>(() => {
   const docs: Docs = documentation.value
@@ -162,7 +172,7 @@ function openDocs(url: string) {
       />
     </div>
     <div v-if="rawDocumentation" class="markdownDocs">
-      <MarkdownEditor :content="rawDocumentation" :toolbar="false" />
+      <MarkdownEditor :toolbar="false" @editorReady="syncMarkdownDocumentation" />
     </div>
     <template v-else>
       <DocsTags

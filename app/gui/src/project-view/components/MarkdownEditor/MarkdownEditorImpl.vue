@@ -13,14 +13,15 @@ import { useLinkTitles } from '@/util/codemirror/links'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { type ComponentInstance, computed, Ref, useCssModule, useTemplateRef } from 'vue'
+import { type ComponentInstance, computed, useCssModule, useTemplateRef } from 'vue'
 
 const {
   toolbar = true,
   readonly = false,
-  extensions = () => [],
+  extensions = [],
   contentTestId,
   scrollerTestId,
+  onEditorReady = () => {},
 } = defineProps<{
   toolbar?: boolean | undefined
   readonly?: boolean | undefined
@@ -29,9 +30,15 @@ const {
    *
    * These functions are called in setup contexts of this component.
    */
-  extensions?: ((view: EditorView, focused: Ref<boolean>) => Extension) | undefined
+  extensions?: Extension | undefined
   contentTestId?: string | undefined
   scrollerTestId?: string | undefined
+  /**
+   * A callback called when CodeMirror is set up, passing {@link EditorView}. This callback is
+   * called in this component's setup, allowing creating watches bound to the editor view (that's
+   * why its not defined as signal)
+   */
+  onEditorReady?: ((view: EditorView) => void) | undefined
 }>()
 defineOptions({
   inheritAttrs: false,
@@ -52,6 +59,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
         images?.value &&
         ((item: ClipboardItem) => images.value.tryUploadPastedImage(editorView, item)),
     }),
+    extensions,
   ],
   readonly: () => readonly,
   vueHost: () => vueHost,
@@ -71,7 +79,9 @@ const { formatBindings } = useFormatActions({
   editing,
   uploadImage: () => images?.value && (() => images.value.tryUploadImageFile(editorView)),
 })
-setExtraExtensions([formatBindings, extensions(editorView, focused)])
+setExtraExtensions([formatBindings])
+
+onEditorReady(editorView)
 
 defineExpose({
   editorView,

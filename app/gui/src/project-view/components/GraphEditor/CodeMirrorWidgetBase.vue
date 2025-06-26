@@ -38,22 +38,23 @@ const emit = defineEmits<{
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
+const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   placeholder: () => props.placeholder ?? ' ',
+  extensions: [syncExt],
   readonly: false,
   contentTestId: props.contentTestId,
   lineMode: () => props.lineMode ?? 'single',
 })
-const { syncExt, getText, setText, onTextEdited, onUserAction } = useStringSync(editorView)
 watchEffect(() =>
   setExtraExtensions([
     highlightStyle(editorRoot.value?.highlightClasses ?? {}),
     ...(props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? [selectOnMouseFocus] : []),
     ...(props.extensions ?? []),
-    syncExt,
   ]),
 )
 
+const { getText, setText, onTextEdited, onUserAction } = connectSync(editorView)
 watch(model, (text) => setText(text), { immediate: true })
 onTextEdited((text) => {
   editing.value.edit(props.transformUserInput?.(text) ?? text)
