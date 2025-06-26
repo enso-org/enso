@@ -171,12 +171,12 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
       selectedAssets[0] != null &&
       (isCloud ? !isDirectoryId(selectedAssets[0].id) : isProjectId(selectedAssets[0].id))
     ) {
-      await downloadAssetsMutation({
+      void downloadAssetsMutation({
         ids: selectedAssets,
         targetDirectoryId: null,
       })
     } else {
-      await exportArchive()
+      void exportArchive()
     }
   })
 
