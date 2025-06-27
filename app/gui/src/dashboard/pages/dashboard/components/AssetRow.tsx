@@ -10,7 +10,6 @@ import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
@@ -24,12 +23,11 @@ import {
   useSetDragTargetAssetId,
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
-import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { setModal } from '#/providers/ModalProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
-import { isDoubleClick } from '#/utilities/event'
 import * as object from '#/utilities/object'
 import {
   canPermissionModifyDirectoryContents,
@@ -62,10 +60,7 @@ export interface AssetRowProps {
   readonly type: backendModule.AssetType
   readonly state: assetsTable.AssetsTableState
   readonly columns: columnUtils.Column[]
-  readonly isKeyboardSelected: boolean
   readonly labels: readonly Label[]
-  readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
-  readonly onClick: (props: AssetRowInnerProps, event: MouseEvent) => void
   readonly select: (item: backendModule.AnyAsset) => void
   readonly onDragStart: (event: DragEvent, item: backendModule.AnyAsset) => void
   readonly onDragEnd: (event: DragEvent, item: backendModule.AnyAsset) => void
@@ -133,17 +128,14 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const {
     id,
     parentId,
-    isKeyboardSelected,
     isOpened,
     select,
     state,
     columns,
-    onClick,
     isPlaceholder,
     type,
     item,
     labels,
-    grabKeyboardFocus,
     renameAsset,
     closeProject,
     openProject,
@@ -153,6 +145,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
   const [isNavigating, startNavigation] = useTransition()
 
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const driveStore = useDriveStore()
   const rightPanel = useRightPanelData()
   const { user } = useFullUserSession()
@@ -173,12 +166,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
     { areEqual: 'shallow', unsafeEnableTransition: true },
   )
 
-  const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
-  const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
     assetRowUtils.INITIAL_ROW_STATE,
   )
@@ -248,13 +239,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
       setSelected(false)
     }
   }, [isSelected, setSelected, isDeleting, isRestoring])
-
-  React.useEffect(() => {
-    if (isKeyboardSelected) {
-      rootRef.current?.focus()
-      grabKeyboardFocusRef.current(item)
-    }
-  }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
   const setDirectoryId = useSetCurrentDirectoryId()
 
@@ -330,25 +314,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
               if (!element) {
                 return
               }
-              if (isKeyboardSelected && element.contains(document.activeElement) === false) {
-                element.scrollIntoView({ block: 'nearest' })
-                element.focus()
-              }
-              element.onclick = (event) => {
-                unsetModal()
-                onClick(innerProps, event)
-                if (
-                  item.type === backendModule.AssetType.directory &&
-                  isDoubleClick(event) &&
-                  !rowState.isEditingName
-                ) {
-                  // This must be processed on the next tick, otherwise it will be overridden
-                  // by the default click handler.
-                  window.setTimeout(() => {
-                    setSelected(false)
-                  })
-                }
-              }
               element.ondblclick = () => {
                 if (item.type === backendModule.AssetType.directory) {
                   startNavigation(() => {
@@ -391,6 +356,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
                   />,
                 )
               }
+              // TODO: Use the more conventional solution, `useDragAndDrop`.
+              // https://react-spectrum.adobe.com/react-aria/Table.html#drag-data
               element.ondragstart = (event) => {
                 if (rowState.isEditingName) {
                   event.preventDefault()

@@ -48,8 +48,6 @@ import {
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
 import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import { NameColumn } from '#/pages/dashboard/components/column'
@@ -84,14 +82,12 @@ import {
   BackendType,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
-  isAssetCredential,
   isDirectoryId,
   type AnyAsset,
 } from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
-import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
 import { fileExtension } from '#/utilities/fileInfo'
 import { noop, noopPromise } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
@@ -122,7 +118,6 @@ import {
   useRef,
   useState,
   type Dispatch,
-  type KeyboardEvent,
   type DragEvent as ReactDragEvent,
   type ReactNode,
   type RefObject,
@@ -240,7 +235,6 @@ function AssetsTable(props: AssetsTableProps) {
   const setPasteData = useSetPasteData()
 
   const uploadFiles = useUploadFiles(backend, category)
-  const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
   const paste = usePaste(category)
 
   const isSingleSelectedDirectoryItem = useStore(
@@ -597,167 +591,7 @@ function AssetsTable(props: AssetsTableProps) {
     [driveStore, rightPanel, category],
   )
 
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number | null>(null)
-  const mostRecentlySelectedIndexRef = useRef<number | null>(null)
-  const selectionStartIndexRef = useRef<number | null>(null)
   const bodyRef = useRef<HTMLTableSectionElement>(null)
-
-  const setMostRecentlySelectedIndex = useEventCallback(
-    (index: number | null, isKeyboard: boolean = false) => {
-      startTransition(() => {
-        mostRecentlySelectedIndexRef.current = index
-        setKeyboardSelectedIndex(isKeyboard ? index : null)
-      })
-    },
-  )
-
-  const onKeyDown = useEventCallback((event: KeyboardEvent) => {
-    const isTextInputFocused = isElementTextInput(document.activeElement)
-    const isEventTextInputEvent =
-      'key' in event && (isTextInputEvent(event) || event.key === 'Enter')
-    const shouldIgnoreEvent = isTextInputFocused && isEventTextInputEvent
-    if (shouldIgnoreEvent) {
-      return
-    }
-    const { selectedAssets } = driveStore.getState()
-    const prevIndex = mostRecentlySelectedIndexRef.current
-    const item = prevIndex == null ? null : visibleItems[prevIndex]
-    if (selectedAssets.length === 1 && item != null) {
-      switch (event.key) {
-        case 'Enter':
-        case ' ': {
-          if (event.key === ' ' && event.ctrlKey) {
-            setSelectedAssets(
-              selectedAssets.some((asset) => asset.id === item.id) ?
-                selectedAssets.filter((asset) => asset.id !== item.id)
-              : [...selectedAssets, item],
-            )
-          } else {
-            switch (item.type) {
-              case AssetType.directory: {
-                event.preventDefault()
-                event.stopPropagation()
-                setCurrentDirectoryId(item.id)
-                break
-              }
-              case AssetType.project: {
-                event.preventDefault()
-                event.stopPropagation()
-                void openProjectLocally(item, backend.type)
-                break
-              }
-              case AssetType.datalink: {
-                event.preventDefault()
-                event.stopPropagation()
-                rightPanel.setTemporaryTab('settings')
-                break
-              }
-              case AssetType.secret: {
-                if (isAssetCredential(item)) {
-                  toast.warning(getText('cannotEditCredentialError'))
-                } else {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  const id = item.id
-                  setModal(
-                    <UpsertSecretModal
-                      secretId={item.id}
-                      name={item.title}
-                      doCreate={async (title, value) => {
-                        try {
-                          await updateSecretMutation([id, { title, value }, item.title])
-                        } catch (error) {
-                          toastAndLog(null, error)
-                        }
-                      }}
-                    />,
-                  )
-                }
-                break
-              }
-              case AssetType.file:
-              case AssetType.specialUp:
-              default: {
-                break
-              }
-            }
-          }
-          break
-        }
-      }
-    }
-    switch (event.key) {
-      case ' ': {
-        if (event.ctrlKey && item != null) {
-          setSelectedAssets(
-            selectedAssets.some((asset) => asset.id === item.id) ?
-              selectedAssets.filter((asset) => asset.id !== item.id)
-            : [...selectedAssets, item],
-          )
-        }
-        break
-      }
-      case 'Escape': {
-        setSelectedAssets([])
-        setMostRecentlySelectedIndex(null)
-        selectionStartIndexRef.current = null
-        break
-      }
-      case 'ArrowUp':
-      case 'ArrowDown': {
-        if (!event.shiftKey) {
-          selectionStartIndexRef.current = null
-        }
-        const oldIndex = prevIndex ?? 0
-        const index =
-          event.key === 'ArrowUp' ?
-            Math.max(0, oldIndex - 1)
-          : Math.min(visibleItems.length - 1, oldIndex + 1)
-        setMostRecentlySelectedIndex(index, true)
-        if (event.shiftKey) {
-          event.preventDefault()
-          event.stopPropagation()
-          // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
-          if (selectionStartIndexRef.current == null) {
-            selectionStartIndexRef.current = prevIndex ?? 0
-          }
-          const startIndex = Math.min(index, selectionStartIndexRef.current)
-          const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
-          const selection = visibleItems.slice(startIndex, endIndex)
-          setSelectedAssets(selection)
-        } else if (event.ctrlKey) {
-          event.preventDefault()
-          event.stopPropagation()
-          selectionStartIndexRef.current = null
-        } else if (index !== prevIndex) {
-          event.preventDefault()
-          event.stopPropagation()
-          const newItem = visibleItems[index]
-          if (newItem != null) {
-            setSelectedAssets([newItem])
-          }
-          selectionStartIndexRef.current = null
-        } else {
-          // The arrow key will escape this container. In that case, do not stop propagation
-          // and let `navigator2D` navigate to a different container.
-          setSelectedAssets([])
-          selectionStartIndexRef.current = null
-        }
-        break
-      }
-    }
-  })
-
-  useEffect(() => {
-    const onClick = () => {
-      setKeyboardSelectedIndex(null)
-    }
-
-    document.addEventListener('click', onClick, { capture: true })
-    return () => {
-      document.removeEventListener('click', onClick, { capture: true })
-    }
-  }, [setMostRecentlySelectedIndex])
 
   const renameAssetMutationCallback = useMutationCallback(
     backendMutationOptions(backend, 'updateAsset'),
@@ -988,9 +822,6 @@ function AssetsTable(props: AssetsTableProps) {
 
     onMouseEvent(event)
 
-    if (mostRecentlySelectedIndexRef.current != null) {
-      setKeyboardSelectedIndex(null)
-    }
     const scrollContainer = rootRef.current
     if (scrollContainer != null) {
       const rect = scrollContainer.getBoundingClientRect()
@@ -1054,34 +885,7 @@ function AssetsTable(props: AssetsTableProps) {
     dragSelectionRangeRef.current = null
   })
 
-  const grabRowKeyboardFocus = useEventCallback((item: AnyAsset) => {
-    setSelectedAssets([item])
-  })
-
-  const onRowClick = useEventCallback(({ asset }: AssetRowInnerProps, event: MouseEvent) => {
-    event.stopPropagation()
-    const newIndex = visibleItems.findIndex((otherAset) => otherAset.id === asset.id)
-    const getRange = () => {
-      if (mostRecentlySelectedIndexRef.current == null) {
-        return [asset]
-      } else {
-        const index1 = mostRecentlySelectedIndexRef.current
-        const index2 = newIndex
-        const startIndex = Math.min(index1, index2)
-        const endIndex = Math.max(index1, index2) + 1
-        return visibleItems.slice(startIndex, endIndex)
-      }
-    }
-    setSelectedAssets(calculateNewSelection(event, [asset], getRange))
-    setMostRecentlySelectedIndex(newIndex)
-    if (!event.shiftKey) {
-      selectionStartIndexRef.current = null
-    }
-  })
-
   const selectRow = useEventCallback((asset: AnyAsset) => {
-    setMostRecentlySelectedIndex(visibleItems.findIndex((otherAsset) => otherAsset.id === asset.id))
-    selectionStartIndexRef.current = null
     setSelectedAssets([asset])
   })
 
@@ -1093,10 +897,6 @@ function AssetsTable(props: AssetsTableProps) {
     let newSelectedKeys = driveStore.getState().selectedIds
 
     if (!newSelectedKeys.has(asset.id)) {
-      setMostRecentlySelectedIndex(
-        visibleItems.findIndex((otherAsset) => otherAsset.id === asset.id),
-      )
-      selectionStartIndexRef.current = null
       newSelectedKeys = new Set([asset.id])
       setSelectedAssets([asset])
     }
@@ -1206,39 +1006,6 @@ function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const itemRows = visibleItems.map((item) => {
-    const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
-    const isOpenedOnTheBackend =
-      item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
-    return (
-      <AssetRow
-        key={item.id + item.virtualParentsPath}
-        isPlaceholder={false}
-        isOpened={isOpenedByYou || isOpenedOnTheBackend}
-        columns={columns}
-        id={item.id}
-        type={item.type}
-        parentId={item.parentId}
-        state={state}
-        item={item}
-        isKeyboardSelected={
-          keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
-        }
-        grabKeyboardFocus={grabRowKeyboardFocus}
-        onClick={onRowClick}
-        select={selectRow}
-        labels={labels ?? []}
-        onDragStart={onRowDragStart}
-        onDragEnd={onRowDragEnd}
-        onDrop={onRowDrop}
-        renameAsset={doRenameAsset}
-        closeProject={closeProjectMutationCallback}
-        openProject={doOpenProject}
-        tableRootRef={rootRef}
-      />
-    )
-  })
-
   const dropzoneText =
     isDraggingFiles ?
       droppedFilesCount === 1 ?
@@ -1280,9 +1047,31 @@ function AssetsTable(props: AssetsTableProps) {
   const columnRefs = useRef<Partial<Record<Column, HTMLTableCellElement | undefined>>>({})
 
   const table = (
-    <div className="flex flex-none flex-col">
+    <div
+      className="flex flex-none flex-col"
+      onKeyDownCapture={(event) => {
+        if (event.target instanceof HTMLInputElement) {
+          switch (event.key) {
+            case 'ArrowLeft':
+            case 'ArrowRight': {
+              event.stopPropagation()
+              break
+            }
+          }
+        }
+      }}
+    >
       <ResizableTableContainer onResize={onResize} onResizeEnd={onResizeEnd}>
-        <Table data-testid="assets-table" className="isolate border-collapse rounded-rows">
+        <Table
+          data-testid="assets-table"
+          selectionMode="multiple"
+          selectionBehavior="replace"
+          onSelectionChange={(selection) => {
+            const set = new Set(selection)
+            setSelectedAssets(assets.filter((asset) => set.has(asset.id)))
+          }}
+          className="isolate border-collapse rounded-rows"
+        >
           <TableHeader
             columns={columns.map((column) => ({ id: column }))}
             className="sticky top-0 isolate z-1 bg-dashboard"
@@ -1330,20 +1119,52 @@ function AssetsTable(props: AssetsTableProps) {
             }}
           </TableHeader>
 
-          <TableBody ref={bodyRef} className="isolate">
-            {itemRows}
-            <Row className="hidden h-row first:table-row">
-              <Cell colSpan={columns.length} className="h-table-row bg-transparent">
-                <Text className="px-cell-x placeholder" disableLineHeightCompensation>
-                  {category.type === 'trash' ?
-                    (specialEmptyText ?? getText('yourTrashIsEmpty'))
-                  : category.type === 'recent' ?
-                    (specialEmptyText ?? getText('youHaveNoRecentProjects'))
-                  : (specialEmptyText ?? getText('youHaveNoFiles'))}
-                </Text>
-              </Cell>
-            </Row>
-          </TableBody>
+          {assets.length !== 0 ?
+            <TableBody ref={bodyRef} items={visibleItems} className="isolate">
+              {(item) => {
+                const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
+                const isOpenedOnTheBackend =
+                  item.projectState?.type != null ?
+                    IS_OPENING_OR_OPENED[item.projectState.type]
+                  : false
+                return (
+                  <AssetRow
+                    key={item.id + item.virtualParentsPath}
+                    isPlaceholder={false}
+                    isOpened={isOpenedByYou || isOpenedOnTheBackend}
+                    columns={columns}
+                    id={item.id}
+                    type={item.type}
+                    parentId={item.parentId}
+                    state={state}
+                    item={item}
+                    select={selectRow}
+                    labels={labels ?? []}
+                    onDragStart={onRowDragStart}
+                    onDragEnd={onRowDragEnd}
+                    onDrop={onRowDrop}
+                    renameAsset={doRenameAsset}
+                    closeProject={closeProjectMutationCallback}
+                    openProject={doOpenProject}
+                    tableRootRef={rootRef}
+                  />
+                )
+              }}
+            </TableBody>
+          : <TableBody ref={bodyRef} className="isolate">
+              <Row className="hidden h-row first:table-row">
+                <Cell colSpan={columns.length} className="h-table-row bg-transparent">
+                  <Text className="px-cell-x placeholder" disableLineHeightCompensation>
+                    {category.type === 'trash' ?
+                      (specialEmptyText ?? getText('yourTrashIsEmpty'))
+                    : category.type === 'recent' ?
+                      (specialEmptyText ?? getText('youHaveNoRecentProjects'))
+                    : (specialEmptyText ?? getText('youHaveNoFiles'))}
+                  </Text>
+                </Cell>
+              </Row>
+            </TableBody>
+          }
         </Table>
       </ResizableTableContainer>
 
@@ -1407,12 +1228,7 @@ function AssetsTable(props: AssetsTableProps) {
           data-testid="extra-columns"
           className="absolute right-3 top-0.5 z-1 flex self-end bg-dashboard p-2"
         >
-          <div
-            className="inline-flex gap-icons"
-            onFocus={() => {
-              setKeyboardSelectedIndex(null)
-            }}
-          >
+          <div className="inline-flex gap-icons">
             {hiddenColumns.map((column) => (
               <HiddenColumn
                 key={column}
@@ -1428,15 +1244,6 @@ function AssetsTable(props: AssetsTableProps) {
       <IsolateLayout className="isolate h-full w-full" useRAF>
         <div
           className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
-          onKeyDown={onKeyDown}
-          onBlur={(event) => {
-            if (
-              event.relatedTarget instanceof HTMLElement &&
-              !event.currentTarget.contains(event.relatedTarget)
-            ) {
-              setKeyboardSelectedIndex(null)
-            }
-          }}
           onDragEnter={updateIsDraggingFiles}
           onDragOver={updateIsDraggingFiles}
           onDragEnd={() => {
