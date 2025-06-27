@@ -409,16 +409,6 @@ type DB_Table_Implementation
 
     make_temp_column_name (this_table : Table & DB_Table) = this_table.column_naming_helper.make_temp_column_name this_table.column_names
 
-    with_temporary_column (this_table : Table & DB_Table) new_column:Column f:(Text -> Table & DB_Table -> Table & DB_Table) -> Table & DB_Table =
-        new_column_name = this_table.make_temp_column_name
-        with_new_column = this_table.set new_column new_column_name set_mode=Set_Mode.Add
-        modified_table = f new_column_name with_new_column
-        modified_table.remove_columns new_column_name
-
-    filter_on_predicate_column (this_table : Table & DB_Table) predicate_column =
-        this_table.with_temporary_column predicate_column name-> table->
-            table.filter name Filter_Condition.Is_True
-
     columns (this_table : Table & DB_Table) -> Vector DB_Column =
         Vector.from_polyglot_array <|
             Array_Proxy.new this_table.internal_columns.length i->
