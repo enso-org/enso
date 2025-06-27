@@ -44,7 +44,7 @@ common_delete_rows (target_table : Table) (key_values_to_delete : Table) (key_co
                             source_db_table = source_db_table_uploader.materialize
                             check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
                                 delete_statement = connection.dialect.generate_sql <|
-                                    SQL_IR_Statement.Delete_Matching_Rows target_table.name source_table_name key_columns
+                                    SQL_IR_Statement.Delete_Matching_Rows (target_table:DB_Table).name source_table_name key_columns
                                 affected_row_count = connection.execute_update delete_statement
                                 affected_row_count
 
