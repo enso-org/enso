@@ -126,14 +126,16 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object[] arguments,
       @Shared("typeOfNode") @Cached TypeOfNode dispatch,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode resolveNode) {
-    var thatType = dispatch.findTypeOrNull(that);
-    if (thatType == self) {
-      return that;
-    } else {
-      var selfType = extractType(self);
-      var function = resolveNode.expectNonNull(that, selfType, thatType, conversion);
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+    var visibleTypes = dispatch.findAllTypesOrNull(that, false);
+    for (var thatType : visibleTypes) {
+      if (thatType == self) {
+        return that;
+      }
     }
+    var thatType = dispatch.findTypeOrNull(that);
+    var selfType = extractType(self);
+    var function = resolveNode.expectNonNull(that, selfType, thatType, conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   /** If {@code that} is a dataflow error, we try to find a conversion for it. */
@@ -191,6 +193,16 @@ public abstract class InvokeConversionNode extends BaseNode {
       @Shared("typeOfNode") @Cached TypeOfNode dispatch,
       @Cached EnsoMultiValue.CastToNode castTo) {
     var type = extractType(self);
+    var allTypes = dispatch.findAllTypesOrNull(that, true);
+    if (allTypes != null) {
+      for (var t : allTypes) {
+        if (t == self) {
+          var val = castTo.findTypeOrNull(t, that, true, true);
+          assert val != null;
+          return val;
+        }
+      }
+    }
     var hasBeenCastTo = dispatch.findAllTypesOrNull(that, false);
     if (hasBeenCastTo != null) {
       for (var t : hasBeenCastTo) {
