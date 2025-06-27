@@ -383,7 +383,16 @@ public final class Module extends EnsoObject {
    */
   @TruffleBoundary
   public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
-    var src = sources.source();
+    Source src;
+    try {
+        src = getSource();
+    } catch (IOException e) {
+      TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
+      logger.log(
+              Level.SEVERE,
+              "Failed to retrieve sources of the module: " + e.getMessage(), e);
+        return null;
+    }
     if (src == null) {
       return null;
     }
