@@ -90,10 +90,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const openProjectNatively = projectHooks.useOpenProjectNatively()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
-  const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
-  const restoreAssetsMutation = useMutationCallback(restoreAssetsMutationOptions(backend))
-  const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
-  const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
+  const deleteAssets = useMutationCallback(deleteAssetsMutationOptions(backend))
+  const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
+  const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))
+  const downloadAssets = useMutationCallback(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
@@ -197,7 +197,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="undelete"
             label={getText('restoreFromTrashShortcut')}
             doAction={() => {
-              void restoreAssetsMutation({
+              void restoreAssets({
                 ids: [asset.id],
                 parentId: null,
               })
@@ -216,7 +216,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   cannotUndo
                   actionText={getText('deleteTheAssetTypeTitleForever', asset.type, asset.title)}
                   onConfirm={async () => {
-                    await deleteAssetsMutation([[asset.id], true])
+                    await deleteAssets([[asset.id], true])
                   }}
                 />,
               )
@@ -376,7 +376,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     asset.title,
                   )}
                   onConfirm={async () => {
-                    await deleteAssetsMutation([[asset.id], false])
+                    await deleteAssets([[asset.id], false])
                   }}
                 />,
               )
@@ -401,9 +401,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             bindingFocusScope={rootRef}
             hidden={hidden}
             action="duplicate"
-            doAction={async () => {
-              await copyAssetsMutation([[asset.id], asset.parentId])
-            }}
+            doAction={() => copyAssets([[asset.id], asset.parentId])}
           />
         )}
         {
@@ -439,7 +437,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isDisabled={asset.type === backendModule.AssetType.secret}
             action="download"
             doAction={() => {
-              void downloadAssetsMutation({
+              void downloadAssets({
                 ids: [{ id: asset.id, title: asset.title }],
                 targetDirectoryId:
                   !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,

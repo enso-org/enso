@@ -12,6 +12,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
 import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
@@ -95,10 +96,10 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     meta: { invalidates: [queryOptions.queryKey], awaitInvalidates: true },
   })
 
-  const duplicateProjectMutation = useMutation(copyAssetsMutationOptions(backend))
+  const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))
 
   const doDuplicate = useEventCallback(async (options?: DuplicateOptions) => {
-    const newItem = await duplicateProjectMutation.mutateAsync([[item.id], item.parentId])
+    const newItem = await copyAssets([[item.id], item.parentId])
     const newAsset = newItem[0]?.asset
 
     if (options?.start === true && newAsset != null && item.type === AssetType.project) {

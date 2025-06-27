@@ -187,12 +187,9 @@ export function copyAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationKey: copyAssetsMutationKey(backend.type),
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
-      /**
-       * Copy an asset and return a promise that resolves to the asset or an error.
-       */
-      const copyAsset = async (id: AssetId) => backend.copyAsset(id, parentId)
-
-      const results = await Promise.allSettled(ids.map((id) => copyAsset(id)))
+      const results = await Promise.allSettled(
+        ids.map((id: AssetId) => backend.copyAsset(id, parentId)),
+      )
 
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
