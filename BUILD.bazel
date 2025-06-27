@@ -196,7 +196,7 @@ run_sbt(
         "buildEngineDistribution",
     ],
     env = ENV,
-    out_dirs = ["built-distribution"],
+    out_dir = ["built-distribution"],
     system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
 )
