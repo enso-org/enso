@@ -5681,7 +5681,6 @@ extraBazelEnvForStdLibIndexes := Def.taskIf {
       "HOME"              -> home,
       "ENSO_HOME"         -> repoRoot.getAbsolutePath,
       "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath,
-      "TMPDIR"            -> (repoRoot / ".tmp").getAbsolutePath,
       "JAVA_TOOL_OPTIONS" -> s"-Denso.languageHomeOverride=$langHome"
     )
   } else {
@@ -6058,7 +6057,6 @@ extraBazelEnvForManifestUpdate := Def.taskIf {
       "HOME"              -> home,
       "ENSO_HOME"         -> repoRoot.getAbsolutePath,
       "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath,
-      "TMPDIR"            -> (repoRoot / ".tmp").getAbsolutePath
     )
   } else {
     Map.empty[String, String]
