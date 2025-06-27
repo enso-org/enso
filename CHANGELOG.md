@@ -25,6 +25,7 @@
 - [New Right Panel Tab with Markdown Description Editor][13347]
 - [Fixed a bug, where "Free plan" user was redirected to Cloud directory,
   resulting in an Error page without option of returning back to Local.][13366]
+- ["Grouped Components" are renamed to "User Defined Components"][13389]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -44,6 +45,7 @@
 [13254]: https://github.com/enso-org/enso/pull/13254
 [13347]: https://github.com/enso-org/enso/pull/13347
 [13366]: https://github.com/enso-org/enso/pull/13366
+[13389]: https://github.com/enso-org/enso/pull/13389
 
 #### Enso Standard Library
 

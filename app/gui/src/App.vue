@@ -129,6 +129,8 @@ if (projectViewOnly) {
   height: 100%;
   display: flex;
   flex-direction: column;
+  /* This is to ensure the tooltips and floating elements will be over all other app elements */
+  isolation: isolate;
 }
 
 #floatingLayer {
