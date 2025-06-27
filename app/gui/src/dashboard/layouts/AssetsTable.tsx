@@ -1120,7 +1120,12 @@ function AssetsTable(props: AssetsTableProps) {
           </TableHeader>
 
           {assets.length !== 0 ?
-            <TableBody ref={bodyRef} items={visibleItems} className="isolate">
+            <TableBody
+              ref={bodyRef}
+              items={visibleItems}
+              dependencies={[visibleItems, columns]}
+              className="isolate"
+            >
               {(item) => {
                 const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
                 const isOpenedOnTheBackend =
@@ -1151,7 +1156,7 @@ function AssetsTable(props: AssetsTableProps) {
                 )
               }}
             </TableBody>
-          : <TableBody ref={bodyRef} className="isolate">
+          : <TableBody ref={bodyRef} dependencies={[visibleItems, columns]} className="isolate">
               <Row className="hidden h-row first:table-row">
                 <Cell colSpan={columns.length} className="h-table-row bg-transparent">
                   <Text className="px-cell-x placeholder" disableLineHeightCompensation>
