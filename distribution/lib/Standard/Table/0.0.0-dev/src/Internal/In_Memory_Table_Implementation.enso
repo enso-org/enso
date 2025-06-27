@@ -551,7 +551,9 @@ type In_Memory_Table_Implementation
 
     row_count (this_table : Table & In_Memory_Table) -> Integer = this_table.java_table.rowCount
 
-    read (this_table : Table & In_Memory_Table) (max_rows : Rows_To_Read = ..All_Rows) -> Table = case max_rows of
+    default_max_rows = Rows_To_Read.All_Rows
+
+    read (this_table : Table & In_Memory_Table) (max_rows : Rows_To_Read) -> Table = case max_rows of
         Rows_To_Read.All_Rows -> this_table
         Rows_To_Read.First n -> this_table.take (..First n)
         Rows_To_Read.First_With_Warning n ->

@@ -659,7 +659,9 @@ type DB_Table_Implementation
         table = this_table.connection.read_statement sql
         table.at column_name . at 0
 
-    read (this_table : Table & DB_Table) (max_rows : Rows_To_Read = ..First_With_Warning 1000) -> Table =
+    default_max_rows = Rows_To_Read.First_With_Warning 1000
+
+    read (this_table : Table & DB_Table) (max_rows : Rows_To_Read) -> Table =
         if this_table.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             preprocessed = case max_rows of
                 Rows_To_Read.All_Rows -> this_table

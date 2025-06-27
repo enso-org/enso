@@ -2944,7 +2944,7 @@ type Table
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
-    read self (max_rows : Rows_To_Read = ..All_Rows) -> Table =
+    read self (max_rows : Rows_To_Read = self.implementation.default_max_rows) -> Table =
         self.implementation.read self.underlying max_rows
 
     ## ALIAS column types, field info, metadata

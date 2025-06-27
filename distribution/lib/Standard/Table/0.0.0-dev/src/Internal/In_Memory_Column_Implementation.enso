@@ -616,7 +616,7 @@ type In_Memory_Column_Implementation
                 java_column = this_column.java_column
                 java_to_enso <| java_column.getItem index
 
-    read (this_column : Column & In_Memory_Column) (max_rows : Rows_To_Read) =
+    read (this_column : Column & In_Memory_Column) (max_rows : Rows_To_Read = ..All_Rows) =
         if max_rows.is_nothing then this_column else
             this_column.to_table.read max_rows . at 0
 
