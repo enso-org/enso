@@ -2209,7 +2209,7 @@ type Column
        - - ..Closest_Value - If n is negative the first value gets used, if n is negative the last value gets used.
        - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
     @n (self-> Numeric_Input minimum=0-self.length maximum=self.length)
-    offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
+    offset self n:Integer=-1 fill_with:Fill_With=..Nothing -> Column =
         self.implementation.offset self n fill_with
 
 ## PRIVATE
