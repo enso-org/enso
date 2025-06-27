@@ -13,6 +13,7 @@ from Standard.Table.Errors import all
 import Standard.Table.Internal.Java_Exports
 
 from Standard.Database import all
+from Standard.Database.DB_Table import DB_Table
 from Standard.Database.Errors import all
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import default_key_columns
 import Standard.Database.Column_Constraint.Column_Constraint
@@ -1431,10 +1432,10 @@ tests group_builder (data : Data) make_new_connection source_table_builder (suff
             Problems.expect_only_warning Dry_Run_Operation r1
             r1.column_names . should_equal ["X"]
             # The target table is returned, as usually.
-            r1.name . should_equal dest.name
+            (r1:DB_Table).name . should_equal dest.name
             # But the data is not appended due to the dry-run - the table is unmodified.
             r1.at "X" . to_vector . should_equal_ignoring_order [1, 2, 3]
-            r1.is_trivial_query . should_be_true
+            (r1:DB_Table).is_trivial_query . should_be_true
 
     group_builder.specify "should return the count of rows that would be deleted for delete_rows, but keep the table unchanged"+suffix <|
         v = [1, 2, 3, 4, 4, 4, 1]
