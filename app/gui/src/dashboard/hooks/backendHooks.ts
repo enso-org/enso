@@ -24,7 +24,7 @@ import {
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
-import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
+import { useSetEditingNameAssetId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -417,7 +417,7 @@ function useDeleteAsset(backend: Backend, category: Category) {
 /** A function to create a new folder. */
 export function useNewFolder(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const setNewestFolderId = useSetNewestFolderId()
+  const setEditingNameAssetId = useSetEditingNameAssetId()
   const setSelectedAssets = useSetSelectedAssets()
 
   const createDirectoryMutation = useMutationCallback(
@@ -436,7 +436,7 @@ export function useNewFolder(backend: Backend, category: Category) {
     const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
 
     return await createDirectoryMutation([{ parentId, title }]).then((result) => {
-      setNewestFolderId(result.id)
+      setEditingNameAssetId(result.id)
       setSelectedAssets([{ type: AssetType.directory, ...result }])
       return result
     })

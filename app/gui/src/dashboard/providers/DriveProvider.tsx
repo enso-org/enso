@@ -62,8 +62,8 @@ export interface DirectoryPath {
 /** The state of this zustand store. */
 interface DriveStore {
   readonly removeSelection: () => void
-  readonly newestFolderId: DirectoryId | null
-  readonly setNewestFolderId: (newestFolderId: DirectoryId | null) => void
+  readonly editingNameAssetId: AssetId | null
+  readonly setEditingNameAssetId: (editingNameAssetId: AssetId | null) => void
   readonly canDownload: boolean
   readonly setCanDownload: (canDownload: boolean) => void
   readonly pasteData: PasteData<DrivePastePayload> | null
@@ -117,10 +117,10 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       removeSelection: () => {
         set({ selectedIds: new Set(), visuallySelectedKeys: null, selectedAssets: [] })
       },
-      newestFolderId: null,
-      setNewestFolderId: (newestFolderId) => {
-        if (get().newestFolderId !== newestFolderId) {
-          set({ newestFolderId })
+      editingNameAssetId: null,
+      setEditingNameAssetId: (editingNameAssetId) => {
+        if (get().editingNameAssetId !== editingNameAssetId) {
+          set({ editingNameAssetId })
         }
       },
       canDownload: false,
@@ -202,18 +202,25 @@ export function useDriveStore() {
   return store
 }
 
-/** The ID of the most newly created folder. */
+/** The ID of the asset whose name is being edited. */
 // eslint-disable-next-line react-refresh/only-export-components
-export function useNewestFolderId() {
+export function useEditingNameAssetId() {
   const store = useDriveStore()
-  return useStore(store, (state) => state.newestFolderId)
+  return useStore(store, (state) => state.editingNameAssetId)
 }
 
-/** A function to set the ID of the most newly created folder. */
+/** Whether the asset's name is being edited. */
 // eslint-disable-next-line react-refresh/only-export-components
-export function useSetNewestFolderId() {
+export function useIsEditingName(id: AssetId) {
   const store = useDriveStore()
-  return useStore(store, (state) => state.setNewestFolderId)
+  return useStore(store, (state) => state.editingNameAssetId === id)
+}
+
+/** A function to set the ID of the asset whose name is being edited. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useSetEditingNameAssetId() {
+  const store = useDriveStore()
+  return useStore(store, (state) => state.setEditingNameAssetId)
 }
 
 /** Whether the current Asset Table selection is downloadble. */

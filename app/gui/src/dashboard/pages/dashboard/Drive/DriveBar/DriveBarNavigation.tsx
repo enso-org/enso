@@ -51,7 +51,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
   const moveAssetsMutation = useMutationCallback({
     ...moveAssetsMutationOptions(associatedBackend),
     onSuccess: () => {
-      driveStore.setState({ selectedIds: new Set(), visuallySelectedKeys: new Set() })
+      driveStore.setState({ selectedIds: new Set(), visuallySelectedKeys: null })
     },
     onError: (error) => {
       if ('failed' in error && error.failed !== 0) {

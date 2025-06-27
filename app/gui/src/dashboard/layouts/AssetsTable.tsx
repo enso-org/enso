@@ -22,7 +22,6 @@ import { VisualTooltip } from '#/components/VisualTooltip'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
-  backendMutationOptions,
   backendQueryOptions,
   listDirectoryQueryOptions,
   useListDirectoryRefetchInterval,
@@ -32,7 +31,7 @@ import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
 import { useMount } from '#/hooks/mountHooks'
-import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
+import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -49,7 +48,6 @@ import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
-import { INITIAL_ROW_STATE } from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import { NameColumn } from '#/pages/dashboard/components/column'
 import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import {
@@ -65,7 +63,7 @@ import Label from '#/pages/dashboard/components/Label'
 import {
   useDriveStore,
   useSetCanDownload,
-  useSetNewestFolderId,
+  useSetEditingNameAssetId,
   useSetPasteData,
   useSetSelectedAssets,
   useSetVisuallySelectedKeys,
@@ -73,9 +71,8 @@ import {
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
-import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
+import type { AssetId, DirectoryId } from '#/services/Backend'
 import {
   assetIsProject,
   AssetType,
@@ -89,7 +86,6 @@ import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
 import { fileExtension } from '#/utilities/fileInfo'
-import { noop, noopPromise } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import { mapEntries, unsafeEntries } from '#/utilities/object'
@@ -97,7 +93,6 @@ import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
 import {
   useBackends,
   useFullUserSession,
@@ -198,7 +193,6 @@ function AssetsTable(props: AssetsTableProps) {
   const { query, setQuery, category } = props
   const { initialProjectName } = props
 
-  const openedProjects = useLaunchedProjects()
   const openProjectLocally = useOpenProjectLocally()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
@@ -229,7 +223,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const [sortInfo, setSortInfo] = useState<SortInfo<SortableColumn> | null>(null)
   const driveStore = useDriveStore()
-  const setNewestFolderId = useSetNewestFolderId()
+  const setEditingNameAssetId = useSetEditingNameAssetId()
   const setSelectedAssets = useSetSelectedAssets()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const setPasteData = useSetPasteData()
@@ -299,8 +293,8 @@ function AssetsTable(props: AssetsTableProps) {
   )
 
   useEffect(() => {
-    setNewestFolderId(null)
-  }, [category, setNewestFolderId])
+    setEditingNameAssetId(null)
+  }, [category, setEditingNameAssetId])
 
   // temporary solution to update the asset panel when the selected asset changes
   useEffect(() => {
@@ -592,29 +586,6 @@ function AssetsTable(props: AssetsTableProps) {
   )
 
   const bodyRef = useRef<HTMLTableSectionElement>(null)
-
-  const renameAssetMutationCallback = useMutationCallback(
-    backendMutationOptions(backend, 'updateAsset'),
-  )
-  const closeProjectMutationCallback = useCloseProject()
-
-  const doRenameAsset = useEventCallback((assetId: AssetId, newTitle: string) => {
-    return renameAssetMutationCallback([
-      assetId,
-      { title: newTitle, parentDirectoryId: null, description: null },
-      assetId,
-    ])
-  })
-
-  const doOpenProject = useEventCallback((projectId: ProjectId) => {
-    const project = assets.find((asset) => asset.id === projectId)
-
-    if (project?.type !== AssetType.project) {
-      return Promise.resolve()
-    }
-
-    return openProjectLocally(project, backend.type)
-  })
 
   const doCopy = useEventCallback(() => {
     unsetModal()
@@ -944,19 +915,10 @@ function AssetsTable(props: AssetsTableProps) {
             isNavigating={false}
             key={node.id}
             item={node}
-            isOpened={false}
             backendType={backend.type}
             state={state}
-            rowState={INITIAL_ROW_STATE}
             // The drag placeholder cannot be interacted with.
             isEditable={false}
-            isPlaceholder={false}
-            setSelected={noop}
-            setRowState={noop}
-            renameAsset={noopPromise}
-            closeProject={noopPromise}
-            openProject={noopPromise}
-            labels={[]}
           />
         ))}
       </DragModal>,
@@ -1063,7 +1025,7 @@ function AssetsTable(props: AssetsTableProps) {
     >
       <ResizableTableContainer onResize={onResize} onResizeEnd={onResizeEnd}>
         <Table
-          /* The key is required to reset selection state when the category changes. */
+          /* The key is required to reset selection state when the category or folder changes. */
           key={`${category.id}/${currentDirectoryId}`}
           aria-label={getText('drivePageName')}
           data-testid="assets-table"
@@ -1129,35 +1091,19 @@ function AssetsTable(props: AssetsTableProps) {
               dependencies={[visibleItems, columns]}
               className="isolate"
             >
-              {(item) => {
-                const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
-                const isOpenedOnTheBackend =
-                  item.projectState?.type != null ?
-                    IS_OPENING_OR_OPENED[item.projectState.type]
-                  : false
-                return (
-                  <AssetRow
-                    key={item.id + item.virtualParentsPath}
-                    isPlaceholder={false}
-                    isOpened={isOpenedByYou || isOpenedOnTheBackend}
-                    columns={columns}
-                    id={item.id}
-                    type={item.type}
-                    parentId={item.parentId}
-                    state={state}
-                    item={item}
-                    select={selectRow}
-                    labels={labels ?? []}
-                    onDragStart={onRowDragStart}
-                    onDragEnd={onRowDragEnd}
-                    onDrop={onRowDrop}
-                    renameAsset={doRenameAsset}
-                    closeProject={closeProjectMutationCallback}
-                    openProject={doOpenProject}
-                    tableRootRef={rootRef}
-                  />
-                )
-              }}
+              {(item) => (
+                <AssetRow
+                  key={`${item.id} ${item.virtualParentsPath}`}
+                  item={item}
+                  columns={columns}
+                  state={state}
+                  select={selectRow}
+                  onDragStart={onRowDragStart}
+                  onDragEnd={onRowDragEnd}
+                  onDrop={onRowDrop}
+                  tableRootRef={rootRef}
+                />
+              )}
             </TableBody>
           : <TableBody ref={bodyRef} dependencies={[visibleItems, columns]} className="isolate">
               <Row className="hidden h-row first:table-row">

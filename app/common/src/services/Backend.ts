@@ -1256,9 +1256,9 @@ export interface UpdateFileRequestBody {
 
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAssetRequestBody {
-  readonly parentDirectoryId: DirectoryId | null
-  readonly description: string | null
-  readonly title: string | null
+  readonly parentDirectoryId?: DirectoryId | null
+  readonly description?: string | null
+  readonly title?: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */

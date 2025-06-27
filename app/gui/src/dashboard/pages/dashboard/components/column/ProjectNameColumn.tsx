@@ -1,13 +1,16 @@
 /** @file The icon and name of a {@link ProjectAsset}. */
 import EditableSpan from '#/components/EditableSpan'
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
+import { useIsEditingName, useSetEditingNameAssetId } from '#/providers/DriveProvider'
 import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
-import { merger } from '#/utilities/object'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useFullUserSession } from '$/providers/react'
 import { isOnMacOS } from 'enso-common/src/detect'
 
@@ -18,22 +21,14 @@ export interface ProjectNameColumnProps extends AssetColumnProps {
 
 /** The icon and name of a {@link ProjectAsset}. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const {
-    item,
-    rowState,
-    setRowState,
-    state,
-    isEditable,
-    isOpened,
-    isPlaceholder,
-    closeProject,
-    openProject,
-    renameAsset,
-  } = props
+  const { item, state, isEditable } = props
   const { backend } = state
 
+  const isEditing = useIsEditingName(item.id) && isEditable
+  const setEditingNameAssetId = useSetEditingNameAssetId()
   const { user } = useFullUserSession()
   const getAssetChildren = useGetAssetChildren()
+  const openProjectLocally = useOpenProjectLocally()
 
   const ownPermission = tryFindSelfPermission(user, item.permissions)
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
@@ -48,56 +43,44 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const isOtherUserUsingProject =
     isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
 
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditable) {
-      setRowState(merger({ isEditingName }))
-    }
-  }
-
-  const doRename = async (newTitle: string) => {
-    await renameAsset(item.id, newTitle)
-    setIsEditing(false)
-  }
+  const updateAsset = useMutationCallback(
+    backendMutationOptions(backend, 'updateAsset', {
+      onSuccess: () => {
+        setEditingNameAssetId(null)
+      },
+    }),
+  )
 
   return (
     <div
       className="flex h-table-row items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
-        if (rowState.isEditingName && isOnMacOS() && event.key === 'Enter') {
+        if (isEditing && isOnMacOS() && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
       onClick={async (event) => {
-        if (rowState.isEditingName || isOtherUserUsingProject) {
+        if (isEditing || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
         } else if (isDoubleClick(event) && canExecute) {
-          await openProject(item.id)
+          await openProjectLocally(item, backend.type)
         }
       }}
     >
-      <ProjectIcon
-        isDisabled={!canExecute}
-        isOpened={isOpened}
-        backend={backend}
-        item={item}
-        isPlaceholder={isPlaceholder}
-        closeProject={closeProject}
-        openProject={openProject}
-      />
+      <ProjectIcon isDisabled={!canExecute} backend={backend} item={item} />
 
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
+        editable={isEditing}
+        schema={() => titleSchema({ asset: item, siblings: getAssetChildren(item.parentId) })}
         className={twMerge(
           'grow bg-transparent font-naming',
-          canExecute && !isOtherUserUsingProject && 'cursor-pointer',
-          rowState.isEditingName && 'cursor-text',
+          isEditing ? 'cursor-text' : canExecute && !isOtherUserUsingProject && 'cursor-pointer',
         )}
-        onSubmit={doRename}
+        onSubmit={(title) => updateAsset([item.id, { title }, item.title])}
         onCancel={() => {
-          setIsEditing(false)
+          setEditingNameAssetId(null)
         }}
-        schema={() => titleSchema({ asset: item, siblings: getAssetChildren(item.parentId) })}
       >
         {item.title}
       </EditableSpan>

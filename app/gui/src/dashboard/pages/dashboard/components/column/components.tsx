@@ -5,7 +5,7 @@ import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Text } from '#/components/Text'
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -29,16 +29,18 @@ import { mergeRefs } from '#/utilities/mergeRefs'
 import { PermissionAction } from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
+import { useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { useRef, useState } from 'react'
 export { PathColumn } from './PathColumn'
 
 /** A column listing the labels on this asset. */
 export function LabelsColumn(props: AssetColumnProps) {
-  const { item, state, labels } = props
+  const { item, state } = props
 
   const { backend } = state
 
+  const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))

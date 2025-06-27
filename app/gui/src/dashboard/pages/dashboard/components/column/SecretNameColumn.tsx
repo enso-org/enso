@@ -7,10 +7,10 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import { useIsEditingName, useSetEditingNameAssetId } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { isAssetCredential, titleSchema, type SecretAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
-import { merger } from '#/utilities/object'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { toast } from 'react-toastify'
@@ -22,31 +22,30 @@ export interface SecretNameColumnProps extends AssetColumnProps {
 
 /** The icon and name of a {@link SecretAsset}. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, rowState, state, setRowState, isEditable, renameAsset } = props
+  const { item, state, isEditable } = props
   const { backend } = state
 
+  const isEditing = useIsEditingName(item.id) && isEditable
+  const setEditingNameAssetId = useSetEditingNameAssetId()
   const toastAndLog = useToastAndLog()
   const { getText } = useText()
   const getAssetChildren = useGetAssetChildren()
 
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
 
-  const doRename = async (newTitle: string) => {
-    await renameAsset(item.id, newTitle)
-    setIsEditing(false)
-  }
-
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditable) {
-      setRowState(merger({ isEditingName }))
-    }
-  }
+  const updateAsset = useMutationCallback(
+    backendMutationOptions(backend, 'updateAsset', {
+      onSuccess: () => {
+        setEditingNameAssetId(null)
+      },
+    }),
+  )
 
   return (
     <div
       className="flex h-table-row items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditing && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
@@ -76,11 +75,11 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       <SvgMask src={KeyIcon} className="m-name-column-icon size-4" />
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
+        editable={isEditing}
         className="grow bg-transparent font-naming"
-        onSubmit={doRename}
+        onSubmit={(title) => updateAsset([item.id, { title }, item.title])}
         onCancel={() => {
-          setIsEditing(false)
+          setEditingNameAssetId(null)
         }}
         schema={() =>
           titleSchema({

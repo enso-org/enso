@@ -8,27 +8,21 @@ import {
 import { useBackendMutationState } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useDragDelayAction } from '#/hooks/dragDelayHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
 import {
   useDriveStore,
   useSetCurrentDirectoryId,
   useSetDragTargetAssetId,
-  useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
-import type { Label } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
-import * as object from '#/utilities/object'
 import {
   canPermissionModifyDirectoryContents,
   isTeamPath,
@@ -46,39 +40,28 @@ import invariant from 'tiny-invariant'
 export interface AssetRowInnerProps {
   readonly asset: backendModule.AnyAsset
   readonly state: assetsTable.AssetsTableState
-  readonly rowState: assetsTable.AssetRowState
-  readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
 }
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
   readonly item: backendModule.AnyAsset
-  readonly isOpened: boolean
-  readonly isPlaceholder: boolean
-  readonly id: backendModule.AssetId
-  readonly parentId: backendModule.DirectoryId
-  readonly type: backendModule.AssetType
   readonly state: assetsTable.AssetsTableState
-  readonly columns: columnUtils.Column[]
-  readonly labels: readonly Label[]
+  readonly columns: readonly columnUtils.Column[]
   readonly select: (item: backendModule.AnyAsset) => void
   readonly onDragStart: (event: DragEvent, item: backendModule.AnyAsset) => void
   readonly onDragEnd: (event: DragEvent, item: backendModule.AnyAsset) => void
   readonly onDrop: (event: DragEvent, item: backendModule.AnyAsset) => void
-  readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
-  readonly closeProject: (project: LaunchedProject) => Promise<void>
-  readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
   readonly tableRootRef: React.MutableRefObject<HTMLElement | null> | undefined
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
-  const { type, columns, id, item } = props
+  const { item, columns } = props
 
-  switch (type) {
+  switch (item.type) {
     case backendModule.AssetType.specialUp: {
-      return <AssetSpecialRow columnsLength={columns.length} type={type} />
+      return <AssetSpecialRow columnsLength={columns.length} type={item.type} />
     }
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
@@ -86,9 +69,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.datalink:
     case backendModule.AssetType.directory:
     default: {
-      // This is safe because we filter out special asset types in the switch statement above.
-      // eslint-disable-next-line no-restricted-syntax
-      return <RealAssetRow {...props} id={id as backendModule.RealAssetId} item={item} />
+      return <RealAssetRow {...props} />
     }
   }
 })
@@ -125,22 +106,7 @@ type RealAssetRowProps = AssetRowProps
 
 /** Render a real asset row. */
 export function RealAssetRow(props: RealAssetRowProps) {
-  const {
-    id,
-    parentId,
-    isOpened,
-    select,
-    state,
-    columns,
-    isPlaceholder,
-    type,
-    item,
-    labels,
-    renameAsset,
-    closeProject,
-    openProject,
-    tableRootRef,
-  } = props
+  const { select, state, columns, item, tableRootRef } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
   const [isNavigating, startNavigation] = useTransition()
@@ -149,13 +115,12 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const driveStore = useDriveStore()
   const rightPanel = useRightPanelData()
   const { user } = useFullUserSession()
-  const setSelectedAssets = useSetSelectedAssets()
   const getAsset = useGetAsset()
   const { isSelected, isSoleSelected, isMultiSelected } = useStore(
     driveStore,
     ({ visuallySelectedKeys, selectedIds }) => {
       const selection = visuallySelectedKeys ?? selectedIds
-      const selected = selection.has(id)
+      const selected = selection.has(item.id)
 
       return {
         isSelected: selected,
@@ -170,14 +135,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
-  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
-    assetRowUtils.INITIAL_ROW_STATE,
-  )
-
-  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === item.id)
-  const isEditingName = innerRowState.isEditingName || isNewlyCreated
-
-  const rowState = object.merge(innerRowState, { isEditingName })
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
@@ -225,21 +182,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
   })
   const visibility = isDeleting || isRestoring || isUpdating ? 'opacity-50' : insertionVisibility
 
-  const setSelected = useEventCallback((newSelected: boolean) => {
-    const { selectedAssets } = driveStore.getState()
-    setSelectedAssets(
-      newSelected ?
-        [...selectedAssets, item]
-      : selectedAssets.filter((otherAsset) => otherAsset.id !== item.id),
-    )
-  })
-
-  React.useEffect(() => {
-    if (isSelected && (isDeleting || isRestoring)) {
-      setSelected(false)
-    }
-  }, [isSelected, setSelected, isDeleting, isRestoring])
-
   const setDirectoryId = useSetCurrentDirectoryId()
 
   const dragDelayProps = useDragDelayAction(
@@ -253,7 +195,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   )
 
   const onDragOver = (event: DragEvent) => {
-    const directoryId = item.type === backendModule.AssetType.directory ? id : parentId
+    const directoryId = item.type === backendModule.AssetType.directory ? item.id : item.parentId
     const payload = drag.ASSET_ROWS.lookup(event)
     const isPayloadMatch =
       payload != null && payload.items.every((innerItem) => innerItem.key !== directoryId)
@@ -288,28 +230,23 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }
   }
 
-  switch (type) {
+  switch (item.type) {
     case backendModule.AssetType.directory:
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
     case backendModule.AssetType.datalink:
     case backendModule.AssetType.secret: {
-      const innerProps: AssetRowInnerProps = {
-        asset: item,
-        state,
-        rowState,
-        setRowState,
-      }
+      const innerProps: AssetRowInnerProps = { asset: item, state }
 
       return (
         <>
           <Row
-            /* The key is required to properly re-render the row when `isEditable` is changed. */
-            key={JSON.stringify(rowState)}
             data-testid="asset-row"
             data-selected={isSelected}
             data-id={item.id}
             id={item.id}
+            // Required so that name updates properly when edited.
+            dependencies={[item]}
             ref={(element) => {
               rootRef.current = element
               if (!element) {
@@ -360,10 +297,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
               // TODO: Use the more conventional solution, `useDragAndDrop`.
               // https://react-spectrum.adobe.com/react-aria/Table.html#drag-data
               element.ondragstart = (event) => {
-                if (rowState.isEditingName) {
-                  event.preventDefault()
-                }
-
                 if (
                   item.type === backendModule.AssetType.project &&
                   BUSY_PROJECT_STATES.has(item.projectState.type)
@@ -423,19 +356,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 <Cell key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                   <Render
                     isNavigating={isNavigating}
-                    labels={labels}
-                    isPlaceholder={isPlaceholder}
-                    isOpened={isOpened}
                     backendType={backend.type}
                     item={item}
-                    setSelected={setSelected}
                     state={state}
-                    rowState={rowState}
-                    setRowState={setRowState}
                     isEditable={state.category.type !== 'trash'}
-                    renameAsset={renameAsset}
-                    closeProject={closeProject}
-                    openProject={openProject}
                   />
                 </Cell>
               )
@@ -468,7 +392,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
       invariant(
         false,
         'Unsupported asset type, expected one of: directory, project, file, datalink, secret, but got: ' +
-          type,
+          item.type,
       )
     }
   }

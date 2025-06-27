@@ -29,10 +29,9 @@ import {
 } from '#/hooks/backendBatchedHooks'
 import { useNewProject } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { usePasteData } from '#/providers/DriveProvider'
+import { usePasteData, useSetEditingNameAssetId } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/react'
@@ -75,13 +74,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     rootRef,
   } = props
   const { doCopy, doCut, doPaste } = props
-  const { asset, state, setRowState } = innerProps
+  const { asset, state } = innerProps
   const { backend, category } = state
 
   const isCloud = categoryModule.isCloudCategory(category)
 
   const { localCategories } = useCategories()
 
+  const setEditingNameAssetId = useSetEditingNameAssetId()
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
@@ -321,7 +321,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             action="rename"
             doAction={() => {
-              setRowState(object.merger({ isEditingName: true }))
+              setEditingNameAssetId(asset.id)
             }}
           />
         )}

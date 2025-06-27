@@ -1,12 +1,17 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
 import { Button } from '#/components/Button'
 import EditableSpan from '#/components/EditableSpan'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { AssetColumnProps } from '#/pages/dashboard/components/column'
-import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import {
+  useIsEditingName,
+  useSetCurrentDirectoryId,
+  useSetEditingNameAssetId,
+} from '#/providers/DriveProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
-import { merger } from '#/utilities/object'
-import { twMerge } from '#/utilities/tailwindMerge'
+import { twJoin } from '#/utilities/tailwindMerge'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { useTransition } from 'react'
 
@@ -21,34 +26,30 @@ export interface DirectoryNameColumnProps extends AssetColumnProps {
  * This should never happen.
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, rowState, setRowState, isEditable, isNavigating, renameAsset } = props
+  const { item, state, isEditable, isNavigating } = props
+  const { backend } = state
+
   const [isLoading, startNavigation] = useTransition()
+  const isEditing = useIsEditingName(item.id) && isEditable
+  const setEditingNameAssetId = useSetEditingNameAssetId()
 
   const { getText } = useText()
-  const driveStore = useDriveStore()
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const getAssetChildren = useGetAssetChildren()
 
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditable) {
-      setRowState(merger({ isEditingName }))
-    }
-
-    if (!isEditingName) {
-      driveStore.setState({ newestFolderId: null })
-    }
-  }
-
-  const doRename = async (newTitle: string) => {
-    await renameAsset(item.id, newTitle)
-    setIsEditing(false)
-  }
+  const updateAsset = useMutationCallback(
+    backendMutationOptions(backend, 'updateAsset', {
+      onSuccess: () => {
+        setEditingNameAssetId(null)
+      },
+    }),
+  )
 
   return (
     <div
       className="group flex h-table-row items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditing && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
@@ -70,20 +71,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
-        className={twMerge(
-          'cursor-pointer bg-transparent font-naming',
-          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
-        )}
+        editable={isEditing}
         schema={() =>
           titleSchema({
             asset: item,
             siblings: getAssetChildren(item.parentId),
           })
         }
-        onSubmit={doRename}
+        className={twJoin(
+          'bg-transparent font-naming',
+          isEditing ? 'cursor-text' : 'cursor-pointer',
+        )}
+        onSubmit={(newTitle) => updateAsset([item.id, { title: newTitle }, item.title])}
         onCancel={() => {
-          setIsEditing(false)
+          setEditingNameAssetId(null)
         }}
       >
         {item.title}
