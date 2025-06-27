@@ -34,7 +34,7 @@ object BazelSupport extends AutoPlugin {
       "so we resolve the relative path in sbt."
     )
 
-    lazy val outputDir = settingKey[Option[File]] (
+    lazy val outputDir = settingKey[Option[File]](
       """
         |Path to the output directory for the distribution.
         |In non-bazel build, it is set to `built-distribution` in repo root.

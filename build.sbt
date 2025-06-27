@@ -5685,7 +5685,9 @@ lazy val projectManagerDistributionRoot =
 
 engineDistributionRoot :=
   packageBuilder.value.localArtifact("engine") / s"enso-$ensoVersion"
-launcherDistributionRoot := packageBuilder.value.localArtifact("launcher") / "enso"
+launcherDistributionRoot := packageBuilder.value.localArtifact(
+  "launcher"
+) / "enso"
 projectManagerDistributionRoot :=
   packageBuilder.value.localArtifact("project-manager") / "enso"
 
@@ -5694,7 +5696,7 @@ lazy val extraBazelEnvForStdLibIndexes = taskKey[Map[String, String]](
 )
 extraBazelEnvForStdLibIndexes := Def.taskIf {
   if ((Bazel / wasStartedFromBazel).value) {
-    val home = (Bazel / homeDir).value.get.getAbsolutePath
+    val home     = (Bazel / homeDir).value.get.getAbsolutePath
     val repoRoot = (enso / baseDirectory).value
     val libPath =
       (engineDistributionRoot.value / "lib" / "Standard").getCanonicalPath
@@ -6070,7 +6072,7 @@ lazy val extraBazelEnvForManifestUpdate = taskKey[Map[String, String]](
   */
 extraBazelEnvForManifestUpdate := Def.taskIf {
   if ((Bazel / wasStartedFromBazel).value) {
-    val home = (Bazel / homeDir).value.get.getAbsolutePath
+    val home     = (Bazel / homeDir).value.get.getAbsolutePath
     val repoRoot = (enso / baseDirectory).value
     val libPath =
       (engineDistributionRoot.value / "lib" / "Standard").getCanonicalPath
@@ -6078,7 +6080,7 @@ extraBazelEnvForManifestUpdate := Def.taskIf {
     Map(
       "HOME"              -> home,
       "ENSO_HOME"         -> repoRoot.getAbsolutePath,
-      "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath,
+      "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath
     )
   } else {
     Map.empty[String, String]

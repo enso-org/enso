@@ -321,7 +321,7 @@ object DistributionPackage {
     val newKey = entry._1
     val newVal = entry._2
     if (dest.contains(newKey)) {
-      val oldVal = dest(newKey)
+      val oldVal      = dest(newKey)
       val appendedVal = oldVal + " " + newVal
       dest + (newKey -> appendedVal)
     } else {
