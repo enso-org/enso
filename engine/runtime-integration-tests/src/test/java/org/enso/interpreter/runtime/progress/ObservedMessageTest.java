@@ -20,4 +20,19 @@ public class ObservedMessageTest {
             });
     assertEquals("One message", 1, arr.size());
   }
+
+  @Test
+  public void messageWithoutAnyArgumentsInSystemLogger() throws Exception {
+    var slf4j = LoggerFactory.getLogger("my.test.logger");
+    var logger = System.getLogger(slf4j.getName());
+    var msg = "strange / message with {} various elements";
+    var arr =
+        ObservedMessage.collect(
+            slf4j,
+            () -> {
+              logger.log(Level.WARNING, msg, (Object[]) null);
+            });
+    assertEquals("One message", 1, arr.size());
+    assertEquals("The right message", msg, arr.get(0).getFormattedMessage());
+  }
 }

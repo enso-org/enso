@@ -44,7 +44,7 @@ public final class SystemLoggerViaSlf4j extends System.LoggerFinder {
     public void log(Level level, ResourceBundle bundle, String format, Object... params) {
       if (isLoggable(level)) {
         var m = readMsg(bundle, format);
-        var formatted = MessageFormat.format(m, params);
+        var formatted = params != null && params.length > 0 ? MessageFormat.format(m, params) : m;
         delegate.atLevel(at(level)).log(formatted);
       }
     }
