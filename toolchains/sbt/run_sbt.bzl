@@ -49,13 +49,18 @@ run_sbt = rule(
     attrs = {
         "args": attr.string_list(
             default = [],
+            doc = "Arguments for the sbt process",
         ),
-        "env": attr.string_dict(),
+        "env": attr.string_dict(
+            doc = "Environment variables to set for the sbt process.",
+        ),
         "srcs": attr.label_list(
             allow_files = True,
         ),
         "system_props": attr.string_list(
             default = [],
+            doc = "Additional system properties to pass to the sbt process. " +
+                  "Use the full syntax `-Dproperty=value`",
         ),
         "out_dir": attr.string_list(
             mandatory = True,
