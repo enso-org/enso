@@ -153,7 +153,7 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
             <TableBody items={userGroups} dependencies={[userGroups]} className="select-text">
               {userGroups.length === 0 ?
                 <Row className="h-10">
-                  <Cell className="col-span-2 px-2.5 placeholder">
+                  <Cell colSpan={2} className="px-2.5 placeholder">
                     {isAdmin ?
                       getText('youHaveNoUserGroupsAdmin')
                     : getText('youHaveNoUserGroupsNonAdmin')}
@@ -356,7 +356,7 @@ function UserGroupSettingsSection(props: UserGroupSettingsSectionProps) {
           className={styles.tableContainer()}
           shadowStartClassName="mt-8"
         >
-          <Table>
+          <Table aria-label={getText('userGroup')}>
             <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
               <Column isRowHeader className={styles.column({ className: 'w-80 max-w-80' })}>
                 {getText('user')}
@@ -407,7 +407,7 @@ function UserGroupSettingsSection(props: UserGroupSettingsSectionProps) {
               ))}
               {users.length === 0 && (
                 <Row>
-                  <Cell>
+                  <Cell colSpan={2}>
                     <Text color="muted">{getText('noUsersInThisGroup')}</Text>
                   </Cell>
                 </Row>

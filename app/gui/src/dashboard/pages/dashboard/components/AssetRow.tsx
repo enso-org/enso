@@ -304,6 +304,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
       return (
         <>
           <Row
+            /* The key is required to properly re-render the row when `isEditable` is changed. */
             key={JSON.stringify(rowState)}
             data-testid="asset-row"
             data-selected={isSelected}

@@ -1,5 +1,5 @@
 /** @file A component that renders the modal instance from the modal React Context. */
-import { Pressable } from '#/components/aria'
+import { usePress } from '#/components/aria'
 import { Dialog } from '#/components/Dialog'
 import * as modalProvider from '#/providers/ModalProvider'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -19,10 +19,7 @@ export default function TheModal() {
           transition={{ duration: 0.2 }}
         >
           <Dialog.Trigger key={key} defaultOpen>
-            {/* This component suppresses the warning about the target not being pressable element. */}
-            <Pressable>
-              <></>
-            </Pressable>
+            <MockPressable />
 
             {modal}
           </Dialog.Trigger>
@@ -30,4 +27,14 @@ export default function TheModal() {
       )}
     </AnimatePresence>
   )
+}
+
+/**
+ * A mock `Pressable` that does nothing.
+ * This is used as the trigger for the `Dialog.Trigger` above to suppress any warning logs.
+ */
+function MockPressable() {
+  const { pressProps } = usePress({})
+
+  return <div {...pressProps} />
 }

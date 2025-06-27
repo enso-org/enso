@@ -1063,6 +1063,9 @@ function AssetsTable(props: AssetsTableProps) {
     >
       <ResizableTableContainer onResize={onResize} onResizeEnd={onResizeEnd}>
         <Table
+          /* The key is required to reset selection state when the category changes. */
+          key={`${category.id}/${currentDirectoryId}`}
+          aria-label={getText('drivePageName')}
           data-testid="assets-table"
           selectionMode="multiple"
           selectionBehavior="replace"

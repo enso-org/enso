@@ -25,20 +25,6 @@ import invariant from 'tiny-invariant'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const MOCK_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 100 100">
-  <defs>
-    <pattern id="checkerboard" width="20" height="20" patternUnits="userSpaceOnUse">
-      <rect width="10" height="10" fill="white"/>
-      <rect x="10" y="0" width="10" height="10" fill="black"/>
-      <rect x="0" y="10" width="10" height="10" fill="black"/>
-      <rect x="10" y="10" width="10" height="10" fill="white"/>
-    </pattern>
-  </defs>
-  <rect width="100" height="100" fill="url(#checkerboard)"/>
-</svg>
-`
-
 /** The HTTP status code representing a response with an empty body. */
 const HTTP_STATUS_NO_CONTENT = 204
 /** The HTTP status code representing a bad request. */
@@ -1337,14 +1323,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         })
       },
     )
-
-    await page.route('mock/svg.svg', (route) => {
-      return route.fulfill({ body: MOCK_SVG, contentType: 'image/svg+xml' })
-    })
-
-    await page.route('**/assets/*.svg', (route) => {
-      return route.fulfill({ body: MOCK_SVG, contentType: 'image/svg+xml' })
-    })
 
     await page.route('*', async (route) => {
       if (!isOnline) {
