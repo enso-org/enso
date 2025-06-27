@@ -15,7 +15,6 @@ import project.DB_Table.DB_Table
 align_structure : Connection | Any -> Table & Table | Vector Column_Description -> Vector Column_Description
 align_structure connection table_or_columns = case table_or_columns of
     vector : Vector   -> align_vector_structure vector
-    table : DB_Table  -> structure_from_existing_table connection table
     table : Table     -> structure_from_existing_table connection table
 
 ## PRIVATE
