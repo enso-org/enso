@@ -79,8 +79,8 @@ create_table_upload_operation source_table connection (table_name : Text) (prima
     case source_table of
         in_mem_table : In_Memory_Table ->
             _create_in_memory_table_upload_op in_mem_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
-        db_table : DB_Table ->
-            _create_database_table_upload_op db_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
+        _ : DB_Table ->
+            _create_database_table_upload_op source_table:(Table & DB_Table) connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.Multi_Type.get source_table . to_text)
 
@@ -106,7 +106,7 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
 
     Table_Upload_Operation.Value table_description callback
 
-private _create_database_table_upload_op (source_table : DB_Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
+private _create_database_table_upload_op (source_table : Table & DB_Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit =
     _check_outside_transaction
     connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
         Error.throw Different_Connections.Error
