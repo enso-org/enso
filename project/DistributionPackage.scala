@@ -254,7 +254,8 @@ object DistributionPackage {
           path.getAbsolutePath
         )
         log.debug(command.mkString(" "))
-        val allEnv = env ++ Map(
+        val allEnv = mapAppend(
+          env,
           "JAVA_TOOL_OPTIONS" -> "-Dorg.jline.terminal.dumb=true"
         )
         val procBldr = new java.lang.ProcessBuilder(asJava(command))
@@ -311,6 +312,21 @@ object DistributionPackage {
       } else {
         log.debug(s"No modified files. Not generating index for $libName.")
       }
+    }
+  }
+
+  private def mapAppend(
+    dest: Map[String, String],
+    entry: (String, String)
+  ): Map[String, String] = {
+    val newKey = entry._1
+    val newVal = entry._2
+    if (dest.contains(newKey)) {
+      val oldVal = dest(newKey)
+      val appendedVal = oldVal + " " + newVal
+      dest + (newKey -> appendedVal)
+    } else {
+      dest + entry
     }
   }
 
