@@ -12,6 +12,7 @@ import * as amplify from '@aws-amplify/auth'
 import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as detect from 'enso-common/src/detect'
+import * as toastify from 'react-toastify'
 import { useRouter } from 'vue-router'
 
 /**
@@ -261,6 +262,10 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
       }
       case '//auth/registration': {
         navigate(`${appUtils.REGISTRATION_PATH}${url.search}`)
+        break
+      }
+      case '//payments/success': {
+        toastify.toast.info("payment succeded")
         break
       }
       // If the user is being redirected from a password reset email, navigate to the password

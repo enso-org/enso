@@ -145,6 +145,15 @@ export function createSessionStore(
     }
   }
 
+  const signInWithApple = () => {
+    gtag.event('cloud_sign_in', { provider: 'Apple' })
+
+    return authService.signInWithApple().then(
+      () => true,
+      () => false,
+    )
+  }
+
   const signInWithGoogle = () => {
     gtag.event('cloud_sign_in', { provider: 'Google' })
 
@@ -303,6 +312,7 @@ export function createSessionStore(
     signInWithPassword,
     signInWithGitHub,
     signInWithGoogle,
+    signInWithApple,
     confirmSignIn,
     forgotPassword,
     resetPassword,
