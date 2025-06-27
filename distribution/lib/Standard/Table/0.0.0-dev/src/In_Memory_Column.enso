@@ -55,13 +55,13 @@ type In_Memory_Column
 
     ## PRIVATE
        Creates a new column given a Java Column object.
-    private from_java_column java_column:Java_Column -> Column =
+    private from_java_column java_column:Java_Column =
         column = In_Memory_Column.Value java_column
         In_Memory_Column_Refinements.refine_column column
 
     ## PRIVATE
        Implementation fro `Column.from_vector`.
-    private from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column ! Invalid_Value_Type =
+    private from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
            which is quite costly - so if we can guarantee it is unnecessary,
