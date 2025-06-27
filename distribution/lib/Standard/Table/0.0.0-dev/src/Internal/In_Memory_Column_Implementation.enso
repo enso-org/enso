@@ -585,7 +585,7 @@ type In_Memory_Column_Implementation
     map (this_column : Column & In_Memory_Column) (function : Any -> Any) skip_nothing:Boolean (expected_value_type : Value_Type | Auto) =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
         new_st = this_column.to_vector.map on_problems=No_Wrap.Value new_fn
-        Column.from_vector this_column.name new_st value_type=expected_value_type
+        In_Memory_Column.from_vector this_column.name new_st value_type=expected_value_type
 
     zip (this_column : Column & In_Memory_Column) (right : Column | Table) (keep_unmatched : Boolean | Report_Unmatched ) (right_prefix : Text) on_problems:Problem_Behavior =
         right_table = case right of
@@ -663,7 +663,7 @@ type In_Memory_Column_Implementation
                     Nothing -> if missing_last then Ordering.Less else Ordering.Greater
                     _ -> by a b
             sorted = this_column.to_vector.sort order by=wrapped
-            Column.from_vector this_column.name sorted
+            In_Memory_Column.from_vector this_column.name sorted
 
     take (this_column : Column & In_Memory_Column) (range : Index_Sub_Range | Range | Integer) =
         take_helper this_column.length (this_column.at _) this_column.slice (slice_ranges this_column) range
@@ -708,7 +708,7 @@ type In_Memory_Column_Implementation
 
     running (this_column : Column & In_Memory_Column) statistic:Statistic (name : Text) =
         data = Statistic.running this_column.to_vector statistic
-        Column.from_vector name data
+        In_Memory_Column.from_vector name data
 
     offset (this_column : Column & In_Memory_Column) n:Integer fill_with:Fill_With =
         Offset_Helper.column_offset_impl this_column n fill_with
@@ -839,7 +839,7 @@ private _apply_case_sensitive_text_operation left:Column (other : Column | Text 
         Case_Sensitivity.Insensitive _ -> True
         _ -> operation.canApply (left:In_Memory_Column).java_column java_other . not
     case use_fallback of
-        True -> _apply_binary_map left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
+        True -> `_apply_binary_map` left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
         _ ->
             Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
                 java_column = operation.apply (left:In_Memory_Column).java_column java_other new_name java_problem_aggregator
