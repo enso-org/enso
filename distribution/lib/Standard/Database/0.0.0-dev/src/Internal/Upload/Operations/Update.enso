@@ -101,7 +101,7 @@ type Append_Helper
        before inserting.
     insert_rows self table_to_insert = self.if_not_dry_run <|
         insert_statement = self.connection.dialect.generate_sql <|
-            SQL_IR_Statement.Insert_From_Select self.target_table.name table_to_insert.column_names table_to_insert.to_select_query
+            SQL_IR_Statement.Insert_From_Select self.target_table.name table_to_insert.column_names (table_to_insert:DB_Table).to_select_query
         Panic.rethrow <| self.connection.execute_update insert_statement
 
     ## PRIVATE

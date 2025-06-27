@@ -19,11 +19,11 @@ type DB_Table_Upload_Implementation
     select_into_database_table this_table connection (table_name : Text) primary_key=[] temporary=False on_problems:Problem_Behavior=..Report_Warning =
         select_into_table_implementation this_table connection table_name primary_key temporary on_problems
 
-    update_rows this_table (source_table : Table) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing = Nothing) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = ..Report_Warning) =
-        common_update_table source_table this_table update_action key_columns error_on_missing_columns on_problems
+    update_rows this_table (source_table : Table) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing) (error_on_missing_columns : Boolean) (on_problems : Problem_Behavior) =
+        resolved_key_columns = if key_columns.is_nothing then (default_key_columns this_table:(Table & DB_Table)) else key_columns
+        common_update_table source_table this_table update_action resolved_key_columns error_on_missing_columns on_problems
 
     delete_rows this_table (key_values_to_delete : Table) (key_columns=[]) (allow_duplicate_matches : Boolean = False) =
-        IO.println "DB_Table_Upload_Implementation.delete_rows "+(Meta.Multi_Type.get this_table).to_text
         common_delete_rows this_table key_values_to_delete key_columns allow_duplicate_matches
 
 Table_Upload_Implementation.from (that:DB_Table) =

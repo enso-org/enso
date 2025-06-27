@@ -19,7 +19,7 @@ first_column_name_in_structure structure = case structure of
 ## PRIVATE
    Extracts the default argument for `key_columns` parameter of the
    `update_rows` operation.
-default_key_columns (table : Table) =
+default_key_columns (table : (Table & DB_Table)) =
     check_target_table_for_update table <|
         table.get_primary_key
 
