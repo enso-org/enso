@@ -385,18 +385,15 @@ public final class Module extends EnsoObject {
   public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
     Source src;
     try {
-        src = getSource();
+      src = getSource();
     } catch (IOException e) {
       TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
-      logger.log(
-              Level.SEVERE,
-              "Failed to retrieve sources of the module: " + e.getMessage(), e);
-        return null;
+      logger.log(Level.SEVERE, "Failed to retrieve sources of the module: " + e.getMessage(), e);
+      return null;
     }
     if (src == null) {
       return null;
     }
-    allSources.put(src, this);
     var startDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex, false);
     var endDelta =
         patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex + sourceLength, true);
