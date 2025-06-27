@@ -82,7 +82,7 @@ type In_Memory_Column_Implementation
             a == b
         _call_comparator this_column other new_name (Comparators.eq this_column.java_column (_java_other other)) fallback
 
-    equals_ignore_case (this_column : Column & In_Memory_Column) (other : Column | Any) locale:Locale=
+    equals_ignore_case (this_column : Column & In_Memory_Column) (other : Column | Any) locale:Locale =
         ## TODO currently this always runs the fallback which is slow due to the
            cost of Java-to-Enso calls. We want to have a vectorized
            implementation, but we need to extend the architecture to allow
@@ -689,7 +689,7 @@ type In_Memory_Column_Implementation
 
     to_text_implementation (this_column : Column & In_Memory_Column) = "(In-Memory Column "+this_column.name.to_text+")"
 
-    pretty_implementation (this_column : Column & In_Memory_Column =
+    pretty_implementation (this_column : Column & In_Memory_Column) =
         (this_column:In_Memory_Column).pretty
 
     ## PRIVATE
@@ -727,7 +727,7 @@ type In_Memory_Column_Implementation
      It should never raise dataflow errors.
    - operands: The vector of operands to apply to the function after `column`.
    - new_name: The name of the column created as the result of this operation.
-private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any -> Any) operands new_name:(Text | Nothing)=Nothing=
+private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any -> Any) operands new_name:(Text | Nothing)=Nothing =
     effective_operands = Vector.unify_vector_or_element operands
     all_operands = [column]+effective_operands
     effective_new_name = new_name.if_nothing (naming_helper.function_name name all_operands)
@@ -833,13 +833,13 @@ private _call_binary_operator left:In_Memory_Column other new_name ~operation =
         In_Memory_Column.from_java_column java_column
 
 ## PRIVATE
-private _apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text=
+private _apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text =
     java_other = (if other.is_a Column then (other:In_Memory_Column).java_column else other)
     use_fallback = case case_sensitivity of
         Case_Sensitivity.Insensitive _ -> True
         _ -> operation.canApply (left:In_Memory_Column).java_column java_other . not
     case use_fallback of
-        True -> `_apply_binary_map` left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
+        True -> _apply_binary_map left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
         _ ->
             Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
                 java_column = operation.apply (left:In_Memory_Column).java_column java_other new_name java_problem_aggregator
