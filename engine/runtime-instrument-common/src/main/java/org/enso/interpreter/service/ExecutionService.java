@@ -178,16 +178,6 @@ public final class ExecutionService {
     var pending =
         submitExecution(
             () -> {
-              SourceSection src;
-              try {
-                src = call.getFunction().getSourceSection();
-              } catch (UnsupportedMessageException ex) {
-                src = null;
-              }
-              if (src == null) {
-                throw new SourceNotFoundException(call.getFunction().getName());
-              }
-
               var callbacks =
                   new ExecutionCallbacks(
                       visualizationHolder,
