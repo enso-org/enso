@@ -176,13 +176,12 @@ SBT_SYSTEM_PROPS = [
 # by Bazel via system properties. See docs in `project/BazelSupport.scala`.
 EXTRA_SYSTEM_PROPS = [
     "-Denso.BazelSupport.enabled=true",
+    "-Denso.BazelSupport.home=$(BINDIR)/home",
     "-Denso.BazelSupport.parser.javaSrcDir=$(location //lib/rust/parser:generate_java)",
     "-Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:enso_parser_jni)",
 ]
 
 ENV = {
-    "XDG_CACHE_HOME": "$$TMPDIR/.cache",
-    "HOME": "$$TMPDIR",
     "JAVA_HOME": "$(JAVABASE)",
     "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
     "LC_ALL": "C.UTF-8",

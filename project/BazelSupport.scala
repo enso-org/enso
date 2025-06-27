@@ -17,12 +17,20 @@ import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
   */
 object BazelSupport extends AutoPlugin {
   val ENABLED_PROP                  = "enso.BazelSupport.enabled"
+  val HOME_DIR_PROP                 = "enso.BazelSupport.home"
   val RUST_PARSER_JAVA_SRC_DIR_PROP = "enso.BazelSupport.parser.javaSrcDir"
   val RUST_PARSER_LIB_PROP          = "enso.BazelSupport.parser.lib"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
       "True if sbt process was started as bazel's subprocess"
+    )
+
+    lazy val homeDir = settingKey[Option[File]](
+      "Path to $HOME directory. This is necessary to set because it is expected " +
+      "by various components when for example compiling standard libraries. " +
+      "Note that Bazel is not able to give us an absolute path to a directory inside a sandbox, " +
+      "so we resolve the relative path in sbt."
     )
 
     lazy val rustParserJavaSources = taskKey[Seq[File]](
@@ -56,6 +64,18 @@ object BazelSupport extends AutoPlugin {
 
   override lazy val buildSettings: Seq[Setting[_]] = {
     Seq(
+      Bazel / homeDir := {
+        val prop = System.getProperty(HOME_DIR_PROP)
+        if (prop == null) {
+          None
+        } else {
+          val home = new File(prop)
+          if (!home.exists()) {
+            IO.createDirectory(home)
+          }
+          Some(home)
+        }
+      },
       Bazel / rustParserJavaSourceDir := {
         val prop = System.getProperty(RUST_PARSER_JAVA_SRC_DIR_PROP)
         if (prop != null) {

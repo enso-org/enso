@@ -5672,11 +5672,13 @@ lazy val extraBazelEnvForStdLibIndexes = taskKey[Map[String, String]](
 )
 extraBazelEnvForStdLibIndexes := Def.taskIf {
   if ((Bazel / wasStartedFromBazel).value) {
+    val home = (Bazel / homeDir).value.get.getAbsolutePath
     val repoRoot = (enso / baseDirectory).value
     val libPath =
       (engineDistributionRoot.value / "lib" / "Standard").getCanonicalPath
     val langHome = (engineDistributionRoot.value / "component").getCanonicalPath
     Map(
+      "HOME"              -> home,
       "ENSO_HOME"         -> repoRoot.getAbsolutePath,
       "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath,
       "TMPDIR"            -> (repoRoot / ".tmp").getAbsolutePath,
@@ -6047,11 +6049,13 @@ lazy val extraBazelEnvForManifestUpdate = taskKey[Map[String, String]](
   */
 extraBazelEnvForManifestUpdate := Def.taskIf {
   if ((Bazel / wasStartedFromBazel).value) {
+    val home = (Bazel / homeDir).value.get.getAbsolutePath
     val repoRoot = (enso / baseDirectory).value
     val libPath =
       (engineDistributionRoot.value / "lib" / "Standard").getCanonicalPath
     val langHome = (engineDistributionRoot.value / "component").getCanonicalPath
     Map(
+      "HOME"              -> home,
       "ENSO_HOME"         -> repoRoot.getAbsolutePath,
       "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath,
       "TMPDIR"            -> (repoRoot / ".tmp").getAbsolutePath
