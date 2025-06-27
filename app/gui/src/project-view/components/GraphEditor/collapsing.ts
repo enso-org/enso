@@ -145,7 +145,7 @@ function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: Identifier): Iden
 
 // We support working inside `Main` module of the project at the moment.
 const MODULE_NAME = 'Main' as Identifier
-const COLLAPSED_FUNCTION_NAME = 'collapsed' as Identifier
+const COLLAPSED_FUNCTION_NAME = 'user_defined_component' as Identifier
 
 interface CollapsingResult {
   /** The ID of the node refactored to the collapsed function call. */
