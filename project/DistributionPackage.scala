@@ -263,7 +263,6 @@ object DistributionPackage {
         allEnv.foreach { case (k, v) =>
           procBldr.environment().put(k, v)
         }
-        Process(procBldr)
 
         val runningProcess = Process(procBldr).run()
         // Poor man's solution to stuck index generation
