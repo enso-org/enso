@@ -844,8 +844,8 @@ test_table_append setup group_builder (data : Data) source_table_builder target_
         result = dest.update_rows src key_columns=["X"]
         result.column_names . should_equal ["X", "Y"]
 
-        result.is_trivial_query . should_be_true
-        (result == dest) . should_be_true
+        (result:DB_Table).is_trivial_query . should_be_true    
+        (result == dest:Table) . should_be_true
 
         expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
         rows1 = result.rows.to_vector.map .to_vector
