@@ -781,7 +781,7 @@ type DB_Table_Implementation
 
                 updated_table = new_columns.fold this_table t-> col->
                     t.set (this_table.make_column col)
-                updated_table.as_subquery
+                (updated_table:DB_Table).as_subquery
 
     generate_rows (this_table : Table & DB_Table) over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
         _ = [this_table, over, as, on_problems]
