@@ -18,7 +18,6 @@ from project.Internal.Upload.Operations.Upload_Table import create_table_upload_
 
 ## PRIVATE
 common_delete_rows (target_table : Table) (key_values_to_delete : Table) (key_columns : Vector Text) (allow_duplicate_matches : Boolean) -> Integer =
-    IO.println "common_delete_rows "+(Meta.Multi_Type.get target_table).to_text
     check_delete_rows_arguments target_table key_values_to_delete key_columns <|
         connection = (target_table:DB_Table).connection
         dry_run = Context.Output.is_enabled.not

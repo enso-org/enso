@@ -24,7 +24,8 @@ type DB_Table_Upload_Implementation
         common_update_table source_table this_table update_action resolved_key_columns error_on_missing_columns on_problems
 
     delete_rows this_table (key_values_to_delete : Table) (key_columns=[]) (allow_duplicate_matches : Boolean = False) =
-        common_delete_rows this_table key_values_to_delete key_columns allow_duplicate_matches
+        resolved_key_columns = if key_columns.is_empty then (default_key_columns this_table:(Table & DB_Table)) else key_columns
+        common_delete_rows this_table key_values_to_delete resolved_key_columns allow_duplicate_matches
 
 Table_Upload_Implementation.from (that:DB_Table) =
     table_upload_from_implementation that DB_Table_Upload_Implementation
