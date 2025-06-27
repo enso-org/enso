@@ -496,7 +496,7 @@ type DB_Table_Implementation
 
     replace (this_table : Table & DB_Table) (lookup_table : Table | Dictionary = Missing_Argument.throw "lookup_table") (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (from_column : Text | Integer | Nothing = Nothing) (to_column : Text | Integer | Nothing = Nothing) allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup =
         Feature.Replace.if_supported_else_throw this_table.connection.dialect "replace" <|
-            Replace_Helpers.replace this_table lookup_table:DB_Table columns from_column to_column allow_unmatched_rows on_problems
+            Replace_Helpers.replace this_table lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     zip (this_table : Table & DB_Table) (right : Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & DB_Table =
         _ = [this_table, right, keep_unmatched, right_prefix, on_problems]
