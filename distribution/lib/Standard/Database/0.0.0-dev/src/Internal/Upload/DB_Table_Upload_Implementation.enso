@@ -10,7 +10,6 @@ import project.Internal.Upload.Table_Upload_Implementation.Table_Upload_Implemen
 import project.Update_Action.Update_Action
 from project.Errors import all
 from project.Internal.Upload.Table_Upload_Implementation import table_upload_from_implementation
-from project.Internal.Upload.Helpers.Default_Arguments import default_key_columns, default_key_columns_required
 from project.Internal.Upload.Operations.Delete import common_delete_rows
 from project.Internal.Upload.Operations.Select_Into import select_into_table_implementation
 from project.Internal.Upload.Operations.Update import common_update_table
@@ -20,12 +19,10 @@ type DB_Table_Upload_Implementation
         select_into_table_implementation this_table connection table_name primary_key temporary on_problems
 
     update_rows this_table (source_table : Table) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing) (error_on_missing_columns : Boolean) (on_problems : Problem_Behavior) =
-        resolved_key_columns = if key_columns.is_nothing then (default_key_columns this_table:(Table & DB_Table)) else key_columns
-        common_update_table source_table this_table update_action resolved_key_columns error_on_missing_columns on_problems
+        common_update_table source_table this_table update_action key_columns error_on_missing_columns on_problems
 
     delete_rows this_table (key_values_to_delete : Table) (key_columns=[]) (allow_duplicate_matches : Boolean = False) =
-        resolved_key_columns = if key_columns.is_empty then (default_key_columns this_table:(Table & DB_Table)) else key_columns
-        common_delete_rows this_table key_values_to_delete resolved_key_columns allow_duplicate_matches
+        common_delete_rows this_table key_values_to_delete key_columns allow_duplicate_matches
 
 Table_Upload_Implementation.from (that:DB_Table) =
     table_upload_from_implementation that DB_Table_Upload_Implementation
