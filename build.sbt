@@ -150,12 +150,29 @@ openLegalReviewReport := {
 lazy val analyzeDependency = inputKey[Unit]("...")
 analyzeDependency := GatherLicenses.analyzeDependency.evaluated
 
-val packageBuilder = new DistributionPackage.Builder(
-  ensoVersion      = ensoVersion,
-  graalVersion     = graalMavenPackagesVersion,
-  graalJavaVersion = graalVersion,
-  artifactRoot     = file("built-distribution")
+lazy val distributionArtifactRoot = SettingKey[File](
+  "root directory where distribution artifacts will be built."
 )
+distributionArtifactRoot := {
+  if ((Bazel / wasStartedFromBazel).value) {
+    (Bazel / outputDir).value.get
+  } else {
+    file("built-distribution")
+  }
+}
+
+lazy val packageBuilder = SettingKey[DistributionPackage.Builder](
+  "create package builder with correct output dir path"
+)
+packageBuilder := {
+  val artifactRoot = distributionArtifactRoot.value
+  new DistributionPackage.Builder(
+    ensoVersion      = ensoVersion,
+    graalVersion     = graalMavenPackagesVersion,
+    graalJavaVersion = graalVersion,
+    artifactRoot     = artifactRoot
+  )
+}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 Global / excludeLintKeys += logManager
@@ -360,7 +377,12 @@ lazy val enso = (project in file("."))
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
-    commands ++= Seq(packageBuilder.makePackages, packageBuilder.makeBundles)
+    commands ++= {
+      Seq(
+        packageBuilder.value.makePackages,
+        packageBuilder.value.makeBundles
+      )
+    }
   )
   .settings(
     clean := Def.task {
@@ -369,7 +391,7 @@ lazy val enso = (project in file("."))
         engineDistributionRoot.value,
         launcherDistributionRoot.value,
         projectManagerDistributionRoot.value,
-        packageBuilder.artifactRoot
+        packageBuilder.value.artifactRoot
       )
       IO.delete(filesToDelete)
     }.value
@@ -5662,10 +5684,10 @@ lazy val projectManagerDistributionRoot =
   settingKey[File]("Root of built project manager distribution")
 
 engineDistributionRoot :=
-  packageBuilder.localArtifact("engine") / s"enso-$ensoVersion"
-launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
+  packageBuilder.value.localArtifact("engine") / s"enso-$ensoVersion"
+launcherDistributionRoot := packageBuilder.value.localArtifact("launcher") / "enso"
 projectManagerDistributionRoot :=
-  packageBuilder.localArtifact("project-manager") / "enso"
+  packageBuilder.value.localArtifact("project-manager") / "enso"
 
 lazy val extraBazelEnvForStdLibIndexes = taskKey[Map[String, String]](
   "Extra environment variables for subprocesses when running from Bazel - when compiling std libs"

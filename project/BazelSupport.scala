@@ -18,6 +18,7 @@ import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
 object BazelSupport extends AutoPlugin {
   val ENABLED_PROP                  = "enso.BazelSupport.enabled"
   val HOME_DIR_PROP                 = "enso.BazelSupport.home"
+  val OUT_DIR_PROP                  = "enso.BazelSupport.outDir"
   val RUST_PARSER_JAVA_SRC_DIR_PROP = "enso.BazelSupport.parser.javaSrcDir"
   val RUST_PARSER_LIB_PROP          = "enso.BazelSupport.parser.lib"
 
@@ -31,6 +32,13 @@ object BazelSupport extends AutoPlugin {
       "by various components when for example compiling standard libraries. " +
       "Note that Bazel is not able to give us an absolute path to a directory inside a sandbox, " +
       "so we resolve the relative path in sbt."
+    )
+
+    lazy val outputDir = settingKey[Option[File]] (
+      """
+        |Path to the output directory for the distribution.
+        |In non-bazel build, it is set to `built-distribution` in repo root.
+        |""".stripMargin
     )
 
     lazy val rustParserJavaSources = taskKey[Seq[File]](
@@ -74,6 +82,18 @@ object BazelSupport extends AutoPlugin {
             IO.createDirectory(home)
           }
           Some(home)
+        }
+      },
+      Bazel / outputDir := {
+        val prop = System.getProperty(OUT_DIR_PROP)
+        if (prop == null) {
+          None
+        } else {
+          val outDir = new File(prop)
+          if (!outDir.exists()) {
+            IO.createDirectory(outDir)
+          }
+          Some(outDir)
         }
       },
       Bazel / rustParserJavaSourceDir := {

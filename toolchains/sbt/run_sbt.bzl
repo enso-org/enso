@@ -23,6 +23,9 @@ def _run_sbt_impl(ctx):
 
     inputs = depset(ctx.files.srcs, transitive = [java_runtime.files])
     system_props = []
+    system_props += [
+        "-Denso.BazelSupport.outDir=" + out_dir.path,
+    ]
     for p in ctx.attr.system_props:
         system_props = system_props + split_args(expand_variables(ctx, ctx.expand_location(p, targets = ctx.attr.srcs), outs = outputs))
 
