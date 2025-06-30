@@ -54,8 +54,6 @@ declare module '@tanstack/query-core' {
        */
       readonly persist?: boolean
     }
-
-    readonly queryKey: ReadonlyArray<string>
   }
 }
 
