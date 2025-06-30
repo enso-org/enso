@@ -39,7 +39,6 @@ jobs:
             .prettierignore
             vitest.workspace.ts
             .github/workflows/gui*
-            .github/workflows/storybook.yml
           files_ignore: |
             app/gui/scripts/**
             app/gui/.gitignore

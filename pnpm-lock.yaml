@@ -15,11 +15,6 @@ packageExtensionsChecksum: sha256-m1SoDnlL/Hs3p7NNguDntIq8t4mrHV4tfrmqCH2qYCo=
 
 pnpmfileChecksum: sha256-KvDH4tAvadbedV6wwVJB2Lt0GMnrnPhlX6OZuP/T8XI=
 
-patchedDependencies:
-  '@chromatic-com/playwright':
-    hash: f1e52854b55b24b45ca80dfe67fac7e17c64d93580ff1ac64e852bac44183dd8
-    path: patches/@chromatic-com__playwright.patch
-
 importers:
 
   .:
