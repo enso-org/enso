@@ -36,18 +36,7 @@ check_integrity entity1 entity2 -> Boolean =
 check_connection entity1 entity2 -> Boolean =
     # The `if_not_error` is needed `Meta.is_same_object` does not forward dataflow errors.
     entity1.if_not_error <| entity2.if_not_error <|
-        casted1 = (entity1 : DB_Table | DB_Column)
-        casted2 = (entity2 : DB_Table | DB_Column)
-        result = Meta.is_same_object casted1.connection casted2.connection
-        if result.not then
-            IO.println "1"+(Meta.Multi_Type.get casted1).to_text
-            IO.println "2"+(Meta.Multi_Type.get casted2).to_text
-            IO.println "3"+casted1.to_text
-            IO.println "4"+casted2.to_text
-            IO.println "5"+casted1.connection.to_text
-            IO.println "6"+casted2.connection.to_text
-
-        result
+        Meta.is_same_object (entity1 : DB_Table | DB_Column).connection (entity2 : DB_Table | DB_Column).connection
 
 ## PRIVATE
 ensure_same_connection : Text -> Vector -> Any -> Any ! Illegal_Argument

@@ -80,7 +80,7 @@ type Delete_Rows_Dry_Run_Source
     ## PRIVATE
        The variant running from an existing DB query - in dry run mode we can
        avoid materializing a temporary table if the query is already in DB.
-    Existing_DB_Query (db_table : Table & DB_Table)
+    Existing_DB_Query (db_table : DB_Table & Table)
 
     ## PRIVATE
        A temporary table created for dry-run.
@@ -93,7 +93,7 @@ type Delete_Rows_Dry_Run_Source
         prepared_table = common_preprocess_source_table key_values_to_delete key_columns
         case prepared_table of
             _ : DB_Table ->
-                Delete_Rows_Dry_Run_Source.Existing_DB_Query (prepared_table : Table & DB_Table)
+                Delete_Rows_Dry_Run_Source.Existing_DB_Query (prepared_table : DB_Table & Table)
             _ : In_Memory_Table ->
                 tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
                 upload_recipe = create_table_upload_operation prepared_table connection tmp_table_name primary_key=key_columns temporary=True remove_after_transaction=True structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
