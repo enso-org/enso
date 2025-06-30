@@ -75,8 +75,8 @@ public abstract class DataQualityMetrics {
   }
 
   /**
-   * Triggers the computation of data quality metrics for the given table.
-   * This method is a no-op if the metrics have already been computed.
+   * Triggers the computation of data quality metrics for the given table. This method is a no-op if
+   * the metrics have already been computed.
    *
    * @param table the table to trigger metrics for
    */
@@ -87,8 +87,8 @@ public abstract class DataQualityMetrics {
   }
 
   /**
-   * Triggers the computation of data quality metrics for the given column.
-   * This method is a no-op if the metrics have already been computed.
+   * Triggers the computation of data quality metrics for the given column. This method is a no-op
+   * if the metrics have already been computed.
    *
    * @param column the column to trigger metrics for
    */
