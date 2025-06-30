@@ -17,9 +17,9 @@ from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Val
 from project.Internal.Column_Type_Helpers import column_from_implementation
 from project.Internal.Storage import enso_to_java
 
+polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 
 ## A column whose data is stored in memory.

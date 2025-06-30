@@ -17,6 +17,7 @@ import project.Internal.Type_Refinements.Table_Refinements
 import project.Internal.In_Memory_Table_Implementation.In_Memory_Table_Implementation
 from project.Internal.Table_Type_Helpers import table_from_implementation
 
+polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.table.Table as Java_Table
 
 # A table whose data is stored in memory.
