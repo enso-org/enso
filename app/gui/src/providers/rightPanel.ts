@@ -18,7 +18,7 @@ export interface DisplayedHelp {
 }
 
 /** Possible elements in this screen to spotlight on. */
-export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
+export type AssetPropertiesSpotlight = 'datalink' | 'secret'
 
 /**
  * Context of right-side panels. See {@link useRightPanel}.
@@ -70,6 +70,14 @@ function useRightPanelTabs(
     : Err('Exclusive to Cloud category in Drive'),
   )
   return new Map([
+    [
+      'description',
+      {
+        icon: 'text',
+        enabled: enabledInCloudOnly,
+        title: 'Description',
+      },
+    ],
     [
       'settings',
       {

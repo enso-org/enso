@@ -244,8 +244,7 @@ function createAuthStore(
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
-    waitForSession: () =>
-      sessionData.waitForSession().then(() => queryClient.ensureQueryData(usersMeQueryOptions)),
+    waitForSession: () => sessionData.waitForSession().then(() => usersMeQuery.suspense()),
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,

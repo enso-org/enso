@@ -71,6 +71,7 @@ import org.slf4j.LoggerFactory;
  * language.
  */
 public final class ExecutionService {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExecutionService.class);
   private static final String MAIN_METHOD = "main";
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
@@ -136,10 +137,9 @@ public final class ExecutionService {
     if (connectedLockManager != null) {
       connectedLockManager.connect(endpoint);
     } else {
-      LoggerFactory.getLogger(ExecutionService.class)
-          .warn(
-              "ConnectedLockManager was not initialized, even though a Language Server connection"
-                  + " has been established. This may result in synchronization errors.");
+      LOGGER.warn(
+          "ConnectedLockManager was not initialized, even though a Language Server connection"
+              + " has been established. This may result in synchronization errors.");
     }
   }
 
@@ -178,16 +178,6 @@ public final class ExecutionService {
     var pending =
         submitExecution(
             () -> {
-              SourceSection src;
-              try {
-                src = call.getFunction().getSourceSection();
-              } catch (UnsupportedMessageException ex) {
-                src = null;
-              }
-              if (src == null) {
-                throw new SourceNotFoundException(call.getFunction().getName());
-              }
-
               var callbacks =
                   new ExecutionCallbacks(
                       visualizationHolder,
@@ -306,6 +296,7 @@ public final class ExecutionService {
    * @return a result of evaluation
    */
   public Object evaluateExpression(Module module, String expression) {
+    LOGGER.trace("evaluateExpression in {} code: {}", module.getName(), expression);
     var future =
         submitExecution(
             () -> {

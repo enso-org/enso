@@ -5,7 +5,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.statistics.Statistic;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
@@ -203,13 +203,13 @@ public class AddRunning {
       Object value = sourceColumn.getStorage().getItemBoxed(i);
       if (value == null) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-            new IgnoredNothing(sourceColumn.getName(), i));
+            new IgnoredNothing(sourceColumn.getName(), (long) i));
       }
       T dValue = typeHandler.tryConvertingToType(value);
       T dNextValue;
       if (dValue != null && dValue.equals(Double.NaN)) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-            new IgnoredNaN(sourceColumn.getName(), i));
+            new IgnoredNaN(sourceColumn.getName(), (long) i));
         dNextValue = it.currentValue();
       } else {
         dNextValue = it.next(dValue);

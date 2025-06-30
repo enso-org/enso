@@ -4,7 +4,7 @@ import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -13,7 +13,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
+final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
 
@@ -59,7 +59,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
 
   @Override
   protected ColumnStorage<BigInteger> doSeal() {
-    return new BigIntegerStorage(data);
+    return new TypedStorage<>(BigIntegerType.INSTANCE, data);
   }
 
   @Override

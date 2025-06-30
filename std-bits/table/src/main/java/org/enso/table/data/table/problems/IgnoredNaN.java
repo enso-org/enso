@@ -2,7 +2,7 @@ package org.enso.table.data.table.problems;
 
 public class IgnoredNaN extends ColumnAggregatedProblem {
 
-  public IgnoredNaN(String locationName, Integer row) {
+  public IgnoredNaN(String locationName, long row) {
     super(locationName, row);
   }
 

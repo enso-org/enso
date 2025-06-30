@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 from Standard.Base.Metadata.Choice import Option
 
 import project.Azure_Credential.Azure_Credential
@@ -52,7 +53,7 @@ type Azure_Blob_Storage
     ## PRIVATE
        Converts the Azure_Credential into the Java SDK object
     private to_java self =
-        AzureCredential.BlobStorageSASToken.new self.token
+        AzureCredential.BlobStorageSASToken.new (as_hideable_value self.token)
 
     ## PRIVATE
     default_widget (display : Display = ..When_Modified) -> Widget =

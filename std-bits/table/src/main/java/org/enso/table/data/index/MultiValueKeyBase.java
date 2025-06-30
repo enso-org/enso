@@ -91,8 +91,7 @@ public abstract class MultiValueKeyBase {
       for (int columnIx = 0; columnIx < storages.length; columnIx++) {
         if (NumericConverter.isFloatLike(this.get(columnIx))) {
           problemAggregator.reportColumnAggregatedProblem(
-              new FloatingPointGrouping(
-                  columnNameMapping.getColumnName(columnIx), Math.toIntExact(rowIndex)));
+              new FloatingPointGrouping(columnNameMapping.getColumnName(columnIx), rowIndex));
         }
       }
     }

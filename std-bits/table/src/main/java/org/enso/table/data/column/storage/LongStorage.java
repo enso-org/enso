@@ -1,8 +1,7 @@
-package org.enso.table.data.column.storage.numeric;
+package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.NoSuchElementException;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
 

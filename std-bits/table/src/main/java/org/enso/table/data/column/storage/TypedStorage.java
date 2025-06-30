@@ -4,11 +4,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import org.enso.table.data.column.storage.type.StorageType;
 
-public abstract class SpecializedStorage<T> extends Storage<T> {
+public class TypedStorage<T> extends Storage<T> {
   /**
    * @param data the underlying data
    */
-  protected SpecializedStorage(StorageType<T> type, T[] data) {
+  public TypedStorage(StorageType<T> type, T[] data) {
     this.type = type;
     this.data = data;
   }
@@ -35,11 +35,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
       throw new IndexOutOfBoundsException(idx);
     }
     return data[(int) idx];
-  }
-
-  @Override
-  public boolean isNothing(long idx) {
-    return this.getItemBoxed(idx) == null;
   }
 
   public T[] getData() {

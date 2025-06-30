@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconMetadata/iconName'
 
-import Breadcrumb from '@/components/DocumentationPanel/DocsBreadcrumb.vue'
+import Breadcrumb from '@/components/ComponentHelp/DocsBreadcrumb.vue'
 import SvgButton from '../SvgButton.vue'
 
 export interface Item {
