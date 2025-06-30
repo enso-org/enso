@@ -129,7 +129,7 @@ export function PlanSelector(props: PlanSelectorProps) {
 
                       while (true) {
                         const { data: session } = await refetchSession()
-                        if (session && session.plan === newPlan) {
+                        if (session && 'user' in session && session.user.plan === newPlan) {
                           onSubscribeSuccess?.(newPlan, paymentMethodId)
                           // Invalidate "users me" query as the user has changed the plan.
                           await queryClient.invalidateQueries({

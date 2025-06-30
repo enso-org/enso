@@ -1,12 +1,23 @@
 /** @file Support for getting information about a user's cloud files. */
-import { backendQueryOptions } from '#/hooks/backendHooks'
-import RemoteBackend from '#/services/RemoteBackend'
-import { createUsersMeQuery } from '$/providers/auth'
+import { type Opt } from '@/util/data/opt'
 import { type ToValue } from '@/util/reactivity'
-import * as vueQuery from '@tanstack/vue-query'
-import type Backend from 'enso-common/src/services/Backend'
-import type { DirectoryId } from 'enso-common/src/services/Backend'
+import type { DirectoryId, OrganizationInfo, User } from 'enso-common/src/services/Backend'
 import { computed, toValue, type Ref } from 'vue'
+
+interface UserFilesBackend {
+  rootPath: (user: User) => string
+  rootDirectoryId: (
+    user: User,
+    organization: OrganizationInfo | null,
+    localRootDirectory: null,
+  ) => DirectoryId | null
+}
+
+interface QueryResult<T> {
+  data: ToValue<T>
+  isFetched: ToValue<boolean>
+  error: ToValue<Error | null>
+}
 
 export interface UserFiles {
   rootPath: ToValue<string>
@@ -16,42 +27,41 @@ export interface UserFiles {
 }
 
 /** @returns An API for getting information about the logged-in user's files. */
-export function useUserFiles(backend: ToValue<Backend | null>): {
-  userFiles: Readonly<Ref<UserFiles | null>>
-  userFilesError: Readonly<Ref<Error | null>>
-} {
-  const data = computed(() => {
-    const backendValue = toValue(backend)
-    if (!(backendValue instanceof RemoteBackend)) return null
+export function useUserFiles({
+  backend,
+  user,
+  organization,
+}: {
+  backend: ToValue<UserFilesBackend | null>
+  user: QueryResult<Opt<User>>
+  organization: QueryResult<Opt<OrganizationInfo>>
+}): { userFiles: Readonly<Ref<UserFiles | null>>; userFilesError: Readonly<Ref<Error | null>> } {
+  function userFiles(backend: UserFilesBackend, user: User): UserFiles {
     return {
-      backend: backendValue,
-      user: vueQuery.useQuery(createUsersMeQuery(backendValue)),
-      organization: vueQuery.useQuery(backendQueryOptions(backendValue, 'getOrganization', [])),
+      rootPath: computed<string>(() => backend.rootPath(user)),
+      rootDirectoryId: computed<DirectoryId>(() => {
+        const currentOrganization = toValue(organization.data)
+        return (
+          (currentOrganization && backend.rootDirectoryId(user, currentOrganization, null)) ??
+          user.rootDirectoryId
+        )
+      }),
+      /** The user's home directory. */
+      home: computed<string[]>(() => ['Users', user.name]),
     }
-  })
+  }
 
   return {
     userFiles: computed<UserFiles | null>(() => {
-      if (!data.value) return null
-      const { backend, user: userQuery, organization: organizationQuery } = data.value
-      if (!userQuery.isFetched.value || !organizationQuery.isFetched.value) return null
-      const user = userQuery.data.value
-      if (!user) return null
-      const organization = organizationQuery.data.value
-      return {
-        rootPath: computed<string>(() => backend.rootPath(user)),
-        rootDirectoryId: computed<DirectoryId>(() => {
-          return (
-            (organization && backend.rootDirectoryId(user, organization)) ?? user.rootDirectoryId
-          )
-        }),
-        /** The user's home directory. */
-        home: computed<string[]>(() => ['Users', user.name]),
-      }
+      if (!toValue(user.isFetched) || !toValue(organization.isFetched)) return null
+      const currentBackend = toValue(backend)
+      if (!currentBackend) return null
+      const currentUser = toValue(user.data)
+      if (!currentUser) return null
+      return userFiles(currentBackend, currentUser)
     }),
-    userFilesError: computed(
-      (): Error | null =>
-        data.value?.user.error.value ?? data.value?.organization.error.value ?? null,
+    userFilesError: computed<Error | null>(
+      () => toValue(user.error) ?? toValue(organization.error),
     ),
   }
 }

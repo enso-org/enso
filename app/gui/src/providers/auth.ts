@@ -9,13 +9,15 @@ import {
   useFeatureFlag,
 } from '$/providers/featureFlags'
 import { useZustandStoreRef } from '$/utils/zustand'
+import { Opt } from '@/util/data/opt'
+import { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import * as detect from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
-import { computed, inject, proxyRefs, watchEffect } from 'vue'
+import { computed, inject, proxyRefs, toRef, toValue, watchEffect } from 'vue'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useBackends } from './backends'
@@ -54,10 +56,25 @@ export interface FullUserSession extends BaseUserSession {
 }
 
 /** Query to fetch the user's session data from the backend. */
-export function createUsersMeQuery(remoteBackend: RemoteBackend) {
+export function createUsersMeQuery(
+  session: ToValue<Opt<cognitoModule.UserSession>>,
+  remoteBackend: RemoteBackend,
+) {
   return vueQuery.queryOptions({
-    queryKey: [remoteBackend.type, 'usersMe'] as const,
-    queryFn: () => remoteBackend.usersMe(),
+    queryKey: [remoteBackend.type, 'usersMe', () => toValue(session)?.clientId ?? null] as const,
+    queryFn: async () => {
+      const sessionVal = toValue(session)
+
+      if (sessionVal == null) {
+        return null
+      }
+
+      return remoteBackend.usersMe().then((user) => {
+        return user == null ?
+            ({ type: UserSessionType.partial, ...sessionVal } satisfies PartialUserSession)
+          : ({ type: UserSessionType.full, user, ...sessionVal } satisfies FullUserSession)
+      })
+    },
   })
 }
 
@@ -86,6 +103,7 @@ function createAuthStore(
   { remoteBackend } = useBackends(),
   { getText } = useText(),
 ) {
+  const session = toRef(sessionData, 'session')
   const { organizationId, signOut } = sessionData
   const toastSuccess = useToast.success()
 
@@ -95,17 +113,13 @@ function createAuthStore(
   // defined by this component.
   const gtagEvent = gtagHooks.event
 
-  const usersMeQueryOptions = createUsersMeQuery(remoteBackend)
+  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend)
 
   const usersMeQuery = vueQuery.useQuery(usersMeQueryOptions)
-  const userData = computed(() => {
-    const session = sessionData.session
-    if (session == null) return null
-    const user = usersMeQuery.data.value
-    return user == null ?
-        ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
-      : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
-  })
+  const userData = usersMeQuery.data
+  const user = computed(() =>
+    userData.value && 'user' in userData.value ? userData.value.user : null,
+  )
 
   const planOverride = useZustandStoreRef(authOverridesStore, (state) => state.planOverride)
   const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
@@ -139,7 +153,7 @@ function createAuthStore(
       await updateUserMutation.mutateAsync({ username })
     } else {
       const orgId = await organizationId()
-      const email = sessionData.session?.email ?? ''
+      const email = session.value?.email ?? ''
 
       invariant(orgId == null || backendModule.isOrganizationId(orgId), 'Invalid organization ID')
 
@@ -182,17 +196,24 @@ function createAuthStore(
    * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
    */
   const setUser = (user: Partial<backendModule.User>) => {
-    queryClient.setQueryData(usersMeQueryOptions.queryKey, (currentUserData) =>
-      currentUserData == null ? null : Object.assign({ ...currentUserData }, user),
-    )
+    const currentUser = queryClient.getQueryData(usersMeQueryOptions.queryKey)
+
+    if (currentUser != null && currentUser.type === UserSessionType.full) {
+      const currentUserData = currentUser.user
+      const nextUserData: backendModule.User = Object.assign(currentUserData, user)
+
+      queryClient.setQueryData(usersMeQueryOptions.queryKey, {
+        ...currentUser,
+        user: nextUserData,
+      })
+    }
   }
 
-  const isUserMarkedForDeletion = computed(() => usersMeQuery.data.value?.removeAt != null)
+  const isUserMarkedForDeletion = () => !!user.value?.removeAt
 
   const isUserDeleted = () => {
-    const user = usersMeQuery.data.value
-    if (user?.removeAt) {
-      const removeAtDate = new Date(user.removeAt)
+    if (user.value?.removeAt) {
+      const removeAtDate = new Date(user.value.removeAt)
       const now = new Date()
 
       return removeAtDate <= now
@@ -201,7 +222,16 @@ function createAuthStore(
     }
   }
 
-  const isUserSoftDeleted = () => isUserMarkedForDeletion.value && !isUserDeleted()
+  const isUserSoftDeleted = () => {
+    if (user.value?.removeAt) {
+      const removeAtDate = new Date(user.value.removeAt)
+      const now = new Date()
+
+      return removeAtDate > now
+    } else {
+      return false
+    }
+  }
 
   watchEffect(() => {
     if (userData.value?.type === UserSessionType.full) {
@@ -222,18 +252,17 @@ function createAuthStore(
   gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
 
   watchEffect(() => {
-    if (usersMeQuery.data.value?.isEnsoTeamMember) {
+    if (userData.value?.type === UserSessionType.full && userData.value.user.isEnsoTeamMember) {
       setFeatureFlags(featureFlagsForInternalTesting())
     }
   })
 
   const effectiveUserData = computed(() => {
-    if (!(userData.value?.type === UserSessionType.full)) return userData.value
     const intermediate =
-      planOverride.value != null ?
+      userData.value?.type === UserSessionType.full && planOverride.value != null ?
         { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
       : userData.value
-    return overrideProfilePicture.value ?
+    return intermediate?.type === UserSessionType.full && overrideProfilePicture.value ?
         {
           ...intermediate,
           user: { ...intermediate.user, profilePicture: BLACK_SQUARE_IMAGE_512PX },

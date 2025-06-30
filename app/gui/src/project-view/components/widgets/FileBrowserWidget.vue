@@ -60,7 +60,11 @@ const browserContent = useTemplateRef('browserContent')
 
 const { query, fetch, ensureQueryData, mutation } = useBackend('remote')
 const { remote: backend } = injectProjectBackend()
-const { userFiles, userFilesError } = useUserFiles(backend)
+const { userFiles, userFilesError } = useUserFiles({
+  backend,
+  user: query('usersMe', []),
+  organization: query('getOrganization', []),
+})
 const { parseEnsoPath, ensoPath, printEnsoPath } = useEnsoPaths(userFiles)
 const listDirectory = (dir: Directory | undefined) => fetch('listDirectory', listDirectoryArgs(dir))
 const {
