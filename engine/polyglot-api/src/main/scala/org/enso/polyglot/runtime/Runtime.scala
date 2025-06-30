@@ -348,16 +348,6 @@ object Runtime {
         s",action=${action.toLogString(shouldMask)})"
     }
 
-    sealed trait DiagnosticType
-
-    object DiagnosticType {
-      @named("diagnosticTypeError")
-      case object Error extends DiagnosticType
-
-      @named("diagnosticTypeWarning")
-      case object Warning extends DiagnosticType
-    }
-
     /** The element in the stack trace.
       *
       * @param functionName the function containing the stack call

@@ -30,6 +30,7 @@ import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.runtime.DiagnosticType
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.Runtime.Api
@@ -229,9 +230,9 @@ class EnsureCompiledJob(
       .diagnostics
     val diagnostics = pass.collect {
       case warn: ir.Warning =>
-        createDiagnostic(Api.DiagnosticType.Warning, module, warn)
+        createDiagnostic(DiagnosticType.Warning, module, warn)
       case error: expression.Error =>
-        createDiagnostic(Api.DiagnosticType.Error, module, error)
+        createDiagnostic(DiagnosticType.Error, module, error)
     }
     sendDiagnosticUpdates(diagnostics)
     getCompilationStatus(diagnostics)
@@ -245,7 +246,7 @@ class EnsureCompiledJob(
     * @return the diagnostic message
     */
   private def createDiagnostic(
-    kind: Api.DiagnosticType,
+    kind: DiagnosticType,
     module: Module,
     diagnostic: ir.Diagnostic
   ): ExecutionResult.Diagnostic = {

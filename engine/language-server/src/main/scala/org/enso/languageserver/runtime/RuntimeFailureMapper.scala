@@ -10,6 +10,7 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.protocol.json.ErrorApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.util.CollectionConversions._
+import org.enso.polyglot.runtime.DiagnosticType
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -77,7 +78,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   ): (Option[File], String) = {
     result match {
       case ExecutionResult.Diagnostic(
-            Api.DiagnosticType.Error,
+            DiagnosticType.Error,
             message,
             file,
             _,
@@ -120,12 +121,12 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     * @return the registry protocol representation of the diagnostic type
     */
   private def toDiagnosticType(
-    kind: Api.DiagnosticType
+    kind: DiagnosticType
   ): ContextRegistryProtocol.ExecutionDiagnosticKinds.ExecutionDiagnosticKind =
     kind match {
-      case Api.DiagnosticType.Error =>
+      case DiagnosticType.Error =>
         ContextRegistryProtocol.ExecutionDiagnosticKinds.Error
-      case Api.DiagnosticType.Warning =>
+      case DiagnosticType.Warning =>
         ContextRegistryProtocol.ExecutionDiagnosticKinds.Warning
     }
 

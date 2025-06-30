@@ -2,11 +2,7 @@ package org.enso.polyglot.runtime
 
 import com.github.plokhotnyuk.jsoniter_scala.macros.named
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
-import org.enso.polyglot.runtime.Runtime.Api.{
-  DiagnosticType,
-  ExpressionId,
-  StackTraceElement
-}
+import org.enso.polyglot.runtime.Runtime.Api.{ExpressionId, StackTraceElement}
 import org.enso.text.editing.model
 
 import java.io.File
