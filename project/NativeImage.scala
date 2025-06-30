@@ -206,6 +206,9 @@ object NativeImage {
         "-H:+UnlockExperimentalVMOptions"
       )
 
+      val compilationTimeoutOpt =
+        if (isCi) Seq("-H:CompilationExpirationPeriod=500") else Seq.empty
+
       var args: Seq[String] =
         excludeConfigsOpt ++
         Seq("-cp", cpStr) ++
@@ -220,6 +223,7 @@ object NativeImage {
         additionalOptions ++
         additionalOpts.value ++
         deadlockWatchdogOpts ++
+        compilationTimeoutOpt ++
         Seq("-o", targetLoc.toString)
 
       args = mainClass match {
