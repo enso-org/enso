@@ -107,7 +107,7 @@ type RealAssetRowProps = AssetRowProps
 /** Render a real asset row. */
 export function RealAssetRow(props: RealAssetRowProps) {
   const { select, state, columns, item, tableRootRef } = props
-  const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
+  const { category, backend, currentDirectoryId, doCopy, doCut } = state
 
   const [isNavigating, startNavigation] = useTransition()
 
@@ -289,7 +289,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
                     }
                     doCopy={doCopy}
                     doCut={doCut}
-                    doPaste={doPaste}
                     rightPanel={rightPanel}
                   />,
                 )
@@ -380,7 +379,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
               eventTarget={null}
               doCopy={doCopy}
               doCut={doCut}
-              doPaste={doPaste}
               rightPanel={rightPanel}
             />
           )}

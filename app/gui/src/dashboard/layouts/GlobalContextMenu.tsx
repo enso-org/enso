@@ -1,36 +1,35 @@
 /** @file A context menu available everywhere in the directory. */
-import { useStore } from '#/utilities/zustand'
-
-import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-
-import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
-
+import { Separator } from '#/components/Separator'
 import { backendMutationOptions, useNewFolder, useNewProject } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
+import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import { useStore } from '#/hooks/storeHooks'
+import { canTransferBetweenCategories, type Category } from '#/layouts/CategorySwitcher/Category'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
-import { useDriveStore } from '#/providers/DriveProvider'
+import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useDriveStore, useSelectedAssets, useSetPasteData } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import { BackendType, type DirectoryId } from '#/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  type AnyAsset,
+  type default as Backend,
+  type DirectoryId,
+} from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
+import { toast } from 'react-toastify'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
-  /** If true, returns a list of components rather than a {@link ContextMenu}. */
-  readonly noWrapper?: boolean
   readonly hidden?: boolean
   readonly backend: Backend
   readonly category: Category
   readonly currentDirectoryId: DirectoryId
-  readonly directoryId: DirectoryId | null
-  readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
-  readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+  readonly asset: AnyAsset | null
   readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
 }
 
@@ -40,26 +39,57 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
   // eslint-disable-next-line react-compiler/react-compiler
   'use no memo'
 
-  const {
-    noWrapper = false,
-    hidden = false,
-    backend,
-    category,
-    directoryId = null,
-    currentDirectoryId,
-    event,
-    doPaste,
-    bindingFocusScope,
-  } = props
+  const { hidden = false, backend, category, asset, currentDirectoryId, bindingFocusScope } = props
 
-  const { getText } = useText()
+  const directoryId = asset?.type === AssetType.directory ? asset.id : null
+
   const isCloud = backend.type === BackendType.remote
+  const canCreateItems = category.type !== 'trash' && category.type !== 'recent'
+
+  const paste = usePaste(category)
+  const setPasteData = useSetPasteData()
+  const doPaste = useEventCallback((newParentId: DirectoryId) => {
+    unsetModal()
+
+    const { pasteData } = driveStore.getState()
+
+    if (!pasteData) {
+      return
+    }
+
+    if (pasteData.data.assets.some((otherAsset) => otherAsset.id === newParentId)) {
+      toast.error('Cannot paste a folder into itself.')
+      return
+    }
+
+    void paste({
+      fromCategory: pasteData.data.category,
+      toCategory: category,
+      newParentId,
+      pasteData: pasteData.data,
+      method: pasteData.type,
+    })
+
+    setPasteData(null)
+  })
 
   const driveStore = useDriveStore()
-  const hasPasteData = useStore(
-    driveStore,
-    (storeState) => (storeState.pasteData?.data.assets.length ?? 0) > 0,
-  )
+  const hasPasteData = useStore(driveStore, (store) => {
+    const pasteData =
+      (
+        store.pasteData?.data.backendType === backend.type &&
+        canTransferBetweenCategories(
+          store.pasteData.data.category,
+          category,
+          directoryId ?? currentDirectoryId,
+        )
+      ) ?
+        store.pasteData
+      : null
+    return (pasteData?.data.assets.length ?? 0) > 0
+  })
+
+  const selectedAssets = useSelectedAssets()
 
   const newFolderRaw = useNewFolder(backend, category)
   const newFolder = useEventCallback(async () => {
@@ -79,36 +109,58 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     await uploadFilesRaw(files, directoryId ?? currentDirectoryId)
   })
 
-  const entries = (
+  return (
     <>
-      <ContextMenuEntry
-        bindingFocusScope={bindingFocusScope}
-        hidden={hidden}
-        action="uploadFiles"
-        doAction={async () => {
-          const files = await readUserSelectedFile()
-          await uploadFiles(Array.from(files))
-        }}
-      />
-      <ContextMenuEntry
-        bindingFocusScope={bindingFocusScope}
-        hidden={hidden}
-        action="newProject"
-        doAction={() => {
-          unsetModal()
-          void newProject(null, null)
-        }}
-      />
-      <ContextMenuEntry
-        bindingFocusScope={bindingFocusScope}
-        hidden={hidden}
-        action="newFolder"
-        doAction={() => {
-          unsetModal()
-          void newFolder()
-        }}
-      />
-      {isCloud && (
+      {hasPasteData && category.type !== 'recent' && (
+        <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
+          hidden={hidden}
+          action="paste"
+          doAction={() => {
+            const [selected] = selectedAssets
+            const targetDirectoryId =
+              selectedAssets.length === 1 && selected?.type === AssetType.directory ?
+                selected.id
+              : currentDirectoryId
+            doPaste(targetDirectoryId)
+          }}
+        />
+      )}
+      {canCreateItems && !hidden && <Separator className="my-0.5 first:hidden" />}
+      {canCreateItems && (
+        <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
+          hidden={hidden}
+          action="uploadFiles"
+          doAction={async () => {
+            const files = await readUserSelectedFile()
+            void uploadFiles(Array.from(files))
+          }}
+        />
+      )}
+      {canCreateItems && (
+        <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
+          hidden={hidden}
+          action="newProject"
+          doAction={() => {
+            unsetModal()
+            void newProject(null, null)
+          }}
+        />
+      )}
+      {canCreateItems && (
+        <ContextMenuEntry
+          bindingFocusScope={bindingFocusScope}
+          hidden={hidden}
+          action="newFolder"
+          doAction={() => {
+            unsetModal()
+            void newFolder()
+          }}
+        />
+      )}
+      {canCreateItems && isCloud && (
         <ContextMenuEntry
           bindingFocusScope={bindingFocusScope}
           hidden={hidden}
@@ -126,7 +178,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           }}
         />
       )}
-      {isCloud && (
+      {canCreateItems && isCloud && (
         <ContextMenuEntry
           bindingFocusScope={bindingFocusScope}
           hidden={hidden}
@@ -144,7 +196,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           }}
         />
       )}
-      {isCloud && (
+      {canCreateItems && isCloud && (
         <ContextMenuEntry
           bindingFocusScope={bindingFocusScope}
           hidden={hidden}
@@ -167,23 +219,6 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           }}
         />
       )}
-      {hasPasteData && directoryId == null && (
-        <ContextMenuEntry
-          bindingFocusScope={bindingFocusScope}
-          hidden={hidden}
-          action="paste"
-          doAction={() => {
-            unsetModal()
-            doPaste(currentDirectoryId, currentDirectoryId)
-          }}
-        />
-      )}
     </>
   )
-
-  return noWrapper ? entries : (
-      <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden} event={event}>
-        {entries}
-      </ContextMenu>
-    )
 }

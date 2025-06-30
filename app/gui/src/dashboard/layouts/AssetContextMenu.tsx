@@ -8,7 +8,6 @@ import * as authProvider from '$/providers/react'
 import { useText } from '$/providers/react'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
@@ -28,8 +27,8 @@ import {
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
 import { useNewProject } from '#/hooks/backendHooks'
-import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { usePasteData, useSetEditingNameAssetId } from '#/providers/DriveProvider'
+import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
+import { useSetEditingNameAssetId } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import * as permissions from '#/utilities/permissions'
@@ -54,7 +53,6 @@ export interface AssetContextMenuProps {
   readonly eventTarget: HTMLElement | null
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (newParentId: backendModule.DirectoryId) => void
   readonly rightPanel: RightPanelData
   readonly rootRef?: React.MutableRefObject<HTMLElement | null> | undefined
 }
@@ -70,7 +68,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     rightPanel,
     rootRef,
   } = props
-  const { doCopy, doCut, doPaste } = props
+  const { doCopy, doCut } = props
   const { asset, state } = innerProps
   const { backend, category } = state
 
@@ -79,7 +77,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { localCategories } = useCategories()
 
   const setEditingNameAssetId = useSetEditingNameAssetId()
-  const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackends()
@@ -101,44 +98,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const newProject = useNewProject(backend, category)
 
-  const systemApi = window.systemApi
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const canManageThisAsset = asset.id !== USERS_DIRECTORY_ID && asset.id !== TEAMS_DIRECTORY_ID
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
   const canEditThisAsset =
     managesThisAsset || self?.permission === permissions.PermissionAction.edit
-  const canAddToThisDirectory =
-    category.type !== 'recent' &&
-    asset.type === backendModule.AssetType.directory &&
-    canEditThisAsset
-
-  const pasteData = usePasteData()
-  const hasPasteData = (pasteData?.data.assets.length ?? 0) > 0
-  const [firstPasteDataId] = pasteData?.data.assets ?? []
-  const pasteDataParentId =
-    firstPasteDataId != null ? getAsset(firstPasteDataId.id)?.parentId : null
-  const pasteDataParent = pasteDataParentId != null ? getAsset(pasteDataParentId) : null
-
-  const canPaste =
-    (
-      !pasteDataParent ||
-      !pasteData ||
-      !isCloud ||
-      permissions.isTeamPath(pasteDataParent.virtualParentsPath)
-    ) ?
-      true
-    : pasteData.data.assets.every((pasteAsset) => {
-        const otherAsset = getAsset(pasteAsset.id)
-        if (!otherAsset) {
-          return false
-        }
-        // Assume user path; check permissions
-        const permission = permissions.tryFindSelfPermission(user, otherAsset.permissions)
-        return (
-          permission != null &&
-          permissions.canPermissionModifyDirectoryContents(permission.permission)
-        )
-      })
 
   const isRunningProject =
     asset.type === backendModule.AssetType.project &&
@@ -156,19 +120,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const enableHybridExecution = featureFlagsProvider.useFeatureFlag('enableHybridExecution')
 
-  const pasteMenuEntry = hasPasteData && canPaste && (
-    <ContextMenuEntry
-      bindingFocusScope={rootRef}
-      hidden={hidden}
-      action="paste"
-      doAction={() => {
-        const directoryId =
-          asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
-        doPaste(directoryId)
-      }}
-    />
-  )
-
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
   const copyIdEntry = showDeveloperIds && (
@@ -178,6 +129,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       color="accent"
       action="copyId"
       doAction={() => copyMutation.mutateAsync(asset.id)}
+    />
+  )
+
+  const globalContextMenu = (
+    <GlobalContextMenu
+      bindingFocusScope={rootRef}
+      hidden={hidden}
+      backend={backend}
+      category={category}
+      currentDirectoryId={currentDirectoryId}
+      asset={asset}
     />
   )
 
@@ -218,7 +180,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               )
             }}
           />
-          {pasteMenuEntry}
+          {globalContextMenu}
         </ContextMenu>
     : !canManageThisAsset ? null
     : <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden} event={event}>
@@ -260,13 +222,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => openProjectNatively(asset, backend.type)}
           />
         )}
-        {!isCloud && path != null && systemApi && (
+        {!isCloud && path != null && window.systemApi && (
           <ContextMenuEntry
             bindingFocusScope={rootRef}
             hidden={hidden}
             action="openInFileBrowser"
             doAction={() => {
-              systemApi.showItemInFolder(path)
+              window.systemApi?.showItemInFolder(path)
             }}
           />
         )}
@@ -442,21 +404,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {pasteMenuEntry}
-        {canAddToThisDirectory && !hidden && <Separator className="my-0.5" />}
-        {canAddToThisDirectory && (
-          <GlobalContextMenu
-            noWrapper
-            bindingFocusScope={rootRef}
-            hidden={hidden}
-            backend={backend}
-            category={category}
-            currentDirectoryId={currentDirectoryId}
-            directoryId={asset.id}
-            doPaste={doPaste}
-            event={event}
-          />
-        )}
+        {globalContextMenu}
       </ContextMenu>
   )
 }

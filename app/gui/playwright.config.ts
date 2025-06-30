@@ -163,7 +163,10 @@ export default defineConfig({
         INTEGRATION_TEST: 'true',
         ENSO_IDE_PROJECT_MANAGER_URL: 'ws://__HOSTNAME__:30536',
       },
-      command: `${UNSAFE_SKIP_BUILD ? '' : 'corepack pnpm build && '}corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`,
+      command:
+        isCI || isProd ?
+          `${UNSAFE_SKIP_BUILD ? '' : 'corepack pnpm build && '}corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`
+        : `corepack pnpm exec vite --port ${ports.projectView} --strictPort`,
       // Build from scratch apparently can take a while on CI machines.
       timeout: 480 * 1000,
       port: ports.projectView,
@@ -175,7 +178,7 @@ export default defineConfig({
       command:
         isCI || isProd ?
           `${UNSAFE_SKIP_BUILD ? '' : 'corepack pnpm exec vite -c vite.test.config.ts build && '}corepack pnpm exec vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
-        : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
+        : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard} --strictPort`,
       timeout: 480 * 1000,
       port: ports.dashboard,
       reuseExistingServer: false,

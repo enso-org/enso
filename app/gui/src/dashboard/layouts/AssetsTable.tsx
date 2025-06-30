@@ -110,6 +110,7 @@ import {
   startTransition,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   type Dispatch,
@@ -118,7 +119,6 @@ import {
   type RefObject,
   type SetStateAction,
 } from 'react'
-import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
@@ -171,7 +171,6 @@ export interface AssetsTableState {
   readonly hideColumn: (column: Column) => void
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (newParentId: DirectoryId) => void
   readonly getAssetNodeById: (id: AssetId) => AnyAsset | null
 }
 
@@ -227,6 +226,17 @@ function AssetsTable(props: AssetsTableProps) {
   const setSelectedAssets = useSetSelectedAssets()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const setPasteData = useSetPasteData()
+
+  const [renderId, rerender] = useReducer((x: number) => x + 1, 0)
+  useEffect(
+    () =>
+      driveStore.subscribe((state, oldState) => {
+        if (state.selectedAssets.length === 0 && oldState.selectedAssets.length > 0) {
+          rerender()
+        }
+      }),
+    [driveStore],
+  )
 
   const uploadFiles = useUploadFiles(backend, category)
   const paste = usePaste(category)
@@ -619,31 +629,6 @@ function AssetsTable(props: AssetsTableProps) {
     setSelectedAssets([])
   })
 
-  const doPaste = useEventCallback((newParentId: DirectoryId) => {
-    unsetModal()
-
-    const { pasteData } = driveStore.getState()
-
-    if (!pasteData) {
-      return
-    }
-
-    if (pasteData.data.assets.some((asset) => asset.id === newParentId)) {
-      toast.error('Cannot paste a folder into itself.')
-      return
-    }
-
-    void paste({
-      fromCategory: pasteData.data.category,
-      toCategory: category,
-      newParentId,
-      pasteData: pasteData.data,
-      method: pasteData.type,
-    })
-
-    setPasteData(null)
-  })
-
   const hiddenContextMenu =
     isSingleSelectedDirectoryItem ? null : (
       <AssetsTableContextMenu
@@ -655,7 +640,6 @@ function AssetsTable(props: AssetsTableProps) {
         event={{ pageX: 0, pageY: 0 }}
         doCopy={doCopy}
         doCut={doCut}
-        doPaste={doPaste}
       />
     )
 
@@ -706,7 +690,6 @@ function AssetsTable(props: AssetsTableProps) {
       hideColumn,
       doCopy,
       doCut,
-      doPaste,
       getAssetNodeById,
     }),
     [
@@ -715,7 +698,6 @@ function AssetsTable(props: AssetsTableProps) {
       currentDirectoryId,
       doCopy,
       doCut,
-      doPaste,
       getAssetNodeById,
       hideColumn,
       query,
@@ -1026,7 +1008,7 @@ function AssetsTable(props: AssetsTableProps) {
       <ResizableTableContainer onResize={onResize} onResizeEnd={onResizeEnd}>
         <Table
           /* The key is required to reset selection state when the category or folder changes. */
-          key={`${category.id}/${currentDirectoryId}`}
+          key={`${category.id}/${currentDirectoryId}/${renderId}`}
           aria-label={getText('drivePageName')}
           data-testid="assets-table"
           selectionMode="multiple"
@@ -1088,7 +1070,7 @@ function AssetsTable(props: AssetsTableProps) {
             <TableBody
               ref={bodyRef}
               items={visibleItems}
-              dependencies={[visibleItems, columns]}
+              dependencies={[visibleItems, columns, category.id, currentDirectoryId, renderId]}
               className="isolate"
             >
               {(item) => (
@@ -1197,6 +1179,7 @@ function AssetsTable(props: AssetsTableProps) {
 
       <IsolateLayout className="isolate h-full w-full" useRAF>
         <div
+          tabIndex={-1}
           className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
           onDragEnter={updateIsDraggingFiles}
           onDragOver={updateIsDraggingFiles}
@@ -1204,6 +1187,11 @@ function AssetsTable(props: AssetsTableProps) {
             setIsDraggingFiles(false)
           }}
           ref={rootRef}
+          onClick={(event) => {
+            if (!event.currentTarget.contains(document.activeElement)) {
+              event.currentTarget.focus()
+            }
+          }}
         >
           <SelectionBrush
             targetRef={rootRef}
@@ -1226,7 +1214,6 @@ function AssetsTable(props: AssetsTableProps) {
                   doCopy={doCopy}
                   doCut={doCut}
                   currentDirectoryId={currentDirectoryId}
-                  doPaste={doPaste}
                 />,
               )
             }}
