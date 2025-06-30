@@ -295,6 +295,7 @@ public final class SpecCollector {
     out.println("    ctxFactory.enableStaticAnalysis(false);");
     out.println("    ctxFactory.enableDebugServer(false);");
     out.println("    ctxFactory.projectRoot(projectRootDir.getAbsolutePath());");
+    out.println("    ctxFactory.executionEnvironment(\"live\");");
     out.println("    ctxFactory.options(options);");
     out.println("    ctxFactory.logHandler(logHandler);");
     out.println("    var ctx = ctxFactory.build();");
