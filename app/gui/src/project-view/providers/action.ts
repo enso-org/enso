@@ -47,7 +47,7 @@ const displayableActions = {
 
   'components.collapse': {
     icon: 'group',
-    description: 'Group Selected Components',
+    description: 'Create User Defined Component from Selected Components',
     shortcut: graphBindings.bindings['components.collapse'],
   },
   'components.copy': {
@@ -70,7 +70,7 @@ const displayableActions = {
 
   'component.enterNode': {
     icon: 'open',
-    description: 'Open Grouped Components',
+    description: 'Open User Defined Component',
   },
   'component.startEditing': {
     icon: 'edit',
