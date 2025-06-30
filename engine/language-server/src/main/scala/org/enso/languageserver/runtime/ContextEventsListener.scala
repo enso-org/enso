@@ -17,6 +17,7 @@ import org.enso.languageserver.session.SessionRouter.{
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.CollectionConversions._
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration._
@@ -61,7 +62,7 @@ final class ContextEventsListener(
 
   private def withState(
     oneshotVisualizations: Set[Api.VisualizationContext],
-    expressionUpdates: Vector[Api.ExpressionUpdate]
+    expressionUpdates: Vector[ExpressionUpdate]
   ): Receive = {
     case RegisterOneshotVisualization(
           contextId,
@@ -195,7 +196,7 @@ final class ContextEventsListener(
     * the suggestions database, and creates the API updates.
     */
   private def runExpressionUpdates(
-    expressionUpdates: Vector[Api.ExpressionUpdate]
+    expressionUpdates: Vector[ExpressionUpdate]
   ): Unit = {
     val computedExpressions = expressionUpdates.map { update =>
       ContextRegistryProtocol.ExpressionUpdate(
@@ -222,22 +223,22 @@ final class ContextEventsListener(
     * @return the registry protocol representation of the payload message
     */
   private def toProtocolPayload(
-    payload: Api.ExpressionUpdate.Payload
+    payload: ExpressionUpdate.Payload
   ): ContextRegistryProtocol.ExpressionUpdate.Payload =
     payload match {
-      case Api.ExpressionUpdate.Payload.Value(warnings, functionSchema) =>
+      case ExpressionUpdate.Payload.Value(warnings, functionSchema) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload.Value(
           warnings.map(toProtocolWarnings),
           functionSchema.map(toProtocolFunctionSchema)
         )
 
-      case Api.ExpressionUpdate.Payload.Pending(m, p, i) =>
+      case ExpressionUpdate.Payload.Pending(m, p, i) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload.Pending(m, p, i)
 
-      case Api.ExpressionUpdate.Payload.DataflowError(trace) =>
+      case ExpressionUpdate.Payload.DataflowError(trace) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload.DataflowError(trace)
 
-      case Api.ExpressionUpdate.Payload.Panic(message, trace) =>
+      case ExpressionUpdate.Payload.Panic(message, trace) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload
           .Panic(message, trace)
     }
@@ -248,7 +249,7 @@ final class ContextEventsListener(
     * @param payload the warnings payload
     */
   private def toProtocolWarnings(
-    payload: Api.ExpressionUpdate.Payload.Value.Warnings
+    payload: ExpressionUpdate.Payload.Value.Warnings
   ): ContextRegistryProtocol.ExpressionUpdate.Payload.Value.Warnings =
     ContextRegistryProtocol.ExpressionUpdate.Payload.Value
       .Warnings(payload.count, payload.warning, payload.reachedMaxCount)

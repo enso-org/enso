@@ -11,6 +11,7 @@ import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.debugger.IdExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -294,7 +295,7 @@ class RuntimeServerTest
             Vector(0)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, moduleName, "identity"),
@@ -1094,14 +1095,14 @@ class RuntimeServerTest
         Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate(
+            ExpressionUpdate(
               nodeId,
               None,
               None,
               Vector(Api.ProfilingInfo.ExecutionTime(0)),
               false,
               false,
-              Api.ExpressionUpdate.Payload.Value(None, None)
+              ExpressionUpdate.Payload.Value(None, None)
             )
           )
         )
@@ -1234,7 +1235,7 @@ class RuntimeServerTest
         id_x_1,
         ConstantsGen.FUNCTION,
         methodCall = Some(Api.MethodCall(textPlusMethodPointer, Vector(1))),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           None,
           Some(Api.FunctionSchema(textPlusMethodPointer, Vector(1)))
         )
@@ -1309,7 +1310,7 @@ class RuntimeServerTest
         methodCall = Some(
           Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "A"))
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
@@ -1328,7 +1329,7 @@ class RuntimeServerTest
             Vector(1)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
@@ -1417,7 +1418,7 @@ class RuntimeServerTest
             Vector(0, 1)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
@@ -1514,7 +1515,7 @@ class RuntimeServerTest
             Api.MethodPointer(moduleName, moduleName, "func1")
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, moduleName, "func2"),
@@ -1602,7 +1603,7 @@ class RuntimeServerTest
             Vector(1)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -1620,7 +1621,7 @@ class RuntimeServerTest
             Api.MethodPointer(moduleName, s"$moduleName.T", "func1")
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func2"),
@@ -1710,7 +1711,7 @@ class RuntimeServerTest
             Vector(0, 1)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -1733,7 +1734,7 @@ class RuntimeServerTest
             Vector(1)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -1926,7 +1927,7 @@ class RuntimeServerTest
             Vector(0, 1)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -1949,7 +1950,7 @@ class RuntimeServerTest
             Vector(1)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -2044,7 +2045,7 @@ class RuntimeServerTest
             Vector(1, 2)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -2067,7 +2068,7 @@ class RuntimeServerTest
             Vector(2)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -2162,7 +2163,7 @@ class RuntimeServerTest
             Vector(1, 2)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -2185,7 +2186,7 @@ class RuntimeServerTest
             Vector(2)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -2280,7 +2281,7 @@ class RuntimeServerTest
             Vector(0, 1, 2)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -2303,7 +2304,7 @@ class RuntimeServerTest
             Vector(1)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
@@ -2390,7 +2391,7 @@ class RuntimeServerTest
             Vector(0, 1, 2)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, moduleName, "func1"),
@@ -2409,7 +2410,7 @@ class RuntimeServerTest
             Vector(0, 2)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, moduleName, "func1"),
@@ -2490,7 +2491,7 @@ class RuntimeServerTest
             Vector(0, 1, 2)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, moduleName, "func1"),
@@ -2509,7 +2510,7 @@ class RuntimeServerTest
             Vector(0, 2)
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(moduleName, moduleName, "func1"),
@@ -6571,9 +6572,9 @@ class RuntimeServerTest
           methodCall = Some(
             Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "attach"))
           ),
-          payload = Api.ExpressionUpdate.Payload.Value(
+          payload = ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
+              ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -6585,9 +6586,9 @@ class RuntimeServerTest
           methodCall = Some(
             Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "attach"))
           ),
-          payload = Api.ExpressionUpdate.Payload.Value(
+          payload = ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value
+              ExpressionUpdate.Payload.Value
                 .Warnings(1, Some("My_Warning.Value"), false)
             )
           )
@@ -6600,10 +6601,10 @@ class RuntimeServerTest
           methodCall = Some(
             Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "attach"))
           ),
-          payload = Api.ExpressionUpdate.Payload
+          payload = ExpressionUpdate.Payload
             .Value(
               Some(
-                Api.ExpressionUpdate.Payload.Value
+                ExpressionUpdate.Payload.Value
                   .Warnings(2, Some("My_Warning.Value"), false)
               )
             )
@@ -6667,9 +6668,9 @@ class RuntimeServerTest
           contextId,
           idX,
           ConstantsGen.INTEGER,
-          payload = Api.ExpressionUpdate.Payload.Value(
+          payload = ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
+              ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -6687,9 +6688,9 @@ class RuntimeServerTest
               )
             )
           ),
-          payload = Api.ExpressionUpdate.Payload.Value(
+          payload = ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
+              ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -6707,9 +6708,9 @@ class RuntimeServerTest
               )
             )
           ),
-          payload = Api.ExpressionUpdate.Payload.Value(
+          payload = ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
+              ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -6768,9 +6769,9 @@ class RuntimeServerTest
         contextId,
         idMain,
         ConstantsGen.VECTOR,
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           Some(
-            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
+            ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
           )
         )
       ),
@@ -7700,7 +7701,7 @@ class RuntimeServerTest
               .MethodPointer(moduleNameLib, s"$moduleNameLib.Singleton", "S")
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(None)
+        payload = ExpressionUpdate.Payload.Value(None)
       ),
       TestMessages.update(
         contextId,
@@ -7716,7 +7717,7 @@ class RuntimeServerTest
               )
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(None)
+        payload = ExpressionUpdate.Payload.Value(None)
       ),
       TestMessages.update(
         contextId,
@@ -7732,7 +7733,7 @@ class RuntimeServerTest
               )
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(None)
+        payload = ExpressionUpdate.Payload.Value(None)
       ),
       TestMessages.update(
         contextId,
@@ -7748,13 +7749,13 @@ class RuntimeServerTest
               )
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(None)
+        payload = ExpressionUpdate.Payload.Value(None)
       ),
       TestMessages.update(
         contextId,
         idRes,
         s"Standard.Base.Data.Numbers.Integer",
-        payload = Api.ExpressionUpdate.Payload.Value(None)
+        payload = ExpressionUpdate.Payload.Value(None)
       ),
       context.executionComplete(contextId)
     )
@@ -7808,26 +7809,26 @@ object RuntimeServerTest {
             methodCall = None
           )
 
-        def pendingZ(): Api.ExpressionUpdate =
-          Api.ExpressionUpdate(
+        def pendingZ(): ExpressionUpdate =
+          ExpressionUpdate(
             Main.idFooZ,
             None,
             None,
             Vector(),
             true,
             false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
+            ExpressionUpdate.Payload.Pending(None, None)
           )
 
-        def pendingY(): Api.ExpressionUpdate =
-          Api.ExpressionUpdate(
+        def pendingY(): ExpressionUpdate =
+          ExpressionUpdate(
             Main.idFooY,
             None,
             None,
             Vector(),
             true,
             false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
+            ExpressionUpdate.Payload.Pending(None, None)
           )
 
         def mainY(

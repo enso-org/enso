@@ -6,6 +6,7 @@ import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
@@ -171,7 +172,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile_Error.Error",
           Seq(xId)
         ),
@@ -180,7 +181,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile_Error.Error",
           Seq(xId)
         ),
@@ -189,7 +190,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainResId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile_Error.Error",
           Seq(xId)
         ),
@@ -269,7 +270,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
@@ -278,7 +279,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
@@ -287,7 +288,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainResId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
@@ -365,7 +366,7 @@ class RuntimeErrorsTest
         Api.MethodCall(
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile_Error.Error",
           Seq(mainBodyId)
         ),
@@ -440,7 +441,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainBodyId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `Non_Existing_Func` could not be found.",
           Seq(mainBodyId)
         )
@@ -516,7 +517,7 @@ class RuntimeErrorsTest
         Api.MethodCall(
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
         ),
@@ -593,17 +594,17 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         mainResId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       context.executionComplete(contextId)
     )
@@ -682,7 +683,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         )
@@ -774,7 +775,7 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic("Integer", Seq(throwId, catchId)),
+        ExpressionUpdate.Payload.Panic("Integer", Seq(throwId, catchId)),
         builtin = false
       ),
       TestMessages.update(
@@ -871,7 +872,7 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       TestMessages.update(
@@ -957,12 +958,12 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(
         contextId,
@@ -1053,7 +1054,7 @@ class RuntimeErrorsTest
             "div"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.error(
         contextId,
@@ -1065,7 +1066,7 @@ class RuntimeErrorsTest
             "-"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       context.executionComplete(contextId)
     )
@@ -1187,12 +1188,12 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(
         contextId,
@@ -1243,12 +1244,12 @@ class RuntimeErrorsTest
         ),
         fromCache   = false,
         typeChanged = false,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId)),
+        ExpressionUpdate.Payload.DataflowError(Seq(xId)),
         typeChanged = false
       ),
       TestMessages.update(
@@ -1334,12 +1335,12 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
+        ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
+        ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.update(
         contextId,
@@ -1384,12 +1385,12 @@ class RuntimeErrorsTest
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         fromCache   = false,
         typeChanged = false,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
+        ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId)),
+        ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId)),
         typeChanged = false
       ),
       TestMessages.update(
@@ -1477,9 +1478,9 @@ class RuntimeErrorsTest
         contextId,
         yId,
         ConstantsGen.VECTOR,
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           Some(
-            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("foo"), false)
+            ExpressionUpdate.Payload.Value.Warnings(1, Some("foo"), false)
           )
         )
       ),
@@ -1493,7 +1494,7 @@ class RuntimeErrorsTest
             "at"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(mainResId))
+        ExpressionUpdate.Payload.DataflowError(Seq(mainResId))
       ),
       context.executionComplete(contextId)
     )
@@ -1566,7 +1567,7 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "MyError",
           Seq(xId)
         ),
@@ -1575,7 +1576,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "MyError",
           Seq(xId)
         )
@@ -1590,7 +1591,7 @@ class RuntimeErrorsTest
             "println"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "MyError",
           Seq(xId)
         ),
@@ -1720,7 +1721,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `foo` could not be found.",
           Seq(xId)
         )
@@ -1728,7 +1729,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `foo` could not be found.",
           Seq(xId)
         )
@@ -1743,7 +1744,7 @@ class RuntimeErrorsTest
             "println"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `foo` could not be found.",
           Seq(xId)
         ),
@@ -1877,7 +1878,7 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "IllegalArgumentException",
           Seq(xId)
         ),
@@ -1886,7 +1887,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "IllegalArgumentException",
           Seq(xId)
         )
@@ -1961,7 +1962,7 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "MyError1",
           Seq(xId)
         ),
@@ -1970,7 +1971,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "MyError1",
           Seq(xId)
         )
@@ -1985,7 +1986,7 @@ class RuntimeErrorsTest
             "println"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "MyError1",
           Seq(xId)
         ),
@@ -2024,7 +2025,7 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "MyError2",
           Seq(xId)
         ),
@@ -2033,7 +2034,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "MyError2",
           Seq(xId)
         ),
@@ -2050,7 +2051,7 @@ class RuntimeErrorsTest
             "println"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "MyError2",
           Seq(xId)
         ),
@@ -2120,7 +2121,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Integer",
           Seq(xId)
         ),
@@ -2129,7 +2130,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Integer",
           Seq(xId)
         )
@@ -2144,7 +2145,7 @@ class RuntimeErrorsTest
             "println"
           )
         ),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Integer",
           Seq(xId)
         ),
@@ -2276,7 +2277,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "NullPointerException",
           Seq(xId)
         ),
@@ -2350,12 +2351,12 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.update(
         contextId,
@@ -2491,7 +2492,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile_Error.Error",
           Seq(xId)
         ),
@@ -2500,7 +2501,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainResId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile_Error.Error",
           Seq(xId)
         ),
@@ -2616,7 +2617,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
         ),
@@ -2625,7 +2626,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainResId,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
         ),
@@ -2736,12 +2737,12 @@ class RuntimeErrorsTest
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
         mainResId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       context.executionComplete(contextId)
     )
@@ -2769,7 +2770,7 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         mainRes1Id,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       context.executionComplete(contextId)
     )
@@ -2858,7 +2859,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         operator1Id,
-        Api.ExpressionUpdate.Payload.Panic(
+        ExpressionUpdate.Payload.Panic(
           "Method `function2` of type Main could not be found.",
           Seq(operator1Id)
         )

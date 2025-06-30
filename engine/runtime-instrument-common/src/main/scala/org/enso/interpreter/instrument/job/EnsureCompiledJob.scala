@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.job
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
 import org.enso.common.{CachePreferences, CompilationStage}
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
@@ -31,8 +30,8 @@ import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.IdMap
 
@@ -487,14 +486,14 @@ class EnsureCompiledJob(
 
     // pending updates
     val updates = changeset.invalidated.map { key =>
-      Api.ExpressionUpdate(
+      ExpressionUpdate(
         key,
         None,
         None,
         Vector.empty,
         true,
         false,
-        Api.ExpressionUpdate.Payload.Pending(None, None)
+        ExpressionUpdate.Payload.Pending(None, None)
       )
     }
     if (updates.nonEmpty) {
@@ -614,7 +613,11 @@ class EnsureCompiledJob(
   ): Boolean =
     stack.lastOption match {
       case Some(
-            InstrumentFrame(StackItem.ExplicitCall(methodPointer, _, _), _, _)
+            InstrumentFrame(
+              Api.StackItem.ExplicitCall(methodPointer, _, _),
+              _,
+              _
+            )
           ) =>
         methodPointer.module == module.toString
       case _ =>

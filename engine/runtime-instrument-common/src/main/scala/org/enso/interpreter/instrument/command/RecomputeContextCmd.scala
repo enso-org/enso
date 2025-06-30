@@ -12,7 +12,7 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.RequestId
+import org.enso.polyglot.runtime.ExpressionUpdate
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -22,7 +22,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param request a request for a service
   */
 class RecomputeContextCmd(
-  maybeRequestId: Option[RequestId],
+  maybeRequestId: Option[Api.RequestId],
   request: Api.RecomputeContextRequest
 ) extends AsynchronousCommand(maybeRequestId) {
 
@@ -206,14 +206,14 @@ object RecomputeContextCmd {
     if (invalidatedExpressions.nonEmpty) {
       val updates = invalidatedExpressions.collect {
         case expressionId if expressionId ne null =>
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             expressionId,
             None,
             None,
             Vector.empty,
             true,
             false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
+            ExpressionUpdate.Payload.Pending(None, None)
           )
       }
       ctx.endpoint.sendToClient(

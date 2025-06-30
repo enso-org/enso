@@ -21,6 +21,7 @@ import org.enso.languageserver.session.SessionRouter.{
   DeliverToJsonController
 }
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.testkit.{ReportLogsOnFailure, RetrySpec}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -62,7 +63,7 @@ class ContextEventsListenerSpec
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate(
+            ExpressionUpdate(
               Suggestions.method.externalId.get,
               Some(
                 Api.ExpressionType(
@@ -74,7 +75,7 @@ class ContextEventsListenerSpec
               Vector(),
               false,
               true,
-              Api.ExpressionUpdate.Payload.Value(
+              ExpressionUpdate.Payload.Value(
                 functionSchema = Some(
                   Api.FunctionSchema(methodPointer, Vector(1))
                 )
@@ -119,14 +120,14 @@ class ContextEventsListenerSpec
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate(
+            ExpressionUpdate(
               Suggestions.method.externalId.get,
               None,
               None,
               Vector(),
               false,
               true,
-              Api.ExpressionUpdate.Payload.DataflowError(
+              ExpressionUpdate.Payload.DataflowError(
                 Seq(Suggestions.function.externalId.get)
               )
             )
@@ -160,14 +161,14 @@ class ContextEventsListenerSpec
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate(
+            ExpressionUpdate(
               Suggestions.method.externalId.get,
               None,
               None,
               Vector(),
               false,
               false,
-              Api.ExpressionUpdate.Payload.Panic("Method failure", Seq())
+              ExpressionUpdate.Payload.Panic("Method failure", Seq())
             )
           )
         )
@@ -200,14 +201,14 @@ class ContextEventsListenerSpec
       listener ! Api.ExpressionUpdates(
         contextId,
         Set(
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             Suggestions.method.externalId.get,
             None,
             None,
             Vector(),
             false,
             false,
-            Api.ExpressionUpdate.Payload.Value()
+            ExpressionUpdate.Payload.Value()
           )
         )
       )
@@ -215,14 +216,14 @@ class ContextEventsListenerSpec
       listener ! Api.ExpressionUpdates(
         contextId,
         Set(
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             Suggestions.local.externalId.get,
             None,
             None,
             Vector(),
             false,
             false,
-            Api.ExpressionUpdate.Payload.Value()
+            ExpressionUpdate.Payload.Value()
           )
         )
       )

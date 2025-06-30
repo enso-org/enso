@@ -9,6 +9,7 @@ import org.enso.common.MethodNames
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -364,13 +365,13 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
+        ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
         builtin = true
       ),
       TestMessages.panic(
         contextId,
         id_y,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
+        ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)
@@ -499,7 +500,7 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
+        ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)

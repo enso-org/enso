@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.job
 
 import org.slf4j.LoggerFactory
-
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import com.oracle.truffle.api.source.SourceSection
 import org.enso.interpreter.instrument.{
@@ -46,13 +45,13 @@ import org.enso.interpreter.runtime.warning.{
   WithWarnings
 }
 import org.enso.polyglot.debugger.ExecutedVisualization
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
 
 import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
-
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -415,7 +414,7 @@ object ProgramExecutionSupport {
       ))
     ) {
       val payload =
-        Api.ExpressionUpdate.Payload.Pending(
+        ExpressionUpdate.Payload.Pending(
           None,
           None,
           wasInterrupted = true
@@ -425,7 +424,7 @@ object ProgramExecutionSupport {
           Api.ExpressionUpdates(
             contextId,
             Set(
-              Api.ExpressionUpdate(
+              ExpressionUpdate(
                 value.getExpressionId,
                 Option(value.getType).map(toExpressionType),
                 methodCall,
@@ -456,7 +455,7 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId = value.getExpressionId
     if (value.isProgressUpdate()) {
-      val progressPayload = Api.ExpressionUpdate.Payload.Pending(
+      val progressPayload = ExpressionUpdate.Payload.Pending(
         Option(value.getProgressMessage()),
         Some(value.getProgress())
       )
@@ -465,7 +464,7 @@ object ProgramExecutionSupport {
           Api.ExpressionUpdates(
             contextId,
             Set(
-              Api.ExpressionUpdate(
+              ExpressionUpdate(
                 value.getExpressionId,
                 None,
                 None,
@@ -493,7 +492,7 @@ object ProgramExecutionSupport {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
           Some(
-            Api.ExpressionUpdate.Payload
+            ExpressionUpdate.Payload
               .Panic(
                 ctx.executionService.getExceptionMessage(sentinel.getPanic),
                 ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
@@ -501,14 +500,14 @@ object ProgramExecutionSupport {
           )
         case error: DataflowError =>
           Some(
-            Api.ExpressionUpdate.Payload.DataflowError(
+            ExpressionUpdate.Payload.DataflowError(
               ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
             )
           )
         case panic: AbstractTruffleException =>
           if (!VisualizationResult.isInterruptedException(panic)) {
             Some(
-              Api.ExpressionUpdate.Payload.Panic(
+              ExpressionUpdate.Payload.Panic(
                 VisualizationResult.findExceptionMessage(panic),
                 ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
               )
@@ -520,7 +519,7 @@ object ProgramExecutionSupport {
         case warnings: WithWarnings
             if warnings.getValue.isInstanceOf[DataflowError] =>
           Some(
-            Api.ExpressionUpdate.Payload.DataflowError(
+            ExpressionUpdate.Payload.DataflowError(
               ErrorResolver
                 .getStackTrace(warnings.getValue.asInstanceOf[DataflowError])
                 .flatMap(_.expressionId)
@@ -557,7 +556,7 @@ object ProgramExecutionSupport {
                   None
                 }
 
-              Api.ExpressionUpdate.Payload.Value
+              ExpressionUpdate.Payload.Value
                 .Warnings(
                   warningsCount,
                   warning,
@@ -589,7 +588,7 @@ object ProgramExecutionSupport {
               None
           }
 
-          Some(Api.ExpressionUpdate.Payload.Value(warnings, schema))
+          Some(ExpressionUpdate.Payload.Value(warnings, schema))
       }
       payload.foreach { p =>
         ctx.endpoint.sendToClient(
@@ -597,7 +596,7 @@ object ProgramExecutionSupport {
             Api.ExpressionUpdates(
               contextId,
               Set(
-                Api.ExpressionUpdate(
+                ExpressionUpdate(
                   value.getExpressionId,
                   Option(value.getType).map(toExpressionType),
                   methodCall,

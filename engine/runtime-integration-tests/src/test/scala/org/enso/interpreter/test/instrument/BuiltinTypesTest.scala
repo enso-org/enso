@@ -6,6 +6,7 @@ import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -315,7 +316,7 @@ class BuiltinTypesTest
         contextId,
         idMain,
         ConstantsGen.FUNCTION,
-        payload = Api.ExpressionUpdate.Payload.Value(
+        payload = ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
               Api.MethodPointer(

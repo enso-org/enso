@@ -1,8 +1,8 @@
 package org.enso.interpreter.test.instrument
 
 import java.util.UUID
-
 import org.enso.interpreter.runtime.`type`.ConstantsGen
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.Runtime.Api
 
 /** Helper methods for creating test messages. */
@@ -22,14 +22,14 @@ object TestMessages {
       Api.ExpressionUpdates(
         contextId,
         Set(
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             expressionId,
             None,
             None,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,
             true,
-            Api.ExpressionUpdate.Payload.Value()
+            ExpressionUpdate.Payload.Value()
           )
         )
       )
@@ -51,14 +51,14 @@ object TestMessages {
       Api.ExpressionUpdates(
         contextId,
         Set(
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             expressionId,
             Some(Api.ExpressionType(Vector(expressionType), Vector())),
             None,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,
             true,
-            Api.ExpressionUpdate.Payload.Value()
+            ExpressionUpdate.Payload.Value()
           )
         )
       )
@@ -79,10 +79,10 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     expressionType: String,
-    fromCache: Boolean                    = false,
-    typeChanged: Boolean                  = true,
-    methodCall: Option[Api.MethodCall]    = None,
-    payload: Api.ExpressionUpdate.Payload = Api.ExpressionUpdate.Payload.Value()
+    fromCache: Boolean                 = false,
+    typeChanged: Boolean               = true,
+    methodCall: Option[Api.MethodCall] = None,
+    payload: ExpressionUpdate.Payload  = ExpressionUpdate.Payload.Value()
   ): Api.Response =
     updateMultiType(
       contextId,
@@ -109,16 +109,16 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     expressionTypes: Vector[String],
-    fromCache: Boolean                    = false,
-    typeChanged: Boolean                  = true,
-    methodCall: Option[Api.MethodCall]    = None,
-    payload: Api.ExpressionUpdate.Payload = Api.ExpressionUpdate.Payload.Value()
+    fromCache: Boolean                 = false,
+    typeChanged: Boolean               = true,
+    methodCall: Option[Api.MethodCall] = None,
+    payload: ExpressionUpdate.Payload  = ExpressionUpdate.Payload.Value()
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
         contextId,
         Set(
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             expressionId,
             Some(Api.ExpressionType(expressionTypes, Vector())),
             methodCall,
@@ -169,14 +169,14 @@ object TestMessages {
       Api.ExpressionUpdates(
         contextId,
         Set(
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             expressionId,
             Some(Api.ExpressionType(Vector(expressionType), Vector())),
             Some(methodCall),
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
             typeChanged,
-            Api.ExpressionUpdate.Payload.Value()
+            ExpressionUpdate.Payload.Value()
           )
         )
       )
@@ -195,7 +195,7 @@ object TestMessages {
   def error(
     contextId: UUID,
     expressionId: UUID,
-    payload: Api.ExpressionUpdate.Payload,
+    payload: ExpressionUpdate.Payload,
     fromCache: Boolean   = false,
     typeChanged: Boolean = true
   ): Api.Response =
@@ -220,7 +220,7 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     methodCall: Api.MethodCall,
-    payload: Api.ExpressionUpdate.Payload
+    payload: ExpressionUpdate.Payload
   ): Api.Response =
     error(
       contextId,
@@ -247,7 +247,7 @@ object TestMessages {
     methodCall: Api.MethodCall,
     fromCache: Boolean,
     typeChanged: Boolean,
-    payload: Api.ExpressionUpdate.Payload
+    payload: ExpressionUpdate.Payload
   ): Api.Response =
     errorBuilder(
       contextId,
@@ -274,13 +274,13 @@ object TestMessages {
     methodCallOpt: Option[Api.MethodCall],
     fromCache: Boolean,
     typeChanged: Boolean,
-    payload: Api.ExpressionUpdate.Payload
+    payload: ExpressionUpdate.Payload
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
         contextId,
         Set(
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             expressionId,
             Some(Api.ExpressionType(Vector(ConstantsGen.ERROR), Vector())),
             methodCallOpt,
@@ -303,7 +303,7 @@ object TestMessages {
   def panic(
     contextId: UUID,
     expressionId: UUID,
-    payload: Api.ExpressionUpdate.Payload
+    payload: ExpressionUpdate.Payload
   ): Api.Response =
     panicBuilder(contextId, expressionId, None, payload, false, true)
 
@@ -318,7 +318,7 @@ object TestMessages {
   def panic(
     contextId: UUID,
     expressionId: UUID,
-    payload: Api.ExpressionUpdate.Payload,
+    payload: ExpressionUpdate.Payload,
     builtin: Boolean
   ): Api.Response =
     panicBuilder(contextId, expressionId, None, payload, builtin, true)
@@ -326,7 +326,7 @@ object TestMessages {
   def panic(
     contextId: UUID,
     expressionId: UUID,
-    payload: Api.ExpressionUpdate.Payload,
+    payload: ExpressionUpdate.Payload,
     builtin: Boolean,
     typeChanged: Boolean
   ): Api.Response =
@@ -345,7 +345,7 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     methodCall: Api.MethodCall,
-    payload: Api.ExpressionUpdate.Payload,
+    payload: ExpressionUpdate.Payload,
     builtin: Boolean
   ): Api.Response =
     panicBuilder(
@@ -370,7 +370,7 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     methodCall: Api.MethodCall,
-    payload: Api.ExpressionUpdate.Payload,
+    payload: ExpressionUpdate.Payload,
     builtin: Option[String]
   ): Api.Response =
     panicBuilder(
@@ -386,7 +386,7 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     methodCall: Api.MethodCall,
-    payload: Api.ExpressionUpdate.Payload,
+    payload: ExpressionUpdate.Payload,
     builtin: Option[String],
     typeChanged: Boolean
   ): Api.Response =
@@ -413,7 +413,7 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     methodCall: Option[Api.MethodCall],
-    payload: Api.ExpressionUpdate.Payload,
+    payload: ExpressionUpdate.Payload,
     builtin: Boolean,
     typeChanged: Boolean
   ): Api.Response = panicBuilder(
@@ -431,7 +431,7 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     methodCall: Option[Api.MethodCall],
-    payload: Api.ExpressionUpdate.Payload,
+    payload: ExpressionUpdate.Payload,
     builtin: Option[String],
     typeChanged: Boolean
   ): Api.Response =
@@ -439,7 +439,7 @@ object TestMessages {
       Api.ExpressionUpdates(
         contextId,
         Set(
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             expressionId,
             builtin.map(builtinType =>
               Api.ExpressionType(Vector(builtinType), Vector())
@@ -468,14 +468,14 @@ object TestMessages {
       Api.ExpressionUpdates(
         contextId,
         expressionIds.toSet.map { expressionId =>
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             expressionId,
             None,
             None,
             Vector(),
             true,
             false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
+            ExpressionUpdate.Payload.Pending(None, None)
           )
         }
       )
@@ -496,14 +496,14 @@ object TestMessages {
       Api.ExpressionUpdates(
         contextId,
         expressionIds.toSet.map { expressionId =>
-          Api.ExpressionUpdate(
+          ExpressionUpdate(
             expressionId,
             Some(Api.ExpressionType(Vector(ConstantsGen.PANIC), Vector())),
             methodCall,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,
             true,
-            Api.ExpressionUpdate.Payload
+            ExpressionUpdate.Payload
               .Pending(None, None, wasInterrupted = true)
           )
         }

@@ -10,10 +10,10 @@ import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
 import org.enso.polyglot.RuntimeServerInfo;
+import org.enso.polyglot.runtime.ExpressionUpdate;
+import org.enso.polyglot.runtime.ExpressionUpdate$Payload$Pending;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse;
-import org.enso.polyglot.runtime.Runtime$Api$ExpressionUpdate;
-import org.enso.polyglot.runtime.Runtime$Api$ExpressionUpdate$Payload$Pending;
 import org.enso.polyglot.runtime.Runtime$Api$ExpressionUpdates;
 import org.enso.polyglot.runtime.Runtime$Api$InitializedNotification;
 import org.enso.polyglot.runtime.Runtime$Api$MethodCall;
@@ -209,10 +209,9 @@ public class RuntimeProgressTest {
   private static Runtime$Api$Response progressPayload(
       UUID contextId, UUID id, double amount, String msg) {
     var pending =
-        new Runtime$Api$ExpressionUpdate$Payload$Pending(
-            Option.apply(msg), Option.apply(amount), false);
+        new ExpressionUpdate$Payload$Pending(Option.apply(msg), Option.apply(amount), false);
     var up =
-        new Runtime$Api$ExpressionUpdate(
+        new ExpressionUpdate(
             id, Option.empty(), Option.empty(), Vector$.MODULE$.empty(), false, false, pending);
     var updates = new Runtime$Api$ExpressionUpdates(contextId, singletonSet(up));
     return new Runtime$Api$Response(Option.empty(), updates);

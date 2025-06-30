@@ -9,6 +9,7 @@ import org.enso.common.MethodNames
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
 import org.scalatest.concurrent.{TimeLimitedTests, TimeLimits}
@@ -179,7 +180,7 @@ class RuntimeExecutionEnvironmentTest
         contextId,
         idRes,
         IF_ENABLED_METH_CALL,
-        Api.ExpressionUpdate.Payload
+        ExpressionUpdate.Payload
           .Panic(
             "The Output context is disabled.",
             Seq(idRes)
@@ -272,7 +273,7 @@ class RuntimeExecutionEnvironmentTest
         contextId,
         idRes,
         IF_ENABLED_METH_CALL,
-        Api.ExpressionUpdate.Payload
+        ExpressionUpdate.Payload
           .Panic(
             "The Input context is disabled.",
             Seq(idRes)

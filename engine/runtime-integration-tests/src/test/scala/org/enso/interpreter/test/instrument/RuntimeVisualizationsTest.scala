@@ -7,6 +7,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.text.editing.model
 import org.graalvm.polyglot.Context
 import org.scalatest.flatspec.AnyFlatSpec
@@ -2385,7 +2386,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               "throw"
             )
           ),
-          Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
+          ExpressionUpdate.Payload.DataflowError(Seq(idMain))
         ),
         context.executionComplete(contextId)
       )
@@ -2488,7 +2489,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               "throw"
             )
           ),
-          Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
+          ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
           Some("Standard.Base.Panic.Panic")
         ),
         context.executionComplete(contextId)
@@ -2527,7 +2528,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               "throw"
             )
           ),
-          Api.ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
+          ExpressionUpdate.Payload.Panic("Integer", Seq(idMain)),
           builtin = false
         ),
         Api.Response(
@@ -2624,7 +2625,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             "throw"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
+        ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
     )
@@ -3481,9 +3482,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           contextId,
           idMain,
           ConstantsGen.INTEGER,
-          payload = Api.ExpressionUpdate.Payload.Value(
+          payload = ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
+              ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -3585,9 +3586,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           contextId,
           idMain,
           ConstantsGen.VECTOR,
-          payload = Api.ExpressionUpdate.Payload.Value(
+          payload = ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
+              ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -3702,9 +3703,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               )
             )
           ),
-          payload = Api.ExpressionUpdate.Payload.Value(
+          payload = ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("x"), false)
+              ExpressionUpdate.Payload.Value.Warnings(1, Some("x"), false)
             )
           )
         ),
@@ -3718,9 +3719,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 .MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
             )
           ),
-          payload = Api.ExpressionUpdate.Payload.Value(
+          payload = ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("x"), false)
+              ExpressionUpdate.Payload.Value.Warnings(1, Some("x"), false)
             )
           )
         ),
@@ -3838,7 +3839,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             )
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(None)
+        payload = ExpressionUpdate.Payload.Value(None)
       ),
       TestMessages.update(
         contextId,
@@ -3850,14 +3851,14 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               .MethodPointer(moduleName, s"$moduleName.Newtype", "fix")
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(None)
+        payload = ExpressionUpdate.Payload.Value(None)
       ),
       TestMessages.update(
         contextId,
         idRes,
         s"$moduleName.Newtype",
         methodCall = None,
-        payload    = Api.ExpressionUpdate.Payload.Value(None)
+        payload    = ExpressionUpdate.Payload.Value(None)
       ),
       context.executionComplete(contextId)
     )
@@ -3970,7 +3971,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               .MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(None)
+        payload = ExpressionUpdate.Payload.Value(None)
       ),
       TestMessages.update(
         contextId,
@@ -3982,14 +3983,14 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               .MethodPointer(moduleName, s"$moduleName.Newtype", "fix")
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(None)
+        payload = ExpressionUpdate.Payload.Value(None)
       ),
       TestMessages.update(
         contextId,
         idRes,
         s"$moduleName.Newtype",
         methodCall = None,
-        payload    = Api.ExpressionUpdate.Payload.Value(None)
+        payload    = ExpressionUpdate.Payload.Value(None)
       ),
       context.executionComplete(contextId)
     )
@@ -4148,7 +4149,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 .MethodPointer(moduleNameLib, s"$moduleNameLib.Singleton", "S")
             )
           ),
-          payload = Api.ExpressionUpdate.Payload.Value(None)
+          payload = ExpressionUpdate.Payload.Value(None)
         ),
         TestMessages.update(
           contextId,
@@ -4164,13 +4165,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 )
             )
           ),
-          payload = Api.ExpressionUpdate.Payload.Value(None)
+          payload = ExpressionUpdate.Payload.Value(None)
         ),
         TestMessages.update(
           contextId,
           idRes,
           s"Standard.Base.Data.Numbers.Integer",
-          payload = Api.ExpressionUpdate.Payload.Value(None)
+          payload = ExpressionUpdate.Payload.Value(None)
         ),
         context.executionComplete(contextId)
       )
@@ -4243,7 +4244,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           idRes,
           s"Standard.Base.Data.Numbers.Integer",
           typeChanged = false,
-          payload     = Api.ExpressionUpdate.Payload.Value(None)
+          payload     = ExpressionUpdate.Payload.Value(None)
         ),
         context.executionComplete(contextId)
       )
