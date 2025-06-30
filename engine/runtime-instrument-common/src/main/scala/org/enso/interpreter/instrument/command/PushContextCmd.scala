@@ -2,8 +2,8 @@ package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
+import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param request a request for a service
   */
 class PushContextCmd(
-  maybeRequestId: Option[RequestId],
+  maybeRequestId: Option[Api.RequestId],
   request: Api.PushContextRequest
 ) extends AsynchronousCommand(maybeRequestId) {
 
@@ -49,11 +49,11 @@ class PushContextCmd(
       ctx.jobControlPlane.abortJobs(request.contextId, "push context", false)
       val stack = ctx.contextManager.getStack(request.contextId)
       val pushed = request.stackItem match {
-        case _: Api.StackItem.ExplicitCall if stack.isEmpty =>
+        case _: StackItem.ExplicitCall if stack.isEmpty =>
           ctx.contextManager.push(request.contextId, request.stackItem)
           true
 
-        case _: Api.StackItem.LocalCall if stack.nonEmpty =>
+        case _: StackItem.LocalCall if stack.nonEmpty =>
           ctx.contextManager.push(request.contextId, request.stackItem)
           true
 

@@ -4,7 +4,6 @@ import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -14,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param request a request for a service
   */
 class PopContextCmd(
-  maybeRequestId: Option[RequestId],
+  maybeRequestId: Option[Api.RequestId],
   request: Api.PopContextRequest
 ) extends SynchronousCommand(maybeRequestId) {
 

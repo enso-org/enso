@@ -8,6 +8,7 @@ import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.StackItem
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
@@ -145,7 +146,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -243,7 +244,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -336,7 +337,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -414,7 +415,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -487,7 +488,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -573,7 +574,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -651,7 +652,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -754,7 +755,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -839,7 +840,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -937,7 +938,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1167,7 +1168,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1320,7 +1321,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1462,7 +1463,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1546,7 +1547,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1694,7 +1695,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1857,7 +1858,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1941,7 +1942,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2106,7 +2107,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2262,7 +2263,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2336,7 +2337,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2465,7 +2466,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2590,7 +2591,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2716,7 +2717,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2818,7 +2819,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2908,7 +2909,7 @@ class RuntimeErrorsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()

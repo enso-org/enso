@@ -1,10 +1,10 @@
 package org.enso.interpreter.instrument
 
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
   ExpressionId,
-  StackItem,
   VisualizationId
 }
 

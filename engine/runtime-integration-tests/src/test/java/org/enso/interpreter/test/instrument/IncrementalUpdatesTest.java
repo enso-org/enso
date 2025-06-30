@@ -32,8 +32,8 @@ import org.enso.polyglot.runtime.Runtime$Api$PushContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
 import org.enso.polyglot.runtime.Runtime$Api$Response;
 import org.enso.polyglot.runtime.Runtime$Api$SetExpressionValueNotification;
-import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
-import org.enso.polyglot.runtime.Runtime$Api$StackItem$LocalCall;
+import org.enso.polyglot.runtime.StackItem.ExplicitCall;
+import org.enso.polyglot.runtime.StackItem.LocalCall;
 import org.enso.text.editing.model;
 import org.junit.After;
 import org.junit.Assert;
@@ -260,7 +260,7 @@ public class IncrementalUpdatesTest {
             requestId,
             new Runtime$Api$PushContextRequest(
                 contextId,
-                new Runtime$Api$StackItem$ExplicitCall(
+                new ExplicitCall(
                     new Runtime$Api$MethodPointer(MODULE_NAME, "Enso_Test.Test.Main", "main"),
                     None(),
                     new Vector1<>(new String[] {"0"})))));
@@ -284,10 +284,7 @@ public class IncrementalUpdatesTest {
 
     // push foo call
     context.send(
-        Request(
-            requestId,
-            new Runtime$Api$PushContextRequest(
-                contextId, new Runtime$Api$StackItem$LocalCall(mainFoo))));
+        Request(requestId, new Runtime$Api$PushContextRequest(contextId, new LocalCall(mainFoo))));
     assertSameElements(
         context.receiveNIgnorePendingExpressionUpdates(4, 60, emptySet()),
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),

@@ -7,6 +7,7 @@ import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.StackItem
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -114,7 +115,7 @@ class BuiltinTypesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -584,7 +585,7 @@ class BuiltinTypesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()

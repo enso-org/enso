@@ -8,6 +8,7 @@ import org.enso.interpreter.test.Metadata
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionEnvironment
+import org.enso.polyglot.runtime.StackItem
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -122,7 +123,7 @@ class RuntimeRecomputeTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, moduleName, "main"),
       None,
       Vector()
@@ -173,7 +174,7 @@ class RuntimeRecomputeTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, moduleName, "main"),
       None,
       Vector()
@@ -240,7 +241,7 @@ class RuntimeRecomputeTest
     )
     context.receiveNone shouldEqual None
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, moduleName, "main"),
       None,
       Vector()
@@ -300,7 +301,7 @@ class RuntimeRecomputeTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, moduleName, "main"),
       None,
       Vector()
@@ -395,7 +396,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
@@ -569,7 +570,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
@@ -701,7 +702,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
@@ -833,7 +834,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,

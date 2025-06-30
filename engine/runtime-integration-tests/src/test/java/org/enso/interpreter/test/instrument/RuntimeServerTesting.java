@@ -14,7 +14,7 @@ import org.enso.polyglot.runtime.Runtime$Api$OpenFileResponse$;
 import org.enso.polyglot.runtime.Runtime$Api$PushContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
 import org.enso.polyglot.runtime.Runtime$Api$Response;
-import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
+import org.enso.polyglot.runtime.StackItem.ExplicitCall;
 import org.enso.scala.wrapper.ScalaConversions;
 import scala.Option;
 
@@ -79,7 +79,7 @@ final class RuntimeServerTesting {
             reqOptId,
             new Runtime$Api$PushContextRequest(
                 contextId,
-                new Runtime$Api$StackItem$ExplicitCall(
+                new ExplicitCall(
                     new Runtime$Api$MethodPointer(moduleName, moduleName, "main"),
                     Option.empty(),
                     ScalaConversions.<String>nil().toVector()))));

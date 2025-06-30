@@ -1,6 +1,6 @@
 package org.enso.interpreter.instrument
 
-import org.enso.polyglot.runtime.Runtime.Api.StackItem
+import org.enso.polyglot.runtime.StackItem
 
 import scala.collection.mutable
 

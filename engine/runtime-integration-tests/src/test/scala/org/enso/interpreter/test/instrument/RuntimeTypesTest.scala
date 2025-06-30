@@ -11,6 +11,7 @@ import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.StackItem
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -146,7 +147,7 @@ class RuntimeTypesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -227,7 +228,7 @@ class RuntimeTypesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -310,7 +311,7 @@ class RuntimeTypesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -449,7 +450,7 @@ class RuntimeTypesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()

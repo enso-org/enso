@@ -6,6 +6,7 @@ import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.StackItem
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
@@ -124,7 +125,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -173,7 +174,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -228,7 +229,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -295,7 +296,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -381,7 +382,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -459,7 +460,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -547,7 +548,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -606,7 +607,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -669,7 +670,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -740,7 +741,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -817,7 +818,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -891,7 +892,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -968,7 +969,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1030,7 +1031,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1090,7 +1091,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1163,7 +1164,7 @@ class RuntimeInstrumentTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()

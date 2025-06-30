@@ -12,6 +12,7 @@ import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logging.utils.akka.ActorMessageLogging
+import org.enso.polyglot.runtime.{StackItem => ApiStackItem}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -371,14 +372,14 @@ final class ContextRegistry(
 
   private def getRuntimeStackItem(
     stackItem: StackItem
-  ): Api.StackItem =
+  ): ApiStackItem =
     stackItem match {
       case StackItem.ExplicitCall(pointer, argument, arguments) =>
         val methodPointer = getRuntimeMethodPointer(pointer)
-        Api.StackItem.ExplicitCall(methodPointer, argument, arguments)
+        ApiStackItem.ExplicitCall(methodPointer, argument, arguments)
 
       case StackItem.LocalCall(expressionId) =>
-        Api.StackItem.LocalCall(expressionId)
+        ApiStackItem.LocalCall(expressionId)
     }
 
   private def getRuntimeMethodPointer(

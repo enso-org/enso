@@ -7,6 +7,7 @@ import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.StackItem
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
 import org.scalatest.concurrent.{TimeLimitedTests, TimeLimits}
@@ -212,7 +213,7 @@ class RuntimeStdlibTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Main", "main"),
             None,
             Vector()

@@ -47,6 +47,7 @@ import org.enso.interpreter.runtime.warning.{
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.io.File
@@ -271,13 +272,13 @@ object ProgramExecutionSupport {
         case Nil =>
           (explicitCalls.lastOption, localCalls)
         case List(
-              InstrumentFrame(call: Api.StackItem.ExplicitCall, cache, sync)
+              InstrumentFrame(call: StackItem.ExplicitCall, cache, sync)
             ) =>
           (
             Some(ExecutionFrame(ExecutionItem.Method(call), cache, sync)),
             localCalls
           )
-        case InstrumentFrame(Api.StackItem.LocalCall(id), cache, sync) :: xs =>
+        case InstrumentFrame(StackItem.LocalCall(id), cache, sync) :: xs =>
           unwind(
             xs,
             explicitCalls,

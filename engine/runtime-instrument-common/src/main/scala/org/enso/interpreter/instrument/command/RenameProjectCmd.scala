@@ -6,6 +6,7 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.collection.mutable
@@ -137,7 +138,7 @@ class RenameProjectCmd(
     stack: mutable.Stack[InstrumentFrame]
   ): Unit = {
     stack.mapInPlace {
-      case InstrumentFrame(call: Api.StackItem.ExplicitCall, cache, sync) =>
+      case InstrumentFrame(call: StackItem.ExplicitCall, cache, sync) =>
         val moduleName = QualifiedName
           .fromString(call.methodPointer.module)
           .renameProject(projectName)

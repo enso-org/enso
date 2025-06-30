@@ -13,6 +13,7 @@ import org.enso.languageserver.websocket.json.{
 }
 import org.enso.polyglot.runtime.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.StackItem
 import org.enso.testkit.ReportLogsOnFailure
 
 import java.util.UUID
@@ -232,7 +233,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  StackItem.LocalCall(`expressionId`)
                 )
               ) =>
             requestId
@@ -272,7 +273,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  StackItem.LocalCall(`expressionId`)
                 )
               ) =>
             requestId
@@ -368,7 +369,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  StackItem.LocalCall(`expressionId`)
                 )
               ) =>
             requestId
@@ -417,7 +418,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  StackItem.LocalCall(`expressionId`)
                 )
               ) =>
             requestId
@@ -492,7 +493,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  StackItem.LocalCall(`expressionId`)
                 )
               ) =>
             requestId
@@ -571,7 +572,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  StackItem.LocalCall(`expressionId`)
                 )
               ) =>
             requestId
@@ -655,7 +656,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.PushContextRequest(
                   `contextId`,
-                  Api.StackItem.LocalCall(`expressionId`)
+                  StackItem.LocalCall(`expressionId`)
                 )
               ) =>
             requestId

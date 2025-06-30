@@ -9,6 +9,7 @@ import org.enso.polyglot.ModuleExports
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.ExportsAction
+import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
@@ -133,7 +134,7 @@ class RuntimeSuggestionUpdatesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -693,7 +694,7 @@ class RuntimeSuggestionUpdatesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -866,7 +867,7 @@ class RuntimeSuggestionUpdatesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1058,7 +1059,7 @@ class RuntimeSuggestionUpdatesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1376,7 +1377,7 @@ class RuntimeSuggestionUpdatesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1476,7 +1477,7 @@ class RuntimeSuggestionUpdatesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1537,7 +1538,7 @@ class RuntimeSuggestionUpdatesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -1709,7 +1710,7 @@ class RuntimeSuggestionUpdatesTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()

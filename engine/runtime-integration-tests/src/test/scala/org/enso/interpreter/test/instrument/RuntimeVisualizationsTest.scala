@@ -9,6 +9,7 @@ import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.StackItem
 import org.enso.text.editing.model
 import org.graalvm.polyglot.Context
 import org.scalatest.flatspec.AnyFlatSpec
@@ -323,7 +324,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -453,7 +454,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Main", "main"),
         None,
         Vector()
@@ -600,7 +601,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -736,7 +737,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -872,7 +873,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -932,7 +933,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       new String(data) shouldEqual "50"
 
       // push foo call
-      val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+      val item2 = StackItem.LocalCall(context.Main.idMainY)
       context.send(
         Api.Request(requestId, Api.PushContextRequest(contextId, item2))
       )
@@ -1119,7 +1120,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -1259,7 +1260,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -1489,7 +1490,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -1615,7 +1616,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -1736,7 +1737,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -1873,7 +1874,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -1943,7 +1944,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -2043,7 +2044,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -2129,7 +2130,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -2251,7 +2252,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -2367,7 +2368,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -2468,7 +2469,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -2606,7 +2607,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -2715,7 +2716,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, moduleName, "main"),
         None,
         Vector()
@@ -2806,7 +2807,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -2978,7 +2979,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -3115,7 +3116,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -3299,7 +3300,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -3467,7 +3468,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -3571,7 +3572,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -3679,7 +3680,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -3815,7 +3816,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -3950,7 +3951,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -4128,7 +4129,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -4317,7 +4318,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -4469,7 +4470,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
         None,
         Vector()
@@ -4621,7 +4622,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, moduleName, "main"),
         None,
         Vector()
@@ -4722,7 +4723,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, moduleName, "main"),
         None,
         Vector()
@@ -4825,7 +4826,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, moduleName, "main"),
         None,
         Vector()
@@ -4929,7 +4930,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, moduleName, "main"),
         None,
         Vector()
@@ -5028,7 +5029,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, moduleName, "main"),
         None,
         Vector()
@@ -5119,7 +5120,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, moduleName, "main"),
         None,
         Vector()
@@ -5232,7 +5233,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push main
-      val item1 = Api.StackItem.ExplicitCall(
+      val item1 = StackItem.ExplicitCall(
         Api.MethodPointer(moduleName, moduleName, "main"),
         None,
         Vector()
@@ -5260,7 +5261,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // push `collapsed` call
-      val item2 = Api.StackItem.LocalCall(idMainCollapsed)
+      val item2 = StackItem.LocalCall(idMainCollapsed)
       context.send(
         Api.Request(requestId, Api.PushContextRequest(contextId, item2))
       )
@@ -5374,7 +5375,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           requestId,
           Api.PushContextRequest(
             contextId,
-            Api.StackItem.ExplicitCall(
+            StackItem.ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
               Vector()

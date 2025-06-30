@@ -7,6 +7,7 @@ import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.StackItem
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
@@ -131,7 +132,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -216,7 +217,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -303,7 +304,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -471,7 +472,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -558,7 +559,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -676,7 +677,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -762,7 +763,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -849,7 +850,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -938,7 +939,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1079,7 +1080,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1152,7 +1153,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1229,7 +1230,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1298,7 +1299,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1372,7 +1373,7 @@ class RuntimeRefactoringTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()

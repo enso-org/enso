@@ -16,6 +16,7 @@ import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
+import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
@@ -248,7 +249,7 @@ class RuntimeComponentsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Main", "main"),
             None,
             Vector()
@@ -333,7 +334,7 @@ class RuntimeComponentsTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Main", "main"),
             None,
             Vector()

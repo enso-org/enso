@@ -4,7 +4,7 @@ import java.util.UUID
 
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.StackItem
 
 /** An execution item. */
 sealed trait ExecutionItem
@@ -25,12 +25,12 @@ object ExecutionItem {
 
   object Method {
 
-    /** Construct the method call from the [[Api.StackItem.ExplicitCall]].
+    /** Construct the method call from the [[StackItem.ExplicitCall]].
       *
       * @param call the Api call
       * @return the method call
       */
-    def apply(call: Api.StackItem.ExplicitCall): Method =
+    def apply(call: StackItem.ExplicitCall): Method =
       Method(
         QualifiedName.fromString(call.methodPointer.module),
         QualifiedName.fromString(call.methodPointer.definedOnType),

@@ -14,6 +14,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.ExecutionEnvironment
+import org.enso.polyglot.runtime.StackItem
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -163,7 +164,7 @@ class RuntimeServerTest
     )
 
     // push local item on top of the empty stack
-    val invalidLocalItem = Api.StackItem.LocalCall(context.Main.idMainY)
+    val invalidLocalItem = StackItem.LocalCall(context.Main.idMainY)
     context.send(
       Api
         .Request(requestId, Api.PushContextRequest(contextId, invalidLocalItem))
@@ -173,7 +174,7 @@ class RuntimeServerTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -190,7 +191,7 @@ class RuntimeServerTest
     )
 
     // push foo call
-    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    val item2 = StackItem.LocalCall(context.Main.idMainY)
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
@@ -202,7 +203,7 @@ class RuntimeServerTest
     )
 
     // push method pointer on top of the non-empty stack
-    val invalidExplicitCall = Api.StackItem.ExplicitCall(
+    val invalidExplicitCall = StackItem.ExplicitCall(
       Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -277,7 +278,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -316,7 +317,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.LocalCall(identityCallId)
+          StackItem.LocalCall(identityCallId)
         )
       )
     )
@@ -368,7 +369,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "foo"),
             None,
             Vector()
@@ -435,7 +436,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -463,7 +464,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(
         requestId,
-        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(idMainFoo))
+        Api.PushContextRequest(contextId, StackItem.LocalCall(idMainFoo))
       )
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
@@ -545,7 +546,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -650,7 +651,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -733,7 +734,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -800,7 +801,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -872,7 +873,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -955,7 +956,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1071,7 +1072,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1151,7 +1152,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1217,7 +1218,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1295,7 +1296,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1400,7 +1401,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1498,7 +1499,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1585,7 +1586,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1689,7 +1690,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1807,7 +1808,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -1905,7 +1906,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2023,7 +2024,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2141,7 +2142,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2259,7 +2260,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2373,7 +2374,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2473,7 +2474,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2569,7 +2570,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2635,7 +2636,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2700,7 +2701,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2753,7 +2754,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -2814,7 +2815,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2876,7 +2877,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -2953,7 +2954,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -3027,7 +3028,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -3097,7 +3098,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -3136,7 +3137,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(
         requestId,
-        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(mainFoo))
+        Api.PushContextRequest(contextId, StackItem.LocalCall(mainFoo))
       )
     )
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
@@ -3253,7 +3254,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -3379,7 +3380,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -3397,7 +3398,7 @@ class RuntimeServerTest
     )
 
     // push foo call
-    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    val item2 = StackItem.LocalCall(context.Main.idMainY)
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
@@ -3465,7 +3466,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -3589,7 +3590,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -3959,7 +3960,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -4003,7 +4004,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.LocalCall(id1)
+          StackItem.LocalCall(id1)
         )
       )
     )
@@ -4061,7 +4062,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.LocalCall(id2)
+          StackItem.LocalCall(id2)
         )
       )
     )
@@ -4119,7 +4120,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.LocalCall(id3)
+          StackItem.LocalCall(id3)
         )
       )
     )
@@ -4212,7 +4213,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -4279,7 +4280,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -4328,7 +4329,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
@@ -4403,7 +4404,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
@@ -4492,7 +4493,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
@@ -4561,7 +4562,7 @@ class RuntimeServerTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, moduleName, "main"),
       None,
       Vector()
@@ -4579,7 +4580,7 @@ class RuntimeServerTest
     )
 
     // push foo call
-    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    val item2 = StackItem.LocalCall(context.Main.idMainY)
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
@@ -4650,7 +4651,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
@@ -4750,7 +4751,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
@@ -4856,7 +4857,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer("Unnamed.Main", "Enso_Test.Test.Main", "main"),
             None,
             Vector()
@@ -4901,7 +4902,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(
               "Enso_Test.Test.Main",
               "Enso_Test.Test.Unexpected",
@@ -4953,7 +4954,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(
               "Enso_Test.Test.Main",
               "Enso_Test.Test.Main",
@@ -5012,7 +5013,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5080,7 +5081,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5147,7 +5148,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5223,7 +5224,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5298,7 +5299,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5374,7 +5375,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5450,7 +5451,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5519,7 +5520,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5596,7 +5597,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5704,7 +5705,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5802,7 +5803,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5857,7 +5858,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5918,7 +5919,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -5978,7 +5979,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -6045,7 +6046,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -6114,7 +6115,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -6176,7 +6177,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -6223,7 +6224,7 @@ class RuntimeServerTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, moduleName, "main"),
       None,
       Vector()
@@ -6283,7 +6284,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -6404,7 +6405,7 @@ class RuntimeServerTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, moduleName, "main"),
       None,
       Vector()
@@ -6454,7 +6455,7 @@ class RuntimeServerTest
     }
 
     // push foo call
-    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    val item2 = StackItem.LocalCall(context.Main.idMainY)
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
@@ -6554,7 +6555,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -6655,7 +6656,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -6757,7 +6758,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -6825,7 +6826,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -6852,7 +6853,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(
         requestId,
-        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(y))
+        Api.PushContextRequest(contextId, StackItem.LocalCall(y))
       )
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
@@ -6899,7 +6900,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(
         requestId,
-        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(y))
+        Api.PushContextRequest(contextId, StackItem.LocalCall(y))
       )
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
@@ -7035,7 +7036,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -7116,7 +7117,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -7167,7 +7168,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -7215,7 +7216,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -7266,7 +7267,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem
+          StackItem
             .ExplicitCall(
               Api.MethodPointer(moduleName, moduleName, "main"),
               None,
@@ -7349,7 +7350,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -7375,7 +7376,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(
         requestId,
-        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(idX))
+        Api.PushContextRequest(contextId, StackItem.LocalCall(idX))
       )
     )
     context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
@@ -7459,7 +7460,7 @@ class RuntimeServerTest
         requestId,
         Api.PushContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
+          StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, moduleName, "main"),
             None,
             Vector()
@@ -7493,7 +7494,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(
         requestId,
-        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(idX))
+        Api.PushContextRequest(contextId, StackItem.LocalCall(idX))
       )
     )
     context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
@@ -7655,7 +7656,7 @@ class RuntimeServerTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()

@@ -6,6 +6,7 @@ import org.enso.common.RuntimeOptions
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.ExecutionEnvironment
+import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{
   InvalidatedExpressions,
@@ -204,7 +205,7 @@ class RuntimeAsyncCommandsTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -268,7 +269,7 @@ class RuntimeAsyncCommandsTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -349,7 +350,7 @@ class RuntimeAsyncCommandsTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, moduleName, "main"),
       None,
       Vector()
@@ -489,7 +490,7 @@ class RuntimeAsyncCommandsTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -574,7 +575,7 @@ class RuntimeAsyncCommandsTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
@@ -716,7 +717,7 @@ class RuntimeAsyncCommandsTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
+    val item1 = StackItem.ExplicitCall(
       Api.MethodPointer(moduleName, moduleName, "main"),
       None,
       Vector()

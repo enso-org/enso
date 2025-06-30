@@ -33,6 +33,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.DiagnosticType
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.StackItem
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.IdMap
@@ -570,7 +571,7 @@ class EnsureCompiledJob(
     stack: Iterable[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
     stack.lastOption.flatMap {
-      case InstrumentFrame(Api.StackItem.ExplicitCall(ptr, _, _), _, _) =>
+      case InstrumentFrame(StackItem.ExplicitCall(ptr, _, _), _, _) =>
         ctx.executionService.getContext.findModule(ptr.module).toScala.map {
           module =>
             module.getIr
@@ -616,7 +617,7 @@ class EnsureCompiledJob(
     stack.lastOption match {
       case Some(
             InstrumentFrame(
-              Api.StackItem.ExplicitCall(methodPointer, _, _),
+              StackItem.ExplicitCall(methodPointer, _, _),
               _,
               _
             )
@@ -674,7 +675,7 @@ object EnsureCompiledJob {
     stack
       .map(_.item)
       .flatMap {
-        case Api.StackItem.ExplicitCall(methodPointer, _, _) =>
+        case StackItem.ExplicitCall(methodPointer, _, _) =>
           ctx.executionService.getContext
             .findModule(methodPointer.module)
             .flatMap { module =>
