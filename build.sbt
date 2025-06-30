@@ -807,12 +807,20 @@ lazy val `logging-config` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "com.typesafe" % "config"    % typesafeConfigVersion,
-      "org.slf4j"    % "slf4j-api" % slf4jVersion
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "com.typesafe"         % "config"                  % typesafeConfigVersion,
+      "org.slf4j"            % "slf4j-api"               % slf4jVersion,
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided"
     ),
     Compile / moduleDependencies ++= Seq(
-      "com.typesafe" % "config"    % typesafeConfigVersion,
-      "org.slf4j"    % "slf4j-api" % slf4jVersion
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion,
+      "com.typesafe"         % "config"                  % typesafeConfigVersion,
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+      "org.slf4j"            % "slf4j-api"               % slf4jVersion
+    ),
+    Compile / internalModuleDependencies ++= Seq(
+      (`engine-common` / Compile / exportedModule).value,
+      (`logging-utils` / Compile / exportedModule).value
     )
   )
 
@@ -1890,8 +1898,9 @@ val testLogProviderOptions = Seq(
 /** engine/common project contains classes that are necessary to configure
   * GraalVM's polyglot context. Most specifically it contains `ContextFactory`.
   * As such it needs to depend on `org.graalvm.polyglot` package. Otherwise
-  * its dependencies shall be limited - no JSON & co. please. For purposes
-  * of consistently setting up loaders, the module depends on `logging-utils`.
+  * its dependencies shall be limited - no JSON & co. please. Also the dependency
+  * on sfl4j shall be avoided - rather the module offers a `ContextLoggingConfigurator` seam
+  * that must be implemented by some other module.
   */
 lazy val `engine-common` = project
   .in(file("engine/common"))
@@ -1902,27 +1911,18 @@ lazy val `engine-common` = project
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion % "provided",
-      "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided"
+      "org.graalvm.sdk"      % "nativeimage"     % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "polyglot"        % graalMavenPackagesVersion % "provided",
+      "junit"                % "junit"           % junitVersion              % Test,
+      "com.github.sbt"       % "junit-interface" % junitIfVersion            % Test
     ),
-    Compile / moduleDependencies ++= slf4jApi ++
-    Seq(
-      "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
-      "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
-      "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion
-    ),
-    Compile / internalModuleDependencies := Seq(
-      (`logging-utils` / Compile / exportedModule).value,
-      (`logging-config` / Compile / exportedModule).value
-    ),
-    Test / moduleDependencies ++= Seq(
-      "com.typesafe" % "config" % typesafeConfigVersion
-    )
+    Compile / moduleDependencies ++=
+      Seq(
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion
+      )
   )
-  .dependsOn(`logging-config`)
-  .dependsOn(`logging-utils`)
-  .dependsOn(testkit % Test)
-  .dependsOn(`edition-updater` % "test->compile")
 
 lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
@@ -2822,6 +2822,7 @@ lazy val `runtime-benchmarks` =
         "org.graalvm.truffle" % "truffle-api"                  % graalMavenPackagesVersion,
         "org.graalvm.truffle" % "truffle-dsl-processor"        % graalMavenPackagesVersion % "provided",
         "org.slf4j"           % "slf4j-nop"                    % slf4jVersion,
+        "com.typesafe"        % "config"                       % typesafeConfigVersion,
         "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion
       ),
       mainClass :=
@@ -3443,6 +3444,7 @@ lazy val `engine-runner-common` = project
       (`polyglot-api` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value,
       (`engine-common` / Compile / exportedModule).value,
+      (`logging-utils` / Compile / exportedModule).value,
       (`library-manager` / Compile / exportedModule).value
     )
   )
@@ -3956,13 +3958,13 @@ lazy val `jvm-channel` =
       autoScalaLibrary := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= slf4jApi ++ Seq(
+      libraryDependencies ++= Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
         "junit"           % "junit"           % junitVersion              % Test,
         "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
       ),
-      Compile / moduleDependencies ++= slf4jApi ++ Seq(
+      Compile / moduleDependencies ++= Seq(
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
@@ -3972,7 +3974,6 @@ lazy val `jvm-channel` =
         (`persistance` / Compile / exportedModule).value
       )
     )
-    .dependsOn(`engine-common`)
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
 
@@ -3985,7 +3986,7 @@ lazy val `jvm-interop` =
       autoScalaLibrary := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= slf4jApi ++ Seq(
+      libraryDependencies ++= Seq(
         "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle" % "truffle-dsl-processor"   % graalMavenPackagesVersion % "provided",
         "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
@@ -3993,7 +3994,7 @@ lazy val `jvm-interop` =
         "junit"               % "junit"                   % junitVersion              % Test,
         "com.github.sbt"      % "junit-interface"         % junitIfVersion            % Test
       ),
-      Compile / moduleDependencies ++= slf4jApi ++ Seq(
+      Compile / moduleDependencies ++= Seq(
         "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion,
         "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage"             % graalMavenPackagesVersion,
@@ -4001,12 +4002,13 @@ lazy val `jvm-interop` =
         "org.graalvm.sdk"      % "word"                    % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies ++= Seq(
-        (`jvm-channel` / Compile / exportedModule).value,
         (`engine-common` / Compile / exportedModule).value,
+        (`jvm-channel` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value
       )
     )
     .dependsOn(`jvm-channel`)
+    .dependsOn(`engine-common`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`test-utils` % Test)
 

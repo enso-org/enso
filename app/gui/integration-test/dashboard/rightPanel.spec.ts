@@ -19,6 +19,12 @@ function locateRightPanelDescription(page: Page) {
   return locateRightPanel(page).getByTestId('asset-panel-description')
 }
 
+/** Find an asset description in an asset panel. */
+function locateOwnerName(page: Page) {
+  // This has no identifying features.
+  return locateRightPanel(page).getByTestId('asset-panel-owner')
+}
+
 /** Find the contents of the Markdown editor within the given {@link Locator}. */
 function locateMarkdownContent(locator: Locator) {
   return locator.getByTestId('documentation-editor-content')
@@ -26,6 +32,8 @@ function locateMarkdownContent(locator: Locator) {
 
 /** An example description for the asset selected in the asset panel. */
 const DESCRIPTION = 'foo bar'
+/** A description written as part of the test */
+const NEW_DESCRIPTION = 'Bar Baz'
 /** An example owner username for the asset selected in the asset panel. */
 const USERNAME = 'baz quux'
 /** An example owner email for the asset selected in the asset panel. */
@@ -54,16 +62,41 @@ test('asset panel contents', ({ page }) =>
     },
   })
     .driveTable.clickRow(0)
-    .toggleDescriptionAssetPanel()
+    .togglePropertiesAssetPanel()
     .do(async () => {
-      await expect(locateRightPanelDescription(page)).toHaveText(DESCRIPTION)
-      // `getByText` is required so that this assertion works if there are multiple permissions.
-      // This is not visible; "Shared with" should only be visible on the Enterprise plan.
-      // await expect(locateAssetPanelPermissions(page).getByText(USERNAME)).toBeVisible()
+      await expect(locateOwnerName(page).getByText(USERNAME)).toBeVisible()
     })
-    .toggleDescriptionAssetPanel()
+    .togglePropertiesAssetPanel()
     .do(async () => {
       await expect(locateRightPanelDescription(page)).not.toBeVisible()
+    }))
+
+test('Asset Panel Decription', ({ page }) =>
+  mockAllAndLogin({
+    page,
+    setupAPI: (api) => {
+      api.addFile({
+        title: 'File',
+        description: DESCRIPTION,
+      })
+    },
+  })
+    .driveTable.clickRow(0)
+    .toggleDescriptionAssetPanel()
+    .do(async () => {
+      const descriptionEditor = locateRightPanelDescription(page)
+      await expect(descriptionEditor).toBeVisible()
+      await expect(descriptionEditor).toContainText(DESCRIPTION)
+      await descriptionEditor.click()
+      await page.keyboard.insertText(NEW_DESCRIPTION)
+    })
+    .driveTable.clickAway()
+    .do(() => expect(locateRightPanelDescription(page)).not.toBeVisible())
+    .driveTable.clickRow(0)
+    .do(async () => {
+      await expect(locateRightPanelDescription(page)).toContainText(
+        `${DESCRIPTION}${NEW_DESCRIPTION}`,
+      )
     }))
 
 test('Asset Panel documentation view', ({ page }) =>

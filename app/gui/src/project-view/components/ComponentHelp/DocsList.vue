@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FunctionDocs, TypeDocs } from '@/components/DocumentationPanel/ir'
+import type { FunctionDocs, TypeDocs } from '@/components/ComponentHelp/ir'
 import type { Doc } from '@/util/docParser'
 import { qnSplit } from '@/util/qualifiedName'
 import { computed } from 'vue'

@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import Breadcrumbs, {
   type Item as Breadcrumb,
-} from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
-import DocsExamples from '@/components/DocumentationPanel/DocsExamples.vue'
-import DocsHeader from '@/components/DocumentationPanel/DocsHeader.vue'
-import DocsList from '@/components/DocumentationPanel/DocsList.vue'
-import DocsSynopsis from '@/components/DocumentationPanel/DocsSynopsis.vue'
-import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
-import { HistoryStack } from '@/components/DocumentationPanel/history'
-import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
+} from '@/components/ComponentHelp/DocsBreadcrumbs.vue'
+import DocsExamples from '@/components/ComponentHelp/DocsExamples.vue'
+import DocsHeader from '@/components/ComponentHelp/DocsHeader.vue'
+import DocsList from '@/components/ComponentHelp/DocsList.vue'
+import DocsSynopsis from '@/components/ComponentHelp/DocsSynopsis.vue'
+import DocsTags from '@/components/ComponentHelp/DocsTags.vue'
+import { HistoryStack } from '@/components/ComponentHelp/history'
+import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/ComponentHelp/ir'
 import {
   lookupDocumentation,
   lookupRawDocumentation,
   placeholder,
-} from '@/components/DocumentationPanel/ir'
+} from '@/components/ComponentHelp/ir'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
@@ -26,12 +26,13 @@ import { Ok } from '@/util/data/result'
 import type { Icon as IconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
+import { EditorView } from '@codemirror/view'
 import { computed, watch } from 'vue'
 
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
 
-const { suggestionDb: db, names: projectNames } = injectCurrentProject().storesRefs
+const { suggestionDb: db, names: projectNames } = useCurrentProject().storesRefs
 
 const documentation = computed<Docs>(() => {
   if (props.aiMode)
@@ -46,6 +47,15 @@ const rawDocumentation = computed(() => {
   const entry = props.selectedEntry
   return entry && db.value ? lookupRawDocumentation(db.value.entries, entry) : undefined
 })
+
+function syncMarkdownDocumentation(view: EditorView) {
+  watch(
+    rawDocumentation,
+    (text) =>
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text ?? '' } }),
+    { immediate: true },
+  )
+}
 
 const sections = computed<Sections>(() => {
   const docs: Docs = documentation.value
@@ -142,7 +152,7 @@ function openDocs(url: string) {
 </script>
 
 <template>
-  <div class="DocumentationPanel scrollable" :style="style" @wheel.stop.passive>
+  <div class="ComponentHelp scrollable" :style="style" @wheel.stop.passive>
     <div v-if="!isPlaceholder" class="topBar">
       <Breadcrumbs
         :breadcrumbs="breadcrumbs"
@@ -162,7 +172,7 @@ function openDocs(url: string) {
       />
     </div>
     <div v-if="rawDocumentation" class="markdownDocs">
-      <MarkdownEditor :content="rawDocumentation" :toolbar="false" />
+      <MarkdownEditor :toolbar="false" @editorReady="syncMarkdownDocumentation" />
     </div>
     <template v-else>
       <DocsTags
@@ -198,7 +208,7 @@ function openDocs(url: string) {
 </template>
 
 <style scoped>
-.DocumentationPanel {
+.ComponentHelp {
   --enso-docs-type-name-color: #9640da;
   --enso-docs-methods-header-color: #1f71d3;
   --enso-docs-method-name-color: #1f71d3;

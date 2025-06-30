@@ -3,7 +3,7 @@ package org.enso.jvm.channel;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import org.enso.common.Platform;
+import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.struct.SizeOf;
@@ -31,10 +31,9 @@ public final class JVM {
    */
   public static JVM create(File javaHome, String... options) {
     var createJvmFn =
-        switch (Platform.getOperatingSystem()) {
-          case WINDOWS -> WindowsJVM.createImpl(javaHome);
-          case LINUX, MACOS -> PosixJVM.createImpl(javaHome);
-        };
+        Platform.includedIn(Platform.WINDOWS.class)
+            ? WindowsJVM.createImpl(javaHome)
+            : PosixJVM.createImpl(javaHome);
 
     var jvmArgs = new ArrayList<String>();
 

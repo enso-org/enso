@@ -243,6 +243,7 @@ export class MutableModule implements Module {
 
   /** TODO: Add docs */
   applyUpdate(update: Uint8Array, origin: Origin): ModuleUpdate | undefined {
+    console.debug('applying update to module')
     let summary: ModuleUpdate | undefined
     const observer = (events: Y.YEvent<any>[]) => {
       summary = this.observeEvents(events, origin)
@@ -250,6 +251,7 @@ export class MutableModule implements Module {
     this.nodes.observeDeep(observer)
     Y.applyUpdate(this.ydoc, update, origin)
     this.nodes.unobserveDeep(observer)
+    console.debug('applying update to module - returning', summary)
     return summary
   }
 

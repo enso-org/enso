@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DocumentationMetadata } from '@/components/DocumentationPanel/metadata'
+import type { DocumentationMetadata } from '@/components/ComponentHelp/metadata'
 import DocsTag from '@/components/MarkdownEditor/DocsTag.vue'
 import { computed, ref, watch } from 'vue'
 
