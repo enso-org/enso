@@ -51,6 +51,7 @@ import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.data.TypeGraph;
 import org.enso.text.buffer.Rope;
+import org.slf4j.LoggerFactory;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
@@ -387,11 +388,8 @@ public final class Module extends EnsoObject {
     try {
       src = getSource();
     } catch (IOException e) {
-      TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
-      logger.log(Level.SEVERE, "Failed to retrieve sources of the module: " + e.getMessage(), e);
-      return null;
-    }
-    if (src == null) {
+      var logger = LoggerFactory.getLogger(Module.class);
+      logger.warn("Failed to retrieve sources of the module: {}", e.getMessage(), e);
       return null;
     }
     var startDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex, false);
