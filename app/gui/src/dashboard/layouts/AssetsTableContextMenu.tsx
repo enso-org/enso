@@ -41,10 +41,7 @@ export interface AssetsTableContextMenuProps {
   readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-  ) => void
+  readonly doPaste: (newParentId: backendModule.DirectoryId) => void
   readonly rootRef?: React.RefObject<HTMLElement>
 }
 
@@ -180,9 +177,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       doAction={() => {
         const selected = selectedAssets[0]
         if (selected?.type === backendModule.AssetType.directory) {
-          doPaste(selected.id, selected.id)
+          doPaste(selected.id)
         } else {
-          doPaste(currentDirectoryId, currentDirectoryId)
+          doPaste(currentDirectoryId)
         }
       }}
     />

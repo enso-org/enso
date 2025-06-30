@@ -171,7 +171,7 @@ export interface AssetsTableState {
   readonly hideColumn: (column: Column) => void
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
+  readonly doPaste: (newParentId: DirectoryId) => void
   readonly getAssetNodeById: (id: AssetId) => AnyAsset | null
 }
 
@@ -619,16 +619,16 @@ function AssetsTable(props: AssetsTableProps) {
     setSelectedAssets([])
   })
 
-  const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
+  const doPaste = useEventCallback((newParentId: DirectoryId) => {
     unsetModal()
 
     const { pasteData } = driveStore.getState()
 
-    if (pasteData == null) {
+    if (!pasteData) {
       return
     }
 
-    if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
+    if (pasteData.data.assets.some((asset) => asset.id === newParentId)) {
       toast.error('Cannot paste a folder into itself.')
       return
     }

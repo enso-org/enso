@@ -54,10 +54,7 @@ export interface AssetContextMenuProps {
   readonly eventTarget: HTMLElement | null
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-  ) => void
+  readonly doPaste: (newParentId: backendModule.DirectoryId) => void
   readonly rightPanel: RightPanelData
   readonly rootRef?: React.MutableRefObject<HTMLElement | null> | undefined
 }
@@ -167,8 +164,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       doAction={() => {
         const directoryId =
           asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
-
-        doPaste(directoryId, directoryId)
+        doPaste(directoryId)
       }}
     />
   )
