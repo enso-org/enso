@@ -31,6 +31,7 @@ import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.TypeGraph
+import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.SuggestionsRepo
@@ -475,7 +476,7 @@ final class SuggestionsHandler(
         case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
           val verb = action.getClass.getSimpleName
           action match {
-            case Api.SuggestionAction.Add() =>
+            case SuggestionAction.Add() =>
               if (ids.isEmpty) {
                 logger.error("Cannot {} [{}]", verb, suggestion)
               }
@@ -485,12 +486,12 @@ final class SuggestionsHandler(
                   suggestion
                 )
               )
-            case Api.SuggestionAction.Remove() =>
+            case SuggestionAction.Remove() =>
               if (ids.isEmpty) {
                 logger.error(s"Cannot {} [{}]", verb, suggestion)
               }
               ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
-            case m: Api.SuggestionAction.Modify =>
+            case m: SuggestionAction.Modify =>
               ids.map { id =>
                 SuggestionsDatabaseUpdate.Modify(
                   id            = id,

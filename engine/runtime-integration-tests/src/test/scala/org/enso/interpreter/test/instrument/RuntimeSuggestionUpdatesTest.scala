@@ -8,8 +8,8 @@ import org.enso.polyglot.ExportedSymbol
 import org.enso.polyglot.ModuleExports
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.SuggestionAction
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -165,7 +165,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     None
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -182,7 +182,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -233,7 +233,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Modify()
+                  SuggestionAction.Modify()
                 ),
                 Vector(
                   Tree.Node(
@@ -249,7 +249,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Add()
+                      SuggestionAction.Add()
                     ),
                     Vector()
                   )
@@ -306,7 +306,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Modify()
+                  SuggestionAction.Modify()
                 ),
                 Vector(
                   Tree.Node(
@@ -322,7 +322,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Modify(scope =
+                      SuggestionAction.Modify(scope =
                         Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
@@ -346,7 +346,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Add()
+                      SuggestionAction.Add()
                     ),
                     Vector()
                   )
@@ -399,7 +399,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Modify()
+                  SuggestionAction.Modify()
                 ),
                 Vector(
                   Tree.Node(
@@ -415,7 +415,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Modify(scope =
+                      SuggestionAction.Modify(scope =
                         Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
@@ -439,7 +439,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Modify(
+                      SuggestionAction.Modify(
                         returnType = Some(ConstantsGen.NUMBER),
                         scope = Some(
                           Suggestion.Scope(
@@ -508,7 +508,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Modify()
+                  SuggestionAction.Modify()
                 ),
                 Vector(
                   Tree.Node(
@@ -524,7 +524,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Modify(scope =
+                      SuggestionAction.Modify(scope =
                         Some(
                           Suggestion.Scope(
                             Suggestion.Position(4, 6),
@@ -548,7 +548,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Modify(scope =
+                      SuggestionAction.Modify(scope =
                         Some(
                           Suggestion.Scope(
                             Suggestion.Position(4, 6),
@@ -577,7 +577,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -631,7 +631,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Modify(
+                  SuggestionAction.Modify(
                     None,
                     Some(
                       List(
@@ -725,7 +725,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     None
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -742,7 +742,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -791,7 +791,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Foo.Main",
                     None
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -808,7 +808,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -898,7 +898,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     None
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -915,7 +915,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector(
                   Tree.Node(
@@ -931,7 +931,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Add()
+                      SuggestionAction.Add()
                     ),
                     Vector()
                   )
@@ -960,7 +960,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -987,7 +987,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -1093,7 +1093,7 @@ class RuntimeSuggestionUpdatesTest
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Module("Enso_Test.Test.Main", None),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1110,7 +1110,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -1143,7 +1143,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A",
                     None
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1158,7 +1158,7 @@ class RuntimeSuggestionUpdatesTest
                     Some(ConstantsGen.ANY),
                     None
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1230,7 +1230,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1247,7 +1247,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -1572,7 +1572,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     None
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1598,7 +1598,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1615,7 +1615,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector(
                   Tree.Node(
@@ -1631,7 +1631,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Add()
+                      SuggestionAction.Add()
                     ),
                     Vector()
                   )
@@ -1746,7 +1746,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     None
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1763,7 +1763,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector(
                   Tree.Node(
@@ -1779,7 +1779,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Add()
+                      SuggestionAction.Add()
                     ),
                     Vector()
                   ),
@@ -1796,7 +1796,7 @@ class RuntimeSuggestionUpdatesTest
                         ),
                         None
                       ),
-                      Api.SuggestionAction.Add()
+                      SuggestionAction.Add()
                     ),
                     Vector()
                   )
@@ -1853,7 +1853,7 @@ class RuntimeSuggestionUpdatesTest
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Module(aModuleName, None, ListSet()),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1869,7 +1869,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     ListSet()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1894,7 +1894,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     ListSet()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1920,7 +1920,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     ListSet()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1947,7 +1947,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     ListSet()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -1974,7 +1974,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     ListSet()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )

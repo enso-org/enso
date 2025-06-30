@@ -5,6 +5,7 @@ import org.enso.languageserver.search.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.{ExportedSymbol, ModuleExports}
 import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
@@ -34,7 +35,7 @@ class SuggestionsHandlerEventsTest
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.tpe,
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -85,7 +86,7 @@ class SuggestionsHandlerEventsTest
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.constructor,
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -138,7 +139,7 @@ class SuggestionsHandlerEventsTest
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.getter,
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )
@@ -183,13 +184,13 @@ class SuggestionsHandlerEventsTest
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.constructor,
-                  Api.SuggestionAction.Modify()
+                  SuggestionAction.Modify()
                 ),
                 Vector(
                   Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestions.method,
-                      Api.SuggestionAction.Add()
+                      SuggestionAction.Add()
                     ),
                     Vector()
                   )
@@ -255,19 +256,19 @@ class SuggestionsHandlerEventsTest
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.constructor,
-                  Api.SuggestionAction.Modify()
+                  SuggestionAction.Modify()
                 ),
                 Vector(
                   Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestions.method,
-                      Api.SuggestionAction.Modify()
+                      SuggestionAction.Modify()
                     ),
                     Vector(
                       Tree.Node(
                         Api.SuggestionUpdate(
                           Suggestions.function,
-                          Api.SuggestionAction.Add()
+                          SuggestionAction.Add()
                         ),
                         Vector()
                       )
@@ -349,25 +350,25 @@ class SuggestionsHandlerEventsTest
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.constructor,
-                  Api.SuggestionAction.Modify()
+                  SuggestionAction.Modify()
                 ),
                 Vector(
                   Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestions.method,
-                      Api.SuggestionAction.Modify()
+                      SuggestionAction.Modify()
                     ),
                     Vector(
                       Tree.Node(
                         Api.SuggestionUpdate(
                           Suggestions.function,
-                          Api.SuggestionAction.Modify()
+                          SuggestionAction.Modify()
                         ),
                         Vector(
                           Tree.Node(
                             Api.SuggestionUpdate(
                               Suggestions.local,
-                              Api.SuggestionAction.Add()
+                              SuggestionAction.Add()
                             ),
                             Vector()
                           )
@@ -424,7 +425,7 @@ class SuggestionsHandlerEventsTest
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.constructor,
-                  Api.SuggestionAction.Modify(
+                  SuggestionAction.Modify(
                     arguments = Some(
                       Seq(
                         Api.SuggestionArgumentAction
@@ -439,13 +440,13 @@ class SuggestionsHandlerEventsTest
                   Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestions.method,
-                      Api.SuggestionAction.Modify()
+                      SuggestionAction.Modify()
                     ),
                     Vector(
                       Tree.Node(
                         Api.SuggestionUpdate(
                           Suggestions.function,
-                          Api.SuggestionAction.Modify(
+                          SuggestionAction.Modify(
                             externalId = Some(None)
                           )
                         ),
@@ -453,7 +454,7 @@ class SuggestionsHandlerEventsTest
                           Tree.Node(
                             Api.SuggestionUpdate(
                               Suggestions.local,
-                              Api.SuggestionAction.Modify(
+                              SuggestionAction.Modify(
                                 scope = Some(Suggestions.function.scope)
                               )
                             ),

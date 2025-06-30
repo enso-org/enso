@@ -2,11 +2,8 @@ package org.enso.searcher.memory
 
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.Suggestion.ExternalID
+import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.{
-  SuggestionAction,
-  SuggestionsDatabaseAction
-}
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.sql.SuggestionRowUniqueIndex
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
@@ -191,14 +188,14 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
   ): Future[Seq[QueryResult[Api.SuggestionsDatabaseAction]]] = Future {
     db.synchronized {
       val result = actions.map {
-        case act @ SuggestionsDatabaseAction.Clean(module) =>
+        case act @ Api.SuggestionsDatabaseAction.Clean(module) =>
           val suggestions = db.filter(_._2.module == module)
           suggestions.foreach { case (id, _) =>
             db.remove(id)
           }
           QueryResult(
             suggestions.map(_._1),
-            act.asInstanceOf[SuggestionsDatabaseAction]
+            act.asInstanceOf[Api.SuggestionsDatabaseAction]
           )
       }
       result

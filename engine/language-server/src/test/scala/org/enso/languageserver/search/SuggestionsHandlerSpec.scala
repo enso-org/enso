@@ -16,6 +16,7 @@ import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.searcher.SuggestionsRepo
 import org.enso.searcher.memory.InMemorySuggestionsRepo
@@ -80,7 +81,7 @@ class SuggestionsHandlerSpec
           Vector(),
           Tree.Root(Suggestions.all.toVector.map { suggestion =>
             Tree.Node(
-              Api.SuggestionUpdate(suggestion, Api.SuggestionAction.Add()),
+              Api.SuggestionUpdate(suggestion, SuggestionAction.Add()),
               Vector()
             )
           })
@@ -128,7 +129,7 @@ class SuggestionsHandlerSpec
               .map { suggestion =>
                 Tree.Node(
                   Api
-                    .SuggestionUpdate(suggestion, Api.SuggestionAction.Add()),
+                    .SuggestionUpdate(suggestion, SuggestionAction.Add()),
                   Vector()
                 )
               } ++
@@ -136,7 +137,7 @@ class SuggestionsHandlerSpec
               Tree.Node(
                 Api.SuggestionUpdate(
                   suggestion,
-                  Api.SuggestionAction.Remove()
+                  SuggestionAction.Remove()
                 ),
                 Vector()
               )
@@ -182,33 +183,33 @@ class SuggestionsHandlerSpec
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.module,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector()
             ),
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.constructor,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector()
             ),
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.method,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector(
                 Tree.Node(
                   Api.SuggestionUpdate(
                     Suggestions.function,
-                    Api.SuggestionAction.Add()
+                    SuggestionAction.Add()
                   ),
                   Vector(
                     Tree.Node(
                       Api.SuggestionUpdate(
                         Suggestions.local,
-                        Api.SuggestionAction.Add()
+                        SuggestionAction.Add()
                       ),
                       Vector()
                     )
@@ -248,7 +249,7 @@ class SuggestionsHandlerSpec
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.constructor,
-                Api.SuggestionAction.Modify(
+                SuggestionAction.Modify(
                   arguments = Some(
                     Seq(
                       Api.SuggestionArgumentAction
@@ -262,13 +263,13 @@ class SuggestionsHandlerSpec
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.method,
-                Api.SuggestionAction.Modify()
+                SuggestionAction.Modify()
               ),
               Vector(
                 Tree.Node(
                   Api.SuggestionUpdate(
                     Suggestions.function,
-                    Api.SuggestionAction.Modify(
+                    SuggestionAction.Modify(
                       scope = Some(Suggestions.local.scope)
                     )
                   ),
@@ -276,14 +277,14 @@ class SuggestionsHandlerSpec
                     Tree.Node(
                       Api.SuggestionUpdate(
                         Suggestions.local,
-                        Api.SuggestionAction.Remove()
+                        SuggestionAction.Remove()
                       ),
                       Vector()
                     ),
                     Tree.Node(
                       Api.SuggestionUpdate(
                         Suggestions.local,
-                        Api.SuggestionAction.Add()
+                        SuggestionAction.Add()
                       ),
                       Vector()
                     )
@@ -371,14 +372,14 @@ class SuggestionsHandlerSpec
             Tree.Node(
               Api.SuggestionUpdate(
                 module,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector()
             ),
             Tree.Node(
               Api.SuggestionUpdate(
                 fooAtom,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector()
             )
@@ -433,26 +434,26 @@ class SuggestionsHandlerSpec
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.constructor,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector()
             ),
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.method,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector(
                 Tree.Node(
                   Api.SuggestionUpdate(
                     Suggestions.function,
-                    Api.SuggestionAction.Add()
+                    SuggestionAction.Add()
                   ),
                   Vector(
                     Tree.Node(
                       Api.SuggestionUpdate(
                         Suggestions.local,
-                        Api.SuggestionAction.Add()
+                        SuggestionAction.Add()
                       ),
                       Vector()
                     )
@@ -531,40 +532,40 @@ class SuggestionsHandlerSpec
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.module,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector()
             ),
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.tpe,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector()
             ),
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.constructor,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector()
             ),
             Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.method,
-                Api.SuggestionAction.Add()
+                SuggestionAction.Add()
               ),
               Vector(
                 Tree.Node(
                   Api.SuggestionUpdate(
                     Suggestions.function,
-                    Api.SuggestionAction.Add()
+                    SuggestionAction.Add()
                   ),
                   Vector(
                     Tree.Node(
                       Api.SuggestionUpdate(
                         Suggestions.local,
-                        Api.SuggestionAction.Add()
+                        SuggestionAction.Add()
                       ),
                       Vector()
                     )

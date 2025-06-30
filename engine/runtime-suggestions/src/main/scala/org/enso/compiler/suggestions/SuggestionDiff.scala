@@ -2,6 +2,7 @@ package org.enso.compiler.suggestions
 
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{These, Tree}
+import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
 
 object SuggestionDiff {
@@ -22,7 +23,7 @@ object SuggestionDiff {
       .filter {
         case Api.SuggestionUpdate(
               _,
-              Api.SuggestionAction.Modify(None, None, None, None, None, None)
+              SuggestionAction.Modify(None, None, None, None, None, None)
             ) =>
           false
         case _ =>
@@ -50,9 +51,9 @@ object SuggestionDiff {
   private def diff(elem: These[Suggestion, Suggestion]): Api.SuggestionUpdate =
     elem match {
       case These.Here(e) =>
-        Api.SuggestionUpdate(e, Api.SuggestionAction.Remove())
+        Api.SuggestionUpdate(e, SuggestionAction.Remove())
       case These.There(e) =>
-        Api.SuggestionUpdate(e, Api.SuggestionAction.Add())
+        Api.SuggestionUpdate(e, SuggestionAction.Add())
       case These.Both(e1: Suggestion.Module, e2: Suggestion.Module) =>
         diffModules(e1, e2)
       case These.Both(e1: Suggestion.Type, e2: Suggestion.Type) =>
@@ -139,7 +140,7 @@ object SuggestionDiff {
     e1: Suggestion.Module,
     e2: Suggestion.Module
   ): Api.SuggestionUpdate = {
-    var op = Api.SuggestionAction.Modify()
+    var op = SuggestionAction.Modify()
     if (e1.documentation != e2.documentation) {
       op = op.copy(documentation = Some(e2.documentation))
     }
@@ -150,7 +151,7 @@ object SuggestionDiff {
     e1: Suggestion.Type,
     e2: Suggestion.Type
   ): Api.SuggestionUpdate = {
-    var op = Api.SuggestionAction.Modify()
+    var op = SuggestionAction.Modify()
     if (e1.externalId != e2.externalId) {
       op = op.copy(externalId = Some(e2.externalId))
     }
@@ -170,7 +171,7 @@ object SuggestionDiff {
     e1: Suggestion.Constructor,
     e2: Suggestion.Constructor
   ): Api.SuggestionUpdate = {
-    var op = Api.SuggestionAction.Modify()
+    var op = SuggestionAction.Modify()
     if (e1.externalId != e2.externalId) {
       op = op.copy(externalId = Some(e2.externalId))
     }
@@ -190,7 +191,7 @@ object SuggestionDiff {
     e1: Suggestion.Method,
     e2: Suggestion.Method
   ): Api.SuggestionUpdate = {
-    var op = Api.SuggestionAction.Modify()
+    var op = SuggestionAction.Modify()
     if (e1.externalId != e2.externalId) {
       op = op.copy(externalId = Some(e2.externalId))
     }
@@ -210,7 +211,7 @@ object SuggestionDiff {
     e1: Suggestion.Function,
     e2: Suggestion.Function
   ): Api.SuggestionUpdate = {
-    var op = Api.SuggestionAction.Modify()
+    var op = SuggestionAction.Modify()
     if (e1.externalId != e2.externalId) {
       op = op.copy(externalId = Some(e2.externalId))
     }
@@ -233,7 +234,7 @@ object SuggestionDiff {
     e1: Suggestion.Local,
     e2: Suggestion.Local
   ): Api.SuggestionUpdate = {
-    var op = Api.SuggestionAction.Modify()
+    var op = SuggestionAction.Modify()
     if (e1.externalId != e2.externalId) {
       op = op.copy(externalId = Some(e2.externalId))
     }

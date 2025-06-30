@@ -10,6 +10,7 @@ import org.enso.polyglot.{
   Suggestion
 }
 import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -173,7 +174,7 @@ class RuntimeTextEditsTest
                     moduleName,
                     None
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               ),
@@ -190,7 +191,7 @@ class RuntimeTextEditsTest
                     None,
                     Seq()
                   ),
-                  Api.SuggestionAction.Add()
+                  SuggestionAction.Add()
                 ),
                 Vector()
               )

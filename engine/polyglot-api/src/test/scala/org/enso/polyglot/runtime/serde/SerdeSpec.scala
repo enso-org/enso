@@ -7,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
-import org.enso.polyglot.runtime.Runtime.Api.SuggestionAction
+import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
 
 class SerdeSpec extends AnyFlatSpec with Matchers {
