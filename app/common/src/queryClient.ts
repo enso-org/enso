@@ -8,7 +8,9 @@ import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
-import { toValue } from 'vue'
+import { isRef, toRaw } from 'vue'
+import { cloneDeepUnref } from './utilities/data/reactive'
+import { deepInspect } from './utilities/data/types'
 
 declare module '@tanstack/query-core' {
   /** Query client with additional methods. */
@@ -73,6 +75,20 @@ export interface QueryClientOptions<TStorageValue = string> {
   }
 }
 
+declare const brandRaw: unique symbol
+/**
+ * A value that is known not to be a reactive proxy; this marker type can be used to ensure
+ * comparisons are free of identity hazards.
+ */
+type RawValue<T> = T & { [brandRaw]: true }
+
+/** Uniquely identifies a `Mutation`. */
+type MutationKey = RawValue<queryCore.Mutation<unknown, unknown>>
+
+const mutationKey = toRaw as (mutation: queryCore.Mutation<unknown, unknown>) => MutationKey
+//const identity = <T>(value: T) => value
+//const mutationKey = identity<queryCore.Mutation<unknown, unknown>> as (mutation: queryCore.Mutation<unknown, unknown>) => MutationKey
+
 /** Create a new Tanstack Query client. */
 export function createQueryClient<TStorageValue = string>(
   options: QueryClientOptions<TStorageValue> = {},
@@ -98,20 +114,59 @@ export function createQueryClient<TStorageValue = string>(
     })
   }
 
-  const invalidationKeys = new WeakMap<queryCore.Mutation<unknown, unknown>, InvalidationKeys>()
+  const invalidationKeys = new WeakMap<MutationKey, InvalidationKeys>()
+
+  function validateEvaluatedKey(key: unknown) {
+    DEV: deepInspect(key, (key) => {
+      if (
+        key == null ||
+        typeof key === 'string' ||
+        typeof key === 'number' ||
+        typeof key === 'boolean'
+      )
+        return
+      else if (isRef(key)) {
+        console.error('Unreachable: Ref in evaluated key')
+      } else {
+        // The tanstack-query Vue bindings allow getters in keys, but seemingly don't evaluate
+        // them in all usages of keys. Refs are reliably evaluated.
+        console.error(
+          'BUG: Unexpected element type in evaluated query key.' +
+            (typeof key === 'function' ?
+              ' Query key may contain refs, but must not contain getters.'
+            : ''),
+          key,
+        )
+      }
+    })
+  }
 
   const queryClient: QueryClient = new vueQuery.QueryClient({
+    queryCache: new queryCore.QueryCache({
+      onSettled: (_data, _error, query) => {
+        DEV: query.queryKey.forEach(validateEvaluatedKey)
+      },
+    }),
     mutationCache: new queryCore.MutationCache({
       onMutate: (_variables, mutation) => {
+        if (invalidationKeys.has(mutationKey(mutation))) {
+          // A `Mutation` may begin execution again, for example, if it is re-attempted from an
+          // `onError` callback. In this case, we still use the values of the invalidation keys as
+          // of the time the mutation was first initiated, which is when any necessary state was
+          // captured in its `variables`.
+          return
+        }
         const keys = evaluateInvalidationKeys(mutation)
-        if (keys) invalidationKeys.set(mutation, keys)
+        if (keys) {
+          DEV: keys.toIgnore.forEach(validateEvaluatedKey)
+          DEV: keys.toAwait.forEach(validateEvaluatedKey)
+          invalidationKeys.set(mutationKey(mutation), keys)
+        }
       },
       onSuccess: (_data, _variables, _context, mutation) => {
-        const keys = invalidationKeys.get(mutation)
+        const keys = invalidationKeys.get(mutationKey(mutation))
         if (keys) return performInvalidations(queryClient, keys)
       },
-      onSettled: (_data, _error, _variables, _context, mutation) =>
-        invalidationKeys.delete(mutation),
     }),
     defaultOptions: {
       queries: {
@@ -186,12 +241,12 @@ function evaluateInvalidationKeys(
   if (!mutation.meta) return
 
   const metaAwaitInvalidates = mutation.meta.awaitInvalidates ?? false
-  const metaInvalidates = mutation.meta.invalidates?.map(toValue) ?? []
+  const metaInvalidates = cloneDeepUnref(mutation.meta.invalidates) ?? []
   const refetchType = mutation.meta?.refetchType ?? 'active'
 
   return (
     Array.isArray(metaAwaitInvalidates) ?
-      { toAwait: metaAwaitInvalidates.map(toValue), toIgnore: metaInvalidates, refetchType }
+      { toAwait: cloneDeepUnref(metaAwaitInvalidates), toIgnore: metaInvalidates, refetchType }
     : metaAwaitInvalidates ? { toAwait: metaInvalidates, toIgnore: [], refetchType }
     : { toAwait: [], toIgnore: metaInvalidates, refetchType }
   )
