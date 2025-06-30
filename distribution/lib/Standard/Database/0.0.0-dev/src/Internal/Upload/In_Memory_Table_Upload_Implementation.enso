@@ -6,8 +6,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Table
 import Standard.Table.In_Memory_Table.In_Memory_Table
 
-import project.Connection.Connection.Connection
-import project.DB_Table.DB_Table
 import project.Internal.Upload.Table_Upload_Implementation.Table_Upload_Implementation
 import project.Update_Action.Update_Action
 from project.Errors import all

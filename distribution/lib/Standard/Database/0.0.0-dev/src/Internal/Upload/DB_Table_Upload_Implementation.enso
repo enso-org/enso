@@ -4,7 +4,6 @@ from Standard.Base import all
 
 from Standard.Table import Table
 
-import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Internal.Upload.Table_Upload_Implementation.Table_Upload_Implementation
 import project.Update_Action.Update_Action

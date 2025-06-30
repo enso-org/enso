@@ -23,7 +23,6 @@ import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Table, Column
 from Standard.Table.Errors import all
-from Standard.Table.Internal.Table_Type_Helpers import table_from_implementation
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -36,7 +35,6 @@ import project.Internal.Common.Offset_Helpers
 import project.Internal.Common.Ordering_Helpers
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Data_Link_Helpers
-import project.Internal.DB_Table_Implementation.DB_Table_Implementation
 import project.Internal.Helpers
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
