@@ -31,7 +31,7 @@ import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
-from project.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Value_Type
+from project.Errors import Invalid_Value_Type
 from project.Internal.Column_Format import all
 from project.Internal.Column_Type_Helpers import get_underlying_from_column
 from project.Internal.Java_Exports import make_string_builder
