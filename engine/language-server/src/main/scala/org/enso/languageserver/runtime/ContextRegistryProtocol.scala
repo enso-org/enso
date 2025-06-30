@@ -104,7 +104,7 @@ object ContextRegistryProtocol {
     rpcSession: JsonSession,
     contextId: ContextId,
     invalidatedExpressions: Option[InvalidatedExpressions],
-    executionEnvironment: Option[ExecutionEnvironments.ExecutionEnvironment],
+    executionEnvironment: Option[ExecutionEnvironments.Env],
     expressionConfigs: Seq[ExpressionConfig]
   )
 
@@ -154,7 +154,7 @@ object ContextRegistryProtocol {
   case class SetExecutionEnvironmentRequest(
     rpcSession: JsonSession,
     contextId: ContextId,
-    executionEnvironment: ExecutionEnvironments.ExecutionEnvironment
+    executionEnvironment: ExecutionEnvironments.Env
   )
 
   /** A response to the set execution environment request.

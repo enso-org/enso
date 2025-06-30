@@ -11,7 +11,7 @@ import java.util.UUID
   */
 case class ExpressionConfig(
   expressionId: UUID,
-  executionEnvironment: Option[ExecutionEnvironments.ExecutionEnvironment]
+  executionEnvironment: Option[ExecutionEnvironments.Env]
 ) {
 
   /** Convert this expression config to the runtime API. */

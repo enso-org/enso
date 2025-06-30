@@ -1,11 +1,11 @@
 package org.enso.languageserver.runtime
 
 import io.circe.{Decoder, Encoder}
-import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExecutionEnvironment
 
 /** Base trait for the execution environment. */
 object ExecutionEnvironments extends Enumeration {
-  type ExecutionEnvironment = Value
+  type Env = Value
 
   val Design, Live = Value
 
@@ -15,11 +15,11 @@ object ExecutionEnvironments extends Enumeration {
     * @return corresponding execution environment object
     */
   def apply(
-    executionEnvironment: Api.ExecutionEnvironment
-  ): ExecutionEnvironment =
+    executionEnvironment: ExecutionEnvironment
+  ): Env =
     executionEnvironment match {
-      case _: Api.ExecutionEnvironment.Design => Design
-      case _: Api.ExecutionEnvironment.Live   => Live
+      case _: ExecutionEnvironment.Design => Design
+      case _: ExecutionEnvironment.Live   => Live
     }
 
   /** Convert the execution environment to the appropriate API type.
@@ -28,15 +28,15 @@ object ExecutionEnvironments extends Enumeration {
     * @return corresponding Api object
     */
   def toApi(
-    executionEnvironment: ExecutionEnvironment
-  ): Api.ExecutionEnvironment =
+    executionEnvironment: Env
+  ): ExecutionEnvironment =
     executionEnvironment match {
-      case Design => Api.ExecutionEnvironment.Design()
-      case Live   => Api.ExecutionEnvironment.Live()
+      case Design => ExecutionEnvironment.Design()
+      case Live   => ExecutionEnvironment.Live()
     }
 
-  implicit val genderDecoder: Decoder[ExecutionEnvironment] =
+  implicit val genderDecoder: Decoder[Env] =
     Decoder.decodeEnumeration(ExecutionEnvironments)
-  implicit val genderEncoder: Encoder[ExecutionEnvironment] =
+  implicit val genderEncoder: Encoder[Env] =
     Encoder.encodeEnumeration(ExecutionEnvironments)
 }

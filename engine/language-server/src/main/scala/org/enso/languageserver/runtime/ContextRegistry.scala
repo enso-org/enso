@@ -13,7 +13,6 @@ import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
 import java.util.UUID
 
@@ -406,13 +405,13 @@ final class ContextRegistry(
 object ContextRegistry {
 
   private case class Store(
-    contexts: Map[ClientId, Set[ContextId]],
-    listeners: Map[ContextId, ActorRef]
+    contexts: Map[ClientId, Set[Api.ContextId]],
+    listeners: Map[Api.ContextId, ActorRef]
   ) {
 
     def addContext(
       client: ClientId,
-      contextId: ContextId,
+      contextId: Api.ContextId,
       listener: ActorRef
     ): Store =
       copy(
@@ -420,19 +419,19 @@ object ContextRegistry {
         listeners = listeners + (contextId -> listener)
       )
 
-    def removeContext(client: ClientId, contextId: ContextId): Store =
+    def removeContext(client: ClientId, contextId: Api.ContextId): Store =
       copy(
         contexts  = contexts.updated(client, getContexts(client) - contextId),
         listeners = listeners - contextId
       )
 
-    def getListener(contextId: ContextId): Option[ActorRef] =
+    def getListener(contextId: Api.ContextId): Option[ActorRef] =
       listeners.get(contextId)
 
-    def hasContext(client: ClientId, contextId: ContextId): Boolean =
+    def hasContext(client: ClientId, contextId: Api.ContextId): Boolean =
       getContexts(client).contains(contextId)
 
-    private def getContexts(client: ClientId): Set[ContextId] =
+    private def getContexts(client: ClientId): Set[Api.ContextId] =
       contexts.getOrElse(client, Set())
   }
 

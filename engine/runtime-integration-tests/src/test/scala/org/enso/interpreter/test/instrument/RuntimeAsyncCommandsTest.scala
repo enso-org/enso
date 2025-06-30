@@ -5,6 +5,7 @@ import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.polyglot.RuntimeServerInfo
+import org.enso.polyglot.runtime.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{
   InvalidatedExpressions,
@@ -388,7 +389,7 @@ class RuntimeAsyncCommandsTest
           None,
           None,
           Seq(
-            Api.ExpressionConfig(idOut, Some(Api.ExecutionEnvironment.Live()))
+            Api.ExpressionConfig(idOut, Some(ExecutionEnvironment.Live()))
           )
         )
       )
@@ -608,7 +609,7 @@ class RuntimeAsyncCommandsTest
         Api.RecomputeContextRequest(
           contextId,
           expressions          = None,
-          executionEnvironment = Some(Api.ExecutionEnvironment.Live()),
+          executionEnvironment = Some(ExecutionEnvironment.Live()),
           expressionConfigs    = Seq.empty
         )
       )

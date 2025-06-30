@@ -108,7 +108,7 @@ object ExecutionApi {
     case class Params(
       contextId: ContextId,
       invalidatedExpressions: Option[InvalidatedExpressions],
-      executionEnvironment: Option[ExecutionEnvironments.ExecutionEnvironment],
+      executionEnvironment: Option[ExecutionEnvironments.Env],
       expressionConfigs: Option[Seq[ExpressionConfig]]
     )
 
@@ -239,7 +239,7 @@ object ExecutionApi {
 
     case class Params(
       contextId: ContextId,
-      executionEnvironment: ExecutionEnvironments.ExecutionEnvironment
+      executionEnvironment: ExecutionEnvironments.Env
     )
 
     implicit val hasParams: HasParams.Aux[

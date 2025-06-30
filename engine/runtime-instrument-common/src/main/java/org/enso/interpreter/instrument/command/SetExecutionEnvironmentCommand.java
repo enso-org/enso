@@ -5,8 +5,7 @@ import org.enso.interpreter.instrument.CacheInvalidation;
 import org.enso.interpreter.instrument.InstrumentFrame;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.instrument.job.ExecuteJob;
-import org.enso.interpreter.runtime.state.ExecutionEnvironment;
-import org.enso.polyglot.runtime.Runtime$Api$ExecutionEnvironment;
+import org.enso.polyglot.runtime.ExecutionEnvironment;
 import org.enso.polyglot.runtime.Runtime$Api$SetExecutionEnvironmentResponse;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -19,13 +18,13 @@ import scala.runtime.BoxedUnit;
 public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
 
   private final UUID contextId;
-  private final Runtime$Api$ExecutionEnvironment executionEnvironment;
+  private final ExecutionEnvironment executionEnvironment;
 
   public SetExecutionEnvironmentCommand(
       Option<UUID> maybeRequestId, UUID contextId, Object executionEnvironment) {
     super(maybeRequestId);
     this.contextId = contextId;
-    this.executionEnvironment = (Runtime$Api$ExecutionEnvironment) executionEnvironment;
+    this.executionEnvironment = (ExecutionEnvironment) executionEnvironment;
   }
 
   @Override
@@ -40,7 +39,7 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
 
   @SuppressWarnings("unchecked")
   private void setExecutionEnvironment(
-      Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
+      ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     ctx.locking()
         .withContextLock(
             ctx.locking().getOrCreateContextLock(contextId),
@@ -70,7 +69,8 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                                                 ctx.executionService()
                                                     .getContext()
                                                     .setExecutionEnvironment(
-                                                        ExecutionEnvironment.forName(
+                                                        org.enso.interpreter.runtime.state
+                                                            .ExecutionEnvironment.forName(
                                                             executionEnvironment.name()));
                                                 return null;
                                               }));

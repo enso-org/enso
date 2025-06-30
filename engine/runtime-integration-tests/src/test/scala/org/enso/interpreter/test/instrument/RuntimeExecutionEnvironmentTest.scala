@@ -9,6 +9,7 @@ import org.enso.common.MethodNames
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExecutionEnvironment
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
@@ -190,7 +191,7 @@ class RuntimeExecutionEnvironmentTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
-    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual ExecutionEnvironment
       .Design()
       .name
 
@@ -200,7 +201,7 @@ class RuntimeExecutionEnvironmentTest
         requestId,
         Api.SetExecutionEnvironmentRequest(
           contextId,
-          Api.ExecutionEnvironment.Live()
+          ExecutionEnvironment.Live()
         )
       )
     )
@@ -215,7 +216,7 @@ class RuntimeExecutionEnvironmentTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
-    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual ExecutionEnvironment
       .Live()
       .name
   }
@@ -283,7 +284,7 @@ class RuntimeExecutionEnvironmentTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
-    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual ExecutionEnvironment
       .Design()
       .name
 
@@ -293,7 +294,7 @@ class RuntimeExecutionEnvironmentTest
         requestId,
         Api.SetExecutionEnvironmentRequest(
           contextId,
-          Api.ExecutionEnvironment.Design()
+          ExecutionEnvironment.Design()
         )
       )
     )
@@ -301,7 +302,7 @@ class RuntimeExecutionEnvironmentTest
     context.receiveNIgnoreStdLib(1) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId))
     )
-    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual ExecutionEnvironment
       .Design()
       .name
 
@@ -311,7 +312,7 @@ class RuntimeExecutionEnvironmentTest
         requestId,
         Api.SetExecutionEnvironmentRequest(
           contextId,
-          Api.ExecutionEnvironment.Live()
+          ExecutionEnvironment.Live()
         )
       )
     )
@@ -325,7 +326,7 @@ class RuntimeExecutionEnvironmentTest
       ),
       context.executionComplete(contextId)
     )
-    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual ExecutionEnvironment
       .Live()
       .name
   }

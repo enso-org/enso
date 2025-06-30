@@ -13,6 +13,7 @@ import org.enso.polyglot.debugger.IdExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
+import org.enso.polyglot.runtime.ExecutionEnvironment
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -7048,7 +7049,7 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
-    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual ExecutionEnvironment
       .Design()
       .name
 
@@ -7058,7 +7059,7 @@ class RuntimeServerTest
         requestId,
         Api.SetExecutionEnvironmentRequest(
           contextId,
-          Api.ExecutionEnvironment.Live()
+          ExecutionEnvironment.Live()
         )
       )
     )
@@ -7069,7 +7070,7 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
-    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual ExecutionEnvironment
       .Live()
       .name
   }

@@ -7,6 +7,7 @@ import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExecutionEnvironment
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -316,7 +317,7 @@ class RuntimeRecomputeTest
     )
 
     // recompute
-    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual ExecutionEnvironment
       .Design()
       .name
     context.send(
@@ -325,7 +326,7 @@ class RuntimeRecomputeTest
         Api.RecomputeContextRequest(
           contextId,
           Some(Api.InvalidatedExpressions.All()),
-          Some(Api.ExecutionEnvironment.Live()),
+          Some(ExecutionEnvironment.Live()),
           Seq()
         )
       )
@@ -345,7 +346,7 @@ class RuntimeRecomputeTest
       context.Main.Update.mainZ(contextId, typeChanged = false),
       context.executionComplete(contextId)
     )
-    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+    context.languageContext.getGlobalExecutionEnvironment.getName shouldEqual ExecutionEnvironment
       .Design()
       .name
   }
@@ -448,7 +449,7 @@ class RuntimeRecomputeTest
           None,
           None,
           Seq(
-            Api.ExpressionConfig(idOut, Some(Api.ExecutionEnvironment.Live()))
+            Api.ExpressionConfig(idOut, Some(ExecutionEnvironment.Live()))
           )
         )
       )
@@ -487,7 +488,7 @@ class RuntimeRecomputeTest
           None,
           None,
           Seq(
-            Api.ExpressionConfig(idIn, Some(Api.ExecutionEnvironment.Live()))
+            Api.ExpressionConfig(idIn, Some(ExecutionEnvironment.Live()))
           )
         )
       )
@@ -622,7 +623,7 @@ class RuntimeRecomputeTest
           None,
           None,
           Seq(
-            Api.ExpressionConfig(idOut, Some(Api.ExecutionEnvironment.Live()))
+            Api.ExpressionConfig(idOut, Some(ExecutionEnvironment.Live()))
           )
         )
       )
@@ -756,7 +757,7 @@ class RuntimeRecomputeTest
           None,
           None,
           Seq(
-            Api.ExpressionConfig(idOut, Some(Api.ExecutionEnvironment.Live()))
+            Api.ExpressionConfig(idOut, Some(ExecutionEnvironment.Live()))
           )
         )
       )
@@ -908,8 +909,8 @@ class RuntimeRecomputeTest
           None,
           None,
           Seq(
-            Api.ExpressionConfig(idIn, Some(Api.ExecutionEnvironment.Live())),
-            Api.ExpressionConfig(idOut, Some(Api.ExecutionEnvironment.Live()))
+            Api.ExpressionConfig(idIn, Some(ExecutionEnvironment.Live())),
+            Api.ExpressionConfig(idOut, Some(ExecutionEnvironment.Live()))
           )
         )
       )

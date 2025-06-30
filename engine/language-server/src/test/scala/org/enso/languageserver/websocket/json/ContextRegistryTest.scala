@@ -11,6 +11,7 @@ import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
 }
+import org.enso.polyglot.runtime.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.ReportLogsOnFailure
 
@@ -611,7 +612,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                   Seq(
                     Api.ExpressionConfig(
                       `expressionId`,
-                      Some(Api.ExecutionEnvironment.Live())
+                      Some(ExecutionEnvironment.Live())
                     )
                   )
                 )
@@ -686,7 +687,7 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                 requestId,
                 Api.SetExecutionEnvironmentRequest(
                   `contextId`,
-                  Api.ExecutionEnvironment.Live()
+                  ExecutionEnvironment.Live()
                 )
               ) =>
             requestId

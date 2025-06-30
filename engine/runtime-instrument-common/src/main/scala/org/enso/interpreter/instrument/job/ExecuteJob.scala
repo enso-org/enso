@@ -8,6 +8,9 @@ import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.ExecutionResult
+import org.enso.polyglot.runtime.{
+  ExecutionEnvironment => ApiExecutionEnvironment
+}
 import org.enso.polyglot.runtime.Runtime.Api
 
 /** A job responsible for executing a call stack for the provided context.
@@ -20,17 +23,17 @@ import org.enso.polyglot.runtime.Runtime.Api
 class ExecuteJob(
   contextId: UUID,
   stack: List[InstrumentFrame],
-  val executionEnvironment: Option[Api.ExecutionEnvironment],
+  val executionEnvironment: Option[ApiExecutionEnvironment],
   val visualizationTriggered: Boolean = false
 ) extends Job[Unit](
       List(contextId),
       isCancellable = executionEnvironment.forall(ee =>
-        ee.name != Api.ExecutionEnvironment.Live().name
+        ee.name != ApiExecutionEnvironment.Live().name
       ),
       // Interruptions may turn out to be problematic in enterprise edition of GraalVM
       // until https://github.com/oracle/graal/issues/3590 is resolved
       mayInterruptIfRunning = executionEnvironment.forall(ee =>
-        ee.name != Api.ExecutionEnvironment.Live().name
+        ee.name != ApiExecutionEnvironment.Live().name
       )
     ) {
 

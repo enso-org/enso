@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
-import org.enso.polyglot.runtime.Runtime$Api$ExecutionEnvironment;
 import org.enso.polyglot.runtime.Runtime$Api$ExpressionConfig;
 import scala.Option;
 import scala.collection.immutable.Seq;
@@ -27,8 +26,8 @@ public record ExecutionConfig(
   public static ExecutionConfig create(
       Object executionEnvironmentOption1, Object expressionConfigs1) {
     Map<UUID, ExecutionEnvironment> expressionConfigsBuilder = new HashMap<>();
-    Option<Runtime$Api$ExecutionEnvironment> executionEnvironmentOption =
-        (Option<Runtime$Api$ExecutionEnvironment>) executionEnvironmentOption1;
+    Option<org.enso.polyglot.runtime.ExecutionEnvironment> executionEnvironmentOption =
+        (Option<org.enso.polyglot.runtime.ExecutionEnvironment>) executionEnvironmentOption1;
     Seq<Runtime$Api$ExpressionConfig> expressionConfigs =
         (Seq<Runtime$Api$ExpressionConfig>) expressionConfigs1;
     expressionConfigs.foreach(

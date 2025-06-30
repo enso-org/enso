@@ -390,29 +390,6 @@ object Runtime {
         ")"
     }
 
-    /** Base trait for runtime execution environment. */
-    sealed trait ExecutionEnvironment {
-
-      /** The environment name. */
-      def name: String
-    }
-    object ExecutionEnvironment {
-
-      @named("executionEnvironmentLive")
-      final case class Live() extends ExecutionEnvironment {
-
-        /** @inheritdoc */
-        override val name: String = "live"
-      }
-
-      @named("executionEnvironmentDesign")
-      final case class Design() extends ExecutionEnvironment {
-
-        /** @inheritdoc */
-        override val name: String = "design"
-      }
-    }
-
     /** The configuration of how to execute the expression.
       *
       * @param expressionId the expression identifier
