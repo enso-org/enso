@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation;
 
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -181,7 +180,7 @@ public final class IsInOperation {
         Builder.getForBoolean(storage.getSize()),
         (builder, index, value) -> {
           if (value instanceof Double || value instanceof Float) {
-            problemAggregator.reportFloatingPointEquality((int)index);
+            problemAggregator.reportFloatingPointEquality(index);
           }
 
           if (contains.test(result.uniqueValues, value)) {

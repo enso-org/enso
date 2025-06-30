@@ -1,10 +1,8 @@
 /** @file Display and modify the properties of an asset. */
-import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
 import { Button, CopyButton } from '#/components/Button'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Form } from '#/components/Form'
-import { ResizableContentEditableInput } from '#/components/Inputs/ResizableInput'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { Text } from '#/components/Text'
@@ -103,21 +101,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
-  const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
-  const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
-  const setIsEditingDescription = useEventCallback(
-    (valueOrUpdater: React.SetStateAction<boolean>) => {
-      setIsEditingDescriptionRaw((currentValue) => {
-        if (typeof valueOrUpdater === 'function') {
-          valueOrUpdater = valueOrUpdater(currentValue)
-        }
-        if (!valueOrUpdater) {
-          closeSpotlight()
-        }
-        return valueOrUpdater
-      })
-    },
-  )
   const featureFlags = useFeatureFlags()
   const datalinkQuery = useQuery(
     backendQueryOptions(
@@ -133,16 +116,12 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
       },
     ),
   )
-  const descriptionSpotlight = useSpotlight({
-    enabled: rightPanel.context?.spotlightOn === 'description',
-    close: closeSpotlight,
-  })
   const secretSpotlight = useSpotlight({
-    enabled: rightPanel.context?.spotlightOn === 'secret',
+    enabled: spotlightOn === 'secret',
     close: closeSpotlight,
   })
   const datalinkSpotlight = useSpotlight({
-    enabled: rightPanel.context?.spotlightOn === 'datalink',
+    enabled: spotlightOn === 'datalink',
     close: closeSpotlight,
   })
 
@@ -157,85 +136,15 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isCredential = isAssetCredential(item)
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   // Provide an extra `mutationKey` so that it has its own loading state.
-  const editDescriptionMutation = useMutation(
-    backendMutationOptions(backend, 'updateAsset', { mutationKey: ['editDescription'] }),
-  )
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
-  const displayedDescription =
-    editDescriptionMutation.variables?.[0] === item.id ?
-      (editDescriptionMutation.variables[1].description ?? item.description)
-    : item.description
   const ownerPermission = permissions.tryGetOwnerPermission(item)
-
-  const editDescriptionForm = Form.useForm({
-    schema: (z) => z.object({ description: z.string() }),
-    defaultValues: { description: item.description ?? '' },
-    onSubmit: async ({ description }) => {
-      if (description !== item.description) {
-        await editDescriptionMutation.mutateAsync([
-          item.id,
-          { parentDirectoryId: null, description, title: null },
-          item.title,
-        ])
-      }
-      setIsEditingDescription(false)
-    },
-  })
-  const resetEditDescriptionForm = editDescriptionForm.reset
-
-  React.useEffect(() => {
-    setIsEditingDescription(false)
-  }, [item.id, setIsEditingDescription])
-
-  React.useEffect(() => {
-    resetEditDescriptionForm({ description: item.description ?? '' })
-  }, [item.description, resetEditDescriptionForm])
 
   return (
     <div className="flex w-full flex-col gap-8">
-      {descriptionSpotlight.spotlightElement}
       {secretSpotlight.spotlightElement}
       {datalinkSpotlight.spotlightElement}
-      <div className={styles.section()} {...descriptionSpotlight.props}>
-        <Heading
-          level={2}
-          className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
-        >
-          {getText('description')}
-          {!isReadonly && ownsThisAsset && !isEditingDescription && (
-            <Button
-              size="medium"
-              variant="icon"
-              icon={PenIcon}
-              loading={editDescriptionMutation.isPending}
-              onPress={() => {
-                setIsEditingDescription(true)
-              }}
-            />
-          )}
-        </Heading>
-        <div
-          data-testid="asset-panel-description"
-          className="self-stretch py-side-panel-description-y"
-        >
-          {!isEditingDescription ?
-            <Text>{displayedDescription}</Text>
-          : <Form form={editDescriptionForm} className="flex flex-col gap-modal pr-4">
-              <ResizableContentEditableInput
-                autoFocus
-                form={editDescriptionForm}
-                name="description"
-                mode="onBlur"
-              />
-              <Button.Group>
-                <Form.Submit>{getText('update')}</Form.Submit>
-              </Button.Group>
-            </Form>
-          }
-        </div>
-      </div>
 
       {isCloud && (
         <div className={styles.section()}>

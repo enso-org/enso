@@ -24,14 +24,6 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public boolean isNothing(long index) {
-    if (index < 0 || index >= getSize()) {
-      throw new IndexOutOfBoundsException(index);
-    }
-    return true;
-  }
-
-  @Override
   public Void getItemBoxed(long idx) {
     if (idx < 0 || idx >= getSize()) {
       throw new IndexOutOfBoundsException(idx);

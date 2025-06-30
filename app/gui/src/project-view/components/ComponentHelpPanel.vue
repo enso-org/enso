@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useConainerData } from '$/providers/container'
 import { useRightPanelData } from '$/providers/rightPanel'
-import DocumentationPanel from '@/components/DocumentationPanel.vue'
+import ComponentHelp from '@/components/ComponentHelp.vue'
 import { Err, Ok } from '@/util/data/result'
 import { ResultComponent } from '@/util/react'
 import { computed } from 'vue'
@@ -24,7 +24,7 @@ const displayedId = computed({
 </script>
 
 <template>
-  <DocumentationPanel
+  <ComponentHelp
     v-if="displayedId?.ok"
     :selectedEntry="displayedId.value"
     :aiMode="rightPanel.context?.help?.aiMode ?? false"
@@ -41,7 +41,7 @@ const displayedId = computed({
 </template>
 
 <style scoped>
-.DocumentationPanel {
+.ComponentHelp {
   --list-height: 0px;
   --radius-default: 20px;
   --background-color: #fff;

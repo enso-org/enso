@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
@@ -40,7 +40,7 @@ const emit = defineEmits<{
   updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
 type WidgetProps = ComponentProps<typeof NodeWidget>
-const openedProject = injectCurrentProject().ref
+const openedProject = useCurrentProject().ref
 
 function defaultWidget(ast: Ast.Token | Ast.Ast): WidgetProps {
   return { input: WidgetInput.FromAst(ast) }

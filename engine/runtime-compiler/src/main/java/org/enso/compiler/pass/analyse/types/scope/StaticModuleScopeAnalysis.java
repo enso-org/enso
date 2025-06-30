@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.collection.immutable.Seq;
 
+/** The pass that constructs the {@link StaticModuleScope} for modules. */
 public class StaticModuleScopeAnalysis implements IRPass {
   public static final StaticModuleScopeAnalysis INSTANCE = new StaticModuleScopeAnalysis();
   private final Logger logger = LoggerFactory.getLogger(StaticModuleScopeAnalysis.class);

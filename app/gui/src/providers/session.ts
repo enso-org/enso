@@ -22,9 +22,6 @@ export function createSessionQuery(authService: cognito.ISessionProvider) {
   return vueQuery.queryOptions({
     queryKey: ['userSession'],
     queryFn: async () => authService.userSession().catch(() => null),
-    meta: {
-      persist: false,
-    },
   })
 }
 
@@ -297,7 +294,7 @@ export function createSessionStore(
   return proxyRefs({
     signUp,
     session: session.data,
-    waitForSession: () => queryClient.ensureQueryData(sessionQueryOptions),
+    waitForSession: session.suspense,
     isLoggingOut,
     confirmSignUp,
     signInWithPassword,

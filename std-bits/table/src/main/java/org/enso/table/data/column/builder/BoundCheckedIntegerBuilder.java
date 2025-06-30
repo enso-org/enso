@@ -7,7 +7,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A LongBuilder that ensures values it is given fit the target type. */
-public class BoundCheckedIntegerBuilder extends LongBuilder {
+final class BoundCheckedIntegerBuilder extends LongBuilder {
   private final IntegerType type;
   private final CastProblemAggregator castProblemAggregator;
 

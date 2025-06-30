@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DocsTag from '@/components/DocumentationPanel/DocsTag.vue'
+import DocsTag from '@/components/ComponentHelp/DocsTag.vue'
 import type { Doc } from '@/util/docParser'
 import { computed, ref, watch } from 'vue'
 

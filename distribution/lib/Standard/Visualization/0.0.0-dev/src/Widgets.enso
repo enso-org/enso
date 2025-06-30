@@ -8,8 +8,6 @@ from Standard.Table import all
 
 from Standard.Database import all
 
-from Standard.Geo import all
-
 ## PRIVATE
    Basic preprocessor for widgets metadata visualization.
 

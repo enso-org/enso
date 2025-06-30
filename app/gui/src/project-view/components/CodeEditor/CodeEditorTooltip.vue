@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { injectCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { type NodeId } from '@/stores/graph'
 import { type GraphDb } from '@/stores/graph/graphDatabase'
 import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -12,7 +12,7 @@ const { nodeId, syntax, graphDb, suggestionDbStore } = defineProps<{
   suggestionDbStore: SuggestionDbStore
 }>()
 
-const { names: projectNames } = injectCurrentProject().storesRefs
+const { names: projectNames } = useCurrentProject().storesRefs
 
 const expressionInfo = computed(() => nodeId && graphDb.getExpressionInfo(nodeId))
 const typeName = computed(() => {

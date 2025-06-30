@@ -49,7 +49,7 @@ public class LongArrayList {
     lastIndex = index;
   }
 
-  /** Adds all elements from the given array to the list. */
+  /** Copies the list to a long array. */
   public long[] toArray() {
     return Arrays.copyOf(backingStorage, lastIndex + 1);
   }
