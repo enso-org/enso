@@ -17,17 +17,8 @@ refine_column (column : Column & In_Memory_Column) =
         Value_Type.Byte -> _refine_numeric_column column
         Value_Type.Float _ -> _refine_numeric_column column
         Value_Type.Decimal _ _ -> _refine_numeric_column column
-        _ ->
-            ## We treat a column as single value if it contains a single not-nothing value.
-            first_value = if is_single_value column then column.at 0 else Nothing
-            case first_value of
-                _ : Text -> (column : Column & In_Memory_Column & Text)
-                _ : Boolean -> (column : Column & In_Memory_Column & Boolean)
-                _ : Date -> (column : Column & In_Memory_Column & Date)
-                _ : Time_Of_Day -> (column : Column & In_Memory_Column & Time_Of_Day)
-                _ : Date_Time -> (column : Column & In_Memory_Column & Date_Time)
-                # Other types are not supported.
-                _ -> (column : Column & In_Memory_Column)
+        _ -> _refine_other_column column
+
 
 private _refine_numeric_column (column : Column & In_Memory_Column) -> Column & In_Memory_Column & Numeric_Column = case column.length of
     1 -> case column.at 0 of
@@ -36,6 +27,18 @@ private _refine_numeric_column (column : Column & In_Memory_Column) -> Column & 
         _ : Decimal -> column : Column & In_Memory_Column & Numeric_Column & Decimal
         _ -> column : Column & In_Memory_Column & Numeric_Column
     _ -> column : Column & In_Memory_Column & Numeric_Column
+
+private _refine_other_column (column : Column & In_Memory_Column) -> Column & In_Memory_Column =
+    ## We treat a column as single value if it contains a single not-nothing value.
+    first_value = if is_single_value column then column.at 0 else Nothing
+    case first_value of
+        _ : Text -> (column : Column & In_Memory_Column & Text)
+        _ : Boolean -> (column : Column & In_Memory_Column & Boolean)
+        _ : Date -> (column : Column & In_Memory_Column & Date)
+        _ : Time_Of_Day -> (column : Column & In_Memory_Column & Time_Of_Day)
+        _ : Date_Time -> (column : Column & In_Memory_Column & Date_Time)
+        # Other types are not supported.
+        _ -> (column : Column & In_Memory_Column)
 
 is_single_value column:Column -> Boolean =
     (column.length == 1) && (column.at 0 . is_nothing . not)
