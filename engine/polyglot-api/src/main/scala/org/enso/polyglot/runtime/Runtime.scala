@@ -331,14 +331,6 @@ object Runtime {
       action: ExportsAction
     )
 
-    sealed trait ExportsAction
-    object ExportsAction {
-      @named("exportsActionAdd")
-      case class Add() extends ExportsAction
-      @named("exportsActionRemove")
-      case class Remove() extends ExportsAction
-    }
-
     /** A suggestion update.
       *
       * @param suggestion the original suggestion

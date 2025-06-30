@@ -31,6 +31,7 @@ import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.TypeGraph
+import org.enso.polyglot.runtime.ExportsAction
 import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
@@ -507,14 +508,14 @@ final class SuggestionsHandler(
       val exportUpdates = exportResults.flatMap { queryResult =>
         val update = queryResult.value
         update.action match {
-          case Api.ExportsAction.Add() =>
+          case ExportsAction.Add() =>
             queryResult.ids.map { id =>
               SuggestionsDatabaseUpdate.Modify(
                 id       = id,
                 reexport = Some(fieldUpdate(update.exports.module))
               )
             }
-          case Api.ExportsAction.Remove() =>
+          case ExportsAction.Remove() =>
             queryResult.ids.map { id =>
               SuggestionsDatabaseUpdate.Modify(
                 id       = id,

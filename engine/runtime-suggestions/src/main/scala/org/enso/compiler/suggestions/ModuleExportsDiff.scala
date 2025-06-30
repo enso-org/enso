@@ -1,6 +1,7 @@
 package org.enso.compiler.suggestions
 
 import org.enso.polyglot.ModuleExports
+import org.enso.polyglot.runtime.ExportsAction
 import org.enso.polyglot.runtime.Runtime.Api
 
 object ModuleExportsDiff {
@@ -18,12 +19,12 @@ object ModuleExportsDiff {
     val added   = current.symbols.diff(prev.symbols)
     val removed = prev.symbols.diff(current.symbols)
     val addedUpdate = Option.when(added.nonEmpty) {
-      Api.ExportsUpdate(current.copy(symbols = added), Api.ExportsAction.Add())
+      Api.ExportsUpdate(current.copy(symbols = added), ExportsAction.Add())
     }
     val removedUpdate = Option.when(removed.nonEmpty) {
       Api.ExportsUpdate(
         current.copy(symbols = removed),
-        Api.ExportsAction.Remove()
+        ExportsAction.Remove()
       )
     }
     (addedUpdate ++ removedUpdate).toVector

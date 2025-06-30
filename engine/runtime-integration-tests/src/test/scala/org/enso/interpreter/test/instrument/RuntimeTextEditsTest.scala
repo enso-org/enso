@@ -10,6 +10,7 @@ import org.enso.polyglot.{
   Suggestion
 }
 import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.ExportsAction
 import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
@@ -163,7 +164,7 @@ class RuntimeTextEditsTest
                 moduleName,
                 ListSet(ExportedSymbol.Method(moduleName, "main"))
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(

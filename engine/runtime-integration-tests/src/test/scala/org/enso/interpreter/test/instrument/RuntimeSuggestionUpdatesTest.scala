@@ -8,6 +8,7 @@ import org.enso.polyglot.ExportedSymbol
 import org.enso.polyglot.ModuleExports
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.ExportsAction
 import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
@@ -154,7 +155,7 @@ class RuntimeSuggestionUpdatesTest
                 moduleName,
                 ListSet(ExportedSymbol.Method(moduleName, "main"))
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(
@@ -490,7 +491,7 @@ class RuntimeSuggestionUpdatesTest
                 moduleName,
                 ListSet(ExportedSymbol.Method(moduleName, "foo"))
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(
@@ -714,7 +715,7 @@ class RuntimeSuggestionUpdatesTest
                 moduleName,
                 ListSet(ExportedSymbol.Method(moduleName, "main"))
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(
@@ -780,7 +781,7 @@ class RuntimeSuggestionUpdatesTest
                 "Enso_Test.Foo.Main",
                 ListSet(ExportedSymbol.Method("Enso_Test.Foo.Main", "main"))
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(
@@ -887,7 +888,7 @@ class RuntimeSuggestionUpdatesTest
                 moduleName,
                 ListSet(ExportedSymbol.Method(moduleName, "main"))
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(
@@ -1085,7 +1086,7 @@ class RuntimeSuggestionUpdatesTest
                   ExportedSymbol.Method("Enso_Test.Test.A", "hello")
                 )
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(
@@ -1132,7 +1133,7 @@ class RuntimeSuggestionUpdatesTest
                   ExportedSymbol.Method("Enso_Test.Test.A", "hello")
                 )
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(
@@ -1290,7 +1291,7 @@ class RuntimeSuggestionUpdatesTest
                 "Enso_Test.Test.Main",
                 Set(ExportedSymbol.Method("Enso_Test.Test.A", "hello"))
               ),
-              Api.ExportsAction.Remove()
+              ExportsAction.Remove()
             )
           ),
           updates = Tree.Root(Vector())
@@ -1332,7 +1333,7 @@ class RuntimeSuggestionUpdatesTest
                   ExportedSymbol.Constructor("Enso_Test.Test.A", "MkA")
                 )
               ),
-              Api.ExportsAction.Remove()
+              ExportsAction.Remove()
             )
           ),
           updates = Tree.Root(Vector())
@@ -1561,7 +1562,7 @@ class RuntimeSuggestionUpdatesTest
                   ExportedSymbol.Method(moduleName, "some_func")
                 )
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(
@@ -1735,7 +1736,7 @@ class RuntimeSuggestionUpdatesTest
                   ExportedSymbol.Method("Enso_Test.Test.Main", "main")
                 )
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(
@@ -1845,7 +1846,7 @@ class RuntimeSuggestionUpdatesTest
                   ExportedSymbol.Method(aModuleName, "newType")
                 )
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           updates = Tree.Root(

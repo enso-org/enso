@@ -1,6 +1,7 @@
 package org.enso.searcher.sql
 
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
+import org.enso.polyglot.runtime.ExportsAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionEntry
 import org.enso.searcher.data.QueryResult
@@ -600,14 +601,14 @@ class SuggestionsRepoTest
             reexport,
             Set(ExportedSymbol.Module(suggestion.module.module))
           ),
-          Api.ExportsAction.Add()
+          ExportsAction.Add()
         ),
         Api.ExportsUpdate(
           ModuleExports(
             reexport,
             Set(ExportedSymbol.Method(method.module, method.name))
           ),
-          Api.ExportsAction.Remove()
+          ExportsAction.Remove()
         )
       )
       val action = for {

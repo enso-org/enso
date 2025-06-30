@@ -15,6 +15,7 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.data.{Tree, TypeGraph}
+import org.enso.polyglot.runtime.ExportsAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
@@ -622,7 +623,7 @@ class SuggestionsHandlerSpec
                 )
               )
             ),
-            Api.ExportsAction.Add()
+            ExportsAction.Add()
           )
         // apply updates1
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -670,7 +671,7 @@ class SuggestionsHandlerSpec
                 )
               )
             ),
-            Api.ExportsAction.Remove()
+            ExportsAction.Remove()
           )
         // apply updates2
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(

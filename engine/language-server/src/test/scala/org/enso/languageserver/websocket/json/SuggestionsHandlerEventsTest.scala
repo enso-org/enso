@@ -5,6 +5,7 @@ import org.enso.languageserver.search.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.{ExportedSymbol, ModuleExports}
 import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.ExportsAction
 import org.enso.polyglot.runtime.SuggestionAction
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
@@ -553,7 +554,7 @@ class SuggestionsHandlerEventsTest
                   )
                 )
               ),
-              Api.ExportsAction.Add()
+              ExportsAction.Add()
             )
           ),
           Tree.Root(Vector())
