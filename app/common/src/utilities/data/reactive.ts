@@ -1,7 +1,15 @@
 import { isRef, unref, type ComputedRef, type Ref } from 'vue'
 
-export type MaybeRef<T> = Ref<T> | ComputedRef<T> | T
+/**
+ * A value that may be wrapped in a ref. Note that this is different from the Vue type with the same
+ * name.
+ */
+type MaybeRef<T> = Ref<T> | ComputedRef<T> | T
 
+/**
+ * A type that may recursively contain {@link Ref}s or getter functions, and can be recursively
+ * unwrapped by {@link cloneDeepUnref}
+ */
 export type MaybeRefDeep<T> = MaybeRef<
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   T extends Function ? T
@@ -12,8 +20,10 @@ export type MaybeRefDeep<T> = MaybeRef<
   : T
 >
 
-// Helper function for cloning deep objects where
-// the level and key is provided to the callback function.
+/**
+ * Helper function for cloning deep objects where the level and key is provided to the callback
+ * function.
+ */
 function _cloneDeep<T>(
   value: MaybeRefDeep<T>,
   customize?: (val: MaybeRefDeep<T>, key: string, level: number) => T | undefined,
@@ -47,19 +57,19 @@ function _cloneDeep<T>(
   return value as T
 }
 
-export function cloneDeep<T>(
+function cloneDeep<T>(
   value: MaybeRefDeep<T>,
   customize?: (val: MaybeRefDeep<T>, key: string, level: number) => T | undefined,
 ): T {
   return _cloneDeep(value, customize)
 }
 
+/** Recursively clone the provided value, unwrapping any references found. */
 export function cloneDeepUnref<T>(obj: MaybeRefDeep<T>, unrefGetters = false): T {
   return cloneDeep(obj, (val, key, level) => {
     // Check if we're at the top level and the key is 'queryKey'
     //
-    // If so, take the recursive descent where we resolve
-    // getters to values as well as refs.
+    // If so, take the recursive descent where we resolve getters to values as well as refs.
     if (level === 1 && key === 'queryKey') {
       return cloneDeepUnref(val, true)
     }
