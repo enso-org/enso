@@ -46,24 +46,29 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(addedNode.locator('.TableVisualization')).toBeVisible()
   await expect(addedNode.locator('.TableVisualization')).toContainText('1')
 
-  // Select and collapse nodes
+  // Select nodes and create User Defined Component nodes
   await page.keyboard.press(`${CONTROL_KEY}+A`)
-  await page.getByRole('button', { name: 'Group Selected Components' }).click()
+  await page
+    .getByRole('button', { name: 'Create User Defined Component from Selected Components' })
+    .click()
   await expect(page.locator('.GraphNode')).toHaveCount(1)
-  await expect(page.locator('.GraphNode')).toHaveText(/Main.collapsed/)
+  await expect(page.locator('.GraphNode')).toHaveText(/Main.user_defined_component/)
   await page.locator('.GraphNode').click()
   await page.getByRole('button', { name: 'Visualization' }).click()
   await expect(page.locator('.TableVisualization')).toBeVisible()
   await expect(page.locator('.TableVisualization')).toContainText('1')
 
-  // Enter collapsed function
+  // Enter User Defined Component
   // First wait until node is computed. Visualization may be cached, so we look at icon.
   await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute('href', /#group/)
   await page.locator('.GraphNode').dblclick()
   await expect(page.locator('.GraphNode')).toHaveCount(3)
-  await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'collapsed'])
+  await expect(page.locator('.NavBreadcrumb')).toHaveText([
+    'New Project 1',
+    'user_defined_component',
+  ])
 
-  // Rename collapsed function
+  // Rename User Defined component
   await page.getByRole('tab', { name: 'Documentation' }).click()
   await page
     .locator('.FunctionSignatureEditor')
