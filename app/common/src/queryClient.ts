@@ -86,8 +86,6 @@ type RawValue<T> = T & { [brandRaw]: true }
 type MutationKey = RawValue<queryCore.Mutation<unknown, unknown>>
 
 const mutationKey = toRaw as (mutation: queryCore.Mutation<unknown, unknown>) => MutationKey
-//const identity = <T>(value: T) => value
-//const mutationKey = identity<queryCore.Mutation<unknown, unknown>> as (mutation: queryCore.Mutation<unknown, unknown>) => MutationKey
 
 /** Create a new Tanstack Query client. */
 export function createQueryClient<TStorageValue = string>(
