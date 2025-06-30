@@ -45,9 +45,9 @@ import org.enso.interpreter.runtime.warning.{
   WithWarnings
 }
 import org.enso.polyglot.debugger.ExecutedVisualization
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
 
 import java.io.File
 import java.util.UUID
@@ -259,7 +259,7 @@ object ProgramExecutionSupport {
   final def runProgram(
     contextId: Api.ContextId,
     stack: List[InstrumentFrame]
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
+  )(implicit ctx: RuntimeContext): Option[ExecutionResult] = {
     logger.trace(s"Run program {}", contextId)
     @scala.annotation.tailrec
     def unwind(
@@ -287,10 +287,10 @@ object ProgramExecutionSupport {
       }
 
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
-    val executionResult: Either[Option[Api.ExecutionResult], Unit] = for {
+    val executionResult: Either[Option[ExecutionResult], Unit] = for {
       stackItem <-
         explicitCallOpt.toRight(
-          Some(Api.ExecutionResult.Failure("Execution stack is empty.", None))
+          Some(ExecutionResult.Failure("Execution stack is empty.", None))
         )
       _ <-
         Try(
@@ -311,14 +311,14 @@ object ProgramExecutionSupport {
   private def onExecutionError(
     item: ExecutionItem,
     error: Throwable
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
+  )(implicit ctx: RuntimeContext): Option[ExecutionResult] = {
     val itemName = item match {
       case ExecutionItem.Method(_, _, function) => function
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
     val reason          = VisualizationResult.findExceptionMessage(error)
-    def onFailure(): Option[Api.ExecutionResult] = error match {
+    def onFailure(): Option[ExecutionResult] = error match {
       case _: ThreadInterruptedException =>
         logger.trace("Execution of function {} interrupted.", itemName)
         None
@@ -343,13 +343,13 @@ object ProgramExecutionSupport {
     */
   private def getExecutionOutcome(
     t: Throwable
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] =
+  )(implicit ctx: RuntimeContext): Option[ExecutionResult] =
     getDiagnosticOutcome.orElse(getFailureOutcome).lift(t)
 
   /** Extract diagnostic information from the provided exception. */
   def getDiagnosticOutcome(implicit
     ctx: RuntimeContext
-  ): PartialFunction[Throwable, Api.ExecutionResult.Diagnostic] = {
+  ): PartialFunction[Throwable, ExecutionResult.Diagnostic] = {
     case ex: AbstractTruffleException
         // exit exception is special, and handled as failure rather than Diagnostics.
         if !ctx.executionService.isExitException(ex) &&
@@ -359,7 +359,7 @@ object ProgramExecutionSupport {
           .forall(_ == LanguageInfo.ID) =>
       val section = Option(ctx.executionService.getSourceLocation(ex))
       val source  = section.flatMap(sec => Option(sec.getSource))
-      Api.ExecutionResult.Diagnostic.error(
+      ExecutionResult.Diagnostic.error(
         VisualizationResult.findExceptionMessage(ex),
         source.flatMap(src => findFileByModuleName(src.getName)),
         section.map(LocationResolver.sectionToRange),
@@ -373,15 +373,15 @@ object ProgramExecutionSupport {
   /** Extract information about the failure from the provided exception. */
   private def getFailureOutcome(implicit
     ctx: RuntimeContext
-  ): PartialFunction[Throwable, Api.ExecutionResult.Failure] = {
+  ): PartialFunction[Throwable, ExecutionResult.Failure] = {
     case ex: TypeNotFoundException =>
-      Api.ExecutionResult.Failure(
+      ExecutionResult.Failure(
         ex.getMessage,
         findFileByModuleName(ex.getModule)
       )
 
     case ex: MethodNotFoundException =>
-      Api.ExecutionResult.Failure(
+      ExecutionResult.Failure(
         ex.getMessage,
         findFileByModuleName(ex.getModule)
       )
@@ -391,17 +391,17 @@ object ProgramExecutionSupport {
       val section = Option(ctx.executionService.getSourceLocation(exitEx))
       val source  = section.flatMap(sec => Option(sec.getSource))
       val file    = source.flatMap(src => findFileByModuleName(src.getName))
-      Api.ExecutionResult.Failure(
+      ExecutionResult.Failure(
         exitEx.getMessage,
         file
       )
 
     case ex: ServiceException =>
-      Api.ExecutionResult.Failure(ex.getMessage, None)
+      ExecutionResult.Failure(ex.getMessage, None)
   }
 
   private def sendInterruptedExpressionUpdate(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
@@ -449,7 +449,7 @@ object ProgramExecutionSupport {
   }
 
   private def sendExpressionUpdate(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
@@ -629,7 +629,7 @@ object ProgramExecutionSupport {
     * @param ctx the runtime context
     */
   private def sendVisualizationUpdates(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
@@ -661,7 +661,7 @@ object ProgramExecutionSupport {
   }
 
   private def executeVisualization(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     runtimeCache: RuntimeCache,
     visualization: Visualization,
     expressionId: UUID,
@@ -713,7 +713,7 @@ object ProgramExecutionSupport {
     */
   private def sendVisualizationUpdate(
     visualizationResult: Either[Throwable, AnyRef],
-    contextId: ContextId,
+    contextId: Api.ContextId,
     syncState: UpdatesSynchronizationState,
     visualizationId: UUID,
     expressionId: UUID,
@@ -802,7 +802,7 @@ object ProgramExecutionSupport {
     * @param ctx the runtime context
     */
   def executeAndSendVisualizationUpdate(
-    contextId: ContextId,
+    contextId: Api.ContextId,
     runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
     visualization: Visualization,

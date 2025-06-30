@@ -27,6 +27,7 @@ import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExecutionResult
 
 import java.util.UUID
 
@@ -134,7 +135,7 @@ class UpsertVisualizationJob(
     visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
     message: String,
-    executionResult: Option[Api.ExecutionResult.Diagnostic]
+    executionResult: Option[ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit = {
     UpsertVisualizationJob.logger.error(
       "Visualization for expression {} failed: {} (evaluation result: {})",
@@ -197,7 +198,7 @@ object UpsertVisualizationJob {
     */
   case class EvaluationFailed(
     message: String,
-    failure: Option[Api.ExecutionResult.Diagnostic]
+    failure: Option[ExecutionResult.Diagnostic]
   ) extends EvaluationFailure
 
   /** The result of evaluating the method pointer and positional argument

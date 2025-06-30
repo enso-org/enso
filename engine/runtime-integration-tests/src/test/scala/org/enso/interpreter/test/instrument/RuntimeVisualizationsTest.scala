@@ -7,6 +7,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.text.editing.model
 import org.graalvm.polyglot.Context
@@ -1482,7 +1483,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Api.Response(
           Api.ExecutionFailed(
             contextId,
-            Api.ExecutionResult.Failure("Execution stack is empty.", None)
+            ExecutionResult.Failure("Execution stack is empty.", None)
           )
         )
       )
@@ -2087,7 +2088,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             Api.VisualizationContext(visualizationId, contextId, idMain),
             "Method `does_not_exist` of type Main could not be found.",
             Some(
-              Api.ExecutionResult.Diagnostic.error(
+              ExecutionResult.Diagnostic.error(
                 message =
                   "Method `does_not_exist` of type Main could not be found.",
                 stack = Vector(
@@ -2179,7 +2180,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             ),
             "Method `visualise_me` of type Integer could not be found.",
             Some(
-              Api.ExecutionResult.Diagnostic.error(
+              ExecutionResult.Diagnostic.error(
                 "Method `visualise_me` of type Integer could not be found.",
                 None,
                 Some(model.Range(model.Position(0, 5), model.Position(0, 19))),
@@ -2301,7 +2302,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             ),
             "Method `visualise_me` of type Integer could not be found.",
             Some(
-              Api.ExecutionResult.Diagnostic.error(
+              ExecutionResult.Diagnostic.error(
                 "Method `visualise_me` of type Integer could not be found.",
                 Some(visualizationFile),
                 Some(model.Range(model.Position(1, 11), model.Position(1, 25))),
@@ -2540,7 +2541,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             ),
             "42",
             Some(
-              Api.ExecutionResult.Diagnostic.error(
+              ExecutionResult.Diagnostic.error(
                 message = "42",
                 file    = Some(mainFile),
                 location = Some(
@@ -5387,7 +5388,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.ExecutionUpdate(
             contextId,
             Seq(
-              Api.ExecutionResult.Diagnostic.warning(
+              ExecutionResult.Diagnostic.warning(
                 "Unused variable vector3.",
                 Some(mainFile),
                 Some(model.Range(model.Position(5, 4), model.Position(5, 11)))
@@ -5623,7 +5624,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.ExecutionUpdate(
             contextId,
             Seq(
-              Api.ExecutionResult.Diagnostic.warning(
+              ExecutionResult.Diagnostic.warning(
                 "Unused variable vector3.",
                 Some(mainFile),
                 Some(model.Range(model.Position(6, 4), model.Position(6, 11)))

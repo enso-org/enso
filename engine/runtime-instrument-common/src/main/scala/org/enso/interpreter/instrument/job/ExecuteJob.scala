@@ -7,6 +7,7 @@ import java.util.UUID
 import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.Runtime.Api
 
 /** A job responsible for executing a call stack for the provided context.
@@ -75,7 +76,7 @@ class ExecuteJob(
           Api.Response(
             Api.ExecutionFailed(
               contextId,
-              Api.ExecutionResult.Failure(errorMsg, None)
+              ExecutionResult.Failure(errorMsg, None)
             )
           )
         )
@@ -115,7 +116,7 @@ class ExecuteJob(
                 )
               }
             outcome match {
-              case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
+              case Some(diagnostic: ExecutionResult.Diagnostic) =>
                 if (diagnostic.isError) {
                   ctx.endpoint.sendToClient(
                     Api.Response(Api.ExecutionFailed(contextId, diagnostic))
@@ -130,7 +131,7 @@ class ExecuteJob(
                     Api.Response(Api.ExecutionComplete(contextId))
                   )
                 }
-              case Some(failure: Api.ExecutionResult.Failure) =>
+              case Some(failure: ExecutionResult.Failure) =>
                 ctx.endpoint.sendToClient(
                   Api.Response(Api.ExecutionFailed(contextId, failure))
                 )

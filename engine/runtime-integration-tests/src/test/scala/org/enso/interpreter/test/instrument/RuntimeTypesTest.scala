@@ -9,6 +9,7 @@ import org.enso.common.MethodNames
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -354,7 +355,7 @@ class RuntimeTypesTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `T` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(4, 8), model.Position(4, 9)))
@@ -489,7 +490,7 @@ class RuntimeTypesTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `T` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(4, 8), model.Position(4, 9)))

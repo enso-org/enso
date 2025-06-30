@@ -6,6 +6,7 @@ import org.enso.common.LanguageInfo
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -160,7 +161,7 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `undefined` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 8), model.Position(2, 17))),
@@ -258,7 +259,7 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `undefined` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 8), model.Position(3, 17))),
@@ -351,7 +352,7 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `x` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(0, 18), model.Position(0, 19))),
@@ -429,7 +430,7 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `Non_Existing_Func` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(4, 16), model.Position(4, 33))),
@@ -502,7 +503,7 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `x` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(1, 18), model.Position(1, 19))),
@@ -666,12 +667,12 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.warning(
+            ExecutionResult.Diagnostic.warning(
               "Unused variable x.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
             ),
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `undefined` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 8), model.Position(3, 17))),
@@ -854,7 +855,7 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.warning(
+            ExecutionResult.Diagnostic.warning(
               "Unused variable x.",
               Some(mainFile),
               Some(model.Range(model.Position(5, 4), model.Position(5, 5)))
@@ -1709,7 +1710,7 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `foo` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 12), model.Position(3, 15))),
@@ -2480,7 +2481,7 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `IO` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(1, 8), model.Position(1, 10))),
@@ -2605,7 +2606,7 @@ class RuntimeErrorsTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "The name `IO` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 8), model.Position(2, 10))),
@@ -2920,7 +2921,7 @@ class RuntimeErrorsTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Failure("StackOverflowError", None)
+          ExecutionResult.Failure("StackOverflowError", None)
         )
       )
     )

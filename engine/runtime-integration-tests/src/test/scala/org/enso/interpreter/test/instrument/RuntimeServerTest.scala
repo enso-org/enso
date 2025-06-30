@@ -11,6 +11,7 @@ import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.debugger.IdExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -1083,7 +1084,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.warning(
+            ExecutionResult.Diagnostic.warning(
               "Unused variable node1.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 4), model.Position(3, 9)))
@@ -1430,7 +1431,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "Type_Error.Error",
             Some(mainFile),
             Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
@@ -4867,7 +4868,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Failure("Module Unnamed.Main not found.", None)
+          ExecutionResult.Failure("Module Unnamed.Main not found.", None)
         )
       )
     )
@@ -4916,7 +4917,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Failure(
+          ExecutionResult.Failure(
             "Type Unexpected not found in module Enso_Test.Test.Main.",
             Some(mainFile)
           )
@@ -4968,7 +4969,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Failure(
+          ExecutionResult.Failure(
             "Object Main does not define method ooops in module Enso_Test.Test.Main.",
             Some(mainFile)
           )
@@ -5023,7 +5024,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "Not_Invokable.Error",
             Some(mainFile),
             Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
@@ -5091,7 +5092,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "Type error: expected a function, but got 42.",
             Some(mainFile),
             Some(model.Range(model.Position(2, 7), model.Position(2, 19))),
@@ -5158,7 +5159,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "No_Such_Method.Error",
             Some(mainFile),
             Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
@@ -5234,7 +5235,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "Method `+` of type Function could not be found.",
             Some(mainFile),
             Some(model.Range(model.Position(3, 14), model.Position(3, 23))),
@@ -5309,7 +5310,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "Type_Error.Error",
             Some(mainFile),
             Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
@@ -5385,7 +5386,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "Type error: Expected `str` to be Text, but got Integer.",
             Some(mainFile),
             Some(model.Range(model.Position(3, 10), model.Position(3, 15))),
@@ -5461,7 +5462,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "No_Such_Method.Error",
             Some(mainFile),
             Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
@@ -5530,7 +5531,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "Method `pi` of type Number.type could not be found.",
             Some(mainFile),
             Some(model.Range(model.Position(3, 7), model.Position(3, 16))),
@@ -5607,7 +5608,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "Type_Error.Error",
             None,
             Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
@@ -5715,7 +5716,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Diagnostic.error(
+          ExecutionResult.Diagnostic.error(
             "Type error: Expected `that` to be Integer, but got Function.",
             None,
             Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
@@ -5813,7 +5814,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Failure(
+          ExecutionResult.Failure(
             "Exit was called with exit code 42.",
             Some(mainFile)
           )
@@ -5869,7 +5870,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.warning(
+            ExecutionResult.Diagnostic.warning(
               "Unused variable x.",
               Some(mainFile),
               Some(model.Range(model.Position(1, 4), model.Position(1, 5))),
@@ -5930,7 +5931,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.warning(
+            ExecutionResult.Diagnostic.warning(
               "Unused function argument x.",
               Some(mainFile),
               Some(model.Range(model.Position(0, 4), model.Position(0, 5)))
@@ -5990,12 +5991,12 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.warning(
+            ExecutionResult.Diagnostic.warning(
               "Unused variable x.",
               Some(mainFile),
               Some(model.Range(model.Position(1, 4), model.Position(1, 5)))
             ),
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "Variable x is being redefined.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 4), model.Position(2, 9)))
@@ -6057,7 +6058,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "Unexpected expression.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 30), model.Position(3, 31)))
@@ -6126,7 +6127,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "Parentheses can't be empty.",
               Some(mainFile),
               Some(model.Range(model.Position(5, 30), model.Position(5, 32)))
@@ -6188,7 +6189,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               "Method overloads are not supported: foo is defined multiple times in this module.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 0), model.Position(3, 7)))

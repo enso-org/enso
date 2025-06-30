@@ -21,6 +21,7 @@ import org.enso.languageserver.session.SessionRouter.{
   DeliverToJsonController
 }
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.testkit.{ReportLogsOnFailure, RetrySpec}
 import org.scalatest.BeforeAndAfterAll
@@ -407,7 +408,7 @@ class ContextEventsListenerSpec
         val message = "Test execution failed"
         listener ! Api.ExecutionFailed(
           contextId,
-          Api.ExecutionResult.Failure(message, None)
+          ExecutionResult.Failure(message, None)
         )
 
         router.expectMsg(
@@ -441,7 +442,7 @@ class ContextEventsListenerSpec
         val message = "Test execution failed"
         listener ! Api.ExecutionUpdate(
           contextId,
-          Seq(Api.ExecutionResult.Diagnostic.error(message))
+          Seq(ExecutionResult.Diagnostic.error(message))
         )
 
         router.expectMsg(

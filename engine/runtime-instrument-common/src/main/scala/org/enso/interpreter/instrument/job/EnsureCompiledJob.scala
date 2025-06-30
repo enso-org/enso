@@ -30,6 +30,7 @@ import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.ExpressionUpdate
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
@@ -168,7 +169,7 @@ class EnsureCompiledJob(
           case Left(err) =>
             logger.error(s"Compilation error in ${module.getName}", err)
             sendFailureUpdate(
-              Api.ExecutionResult.Failure(
+              ExecutionResult.Failure(
                 err.getMessage,
                 Option(module.getPath).map(new File(_))
               )
@@ -247,7 +248,7 @@ class EnsureCompiledJob(
     kind: Api.DiagnosticType,
     module: Module,
     diagnostic: ir.Diagnostic
-  ): Api.ExecutionResult.Diagnostic = {
+  ): ExecutionResult.Diagnostic = {
     val source = module.getSource
 
     def fileLocationFromSection(loc: ir.IdentifiedLocation) = {
@@ -258,7 +259,7 @@ class EnsureCompiledJob(
         .getEndColumn()
       source.getName() + "[" + locStr + "]";
     }
-    Api.ExecutionResult.Diagnostic(
+    ExecutionResult.Diagnostic(
       kind,
       Option(diagnostic.formattedMessage(fileLocationFromSection)),
       Option(module.getPath).map(new File(_)),
@@ -511,7 +512,7 @@ class EnsureCompiledJob(
     * @param ctx the runtime context
     */
   private def sendDiagnosticUpdates(
-    diagnostics: Seq[Api.ExecutionResult.Diagnostic]
+    diagnostics: Seq[ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit =
     if (diagnostics.nonEmpty) {
       ctx.contextManager.getAllContexts.keys.foreach { contextId =>
@@ -527,7 +528,7 @@ class EnsureCompiledJob(
     * @param ctx the runtime context
     */
   private def sendFailureUpdate(
-    failure: Api.ExecutionResult.Failure
+    failure: ExecutionResult.Failure
   )(implicit ctx: RuntimeContext): Unit =
     ctx.contextManager.getAllContexts.keys.foreach { contextId =>
       ctx.endpoint.sendToClient(
@@ -536,7 +537,7 @@ class EnsureCompiledJob(
     }
 
   private def getCompilationStatus(
-    diagnostics: Iterable[Api.ExecutionResult.Diagnostic]
+    diagnostics: Iterable[ExecutionResult.Diagnostic]
   ): CompilationStatus =
     if (diagnostics.exists(_.isError))
       CompilationStatus.Error

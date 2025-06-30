@@ -10,11 +10,10 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.protocol.json.ErrorApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.util.CollectionConversions._
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.{DiagnosticType, ExecutionResult}
 
 import java.io.File
-import java.lang.InternalError
 import scala.concurrent.{ExecutionContext, Future}
 
 final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
@@ -64,7 +63,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     * @return the registry protocol representation fo the diagnostic message
     */
   def toProtocolFailure(
-    result: Api.ExecutionResult
+    result: ExecutionResult
   )(implicit
     ec: ExecutionContext
   ): Future[ContextRegistryProtocol.ExecutionFailure] = {
@@ -74,11 +73,11 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   }
 
   private def fromExecutionResultToError(
-    result: Api.ExecutionResult
+    result: ExecutionResult
   ): (Option[File], String) = {
     result match {
       case ExecutionResult.Diagnostic(
-            DiagnosticType.Error,
+            Api.DiagnosticType.Error,
             message,
             file,
             _,
@@ -99,7 +98,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     * @param diagnostic the diagnostic message
     * @return the registry protocol representation of the diagnostic message
     */
-  def toProtocolDiagnostic(diagnostic: Api.ExecutionResult.Diagnostic)(implicit
+  def toProtocolDiagnostic(diagnostic: ExecutionResult.Diagnostic)(implicit
     ec: ExecutionContext
   ): Future[ContextRegistryProtocol.ExecutionDiagnostic] =
     for {

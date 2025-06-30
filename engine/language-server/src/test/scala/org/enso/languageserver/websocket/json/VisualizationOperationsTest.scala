@@ -5,6 +5,7 @@ import org.enso.languageserver.runtime.{
   MethodPointer,
   VisualizationConfiguration
 }
+import org.enso.polyglot.runtime.ExecutionResult
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.ReportLogsOnFailure
 import org.enso.text.editing.model
@@ -285,7 +286,7 @@ class VisualizationOperationsTest
           Api.VisualizationContext(visualizationId, contextId, expressionId),
           expressionFailureMessage,
           Some(
-            Api.ExecutionResult.Diagnostic.error(
+            ExecutionResult.Diagnostic.error(
               expressionFailureMessage,
               location = Some(
                 model.Range(model.Position(0, 0), model.Position(0, 15))
