@@ -1,7 +1,6 @@
 import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import { AnyAsset, AssetType, ProjectId } from '#/services/Backend'
-import { useFeatureFlag } from '$/providers/featureFlags'
 import { createContextStore } from '@/providers'
 import { Err, Ok, Result } from '@/util/data/result'
 import { Icon } from '@/util/iconMetadata/iconName'
@@ -57,7 +56,6 @@ function useRightPanelTabs(
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   { textRef, getText }: TextStore,
 ) {
-  const enableScheduledExecution = useFeatureFlag('enableScheduledExecution')
   const isDriveView = computed(() => toValue(currentTab) === 'drive')
   const isCloudDirectoryView = computed(
     () =>
@@ -113,7 +111,6 @@ function useRightPanelTabs(
             return Err(getText('assetProjectExecutionsCalendar.teamPlanOnly'))
           return Ok()
         }),
-        hidden: computed(() => !toValue(enableScheduledExecution)),
         title: textRef('executionsCalendar'),
       },
     ],

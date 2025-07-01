@@ -88,7 +88,6 @@ export function EnsoDevStatus() {
     enableAssetsTableBackgroundRefresh,
     assetsTableBackgroundRefreshInterval,
     enableCloudExecution,
-    enableScheduledExecution,
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
@@ -122,7 +121,6 @@ export function EnsoDevStatus() {
     !enableAssetsTableBackgroundRefresh ||
     assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
     !enableCloudExecution ||
-    !enableScheduledExecution ||
     showDeveloperIds ||
     overrideProfilePicture ||
     multiplyUserList ||
@@ -203,15 +201,6 @@ export function EnsoDevStatus() {
               }}
             >
               {getText('cloudExecutionDisabled')}
-            </DeveloperOverrideEntry>
-          )}
-          {!enableScheduledExecution && (
-            <DeveloperOverrideEntry
-              reset={() => {
-                setFeatureFlag('enableScheduledExecution', true)
-              }}
-            >
-              {getText('scheduledExecutionDisabled')}
             </DeveloperOverrideEntry>
           )}
           {showDeveloperIds && (
@@ -522,15 +511,6 @@ export function EnsoDevtools() {
                     description="Enable Cloud Execution"
                     onChange={(value) => {
                       setFeatureFlag('enableCloudExecution', value)
-                    }}
-                  />
-                  <Switch
-                    form={form}
-                    name="enableScheduledExecution"
-                    label="Enable Async Execution"
-                    description="Enable Async Execution"
-                    onChange={(value) => {
-                      setFeatureFlag('enableScheduledExecution', value)
                     }}
                   />
                   <Switch
