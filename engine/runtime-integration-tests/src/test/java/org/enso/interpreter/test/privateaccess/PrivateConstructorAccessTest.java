@@ -160,7 +160,7 @@ public class PrivateConstructorAccessTest {
   }
 
   @Test
-  public void constructorGetter_IsCalled_InScopeOfDefiningModule_Callback() throws Exception {
+  public void cannotCallPrivateConstructor_ViaCallback() throws Exception {
 
     var libDir = tempFolder.newFolder("Lib").toPath();
     ProjectUtils.createProject(
@@ -180,9 +180,6 @@ public class PrivateConstructorAccessTest {
                 import project.My_Type.My_Type
 
                 call_method ~callback =
-                    # This is the problematic line, if it is replaced by
-                    # callback \\x -> My_Type.Cons x
-                    # it succeeds.
                     callback My_Type.Cons
                 """)),
         libDir);
@@ -201,10 +198,10 @@ public class PrivateConstructorAccessTest {
         """,
         projDir);
 
-    ProjectUtils.testProjectRun(
+    ProjectUtils.testProjectRunFailure(
         projDir,
-        res -> {
-          assertThat(res.asString(), containsString("Cons 'Name'"));
+        ex -> {
+          assertThat(ex.getMessage(), containsString("Private_Access"));
         });
   }
 }
