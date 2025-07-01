@@ -353,7 +353,7 @@ export default class LocalBackend extends Backend {
    * Return asset details.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async getAssetDetails<
+  override getAssetDetails<
     Id extends backend.RealAssetId,
     Type extends backend.RealAssetTypeId<Id>,
     ReturnType extends Id extends backend.DirectoryId ?
@@ -370,26 +370,7 @@ export default class LocalBackend extends Backend {
       return null as never
     }
 
-    const directoryContents = await this.listDirectory({
-      parentId: newDirectoryId(parentPath),
-      filterBy: null,
-      labels: null,
-      recentProjects: false,
-      rootPath: this.rootPath(),
-    })
-
-    const entry = directoryContents.find((content) => content.id === assetId)
-
-    if (entry == null) {
-      if (backend.isDirectoryId(assetId)) {
-        throw new backend.DirectoryDoesNotExistError()
-      }
-
-      throw new backend.AssetDoesNotExistError()
-    }
-
-    // eslint-disable-next-line no-restricted-syntax
-    return entry as never
+    return this.findAsset(parentPath, 'id', assetId)
   }
 
   /**
@@ -827,6 +808,13 @@ export default class LocalBackend extends Backend {
     }
   }
 
+  /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
+  override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.AnyAsset> {
+    // eslint-disable-next-line no-restricted-syntax
+    const { directoryPath } = getDirectoryAndName(projectManager.Path(path as string))
+    return this.findAsset(directoryPath, 'ensoPath', path)
+  }
+
   /** Resolve the data of a project asset relative to the project root directory. */
   override async resolveProjectAssetData(
     projectId: backend.ProjectId,
@@ -1036,6 +1024,34 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override createCustomerPortalSession() {
     return this.invalidOperation()
+  }
+
+  /** Find asset details using directory listing. */
+  private async findAsset<Key extends keyof backend.AnyAsset>(
+    directory: projectManager.Path,
+    key: Key,
+    value: backend.AnyAsset[Key],
+  ) {
+    const directoryContents = await this.listDirectory({
+      parentId: newDirectoryId(directory),
+      filterBy: null,
+      labels: null,
+      recentProjects: false,
+      rootPath: this.rootPath(),
+    })
+
+    const entry = directoryContents.find((content) => content[key] === value)
+
+    if (entry == null) {
+      if (backend.isDirectoryId(value)) {
+        throw new backend.DirectoryDoesNotExistError()
+      }
+
+      throw new backend.AssetDoesNotExistError()
+    }
+
+    // eslint-disable-next-line no-restricted-syntax
+    return entry as never
   }
 }
 

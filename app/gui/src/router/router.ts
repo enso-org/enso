@@ -44,9 +44,14 @@ const routes = [
         beforeEnter: requireCloudBrowserEnabled,
         children: [
           {
-            path: DASHBOARD_PATH,
-            component: () =>
-              import('#/pages/dashboard/Dashboard').then((mod) => reactComponent(mod.default)),
+            name: 'dashboard',
+            path: '/:path(.*)*',
+            component: withDataLoader(() =>
+              import('#/pages/dashboard/Dashboard').then((mod) => ({
+                default: reactComponent(mod.default),
+                dataLoader: mod.dataLoader,
+              })),
+            ),
           },
           {
             path: SUBSCRIBE_PATH,
@@ -64,7 +69,7 @@ const routes = [
           ),
       },
       {
-        path: '/',
+        path: '/cloudDisabled',
         name: 'cloudDisabled',
         meta: { access: 'anyLoggedIn' },
         component: () =>

@@ -1365,7 +1365,7 @@ export default class RemoteBackend extends Backend {
     })
 
     const response = await this.client.get<ResponseBody>(
-      `./api/cloud/download-project?${queryString}`,
+      `/api/cloud/download-project?${queryString}`,
     )
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
@@ -1385,7 +1385,7 @@ export default class RemoteBackend extends Backend {
       directory: extractIdFromDirectoryId(directoryId),
     })
 
-    const response = await this.client.get(`./api/cloud/get-project-archive?${queryString}`)
+    const response = await this.client.get(`/api/cloud/get-project-archive?${queryString}`)
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
@@ -1410,7 +1410,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Resolve asset metadata from an enso path. */
-  async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+  override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
     const response = await this.get<backend.Asset>(remoteBackendPaths.RESOLVE_ENSO_PATH, { path })
 
     if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')

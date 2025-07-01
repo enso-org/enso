@@ -71,10 +71,13 @@ export default function Editor(props: EditorProps) {
       assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
       backend: isHybrid ? remoteBackend : backend,
     }),
-    select: (projectDetails) => ({
-      name: projectDetails.name,
-      isHybridOpened: isHybrid && projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
-    }),
+    select: (projectDetails) => {
+      return {
+        name: projectDetails.name,
+        isHybridOpened:
+          isHybrid && projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
+      }
+    },
   })
 
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data

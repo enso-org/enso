@@ -23,20 +23,21 @@ import { useVueValue } from '$/providers/react/common'
 import { usePrefetchQuery } from '@tanstack/react-query'
 import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
+import type { DashboardProps } from './types'
 
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax
 const AppContainer = vueComponent(AppContainerVue).default
 
 /** The component that contains the entire UI. */
-export default function Dashboard() {
+export default function Dashboard(props: DashboardProps) {
   return (
     /* Ideally `DriveProvider` would be in `Drive.tsx`, but it currently must be all the way out here
      * due to modals being in `TheModal`. */
     <DriveProvider>
       <CategoriesProvider>
         <ProjectsProvider>
-          <DashboardInner />
+          <DashboardInner {...props} />
         </ProjectsProvider>
       </CategoriesProvider>
     </DriveProvider>
@@ -63,7 +64,7 @@ function fileURLToPath(url: string): string | null {
 }
 
 /** The component that contains the entire UI. */
-function DashboardInner() {
+function DashboardInner(props: DashboardProps) {
   const { localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const config = useConfig()
@@ -73,15 +74,33 @@ function DashboardInner() {
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
   const openProjectLocally = projectHooks.useOpenProjectLocally()
+  const lauchedProjects = useLaunchedProjects()
+  const initialAlreadyLaunchedProject = lauchedProjects.find(
+    (lp) => lp.id === props.projectToOpen?.asset.id,
+  )
+  const initialAlreadyLaunchedHybridProject = lauchedProjects.find(
+    (lp) => lp.hybrid?.cloudProjectId === props.projectToOpen?.asset.id,
+  )
 
   usePrefetchQuery({
-    queryKey: ['loadInitialLocalProject'],
+    queryKey: ['loadInitialProject'],
     networkMode: 'always',
     ...STATIC_QUERY_OPTIONS,
     queryFn: async () => {
-      if (initialLocalProjectPath != null && window.backendApi && localBackend) {
+      if (props.projectToOpen) {
+        console.debug('About to open project', props.projectToOpen)
+        console.debug('Launched projects are now', launchedProjects)
+        if (
+          // If project is already on launched list, then the Editor.tsx will handle opening it.
+          !initialAlreadyLaunchedProject &&
+          !initialAlreadyLaunchedHybridProject &&
+          !projectHooks.BUSY_PROJECT_STATES.has(props.projectToOpen.asset.projectState.type)
+        ) {
+          await openProjectLocally(props.projectToOpen.asset, props.projectToOpen.backend)
+        }
+      } else if (initialLocalProjectPath != null && window.backendApi && localBackend) {
         const projectName = baseName(initialLocalProjectPath)
-        const { id } = await window.backendApi.importProjectFromPath(
+        const { id, projectRoot } = await window.backendApi.importProjectFromPath(
           initialLocalProjectPath,
           localBackend.rootPath(),
           projectName,
@@ -91,13 +110,13 @@ function DashboardInner() {
             id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
             title: projectName,
             parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+            ensoPath: projectRoot,
           },
           backendModule.BackendType.local,
         )
       }
       return null
     },
-    staleTime: Infinity,
   })
 
   React.useEffect(() => {
@@ -162,7 +181,6 @@ function DashboardInner() {
         }}
       >
         <AppContainer
-          initialProjectName={initialProjectName}
           launchedProjects={launchedProjects}
           closeProject={closeProject}
           closeAllProjects={closeAllProjects}

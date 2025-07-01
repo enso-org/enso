@@ -1,13 +1,22 @@
 import { LaunchedProject } from '#/providers/ProjectsProvider'
-import { ProjectId } from '#/services/Backend'
 import { createContextStore } from '@/providers'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
-import { computed, toRef } from 'vue'
-import { LocationQueryValue, useRoute, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-export type TabId = 'drive' | 'settings' | ProjectId
+export type TabId = 'drive' | 'settings' | `local/${string}` | `cloud/${string}`
 
-const pageKey = 'cloud-ide_page' as const
+export function ensoPathToTabId(path: string): TabId {
+  if (path.startsWith('enso://')) {
+    return `cloud/${path.slice('enso://'.length)}`
+  } else {
+    return `local/${path}`
+  }
+}
+
+function routeParamToTabName(routeParam: string | string[] | undefined) {
+  return routeParam instanceof Array ? routeParam.join('/') : routeParam
+}
 
 export type ContainerData = ReturnType<typeof useConainerData>
 export const [provideContainerData, useConainerData] = createContextStore(
@@ -15,19 +24,25 @@ export const [provideContainerData, useConainerData] = createContextStore(
   (launchedProjectsFromReact: ToValue<readonly LaunchedProject[]>) => {
     const router = useRouter()
     const route = useRoute()
-    const openedProjects = toRef(launchedProjectsFromReact)
+    const openedProjects = computed(() =>
+      toValue(launchedProjectsFromReact).map((lp) => ({
+        ...lp,
+        shown: computed(() => tab.value === ensoPathToTabId(lp.ensoPath)),
+      })),
+    )
 
-    const isValidTab = (
-      name: LocationQueryValue | LocationQueryValue[] | undefined,
-    ): name is TabId =>
+    const isValidTab = (name: string | undefined): name is TabId =>
       name === 'drive' ||
       name === 'settings' ||
-      openedProjects.value.find((p) => p.id === name) != null
+      openedProjects.value.find((p) => ensoPathToTabId(p.ensoPath) === name) != null
 
     const tab = computed<TabId>({
-      get: () => (isValidTab(route?.query[pageKey]) ? route.query[pageKey] : 'drive'),
+      get: () => {
+        const name = routeParamToTabName(route.params.path)
+        return isValidTab(name) ? name : 'drive'
+      },
       set: (page) => {
-        router.push({ query: { ...route.query, [pageKey]: page } })
+        router.push({ params: { path: page.split('/') }, query: route.query })
       },
     })
 

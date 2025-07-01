@@ -99,6 +99,7 @@ export const BUSY_PROJECT_STATES = new Set([
   ...Array.from(OPENING_PROJECT_STATES),
   ...Array.from(CLOSING_PROJECT_STATES),
   backendModule.ProjectState.opened,
+  backendModule.ProjectState.hybridOpened,
 ])
 
 /** Stale time for local projects, set to 10 seconds. */
@@ -491,7 +492,6 @@ function useOpenHybridProject() {
         addOpeningProject(asset.id)
         await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
-        invariant(asset.ensoPath, 'Enso path is not defined')
         const cloudProjectDirectoryPath = asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/'))
 
         let project
@@ -514,6 +514,7 @@ function useOpenHybridProject() {
           id: project.id,
           title: asset.title,
           parentId: project.parentId,
+          ensoPath: asset.ensoPath,
           type: backendModule.BackendType.local,
           hybrid: {
             cloudProjectId: asset.id,
@@ -552,7 +553,7 @@ export function useOpenProjectNatively() {
 
   return eventCallbacks.useEventCallback(
     async (
-      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
+      asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
       if (!canRunProjects.natively[backendType]) {

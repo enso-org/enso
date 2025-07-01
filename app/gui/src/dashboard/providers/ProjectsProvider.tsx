@@ -35,6 +35,7 @@ const PROJECT_SCHEMA = z
     id: PROJECT_ID_SCHEMA,
     parentId: DIRECTORY_ID_SCHEMA,
     title: z.string(),
+    ensoPath: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
     preventAutoReopen: z.boolean().optional(),
     hybrid: z.optional(

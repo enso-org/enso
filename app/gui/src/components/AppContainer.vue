@@ -6,7 +6,7 @@ import { BackendType, ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/AppContainer/reactTabs'
 import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
-import { provideContainerData } from '$/providers/container'
+import { ensoPathToTabId, provideContainerData, TabId } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
 import { RightPanelDataProviderForReact } from '$/providers/react/rightPanel'
 import { provideRightPanelData } from '$/providers/rightPanel'
@@ -14,14 +14,13 @@ import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { applyPureReactInVue } from 'veaury'
-import { reactive, shallowRef, toRef, toRefs, watch } from 'vue'
+import { reactive, shallowRef, toRef, toRefs, watch, watchEffect } from 'vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
 
 <script setup lang="ts">
 const props = defineProps<{
-  initialProjectName: string | null
   launchedProjects: readonly LaunchedProject[]
   closeProject(project: LaunchedProject): void
   closeAllProjects(): void
@@ -41,10 +40,10 @@ provideFullscreenRoot(fullscreenRoot)
 const readyProjects = reactive(new Set<ProjectId>())
 const projectNames = reactive(new Map<ProjectId, string>())
 
-function setProjectReady(project: ProjectId, ready: boolean) {
+function setProjectReady(project: ProjectId, projectTab: TabId, ready: boolean) {
   if (ready) {
     readyProjects.add(project)
-    tab.value = project
+    tab.value = projectTab
   } else {
     readyProjects.delete(project)
   }
@@ -70,6 +69,8 @@ watch(openedProjects, (openedProjectsList) => {
   }
 })
 
+watchEffect(() => console.log('TAB', tab.value), { flush: 'sync' })
+
 const onSignOut = () => {
   void props.closeAllProjects()
 }
@@ -87,14 +88,14 @@ const onSignOut = () => {
             @update:selected="$event && (tab = 'drive')"
           />
           <SelectableTab
-            v-for="project in launchedProjects"
+            v-for="project in openedProjects"
             :key="project.id"
             data-testid="editor-tab-button"
             selectionLayoutId="tab-highlight"
-            :selected="tab === project.id"
+            :selected="project.shown.value"
             :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
             :label="projectNames.get(project.id)"
-            @update:selected="$event && (tab = project.id)"
+            @update:selected="$event && (tab = ensoPathToTabId(project.ensoPath))"
             @close="closeProject(project)"
           >
             <GrowingSpinner
@@ -117,18 +118,18 @@ const onSignOut = () => {
       <div class="mainView">
         <div class="panel">
           <KeepAlive>
-            <Drive v-if="tab === 'drive'" :initialProjectName="initialProjectName" />
+            <Drive v-if="tab === 'drive'" />
           </KeepAlive>
           <div
             v-for="project in openedProjects"
             :key="project.id"
             class="editor"
-            :class="{ hidden: tab !== project.id }"
+            :class="{ hidden: !project.shown.value }"
           >
             <Editor
-              :hidden="tab !== project.id"
+              :hidden="!project.shown.value"
               :project="project"
-              @readyUpdate="setProjectReady(project.id, $event)"
+              @readyUpdate="setProjectReady(project.id, ensoPathToTabId(project.ensoPath), $event)"
               @nameUpdate="projectNames.set(project.id, $event)"
             />
           </div>

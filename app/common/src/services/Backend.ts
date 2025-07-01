@@ -227,6 +227,8 @@ export enum ProjectState {
   openInProgress = 'OpenInProgress',
   provisioned = 'Provisioned',
   opened = 'Opened',
+  hybridOpenInProgress = 'HybridOpenInProgress',
+  hybridOpened = 'HybridOpened',
   closed = 'Closed',
   /**
    * A frontend-specific state, representing a project that should be displayed as
@@ -261,6 +263,8 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
   [ProjectState.opened]: false,
+  [ProjectState.hybridOpenInProgress]: true,
+  [ProjectState.hybridOpened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
   [ProjectState.closing]: false,
@@ -272,7 +276,9 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.scheduled]: true,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
+  [ProjectState.hybridOpenInProgress]: true,
   [ProjectState.opened]: true,
+  [ProjectState.hybridOpened]: true,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
   [ProjectState.closing]: false,
@@ -977,7 +983,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  readonly ensoPath?: EnsoPath | undefined
+  readonly ensoPath: EnsoPath | undefined
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1809,7 +1815,6 @@ export default abstract class Backend {
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
-    params: GetProjectSessionLogsRequestParams,
     title: string,
   ): Promise<ProjectSessionLogs>
   /** Set a project to an open state. */
@@ -1829,6 +1834,8 @@ export default abstract class Backend {
   async getMainFileContent(projectId: ProjectId, versionId?: S3ObjectVersionId) {
     return (await this.resolveProjectAssetData(projectId, 'src/Main.enso', versionId)).text()
   }
+  /** Resolve enso path to an asset */
+  abstract resolveEnsoPath(path: EnsoPath): Promise<PathResolveResponse>
   /** Resolve the data of a project asset relative to the project root directory. */
   abstract resolveProjectAssetData(
     projectId: ProjectId,
